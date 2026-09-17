@@ -861,6 +861,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   same-directory temporary files and atomic create-if-absent links, deduplicates
   concurrent writers, makes published files read-only, and re-verifies every
   read so tampering or path/symlink escapes fail closed.
+- `artifact_application.py` composes that byte store with the PostgreSQL commit
+  ledger. It verifies and publishes bytes before finalizing durable commit
+  evidence, maps exact retries to replayed commit records, and exposes an
+  explicit factory with a caller-supplied NAS-mountable root. A crash between
+  byte publication and metadata finalization leaves only an immutable orphan
+  for later reconciliation; it cannot overwrite a committed digest.
 - `artifacts.py` and `ArtifactManifest` enforce typed byte lengths, retention
   classes, and authenticated integrity receipts. Verified receipts cannot claim
   success with mismatched observed bytes, and failure reasons are canonicalized

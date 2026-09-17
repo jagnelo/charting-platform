@@ -12,6 +12,19 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Local artifact publication application wiring
+
+`backend/app/strategy_lab_v2/artifact_application.py` now composes the
+immutable `LocalArtifactStore` with `PostgresArtifactCommitAdapter`. Publication
+verifies the manifest bytes, uses the store's atomic create-if-absent/reuse
+behavior, and finalizes the matching commit ledger record with explicit
+committed/replayed/rejected evidence. A factory accepts an explicit artifact
+root so a later Compose/NAS volume can be selected without a hidden host path.
+Focused tests cover first publication, exact replay/deduplication, rejection
+before commit, and factory composition. Crash-orphan reconciliation,
+retention/pinning coordination, result-completion wiring, worker activation,
+and startup configuration remain deferred.
+
 ## 2026-09-17 - Initial authenticated API/application wiring
 
 `backend/app/strategy_lab_v2/application.py` now composes the existing
