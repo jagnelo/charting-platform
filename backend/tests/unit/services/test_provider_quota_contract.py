@@ -2177,7 +2177,7 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     assert eodhd["dimensions"][1]["source"] == "https://eodhd.com/lp/historical-eod-api"
     assert (
         eodhd["dimensions"][0]["limit_basis"]
-        == "lower published value retained for audit; pending account/provider clarification"
+        == "conservative seed pending account-specific review"
     )
     assert eodhd["unknown_dimensions"] == [
         "published_minute_limit_conflict",

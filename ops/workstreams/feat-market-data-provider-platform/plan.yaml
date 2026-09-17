@@ -226,14 +226,17 @@ remaining_gaps:
     warnings at 70.78% coverage.
   - >-
     EODHD's conflicting official minute-pool claims (20/minute on the Free
-    Starter card versus 1,000/minute on the general limits page) are now
-    represented explicitly rather than enforced as a confirmed 20/minute
-    account limit. `EODHD_REVIEWED_MINUTE_LIMIT`,
+    Starter card versus 1,000/minute on the general limits page), plus the
+    configured account's native 1,200/minute header, are represented
+    explicitly rather than enforced as a confirmed account limit.
+    `EODHD_REVIEWED_MINUTE_LIMIT`,
     `EODHD_REVIEWED_MINUTE_RESET`, and `EODHD_MINUTE_QUOTA_EVIDENCE` must all
     be present before ordinary history/profile/quote/discovery routing can be
     admitted. The native `/user` bootstrap remains eligible only for the
     independently documented daily pool; its explicitly allow-listed unknown
-    minute dimensions are never treated as zero. Commits `d190251d1` and
+    minute dimensions are never treated as zero; a positive reviewed
+    provider-native limit is accepted without an arbitrary upper cap. Commits
+    `d190251d1` and
     `b97533bf8` also fix
     the live reservation planner so this bounded exception is actually
     executable without widening ordinary routing. Focused coordinator/runtime
@@ -722,6 +725,17 @@ remaining_gaps:
       phase remain open.
 progress:
   completed:
+    - >-
+      2026-09-17 EODHD account-specific quota evidence: the configured key's
+      credentialed `/user` snapshot reports the native daily allowance of 20
+      calls and an `X-RateLimit-Limit` of 1,200 requests/minute; the current
+      durable usage observation records 3 daily calls and 2 minute requests,
+      with no reset timestamp. The provider seed now accepts any positive
+      operator-reviewed native minute entitlement, including 1,200, without
+      an arbitrary upper cap; routing remains fail-closed until the owner
+      supplies an admission-safe reset label and evidence. Focused quota and
+      registry coverage passes 134/134 and the complete backend unit gate
+      passes 2,364/2,364 with 37 warnings and 70.82% coverage.
     - >-
       2026-09-17 current committed-source validation after the Bybit preflight
       diagnostic fix: the complete backend unit gate passed `2,364/2,364`

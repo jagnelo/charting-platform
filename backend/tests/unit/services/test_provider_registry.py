@@ -854,6 +854,11 @@ class TestProviderRegistry:
         assert eodhd_contract["dimensions"][0]["limit"] == 20
         assert eodhd_contract["dimensions"][0]["reset"] == "rolling"
         assert eodhd_seed["tokens_per_minute"] == 20
+        monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 1200)
+        eodhd_seed = provider_rate_limit_seed("eodhd")
+        eodhd_contract = eodhd_seed["quota_contract"]
+        assert eodhd_contract["dimensions"][0]["limit"] == 1200
+        assert eodhd_seed["tokens_per_minute"] == 1200
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter")
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)
         assert provider_missing_routing_controls("marketdata_app") == []

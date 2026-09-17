@@ -5234,3 +5234,21 @@ the authoritative record for this replay; it made zero provider calls.
   environment secret-store verification, and the separately authorized final
   shadow phase. No routing promotion, deployment, or ETF-adapter change was
   made.
+
+## 2026-09-17 EODHD account-specific quota evidence
+
+- The configured EODHD key's credentialed `/user` snapshot reports a native
+  daily allowance of `20` calls and an `X-RateLimit-Limit` of `1,200`
+  requests/minute. The durable current observation records `3` daily calls and
+  `2` minute requests; no reset timestamp was returned, so no reset boundary
+  was inferred.
+- The EODHD seed now accepts any positive operator-reviewed provider-native
+  minute entitlement, including `1,200`, without an arbitrary upper ceiling.
+  Ordinary routing remains fail-closed until
+  `EODHD_REVIEWED_MINUTE_LIMIT`, `EODHD_REVIEWED_MINUTE_RESET`, and
+  `EODHD_MINUTE_QUOTA_EVIDENCE` are configured with admission-safe reset and
+  current evidence.
+- Focused quota/registry coverage passed `134/134`; the complete backend unit
+  gate passed `2,364/2,364` with `37` warnings and `70.82%` coverage. The
+  bounded live account-usage receipt is retained in `validation.jsonl`; no
+  secret or provider payload was persisted.

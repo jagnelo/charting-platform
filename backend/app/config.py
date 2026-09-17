@@ -934,11 +934,12 @@ class Settings(BaseSettings):
                         "name": "requests_per_minute",
                         # The Free Starter plan card publishes a 20/min
                         # request ceiling. EODHD's general API-limits page and
-                        # Quick Start claim 1,000/min for every plan. Keep the
-                        # lower published value visible for audit only; the
-                        # unresolved conflict and reset boundary make this
-                        # dimension non-routable until account evidence is
-                        # reviewed.
+                        # Quick Start claim 1,000/min for every plan, while the
+                        # configured account has exposed a native 1,200/min
+                        # header. Keep the conservative 20/min seed visible for
+                        # audit only; the unresolved account entitlement and
+                        # reset boundary make this dimension non-routable until
+                        # reviewed evidence is supplied.
                         "limit": 20,
                         "window_seconds": 60,
                         "unit": "requests",
@@ -946,9 +947,7 @@ class Settings(BaseSettings):
                         "quota_group": "api_key",
                         "source": "https://eodhd.com/lp/historical-eod-api",
                         "reset": "provider_defined",
-                        "limit_basis": (
-                            "lower published value retained for audit; pending account/provider clarification"
-                        ),
+                        "limit_basis": "conservative seed pending account-specific review",
                     },
                     {
                         "name": "calls_per_day",
@@ -3021,13 +3020,15 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
                 seed["quota_contract"] = contract
         return seed
     if provider_name == "eodhd":
-        # EODHD's official sources conflict on the minute pool (20/min on the
-        # Free Starter card versus 1,000/min on the general limits page), and
-        # neither source gives us a calculable reset boundary for this key.
-        # Keep the lower published value audit-visible but non-routable until
-        # an operator supplies the exact account limit, reset semantics, and
-        # current evidence. The separately documented daily pool remains
-        # eligible for native /user bootstrap.
+        # EODHD's published minute pools conflict (20/min on the Free Starter
+        # card versus 1,000/min on the general limits page), and the configured
+        # account has exposed a native 1,200/min header. Keep the conservative
+        # seed audit-visible but non-routable until an operator supplies the
+        # exact account limit, reset semantics, and current evidence. There is
+        # deliberately no arbitrary upper bound here: a positive, reviewed
+        # provider-native entitlement is valid even when it exceeds a stale
+        # published seed. The separately documented daily pool remains eligible
+        # for native /user bootstrap.
         reviewed_limit = provider_positive_integer(
             getattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 0)
         )
@@ -3040,7 +3041,6 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         contract = seed.get("quota_contract")
         if (
             reviewed_limit is not None
-            and reviewed_limit <= 1000
             and provider_quota_reset_is_admission_safe(reviewed_reset)
             and quota_evidence
             and isinstance(contract, dict)
