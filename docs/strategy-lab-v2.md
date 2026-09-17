@@ -667,12 +667,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   typed conflicts or rejected preconditions without allowing artifact or
   metric-set creation through the generic route.
 - `resource_domains.py` is the first domain-owned API mutation boundary. It
-  decodes strategy, package, portfolio, experiment, attempt, snapshot, and
-  trial attributes into immutable typed contracts, canonicalizes dependency,
+  decodes strategy, package, portfolio, experiment, attempt, snapshot, trial,
+  and metric-set attributes into immutable typed contracts, canonicalizes dependency,
   parameter, capital, risk, rebalance, seed, engine, lifecycle, coverage,
-  and series/trial data, binds the normalized domain fingerprint into projected
+  and series/trial/metric data, binds the normalized domain fingerprint into projected
   resource metadata, and rejects unknown fields, invalid
-  source/archive/runtime/portfolio/experiment/attempt/snapshot/trial
+  source/archive/runtime/portfolio/experiment/attempt/snapshot/trial/metric
   identities, or conflicting API IDs. Other resource types remain
   registration-neutral until their domain adapters are introduced.
 - `api_router.py` provides a registration-neutral `/strategy-lab/v2` FastAPI
@@ -704,8 +704,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   cross-owner or changed-content collisions fail closed. Strategy mutations
   are normalized through the typed
   `StrategyVersion`/`StrategyPackage`/`PortfolioComposition`/
-  `ExperimentDefinition`/`RunAttempt`/`DataSnapshot`/`ScientificTrial`
-  contracts
+  `ExperimentDefinition`/`RunAttempt`/`DataSnapshot`/`ScientificTrial`/
+  `MetricSet` contracts
   before storage; other resource domain adapters remain explicit follow-up
   gates. `persistence.py` now owns the complete
   PostgreSQL adapter graph behind one shared async session factory, preserving

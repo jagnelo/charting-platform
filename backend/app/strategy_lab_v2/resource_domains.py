@@ -2,7 +2,7 @@
 
 The REST router intentionally accepts registration-neutral resource envelopes.
 This module is the first application-owned domain boundary: it turns strategy,
-package, portfolio, experiment, attempt, snapshot, and trial resources into immutable
+package, portfolio, experiment, attempt, snapshot, trial, and metric-set resources into immutable
 typed contracts before the application persists them, while leaving other
 resource types available to their future domain adapters.
 """
@@ -32,6 +32,11 @@ from app.strategy_lab_v2.contracts import (
     EvaluationWindow,
     EventGranularity,
     ExperimentDefinition,
+    MetricBasis,
+    MetricCalculationDefinition,
+    MetricEvidenceReference,
+    MetricSet,
+    MetricValue,
     PortfolioComponent,
     PortfolioComposition,
     ProductClass,
@@ -79,10 +84,10 @@ def normalize_resource_attributes(
 ) -> ResourceDomainNormalization:
     """Validate and canonicalize the domain fields for one resource.
 
-    Strategy and package creation are deliberately strict because their
-    source/dependency/runtime identities control reproducibility. Other
-    resources retain the generic frozen envelope until their domain-specific
-    adapters are introduced.
+    Typed strategy, package, portfolio, experiment, attempt, snapshot, trial,
+    and metric-set creation is deliberately strict because these identities
+    control reproducibility. Other resources retain the generic frozen envelope
+    until their domain-specific adapters are introduced.
     """
 
     if not isinstance(resource_type, ApiResourceType):
@@ -103,6 +108,8 @@ def normalize_resource_attributes(
         return _normalize_snapshot(attributes)
     if resource_type is ApiResourceType.TRIAL:
         return _normalize_trial(attributes)
+    if resource_type is ApiResourceType.METRIC_SET:
+        return _normalize_metric_set(attributes)
     return ResourceDomainNormalization(attributes)
 
 
@@ -657,6 +664,162 @@ def _evaluation_window_attributes(value: EvaluationWindow | None) -> Mapping[str
         "end": value.end,
         "purpose": value.purpose,
         "warmup_start": value.warmup_start,
+    }
+
+
+def _normalize_metric_set(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
+    allowed = {
+        "metric_set_id",
+        "trial_id",
+        "attempt_id",
+        "definition_version",
+        "values",
+        "created_at",
+        "resource_id",
+        "id",
+    }
+    unknown = sorted(set(attributes) - allowed)
+    if unknown:
+        raise ValueError(f"metric_set attributes contain unsupported fields: {', '.join(unknown)}")
+    api_ids = [attributes[name] for name in ("resource_id", "id") if name in attributes]
+    if any(not isinstance(value, str) or not value.strip() for value in api_ids):
+        raise ValueError("metric_set resource_id/id must be a non-empty string")
+    if len(api_ids) == 2 and api_ids[0] != api_ids[1]:
+        raise ValueError("metric_set resource_id and id must agree")
+    try:
+        values_raw = attributes["values"]
+        if not isinstance(values_raw, Sequence) or isinstance(values_raw, str | bytes):
+            raise ValueError("metric_set values must be a sequence")
+        metric_set = MetricSet(
+            metric_set_id=attributes["metric_set_id"],
+            trial_id=attributes["trial_id"],
+            attempt_id=attributes["attempt_id"],
+            definition_version=attributes["definition_version"],
+            values=tuple(_metric_value(item) for item in values_raw),
+            created_at=_datetime_attribute(attributes["created_at"], "created_at"),
+        )
+    except KeyError as error:
+        raise ValueError(f"metric_set attribute is required: {error.args[0]}") from error
+    except (AttributeError, TypeError, ValueError) as error:
+        raise ValueError(f"metric_set attributes are invalid: {error}") from error
+
+    normalized: dict[str, Any] = {
+        "metric_set_id": metric_set.metric_set_id,
+        "trial_id": metric_set.trial_id,
+        "attempt_id": metric_set.attempt_id,
+        "definition_version": metric_set.definition_version,
+        "values": tuple(_metric_value_attributes(item) for item in metric_set.values),
+        "created_at": metric_set.created_at,
+    }
+    if api_ids:
+        normalized["resource_id"] = api_ids[0]
+    return ResourceDomainNormalization(normalized, metric_set.fingerprint)
+
+
+def _metric_value(value: Any) -> MetricValue:
+    if not isinstance(value, Mapping):
+        raise ValueError("metric_set values must contain mappings")
+    allowed = {
+        "name",
+        "value",
+        "unit",
+        "definition_version",
+        "basis",
+        "sample_size",
+        "annualization_basis",
+        "calculation_basis",
+        "null_reason",
+        "calculation_definition",
+        "evidence_references",
+    }
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"metric value contains unsupported fields: {', '.join(unknown)}")
+    evidence_raw = value.get("evidence_references", ())
+    if not isinstance(evidence_raw, Sequence) or isinstance(evidence_raw, str | bytes):
+        raise ValueError("metric evidence_references must be a sequence")
+    calculation_definition = value.get("calculation_definition")
+    if calculation_definition is not None:
+        calculation_definition = _metric_calculation_definition(calculation_definition)
+    metric_value = value.get("value")
+    if metric_value is not None:
+        metric_value = _decimal_attribute(metric_value, "metric value")
+    try:
+        return MetricValue(
+            name=value["name"],
+            value=metric_value,
+            unit=value["unit"],
+            definition_version=value["definition_version"],
+            basis=_enum_attribute(MetricBasis, value["basis"], "metric basis"),
+            sample_size=value["sample_size"],
+            annualization_basis=value.get("annualization_basis"),
+            calculation_basis=value.get("calculation_basis"),
+            null_reason=value.get("null_reason"),
+            calculation_definition=calculation_definition,
+            evidence_references=tuple(_metric_evidence_reference(item) for item in evidence_raw),
+        )
+    except KeyError as error:
+        raise ValueError(f"metric value field is required: {error.args[0]}") from error
+
+
+def _metric_calculation_definition(value: Any) -> MetricCalculationDefinition:
+    if not isinstance(value, Mapping):
+        raise ValueError("calculation_definition must be a mapping")
+    allowed = {"formula_id", "contract_version", "parameters"}
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(
+            f"calculation_definition contains unsupported fields: {', '.join(unknown)}"
+        )
+    parameters = value.get("parameters", {})
+    if not isinstance(parameters, Mapping):
+        raise ValueError("calculation_definition parameters must be a mapping")
+    try:
+        return MetricCalculationDefinition(
+            formula_id=value["formula_id"],
+            contract_version=value["contract_version"],
+            parameters=parameters,
+        )
+    except KeyError as error:
+        raise ValueError(f"calculation_definition field is required: {error.args[0]}") from error
+
+
+def _metric_evidence_reference(value: Any) -> MetricEvidenceReference:
+    if not isinstance(value, Mapping):
+        raise ValueError("metric evidence references must contain mappings")
+    allowed = {"role", "digest"}
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"metric evidence contains unsupported fields: {', '.join(unknown)}")
+    try:
+        return MetricEvidenceReference(role=value["role"], digest=value["digest"])
+    except KeyError as error:
+        raise ValueError(f"metric evidence field is required: {error.args[0]}") from error
+
+
+def _metric_value_attributes(value: MetricValue) -> Mapping[str, Any]:
+    calculation_definition = value.calculation_definition
+    calculation_attributes = None
+    if calculation_definition is not None:
+        calculation_attributes = {
+            "formula_id": calculation_definition.formula_id,
+            "contract_version": calculation_definition.contract_version,
+            "parameters": calculation_definition.parameters,
+        }
+    return {
+        "name": value.name,
+        "value": value.value,
+        "unit": value.unit,
+        "definition_version": value.definition_version,
+        "basis": value.basis,
+        "sample_size": value.sample_size,
+        "annualization_basis": value.annualization_basis,
+        "calculation_basis": value.calculation_basis,
+        "null_reason": value.null_reason,
+        "calculation_definition": calculation_attributes,
+        "evidence_references": tuple(
+            {"role": item.role, "digest": item.digest} for item in value.evidence_references
+        ),
     }
 
 

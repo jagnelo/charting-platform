@@ -169,6 +169,20 @@ Focused trial/domain tests passed (16 tests); the full Strategy Lab v2 package
 passed 798 tests. Compose activation, stable Nautilus conformance, upstream
 contract reconciliation, and full repository integration remain open.
 
+## 2026-09-17 - Typed metric-set resource registration
+
+`resource_domains.py` now extends typed mutation validation to metric sets.
+Metric values validate exact decimal/null semantics, basis, sample size,
+annualization and calculation context, nested formula definitions, and
+content-addressed evidence references before the immutable `MetricSet`
+contract is persisted. Values are canonically ordered by name/basis/unit;
+unknown fields, malformed evidence/digests, null values without reasons, and
+conflicting API ID aliases fail closed.
+
+Focused metric/domain tests passed (18 tests); the full Strategy Lab v2 package
+passed 800 tests. Compose activation, stable Nautilus conformance, upstream
+contract reconciliation, and full repository integration remain open.
+
 ## 2026-09-17 - Executable Nautilus conformance harness
 
 `conformance_fixtures.py` now exposes `execute_conformance_suite(...)`, an

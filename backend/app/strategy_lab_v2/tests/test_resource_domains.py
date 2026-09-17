@@ -86,9 +86,9 @@ def test_strategy_rejects_unknown_or_invalid_dependency_fields() -> None:
 
 
 def test_non_domain_resources_remain_frozen_until_their_domain_adapter_exists() -> None:
-    attributes = {"name": "metric-set", "nested": {"values": [1, 2]}}
+    attributes = {"name": "forward-instance", "nested": {"values": [1, 2]}}
 
-    result = normalize_resource_attributes(ApiResourceType.METRIC_SET, attributes)
+    result = normalize_resource_attributes(ApiResourceType.FORWARD_INSTANCE, attributes)
 
     assert result.domain_fingerprint is None
     assert result.attributes["nested"]["values"] == (1, 2)
@@ -455,3 +455,83 @@ def test_trial_rejects_mismatched_identity_and_invalid_randomization() -> None:
     attributes["randomization"] = {"policy": "not-a-policy"}
     with pytest.raises(ValueError, match="required|invalid"):
         normalize_resource_attributes(ApiResourceType.TRIAL, attributes)
+
+
+def test_metric_set_attributes_are_normalized_with_calculation_and_evidence() -> None:
+    definition_version = "strategy-lab.metrics.v1"
+    result = normalize_resource_attributes(
+        ApiResourceType.METRIC_SET,
+        {
+            "metric_set_id": "metric-set-1",
+            "trial_id": content_digest("trial-1"),
+            "attempt_id": content_digest("attempt-1"),
+            "definition_version": definition_version,
+            "values": [
+                {
+                    "name": "annual_return",
+                    "value": "0.1234",
+                    "unit": "fraction",
+                    "definition_version": definition_version,
+                    "basis": "net",
+                    "sample_size": 252,
+                    "annualization_basis": "trading_sessions_252",
+                    "calculation_basis": "equity_curve",
+                    "calculation_definition": {
+                        "formula_id": "annualized-return",
+                        "contract_version": "metrics-formula.v1",
+                        "parameters": {"sessions_per_year": 252},
+                    },
+                    "evidence_references": [
+                        {"role": "equity-curve", "digest": content_digest("equity-curve")}
+                    ],
+                },
+                {
+                    "name": "sortino",
+                    "value": None,
+                    "unit": "ratio",
+                    "definition_version": definition_version,
+                    "basis": "net",
+                    "sample_size": 0,
+                    "null_reason": "insufficient downside observations",
+                },
+            ],
+            "created_at": "2026-09-17T12:00:00Z",
+            "resource_id": "metric-set-1",
+        },
+    )
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["values"][0]["name"] == "annual_return"
+    assert result.attributes["values"][0]["value"] == Decimal("0.1234")
+    assert result.attributes["values"][0]["calculation_definition"]["formula_id"] == (
+        "annualized-return"
+    )
+    assert result.attributes["values"][1]["null_reason"] == "insufficient downside observations"
+
+
+def test_metric_set_rejects_null_values_without_reasons_or_unknown_fields() -> None:
+    attributes: dict[str, Any] = {
+        "metric_set_id": "metric-set-1",
+        "trial_id": content_digest("trial-1"),
+        "attempt_id": content_digest("attempt-1"),
+        "definition_version": "metrics.v1",
+        "values": [
+            {
+                "name": "sharpe",
+                "value": None,
+                "unit": "ratio",
+                "definition_version": "metrics.v1",
+                "basis": "net",
+                "sample_size": 0,
+            }
+        ],
+        "created_at": "2026-09-17T12:00:00Z",
+    }
+    with pytest.raises(ValueError, match="null_reason"):
+        normalize_resource_attributes(ApiResourceType.METRIC_SET, attributes)
+
+    attributes["values"][0]["null_reason"] = "not enough data"
+    unknown: dict[str, Any] = dict(attributes)
+    unknown["unexpected"] = True
+    with pytest.raises(ValueError, match="unsupported fields"):
+        normalize_resource_attributes(ApiResourceType.METRIC_SET, unknown)
