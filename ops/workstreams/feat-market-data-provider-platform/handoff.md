@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 manifest-derived usage-only selection
+
+- Removed the duplicate hard-coded `--account-usage-only` provider allowlist.
+  The runner now derives accepted providers from the explicit manifest
+  `account_usage` cases, so a future provider cannot gain a native bootstrap
+  case while remaining rejected by a stale CLI list.
+- The focused runner suite passed `44/44`; the full backend unit gate passed
+  `2,366/2,366` with 37 warnings and 70.82% coverage, with Ruff and diff
+  checks green.
+- The committed-source Binance matrix at source
+  `1b89693fb7677dd5c4d71f22d8021e7ac7a7b5d6` passed `3/3` with seven HTTP
+  requests and no dirty source paths. The receipt is aggregate-only; all
+  provider-specific, legal/source, universe, target-secret, deferred-provider,
+  and final-shadow gates remain open.
+
 ## 2026-09-17 native-usage bootstrap admission correction
 
 - The live runner previously blocked a provider's full matrix whenever its

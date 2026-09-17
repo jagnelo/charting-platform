@@ -744,6 +744,17 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 manifest-derived usage-only selection: removed the duplicate
+      hard-coded `--account-usage-only` provider allowlist. The runner now
+      derives accepted providers from explicit manifest `account_usage` cases,
+      preventing future provider additions from drifting between the manifest
+      and CLI admission. Focused runner coverage passed 44/44; the full
+      backend unit gate passed 2,366/2,366 with 37 warnings and 70.82%
+      coverage; Ruff and diff checks passed. The committed-source Binance
+      matrix at source `1b89693fb7677dd5c4d71f22d8021e7ac7a7b5d6` passed 3/3
+      with seven HTTP requests and no dirty source paths. No credentials,
+      payloads, frontend files, or ETF-provider adapters changed.
+    - >-
       2026-09-17 post-commit live evidence: after committing the native-usage
       bootstrap correction as `c2907967c`, the bounded Binance matrix was
       replayed against source `c2907967c8aaedbfa85d520dbaaab0d2baa21f0e` with

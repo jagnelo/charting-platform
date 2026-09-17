@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-17 — Manifest-derived usage-only selection
+
+- [x] Derive the live runner's `--account-usage-only` provider set directly
+      from manifest cases containing `account_usage`; remove the duplicate
+      hard-coded provider list.
+- [x] Add regression coverage for the derived set and replay the committed
+      Binance matrix: `3/3`, seven requests, no dirty source paths.
+- [ ] Preserve the same fail-closed quota, legal/source, universe,
+      deployment-secret, deferred-provider, and final-shadow gates while new
+      providers are added.
+
 ### 2026-09-17 — Native-usage bootstrap admission correction
 
 - [x] Allow a selected provider with an explicit manifest
