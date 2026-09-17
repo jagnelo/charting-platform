@@ -88,6 +88,34 @@ describe('CodeLibraryTool', () => {
     ]])
   })
 
+  it('opens the selected historical immutable study version in Study Lab', async () => {
+    const versionedAsset = {
+      ...asset,
+      versions: [
+        { id: 8, version_number: 1, source: "output.scalar('n', 1)", output_contract: 'study', parameter_schema: {}, default_parameters: {} },
+        { id: 9, version_number: 2, source: "output.scalar('n', 2)", output_contract: 'study', parameter_schema: { properties: { lookback: { type: 'integer' } } }, default_parameters: { lookback: 20 } },
+      ],
+    }
+    apiGet.mockResolvedValueOnce([versionedAsset])
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+
+    await wrapper.get('summary').trigger('click')
+    await wrapper.get('[aria-label="Base version for Streak study"]').setValue('1')
+    await wrapper.get('[aria-label="Open version 1 of Streak study in Study Lab"]').trigger('click')
+
+    expect(wrapper.emitted('open-study')).toEqual([[
+      {
+        name: 'Streak study',
+        versionId: 8,
+        source: "output.scalar('n', 1)",
+        outputContract: 'study',
+        parameterSchema: {},
+        defaultParameters: {},
+      },
+    ]])
+  })
+
   it('creates a typed new study asset from the library form', async () => {
     apiPost.mockImplementation((path: string) => path === '/code/validate'
       ? Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })

@@ -39,6 +39,13 @@
                 <option v-for="version in asset.versions" :key="version.version_number" :value="version.version_number">v{{ version.version_number }}</option>
               </select>
             </label>
+            <button
+              v-if="asset.kind === 'study'"
+              type="button"
+              :aria-label="`Open version ${selectedVersionNumber(asset)} of ${asset.name} in Study Lab`"
+              :disabled="!openableVersion(asset, selectedVersionNumber(asset))"
+              @click="openStudyVersion(asset, selectedVersionNumber(asset))"
+            >Open selected version in Study Lab</button>
             <PythonSourceEditor :model-value="drafts[asset.id] ?? latestVersion(asset)?.source ?? ''" :ariaLabel="`Python source for ${asset.name}`" @update:model-value="setDraft(asset.id, $event)" />
             <div class="code-library-tool__validation-actions">
               <button type="button" :disabled="validatingAsset === asset.id || !(drafts[asset.id] ?? latestVersion(asset)?.source ?? '').trim()" @click="validateVersionSource(asset)">{{ validatingAsset === asset.id ? 'Validating…' : 'Validate' }}</button>
@@ -225,8 +232,15 @@ function exportAsset(asset: CodeAsset) {
   URL.revokeObjectURL(url)
 }
 function latestVersion(asset: CodeAsset) { return [...asset.versions].sort((left, right) => right.version_number - left.version_number)[0] }
-function openStudy(asset: CodeAsset) {
-  const version = latestVersion(asset)
+function selectedVersionNumber(asset: CodeAsset) {
+  return selectedVersions.value[asset.id] ?? latestVersion(asset)?.version_number ?? 0
+}
+function openableVersion(asset: CodeAsset, versionNumber: number) {
+  const version = asset.versions.find(item => item.version_number === versionNumber)
+  return typeof version?.id === 'number' && Number.isInteger(version.id)
+}
+function openStudyVersion(asset: CodeAsset, versionNumber: number) {
+  const version = asset.versions.find(item => item.version_number === versionNumber) ?? latestVersion(asset)
   if (!version || typeof version.id !== 'number' || !Number.isInteger(version.id)) return
   emit('open-study', {
     name: asset.name,
@@ -236,6 +250,9 @@ function openStudy(asset: CodeAsset) {
     parameterSchema: version.parameter_schema ?? {},
     defaultParameters: version.default_parameters ?? {},
   })
+}
+function openStudy(asset: CodeAsset) {
+  openStudyVersion(asset, latestVersion(asset)?.version_number ?? 0)
 }
 function selectVersion(asset: CodeAsset) {
   const version = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
