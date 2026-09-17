@@ -719,6 +719,36 @@ def test_sdk_intents_are_typed_scoped_and_context_is_read_only() -> None:
         OrderIntent("US.AAPL", OrderSide.BUY, Decimal(1), OrderType.LIMIT)
 
 
+def test_sdk_normalizes_event_and_context_times_to_utc() -> None:
+    requirement = replace(_requirement(), end=END + timedelta(days=1))
+    strategy = StrategyVersion("s-1", "v-1", "2.0", SOURCE_DIGEST)
+    manifest = StrategySdkManifest(
+        strategy,
+        (StrategyDataDependency("daily-bars", requirement, ("close",)),),
+    )
+    offset = timezone(timedelta(hours=-4))
+    event = MarketEvent(
+        "daily-bars",
+        "bar-offset",
+        "US.AAPL",
+        END.astimezone(offset),
+        10,
+        {"close": Decimal("190.25")},
+    )
+    context = build_strategy_context(
+        manifest,
+        event_time=END.astimezone(offset),
+        event_sequence=10,
+        random_seed=7,
+        parameters={},
+        market_events={"daily-bars": (event,)},
+    )
+
+    assert event.event_time.tzinfo is UTC
+    assert context.event_time.tzinfo is UTC
+    assert context.market_events["daily-bars"][0].event_time.tzinfo is UTC
+
+
 def test_sdk_public_boundaries_reject_malformed_runtime_values() -> None:
     requirement = _requirement()
     strategy = StrategyVersion("s-1", "v-1", "2.0", SOURCE_DIGEST)

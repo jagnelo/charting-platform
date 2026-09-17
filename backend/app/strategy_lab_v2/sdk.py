@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from enum import StrEnum
 from types import MappingProxyType
@@ -117,6 +117,7 @@ class MarketEvent:
             raise TypeError("market event time must be a datetime")
         if self.event_time.tzinfo is None or self.event_time.utcoffset() is None:
             raise ValueError("market event time must be timezone-aware")
+        object.__setattr__(self, "event_time", self.event_time.astimezone(UTC))
         if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 0:
             raise ValueError("market event sequence must be non-negative")
         if not isinstance(self.values, Mapping):
@@ -159,6 +160,7 @@ class StrategyContext:
             raise TypeError("strategy event_time must be a datetime")
         if self.event_time.tzinfo is None or self.event_time.utcoffset() is None:
             raise ValueError("strategy event_time must be timezone-aware")
+        object.__setattr__(self, "event_time", self.event_time.astimezone(UTC))
         if (
             not isinstance(self.event_sequence, int)
             or isinstance(self.event_sequence, bool)
