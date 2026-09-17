@@ -3224,6 +3224,22 @@ passed 13 tests, Ruff, and MyPy for the changed modules. The branch remains
 stable Nautilus execution, frontend work, promotion, and deployment remain
 deferred.
 
+## 2026-09-17 - Restricted custom-metric boundary checkpoint
+
+`custom_metrics.py` now provides a source-bound, process-local custom-metric
+runner for result analysis. It accepts only recursively frozen finite Decimal
+observations and canonical JSON parameters, validates source identity and
+static restrictions, requires a finite Decimal scalar output, and emits a
+versioned `MetricValue` with source/input evidence. Static violations, source
+drift, malformed outputs, and runtime exceptions return typed rejection/failure
+evidence without exception text. The containing worker still must use the
+hardened no-network sandbox; container activation, persistence, and API wiring
+remain deferred behind the existing shared-path gates.
+
+The focused custom-metric suite passed 4 tests with Ruff and MyPy green. The
+branch remains `ready_for_human_review` pending the full exact-tip branch and
+combined coverage gates.
+
 ## 2026-09-17 - Combined backend coverage revalidation
 
 The exact pushed checkpoint tip passed the Docker-backed combined coverage gate:

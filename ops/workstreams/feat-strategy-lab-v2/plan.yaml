@@ -323,6 +323,7 @@ remaining_gaps:
   - PostgreSQL metric-set persistence now stores owner-scoped canonical metric-set payloads and value-summary projections with authenticated payload/record fingerprints, deterministic reads, exact retries, and same-attempt conflict handling; metric calculation, migrations, authorization, and application wiring remain open.
   - Execution and audit event contracts now normalize aware occurrence timestamps to UTC before identity and append/replay comparison, preventing offset-only retries from becoming false content conflicts; persistence, transport, and application wiring remain open.
   - Artifact manifests and integrity receipts now reject untyped lengths/retention values and forged verified mismatches, while canonicalizing failure evidence before publication; durable byte lifecycle, migrations, authorization, and application wiring remain open.
+  - A restricted custom-metric boundary now executes source-bound callables over frozen Decimal observations, emits versioned typed metrics with input evidence, and strips exception text; container worker activation and API/persistence wiring remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -352,7 +353,8 @@ progress:
     - metric-set-identity-canonicalization
     - execution-audit-event-time-normalization
     - artifact-manifest-integrity-hardening
+    - restricted-custom-metric-boundary
   total: 18
-  current_phase: artifact-manifest-integrity-hardening-staging-ready-for-human-review
+  current_phase: restricted-custom-metric-boundary-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary

@@ -865,6 +865,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   order, so equivalent contracts also retain one stable manifest fingerprint.
   The dedicated worker image/entrypoint and Docker activation are still
   separate integration gates.
+- `custom_metrics.py` provides the matching process-local custom-metric
+  boundary. A source-bound callable receives only recursively frozen Decimal
+  observations and JSON parameters, returns one finite Decimal, and is wrapped
+  as a versioned `MetricValue` with input/source evidence. Static violations,
+  source drift, malformed outputs, and runtime exceptions are typed without
+  exposing exception text; production use still requires the hardened
+  no-network container.
 - Every invocation result also carries the immutable SDK manifest fingerprint
   used for validation, allowing a host adapter to reject a result produced
   under a different strategy contract even when source/context identities are
