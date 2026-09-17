@@ -372,7 +372,7 @@ progress:
     - strict-rest-json-request-bodies
     - snapshot-bound-rest-pagination
     - strict-strategy-runtime-batch-chronology
-  total: 19
+  total: 18
   current_phase: strict-strategy-runtime-batch-chronology-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary
