@@ -49,6 +49,17 @@ the alias later, preserving deterministic replay requirements. A regression
 test covers the aliased method form; the exact package suite passes 633 tests,
 with Ruff, MyPy, branch checks, and Docker-backed combined coverage also green.
 
+## 2026-09-17 - Canonical runtime JSON integrity hardening
+
+Runtime envelope decoding now rejects duplicate JSON object fields and
+non-standard `NaN`/`Infinity` constants before any manifest, context, or result
+record is reconstructed. This keeps serialized identities unambiguous and
+preserves the finite-number guarantees of the engine-neutral SDK. Five focused
+protocol tests cover canonical round trips, fingerprint tampering, unknown
+fields/versions, duplicate fields, and non-finite constants; the exact package
+suite remains green at 633 tests and the Docker-backed gate remains green at
+2,280 tests with 83.54% coverage.
+
 ## 2026-09-17 - Engine-neutral SDK boundary hardening
 
 `sdk.py` now validates public input types before dereferencing them: manifests
