@@ -312,9 +312,10 @@ async def run_strategy_lab_v2_worker(
             )
 
     if session_factory is None:
-        from app.database import AsyncSessionLocal
-
-        session_factory = AsyncSessionLocal
+        database_module = import_module("app.database")
+        session_factory = getattr(database_module, "AsyncSessionLocal", None)
+        if not callable(session_factory):
+            raise TypeError("app.database.AsyncSessionLocal must be callable")
     persistence = persistence_factory(session_factory)
     factory = callback_factory or _load_callback_factory(config.callback_factory)
     callbacks = factory(persistence, config.artifact_root)
