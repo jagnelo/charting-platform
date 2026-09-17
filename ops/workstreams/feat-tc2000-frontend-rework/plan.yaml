@@ -259,17 +259,18 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R5_strategy_current_revision_lineage_exact_gate_passed
+  current_phase: R6_strategy_section_keyboard_reachability_exact_gate_passed
   next_action: >-
     Select the next bounded TC-owned R1/R5/R6 item, preserve the Strategy
-    current-revision, selected-study version, saved-study reopen, and dense-range
+    Strategy section-keyboard, current-revision, selected-study version, saved-study
+    reopen, and dense-range
     exact-gate receipts, and keep provider/ETF consumer work deferred until both
     upstream branches reach staging. Do not retry origin synchronization under
     the existing private-origin safeguard without newly accepted exact-payload
     authorization.
   current_blocker: >-
     No active TC-owned product or validation blocker. The exact
-    full_stack_browser gate at product tip 926da82c08b0d17a9357b36aa0b4c02820bb522f
+    full_stack_browser gate at product tip a8e6130fc24deac2545dce7ef39ad427314d78b2
     passed and branch-scoped cleanup/resource accounting are clean. The
     initial F8p factory-configuration race was corrected and its focused retry
     passed; it is no longer a blocker. The preceding F8s timestamp mismatch is
@@ -280,6 +281,8 @@ progress:
     under the recorded private-origin safeguard, not a product or validation
     blocker.
 historical_implementation_records:
+  - "Product commit a8e6130fc makes the six Strategy Lab section headings keyboard reachable with button semantics, a tab stop, aria-expanded state, and Enter/Space toggles while preserving the existing mouse behavior, icon state, layout, and section model. Focused Strategy Lab coverage passed 33/33; full frontend Vitest passed 1,134/1,134; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
+  - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip a8e6130fc24deac2545dce7ef39ad427314d78b2: backend combined coverage, frontend Vitest 1,134/1,134, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate accounting reported zero retained resources. The initial unprivileged invocation was blocked only by Docker socket permissions; the authorized elevated rerun completed successfully. The host /usr/bin/make wrapper remains unavailable with Xcode-license status 69; the equivalent CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior changed. This receipt covers the Strategy section-keyboard slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commit 61c4ae34a adds a dedicated historical Python breadth-to-Strategy signal promotion path. Research Results no longer routes this action through an EasyScan condition: the TC endpoint creates a separate immutable signal asset and Strategy definition atomically, preserving source run, member IDs, dataset-manifest fingerprint/summary, source output name, threshold adapter, recursive member tree, and point-in-time lineage. Cross-sectional trees are rejected as aggregate-only. Legacy and canonical promotion diagnostics are normalized into queued Strategy research jobs, including condition-tree execution. Focused frontend Research Results coverage passed 48/48; full frontend Vitest passed 1,102/1,102; type-check and production build passed with the existing large-chunk warning; Strategy Lab API coverage passed 29/29; breadth workspace integration passed 2/2 for Boolean, numeric-series, and recursive-tree paths; Strategy queue unit coverage passed 16/16; Ruff/format and diff checks passed. The initial exact gate attempt had one transient F8k popup-recovery failure; a fresh-stack retry passed 1/1 and the exact rerun then passed functional Chromium 170 with 107 documented skips plus all four visual projects 104/104. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance policy changed."
   - "Exact make validate-integration gate passed at product/checkpoint tip 2153991e4: backend unit/integration coverage 1,619 passed, frontend Vitest 1,102/1,102, lint/format/type-check/build, Compose contracts, expected research-runner sandbox/resource probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects 104/104. Stack teardown removed the assigned containers, volumes, network, four generated images, and test sessions. A focused retry classified the earlier runner restart as transient; an intermediate stack build hit Docker storage exhaustion and a full-gate retry hit stale custom-builder registration, both recovered with exact TC2000 builder cleanup. No provider/ETF, visual-oracle, baseline, threshold, mask, skip, or acceptance-policy behavior changed."
   - "Product commit c17962ef2 replaces dense canvas Market Map hover/click linear scans with a fixed normalized-space spatial hit-test index while preserving source-order first-match semantics at shared edges. Focused Market Map utility/component coverage passed 59/59, full frontend Vitest passed 1,102/1,102, type-check and production build passed with the existing large-chunk warning, and git diff checks passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy behavior changed."
