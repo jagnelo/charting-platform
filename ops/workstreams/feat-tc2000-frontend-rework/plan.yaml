@@ -21,11 +21,14 @@ validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
   No active TC-owned product or validation blocker: the exact gate at product
-  tip 27629e5fd1d6ca3304f1560d0986d03fb15f351a passed the repository stages,
+  tip 42a23a7633646b1acbb149c234c8a61528f569e5 passed the repository stages,
   authenticated functional browser flows, and all four visual projects with
   clean branch-scoped teardown. The initial F8p high/low failure was a real
   TC-owned factory-configuration race and was corrected in the follow-up
-  commits; the focused retries and definitive exact gates now pass. Provider-
+  commits; the focused retries and definitive exact gates now pass. The
+  IndicatorPanel gate also required transient focused retries for F8k-grey,
+  F8u, and one unavailable-freshness screenshot before the definitive gate
+  passed. Provider-
   platform and ETF consumer integration remains a sequencing gate until both
   upstream branches reach staging; that does not stop independent TC-owned
   work. Origin synchronization remains a separate operational hold under the
@@ -54,6 +57,7 @@ owned_paths:
   - frontend/src/components/workstation/
   - frontend/src/components/chart/UPlotChart.vue
   - frontend/src/components/chart/InstrumentInfoPanel.vue
+  - frontend/src/components/chart/IndicatorPanel.vue
   - frontend/src/components/strategy/
   - frontend/src/stores/workspace.ts
   - frontend/src/lib/workstation/
@@ -260,28 +264,32 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_strategy_section_disclosures_exact_gate_passed
+  current_phase: R6_indicator_section_keyboard_exact_gate_passed
   next_action: >-
-    Select the next bounded TC-owned R1/R5/R6 item, preserve the Strategy
-    section disclosure, Instrument Report disclosure, Strategy run-history
-    disclosure, section-keyboard, current-revision, selected-study version,
-    saved-study reopen, and dense-range exact-gate receipts, and keep provider/
-    ETF consumer work deferred until both upstream branches reach staging. Do not
-    retry origin synchronization under the existing private-origin safeguard
-    without newly accepted exact-payload authorization.
+    Select the next bounded TC-owned R1/R5/R6 item, preserve the IndicatorPanel
+    section keyboard semantics, Strategy section disclosure,
+    Instrument Report disclosure, Strategy run-history disclosure,
+    current-revision, selected-study version, saved-study reopen, and dense-range
+    exact-gate receipts. Continue with the next bounded TC-owned R1/R5/R6 item;
+    keep provider/ETF consumer work deferred until both upstream branches reach
+    staging. Do not retry origin synchronization under the existing private-
+    origin safeguard without newly accepted exact-payload authorization.
   current_blocker: >-
     No active TC-owned product or validation blocker. The exact
-    full_stack_browser gate at product tip 27629e5fd1d6ca3304f1560d0986d03fb15f351a
+    full_stack_browser gate at product tip 42a23a7633646b1acbb149c234c8a61528f569e5
     passed and branch-scoped cleanup/resource accounting are clean. The
-    initial F8p factory-configuration race was corrected and its focused retry
-    passed; it is no longer a blocker. The preceding F8s timestamp mismatch is
-    retained as a transient seeded-workspace/browser instability only.
+    transient F8k-grey, F8u, and unavailable-freshness visual failures each
+    passed their focused retry before the definitive gate; none is a blocker.
+    The preceding F8s timestamp mismatch is retained as a transient
+    seeded-workspace/browser instability only.
     Provider-platform and ETF consumer integration remains a sequencing gate
     until both upstream branches reach staging; that does not stop independent
     TC-owned work. Origin synchronization remains a separate operational hold
     under the recorded private-origin safeguard, not a product or validation
     blocker.
 historical_implementation_records:
+  - "Product commit 42a23a763 makes the six IndicatorPanel section headers keyboard reachable with button semantics, tab stops, aria-expanded/aria-controls relationships, and Enter/Space toggles while preserving the existing mouse behavior, section state, and visual layout. Focused IndicatorPanel coverage passed 34/34; full frontend Vitest passed 1,136/1,136; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
+  - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 42a23a7633646b1acbb149c234c8a61528f569e5: backend combined coverage 1,621 tests with 82.26% total coverage, frontend Vitest 1,136/1,136, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects passed 104/104. Focused retries passed F8k-grey (1/1), F8u (1/1), and the required 1080p/100 unavailable-freshness visual assertion (1/1); no baseline, mask, threshold, skip, fallback, provider, or acceptance policy changed. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode-license status 69; the equivalent installed CommandLineTools Make binary ran the same target. This receipt covers the IndicatorPanel section-keyboard slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commit 27629e5fd links each of the six Strategy Lab section headings and chevron controls to its conditional body through stable aria-controls/id relationships, preserving the existing expanded state, mouse/keyboard toggles, and visual layout. Focused Strategy Lab coverage passed 34/34; full frontend Vitest passed 1,135/1,135; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 27629e5fd1d6ca3304f1560d0986d03fb15f351a: backend combined coverage 1,621 tests, frontend Vitest 1,135/1,135, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode-license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior changed. This receipt covers the Strategy section disclosure slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commit f5e41e4ed adds a Vue-generated per-instance aria-controls relationship from the keyboard-operable Instrument Report disclosure to its report body, preserving the existing keyboard toggles, data, and visual layout. Focused InstrumentInfoPanel coverage passed 5/5; full frontend Vitest passed 1,135/1,135; frontend type-check and production build passed with the existing large-chunk warning; the TC scope guard initially identified the missing chart-path allowlist entry, which was added as a durable TC-owned path, then scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."

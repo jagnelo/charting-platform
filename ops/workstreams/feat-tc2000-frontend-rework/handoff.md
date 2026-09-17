@@ -1,5 +1,43 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-17 — R6 IndicatorPanel section keyboard semantics and definitive gate
+
+Product commit `42a23a763` makes the six IndicatorPanel section headers
+keyboard reachable with button semantics, tab stops, `aria-expanded`,
+per-instance `aria-controls`/`id` relationships, and Enter/Space toggles. The
+existing mouse behavior, section state, and visual layout are unchanged.
+
+Focused IndicatorPanel coverage passed `34/34`; full frontend Vitest passed
+`1,136/1,136`; frontend type-check and production build passed with the
+existing large-chunk warning; TC scope validation/self-tests, workstream
+validation, and `git diff --check` passed. No provider-platform, ETF,
+visual-oracle, or acceptance-policy behavior changed.
+
+The definitive raw-capture gate
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration`
+passed at product tip `42a23a763`: backend combined coverage passed `1,621`
+tests with `82.26%` total coverage, frontend Vitest passed `1,136/1,136`,
+type-check/build, Compose/provider contracts, branch-scoped Docker health,
+research-runner probes, authenticated functional Chromium passed `170` with
+`107` documented skips, and all four visual projects passed `104/104`.
+
+The same-tip focused retries passed `F8k-grey` (`1/1`), `F8u` (`1/1`), and the
+required 1080p/100 unavailable-freshness visual assertion (`1/1`). These were
+transient browser/render-state failures; no baseline, mask, threshold, skip,
+fallback, provider, or acceptance policy changed. Final teardown removed the
+assigned containers, volumes, network, four generated images, and test
+sessions; post-gate resource accounting reported zero retained resources. The
+standard `/usr/bin/make` wrapper remains unavailable because of host Xcode
+license status `69`; the installed CommandLineTools Make binary ran the same
+target.
+
+The broader goal remains active/in progress: no TC-owned product or validation
+blocker is present. Provider/ETF consumer integration remains deferred until
+both upstream branches reach staging, after which shared paths require
+semantic reconciliation and another exact-tip gate. Origin synchronization
+remains a separate private-origin operational hold. This slice does not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-17 — R6 Strategy section disclosure semantics
 
 Product commit `27629e5fd` links each of the six Strategy Lab section headings
