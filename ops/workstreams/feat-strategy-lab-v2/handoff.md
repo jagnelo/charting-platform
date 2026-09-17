@@ -12,6 +12,20 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Explicit startup migration service
+
+`migration_startup.py` now provides the application-owned Alembic upgrade
+seam. It validates PostgreSQL URLs and absolute script locations, executes the
+configured target off the event loop, serializes concurrent callers, replays
+the exact in-process result, and exposes only stable exception-type digests on
+failure. Importing FastAPI or constructing the v2 router remains side-effect
+free; the local deployment entrypoint explicitly decides when to invoke it.
+
+The focused migration tests passed (3 tests), with branch and exact backend
+validation recorded below. Dedicated worker service activation, stable
+Nautilus release/conformance, upstream contract reconciliation, and full
+repository integration remain deferred.
+
 ## 2026-09-17 - Dedicated worker service composition
 
 `worker_service.py` now composes the authenticated Redis payload loader,

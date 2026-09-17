@@ -1096,6 +1096,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   event loop in the serial executor, and delegates completion persistence to an
   injected writer before the transport can acknowledge the entry. The Redis
   runtime factory exposes this composition without starting it implicitly.
+- `migration_startup.py` provides the explicit Alembic startup hook. It
+  validates a PostgreSQL URL and absolute script location, runs the configured
+  target off the event loop, serializes concurrent callers, replays the exact
+  result, and reduces migration exceptions to stable type-only digests. The
+  service is deliberately not invoked by module import or router construction;
+  the deployment entrypoint still owns when startup migration is required.
 - `worker_settlement.py` closes the serial worker lifecycle after any bounded
   handoff, including a pre-process rejection. It verifies the orchestration
   plan is still bound to the admission and pool profile, applies a deterministic

@@ -435,6 +435,12 @@ remaining_gaps:
       completion writer. Process execution runs off the event loop and the
       transport is acknowledged only after the writer returns a matching
       receipt; Redis runtime construction remains explicit and non-starting.
+  - >-
+      `migration_startup.py` provides an explicit application-owned Alembic
+      upgrade service with PostgreSQL URL/script validation, serialized
+      idempotent calls, off-event-loop execution, and stable redacted failure
+      evidence. Importing the router still performs no migration; deployment
+      entrypoint invocation remains explicit.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -502,7 +508,8 @@ progress:
     - strategy-lab-v2-artifact-orphan-reconciliation
     - strategy-lab-v2-serial-worker-process-boundary
     - strategy-lab-v2-dedicated-worker-service
+    - strategy-lab-v2-explicit-startup-migrations
   total: 18
-  current_phase: strategy-lab-v2-dedicated-worker-service-staging-ready-for-human-review
-  current_blocker: dedicated worker service/entrypoint/runtime activation, migration startup, stable Nautilus release, and full repository integration remain open
-  next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add migration startup and dedicated worker service/entrypoint/runtime activation without changing the engine-neutral boundary
+  current_phase: strategy-lab-v2-explicit-startup-migrations-staging-ready-for-human-review
+  current_blocker: dedicated worker service/entrypoint/runtime activation, stable Nautilus release, and full repository integration remain open
+  next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add dedicated worker service/entrypoint/runtime activation without changing the engine-neutral boundary
