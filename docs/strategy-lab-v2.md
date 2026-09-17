@@ -683,7 +683,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   the opaque string owner key expected by the package contracts, composes the
   PostgreSQL resource, submission/dispatch, execution-state, and command
   adapters over `AsyncSessionLocal`, and supplies the authenticated dependency
-  functions to the router factory. `app.main` registers this router at
+  functions to the router factory. `persistence.py` now owns the complete
+  PostgreSQL adapter graph behind one shared async session factory, preserving
+  the aggregate-store sharing and the command/state dependency while keeping
+  later worker and API projections on the same application-owned seam.
+  `app.main` registers this router at
   `/api/v1/strategy-lab/v2` while the legacy Strategy Lab routes remain
   unchanged. Remaining resource projections, worker effects, and engine
   execution are still explicit gates.
@@ -867,6 +871,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   explicit factory with a caller-supplied NAS-mountable root. A crash between
   byte publication and metadata finalization leaves only an immutable orphan
   for later reconciliation; it cannot overwrite a committed digest.
+- `persistence.py` composes every registration-neutral PostgreSQL v2 adapter
+  over one async session factory, exposing a single application-owned graph for
+  resource, lifecycle, result, coverage, capability, lineage, artifact, and
+  worker-state projections. The application adapter uses this bundle for its
+  initial API slice, and artifact publication can be created from the same
+  graph with an explicit local/NAS-mountable root.
 - `artifacts.py` and `ArtifactManifest` enforce typed byte lengths, retention
   classes, and authenticated integrity receipts. Verified receipts cannot claim
   success with mismatched observed bytes, and failure reasons are canonicalized

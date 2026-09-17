@@ -12,6 +12,21 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Shared PostgreSQL persistence bundle
+
+`backend/app/strategy_lab_v2/persistence.py` now owns construction of the
+complete registration-neutral PostgreSQL v2 adapter graph over one async session
+factory. The bundle shares the aggregate store with resource reads and the
+execution-state context with command receipts, while exposing acquisition,
+coverage, capability, forward/search, runtime/result, artifact, lineage, and
+worker-state adapters for subsequent application and worker slices.
+`application.py` consumes the bundle for its initial authenticated API seam and
+keeps the existing private aliases for compatibility. Artifact publication can
+be created from the same graph with an explicit local/NAS-mountable root.
+Focused application/persistence tests, Ruff, MyPy, and the complete branch test
+collection are green. API projection completion, migration startup, worker
+scheduling/activation, and stable Nautilus execution remain deferred.
+
 ## 2026-09-17 - Local artifact publication application wiring
 
 `backend/app/strategy_lab_v2/artifact_application.py` now composes the
