@@ -723,6 +723,19 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 current committed-source validation after the Bybit preflight
+      diagnostic fix: the complete backend unit gate passed `2,364/2,364`
+      with 37 warnings and 70.82% coverage; focused live-runner,
+      secret-wiring, quota-contract, and coordinator coverage passed `215/215`;
+      Ruff, diff checks, and the 30-record workstream validator passed. The
+      exact current-source Bybit safety preflight at `8b7fe85b0` stopped before
+      transport with `0/0` cases and zero provider requests, reporting the
+      native five-second baseline plus the concrete automated-use and egress
+      jurisdiction controls still required. MarketData.app's owner-approved
+      Starter Trial expiry/fallback behavior remains covered and configured;
+      provider/legal/source, secret-store, universe, routing-promotion, and
+      final shadow gates remain open.
+    - >-
       2026-09-17 Bybit live-preflight diagnostic correction: commit
       `a3ce59d2` aligns `LIVE_PREFLIGHT_ROUTING_CONTROLS[bybit_xstocks]` with
       the actual `routing_safety_preflight` status key. The runner now reports

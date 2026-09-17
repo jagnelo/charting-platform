@@ -5202,3 +5202,30 @@ the authoritative record for this replay; it made zero provider calls.
   blockers remaining. This changes routing eligibility only for the observed
   Binance request-weight window; other Binance contract, universe, or future
   windows remain subject to the same fail-closed controls.
+
+## 2026-09-17 current implementation validation
+
+- The current committed checkout passed the complete backend unit gate:
+  `2,364/2,364` tests, `37` warnings, and `70.82%` coverage. The focused
+  live-runner, provider-secret-wiring, quota-contract, and quota-coordinator
+  suites also passed (`215/215`); the focused invocation's repository-wide
+  coverage threshold was intentionally not used as an acceptance gate because
+  it does not exercise the full unit surface. Ruff and `git diff --check`
+  passed, and `make branch-validate` validated all `30` workstream records.
+- The exact current-source Bybit xStocks safety preflight at
+  `8b7fe85b00a905b5184893649ec757c4e6d159c0` stopped before network access
+  (`0/0` cases, zero provider requests). It now reports the concrete missing
+  Bybit automated-use/egress-jurisdiction controls and the unknown native
+  five-second usage baseline; no provider quota or legal entitlement was
+  inferred. The receipt is appended to `validation.jsonl`.
+- MarketData.app remains configured as the owner-approved Starter Trial
+  (`10,000` credits/day) through `2026-10-11T18:09:00+01:00`, then falls back
+  automatically to the configurable Free Forever (`100` credits/day) pool.
+  This provider-specific plan/limit/expiry path is covered by exact-boundary
+  tests and the current-source bounded live matrix; paid-plan changes remain
+  explicit environment configuration plus the separate paid-routing gate.
+- The branch remains incomplete for provider-owned quota/reset attestations,
+  legal/source and redistribution approvals, complete NMS/OTC reconciliation,
+  environment secret-store verification, and the separately authorized final
+  shadow phase. No routing promotion, deployment, or ETF-adapter change was
+  made.
