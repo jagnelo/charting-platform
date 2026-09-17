@@ -501,10 +501,10 @@ remaining_gaps:
     semantics explicitly. FINRA's `download_bytes_month_reset_boundary`
     remains unknown. Tiingo's daily request and monthly bandwidth boundaries
     are now documented `calendar_day_est`/`calendar_month_est`; only its
-    distinct-symbol and hourly boundaries remain unknown, so routing stays
-    fail-closed and no rolling 31-day symbol window is used. The exact-source
-    unit gate after this correction passed `2,324/2,324` with 70.66% coverage
-    and 37 warnings.
+    distinct-symbol and hourly boundaries remain provider-defined for audit,
+    while explicit provider-scoped rolling 31-day and one-hour safety
+    envelopes protect admission. The exact-source unit gate after this
+    correction passed `2,324/2,324` with 70.66% coverage and 37 warnings.
   - >-
     The committed-source full-matrix preflight at `6e9df43bb` stopped before
     transport with zero provider requests (`101` provider quota/cost/baseline
@@ -523,10 +523,10 @@ remaining_gaps:
   - >-
     Alpha Vantage's free-key 25-requests/day allowance is documented, but its
     reset boundary/timezone is not. The quota seed now records the dimension
-    as `provider_defined` with explicit unknown
-    `requests_per_day_reset_boundary`; no rolling 24-hour reset is presented
-    as provider fact. Daily-capacity routing remains fail-closed until a
-    provider reset observation or confirmation is available.
+    as `provider_defined` with an explicit provider-scoped rolling 24-hour
+    safety envelope; the provider-defined label remains visible for audit and
+    a reviewed native reset may replace it. Daily-capacity routing still
+    requires the durable external baseline before live transport.
   - >-
     OpenFIGI's current official contract is exact for both traffic modes:
     anonymous mapping is 25 requests/minute with five jobs/request, while an
