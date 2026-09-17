@@ -4546,6 +4546,9 @@ test.describe('TC2000 workstation', () => {
     await expect(mapWindow.locator('[aria-label="Benchmark family canonical readiness"]')).toContainText('50% of roles have dated holdings', { timeout: 15_000 })
     await expect(mapWindow.locator('[aria-label="Benchmark family canonical readiness"]')).toContainText('History: D1 1/1 ready · 1 covered · 4 bars · range 2025-01-01 → 2026-06-30', { timeout: 15_000 })
     await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(1)
+    await expect(mapWindow.locator('.market-map-tool__tile').first()).toHaveAttribute('aria-pressed', 'false')
+    await mapWindow.locator('.market-map-tool__tile').first().click()
+    await expect(mapWindow.locator('.market-map-tool__tile').first()).toHaveAttribute('aria-pressed', 'true')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

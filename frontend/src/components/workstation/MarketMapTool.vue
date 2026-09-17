@@ -276,7 +276,7 @@
           @mouseleave="hoveredCell = null"
           @click="selectCanvasCell"
         />
-        <button v-else v-for="cell in visibleLayoutCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="[tileClass(cell.color_value), { 'market-map-tool__tile--selected': selectedIds.includes(cell.instrument_id) }]" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @pointerdown.stop @mouseenter="hoveredCell = cell" @mouseleave="hoveredCell = null" @click="selectCell($event, cell)">
+        <button v-else v-for="cell in visibleLayoutCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="[tileClass(cell.color_value), { 'market-map-tool__tile--selected': selectedIds.includes(cell.instrument_id) }]" :aria-pressed="selectedIds.includes(cell.instrument_id) ? 'true' : 'false'" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @pointerdown.stop @mouseenter="hoveredCell = cell" @mouseleave="hoveredCell = null" @click="selectCell($event, cell)">
           <strong>{{ cell.symbol }}</strong><span>{{ formatMetric(cell.color_value) }}</span><small>{{ cell.group_path.join(' · ') || 'All members' }}</small>
         </button>
         <div v-if="!useCanvasTiles" v-for="group in visibleLayoutGroups" :key="`group-${group.key}`" class="market-map-tool__group-frame" :style="groupFrameStyle(group)" :data-group-level="group.level" aria-hidden="true">
