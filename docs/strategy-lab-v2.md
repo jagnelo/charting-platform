@@ -659,6 +659,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   deterministically ordered before the pure lineage index is returned. The
   adapter does not certify manifests, create foreign-key migrations, authorize
   owners, or publish artifact bytes.
+- `postgres_forward_state.py` maps persistent broker-free forward instances,
+  one-time historical warm-up receipts, and content-addressed seen-event
+  identities to additive PostgreSQL tables. Lifecycle transitions, warm-up
+  activation, and live-event admission lock the owner-scoped rows and use
+  authenticated compare-and-set updates; exact retries replay while duplicate,
+  gap, out-of-order, and correction observations remain represented in the
+  checkpoint. The adapter never fetches provider data, submits broker orders,
+  starts workers, or applies migrations.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

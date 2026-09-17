@@ -11,6 +11,24 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable forward-state checkpoint
+
+`postgres_forward_state.py` now maps owner-scoped forward instances, immutable
+checkpoint event-id sets, one-time historical warm-up receipts, and
+content-addressed seen-event identities to additive PostgreSQL tables. Lifecycle
+transitions, warm-up activation, and live-event admission lock state and use
+authenticated compare-and-set updates. Exact retries replay; duplicate, gap,
+out-of-order, and correction observations remain represented in restart-safe
+checkpoint state. The adapter is registration-neutral: it does not consume
+providers, submit broker orders, start workers, apply migrations, or register
+application routes.
+
+The focused forward-state adapter suite passed 4 tests. Full package, branch,
+Docker-backed coverage, and exact-tip synchronization receipts will be recorded
+after this boundary is validated. Schema migration, event-stream/worker wiring,
+application authorization, upstream reconciliation, and stable Nautilus
+execution remain open shared-path gates.
+
 ## 2026-09-17 - Durable artifact-lineage checkpoint
 
 `postgres_lineage.py` now maps owner-scoped immutable artifact-lineage edges to
