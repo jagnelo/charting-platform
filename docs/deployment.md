@@ -224,7 +224,10 @@ contracts, and reconciliation completeness have been reviewed, set
 `MARKET_UNIVERSE_RECONCILIATION_ENABLED=true` together with a reviewed
 `MARKET_UNIVERSE_MISSING_CONFIRMATIONS` value. These controls are passed to
 both `backend` and `worker`, never to the research runner, and do not bypass
-provider fail-closed routing.
+provider fail-closed routing. `MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE` controls
+how many durable refresh jobs the worker claims per 15-minute tick (default
+100, bounded to 1–500); tune it only alongside provider quota and worker
+latency evidence.
 
 Provider availability monitoring is independently controlled with
 `PROVIDER_AVAILABILITY_MONITOR_ENABLED`,

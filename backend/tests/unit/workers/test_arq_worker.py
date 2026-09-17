@@ -56,6 +56,20 @@ class _RefreshQueueSession:
         self.commits += 1
 
 
+def test_refresh_queue_batch_limit_uses_configured_bound(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE", 240)
+
+    assert data_tasks._refresh_queue_batch_limit() == 240
+    assert data_tasks._refresh_queue_batch_limit(0) == 1
+    assert data_tasks._refresh_queue_batch_limit(900) == 500
+
+
+def test_refresh_queue_batch_limit_falls_back_for_invalid_configuration(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE", "invalid")
+
+    assert data_tasks._refresh_queue_batch_limit() == 100
+
+
 @pytest.mark.asyncio
 async def test_daily_history_refresh_is_explicitly_disabled_by_default(monkeypatch):
     monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", False)

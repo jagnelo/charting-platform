@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-17 — Configurable core-refresh throughput
+
+- [x] Add `MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE` with a default of 100 and a
+      safe worker bound of 1–500; wire it through standard/RPi Compose and
+      deployment documentation.
+- [x] Add configuration regressions and replay the authoritative backend gate:
+      `2,370/2,370` passed with 37 warnings and 70.82% coverage; Compose,
+      Ruff, and diff checks passed.
+- [ ] Tune the value only after deployment-specific provider quota and worker
+      latency evidence exists; this setting does not override fail-closed
+      provider admission.
+
 ### 2026-09-17 — Recurring core-refresh key correction
 
 - [x] Make whole-universe daily D1 refresh keys idempotent within a UTC run

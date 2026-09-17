@@ -91,6 +91,10 @@ class Settings(BaseSettings):
     # Provider-backed universe maintenance
     INSTRUMENT_SYNC_SCHEDULE_ENABLED: bool = False
     MARKET_DATA_REFRESH_SCHEDULE_ENABLED: bool = False
+    # Number of durable core-refresh jobs claimed by each 15-minute worker
+    # tick. The worker clamps this to the queue's safe 1..500 range so a
+    # deployment can tune throughput without bypassing provider quotas.
+    MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE: int = 100
     MARKET_DATA_SHADOW_REPORT_ENABLED: bool = False
     MARKET_UNIVERSE_RECONCILIATION_ENABLED: bool = False
     # Provider-native account usage is opt-in because each poll consumes the

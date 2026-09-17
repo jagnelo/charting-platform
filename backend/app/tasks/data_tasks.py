@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 
+from app.config import settings
 from app.database import AsyncSessionLocal
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -134,11 +135,26 @@ async def enqueue_core_refresh_jobs(ctx: dict) -> dict:
         return {"queued": len(instruments), "mode": "enqueue_only"}
 
 
-async def process_refresh_jobs(ctx: dict, limit: int = 50) -> dict:
+def _refresh_queue_batch_limit(limit: int | None = None) -> int:
+    """Return a bounded queue batch size for one worker tick."""
+
+    configured = (
+        limit
+        if limit is not None
+        else getattr(settings, "MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE", 100)
+    )
+    try:
+        parsed = int(configured)
+    except (TypeError, ValueError):
+        parsed = 100
+    return max(1, min(parsed, 500))
+
+
+async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
     """Process queued requests with lease/retry telemetry and bounded fan-out."""
 
     async with AsyncSessionLocal() as db:
-        jobs = await claim_refresh_jobs(db, limit=max(1, min(limit, 500)))
+        jobs = await claim_refresh_jobs(db, limit=_refresh_queue_batch_limit(limit))
         completed = 0
         retried = 0
         lease_lost = 0

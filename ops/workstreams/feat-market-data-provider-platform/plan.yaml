@@ -744,6 +744,16 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 configurable core-refresh throughput: added the explicit
+      `MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE` deployment setting (default 100,
+      bounded to 1..500) and wired it through standard/RPi Compose. The worker
+      now uses this bound for each 15-minute durable queue claim, preserving
+      provider quota admission while allowing measured deployment tuning.
+      Focused worker/wiring coverage passed 81/81; the authoritative backend
+      unit gate passed 2,370/2,370 with 37 warnings and 70.82% coverage;
+      Compose, Ruff, and diff checks passed. No provider calls, credentials,
+      frontend files, or ETF-provider adapters changed.
+    - >-
       2026-09-17 recurring core-refresh key correction: whole-universe D1
       scheduler jobs now use an idempotency key containing the UTC run date.
       Duplicate deliveries on one date still coalesce, while the following

@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 configurable core-refresh throughput
+
+- Added `MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE` to make the durable refresh
+  worker's per-15-minute claim size explicit and deployment-configurable.
+  The default is `100`, and the queue clamps values to `1..500` so throughput
+  tuning cannot bypass the provider quota coordinator.
+- Wired the setting through the checked-in environment example and both
+  backend/worker services in standard and RPi Compose; deployment guidance
+  documents the quota/latency tradeoff.
+- Added invalid/low/high configuration regressions. Focused worker and
+  wiring coverage passed `81/81`; the authoritative backend unit gate passed
+  `2,370/2,370` with 37 warnings and 70.82% coverage. Compose contracts,
+  Ruff, and diff checks passed.
+- No provider calls, credentials, frontend files, or ETF-provider adapters
+  changed. Provider-specific quota/legal/source, universe, target-secret,
+  deferred-provider, and final-shadow gates remain unchanged and open.
+
 ## 2026-09-17 recurring core-refresh key correction
 
 - Fixed the whole-universe daily D1 scheduler's permanent `d1:<instrument_id>`
