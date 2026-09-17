@@ -2,8 +2,9 @@
 
 The REST router intentionally accepts registration-neutral resource envelopes.
 This module is the first application-owned domain boundary: it turns strategy,
-package, portfolio, experiment, attempt, snapshot, trial, and metric-set resources into immutable
-typed contracts before the application persists them, while leaving other
+package, portfolio, experiment, attempt, snapshot, trial, metric-set, and
+forward-instance resources into immutable typed contracts before the application
+persists them, while leaving other
 resource types available to their future domain adapters.
 """
 
@@ -27,11 +28,14 @@ from app.strategy_lab_v2.capabilities import (
 from app.strategy_lab_v2.contracts import (
     AdjustmentMode,
     AttemptState,
+    CarryInMode,
     DataSeriesManifest,
     DataSnapshot,
     EvaluationWindow,
     EventGranularity,
     ExperimentDefinition,
+    ForwardInstance,
+    ForwardState,
     MetricBasis,
     MetricCalculationDefinition,
     MetricEvidenceReference,
@@ -85,7 +89,8 @@ def normalize_resource_attributes(
     """Validate and canonicalize the domain fields for one resource.
 
     Typed strategy, package, portfolio, experiment, attempt, snapshot, trial,
-    and metric-set creation is deliberately strict because these identities
+    metric-set, and forward-instance creation is deliberately strict because
+    these identities
     control reproducibility. Other resources retain the generic frozen envelope
     until their domain-specific adapters are introduced.
     """
@@ -110,6 +115,8 @@ def normalize_resource_attributes(
         return _normalize_trial(attributes)
     if resource_type is ApiResourceType.METRIC_SET:
         return _normalize_metric_set(attributes)
+    if resource_type is ApiResourceType.FORWARD_INSTANCE:
+        return _normalize_forward_instance(attributes)
     return ResourceDomainNormalization(attributes)
 
 
@@ -821,6 +828,75 @@ def _metric_value_attributes(value: MetricValue) -> Mapping[str, Any]:
             {"role": item.role, "digest": item.digest} for item in value.evidence_references
         ),
     }
+
+
+def _normalize_forward_instance(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
+    allowed = {
+        "instance_id",
+        "portfolio_fingerprint",
+        "warmup_snapshot_fingerprint",
+        "carry_in_mode",
+        "state",
+        "last_event_id",
+        "last_event_sequence",
+        "correction_count",
+        "created_at",
+        "updated_at",
+        "resource_id",
+        "id",
+    }
+    unknown = sorted(set(attributes) - allowed)
+    if unknown:
+        raise ValueError(
+            f"forward_instance attributes contain unsupported fields: {', '.join(unknown)}"
+        )
+    api_ids = [attributes[name] for name in ("resource_id", "id") if name in attributes]
+    if any(not isinstance(value, str) or not value.strip() for value in api_ids):
+        raise ValueError("forward_instance resource_id/id must be a non-empty string")
+    if len(api_ids) == 2 and api_ids[0] != api_ids[1]:
+        raise ValueError("forward_instance resource_id and id must agree")
+    last_event_id = attributes.get("last_event_id")
+    if last_event_id is not None and (not isinstance(last_event_id, str) or not last_event_id.strip()):
+        raise ValueError("forward_instance last_event_id must be a non-empty string when present")
+    last_event_sequence = attributes.get("last_event_sequence")
+    correction_count = attributes.get("correction_count")
+    if not isinstance(last_event_sequence, int) or isinstance(last_event_sequence, bool):
+        raise ValueError("forward_instance last_event_sequence must be an integer")
+    if not isinstance(correction_count, int) or isinstance(correction_count, bool):
+        raise ValueError("forward_instance correction_count must be an integer")
+    try:
+        instance = ForwardInstance(
+            instance_id=attributes["instance_id"],
+            portfolio_fingerprint=attributes["portfolio_fingerprint"],
+            warmup_snapshot_fingerprint=attributes["warmup_snapshot_fingerprint"],
+            carry_in_mode=_enum_attribute(CarryInMode, attributes["carry_in_mode"], "carry_in_mode"),
+            state=_enum_attribute(ForwardState, attributes["state"], "forward state"),
+            last_event_id=last_event_id,
+            last_event_sequence=last_event_sequence,
+            correction_count=correction_count,
+            created_at=_datetime_attribute(attributes["created_at"], "created_at"),
+            updated_at=_datetime_attribute(attributes["updated_at"], "updated_at"),
+        )
+    except KeyError as error:
+        raise ValueError(f"forward_instance attribute is required: {error.args[0]}") from error
+    except (AttributeError, TypeError, ValueError) as error:
+        raise ValueError(f"forward_instance attributes are invalid: {error}") from error
+
+    normalized: dict[str, Any] = {
+        "instance_id": instance.instance_id,
+        "portfolio_fingerprint": instance.portfolio_fingerprint,
+        "warmup_snapshot_fingerprint": instance.warmup_snapshot_fingerprint,
+        "carry_in_mode": instance.carry_in_mode,
+        "state": instance.state,
+        "last_event_id": instance.last_event_id,
+        "last_event_sequence": instance.last_event_sequence,
+        "correction_count": instance.correction_count,
+        "created_at": instance.created_at,
+        "updated_at": instance.updated_at,
+    }
+    if api_ids:
+        normalized["resource_id"] = api_ids[0]
+    return ResourceDomainNormalization(normalized, content_digest(instance))
 
 
 def _preflight_report(value: Any) -> PreflightReport:

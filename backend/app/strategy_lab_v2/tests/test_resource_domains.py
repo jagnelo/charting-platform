@@ -86,9 +86,9 @@ def test_strategy_rejects_unknown_or_invalid_dependency_fields() -> None:
 
 
 def test_non_domain_resources_remain_frozen_until_their_domain_adapter_exists() -> None:
-    attributes = {"name": "forward-instance", "nested": {"values": [1, 2]}}
+    attributes = {"name": "artifact", "nested": {"values": [1, 2]}}
 
-    result = normalize_resource_attributes(ApiResourceType.FORWARD_INSTANCE, attributes)
+    result = normalize_resource_attributes(ApiResourceType.ARTIFACT, attributes)
 
     assert result.domain_fingerprint is None
     assert result.attributes["nested"]["values"] == (1, 2)
@@ -535,3 +535,57 @@ def test_metric_set_rejects_null_values_without_reasons_or_unknown_fields() -> N
     unknown["unexpected"] = True
     with pytest.raises(ValueError, match="unsupported fields"):
         normalize_resource_attributes(ApiResourceType.METRIC_SET, unknown)
+
+
+def test_forward_instance_attributes_are_normalized_as_typed_state() -> None:
+    result = normalize_resource_attributes(
+        ApiResourceType.FORWARD_INSTANCE,
+        {
+            "instance_id": "forward-1",
+            "portfolio_fingerprint": content_digest("portfolio-v1"),
+            "warmup_snapshot_fingerprint": content_digest("snapshot-v1"),
+            "carry_in_mode": "synthetic_historical",
+            "state": "active",
+            "last_event_id": "event-42",
+            "last_event_sequence": 42,
+            "correction_count": 2,
+            "created_at": "2026-09-17T12:00:00+01:00",
+            "updated_at": "2026-09-17T12:30:00+01:00",
+            "resource_id": "forward-1",
+            "id": "forward-1",
+        },
+    )
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["carry_in_mode"] == "synthetic_historical"
+    assert result.attributes["state"] == "active"
+    assert result.attributes["last_event_sequence"] == 42
+    assert result.attributes["created_at"].isoformat() == "2026-09-17T11:00:00+00:00"
+
+
+def test_forward_instance_rejects_invalid_progress_and_identity_fields() -> None:
+    attributes: dict[str, Any] = {
+        "instance_id": "forward-1",
+        "portfolio_fingerprint": content_digest("portfolio-v1"),
+        "warmup_snapshot_fingerprint": content_digest("snapshot-v1"),
+        "carry_in_mode": "flat",
+        "state": "created",
+        "last_event_id": None,
+        "last_event_sequence": 1,
+        "correction_count": 0,
+        "created_at": "2026-09-17T12:00:00Z",
+        "updated_at": "2026-09-17T12:00:00Z",
+    }
+    with pytest.raises(ValueError, match="last_event_id"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_INSTANCE, attributes)
+
+    attributes["last_event_sequence"] = 0
+    attributes["state"] = "not-a-state"
+    with pytest.raises(ValueError, match="forward_instance attributes are invalid"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_INSTANCE, attributes)
+
+    attributes["state"] = "created"
+    attributes["resource_id"] = "forward-1"
+    attributes["id"] = "different-id"
+    with pytest.raises(ValueError, match="must agree"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_INSTANCE, attributes)

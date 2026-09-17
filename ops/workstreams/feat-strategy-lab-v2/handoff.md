@@ -183,6 +183,20 @@ Focused metric/domain tests passed (18 tests); the full Strategy Lab v2 package
 passed 800 tests. Compose activation, stable Nautilus conformance, upstream
 contract reconciliation, and full repository integration remain open.
 
+## 2026-09-17 - Typed forward-instance resource registration
+
+`resource_domains.py` now completes typed mutation validation for the persisted
+forward-instance identity. Portfolio and warm-up snapshot digests, carry-in and
+lifecycle state, event progress, correction count, timestamp ordering, and
+resource ID aliases are validated through the immutable `ForwardInstance`
+contract before persistence. Invalid progress, state, timestamps, digests,
+unknown fields, and conflicting aliases fail closed; normalized timestamps are
+UTC and the domain fingerprint is content-addressed.
+
+Focused metric/domain tests passed (20 tests); the full Strategy Lab v2 package
+passed 802 tests. Compose activation, stable Nautilus conformance, upstream
+contract reconciliation, and full repository integration remain open.
+
 ## 2026-09-17 - Executable Nautilus conformance harness
 
 `conformance_fixtures.py` now exposes `execute_conformance_suite(...)`, an

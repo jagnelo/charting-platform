@@ -668,11 +668,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   metric-set creation through the generic route.
 - `resource_domains.py` is the first domain-owned API mutation boundary. It
   decodes strategy, package, portfolio, experiment, attempt, snapshot, trial,
-  and metric-set attributes into immutable typed contracts, canonicalizes dependency,
+  metric-set, and forward-instance attributes into immutable typed contracts,
+  canonicalizes dependency,
   parameter, capital, risk, rebalance, seed, engine, lifecycle, coverage,
-  and series/trial/metric data, binds the normalized domain fingerprint into projected
+  and series/trial/metric/forward-state data, binds the normalized domain fingerprint into projected
   resource metadata, and rejects unknown fields, invalid
-  source/archive/runtime/portfolio/experiment/attempt/snapshot/trial/metric
+  source/archive/runtime/portfolio/experiment/attempt/snapshot/trial/metric/forward
   identities, or conflicting API IDs. Other resource types remain
   registration-neutral until their domain adapters are introduced.
 - `api_router.py` provides a registration-neutral `/strategy-lab/v2` FastAPI
@@ -705,7 +706,7 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   are normalized through the typed
   `StrategyVersion`/`StrategyPackage`/`PortfolioComposition`/
   `ExperimentDefinition`/`RunAttempt`/`DataSnapshot`/`ScientificTrial`/
-  `MetricSet` contracts
+  `MetricSet`/`ForwardInstance` contracts
   before storage; other resource domain adapters remain explicit follow-up
   gates. `persistence.py` now owns the complete
   PostgreSQL adapter graph behind one shared async session factory, preserving
