@@ -878,12 +878,21 @@ def provider_missing_routing_controls(
         missing.extend(fred_series_rights_missing())
         return missing
     if name == "alpha_vantage":
+        seed_contract = provider_rate_limit_seed(name).get("quota_contract")
+        dimensions = seed_contract.get("dimensions", []) if isinstance(seed_contract, dict) else []
+        has_safety_envelope = bool(dimensions) and all(
+            provider_quota_reset_is_admission_safe(item.get("safety_reset"))
+            for item in dimensions
+            if isinstance(item, dict)
+        )
         reviewed_reset = str(
             getattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "") or ""
         ).strip()
         quota_evidence = str(
             getattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "") or ""
         ).strip()
+        if has_safety_envelope and not reviewed_reset and not quota_evidence:
+            return []
         missing: list[str] = []
         if not provider_quota_reset_is_admission_safe(reviewed_reset):
             missing.append("ALPHA_VANTAGE_REVIEWED_RESET")
@@ -891,6 +900,13 @@ def provider_missing_routing_controls(
             missing.append("ALPHA_VANTAGE_QUOTA_EVIDENCE")
         return missing
     if name == "finnhub":
+        seed_contract = provider_rate_limit_seed(name).get("quota_contract")
+        dimensions = seed_contract.get("dimensions", []) if isinstance(seed_contract, dict) else []
+        has_safety_envelope = bool(dimensions) and all(
+            provider_quota_reset_is_admission_safe(item.get("safety_reset"))
+            for item in dimensions
+            if isinstance(item, dict)
+        )
         minute_reset = str(
             getattr(settings, "FINNHUB_REVIEWED_MINUTE_RESET", "") or ""
         ).strip()
@@ -903,6 +919,14 @@ def provider_missing_routing_controls(
         second_evidence = str(
             getattr(settings, "FINNHUB_SECOND_QUOTA_EVIDENCE", "") or ""
         ).strip()
+        if (
+            has_safety_envelope
+            and not minute_reset
+            and not second_reset
+            and not minute_evidence
+            and not second_evidence
+        ):
+            return []
         missing: list[str] = []
         if not provider_quota_reset_is_admission_safe(minute_reset):
             missing.append("FINNHUB_REVIEWED_MINUTE_RESET")

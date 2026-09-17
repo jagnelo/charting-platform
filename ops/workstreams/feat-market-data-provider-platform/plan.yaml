@@ -191,15 +191,13 @@ remaining_gaps:
     reset assumption.
   - >-
     Finnhub's observed 60-calls/minute and 30-calls/second ceilings are
-    independent pools, but the provider does not supply a reviewed reset
-    contract in the current branch evidence. Commit
-    `dd60e653237ccd4b8c24566fa4d5917fc6239971` adds separate
-    `FINNHUB_REVIEWED_MINUTE_RESET` / `FINNHUB_REVIEWED_SECOND_RESET` and
-    dimension-specific evidence settings. Both must be admission-safe and
-    evidenced before the seed changes from its unresolved combined label to
-    `per_dimension`; otherwise every Finnhub operation remains fail-closed.
-    Focused coverage is 153/153 and the full backend unit gate is 2,354/2,354
-    with 37 warnings at 70.75% coverage. No provider request was made.
+    independent pools. The seed now enforces an explicit rolling application
+    envelope for each dimension when native reset semantics are absent; the
+    provider-defined reset label remains visible for audit, and the existing
+    `FINNHUB_REVIEWED_MINUTE_RESET` / `FINNHUB_REVIEWED_SECOND_RESET` settings
+    remain optional native-reset overrides. No generic request fallback is
+    used. Focused quota/registry coverage is green; current-source transport
+    and account-plan evidence remain separate gates.
   - >-
     FMP's configured 250-calls/day and 512 MB/30-day bandwidth pools now have
     independent provider-specific admission controls. The current official
@@ -275,16 +273,16 @@ remaining_gaps:
     case passes 1/1 with one request and 304 response bytes. The minute limit,
     reset, and evidence controls remain the owner gate for ordinary routing.
   - >-
-    Alpha Vantage's free-key 25-requests/day quota still has no provider-published
-    reset boundary/timezone. Commit `2f72ad2d6635750032a5f9cdd3aacf4e71bd62a1`
-    makes this an explicit provider-specific admission control rather than a
-    generic fallback: `ALPHA_VANTAGE_REVIEWED_RESET` must name an
-    admission-safe, calculable boundary and `ALPHA_VANTAGE_QUOTA_EVIDENCE` must
-    record its current evidence. Both are wired through local/RPi Compose and
-    GitHub live CI; blank/invalid values preserve the fail-closed seed. Focused
-    coverage is 152/152 and the full backend unit gate is 2,353/2,353 with 37
-    warnings at 70.73% coverage. A credentialed Alpha live case remains
-    intentionally preflight-blocked and no provider request was made.
+    Alpha Vantage's free-key 25-requests/day quota still has no
+    provider-published reset boundary/timezone, but the current seed now
+    declares an explicit rolling 24-hour application envelope for that exact
+    dimension. The provider-defined label remains visible for audit; blank
+    `ALPHA_VANTAGE_REVIEWED_RESET` and evidence settings therefore no longer
+    block the seed solely for the missing native boundary. Non-empty overrides
+    still require an admission-safe reset and evidence. Focused quota/registry/
+    routing coverage passes 172/172; a fresh current-source Alpha transport
+    case is still required, and the provider's response-level capacity errors
+    remain subject to the durable coordinator.
   - >-
     Alpha Vantage now parses the documented raw weekly and monthly time-series
     endpoints in addition to its bounded daily compact endpoint. Each history

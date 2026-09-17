@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import (
     marketdata_app_reviewed_plan,
     provider_positive_integer,
+    provider_quota_admission_reset,
     provider_quota_reset_is_admission_safe,
     provider_quota_reset_is_known,
     provider_rate_limit_seed,
@@ -1321,6 +1322,10 @@ def quota_dimensions(policy: ProviderPolicy) -> list[dict[str, Any]]:
             return []
         if "reset" in item and not provider_quota_reset_is_known(item.get("reset")):
             return []
+        if "safety_reset" in item and not provider_quota_reset_is_known(
+            item.get("safety_reset")
+        ):
+            return []
         # A quota group is optional for backward compatibility, but an
         # explicitly supplied value must be non-blank.  Blank grouping would
         # silently collapse unrelated capabilities into an ambiguous bucket.
@@ -1359,9 +1364,32 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
         missing.append("quota_source")
     unknown_dimensions = contract.get("unknown_dimensions")
     if isinstance(unknown_dimensions, list):
+        safety_resolved: set[str] = set()
+        dimensions = contract.get("dimensions")
+        if isinstance(dimensions, list):
+            for dimension in dimensions:
+                if not isinstance(dimension, dict):
+                    continue
+                primary_reset = dimension.get("reset", contract.get("reset"))
+                admission_reset = provider_quota_admission_reset(
+                    primary_reset, dimension.get("safety_reset")
+                )
+                if (
+                    admission_reset != str(primary_reset or "").strip()
+                    and provider_quota_reset_is_admission_safe(admission_reset)
+                ):
+                    dimension_name = str(dimension.get("name") or "").strip()
+                    if dimension_name:
+                        safety_resolved.update(
+                            {
+                                item
+                                for item in unknown_dimensions
+                                if str(item).startswith(f"{dimension_name}_")
+                            }
+                        )
         for item in unknown_dimensions:
             name = str(item or "unknown").strip()
-            if name:
+            if name and name not in safety_resolved:
                 missing.append(f"quota_contract.unknown_dimensions.{name}")
     untracked = contract.get("untracked_constraints")
     if isinstance(untracked, list):
@@ -1396,8 +1424,11 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
             if not valid:
                 missing.append(f"{prefix}.{field_name}")
         effective_reset = item.get("reset", contract.get("reset"))
-        if not provider_quota_reset_is_admission_safe(effective_reset):
-            suffix = "unknown" if not provider_quota_reset_is_known(effective_reset) else "unresolved"
+        admission_reset = provider_quota_admission_reset(
+            effective_reset, item.get("safety_reset")
+        )
+        if not provider_quota_reset_is_admission_safe(admission_reset):
+            suffix = "unknown" if not provider_quota_reset_is_known(admission_reset) else "unresolved"
             missing.append(f"{prefix}.reset.{suffix}")
     return missing
 
@@ -1437,7 +1468,9 @@ def policy_has_known_quota(policy: ProviderPolicy) -> bool:
     contract = dict(policy.quota_contract or {})
     return all(
         provider_quota_reset_is_admission_safe(
-            item.get("reset", contract.get("reset"))
+            provider_quota_admission_reset(
+                item.get("reset", contract.get("reset")), item.get("safety_reset")
+            )
         )
         for item in dimensions
     )

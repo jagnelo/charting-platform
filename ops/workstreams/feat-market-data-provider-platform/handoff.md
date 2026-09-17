@@ -1,5 +1,29 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 explicit provider-scoped safety envelopes
+
+- Applied the Alpaca reset-boundary decision to the other providers whose
+  current evidence gives an exact numeric ceiling but omits a calculable native
+  bucket boundary. Massive Stocks Basic (5 calls/minute), Alpha Vantage free
+  (25 calls/day), SEC EDGAR fair-access (10 calls/second), and Finnhub's
+  independent 60 calls/minute and 30 calls/second pools now each carry an
+  explicit provider-scoped rolling application envelope.
+- The contract retains the provider-facing reset label (`provider_defined`) for
+  audit and terms review; the coordinator uses only the dimension's declared
+  `safety_reset` when calculating reservations. There is no generic 60/minute,
+  burst, concurrency, or cooldown fallback. Optional reviewed native-reset
+  settings remain available per provider and dimension, but blank settings no
+  longer make these four documented numeric pools unusable solely because the
+  vendor omitted the boundary.
+- Alpha Vantage and Finnhub preflight now accept their explicit seed envelopes;
+  Massive remains separately terms/use-authority gated. EODHD's conflicting
+  limits, FMP/Tiingo byte and pool dimensions, FRED rights, FINRA OTC
+  entitlement, and other unresolved provider-specific controls remain
+  fail-closed rather than receiving an inferred window.
+- Focused quota/registry/routing coverage passes `172/172`; Ruff, compile, and
+  diff checks pass. The full Docker-backed gate and a fresh current-source live
+  preflight/matrix are the remaining validation steps for this change.
+
 ## 2026-09-17 no-loss pagination and evidence retention correction
 
 - Tokenized catalogue refreshes now persist provider/page-size continuation in

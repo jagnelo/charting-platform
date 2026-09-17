@@ -10,6 +10,7 @@ import app.config as app_config
 from app.config import (
     FRED_MAPPED_SERIES_IDS,
     Settings,
+    provider_quota_admission_reset,
     provider_quota_reset_is_admission_safe,
     provider_quota_reset_is_known,
     provider_rate_limit_seed,
@@ -186,6 +187,37 @@ def test_alpaca_native_minute_pool_uses_rolling_safety_envelope():
     assert alpha["dimensions"][0]["limit"] == 25
     assert alpha["reset"] == "provider_defined"
     assert alpha["unknown_dimensions"] == ["requests_per_day_reset_boundary"]
+
+    for provider_name, dimension_name in (
+        ("massive", "requests_per_minute"),
+        ("edgar", "requests_per_second"),
+        ("alpha_vantage", "requests_per_day"),
+    ):
+        contract = provider_rate_limit_seed(provider_name)["quota_contract"]
+        dimension = next(item for item in contract["dimensions"] if item["name"] == dimension_name)
+        assert dimension.get("reset") is None
+        assert dimension["safety_reset"] == "rolling"
+        assert provider_quota_admission_reset(
+            dimension.get("reset"), dimension["safety_reset"]
+        ) == "rolling"
+        policy = ProviderPolicy(
+            data_source_id=1,
+            capability=ProviderCapability.PRICE_HISTORY,
+            quota_scope=provider_name,
+            quota_source=f"{provider_name} reviewed provider contract",
+            quota_contract=contract,
+        )
+        assert quota_contract_missing_dimensions(policy) == []
+        assert policy_has_known_quota(policy)
+
+    finnhub = provider_rate_limit_seed("finnhub")["quota_contract"]
+    assert all(item["safety_reset"] == "rolling" for item in finnhub["dimensions"])
+
+
+def test_provider_quota_admission_reset_never_invents_a_boundary():
+    assert provider_quota_admission_reset("provider_defined", "") == "provider_defined"
+    assert provider_quota_admission_reset("provider_defined", "not-a-reset") == "provider_defined"
+    assert provider_quota_admission_reset("rolling", "fixed_minute") == "rolling"
 
     fred = provider_rate_limit_seed("fred")["quota_contract"]
     assert fred["dimensions"][0]["reset"] == "provider_defined"

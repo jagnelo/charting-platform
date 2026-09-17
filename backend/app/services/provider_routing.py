@@ -17,7 +17,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import provider_quota_reset_is_admission_safe
+from app.config import (
+    provider_quota_admission_reset,
+    provider_quota_reset_is_admission_safe,
+)
 from app.models.market_data_foundation import (
     ProviderQuotaIdentity,
     ProviderQuotaWindow,
@@ -67,30 +70,33 @@ def _window_start_for_dimension(
 
     window_start = None
     dimension_reset = str(dimension.get("reset") or reset)
-    if not provider_quota_reset_is_admission_safe(dimension_reset):
+    admission_reset = provider_quota_admission_reset(
+        dimension_reset, dimension.get("safety_reset")
+    )
+    if not provider_quota_reset_is_admission_safe(admission_reset):
         raise ProviderQuotaUnknownError(
             f"provider quota reset boundary is unresolved: {dimension_reset or 'missing'}"
         )
     window_seconds = int(dimension["window_seconds"])
-    if dimension_reset == "calendar_month_est" and window_seconds >= 2_500_000:
+    if admission_reset == "calendar_month_est" and window_seconds >= 2_500_000:
         eastern = now.astimezone(ZoneInfo("America/New_York"))
         reset_local = eastern.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         window_start = reset_local.astimezone(UTC)
-    elif "calendar_month" in dimension_reset and window_seconds >= 2_500_000:
+    elif "calendar_month" in admission_reset and window_seconds >= 2_500_000:
         window_start = datetime(now.year, now.month, 1, tzinfo=UTC)
-    elif dimension_reset in {"calendar_day_utc", "calendar_day_gmt"} and window_seconds >= 86400:
+    elif admission_reset in {"calendar_day_utc", "calendar_day_gmt"} and window_seconds >= 86400:
         window_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
-    elif dimension_reset == "calendar_day_est" and window_seconds >= 86400:
+    elif admission_reset == "calendar_day_est" and window_seconds >= 86400:
         eastern = now.astimezone(ZoneInfo("America/New_York"))
         reset_local = eastern.replace(hour=0, minute=0, second=0, microsecond=0)
         window_start = reset_local.astimezone(UTC)
-    elif dimension_reset.startswith("09:30") and window_seconds >= 86400:
+    elif admission_reset.startswith("09:30") and window_seconds >= 86400:
         eastern = now.astimezone(ZoneInfo("America/New_York"))
         reset_local = eastern.replace(hour=9, minute=30, second=0, microsecond=0)
         if eastern < reset_local:
             reset_local -= timedelta(days=1)
         window_start = reset_local.astimezone(UTC)
-    rolling = window_start is None and "rolling" in dimension_reset
+    rolling = window_start is None and "rolling" in admission_reset
     return window_start, rolling
 
 

@@ -1808,6 +1808,7 @@ def _reservation_plan_for_live_probe(
     """Build the exact same kind of provider-specific plan for direct probes."""
 
     from app.config import (
+        provider_quota_admission_reset,
         provider_quota_reset_is_admission_safe,
         provider_quota_reset_is_known,
         provider_rate_limit_seed,
@@ -1831,6 +1832,30 @@ def _reservation_plan_for_live_probe(
         for item in (contract.get("unknown_dimensions") or [])
         if str(item or "").strip()
     }
+    # A provider can leave its native reset boundary unspecified while the
+    # contract supplies an explicit per-dimension application safety envelope.
+    # Keep the unresolved provider label in audit metadata, but do not block
+    # reservations that are safely enforced by that dimension's envelope.
+    safety_resolved_unknown: set[str] = set()
+    for dimension in contract.get("dimensions", []) or []:
+        if not isinstance(dimension, dict):
+            continue
+        primary_reset = dimension.get("reset", contract.get("reset"))
+        admission_reset = provider_quota_admission_reset(
+            primary_reset, dimension.get("safety_reset")
+        )
+        if (
+            admission_reset != str(primary_reset or "").strip()
+            and provider_quota_reset_is_admission_safe(admission_reset)
+        ):
+            dimension_name = str(dimension.get("name") or "").strip()
+            if dimension_name:
+                safety_resolved_unknown.update(
+                    item
+                    for item in unknown_dimensions
+                    if item.startswith(f"{dimension_name}_")
+                )
+    unknown_dimensions -= safety_resolved_unknown
     allowed_bootstrap_unknown = {
         str(item or "").strip()
         for item in (
@@ -1878,7 +1903,10 @@ def _reservation_plan_for_live_probe(
                 }:
                     continue
             effective_reset = item.get("reset", contract.get("reset"))
-            if not provider_quota_reset_is_admission_safe(effective_reset):
+            admission_reset = provider_quota_admission_reset(
+                effective_reset, item.get("safety_reset")
+            )
+            if not provider_quota_reset_is_admission_safe(admission_reset):
                 # An account-usage bootstrap may explicitly exclude an
                 # unknown provider pool from charging. It still must not
                 # invent a window for that zero-cost dimension.
@@ -1887,7 +1915,7 @@ def _reservation_plan_for_live_probe(
                 ) is True:
                     bootstrap_unknown.add(str(item.get("name") or ""))
                     continue
-                suffix = "unknown" if not provider_quota_reset_is_known(effective_reset) else "unresolved"
+                suffix = "unknown" if not provider_quota_reset_is_known(admission_reset) else "unresolved"
                 raise ProviderQuotaAdmissionError(
                     f"provider dimension reset semantics are {suffix} for live operation {provider_name}/{operation}/{item.get('name', '')}"
                 )

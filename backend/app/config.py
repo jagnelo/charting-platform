@@ -337,12 +337,17 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://massive.com/stocks",
+                        # Massive publishes the five/minute magnitude but
+                        # not the bucket boundary.  Keep that provider fact
+                        # unresolved while enforcing this explicit,
+                        # provider-scoped rolling safety envelope.
+                        "safety_reset": "rolling",
                     }
                 ],
                 # Massive publishes five calls/minute but does not document
                 # whether the minute pool is fixed or rolling. Keep the
-                # conservative ceiling visible while routing remains closed
-                # until the active reset boundary is evidenced.
+                # provider-defined label visible while the dimension's
+                # explicit rolling safety envelope controls admission.
                 "reset": "provider_defined",
                 "unknown_dimensions": ["requests_per_minute_reset_boundary"],
             },
@@ -361,6 +366,10 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://www.alphavantage.co/support/",
+                        # The 25/day allowance is exact; the reset anchor is
+                        # not published.  A rolling 24-hour envelope is a
+                        # conservative application policy, not a vendor claim.
+                        "safety_reset": "rolling",
                     }
                 ],
                 # The provider publishes the daily allowance but not its
@@ -449,12 +458,17 @@ class Settings(BaseSettings):
                         "scope": "ip",
                         "quota_group": "ip",
                         "source": "https://www.sec.gov/filergroup/announcements-old/new-rate-control-limits",
+                        # SEC says access resumes below the threshold but does
+                        # not publish a bucket boundary.  Enforce a strict
+                        # rolling one-second application envelope.
+                        "safety_reset": "rolling",
                     }
                 ],
                 # SEC publishes the 10-requests/second ceiling but does not
                 # define whether the enforcement window is fixed or rolling.
-                # Keep the dimension auditable but non-admission-safe until
-                # current provider/account evidence is explicitly reviewed.
+                # Keep the provider-defined label auditable while the
+                # dimension's explicit rolling safety envelope controls
+                # admission.
                 "reset": "provider_defined",
                 "unknown_dimensions": ["requests_per_second_reset_boundary"],
             },
@@ -922,6 +936,10 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "operator_account_dashboard_2026-09-07",
+                        # The account ceiling is exact, but its minute
+                        # boundary is not documented.  Enforce a strict
+                        # rolling envelope until native reset evidence exists.
+                        "safety_reset": "rolling",
                     },
                     {
                         "name": "hard_calls_per_second",
@@ -931,6 +949,7 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://finnhub.io/docs/api",
+                        "safety_reset": "rolling",
                     },
                 ],
                 # The free account exposes two independent request-rate
@@ -2090,9 +2109,9 @@ class Settings(BaseSettings):
     MASSIVE_API_KEY: str = ""
     ALPHA_VANTAGE_API_KEY: str = ""
     # Alpha Vantage publishes the free-key 25-requests/day allowance but does
-    # not publish a reset boundary/timezone. Keep routing fail-closed until an
-    # operator records a reviewed boundary and its evidence. This remains
-    # configurable so a future plan can update the quota without code changes.
+    # not publish a reset boundary/timezone. The seed enforces a rolling
+    # 24-hour application envelope; these optional settings replace it only
+    # when a future plan supplies provider-native reset evidence.
     ALPHA_VANTAGE_REVIEWED_RESET: str = ""
     ALPHA_VANTAGE_QUOTA_EVIDENCE: str = ""
     MARKETDATA_API_KEY: str = ""
@@ -2123,9 +2142,9 @@ class Settings(BaseSettings):
     FMP_BANDWIDTH_QUOTA_EVIDENCE: str = ""
     TWELVE_DATA_API_KEY: str = ""
     FINNHUB_API_KEY: str = ""
-    # Finnhub publishes independent minute and second request ceilings. Keep
-    # each reset boundary separately fail-closed until its current semantics
-    # are reviewed; never collapse the two pools into one generic window.
+    # Finnhub publishes independent minute and second request ceilings. The
+    # seed enforces separate rolling application envelopes for each pool; these
+    # optional settings replace them only with provider-native evidence.
     FINNHUB_REVIEWED_MINUTE_RESET: str = ""
     FINNHUB_REVIEWED_SECOND_RESET: str = ""
     FINNHUB_MINUTE_QUOTA_EVIDENCE: str = ""
@@ -2242,9 +2261,9 @@ class Settings(BaseSettings):
     ALPACA_CORPORATE_ACTIONS_MAX_PAGES: int = 0
     ALPACA_CORPORATE_ACTIONS_START_DATE: str = "1900-01-01"
     # Massive publishes the Stocks Basic five-calls/minute ceiling but does
-    # not specify whether its minute bucket is fixed or rolling. Keep the
-    # provider-specific reset and evidence explicit; never infer a window
-    # from the headline allowance.
+    # not specify whether its minute bucket is fixed or rolling. The seed
+    # enforces a rolling 60-second application envelope; these optional
+    # settings replace it only with a reviewed provider-native boundary.
     MASSIVE_REVIEWED_RESET: str = ""
     MASSIVE_QUOTA_EVIDENCE: str = ""
     # Massive's split and dividend endpoints are independently cursor-paginated;
@@ -2279,8 +2298,9 @@ class Settings(BaseSettings):
     COINGECKO_API_KEY: str = ""
     # SEC EDGAR — no key required; User-Agent identifies your app to SEC servers
     EDGAR_USER_AGENT: str = ""
-    # SEC publishes the 10-requests/second ceiling but not its reset-window
-    # semantics. Keep EDGAR routing fail-closed until both are reviewed.
+    # SEC publishes the 10-requests/second ceiling but not a fixed reset
+    # boundary. The seed enforces a rolling one-second application envelope;
+    # these optional settings replace it only with native reviewed evidence.
     EDGAR_REVIEWED_RESET: str = ""
     EDGAR_QUOTA_EVIDENCE: str = ""
     FINRA_CLIENT_ID: str = ""
@@ -2614,6 +2634,29 @@ def provider_quota_reset_is_admission_safe(value: object) -> bool:
 
     candidate = str(value or "").strip()
     return provider_quota_reset_is_known(candidate) and candidate not in _UNRESOLVED_PROVIDER_QUOTA_RESETS
+
+
+def provider_quota_admission_reset(
+    provider_reset: object, safety_reset: object = ""
+) -> str:
+    """Return the reset label the coordinator may safely calculate.
+
+    A provider may publish an exact numeric ceiling without publishing the
+    enforcement boundary.  In that case a contract can retain the
+    provider-facing ``provider_defined`` label for audit while declaring an
+    explicit, provider-scoped application safety envelope (for example,
+    ``rolling``).  No global fallback is implied: the safety label must be
+    present in that individual provider dimension and must itself be one of
+    the reviewed calculable reset models.
+    """
+
+    primary = str(provider_reset or "").strip()
+    if provider_quota_reset_is_admission_safe(primary):
+        return primary
+    safety = str(safety_reset or "").strip()
+    if provider_quota_reset_is_admission_safe(safety):
+        return safety
+    return primary
 
 
 def marketdata_app_reviewed_plan_pair() -> tuple[str, int] | None:
@@ -3097,11 +3140,12 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         return seed
     if provider_name == "alpha_vantage":
         # Alpha Vantage documents the free-key daily allowance but does not
-        # publish the reset boundary/timezone. Never reinterpret that as a
-        # rolling 24-hour window. An operator may promote the seed only after
-        # recording a reviewed, calculable reset label and evidence; the
-        # setting is intentionally provider-specific so plan changes remain
-        # configuration-only.
+        # publish the reset boundary/timezone. The base dimension therefore
+        # keeps the provider-defined label for audit and carries its explicit
+        # rolling 24-hour application envelope. An operator may replace that
+        # envelope only after recording a reviewed, calculable native reset
+        # label and evidence; the setting remains provider-specific so plan
+        # changes are configuration-only.
         reviewed_reset = str(
             getattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "") or ""
         ).strip()
@@ -3131,8 +3175,9 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
     if provider_name == "massive":
         # Massive publishes the free Stocks Basic five-calls/minute ceiling,
         # but its current plan documentation does not establish the minute
-        # reset boundary. Promote only after the operator records an explicit
-        # calculable reset label and current evidence for this account.
+        # reset boundary. The base dimension retains that provider-defined
+        # label and enforces its explicit rolling safety envelope; an operator
+        # may replace it only with a reviewed native reset and current evidence.
         reviewed_reset = str(
             getattr(settings, "MASSIVE_REVIEWED_RESET", "") or ""
         ).strip()
@@ -3164,8 +3209,10 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         return seed
     if provider_name == "edgar":
         # EDGAR publishes a 10-requests/second fair-access ceiling, but the
-        # source does not establish the reset boundary. Promote only after an
-        # operator records an explicit calculable label and current evidence.
+        # source does not establish the reset boundary. The base dimension
+        # retains the provider-defined label and enforces its explicit rolling
+        # one-second safety envelope; an operator may replace it only with a
+        # reviewed native reset and current evidence.
         reviewed_reset = str(
             getattr(settings, "EDGAR_REVIEWED_RESET", "") or ""
         ).strip()
@@ -3235,10 +3282,11 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         return seed
     if provider_name == "finnhub":
         # Finnhub's free account exposes separate minute and second request
-        # ceilings. Promote the seed only when both dimensions have explicit,
-        # calculable reset labels and independent evidence. The provider's
-        # unresolved combined label remains visible in the default contract;
-        # no rolling/fixed interpretation is invented here.
+        # ceilings. The base dimensions retain their provider-defined labels
+        # and enforce independent rolling safety envelopes. An operator may
+        # replace both envelopes only with explicit, calculable reset labels
+        # and independent evidence; no generic or cross-dimension window is
+        # invented.
         minute_reset = str(
             getattr(settings, "FINNHUB_REVIEWED_MINUTE_RESET", "") or ""
         ).strip()

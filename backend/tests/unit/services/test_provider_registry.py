@@ -481,22 +481,17 @@ class TestProviderRegistry:
             "ALPHA_VANTAGE_REVIEWED_RESET",
             "ALPHA_VANTAGE_QUOTA_EVIDENCE",
         )
-        assert provider_missing_routing_controls("alpha_vantage") == [
-            "ALPHA_VANTAGE_REVIEWED_RESET",
-            "ALPHA_VANTAGE_QUOTA_EVIDENCE",
-        ]
+        # The documented numeric daily cap is admission-safe through the
+        # provider-scoped rolling envelope; native-reset settings remain
+        # optional overrides rather than mandatory controls.
+        assert provider_missing_routing_controls("alpha_vantage") == []
         assert provider_routing_control_settings("finnhub") == (
             "FINNHUB_REVIEWED_MINUTE_RESET",
             "FINNHUB_REVIEWED_SECOND_RESET",
             "FINNHUB_MINUTE_QUOTA_EVIDENCE",
             "FINNHUB_SECOND_QUOTA_EVIDENCE",
         )
-        assert provider_missing_routing_controls("finnhub") == [
-            "FINNHUB_REVIEWED_MINUTE_RESET",
-            "FINNHUB_REVIEWED_SECOND_RESET",
-            "FINNHUB_MINUTE_QUOTA_EVIDENCE",
-            "FINNHUB_SECOND_QUOTA_EVIDENCE",
-        ]
+        assert provider_missing_routing_controls("finnhub") == []
         assert provider_routing_control_settings("coinbase") == (
             "COINBASE_MARKET_DATA_USE_AUTHORIZED",
             "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",

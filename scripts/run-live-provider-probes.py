@@ -1327,7 +1327,9 @@ def routing_safety_preflight() -> dict[str, str]:
         FRED_MAPPED_SERIES_IDS,
         coinbase_market_data_use_authority_missing,
         massive_market_data_use_authority_missing,
+        provider_quota_admission_reset,
         provider_quota_reset_is_admission_safe,
+        provider_rate_limit_seed,
         xstocks_market_data_use_authority_missing,
     )
 
@@ -1421,6 +1423,28 @@ def routing_safety_preflight() -> dict[str, str]:
         ),
     )
 
+    def _seed_safety_reset(provider_name: str, operation: str) -> str | None:
+        """Return an explicit provider-scoped safety envelope, if declared."""
+
+        contract = provider_rate_limit_seed(provider_name).get("quota_contract")
+        if not isinstance(contract, dict):
+            return None
+        for dimension in contract.get("dimensions") or []:
+            if not isinstance(dimension, dict):
+                continue
+            if str(dimension.get("name") or "") != operation:
+                continue
+            provider_reset = dimension.get("reset", contract.get("reset"))
+            safety_reset = dimension.get("safety_reset")
+            effective = provider_quota_admission_reset(provider_reset, safety_reset)
+            if (
+                safety_reset
+                and effective != str(provider_reset or "").strip()
+                and provider_quota_reset_is_admission_safe(effective)
+            ):
+                return effective
+        return None
+
     result: dict[str, str] = {}
     result["alpaca corporate actions"] = (
         "routable: durable page cursor resumes until every page is stored"
@@ -1444,8 +1468,11 @@ def routing_safety_preflight() -> dict[str, str]:
         massive_quota_missing.append("MASSIVE_REVIEWED_RESET")
     if not massive_quota_evidence:
         massive_quota_missing.append("MASSIVE_QUOTA_EVIDENCE")
+    massive_safety_reset = _seed_safety_reset("massive", "requests_per_minute")
     result["massive market-data quota"] = (
-        "routable"
+        "routable: documented 5-requests/minute pool enforced by an explicit rolling safety envelope"
+        if massive_safety_reset and not massive_reset and not massive_quota_evidence
+        else "routable"
         if not massive_quota_missing
         else "non-routable: documented 5-requests/minute Stocks Basic pool has no provider-published reset boundary; missing/invalid "
         + ", ".join(massive_quota_missing)
@@ -1457,8 +1484,11 @@ def routing_safety_preflight() -> dict[str, str]:
         edgar_quota_missing.append("EDGAR_REVIEWED_RESET")
     if not edgar_quota_evidence:
         edgar_quota_missing.append("EDGAR_QUOTA_EVIDENCE")
+    edgar_safety_reset = _seed_safety_reset("edgar", "requests_per_second")
     result["edgar quota"] = (
-        "routable"
+        "routable: documented 10-requests/second ceiling enforced by an explicit rolling safety envelope"
+        if edgar_safety_reset and not edgar_reset and not edgar_quota_evidence
+        else "routable"
         if not edgar_quota_missing
         else "non-routable: documented 10-requests/second SEC fair-access ceiling has no provider-published reset boundary; missing/invalid "
         + ", ".join(edgar_quota_missing)
@@ -1518,8 +1548,11 @@ def routing_safety_preflight() -> dict[str, str]:
         alpha_missing.append("ALPHA_VANTAGE_REVIEWED_RESET")
     if not alpha_quota_evidence:
         alpha_missing.append("ALPHA_VANTAGE_QUOTA_EVIDENCE")
+    alpha_safety_reset = _seed_safety_reset("alpha_vantage", "requests_per_day")
     result["alpha_vantage"] = (
-        "routable"
+        "routable: documented 25-requests/day allowance enforced by an explicit rolling safety envelope"
+        if alpha_safety_reset and not alpha_reset and not alpha_quota_evidence
+        else "routable"
         if not alpha_missing
         else "non-routable: documented 25-requests/day allowance has no provider-published reset boundary; missing/invalid "
         + ", ".join(alpha_missing)
@@ -1538,8 +1571,18 @@ def routing_safety_preflight() -> dict[str, str]:
         finnhub_missing.append("FINNHUB_MINUTE_QUOTA_EVIDENCE")
     if not finnhub_second_evidence:
         finnhub_missing.append("FINNHUB_SECOND_QUOTA_EVIDENCE")
+    finnhub_minute_safety = _seed_safety_reset("finnhub", "calls_per_minute")
+    finnhub_second_safety = _seed_safety_reset("finnhub", "hard_calls_per_second")
     result["finnhub"] = (
-        "routable"
+        "routable: documented minute/second ceilings enforced by explicit rolling safety envelopes"
+        if (
+            finnhub_minute_safety
+            and finnhub_second_safety
+            and not any(
+                (finnhub_minute_reset, finnhub_second_reset, finnhub_minute_evidence, finnhub_second_evidence)
+            )
+        )
+        else "routable"
         if not finnhub_missing
         else "non-routable: independent minute and second reset boundaries require current review evidence; missing/invalid "
         + ", ".join(finnhub_missing)

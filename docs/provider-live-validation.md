@@ -116,18 +116,15 @@ free time-series aggregations: `TIME_SERIES_DAILY` (the bounded 100-point
 two are full native series endpoints and still reserve one provider query each;
 the adapter rejects adjusted requests for all three before transport because
 the adjusted daily endpoint is premium-only. A future credentialed live case
-may select one weekly or monthly range, but this fixture evidence does not
-change the unresolved 25-requests/day reset boundary or promote Alpha Vantage
-routing.
-Alpha Vantage's daily allowance is therefore represented as
-`provider_defined` with an explicit unknown reset dimension. Operators must
-not enter a guessed rolling window: if a current provider confirmation or
-reviewed account observation establishes a calculable boundary, set
-`ALPHA_VANTAGE_REVIEWED_RESET` to an admission-safe reset label and record the
-source in `ALPHA_VANTAGE_QUOTA_EVIDENCE`. Both values are wired through
-local/RPi Compose and the manual GitHub workflow; blank or unresolved values
-continue to block routing. This also lets a future Alpha plan change update
-the reviewed contract without code changes.
+may select one weekly or monthly range. The documented 25-requests/day
+dimension remains labelled `provider_defined` for audit, while the runtime
+enforces its explicit provider-scoped rolling 24-hour application envelope.
+This is not presented as Alpha Vantage's native reset semantics. If a current
+provider confirmation or reviewed account observation establishes a calculable
+native boundary, set `ALPHA_VANTAGE_REVIEWED_RESET` and record the source in
+`ALPHA_VANTAGE_QUOTA_EVIDENCE`; those optional values are wired through
+local/RPi Compose and the manual GitHub workflow and replace the safety
+envelope only when both are valid.
 Alpaca is handled independently: its official market-data contract defines a
 200-requests/minute account pool, and the native `X-RateLimit-*` headers are
 retained as the current remaining/reset observation. Optional
@@ -142,9 +139,11 @@ poll controls, the MarketData.app reviewed account-plan/credit pair and
 operation-specific option-chain symbol bound, and the operation-level
 Tiingo/FMP byte-bound maps. A direct adapter read can therefore be green while
 Finnhub is treated similarly: its observed 60/minute and 30/second ceilings
-remain two independent dimensions, and the live runner blocks before transport
-until each reset boundary and its evidence are configured. No shared rolling or
-fixed window is inferred for either dimension.
+remain two independent dimensions, and each has its own explicit rolling
+application envelope. The provider-defined labels remain visible for audit;
+optional `FINNHUB_REVIEWED_MINUTE_RESET`/`FINNHUB_REVIEWED_SECOND_RESET` values
+plus independent evidence can replace those envelopes. No shared window or
+generic request fallback is inferred.
 The same preflight also reports
 its provider remains non-routable:
 missing, invalid, partial, or non-positive safety controls are reported

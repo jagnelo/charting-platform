@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-17 — Explicit provider-scoped reset safety envelopes
+
+- [x] Apply the Alpaca reset-boundary decision to the other providers whose
+      current evidence gives an exact numeric ceiling but omits a calculable
+      native bucket boundary: Massive Stocks Basic (5 calls/minute), Alpha
+      Vantage free (25 calls/day), SEC EDGAR fair-access (10 calls/second), and
+      Finnhub's independent 60 calls/minute and 30 calls/second pools.
+- [x] Retain each provider-defined reset label for audit while enforcing an
+      explicit rolling application envelope on that individual dimension. No
+      generic request, burst, concurrency, or cooldown fallback is used; an
+      optional reviewed native-reset override remains provider-specific.
+- [x] Update runtime admission, direct live-probe reservations, diagnostics,
+      examples, and focused regressions. The current Docker-backed backend gate
+      passes `2,767/2,767` with 89 warnings and 82.06% coverage.
+- [ ] Reconcile each provider's durable account baseline before executing its
+      metered live matrix. A safety envelope makes the reset calculation safe;
+      it does not fabricate prior external usage or bypass separate terms,
+      entitlement, byte-cost, or universe gates.
+
 ### 2026-09-17 — Resumable, lossless event ingestion
 
 - [x] Replace Alpaca's corporate-action page bound with a durable page
