@@ -1,5 +1,39 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-17 — R5 Strategy Lab current revision lineage
+
+Product commit `926da82c0` closes a TC-owned Strategy Lab display-semantics
+gap. Strategy definitions can arrive with versions in an order that is not
+newest-first; the sidebar now resolves and displays the version marked
+`is_current`, matching the detail view's existing lineage selection, and falls
+back safely to the first version or `v1` when current metadata is absent.
+
+Focused Strategy Lab coverage passed `32/32`; full frontend Vitest passed
+`1,133/1,133`; frontend type-check and production build passed with the
+existing large-chunk warning; TC scope validation/self-tests, workstream
+validation, and `git diff --check` passed.
+
+The exact raw-capture gate
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration`
+passed at product tip `926da82c0`: backend combined coverage passed `1,621`
+tests with `82.26%` total coverage, frontend Vitest passed `1,133/1,133`,
+type-check/build, Compose/provider contracts, branch-scoped Docker health,
+research-runner probes, authenticated functional Chromium passed `170` with
+`107` documented skips, and all four visual projects passed `104/104`.
+Teardown removed the assigned containers, volumes, network, four generated
+images, and test sessions; post-gate accounting reported zero retained
+resources. The standard `/usr/bin/make` wrapper remains unavailable because of
+the unchanged host Xcode-license status `69`; the installed CommandLineTools
+Make binary ran the same target. No provider-platform, ETF, visual baseline,
+threshold, mask, skip, V25-media, or acceptance-policy behavior changed.
+
+The broader goal remains active/in progress: no TC-owned product or validation
+blocker is present. Provider/ETF consumer integration remains deferred until
+both upstream branches reach staging, after which shared paths require
+semantic reconciliation and another exact-tip gate. Origin synchronization
+remains a separate private-origin operational hold. This slice does not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-17 — R5 selected immutable Study version reopen
 
 Product commit `7e6632547` completes the next bounded TC-owned Study workflow

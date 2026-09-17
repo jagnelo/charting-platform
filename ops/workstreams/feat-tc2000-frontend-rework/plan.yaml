@@ -21,7 +21,7 @@ validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
   No active TC-owned product or validation blocker: the exact gate at product
-  tip 7e6632547aa5920558ea2e3824eeeed4058af3ac passed the repository stages,
+  tip 926da82c08b0d17a9357b36aa0b4c02820bb522f passed the repository stages,
   authenticated functional browser flows, and all four visual projects with
   clean branch-scoped teardown. The initial F8p high/low failure was a real
   TC-owned factory-configuration race and was corrected in the follow-up
@@ -259,16 +259,17 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R5_selected_study_version_reopen_exact_gate_passed
+  current_phase: R5_strategy_current_revision_lineage_exact_gate_passed
   next_action: >-
-    Select the next bounded TC-owned R1/R5/R6 item, preserve the selected-study
-    version, saved-study reopen, and dense-range exact-gate receipts, and keep
-    provider/ETF consumer work deferred until both upstream branches reach
-    staging. Do not retry origin synchronization under the existing
-    private-origin safeguard without newly accepted exact-payload authorization.
+    Select the next bounded TC-owned R1/R5/R6 item, preserve the Strategy
+    current-revision, selected-study version, saved-study reopen, and dense-range
+    exact-gate receipts, and keep provider/ETF consumer work deferred until both
+    upstream branches reach staging. Do not retry origin synchronization under
+    the existing private-origin safeguard without newly accepted exact-payload
+    authorization.
   current_blocker: >-
     No active TC-owned product or validation blocker. The exact
-    full_stack_browser gate at product tip 7e6632547aa5920558ea2e3824eeeed4058af3ac
+    full_stack_browser gate at product tip 926da82c08b0d17a9357b36aa0b4c02820bb522f
     passed and branch-scoped cleanup/resource accounting are clean. The
     initial F8p factory-configuration race was corrected and its focused retry
     passed; it is no longer a blocker. The preceding F8s timestamp mismatch is
@@ -440,6 +441,8 @@ historical_implementation_records_continued:
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip b076a4b777e9a55a32297509cb1f58495ddc511b: backend combined coverage 1,621 tests with 82.26% total coverage, frontend Vitest 1,131/1,131, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects 104/104. Teardown/resource accounting reported zero containers, volumes, test sessions, known bytes, and unknown components. The host /usr/bin/make wrapper remains unavailable with Xcode-license status 69; the equivalent CommandLineTools Make binary ran the same target. This receipt covers the saved-study reopen slice; it does not close the broader workstream or upstream staging dependencies."
   - "Product commit 7e6632547 adds an explicit Code Library action to reopen the selected historical immutable Study version in Study Lab. The latest-version shortcut remains unchanged; selected version navigation carries the exact immutable source, output contract, parameter schema, and defaults without editing or duplicating an asset. Focused Code Library coverage passed 11/11; full frontend Vitest passed 1,132/1,132; type-check/build, TC scope guard/self-tests, workstream validation, and diff checks passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 7e6632547aa5920558ea2e3824eeeed4058af3ac: backend combined coverage 1,621 tests with 82.26% total coverage, frontend Vitest 1,132/1,132, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects 104/104. Teardown/resource accounting reported zero containers, volumes, test sessions, known bytes, and unknown components. The host /usr/bin/make wrapper remains unavailable with Xcode-license status 69; the equivalent CommandLineTools Make binary ran the same target. This receipt covers the selected-study-version slice and does not close the broader workstream or upstream staging dependencies."
+  - "Product commit 926da82c0 closes a TC-owned Strategy Lab display-semantics gap: the sidebar now resolves and displays the version marked is_current, matching the detail view's lineage selection, with safe fallback to the first version or v1 when current metadata is absent. Focused Strategy Lab coverage passed 32/32; full frontend Vitest passed 1,133/1,133; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
+  - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 926da82c08b0d17a9357b36aa0b4c02820bb522f: backend combined coverage 1,621 tests with 82.26% total coverage, frontend Vitest 1,133/1,133, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate accounting reported zero retained resources. The host /usr/bin/make wrapper remains unavailable with Xcode-license status 69; the equivalent CommandLineTools Make binary ran the same target. This receipt covers the Strategy current-revision slice and does not close the broader workstream or upstream staging dependencies."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."
