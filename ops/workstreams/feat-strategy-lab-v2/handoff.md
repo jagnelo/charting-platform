@@ -3346,8 +3346,10 @@ collapse ambiguous JSON. Shared router registration, authentication, and
 persistence remain deferred behind the existing gates.
 
 Focused raw-body coverage passed 11 tests with Ruff and MyPy green. The exact
-implementation tip still requires the branch-wide validation checkpoint below
-before this ops record is finalized.
+pushed tip passed the branch gate: 690 package tests, Ruff, MyPy across 237
+source files, diff check, and workstream validation. The same tip passed the
+Docker-backed combined coverage gate: 2,337 tests with 83.70% total coverage,
+above the required 75% threshold; setup and cleanup completed successfully.
 
 ## 2026-09-17 - Combined backend coverage revalidation
 
