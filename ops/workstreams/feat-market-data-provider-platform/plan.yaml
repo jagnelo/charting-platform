@@ -3684,9 +3684,11 @@ progress:
       changes, but does not establish fixed versus rolling window semantics;
       ordinary Alpaca routing therefore remains gated. FMP's current official
       pricing page states a 500 MB trailing-30-day free-plan bandwidth pool,
-      while the configured account reports 512 MB; the source/account conflict
-      and both reset anchors remain unresolved. Documentation now records both
-      facts and no routing control was widened.
+      while the configured account reports 512 MB. The later FMP contract
+      correction now represents the documented bandwidth window as
+      `rolling_30_days` by default while retaining the conservative 500 MB
+      ceiling; the daily-call reset and current entitlement evidence remain
+      unresolved gates.
     - >-
       2026-09-16 current-source credentialed validation: Alpaca native account
       usage passed `1/1` (one request, 125 response bytes); MarketData.app
