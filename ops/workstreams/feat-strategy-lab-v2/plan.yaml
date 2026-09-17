@@ -325,7 +325,8 @@ progress:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
     - combined-coverage-and-branch-validation
     - trusted-paired-inference-and-scope-reconciliation
+    - engine-neutral-sdk-boundary-hardening
   total: 18
-  current_phase: trusted-paired-inference-scope-reconciliation-staging-ready-for-human-review
+  current_phase: engine-neutral-sdk-boundary-hardening-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary

@@ -116,8 +116,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   backward, or mutate terminal states; cancellation is idempotent and must end
   in an explicit cancelled terminal update.
 - `sdk.py` exposes declared read-only inputs and typed order/target-position
-  intents. Every declared field is required on each provided event; intent
-  validation checks the strategy's declared instrument scope.
+  intents. Public SDK boundaries reject malformed dependency, event, position,
+  context, and enum values before they reach a strategy; every declared field
+  is required on each provided event, and intent validation checks the
+  strategy's declared instrument scope.
 - `strategy_validation.py` performs deterministic static source preflight before
   a strategy package can reach a future runtime. It rejects disallowed imports,
   relative imports, dynamic-code/file/network calls, private-object

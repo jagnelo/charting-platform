@@ -12,6 +12,18 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Engine-neutral SDK boundary hardening
+
+`sdk.py` now validates public input types before dereferencing them: manifests
+must contain typed strategy/dependency records, market events and context maps
+are immutable typed mappings, positions require finite Decimal values, and order
+intents require the declared enum types. The context builder repeats event
+shape checks before applying dependency lookback/field rules, preventing
+malformed values from crossing into strategy code. Eight focused malformed-input
+assertions were added; the package suite passes 623 tests with Ruff and MyPy.
+This remains package-only and does not alter the shared runtime, router,
+migration, worker, provider, ETF, TC2000, Compose, or Nautilus paths.
+
 ## 2026-09-17 - Paired-inference scope reconciliation
 
 The durable plan and documentation now distinguish the implemented bounded
