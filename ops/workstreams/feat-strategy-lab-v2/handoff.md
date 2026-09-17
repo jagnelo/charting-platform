@@ -10,6 +10,34 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - Planning state: ready; the plan remains at `ready_for_human_review` and the
   session-local goal is held at its plan-ready guard.
 
+## 2026-09-17 - Concrete terminal/result persistence adapter
+
+`worker_terminal_adapter.py` now provides the application-owned terminal
+writer over the existing runtime, public outcome/progress, result-completion,
+summary, and worker-state adapters. A typed `WorkerTerminalEvidence` resolver
+supplies only authenticated principal/submission/result/publication evidence;
+the coordinator re-materializes the Nautilus runtime result, applies the pure
+terminal and worker-settlement gates, persists the public terminal pair,
+finalizes successful result/artifact commits, records the execution summary,
+retains a settlement receipt, and atomically releases the worker lease and
+serial reservation before returning a Redis acknowledgement digest. Process
+timeouts and missing evidence remain pending for recovery; rejected or
+contradictory evidence is never acknowledged.
+
+`postgres_worker_settlement.py` and additive migration `ff2a3b4c5d6e` retain
+owner-scoped immutable settlement receipts. The coordinator handles the
+crash window where that receipt exists before capacity release by rebuilding
+the deterministic pure proposal and letting the receipt adapter verify exact
+identity. `PostgresWorkerStateAdapter.load_lease()` exposes the authenticated
+lease history needed by the writer. The persistence bundle now exposes
+`worker_terminal_writer(...)` as the explicit callback factory seam; no
+FastAPI, general ARQ worker, Compose, provider, ETF, or TC2000 path was
+modified.
+
+Focused terminal/settlement tests passed (9 tests) and the full Strategy Lab v2
+package passed 769 tests. Compose activation, stable Nautilus conformance,
+upstream contract reconciliation, and full repository integration remain open.
+
 Update this handoff at each coherent boundary.
 
 ## 2026-09-17 - Explicit terminal/result completion context

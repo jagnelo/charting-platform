@@ -541,7 +541,8 @@ progress:
     - strategy-lab-v2-durable-lease-heartbeats
     - strategy-lab-v2-atomic-worker-capacity-settlement
     - strategy-lab-v2-terminal-completion-context
+    - strategy-lab-v2-concrete-terminal-result-persistence-adapter
   total: 18
-  current_phase: strategy-lab-v2-terminal-completion-context-staging-ready-for-human-review
-  current_blocker: concrete terminal/result adapter implementation, Compose activation, stable Nautilus release, and full repository integration remain open
-  next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then bind terminal/result callbacks to capacity settlement and add Compose activation without changing the engine-neutral boundary
+  current_phase: strategy-lab-v2-concrete-terminal-result-persistence-adapter-staging-ready-for-human-review
+  current_blocker: Compose activation, stable Nautilus release, upstream contract reconciliation, and full repository integration remain open
+  next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add Compose activation and stable-release conformance without changing the engine-neutral boundary
