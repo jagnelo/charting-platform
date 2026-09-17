@@ -56,6 +56,22 @@ Focused executable-conformance tests passed (9 tests). Compose activation,
 stable Nautilus release/conformance against the real engine, upstream contract
 reconciliation, and full repository integration remain open.
 
+## 2026-09-17 - Isolated Nautilus release-pin contract
+
+`conformance.py` now exposes `NautilusReleasePin`, binding the exact v2 package
+version/tag, source digest, runtime-image digest, Python and Rust versions, and
+explicit isolation from the legacy Nautilus runtime. `EngineConformanceEvidence`
+retains that pin and `evaluate_engine_conformance()` reports its validity;
+complete fixture coverage without a valid isolated pin remains compatible
+evidence but cannot be authoritative. Stable labels with prerelease tags,
+shared legacy runtimes, missing pins, and engine-version drift fail the
+authority gate while release-candidate evidence remains executable but
+non-authoritative.
+
+Focused conformance/publication tests passed (23 tests). Compose activation,
+stable Nautilus release/conformance against the real engine, upstream contract
+reconciliation, and full repository integration remain open.
+
 ## 2026-09-17 - Explicit terminal/result completion context
 
 `worker_service.py` now exposes an optional terminal writer that receives an

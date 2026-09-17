@@ -477,6 +477,12 @@ remaining_gaps:
       the fixture suite, engine evidence, and gated report as one identity-bound
       resolution. Stable authoritative execution remains gated on a published
       stable Nautilus release and a complete passing suite.
+  - >-
+      `conformance.py` now binds a `NautilusReleasePin` to conformance evidence,
+      recording the exact v2 package/tag, source and runtime-image digests,
+      Python/Rust versions, and legacy-runtime isolation. Complete stable
+      fixture evidence without a valid isolated pin remains compatibility
+      evidence but cannot become authoritative.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -551,7 +557,8 @@ progress:
     - strategy-lab-v2-terminal-completion-context
     - strategy-lab-v2-concrete-terminal-result-persistence-adapter
     - strategy-lab-v2-executable-conformance-harness
+    - strategy-lab-v2-isolated-nautilus-release-pin-contract
   total: 18
-  current_phase: strategy-lab-v2-executable-conformance-harness-staging-ready-for-human-review
+  current_phase: strategy-lab-v2-isolated-nautilus-release-pin-contract-staging-ready-for-human-review
   current_blocker: Compose activation, stable Nautilus release, upstream contract reconciliation, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add Compose activation and stable-release conformance without changing the engine-neutral boundary
