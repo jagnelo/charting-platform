@@ -318,6 +318,19 @@ def test_strategy_validation_route_is_static_and_authenticated_by_injected_depen
         assert malformed.json()["errors"][0]["code"] == "validation_error"
 
 
+def test_strategy_validation_rejects_invalid_request_id_with_typed_error() -> None:
+    with _client(FakeAdapter()) as client:
+        response = client.post(
+            "/api/v1/strategy-lab/v2/strategies/validate",
+            headers={"X-Request-ID": "r" * 129},
+            json={"source": "def signal(inputs):\n    return []\n"},
+        )
+        assert response.status_code == 400
+        error = response.json()["errors"][0]
+        assert error["code"] == "validation_error"
+        assert error["request_id"] == "unknown"
+
+
 def test_submission_requires_idempotency_and_returns_accepted_receipt() -> None:
     adapter = FakeAdapter()
     with _client(adapter) as client:

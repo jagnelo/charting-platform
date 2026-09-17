@@ -573,7 +573,18 @@ def create_strategy_lab_router(
         body: Any = Body(...),
         _: Any = Depends(principal_dependency),
     ) -> JSONResponse:
-        request_id = _request_id(request, request_id_factory)
+        try:
+            request_id = _request_id(request, request_id_factory)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "strategy validation request is invalid",
+                    "unknown",
+                    status.HTTP_400_BAD_REQUEST,
+                    details={"reason": str(error)},
+                )
+            )
         try:
             body = await _strict_json_body(request, request_id)
         except ApiAdapterError as error:

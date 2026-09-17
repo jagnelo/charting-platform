@@ -120,6 +120,19 @@ coverage gate passes 2,312 tests with 83.62% total coverage (required threshold:
 application scheduling, migrations, upstream reconciliation, and authoritative
 Nautilus execution remain deferred.
 
+## 2026-09-17 - Typed strategy-validation request metadata errors
+
+The registration-neutral strategy-validation route now catches malformed or
+overlong `X-Request-ID` values and returns the same typed validation envelope
+used by the other v2 routes. Invalid request metadata therefore cannot escape
+before raw-body validation and static source preflight, while valid request IDs
+and existing 422 body errors remain unchanged.
+
+The focused API-router suite and complete Strategy Lab v2 package gate will be
+recorded with exact-worktree coverage after this checkpoint. Authentication,
+application registration, and shared persistence remain deferred behind the
+existing gates.
+
 ## 2026-09-17 - Runtime wire source-binding hardening
 
 Single and batch invocation serializers and decoders now verify that the source
