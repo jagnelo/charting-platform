@@ -121,6 +121,16 @@ system_module = typing.sys
     )
 
 
+def test_strategy_source_validation_rejects_private_import_names() -> None:
+    result = validate_strategy_source("from collections import _sys\n")
+    assert not result.accepted
+    assert any("forbidden_import" in item and "_sys" in item for item in result.violations)
+
+    public_escape = validate_strategy_source("from typing import sys as safe\n")
+    assert not public_escape.accepted
+    assert any("forbidden_import" in item and "sys" in item for item in public_escape.violations)
+
+
 def test_strategy_source_validation_is_deterministic_for_syntax_errors() -> None:
     source = "def broken(:\n    pass\n"
     first = validate_strategy_source(source)

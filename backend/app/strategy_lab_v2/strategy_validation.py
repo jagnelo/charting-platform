@@ -133,13 +133,32 @@ def validate_strategy_source(
         if isinstance(node, ast.Import):
             for alias in node.names:
                 root = alias.name.partition(".")[0]
-                if root not in allowed_import_roots or root in _FORBIDDEN_IMPORT_ROOTS:
+                if (
+                    root not in allowed_import_roots
+                    or root in _FORBIDDEN_IMPORT_ROOTS
+                    or alias.name == "*"
+                    or any(part.startswith("_") for part in alias.name.split("."))
+                    or (alias.asname is not None and alias.asname.startswith("_"))
+                ):
                     violations.append(f"forbidden_import@{node_location(node)}: {alias.name}")
         elif isinstance(node, ast.ImportFrom):
             root = (node.module or "").partition(".")[0]
-            if node.level or root not in allowed_import_roots or root in _FORBIDDEN_IMPORT_ROOTS:
-                module = "." * node.level + (node.module or "")
+            module = "." * node.level + (node.module or "")
+            if (
+                node.level
+                or root not in allowed_import_roots
+                or root in _FORBIDDEN_IMPORT_ROOTS
+                or any(part.startswith("_") for part in (node.module or "").split("."))
+            ):
                 violations.append(f"forbidden_import@{node_location(node)}: {module}")
+            else:
+                for alias in node.names:
+                    if alias.name.startswith("_") or (
+                        alias.asname is not None and alias.asname.startswith("_")
+                    ) or alias.name in _FORBIDDEN_ATTRIBUTES or alias.name == "*":
+                        violations.append(
+                            f"forbidden_import@{node_location(node)}: {module}.{alias.name}"
+                        )
         elif isinstance(node, ast.Call):
             function_name = node.func.id if isinstance(node.func, ast.Name) else None
             if function_name in _FORBIDDEN_CALLS:
