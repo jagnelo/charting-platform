@@ -258,16 +258,16 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_returns_heatmap_empty_state_accessibility_exact_gate_passed
+  current_phase: R6_dense_range_renderer_100k_guard_exact_gate_passed
   next_action: >-
-    Select the next bounded TC-owned R1/R5/R6 item, preserve the Returns Heatmap
-    exact-gate receipt, and keep provider/ETF consumer work deferred until both upstream
-    branches reach staging. Do not retry origin synchronization under the
-    existing private-origin safeguard without newly accepted exact-payload
-    authorization.
+    Select the next bounded TC-owned R1/R5/R6 item, preserve the dense range
+    exact-gate receipt and 100k-point guard, and keep provider/ETF consumer work
+    deferred until both upstream branches reach staging. Do not retry origin
+    synchronization under the existing private-origin safeguard without newly
+    accepted exact-payload authorization.
   current_blocker: >-
     No active TC-owned product or validation blocker. The exact
-    full_stack_browser gate at product tip b9da0385d66137230552d895903eab51a286918d
+    full_stack_browser gate at product tip b9913d3c56972d18b261f3377556fce5fc413b47
     passed and branch-scoped cleanup/resource accounting are clean. The
     preceding F8s timestamp mismatch is retained as a transient seeded-
     workspace/browser instability only.
@@ -432,6 +432,8 @@ historical_implementation_records_continued:
   - "Product commit 1015fdb78 adds atomic polite status semantics to CodeLibraryTool loading and filtered-empty states, complementing its existing assertive request/validation errors and polite validation success status. Focused CodeLibraryTool coverage passed 9/9; full frontend Vitest passed 1,114/1,114; vue-tsc and production build passed with the existing large-chunk warning; TC scope validation passed for 67 changed paths with all six self-tests; and git diff check passed. Python asset persistence/version behavior and provider/ETF/visual/acceptance policy were unchanged."
   - "Product commits e20c4f810 and f1136669f fix a TC-owned linked-cursor race: late uPlot initial/latest-bar callbacks from the primary chart and RatioUPlot can no longer overwrite an explicit Study/Breadth occurrence timestamp; real pointer movement still resumes cursor publication. The chart renderer path was added to the TC allowlist. Focused F8s-breadth-family-ratio passed 10/10 on a fresh branch-scoped stack; full frontend Vitest passed 1,128/1,128; vue-tsc, production build, TC scope guard, workstream validation, and diff checks passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
   - "The exact PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate was rerun at product tip f1136669f after the linked-cursor fix and completed through repository, Docker, authenticated functional Chromium, and the four-project TC2000 visual stages with the saved Playwright result passed and no failure markers. Branch-scoped teardown and resource accounting reported zero containers, volumes, test sessions, known bytes, and unknown components. The host /usr/bin/make wrapper remains unavailable with Xcode-license status 69; the installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior changed."
+  - "The dense Study Range renderer now reuses uPlot's aligned x-axis data in its band-drawing hook instead of rebuilding the full timestamp array inside both point loops. This removes quadratic allocation work for large range studies without changing chart data, geometry, styling, or visual policy. The focused conditional-uPlot lifecycle suite passed 33/33, including a 100,000-point band render under the 1-second guard; full frontend Vitest passed 1,129/1,129; vue-tsc and production build passed with the existing large-chunk warning; TC scope/workstream/diff checks passed. Acceptance flexibility used: None. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
+  - "The exact PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate exited 0 at product tip b9913d3c56972d18b261f3377556fce5fc413b47 after the dense Study Range renderer fix. It completed repository/workstream and locked dependency stages, migration compatibility, lint/format, backend unit/integration coverage, frontend Vitest/type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium, and the separate four-project TC2000 visual matrix. The saved Playwright result was passed with no failed tests; teardown/resource accounting reported zero containers, volumes, test sessions, known bytes, and unknown components with accounting complete. The host /usr/bin/make wrapper remains unavailable with Xcode-license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior changed. This is a complete exact-gate receipt for the dense range renderer slice, not closure of the overall workstream."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."

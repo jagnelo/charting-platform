@@ -13693,3 +13693,40 @@ saved Playwright result was passed with no failure markers. Teardown/resource
 accounting reported zero containers, volumes, test sessions, known bytes, and
 unknown components. No provider-platform, ETF, visual-oracle, or acceptance
 policy changed.
+
+## 2026-09-17 - Dense Study Range renderer guard
+
+The TC-owned `StudyRangeUPlot` band renderer now reuses the aligned x-axis
+timestamps already held by uPlot. Previously it rebuilt the complete timestamp
+array inside both upper- and lower-bound loops, making dense range rendering
+quadratic in allocation work. The change preserves the existing aligned data,
+band geometry, styling, invalid-state behavior, and visual policy.
+
+The focused conditional-uPlot lifecycle suite passed `33/33`, including a
+100,000-point range-band draw under a one-second guard. Full frontend Vitest
+passed `1,129/1,129`; `vue-tsc --noEmit` and production build passed with the
+existing large-chunk warning; the TC scope guard, workstream validator, and
+`git diff --check` passed. Acceptance flexibility used: `None`. No provider,
+ETF, visual-oracle, baseline, threshold, mask, skip, or acceptance-policy
+behavior changed.
+
+## 2026-09-17 - Dense Study Range exact integration gate
+
+The exact
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` gate
+exited `0` at product tip `b9913d3c56972d18b261f3377556fce5fc413b47`. It
+completed the repository/workstream and locked dependency stages, migration
+compatibility, lint/format, backend unit and integration coverage, frontend
+Vitest/type-check/build, Compose/provider contracts, branch-scoped Docker
+health, research-runner probes, authenticated functional Chromium, and the
+separate four-project TC2000 visual matrix. The saved Playwright result was
+`passed` with no failed tests. Branch-scoped teardown and post-gate resource
+accounting reported zero containers, volumes, test sessions, known bytes, and
+unknown components with accounting complete. The host `/usr/bin/make` wrapper
+remains unavailable with Xcode-license status `69`; the equivalent installed
+CommandLineTools Make binary ran the same target. Acceptance flexibility used:
+`None`. No provider-platform, ETF, visual-baseline, threshold, mask, skip,
+V25-media, or acceptance-policy behavior changed. This is a complete exact-gate
+receipt for the dense range renderer slice, not closure of the overall
+workstream.
