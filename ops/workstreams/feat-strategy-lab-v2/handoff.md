@@ -7,9 +7,19 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - Recorded at: 2026-09-15T19:48:24.815519+00:00
 - Request: Implement the approved Strategy Lab v2 plan; honor the repository AI-driven workflow rules and active branch boundaries.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
-- Planning state: ready; session goal is active and the workstream remains `in_progress`.
+- Planning state: ready; the plan remains at `ready_for_human_review` and the
+  session-local goal is held at its plan-ready guard.
 
 Update this handoff at each coherent boundary.
+
+## 2026-09-17 - Paired-inference scope reconciliation
+
+The durable plan and documentation now distinguish the implemented bounded
+exact paired sign-flip inference from intentionally out-of-scope
+approximate/bootstrap inference and inferential ranking. The canonical feature
+ref `origin/feat/strategy-lab-v2` is synchronized at the session checkpoint;
+an accidental duplicate hyphenated remote ref was removed. No shared provider,
+ETF, TC2000, migration, router, worker, Compose, or Nautilus path was changed.
 
 ## 2026-09-17 - Trusted paired-inference checkpoint
 
@@ -25,8 +35,8 @@ profitability verdict; migrations, API wiring, workers, and stable Nautilus
 execution remain separate gates.
 
 The focused inference suite passes 4 tests; the full package suite passes 622
-tests with Ruff and MyPy. Combined coverage and exact-tip branch evidence will
-be recorded after this boundary is committed.
+tests with Ruff and MyPy. Combined coverage is 2,269 backend tests at 83.51%,
+and all five exact-tip branch checks pass.
 
 ## 2026-09-17 - Durable metric-set checkpoint
 
