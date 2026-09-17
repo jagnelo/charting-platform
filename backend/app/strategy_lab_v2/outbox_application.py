@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
+import math
+from collections.abc import Awaitable, Callable
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from app.strategy_lab_v2.outbox import (
     OutboxAcknowledgeDecision,
@@ -108,4 +111,63 @@ class OutboxRelayService:
         return tuple(results)
 
 
-__all__ = ["OutboxPersistence", "OutboxRelayService"]
+class OutboxRelayScheduler:
+    """Bounded application scheduler for periodic outbox relay cycles.
+
+    Scheduling is intentionally separate from persistence and transport.  The
+    caller owns the task lifecycle and cancellation event; each cycle remains
+    bounded by the relay service's message limit and can be safely repeated.
+    """
+
+    def __init__(
+        self,
+        service: OutboxRelayService,
+        *,
+        clock: Callable[[], datetime],
+        interval_seconds: float = 1.0,
+        limit: int = 100,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    ) -> None:
+        if not callable(getattr(service, "relay_pending", None)):
+            raise TypeError("service must provide relay_pending")
+        if not callable(clock):
+            raise TypeError("clock must be callable")
+        if (
+            not isinstance(interval_seconds, int | float)
+            or isinstance(interval_seconds, bool)
+            or not math.isfinite(float(interval_seconds))
+            or interval_seconds <= 0
+        ):
+            raise ValueError("interval_seconds must be a finite positive number")
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 100:
+            raise ValueError("limit must be between 1 and 100")
+        if not callable(sleep):
+            raise TypeError("sleep must be callable")
+        self._service = service
+        self._clock = clock
+        self._interval_seconds = float(interval_seconds)
+        self._limit = limit
+        self._sleep = sleep
+
+    async def run_once(self) -> tuple[OutboxRelayResolution, ...]:
+        """Execute one bounded relay cycle at the injected clock instant."""
+
+        now = self._clock()
+        if not isinstance(now, datetime):
+            raise TypeError("clock must return a datetime")
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("clock must return a timezone-aware datetime")
+        return await self._service.relay_pending(now=now, limit=self._limit)
+
+    async def run(self, stop_event: Any) -> None:
+        """Run cycles until the caller's cancellation event is set."""
+
+        if not callable(getattr(stop_event, "is_set", None)):
+            raise TypeError("stop_event must provide is_set")
+        while not stop_event.is_set():
+            await self.run_once()
+            if not stop_event.is_set():
+                await self._sleep(self._interval_seconds)
+
+
+__all__ = ["OutboxPersistence", "OutboxRelayScheduler", "OutboxRelayService"]

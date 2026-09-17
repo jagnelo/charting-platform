@@ -13,7 +13,7 @@ from app.strategy_lab_v2.outbox import (
     OutboxState,
     acknowledge_outbox_message,
 )
-from app.strategy_lab_v2.outbox_application import OutboxRelayService
+from app.strategy_lab_v2.outbox_application import OutboxRelayScheduler, OutboxRelayService
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
@@ -108,3 +108,48 @@ async def test_relay_pending_preserves_retryable_state_when_acknowledgement_reje
     assert len(results) == 1
     assert results[0].decision.value == "conflict"
     assert persistence.state.pending_messages == (message,)
+
+
+@pytest.mark.asyncio
+async def test_relay_scheduler_runs_bounded_cycles_until_cancelled() -> None:
+    message = _message("scheduled")
+    persistence = MemoryOutbox(OutboxState((message,)))
+    service = OutboxRelayService(
+        persistence,
+        RedisDispatchTransport(cast(Any, FakeRedis())),
+    )
+    sleeps: list[float] = []
+
+    class StopEvent:
+        def __init__(self) -> None:
+            self.stopped = False
+
+        def is_set(self) -> bool:
+            return self.stopped
+
+    stop = StopEvent()
+
+    async def sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+        stop.stopped = True
+
+    scheduler = OutboxRelayScheduler(
+        service,
+        clock=lambda: NOW,
+        interval_seconds=2,
+        limit=1,
+        sleep=sleep,
+    )
+    await scheduler.run(stop)
+
+    assert sleeps == [2.0]
+    assert persistence.state.published_message_ids == frozenset({message.message_id})
+
+
+def test_relay_scheduler_rejects_invalid_configuration() -> None:
+    service = OutboxRelayService(
+        MemoryOutbox(OutboxState()),
+        RedisDispatchTransport(cast(Any, FakeRedis())),
+    )
+    with pytest.raises(ValueError, match="interval_seconds"):
+        OutboxRelayScheduler(service, clock=lambda: NOW, interval_seconds=0)
