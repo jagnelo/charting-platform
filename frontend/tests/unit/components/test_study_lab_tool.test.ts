@@ -70,9 +70,30 @@ describe('StudyLabTool', () => {
     const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { study_run_id: 77, study_run_source: 'output.scalar("event_count", 4)', study_run_contract: 'scalar' } })
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
     expect(wrapper.text()).toContain('event_count')
-    expect(wrapper.find('[aria-label="event_count metric"]').attributes('aria-describedby')).toBe('study-artifact-1-summary')
-    expect(wrapper.find('#study-artifact-1-summary').text()).toContain('event_count scalar result: 4.')
+    const summaryId = wrapper.find('[aria-label="event_count metric"]').attributes('aria-describedby')
+    expect(summaryId).toMatch(/-study-artifact-1-summary$/)
+    expect(wrapper.find(`#${summaryId}`).text()).toContain('event_count scalar result: 4.')
     expect(apiGet).toHaveBeenCalledWith('/research/runs/77')
+  })
+
+  it('keeps artifact summary relationships unique across linked Study Lab panes', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs/77'
+      ? Promise.resolve({ id: 77, status: 'completed', artifacts: [{ id: 1, name: 'event_count', artifact_type: 'scalar', payload: { value: 4 } }] })
+      : Promise.resolve(undefined))
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const props = { activeSymbol: 'SPY', configuration: { study_run_id: 77 } }
+    const first = mountTool(props, queryClient)
+    const second = mountTool(props, queryClient)
+    await vi.waitFor(() => expect(first.text()).toContain('Run #77'))
+    await vi.waitFor(() => expect(second.text()).toContain('Run #77'))
+
+    const firstSummaryId = first.find('[aria-label="event_count metric"]').attributes('aria-describedby')
+    const secondSummaryId = second.find('[aria-label="event_count metric"]').attributes('aria-describedby')
+    expect(firstSummaryId).toMatch(/-study-artifact-1-summary$/)
+    expect(secondSummaryId).toMatch(/-study-artifact-1-summary$/)
+    expect(firstSummaryId).not.toBe(secondSummaryId)
+    expect(first.find(`#${firstSummaryId}`).text()).toContain('event_count scalar result: 4.')
+    expect(second.find(`#${secondSummaryId}`).text()).toContain('event_count scalar result: 4.')
   })
 
   it('keeps an invalid single-output structured series view/export only', async () => {
