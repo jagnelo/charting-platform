@@ -8,8 +8,8 @@
       <input v-model="value" aria-label="Condition threshold" inputmode="decimal" placeholder="Value" />
       <button type="button" :disabled="busy || !validCondition" @click="saveCondition">Save</button>
     </div>
-    <button ref="advancedToggle" type="button" class="easy-scan__advanced-toggle" aria-controls="easy-scan-advanced-conditions" :aria-expanded="advancedMode" @click="toggleAdvancedConditions">{{ advancedMode ? 'Use simple condition' : 'Build technical condition tree' }}</button>
-    <div v-if="advancedMode" id="easy-scan-advanced-conditions" ref="advancedRoot" class="easy-scan__advanced-drag-source" role="region" aria-label="Advanced technical condition builder" draggable="true" @dragstart="startConditionDrag">
+    <button ref="advancedToggle" type="button" class="easy-scan__advanced-toggle" :aria-controls="advancedConditionId" :aria-expanded="advancedMode" @click="toggleAdvancedConditions">{{ advancedMode ? 'Use simple condition' : 'Build technical condition tree' }}</button>
+    <div v-if="advancedMode" :id="advancedConditionId" ref="advancedRoot" class="easy-scan__advanced-drag-source" role="region" aria-label="Advanced technical condition builder" draggable="true" @dragstart="startConditionDrag">
       <ConditionGroupEditor v-model="advancedGroup" class="easy-scan__advanced" aria-label="Technical condition tree" />
     </div>
     <div class="easy-scan__controls">
@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import ConditionGroupEditor from '@/components/workstation/ConditionGroupEditor.vue'
@@ -66,6 +66,8 @@ type ScanResult = { id?: number; run_at?: string; matched_ids?: number[]; result
 
 const props = withDefaults(defineProps<{ sourceWindowKey?: string }>(), { sourceWindowKey: 'easy-scan' })
 const queryClient = useQueryClient()
+const easyScanInstanceId = useId()
+const advancedConditionId = `${easyScanInstanceId}-advanced-conditions`
 
 const conditions = ref<ConditionAsset[]>([])
 const pythonConditions = ref<Array<{ versionId: number; name: string }>>([])
