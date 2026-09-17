@@ -379,6 +379,12 @@ remaining_gaps:
       explicit cancellation; Redis client construction, process lifecycle,
       migration startup, worker entrypoints, and runtime activation remain
       open.
+  - >-
+      `redis_application.py` now owns explicit local Redis client construction
+      and idempotent closure, forces text-decoding responses, and composes the
+      outbox relay and bounded worker-pump transports. Health checks, worker
+      process/task lifecycle, migration startup, and runtime activation remain
+      caller-owned.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -437,7 +443,8 @@ progress:
     - strategy-lab-v2-postgres-outbox-redis-relay
     - strategy-lab-v2-artifact-resource-projection
     - strategy-lab-v2-bounded-outbox-relay-scheduling
+    - strategy-lab-v2-redis-runtime-lifecycle
   total: 18
-  current_phase: strategy-lab-v2-bounded-outbox-relay-scheduling-staging-ready-for-human-review
+  current_phase: strategy-lab-v2-redis-runtime-lifecycle-staging-ready-for-human-review
   current_blocker: worker/runtime integration, migration startup, artifact byte/retention lifecycle, stable Nautilus release, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add migration startup, isolated worker/runtime integration, and artifact byte/retention lifecycle without changing the engine-neutral boundary

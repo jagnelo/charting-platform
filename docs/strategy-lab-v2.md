@@ -700,7 +700,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   acknowledgement leaves the authoritative row pending for a later retry.
   `OutboxRelayScheduler` now supplies a bounded, cancellable periodic loop with
   injected clock/sleep controls for deterministic tests. The caller still owns
-  Redis client lifecycle, migration startup, and worker activation.
+  Redis client lifecycle, migration startup, and worker activation. The
+  application-owned `redis_application.py` seam now supplies that lifecycle:
+  it constructs a text-decoding `redis.asyncio` client from an explicit local
+  URL, composes relay/worker transports, and closes the client idempotently.
 - `postgres_resources.py` supplies the read-only persistence bridge for that
   boundary. It projects authenticated-owner aggregate snapshots into immutable
   resource documents, orders pages deterministically, and binds every cursor to
@@ -1005,8 +1008,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   persists publication through PostgreSQL compare-and-set acknowledgement.
   `OutboxRelayScheduler` adds bounded periodic execution with explicit
   cancellation and injectable time controls. This composes Redis idempotency
-  with authoritative database state without claiming that Redis client
-  lifecycle or worker activation is complete.
+  with authoritative database state; `redis_application.py` now owns concrete
+  client construction/closure and transport composition without claiming that
+  worker activation is complete.
 - `worker_consumer.py` provides the bounded Redis worker pump. It ensures the
   consumer group, reclaims idle deliveries before reading new entries, and
   requires an explicit handler receipt. Only a content-matched completed

@@ -12,6 +12,21 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Application-owned Redis runtime lifecycle
+
+`redis_application.py` now owns the concrete Redis boundary without leaking a
+client dependency into the engine-neutral transport. `RedisDispatchRuntime`
+validates explicit `redis://`/`rediss://` URLs, constructs a text-decoding
+`redis.asyncio` client, composes outbox-relay and bounded worker-pump factories,
+and closes the client idempotently. Connection health checks, process/task
+lifecycle, migration startup, and worker execution remain caller-owned.
+
+The full Strategy Lab v2 package passed 729 tests with Ruff and MyPy green. The
+exact-worktree backend gate passed 2,377 tests with 83.77% combined coverage
+(required threshold: 75%), and branch-scoped Docker resources were cleaned
+afterward. Production worker activation and stable Nautilus execution remain
+deferred.
+
 ## 2026-09-17 - Bounded outbox relay scheduling
 
 `outbox_application.py` now includes `OutboxRelayScheduler`, an application
