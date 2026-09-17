@@ -139,6 +139,22 @@ Lab v2 package passed 794 tests. Compose activation, stable Nautilus
 conformance, upstream contract reconciliation, and full repository integration
 remain open.
 
+## 2026-09-17 - Typed data snapshot resource registration
+
+`resource_domains.py` now extends typed mutation validation to frozen data
+snapshots. Embedded capability requirements, decisions, degradations, and
+preflight fingerprints are rehydrated through the existing fail-closed
+capability contracts; each series validates event semantics, UTC coverage
+intervals, adjustment/corporate-action policy, provider evidence digest,
+content digest, and positive row count. The immutable `DataSnapshot` fingerprint
+is retained in resource metadata, with unknown fields, tampered preflight
+identity, malformed series, and conflicting API ID aliases rejected before
+aggregate persistence.
+
+Focused snapshot/preflight tests passed (14 tests); the full Strategy Lab v2
+package passed 796 tests. Compose activation, stable Nautilus conformance,
+upstream contract reconciliation, and full repository integration remain open.
+
 ## 2026-09-17 - Executable Nautilus conformance harness
 
 `conformance_fixtures.py` now exposes `execute_conformance_suite(...)`, an

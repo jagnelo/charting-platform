@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
@@ -8,6 +9,12 @@ import pytest
 
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.capabilities import (
+    CapabilityCell,
+    CapabilityRequirement,
+    preflight_capabilities,
+)
+from app.strategy_lab_v2.contracts import AdjustmentMode, EventGranularity, ProductClass
 from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
 
 SOURCE_DIGEST = content_digest("strategy-source")
@@ -306,3 +313,99 @@ def test_attempt_rejects_naive_timestamps_and_invalid_state() -> None:
     attributes["state"] = "queued"
     with pytest.raises(ValueError, match="timezone-aware"):
         normalize_resource_attributes(ApiResourceType.ATTEMPT, attributes)
+
+
+def _preflight_payload() -> dict:
+    start = datetime(2020, 1, 1, tzinfo=UTC)
+    end = datetime(2022, 1, 1, tzinfo=UTC)
+    requirement = CapabilityRequirement(
+        instrument_id="US.AAPL",
+        product_class=ProductClass.EQUITY,
+        event_granularity=EventGranularity.BAR,
+        event_type="ohlcv",
+        timeframe="1d",
+        start=start,
+        end=end,
+        adjustment=AdjustmentMode.SPLIT_ADJUSTED,
+        session="regular",
+        feed="consolidated",
+        execution_model="bar-close",
+        account_model="cash-equity",
+        corporate_action_semantics="split-adjusted-v1",
+    )
+    cell = CapabilityCell(
+        instrument_id="US.AAPL",
+        product_class=ProductClass.EQUITY,
+        event_granularities=frozenset({EventGranularity.BAR}),
+        event_types=frozenset({"ohlcv"}),
+        timeframes=frozenset({"1d"}),
+        adjustments=frozenset({AdjustmentMode.SPLIT_ADJUSTED}),
+        sessions=frozenset({"regular"}),
+        feeds=frozenset({"consolidated"}),
+        execution_models=frozenset({"bar-close"}),
+        account_models=frozenset({"cash-equity"}),
+        corporate_action_semantics=frozenset({"split-adjusted-v1"}),
+        history_start=start,
+        history_end=end,
+        evidence_digest=content_digest("capability-evidence"),
+    )
+    return asdict(preflight_capabilities((requirement,), (cell,)))
+
+
+def test_snapshot_attributes_rehydrate_preflight_and_series_contracts() -> None:
+    start = datetime(2020, 1, 1, tzinfo=UTC)
+    end = datetime(2022, 1, 1, tzinfo=UTC)
+    result = normalize_resource_attributes(
+        ApiResourceType.SNAPSHOT,
+        {
+            "snapshot_id": "snapshot-v1",
+            "provider_snapshot_id": "provider-v1",
+            "preflight_report": _preflight_payload(),
+            "series": [
+                {
+                    "instrument_id": "US.AAPL",
+                    "event_type": "ohlcv",
+                    "event_granularity": "bar",
+                    "timeframe": "1d",
+                    "session": "regular",
+                    "feed": "consolidated",
+                    "start": start,
+                    "end": end,
+                    "adjustment": "split_adjusted",
+                    "corporate_action_semantics": "split-adjusted-v1",
+                    "coverage_evidence_digest": content_digest("coverage"),
+                    "content_digest": content_digest("series"),
+                    "row_count": 500,
+                }
+            ],
+            "created_at": "2026-09-17T12:00:00Z",
+            "resource_id": "snapshot-1",
+        },
+    )
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["snapshot_id"] == "snapshot-v1"
+    assert result.attributes["preflight_report"]["fingerprint"] == _preflight_payload()[
+        "fingerprint"
+    ]
+    assert result.attributes["series"][0]["adjustment"] == "split_adjusted"
+    assert result.attributes["created_at"] == datetime(2026, 9, 17, 12, 0, tzinfo=UTC)
+
+
+def test_snapshot_rejects_tampered_preflight_or_series_fields() -> None:
+    preflight = _preflight_payload()
+    preflight["fingerprint"] = content_digest("tampered")
+    base = {
+        "snapshot_id": "snapshot-v1",
+        "provider_snapshot_id": "provider-v1",
+        "preflight_report": preflight,
+        "series": [],
+        "created_at": "2026-09-17T12:00:00Z",
+    }
+    with pytest.raises(ValueError, match="fingerprint"):
+        normalize_resource_attributes(ApiResourceType.SNAPSHOT, base)
+
+    unknown: dict[str, Any] = dict(base)
+    unknown["unexpected"] = True
+    with pytest.raises(ValueError, match="unsupported fields"):
+        normalize_resource_attributes(ApiResourceType.SNAPSHOT, unknown)

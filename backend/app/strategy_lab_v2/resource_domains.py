@@ -2,9 +2,9 @@
 
 The REST router intentionally accepts registration-neutral resource envelopes.
 This module is the first application-owned domain boundary: it turns strategy,
-package, portfolio, experiment, and attempt resources into immutable typed
-contracts before the application persists them, while leaving other resource
-types available to their future domain adapters.
+package, portfolio, experiment, attempt, and snapshot resources into immutable
+typed contracts before the application persists them, while leaving other
+resource types available to their future domain adapters.
 """
 
 from __future__ import annotations
@@ -17,8 +17,19 @@ from typing import Any
 
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
+from app.strategy_lab_v2.capabilities import (
+    CapabilityDecision,
+    CapabilityRequirement,
+    Degradation,
+    PreflightClass,
+    PreflightReport,
+)
 from app.strategy_lab_v2.contracts import (
+    AdjustmentMode,
     AttemptState,
+    DataSeriesManifest,
+    DataSnapshot,
+    EventGranularity,
     ExperimentDefinition,
     PortfolioComponent,
     PortfolioComposition,
@@ -84,6 +95,8 @@ def normalize_resource_attributes(
         return _normalize_experiment(attributes)
     if resource_type is ApiResourceType.ATTEMPT:
         return _normalize_attempt(attributes)
+    if resource_type is ApiResourceType.SNAPSHOT:
+        return _normalize_snapshot(attributes)
     return ResourceDomainNormalization(attributes)
 
 
@@ -444,6 +457,274 @@ def _normalize_attempt(attributes: Mapping[str, Any]) -> ResourceDomainNormaliza
         "ordinal": attempt.ordinal,
     }
     return ResourceDomainNormalization(normalized, content_digest(identity))
+
+
+def _normalize_snapshot(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
+    allowed = {
+        "snapshot_id",
+        "provider_snapshot_id",
+        "preflight_report",
+        "series",
+        "created_at",
+        "resource_id",
+        "id",
+    }
+    unknown = sorted(set(attributes) - allowed)
+    if unknown:
+        raise ValueError(f"snapshot attributes contain unsupported fields: {', '.join(unknown)}")
+    api_ids = [attributes[name] for name in ("resource_id", "id") if name in attributes]
+    if any(not isinstance(value, str) or not value.strip() for value in api_ids):
+        raise ValueError("snapshot resource_id/id must be a non-empty string")
+    if len(api_ids) == 2 and api_ids[0] != api_ids[1]:
+        raise ValueError("snapshot resource_id and id must agree")
+    try:
+        series_raw = attributes["series"]
+        if not isinstance(series_raw, Sequence) or isinstance(series_raw, str | bytes):
+            raise ValueError("snapshot series must be a sequence")
+        snapshot = DataSnapshot(
+            snapshot_id=attributes["snapshot_id"],
+            provider_snapshot_id=attributes["provider_snapshot_id"],
+            preflight_report=_preflight_report(attributes["preflight_report"]),
+            series=tuple(_data_series_manifest(item) for item in series_raw),
+            created_at=_datetime_attribute(attributes["created_at"], "created_at"),
+        )
+    except KeyError as error:
+        raise ValueError(f"snapshot attribute is required: {error.args[0]}") from error
+    except (AttributeError, TypeError, ValueError) as error:
+        raise ValueError(f"snapshot attributes are invalid: {error}") from error
+
+    normalized: dict[str, Any] = {
+        "snapshot_id": snapshot.snapshot_id,
+        "provider_snapshot_id": snapshot.provider_snapshot_id,
+        "preflight_report": _preflight_attributes(snapshot.preflight_report),
+        "series": tuple(_series_attributes(item) for item in snapshot.series),
+        "created_at": snapshot.created_at,
+    }
+    if api_ids:
+        normalized["resource_id"] = api_ids[0]
+    return ResourceDomainNormalization(normalized, snapshot.fingerprint)
+
+
+def _preflight_report(value: Any) -> PreflightReport:
+    if not isinstance(value, Mapping):
+        raise ValueError("preflight_report must be a mapping")
+    allowed = {"decisions", "fingerprint", "allow_degraded", "degradations"}
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"preflight_report contains unsupported fields: {', '.join(unknown)}")
+    decisions_raw = value.get("decisions")
+    if not isinstance(decisions_raw, Sequence) or isinstance(decisions_raw, str | bytes):
+        raise ValueError("preflight_report decisions must be a sequence")
+    degradations_raw = value.get("degradations", ())
+    if not isinstance(degradations_raw, Sequence) or isinstance(degradations_raw, str | bytes):
+        raise ValueError("preflight_report degradations must be a sequence")
+    return PreflightReport(
+        decisions=tuple(_capability_decision(item) for item in decisions_raw),
+        fingerprint=value["fingerprint"],
+        allow_degraded=value.get("allow_degraded", False),
+        degradations=tuple(_degradation(item) for item in degradations_raw),
+    )
+
+
+def _capability_decision(value: Any) -> CapabilityDecision:
+    if not isinstance(value, Mapping):
+        raise ValueError("preflight decisions must contain mappings")
+    allowed = {
+        "requirement",
+        "classification",
+        "evidence_digest",
+        "gaps",
+        "degradations",
+        "ranking_eligible",
+    }
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"capability decision contains unsupported fields: {', '.join(unknown)}")
+    gaps = value.get("gaps", ())
+    if not isinstance(gaps, Sequence) or isinstance(gaps, str | bytes):
+        raise ValueError("capability decision gaps must be a sequence")
+    degradations = value.get("degradations", ())
+    if not isinstance(degradations, Sequence) or isinstance(degradations, str | bytes):
+        raise ValueError("capability decision degradations must be a sequence")
+    try:
+        return CapabilityDecision(
+            requirement=_capability_requirement(value["requirement"]),
+            classification=_enum_attribute(
+                PreflightClass, value["classification"], "capability classification"
+            ),
+            evidence_digest=value.get("evidence_digest"),
+            gaps=tuple(gaps),
+            degradations=tuple(_degradation(item) for item in degradations),
+            ranking_eligible=value["ranking_eligible"],
+        )
+    except KeyError as error:
+        raise ValueError(f"capability decision field is required: {error.args[0]}") from error
+
+
+def _capability_requirement(value: Any) -> CapabilityRequirement:
+    if not isinstance(value, Mapping):
+        raise ValueError("capability requirement must be a mapping")
+    allowed = {
+        "instrument_id",
+        "product_class",
+        "event_granularity",
+        "event_type",
+        "timeframe",
+        "start",
+        "end",
+        "adjustment",
+        "session",
+        "feed",
+        "execution_model",
+        "account_model",
+        "corporate_action_semantics",
+    }
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"capability requirement contains unsupported fields: {', '.join(unknown)}")
+    try:
+        return CapabilityRequirement(
+            instrument_id=value["instrument_id"],
+            product_class=_enum_attribute(ProductClass, value["product_class"], "product_class"),
+            event_granularity=_enum_attribute(
+                EventGranularity, value["event_granularity"], "event_granularity"
+            ),
+            event_type=value["event_type"],
+            timeframe=value["timeframe"],
+            start=_datetime_attribute(value["start"], "requirement start"),
+            end=_datetime_attribute(value["end"], "requirement end"),
+            adjustment=_enum_attribute(AdjustmentMode, value["adjustment"], "adjustment"),
+            session=value["session"],
+            feed=value["feed"],
+            execution_model=value["execution_model"],
+            account_model=value["account_model"],
+            corporate_action_semantics=value["corporate_action_semantics"],
+        )
+    except KeyError as error:
+        raise ValueError(f"capability requirement field is required: {error.args[0]}") from error
+
+
+def _degradation(value: Any) -> Degradation:
+    if not isinstance(value, Mapping):
+        raise ValueError("degradations must contain mappings")
+    allowed = {"instrument_id", "field", "substituted_value", "reason"}
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"degradation contains unsupported fields: {', '.join(unknown)}")
+    try:
+        return Degradation(
+            instrument_id=value["instrument_id"],
+            field=value["field"],
+            substituted_value=value["substituted_value"],
+            reason=value["reason"],
+        )
+    except KeyError as error:
+        raise ValueError(f"degradation field is required: {error.args[0]}") from error
+
+
+def _data_series_manifest(value: Any) -> DataSeriesManifest:
+    if not isinstance(value, Mapping):
+        raise ValueError("snapshot series must contain mappings")
+    allowed = {
+        "instrument_id",
+        "event_type",
+        "event_granularity",
+        "timeframe",
+        "session",
+        "feed",
+        "start",
+        "end",
+        "adjustment",
+        "corporate_action_semantics",
+        "coverage_evidence_digest",
+        "content_digest",
+        "row_count",
+    }
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"snapshot series contains unsupported fields: {', '.join(unknown)}")
+    try:
+        return DataSeriesManifest(
+            instrument_id=value["instrument_id"],
+            event_type=value["event_type"],
+            event_granularity=_enum_attribute(
+                EventGranularity, value["event_granularity"], "series event_granularity"
+            ),
+            timeframe=value["timeframe"],
+            session=value["session"],
+            feed=value["feed"],
+            start=_datetime_attribute(value["start"], "series start"),
+            end=_datetime_attribute(value["end"], "series end"),
+            adjustment=_enum_attribute(AdjustmentMode, value["adjustment"], "series adjustment"),
+            corporate_action_semantics=value["corporate_action_semantics"],
+            coverage_evidence_digest=value["coverage_evidence_digest"],
+            content_digest=value["content_digest"],
+            row_count=value["row_count"],
+        )
+    except KeyError as error:
+        raise ValueError(f"snapshot series field is required: {error.args[0]}") from error
+
+
+def _preflight_attributes(report: PreflightReport) -> Mapping[str, Any]:
+    return {
+        "decisions": tuple(_decision_attributes(item) for item in report.decisions),
+        "fingerprint": report.fingerprint,
+        "allow_degraded": report.allow_degraded,
+        "degradations": tuple(_degradation_attributes(item) for item in report.degradations),
+    }
+
+
+def _decision_attributes(decision: CapabilityDecision) -> Mapping[str, Any]:
+    requirement = decision.requirement
+    return {
+        "requirement": {
+            "instrument_id": requirement.instrument_id,
+            "product_class": requirement.product_class,
+            "event_granularity": requirement.event_granularity,
+            "event_type": requirement.event_type,
+            "timeframe": requirement.timeframe,
+            "start": requirement.start,
+            "end": requirement.end,
+            "adjustment": requirement.adjustment,
+            "session": requirement.session,
+            "feed": requirement.feed,
+            "execution_model": requirement.execution_model,
+            "account_model": requirement.account_model,
+            "corporate_action_semantics": requirement.corporate_action_semantics,
+        },
+        "classification": decision.classification,
+        "evidence_digest": decision.evidence_digest,
+        "gaps": decision.gaps,
+        "degradations": tuple(_degradation_attributes(item) for item in decision.degradations),
+        "ranking_eligible": decision.ranking_eligible,
+    }
+
+
+def _degradation_attributes(value: Degradation) -> Mapping[str, Any]:
+    return {
+        "instrument_id": value.instrument_id,
+        "field": value.field,
+        "substituted_value": value.substituted_value,
+        "reason": value.reason,
+    }
+
+
+def _series_attributes(value: DataSeriesManifest) -> Mapping[str, Any]:
+    return {
+        "instrument_id": value.instrument_id,
+        "event_type": value.event_type,
+        "event_granularity": value.event_granularity,
+        "timeframe": value.timeframe,
+        "session": value.session,
+        "feed": value.feed,
+        "start": value.start,
+        "end": value.end,
+        "adjustment": value.adjustment,
+        "corporate_action_semantics": value.corporate_action_semantics,
+        "coverage_evidence_digest": value.coverage_evidence_digest,
+        "content_digest": value.content_digest,
+        "row_count": value.row_count,
+    }
 
 
 def _portfolio_component(value: Any) -> PortfolioComponent:
