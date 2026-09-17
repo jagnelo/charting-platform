@@ -5430,3 +5430,10 @@ the authoritative record for this replay; it made zero provider calls.
 - The queue fixes remain repository-controlled and fully validated separately:
   the backend unit gate, workflow tests, Compose contracts, Ruff, and
   workstream validation are green.
+
+The same preflight was then rerun with elevated access to the owner-only
+quota ledger at source `94b72c17b`. The ledger health path passed, but the
+matrix still stopped before transport (`0/0`, zero provider requests) on the
+provider-specific reset/baseline/cost blockers, unresolved live-operation
+dispositions, and legal/use controls listed in the receipt. This supersedes
+the sandbox-only “quota coordinator unavailable” diagnostic above.

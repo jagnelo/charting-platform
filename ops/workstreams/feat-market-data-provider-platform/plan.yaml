@@ -744,6 +744,13 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 elevated-access replay at source `94b72c17b` reached the
+      owner-only durable quota ledger successfully, then stopped before
+      transport with `0/0` cases and zero provider requests. The remaining
+      blockers are provider-specific reset/baseline/cost contracts,
+      unresolved live-operation dispositions, and legal/use controls; the
+      aggregate receipt supersedes the sandbox-only unavailable-ledger result.
+    - >-
       2026-09-17 current-head full-matrix preflight after the recurring
       refresh-queue fixes: source `ba3893314` stopped before transport with
       `0/0` cases and zero provider requests. The receipt records the missing

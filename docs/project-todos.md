@@ -12,6 +12,11 @@
       no credentials or provider payloads were consumed. This does not close
       live acceptance, routing-promotion, deployment-secret, universe, or
       final-shadow gates.
+- [x] Replay the same preflight with elevated access to the owner-only durable
+      quota ledger. Ledger health passed, but the matrix still stopped before
+      transport (`0/0`, zero provider requests) on provider-specific
+      reset/baseline/cost, unresolved-operation, and legal/use controls; this
+      supersedes the sandbox-only unavailable-ledger diagnostic.
 
 ### 2026-09-17 — Configurable core-refresh throughput
 
