@@ -11,6 +11,23 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable execution-summary checkpoint
+
+`postgres_execution_summary.py` now maps immutable `ExecutionSummary`
+projections to an owner-scoped additive PostgreSQL read model. Each
+submission/attempt outcome-progress state identity is append-only and
+fingerprint-authenticated; exact retries replay, changed content for an
+existing checkpoint conflicts, and latest-attempt reads retain deterministic
+history without overwriting prior status. Error payloads and timezone-aware
+timestamps are encoded and revalidated on every read. Submission/outcome
+state wiring, result publication, migrations, authorization, API registration,
+and worker integration remain outside this adapter.
+
+The focused execution-summary-adapter suite passes 4 tests. Package/static and
+combined coverage evidence will be recorded after this boundary is committed
+and rerun; upstream reconciliation and stable Nautilus execution remain open
+gates.
+
 ## 2026-09-17 - Durable snapshot-coverage checkpoint
 
 `postgres_snapshot_coverage.py` now maps snapshot-level verified/rejected

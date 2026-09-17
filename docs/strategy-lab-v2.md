@@ -711,6 +711,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   fingerprint are re-authenticated on read; exact retries replay and changed
   resolutions conflict. Provider fetch/repair, attestation lookup, snapshot
   creation, migrations, and execution admission remain outside the adapter.
+- `postgres_execution_summary.py` maps immutable execution-status projections
+  to an owner-scoped additive PostgreSQL read model. Outcome/progress state
+  identities are append-only, exact retries replay, and changed content for a
+  checkpoint conflicts; reads authenticate the projection and select the latest
+  state for an attempt while preserving history. Submission/outcome persistence,
+  result publication, migrations, authorization, and route wiring remain
+  separate integration concerns.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.
