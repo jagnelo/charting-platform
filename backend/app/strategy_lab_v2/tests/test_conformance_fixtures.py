@@ -9,6 +9,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.conformance import (
     ConformanceCheck,
     EngineReleaseChannel,
+    NautilusReleasePin,
     evaluate_engine_conformance,
 )
 from app.strategy_lab_v2.conformance_fixtures import (
@@ -21,6 +22,15 @@ from app.strategy_lab_v2.conformance_fixtures import (
 )
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
+PIN = NautilusReleasePin(
+    package_version="2.0.0",
+    release_tag="v2.0.0",
+    source_digest=content_digest("nautilus-source-v2.0.0"),
+    runtime_image_digest=content_digest("nautilus-runtime-v2.0.0"),
+    python_version="3.12.11",
+    rust_version="1.88.0",
+    legacy_runtime_isolated=True,
+)
 
 
 def _suite(*, failed: ConformanceCheck | None = None) -> ConformanceFixtureSuite:
@@ -42,6 +52,7 @@ def test_complete_suite_builds_evidence_and_authoritative_report_when_stable() -
     evidence = build_conformance_evidence(
         "nautilus", "2.0.0", content_digest("build"),
         EngineReleaseChannel.STABLE, suite, tested_at=NOW,
+        release_pin=PIN,
     )
     report = evaluate_engine_conformance(evidence)
     assert report.authoritative is True
@@ -123,6 +134,7 @@ def test_executable_suite_runs_all_checks_and_binds_the_report() -> None:
         build_digest=content_digest("build"),
         release_channel=EngineReleaseChannel.STABLE,
         tested_at=NOW,
+        release_pin=PIN,
     )
     assert isinstance(resolved, ConformanceExecutionResolution)
     expected_order = tuple(cast(Any, ConformanceCheck))

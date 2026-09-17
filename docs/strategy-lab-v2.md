@@ -1171,7 +1171,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   executable `execute_conformance_suite(...)` runs every required check through
   an injected engine boundary, reduces runner exceptions to deterministic
   failed observations, and returns suite/evidence/report as one identity-bound
-  resolution; stable authority still requires a complete stable release report.
+  resolution. `NautilusReleasePin` binds the exact v2 package/tag, source and
+  runtime-image digests, Python/Rust versions, and legacy-runtime isolation;
+  complete stable fixture evidence without a valid isolated pin remains
+  compatible evidence but can never be authoritative.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

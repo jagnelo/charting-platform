@@ -13,6 +13,7 @@ from app.strategy_lab_v2.conformance import (
     EngineConformanceEvidence,
     EngineConformanceReport,
     EngineReleaseChannel,
+    NautilusReleasePin,
     evaluate_engine_conformance,
 )
 
@@ -129,6 +130,7 @@ def execute_conformance_suite(
     build_digest: str,
     release_channel: EngineReleaseChannel,
     tested_at: datetime,
+    release_pin: NautilusReleasePin | None = None,
 ) -> ConformanceExecutionResolution:
     """Run every required fixture through an injected engine boundary.
 
@@ -196,6 +198,7 @@ def execute_conformance_suite(
         release_channel,
         suite,
         tested_at=tested_at,
+        release_pin=release_pin,
     )
     return ConformanceExecutionResolution(
         suite,
@@ -212,6 +215,7 @@ def build_conformance_evidence(
     suite: ConformanceFixtureSuite,
     *,
     tested_at: datetime,
+    release_pin: NautilusReleasePin | None = None,
 ) -> EngineConformanceEvidence:
     """Convert a complete fixture suite into the existing release-gate evidence."""
 
@@ -222,6 +226,8 @@ def build_conformance_evidence(
         raise TypeError("release_channel must be an EngineReleaseChannel")
     if not isinstance(suite, ConformanceFixtureSuite):
         raise TypeError("suite must be a ConformanceFixtureSuite")
+    if release_pin is not None and not isinstance(release_pin, NautilusReleasePin):
+        raise TypeError("release_pin must be a NautilusReleasePin")
     _aware(tested_at, "tested_at")
     return EngineConformanceEvidence(
         engine_id=engine_id,
@@ -231,6 +237,7 @@ def build_conformance_evidence(
         fixture_digest=suite.fingerprint,
         passed_checks=suite.passed_checks,
         tested_at=tested_at,
+        release_pin=release_pin,
     )
 
 

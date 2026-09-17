@@ -9,6 +9,7 @@ from app.strategy_lab_v2.conformance import (
     ConformanceCheck,
     EngineConformanceEvidence,
     EngineReleaseChannel,
+    NautilusReleasePin,
     evaluate_engine_conformance,
 )
 from app.strategy_lab_v2.engine_execution import (
@@ -56,6 +57,15 @@ def _conformance(*, engine_id: str = "nautilus", channel: EngineReleaseChannel =
         content_digest("fixture"),
         checks,
         NOW,
+        NautilusReleasePin(
+            package_version="2.0.0",
+            release_tag="v2.0.0" if channel is not EngineReleaseChannel.RELEASE_CANDIDATE else "v2.0.0-rc1",
+            source_digest=content_digest("nautilus-source"),
+            runtime_image_digest=content_digest("nautilus-runtime"),
+            python_version="3.12.11",
+            rust_version="1.88.0",
+            legacy_runtime_isolated=True,
+        ),
     )
     return evidence, evaluate_engine_conformance(evidence)
 

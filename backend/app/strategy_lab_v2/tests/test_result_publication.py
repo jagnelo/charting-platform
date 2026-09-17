@@ -17,6 +17,7 @@ from app.strategy_lab_v2.conformance import (
     EngineConformanceEvidence,
     EngineConformanceReport,
     EngineReleaseChannel,
+    NautilusReleasePin,
     evaluate_engine_conformance,
 )
 from app.strategy_lab_v2.contracts import (
@@ -67,6 +68,15 @@ SOURCE = content_digest({"source": "strategy"})
 EVIDENCE = content_digest({"provider": "fixture"})
 BUILD = content_digest({"engine": "nautilus", "build": "stable"})
 DEPENDENCY = content_digest({"dependency": "numpy-2.0.0"})
+NAUTILUS_PIN = NautilusReleasePin(
+    package_version="2.0.0",
+    release_tag="v2.0.0",
+    source_digest=content_digest("nautilus-source"),
+    runtime_image_digest=content_digest("nautilus-runtime"),
+    python_version="3.12.11",
+    rust_version="1.88.0",
+    legacy_runtime_isolated=True,
+)
 
 
 def _result() -> tuple[
@@ -203,6 +213,7 @@ def _result() -> tuple[
         content_digest({"fixture": "all"}),
         frozenset(ConformanceCheck),
         NOW,
+        NAUTILUS_PIN,
     )
     conformance = evaluate_engine_conformance(evidence)
     runtime = preflight_runtime_isolation(
@@ -235,6 +246,7 @@ def test_result_publication_rejects_non_authoritative_or_unverified_inputs() -> 
             evidence.fixture_digest,
             evidence.passed_checks,
             evidence.tested_at,
+            evidence.release_pin,
         )
     )
     rejected = plan_result_publication(result, evidence, candidate, runtime, integrity)
