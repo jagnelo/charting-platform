@@ -206,8 +206,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   prevents one dependency from switching instruments, and requires each
   dependency's sequence and event time to advance monotonically. Deterministic
   same-time batches and explicit non-interpolating time slices are available to
-  a later strategy/engine adapter; acquisition, coverage, and fills remain
-  outside this contract.
+  a later strategy/engine adapter. `bind_event_tape()` then verifies the tape
+  against the frozen snapshot's preflight substitutions, series coverage,
+  declared instruments, exact dependency fields, and SDK manifest, returning a
+  content-addressed binding with per-dependency event counts. Acquisition,
+  coverage attestation, and fills remain outside this contract.
 - `observations.py` defines normalized event-time/sequence points, native
   fill-cost cash effects with explicit currency-conversion and slippage-benchmark
   evidence, explicit complete/partial/unavailable cost-report coverage, and

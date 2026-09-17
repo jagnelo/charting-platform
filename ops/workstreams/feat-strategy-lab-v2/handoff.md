@@ -3098,6 +3098,24 @@ coverage (required threshold: 75%), with setup and cleanup successful.
 Schema/API/worker/Compose integration and stable Nautilus execution remain
 deferred behind the existing gates.
 
+## 2026-09-17 - Snapshot-bound event-tape/SDK binding checkpoint
+
+`bind_event_tape()` now verifies that a frozen replay tape belongs to the exact
+`DataSnapshot` and `StrategySdkManifest` it is about to drive. It checks the
+snapshot's preflight decisions and explicit degradations, matches effective
+series semantics and coverage, requires declared instruments and exact event
+fields, rejects missing/unsupported dependencies, and emits a
+content-addressed `EventTapeBinding` with deterministic per-dependency counts.
+This keeps provider acquisition, coverage attestation, strategy execution,
+order routing, and fills behind their existing adapter/runtime gates.
+
+The focused event-tape suite and complete Strategy Lab v2 package passed 653
+tests with Ruff, MyPy, `git diff --check`, and workstream validation green. The
+Docker-backed combined coverage gate passed 2,300 tests with 83.60% total
+coverage (required threshold: 75%); setup and cleanup completed successfully.
+Provider/API/database/worker/Compose integration and stable Nautilus execution
+remain deferred behind the existing shared-path and release gates.
+
 ## 2026-09-17 - Schedule-gated target allocation checkpoint
 
 `rebalance_allocation.py` now composes the immutable calendar schedule with
