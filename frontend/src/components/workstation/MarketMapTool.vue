@@ -220,13 +220,13 @@
     </div>
     <div v-if="map" class="market-map-tool__nodes" aria-label="Market Map groups">
       <button v-if="selectedNode" type="button" aria-label="Market Map parent group" @click="selectNode(activeNode?.parent_id ?? null)">← Up</button>
-      <button v-for="node in visibleNodes" :key="node.node_id" type="button" :class="{ active: selectedNode === node.node_id }" @click="selectNode(node.node_id)">{{ node.label }} <small>{{ node.member_count }}</small></button>
+      <button v-for="node in visibleNodes" :key="node.node_id" type="button" :class="{ active: selectedNode === node.node_id }" :aria-pressed="selectedNode === node.node_id ? 'true' : 'false'" @click="selectNode(node.node_id)">{{ node.label }} <small>{{ node.member_count }}</small></button>
     </div>
     <nav v-if="map" class="market-map-tool__breadcrumbs" aria-label="Market Map hierarchy">
-      <button type="button" :class="{ active: !selectedNode }" @click="selectNode(null)">All members</button>
+      <button type="button" :class="{ active: !selectedNode }" :aria-pressed="!selectedNode ? 'true' : 'false'" @click="selectNode(null)">All members</button>
       <template v-for="node in breadcrumbs" :key="node.node_id">
         <span aria-hidden="true">›</span>
-        <button type="button" :class="{ active: selectedNode === node.node_id }" @click="selectNode(node.node_id)">{{ node.label }}</button>
+        <button type="button" :class="{ active: selectedNode === node.node_id }" :aria-pressed="selectedNode === node.node_id ? 'true' : 'false'" @click="selectNode(node.node_id)">{{ node.label }}</button>
       </template>
     </nav>
     <div v-if="map" class="market-map-tool__legend" aria-label="Market Map colour and coverage legend"><span class="market-map-tool__legend--negative">−</span><span>{{ colorLabel }}</span><span class="market-map-tool__legend--positive">+</span><span class="market-map-tool__legend__coverage">Combined {{ coveragePercent(map.coverage, 0) }}% · Colour {{ coveragePercent(map.color_coverage, map.coverage) }}% · Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span></div>

@@ -901,9 +901,15 @@ describe('MarketMapTool', () => {
     const wrapper = mount(MarketMapTool)
     await flushPromises()
 
-    await wrapper.find('.market-map-tool__nodes button').trigger('click')
+    const groupButton = wrapper.find('.market-map-tool__nodes button:not([aria-label="Market Map parent group"])')
+    expect(groupButton.attributes('aria-pressed')).toBe('false')
+    expect(wrapper.get('.market-map-tool__breadcrumbs button').attributes('aria-pressed')).toBe('true')
+
+    await groupButton.trigger('click')
     expect(wrapper.find('.market-map-tool__breadcrumbs').text()).toContain('Technology')
     expect(wrapper.find('.market-map-tool__tiles').exists()).toBe(true)
+    expect(wrapper.get('.market-map-tool__breadcrumbs button').attributes('aria-pressed')).toBe('false')
+    expect(wrapper.findAll('.market-map-tool__breadcrumbs button')[1].attributes('aria-pressed')).toBe('true')
 
     await wrapper.get('[aria-label="Zoom in Market Map"]').trigger('click')
     expect(wrapper.find('[aria-live="polite"]').text()).toBe('125%')
