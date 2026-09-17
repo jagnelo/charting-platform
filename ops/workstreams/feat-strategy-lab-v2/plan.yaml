@@ -315,11 +315,12 @@ remaining_gaps:
   - PostgreSQL snapshot-coverage persistence now stores owner-scoped verified/rejected coverage resolutions with authenticated per-series reports, missing/unexpected digests, deterministic listing, exact replay, and changed-resolution conflicts; provider fetch/repair, snapshot creation, migrations, and application wiring remain open.
   - PostgreSQL execution-summary persistence now stores owner-scoped append-only status projections keyed by submission/attempt state identity with authenticated outcome/progress fields, latest-attempt reads, deterministic history, exact replay, and changed-checkpoint conflicts; submission/outcome wiring, result publication, migrations, authorization, and application integration remain open.
   - PostgreSQL result-completion persistence now resolves terminal runtime/outcome/progress/publication evidence with artifact publication plans in one locked transaction, inserting all new artifact commits and the completion receipt atomically; exact retries replay and artifact conflicts leave both ledgers unchanged. Artifact bytes, migrations, authorization, and worker/application wiring remain open.
+  - PostgreSQL result-publication persistence now stores owner-scoped immutable publish/replay/reject plans with authenticated plan fingerprints, attempt/result/reproduction/build identities, deterministic reason lists, exact retries, and separate audit evidence for changed decisions; publication bytes, completion coordination, migrations, authorization, and application wiring remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
     - combined-coverage-and-branch-validation
   total: 18
-  current_phase: durable-result-completion-state-staging-ready-for-human-review
+  current_phase: durable-result-publication-state-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary

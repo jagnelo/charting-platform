@@ -725,6 +725,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   inserted; artifact conflicts leave both ledgers unchanged, and exact retries
   replay the existing receipt. Artifact bytes, migrations, authorization, and
   worker wiring remain outside this registration-neutral adapter.
+- `postgres_result_publication.py` maps immutable publish/replay/reject plans to
+  an owner-scoped additive PostgreSQL evidence table. Plan fingerprints,
+  attempt/result/reproduction/build identities, and rejection reasons are
+  authenticated on reads; exact retries replay while distinct decisions remain
+  separate audit evidence. Publication bytes, completion coordination,
+  migrations, authorization, and route wiring remain outside the adapter.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

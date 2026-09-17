@@ -11,6 +11,21 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable result-publication checkpoint
+
+`postgres_result_publication.py` now maps immutable publish/replay/reject
+`ResultPublicationPlan` values to an owner-scoped additive PostgreSQL evidence
+table. Plan fingerprints, attempt/result/reproduction/build identities, and
+deterministic rejection reasons are authenticated on reads; exact retries
+replay while changed decisions remain separate immutable audit evidence. The
+adapter does not publish bytes, coordinate completion, apply migrations, or
+register authorization and routes.
+
+The focused result-publication-adapter suite passes 4 tests. Package/static and
+combined coverage evidence will be recorded after this boundary is committed
+and rerun; upstream reconciliation and stable Nautilus execution remain open
+gates.
+
 ## 2026-09-17 - Durable result-completion checkpoint
 
 `postgres_result_completion.py` now maps terminal result completion and the
