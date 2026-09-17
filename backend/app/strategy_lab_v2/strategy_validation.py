@@ -50,6 +50,7 @@ _FORBIDDEN_CALLS = frozenset(
 _FORBIDDEN_CALL_ATTRIBUTES = frozenset({"now", "today", "utcnow"})
 _FORBIDDEN_ATTRIBUTES = frozenset(
     {
+        "builtins",
         "__builtins__",
         "__class__",
         "__code__",
@@ -58,6 +59,16 @@ _FORBIDDEN_ATTRIBUTES = frozenset(
         "__loader__",
         "__module__",
         "__spec__",
+        "environ",
+        "importlib",
+        "marshal",
+        "modules",
+        "os",
+        "pathlib",
+        "pickle",
+        "socket",
+        "subprocess",
+        "sys",
     }
 )
 _FORBIDDEN_IMPORT_ROOTS = frozenset(
@@ -142,7 +153,7 @@ def validate_strategy_source(
                 violations.append(
                     f"forbidden_wall_clock@{node_location(node)}: {node.attr}"
                 )
-            elif node.attr in _FORBIDDEN_ATTRIBUTES or node.attr.startswith("__"):
+            elif node.attr in _FORBIDDEN_ATTRIBUTES or node.attr.startswith("_"):
                 violations.append(f"forbidden_attribute@{node_location(node)}: {node.attr}")
         elif isinstance(node, ast.Name) and node.id in _FORBIDDEN_NAMES:
             violations.append(f"forbidden_name@{node_location(node)}: {node.id}")
