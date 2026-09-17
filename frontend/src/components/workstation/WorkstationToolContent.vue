@@ -768,7 +768,7 @@
           <article v-for="mapping in familyOverview.mappings" :key="mapping.role" class="breadth-tool__family-leg" :class="{ 'breadth-tool__family-leg--selected': mapping.role === familyRatioRole }">
             <div><b>{{ familyRoleLabel(mapping.role) }}</b><span>{{ mapping.symbol ?? mapping.label }}</span></div>
             <small>{{ familyMappingState(mapping) }}</small>
-            <button type="button" :disabled="!mapping.holdings_available" :aria-label="`Load ${familyRoleLabel(mapping.role)} constituents`" @click="setBreadthConfiguration({ family_ratio_role: mapping.role })">Constituents</button>
+            <button type="button" :disabled="!mapping.holdings_available" :aria-pressed="mapping.role === familyRatioRole ? 'true' : 'false'" :aria-label="`Load ${familyRoleLabel(mapping.role)} constituents`" @click="setBreadthConfiguration({ family_ratio_role: mapping.role })">Constituents</button>
           </article>
         </div>
         <div v-if="familyCoverage" class="breadth-tool__family-coverage" aria-label="Benchmark family historical coverage">
@@ -803,8 +803,8 @@
         <header>
           <strong>{{ genericBreadthMemberState === 'pass' ? 'Passing' : 'Failing' }} members</strong>
           <span class="breadth-tool__actions">
-            <button type="button" :class="{ 'breadth-tool__action--active': genericBreadthMemberState === 'pass' }" @click="genericBreadthMemberState = 'pass'">Pass {{ genericBreadth.pass_count }}</button>
-            <button type="button" :class="{ 'breadth-tool__action--active': genericBreadthMemberState === 'fail' }" @click="genericBreadthMemberState = 'fail'">Fail {{ genericBreadth.eligible_count - genericBreadth.pass_count }}</button>
+            <button type="button" :class="{ 'breadth-tool__action--active': genericBreadthMemberState === 'pass' }" :aria-pressed="genericBreadthMemberState === 'pass' ? 'true' : 'false'" @click="genericBreadthMemberState = 'pass'">Pass {{ genericBreadth.pass_count }}</button>
+            <button type="button" :class="{ 'breadth-tool__action--active': genericBreadthMemberState === 'fail' }" :aria-pressed="genericBreadthMemberState === 'fail' ? 'true' : 'false'" @click="genericBreadthMemberState = 'fail'">Fail {{ genericBreadth.eligible_count - genericBreadth.pass_count }}</button>
           </span>
         </header>
         <button v-for="member in genericBreadthMembers.slice(0, 100)" :key="member.instrument_id" type="button" @click="emit('select', member.symbol, member.instrument_id)"><strong>{{ member.symbol }}</strong><span>{{ member.name }}</span><small v-if="member.metric != null">{{ member.metric.toFixed(3) }}</small><small v-if="member.diagnostics?.length" class="breadth-tool__member-diagnostics" :title="member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ')">{{ member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ') }}</small></button>
@@ -830,19 +830,19 @@
         <template v-for="period in ['ma20', 'ma50', 'ma200']" :key="period">
           <span>Above {{ period.slice(2) }} MA</span>
           <span class="breadth-tool__actions">
-            <button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown?.key === period && breadthDrilldown.state === 'above' }" @click="setBreadthDrilldown(period, 'above')">{{ breadthMetric(period) }}</button>
-            <button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown?.key === period && breadthDrilldown.state === 'below' }" @click="setBreadthDrilldown(period, 'below')">Below {{ breadthBelowCount(period) }}</button>
+            <button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown?.key === period && breadthDrilldown.state === 'above' }" :aria-pressed="breadthDrilldown?.key === period && breadthDrilldown.state === 'above' ? 'true' : 'false'" @click="setBreadthDrilldown(period, 'above')">{{ breadthMetric(period) }}</button>
+            <button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown?.key === period && breadthDrilldown.state === 'below' }" :aria-pressed="breadthDrilldown?.key === period && breadthDrilldown.state === 'below' ? 'true' : 'false'" @click="setBreadthDrilldown(period, 'below')">Below {{ breadthBelowCount(period) }}</button>
           </span>
         </template>
         <span>Coverage</span><b>{{ breadthCoverage }}</b>
-        <span>Near 52W high / low</span><span class="breadth-tool__actions"><button type="button" @click="setBreadthDrilldown('near_52w_high', 'above')">High {{ breadthMetric('near_52w_high') }}</button><button type="button" @click="setBreadthDrilldown('near_52w_low', 'above')">Low {{ breadthMetric('near_52w_low') }}</button></span>
-        <span>New high / low ({{ breadthLookback }})</span><span class="breadth-tool__actions"><button type="button" @click="setBreadthDrilldown('new_high', 'above')">High {{ breadthMetric('new_high') }}</button><button type="button" @click="setBreadthDrilldown('new_low', 'above')">Low {{ breadthMetric('new_low') }}</button></span>
-        <span>Uptrend / downtrend</span><span class="breadth-tool__actions"><button type="button" @click="setBreadthDrilldown('uptrend', 'above')">Up {{ breadthMetric('uptrend') }}</button><button type="button" @click="setBreadthDrilldown('downtrend', 'above')">Down {{ breadthMetric('downtrend') }}</button></span>
+        <span>Near 52W high / low</span><span class="breadth-tool__actions"><button type="button" :aria-pressed="breadthDrilldown?.key === 'near_52w_high' ? 'true' : 'false'" @click="setBreadthDrilldown('near_52w_high', 'above')">High {{ breadthMetric('near_52w_high') }}</button><button type="button" :aria-pressed="breadthDrilldown?.key === 'near_52w_low' ? 'true' : 'false'" @click="setBreadthDrilldown('near_52w_low', 'above')">Low {{ breadthMetric('near_52w_low') }}</button></span>
+        <span>New high / low ({{ breadthLookback }})</span><span class="breadth-tool__actions"><button type="button" :aria-pressed="breadthDrilldown?.key === 'new_high' ? 'true' : 'false'" @click="setBreadthDrilldown('new_high', 'above')">High {{ breadthMetric('new_high') }}</button><button type="button" :aria-pressed="breadthDrilldown?.key === 'new_low' ? 'true' : 'false'" @click="setBreadthDrilldown('new_low', 'above')">Low {{ breadthMetric('new_low') }}</button></span>
+        <span>Uptrend / downtrend</span><span class="breadth-tool__actions"><button type="button" :aria-pressed="breadthDrilldown?.key === 'uptrend' ? 'true' : 'false'" @click="setBreadthDrilldown('uptrend', 'above')">Up {{ breadthMetric('uptrend') }}</button><button type="button" :aria-pressed="breadthDrilldown?.key === 'downtrend' ? 'true' : 'false'" @click="setBreadthDrilldown('downtrend', 'above')">Down {{ breadthMetric('downtrend') }}</button></span>
         <span>Avg distance from MA20 / MA50</span><b>{{ breadthAdvanced('distance_from_ma', 'ma20') }} / {{ breadthAdvanced('distance_from_ma', 'ma50') }}</b>
       </div>
       <small class="breadth-tool__coverage-detail">Metric coverage: {{ breadthMetricCoverage }}</small>
       <div v-if="breadthDrilldown" class="breadth-tool__drilldown" aria-label="Breadth member drilldown">
-        <header><strong>{{ breadthDrilldown.state === 'above' ? 'Passing' : 'Failing' }} {{ breadthDrilldownLabel(breadthDrilldown.key) }} members</strong><span><button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown.state === 'above' }" @click="setBreadthDrilldown(breadthDrilldown.key, 'above')">Pass</button><button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown.state === 'below' }" @click="setBreadthDrilldown(breadthDrilldown.key, 'below')">Fail</button><button type="button" @click="breadthDrilldown = null">Close</button></span></header>
+        <header><strong>{{ breadthDrilldown.state === 'above' ? 'Passing' : 'Failing' }} {{ breadthDrilldownLabel(breadthDrilldown.key) }} members</strong><span><button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown.state === 'above' }" :aria-pressed="breadthDrilldown.state === 'above' ? 'true' : 'false'" @click="setBreadthDrilldown(breadthDrilldown.key, 'above')">Pass</button><button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown.state === 'below' }" :aria-pressed="breadthDrilldown.state === 'below' ? 'true' : 'false'" @click="setBreadthDrilldown(breadthDrilldown.key, 'below')">Fail</button><button type="button" @click="breadthDrilldown = null">Close</button></span></header>
         <button v-for="row in breadthDrilldownRows" :key="row.symbol" type="button" @click="emit('select', row.symbol, row.instrumentId)"><strong>{{ row.symbol }}</strong><span>{{ row.name }}</span></button>
         <small v-if="!breadthDrilldownRows.length">No locally evaluated members are available.</small>
       </div>
