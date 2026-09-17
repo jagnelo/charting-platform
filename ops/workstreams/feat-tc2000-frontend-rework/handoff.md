@@ -14467,3 +14467,36 @@ CommandLineTools Make binary ran the same target. No provider-platform, ETF,
 visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed.
 This receipt covers the ToolWindow menu disclosure-id semantics slice and does
 not close the broader workstream or upstream staging dependencies.
+
+## 2026-09-17 — R6 Workstation shell-menu disclosure ids
+
+Product commit `d541c1e08` links the Workspace, Help, Recent Symbols, and Add
+Tool shell triggers to their conditional menus through stable per-workstation
+`aria-controls`/id relationships while preserving `aria-expanded` state, menu
+actions, keyboard navigation/focus recovery, and visual layout. Focused
+Workstation shell binding coverage passed `33/33`; full frontend Vitest passed
+`1,145/1,145`; frontend type-check and production build passed with the
+existing large-chunk warning; TC scope validation/self-tests, workstream
+validation, and `git diff --check` passed. No provider-platform, ETF,
+visual-oracle, or acceptance-policy behavior changed.
+
+## 2026-09-17 — R6 Workstation shell-menu disclosure ids exact integration gate
+
+The definitive raw-capture
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` gate
+passed at product tip
+`d541c1e08fb81f8bd8eda4a1fcef44a8811d66d9`. Backend combined coverage passed
+`1,621` tests with `82.26%` total coverage, frontend Vitest passed
+`1,145/1,145`, type-check/build, Compose/provider contracts, branch-scoped
+Docker health, research-runner probes, authenticated functional Chromium
+passed `170` with `107` documented skips, and all four visual projects passed
+`104/104`. Teardown removed the assigned containers, volumes, network, four
+generated images, and test sessions; post-gate resource accounting reported
+zero retained resources. The standard `/usr/bin/make` wrapper remains
+unavailable with Xcode license status `69`; the equivalent installed
+CommandLineTools Make binary ran the same target. No provider-platform, ETF,
+visual-baseline, threshold, mask, skip, fallback, or acceptance policy
+changed. This receipt covers the Workstation shell-menu disclosure-id
+semantics slice and does not close the broader workstream or upstream staging
+dependencies.
