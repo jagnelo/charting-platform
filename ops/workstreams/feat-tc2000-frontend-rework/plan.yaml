@@ -51,6 +51,7 @@ owned_paths:
   - frontend/src/views/StudyLabView.vue
   - frontend/src/views/StrategyLabView.vue
   - frontend/src/components/workstation/
+  - frontend/src/components/chart/UPlotChart.vue
   - frontend/src/components/strategy/
   - frontend/src/stores/workspace.ts
   - frontend/src/lib/workstation/

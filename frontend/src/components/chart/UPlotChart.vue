@@ -864,6 +864,11 @@ let snapGuard = false
 let syncGuard = false
 let lastPublishedWorkspaceCursor: string | null = null
 let suppressNextMouseDown = false
+// A linked occurrence moves the cursor programmatically. uPlot may emit its
+// initial/latest-bar cursor callback on a later turn, after syncGuard has been
+// released; keep that late callback from replacing the explicit occurrence
+// until the user actually moves the pointer over this chart.
+let linkedCursorProgrammatic = Boolean(props.linkedTimestamp)
 
 interface ViewSnapshot {
   xMin?: number
@@ -1807,11 +1812,11 @@ async function initChart() {
         // Broadcast cursor timestamp for cross-panel sync
         // Snap crosshair to nearest bar centre — guard against re-entrancy
         if (snapGuard) return
-        if (u.cursor.idx != null && layoutStore.panelCount > 1 && !syncGuard) {
+        if (u.cursor.idx != null && layoutStore.panelCount > 1 && !syncGuard && !linkedCursorProgrammatic) {
           const ts = chartStore.bars[u.cursor.idx]?.ts
           if (ts) layoutStore.setSyncedTs(ts, panelId)
         }
-        if (u.cursor.idx != null && !syncGuard) {
+        if (u.cursor.idx != null && !syncGuard && !linkedCursorProgrammatic) {
           const ts = chartStore.bars[u.cursor.idx]?.ts
           if (ts && ts !== lastPublishedWorkspaceCursor) {
             // The workstation bus carries cursor positions across docked windows and
@@ -2116,6 +2121,10 @@ function setupInteraction(u: uPlot) {
   }
 
   const onHoverMove = (e: MouseEvent) => {
+    // A real pointer move is an explicit user cursor action. Programmatic
+    // linked-timestamp updates never dispatch this event, so late renderer
+    // callbacks remain fenced until the user takes control of the cursor.
+    linkedCursorProgrammatic = false
     if (panActive || priceActive || xAxisActive || drawStore.activeToolType || drawStore.avwapDropActive) return
     if (isOnYAxis(e.clientX))   { wrapper.style.cursor = 'ns-resize'; return }
     if (isOnXAxis(e.clientY))   { wrapper.style.cursor = 'ew-resize'; return }
@@ -3365,7 +3374,10 @@ function applyLinkedTimestamp(timestamp: string | null) {
   if (timestamp) jumpToTs(timestamp)
 }
 
-watch(() => props.linkedTimestamp, applyLinkedTimestamp)
+watch(() => props.linkedTimestamp, (timestamp) => {
+  linkedCursorProgrammatic = Boolean(timestamp)
+  applyLinkedTimestamp(timestamp)
+})
 
 defineExpose({ jumpToTs })
 </script>
