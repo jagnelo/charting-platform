@@ -331,6 +331,7 @@ remaining_gaps:
   - REST resource serialization now canonicalizes dates, normalizes aware timestamps to UTC, preserves Decimal values as exact strings, and rejects non-finite or unsupported scalar values before JSON publication; application registration and authentication remain open.
   - REST request metadata now rejects control characters in request IDs and idempotency keys before response headers or durable identity calculations; authentication, persistence, and application registration remain open.
   - REST POST routes now reparse raw JSON bodies with duplicate-field and non-finite-value rejection before strategy validation, submission idempotency, or command dispatch; application registration and authentication remain open.
+  - Cursor-paginated collection responses now reject adapter snapshot drift against the incoming cursor, preserving snapshot-bound page traversal; persistence and application registration remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -368,7 +369,8 @@ progress:
     - strict-rest-json-serialization
     - strict-rest-request-metadata
     - strict-rest-json-request-bodies
+    - snapshot-bound-rest-pagination
   total: 18
-  current_phase: strict-rest-json-request-bodies-staging-ready-for-human-review
+  current_phase: snapshot-bound-rest-pagination-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary

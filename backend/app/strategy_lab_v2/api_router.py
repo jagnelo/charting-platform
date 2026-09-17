@@ -654,6 +654,8 @@ def create_strategy_lab_router(
                 raise ValueError("adapter returned a collection for the wrong resource")
             if collection.request_id != request_id:
                 raise ValueError("adapter returned a collection for the wrong request")
+            if parsed_cursor is not None and collection.snapshot_digest != parsed_cursor.snapshot_digest:
+                raise ValueError("adapter returned a collection for a different cursor snapshot")
             return JSONResponse(status_code=collection.http_status, content=serialize_collection(collection))
         except ApiAdapterError as error:
             return _error_response(error.error)

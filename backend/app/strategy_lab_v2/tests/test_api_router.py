@@ -9,6 +9,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.strategy_lab_v2.api_contracts import ApiCursor
 from app.strategy_lab_v2.api_resources import (
     ApiResourceType,
     ResourceCollection,
@@ -143,6 +144,19 @@ class RequestDriftAdapter(FakeAdapter):
         )
 
 
+class SnapshotDriftAdapter(FakeAdapter):
+    async def list_resources(self, **kwargs: Any) -> ResourceCollection:
+        collection = await super().list_resources(**kwargs)
+        return ResourceCollection(
+            request_id=collection.request_id,
+            resource_type=collection.resource_type,
+            snapshot_digest=content_digest({"snapshot": "different"}),
+            items=collection.items,
+            has_more=collection.has_more,
+            next_cursor=collection.next_cursor,
+        )
+
+
 def _client(adapter: FakeAdapter) -> TestClient:
     async def get_adapter() -> FakeAdapter:
         return adapter
@@ -258,6 +272,21 @@ def test_router_rejects_ambiguous_or_non_finite_raw_json_bodies() -> None:
 def test_router_rejects_collection_request_identity_drift() -> None:
     with _client(RequestDriftAdapter()) as client:
         response = client.get("/api/v1/strategy-lab/v2/trials")
+        assert response.status_code == 422
+        assert response.json()["errors"][0]["code"] == "validation_error"
+
+
+def test_router_rejects_collection_snapshot_drift_after_cursor_validation() -> None:
+    cursor = ApiCursor(
+        resource="trials",
+        snapshot_digest=SNAPSHOT,
+        sort_value="2024-01-01T00:00:00Z",
+        item_id="trial-1",
+    )
+    with _client(SnapshotDriftAdapter()) as client:
+        response = client.get(
+            "/api/v1/strategy-lab/v2/trials", params={"cursor": cursor.token}
+        )
         assert response.status_code == 422
         assert response.json()["errors"][0]["code"] == "validation_error"
 

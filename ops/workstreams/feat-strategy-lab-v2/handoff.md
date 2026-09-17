@@ -3351,6 +3351,19 @@ source files, diff check, and workstream validation. The same tip passed the
 Docker-backed combined coverage gate: 2,337 tests with 83.70% total coverage,
 above the required 75% threshold; setup and cleanup completed successfully.
 
+## 2026-09-17 - Snapshot-bound REST pagination checkpoint
+
+Cursor-paginated collection responses now reject an adapter page whose visible
+snapshot digest differs from the incoming cursor's snapshot. This prevents a
+continuation token from silently traversing a different result set between
+requests; the existing resource/type/request identity checks remain in force.
+Persistence-backed reads and application registration remain deferred behind
+the shared-path gates.
+
+Focused pagination coverage passed 12 tests with Ruff and MyPy green. The exact
+implementation tip still requires the branch-wide validation checkpoint below
+before this ops record is finalized.
+
 ## 2026-09-17 - Combined backend coverage revalidation
 
 The exact pushed checkpoint tip passed the Docker-backed combined coverage gate:

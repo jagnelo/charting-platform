@@ -645,7 +645,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   non-finite or unsupported JSON scalars, and emits typed errors; validates
   cursor ownership at the collection boundary; rejects control characters in
   request IDs and idempotency keys; reparses raw JSON bodies to reject duplicate
-  fields and non-finite constants before validation; exposes
+  fields and non-finite constants before validation; rejects adapter pages whose
+  snapshot differs from an incoming cursor; exposes
   static strategy-source validation; and delegates idempotent submissions plus
   retry/cancellation commands to an injected adapter. The adapter must scope
   reads to the authenticated principal and atomically persist receipts before
