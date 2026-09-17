@@ -1,5 +1,29 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-17 — R6 Strategy Lab result-export menu keyboard semantics and gate diagnosis
+
+Product commit `c3ee381bf` gives Strategy Lab's result-export trigger a
+stable per-instance menu id and explicit menu semantics (`aria-controls`,
+`aria-expanded`, `role=menu`, `role=menuitem`, Arrow/Home/End/Escape
+navigation, and focus restoration). Export actions and payloads are unchanged.
+Focused Strategy Lab coverage passed `37/37`; full frontend Vitest passed
+`1,150/1,150`; type-check and production build passed.
+
+The exact gate reached every locked/non-browser stage successfully, including
+backend `1,621` unit + `408` integration tests at `82.26%`, frontend
+`1,150/1,150`, build, Compose/provider contracts, Docker health, and
+research-runner probes. Its functional browser stage had one unchanged
+`F8u-boolean` failure (169 passed, 107 documented skips): the expected RSI
+Boolean column header was not found after promotion. A fresh-stack retry with
+the same market-data fixtures passed that test `1/1` in 4.6s without source
+changes, so this is recorded as a transient seeded-workspace/browser timing
+candidate pending a clean exact-gate rerun. Teardown and resource cleanup were
+clean, and no provider-platform, ETF, visual, or acceptance policy changed.
+
+The broader goal remains active: this is a validation receipt/diagnosis, not a
+closure or an upstream integration. Provider/ETF consumer work remains
+sequenced behind staging.
+
 ## 2026-09-17 — R6 Strategy Lab radar-filter disclosure ids and definitive gate
 
 Product commit `b8f8e97aa` gives Strategy Lab's radar Setup families and States
