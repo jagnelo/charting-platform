@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport, RedisStreamEntry
 from app.strategy_lab_v2.worker_consumer import (
     RedisDispatchWorker,
@@ -99,6 +100,16 @@ async def _retry_handler(entry: RedisStreamEntry) -> WorkerHandleResult:
     return _handler_result(entry, WorkerHandleDecision.RETRY)
 
 
+class PayloadLoader:
+    def __init__(self, payload: DispatchPayload | None) -> None:
+        self.payload = payload
+        self.calls: list[str] = []
+
+    async def load_payload(self, payload_digest: str) -> DispatchPayload | None:
+        self.calls.append(payload_digest)
+        return self.payload
+
+
 @pytest.mark.asyncio
 async def test_poll_reclaims_before_reading_new_entries_and_bounds_batch() -> None:
     reclaimed = (_raw_entry(_entry("1-0")),)
@@ -164,6 +175,60 @@ async def test_ack_failure_preserves_pending_evidence() -> None:
     result = await worker.handle_once(_complete_handler)
     assert result.entries[0].decision is WorkerEntryDecision.ACKNOWLEDGEMENT_FAILED
     assert result.entries[0].rejection_reason
+
+
+@pytest.mark.asyncio
+async def test_materialized_handler_receives_authenticated_payload_before_ack() -> None:
+    entry = _entry()
+    redis = FakeRedis(fresh=_stream_response(entry))
+    payload = DispatchPayload.from_mapping({"symbol": "AAPL", "side": "buy"})
+    entry = RedisStreamEntry(
+        entry.stream_key,
+        entry.stream_id,
+        entry.message_id,
+        entry.attempt_id,
+        payload.payload_digest,
+        entry.request_fingerprint,
+    )
+    redis = FakeRedis(fresh=_stream_response(entry))
+    loader = PayloadLoader(payload)
+    seen: list[dict[str, object]] = []
+
+    async def handler(received_entry, received_payload):
+        seen.append(dict(received_payload.value))
+        return _handler_result(received_entry)
+
+    worker = RedisDispatchWorker(
+        RedisDispatchTransport(redis),
+        queue_name="backtest",
+        group_name="workers",
+        consumer_name="worker-1",
+    )
+    result = await worker.handle_materialized_once(loader, handler)
+
+    assert result.entries[0].decision is WorkerEntryDecision.ACKNOWLEDGED
+    assert seen == [{"symbol": "AAPL", "side": "buy"}]
+    assert loader.calls == [payload.payload_digest]
+
+
+@pytest.mark.asyncio
+async def test_missing_materialized_payload_remains_pending_for_retry() -> None:
+    entry = _entry()
+    redis = FakeRedis(fresh=_stream_response(entry))
+    worker = RedisDispatchWorker(
+        RedisDispatchTransport(redis),
+        queue_name="backtest",
+        group_name="workers",
+        consumer_name="worker-1",
+    )
+    async def handler(received_entry, received_payload):
+        del received_payload
+        return _handler_result(received_entry)
+
+    result = await worker.handle_materialized_once(PayloadLoader(None), handler)
+
+    assert result.entries[0].decision is WorkerEntryDecision.RETRY
+    assert not any(call[0] == "xack" for call in redis.calls)
 
 
 @pytest.mark.asyncio

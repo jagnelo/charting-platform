@@ -17,8 +17,9 @@ from typing import Any, Protocol
 
 from app.strategy_lab_v2.api_contracts import ApiError, ApiErrorCode
 from app.strategy_lab_v2.api_router import ApiAdapterError, SubmissionServiceResult
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.outbox import OutboxMessage
 from app.strategy_lab_v2.submission_dispatch import (
     SubmissionDispatchDecision,
@@ -53,12 +54,14 @@ class PostgresSubmissionSchema:
 
     submission_table: str = "strategy_lab_v2_submissions"
     dispatch_table: str = "strategy_lab_v2_submission_dispatches"
+    payload_table: str = "strategy_lab_v2_dispatch_payloads"
     outbox_table: str = "strategy_lab_v2_execution_outbox"
 
     def __post_init__(self) -> None:
         for name, value in (
             ("submission_table", self.submission_table),
             ("dispatch_table", self.dispatch_table),
+            ("payload_table", self.payload_table),
             ("outbox_table", self.outbox_table),
         ):
             if not isinstance(value, str) or not re.fullmatch(r"[a-z_][a-z0-9_]*", value):
@@ -90,6 +93,14 @@ class PostgresSubmissionSchema:
                 queue_name TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 PRIMARY KEY (owner_id, idempotency_key)
+            )
+            """,
+            f"""
+            CREATE TABLE {self.payload_table} (
+                payload_digest TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                byte_length BIGINT NOT NULL,
+                payload_fingerprint TEXT NOT NULL
             )
             """,
         )
@@ -146,6 +157,9 @@ class PostgresSubmissionDispatchAdapter:
                     status_code=422,
                 )
             )
+        payload_record = DispatchPayload.from_mapping(payload)
+        if payload_record.payload_digest != request.payload_digest:
+            raise ValueError("submission payload digest does not match canonical payload")
         owner_id = _principal_id(principal)
         queue_name = self._queue_for_operation(request.operation)
         if not isinstance(queue_name, str) or not queue_name.strip():
@@ -199,6 +213,18 @@ class PostgresSubmissionDispatchAdapter:
                     await self._insert_submission(session, owner_id, receipt)
                 if prior_dispatch is None:
                     await self._insert_dispatch(session, owner_id, dispatch_request)
+                prior_payload = await self._load_payload(session, request.payload_digest)
+                if prior_payload is not None and prior_payload != payload_record:
+                    raise ApiAdapterError(
+                        _api_error(
+                            ApiErrorCode.IDEMPOTENCY_CONFLICT,
+                            "submission payload digest is already bound to different content",
+                            request_id=request_id,
+                            status_code=409,
+                        )
+                    )
+                if prior_payload is None:
+                    await self._insert_payload(session, payload_record)
                 outbox_message = _submission_outbox_message(
                     owner_id,
                     request,
@@ -222,6 +248,65 @@ class PostgresSubmissionDispatchAdapter:
                     # adapter clock, so the request fingerprint remains exact.
                     submission_resolution = resolve_submission(request, ())
                 return SubmissionServiceResult(submission_resolution, receipt)
+
+    async def load_payload(self, payload_digest: str) -> DispatchPayload | None:
+        """Load one authenticated content-addressed payload for a worker."""
+
+        require_sha256_digest(payload_digest, field_name="payload_digest")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                return await self._load_payload(session, payload_digest)
+
+    async def _load_payload(
+        self, session: AsyncSessionLike, payload_digest: str
+    ) -> DispatchPayload | None:
+        require_sha256_digest(payload_digest, field_name="payload_digest")
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT payload_digest, payload_json, byte_length, payload_fingerprint
+                FROM {self._schema.payload_table}
+                WHERE payload_digest = :payload_digest
+                FOR SHARE
+                """
+            ),
+            {"payload_digest": payload_digest},
+        )
+        rows = list(result.mappings())
+        if not rows:
+            return None
+        if len(rows) != 1:
+            raise ValueError("PostgreSQL dispatch payload query returned duplicate keys")
+        row = rows[0]
+        record = _decode_payload(row)
+        if row.get("payload_fingerprint") not in (None, record.fingerprint):
+            raise ValueError("PostgreSQL dispatch payload fingerprint does not match bytes")
+        if row.get("payload_digest") != record.payload_digest:
+            raise ValueError("PostgreSQL dispatch payload identity drifted")
+        return record
+
+    async def _insert_payload(
+        self, session: AsyncSessionLike, payload: DispatchPayload
+    ) -> None:
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.payload_table}
+                    (payload_digest, payload_json, byte_length, payload_fingerprint)
+                VALUES (:payload_digest, :payload_json, :byte_length, :payload_fingerprint)
+                ON CONFLICT (payload_digest) DO NOTHING
+                """
+            ),
+            {
+                "payload_digest": payload.payload_digest,
+                "payload_json": payload.payload_json,
+                "byte_length": payload.byte_length,
+                "payload_fingerprint": payload.fingerprint,
+            },
+        )
+        if getattr(result, "rowcount", 0) != 1:
+            raise ValueError("PostgreSQL dispatch payload insert lost a uniqueness race")
 
     async def _load_outbox(
         self, session: AsyncSessionLike, request_id: str
@@ -435,6 +520,20 @@ def _decode_outbox(row: Mapping[str, Any]) -> OutboxMessage:
         return message
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError("PostgreSQL submission outbox row is malformed") from error
+
+
+def _decode_payload(row: Mapping[str, Any]) -> DispatchPayload:
+    try:
+        payload = DispatchPayload(
+            row["payload_digest"],
+            row["payload_json"],
+            int(row["byte_length"]),
+        )
+        if row.get("payload_fingerprint") not in (None, payload.fingerprint):
+            raise ValueError("dispatch payload fingerprint does not match bytes")
+        return payload
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL dispatch payload row is malformed") from error
 
 
 def _statement(sql: str) -> Any:

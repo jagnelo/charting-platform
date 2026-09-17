@@ -38,6 +38,7 @@ class FakeSession:
     def __init__(self) -> None:
         self.submissions: dict[tuple[str, str], dict[str, Any]] = {}
         self.dispatches: dict[tuple[str, str], dict[str, Any]] = {}
+        self.payloads: dict[str, dict[str, Any]] = {}
         self.outboxes: dict[str, dict[str, Any]] = {}
         self.calls: list[str] = []
 
@@ -61,6 +62,9 @@ class FakeSession:
         if sql.lstrip().startswith("SELECT") and "dispatches" in sql:
             row = self.dispatches.get(key)
             return FakeResult([] if row is None else [row])
+        if sql.lstrip().startswith("SELECT") and "dispatch_payloads" in sql:
+            row = self.payloads.get(values["payload_digest"])
+            return FakeResult([] if row is None else [row])
         if sql.lstrip().startswith("SELECT") and "execution_outbox" in sql:
             row = self.outboxes.get(values["request_id"])
             return FakeResult([] if row is None else [row])
@@ -73,6 +77,12 @@ class FakeSession:
             if key in self.dispatches:
                 return FakeResult(rowcount=0)
             self.dispatches[key] = values
+            return FakeResult(rowcount=1)
+        if sql.lstrip().startswith("INSERT") and "dispatch_payloads" in sql:
+            payload_digest = values["payload_digest"]
+            if payload_digest in self.payloads:
+                return FakeResult(rowcount=0)
+            self.payloads[payload_digest] = values
             return FakeResult(rowcount=1)
         if sql.lstrip().startswith("INSERT") and "execution_outbox" in sql:
             request_id = values["request_id"]
@@ -112,13 +122,14 @@ async def test_submission_adapter_stages_receipt_and_dispatch_atomically() -> No
     assert accepted.receipt.request == request
     assert len(session.submissions) == 1
     assert len(session.dispatches) == 1
+    assert len(session.payloads) == 1
     assert len(session.outboxes) == 1
 
     calls = len(session.calls)
     replay = await adapter.submit(principal="alice", request=request, payload=payload)
     assert replay.resolution.decision is SubmissionDecision.REPLAY_EXISTING
     assert replay.receipt == accepted.receipt
-    assert len(session.calls) == calls + 3  # locked submission, dispatch, and outbox reads only
+    assert len(session.calls) == calls + 4  # submission, dispatch, payload, and outbox reads
 
 
 @pytest.mark.asyncio
@@ -137,6 +148,11 @@ async def test_submission_adapter_repairs_missing_dispatch_and_scopes_owner() ->
     repaired_again = await adapter.submit(principal="alice", request=request, payload=payload)
     assert repaired_again.resolution.decision is SubmissionDecision.REPLAY_EXISTING
     assert len(session.outboxes) == 1
+
+    del session.payloads[request.payload_digest]
+    repaired_payload = await adapter.submit(principal="alice", request=request, payload=payload)
+    assert repaired_payload.resolution.decision is SubmissionDecision.REPLAY_EXISTING
+    assert request.payload_digest in session.payloads
 
     other_owner = await adapter.submit(principal="bob", request=request, payload=payload)
     assert other_owner.resolution.decision is SubmissionDecision.ACCEPT
@@ -170,6 +186,9 @@ async def test_submission_adapter_fails_closed_on_tampered_row_or_principal() ->
     )
     with pytest.raises(ValueError, match="submission row is malformed"):
         await adapter.submit(principal="alice", request=request, payload=payload)
+    session.payloads[request.payload_digest]["payload_fingerprint"] = content_digest("tampered")
+    with pytest.raises(ValueError, match="dispatch payload row is malformed"):
+        await adapter.load_payload(request.payload_digest)
     with pytest.raises(ApiAdapterError) as unauthorized:
         await adapter.submit(principal=object(), request=request, payload=payload)
     assert unauthorized.value.error.code is ApiErrorCode.AUTHORIZATION_REQUIRED
@@ -179,5 +198,6 @@ def test_submission_schema_is_explicit_but_not_applied() -> None:
     schema = PostgresSubmissionSchema()
     assert "CREATE TABLE" in schema.statements[0]
     assert "CREATE TABLE" in schema.statements[1]
+    assert "CREATE TABLE" in schema.statements[2]
     with pytest.raises(ValueError, match="safe SQL identifier"):
         PostgresSubmissionSchema(dispatch_table="unsafe;drop")

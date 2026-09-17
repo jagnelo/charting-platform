@@ -15,6 +15,7 @@ from enum import StrEnum
 from typing import Protocol
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.dispatch_payload import DispatchPayload, DispatchPayloadLoader
 from app.strategy_lab_v2.redis_transport import (
     RedisAckResolution,
     RedisDispatchTransport,
@@ -173,6 +174,12 @@ class WorkerEntryHandler(Protocol):
     async def __call__(self, entry: RedisStreamEntry) -> WorkerHandleResult: ...
 
 
+class MaterializedWorkerEntryHandler(Protocol):
+    async def __call__(
+        self, entry: RedisStreamEntry, payload: DispatchPayload
+    ) -> WorkerHandleResult: ...
+
+
 class RedisDispatchWorker:
     """One bounded consumer for a queue/group/consumer identity."""
 
@@ -308,6 +315,63 @@ class RedisDispatchWorker:
                 )
             )
         return WorkerCycleResolution(poll, tuple(results))
+
+    async def handle_materialized_once(
+        self,
+        payload_loader: DispatchPayloadLoader,
+        handler: MaterializedWorkerEntryHandler,
+    ) -> WorkerCycleResolution:
+        """Resolve durable payload bytes before invoking a worker handler.
+
+        Payload lookup failures remain unacknowledged so a relay/database
+        visibility race can be retried.  A malformed or digest-mismatched
+        record is rejected fail-closed and likewise remains pending for an
+        explicit poison-message policy.
+        """
+
+        if not callable(getattr(payload_loader, "load_payload", None)):
+            raise TypeError("payload_loader must expose an async load_payload method")
+        if not callable(handler):
+            raise TypeError("handler must be callable")
+
+        async def materialized(entry: RedisStreamEntry) -> WorkerHandleResult:
+            try:
+                payload = await payload_loader.load_payload(entry.payload_digest)
+            except Exception as error:  # pragma: no cover - adapter boundary
+                return WorkerHandleResult(
+                    entry.fingerprint,
+                    WorkerHandleDecision.RETRY,
+                    rejection_reason=f"dispatch payload lookup failed: {type(error).__name__}",
+                )
+            if payload is None:
+                return WorkerHandleResult(
+                    entry.fingerprint,
+                    WorkerHandleDecision.RETRY,
+                    rejection_reason="dispatch payload is not available",
+                )
+            if not isinstance(payload, DispatchPayload):
+                return WorkerHandleResult(
+                    entry.fingerprint,
+                    WorkerHandleDecision.REJECT,
+                    rejection_reason="dispatch payload loader returned an invalid record",
+                )
+            if payload.payload_digest != entry.payload_digest:
+                return WorkerHandleResult(
+                    entry.fingerprint,
+                    WorkerHandleDecision.REJECT,
+                    rejection_reason="dispatch payload digest does not match the stream entry",
+                )
+            try:
+                payload.value
+            except (TypeError, ValueError):
+                return WorkerHandleResult(
+                    entry.fingerprint,
+                    WorkerHandleDecision.REJECT,
+                    rejection_reason="dispatch payload failed authentication",
+                )
+            return await handler(entry, payload)
+
+        return await self.handle_once(materialized)
 
 
 HandlerCallable = Callable[[RedisStreamEntry], Awaitable[WorkerHandleResult]]
