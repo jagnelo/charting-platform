@@ -1,7 +1,7 @@
 <template>
   <section class="chart-plots" aria-label="Chart plot library" @pointerdown.stop @mousedown.stop @keydown.esc="closeToTrigger">
-    <button ref="toggleButton" type="button" aria-label="Chart plot library" :aria-expanded="open" aria-haspopup="menu" @click="toggleOpen()" @keydown="handleTriggerKeydown">Plots {{ chartStore.indicators.length + (pythonPlots?.length ?? 0) + (scanPlots?.length ?? 0) }}</button>
-    <div v-if="open" ref="menuRoot" class="chart-plots__menu" role="menu" aria-label="Chart plot library menu" :style="menuStyle" @keydown="handleMenuKeydown">
+    <button ref="toggleButton" type="button" aria-label="Chart plot library" :aria-expanded="open" :aria-controls="plotLibraryMenuId" aria-haspopup="menu" @click="toggleOpen()" @keydown="handleTriggerKeydown">Plots {{ chartStore.indicators.length + (pythonPlots?.length ?? 0) + (scanPlots?.length ?? 0) }}</button>
+    <div v-if="open" :id="plotLibraryMenuId" ref="menuRoot" class="chart-plots__menu" role="menu" aria-label="Chart plot library menu" :style="menuStyle" @keydown="handleMenuKeydown">
       <header><b>Chart plots</b><button type="button" aria-label="Close chart plot library" @click="closeToTrigger"><WorkstationGlyph kind="close" /></button></header>
       <select ref="firstControl" aria-label="Add indicator plot" :value="''" @change="add(($event.target as HTMLSelectElement).value)">
         <option value="" disabled>Add indicator plot…</option>
@@ -90,6 +90,8 @@ const emit = defineEmits<{
   configuration: [windowKey: string, configuration: Record<string, unknown>]
 }>()
 const chartStore = usePanelStore(inject<string>('panelId', 'chart')); const open = ref(false); const catalog = INDICATOR_CATALOG; const workspaceStore = useWorkspaceStore()
+const plotLibraryToken = globalThis.crypto?.randomUUID?.().replace(/-/g, '').slice(0, 12) ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+const plotLibraryMenuId = `chart-plot-library-menu-${plotLibraryToken}`
 const queryClient = useQueryClient()
 const toggleButton = ref<HTMLButtonElement | null>(null)
 const menuRoot = ref<HTMLElement | null>(null)

@@ -66,6 +66,26 @@ describe('ChartPlotLibrary', () => {
     wrapper.unmount()
   })
 
+  it('links the chart plot disclosure to its per-instance menu', async () => {
+    const first = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'first', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-disclosure-first' } } })
+    const second = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'second', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-disclosure-second' } } })
+    const firstTrigger = first.get('button[aria-label="Chart plot library"]')
+    const secondTrigger = second.get('button[aria-label="Chart plot library"]')
+    const firstId = firstTrigger.attributes('aria-controls')
+    const secondId = secondTrigger.attributes('aria-controls')
+    expect(firstId).toBeTruthy()
+    expect(secondId).toBeTruthy()
+    expect(firstId).not.toBe(secondId)
+    expect(firstTrigger.attributes('aria-expanded')).toBe('false')
+
+    await firstTrigger.trigger('click')
+    expect(first.get(`#${firstId}`).attributes('role')).toBe('menu')
+    expect(firstTrigger.attributes('aria-expanded')).toBe('true')
+    expect(second.find(`#${secondId}`).exists()).toBe(false)
+    first.unmount()
+    second.unmount()
+  })
+
   it('announces empty reusable-plot states politely', async () => {
     const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-empty-state-test' } } })
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')

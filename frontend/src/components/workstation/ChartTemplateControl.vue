@@ -1,7 +1,7 @@
 <template>
   <section class="chart-template" aria-label="Chart templates" @keydown.esc="closeToTrigger">
-    <button ref="trigger" type="button" title="Chart templates" aria-label="Chart templates" :aria-expanded="open" aria-haspopup="menu" @click="toggleOpen()" @keydown="handleTriggerKeydown">Templates</button>
-    <div v-if="open" ref="menuRoot" class="chart-template__menu" role="menu" :style="menuStyle" @keydown="handleMenuKeydown">
+    <button ref="trigger" type="button" title="Chart templates" aria-label="Chart templates" :aria-expanded="open" :aria-controls="templateMenuId" aria-haspopup="menu" @click="toggleOpen()" @keydown="handleTriggerKeydown">Templates</button>
+    <div v-if="open" :id="templateMenuId" ref="menuRoot" class="chart-template__menu" role="menu" :style="menuStyle" @keydown="handleMenuKeydown">
       <header><b>Chart templates</b><button type="button" aria-label="Close chart templates" @click="closeToTrigger"><WorkstationGlyph kind="close" /></button></header>
       <div class="chart-template__save">
       <input ref="firstEditor" v-model.trim="name" aria-label="Chart template name" placeholder="Template name" @keydown.enter.prevent="save" />
@@ -51,6 +51,8 @@ type TemplateItem = { stable_key: string; name: string; version: number; payload
 const props = defineProps<{ configuration: Record<string, unknown>; indicatorConfigs?: IndicatorConfig[] }>()
 const emit = defineEmits<{ apply: [configuration: Record<string, unknown>] }>()
 const queryClient = useQueryClient()
+const templateToken = globalThis.crypto?.randomUUID?.().replace(/-/g, '').slice(0, 12) ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+const templateMenuId = `chart-template-menu-${templateToken}`
 const open = ref(false)
 const trigger = ref<HTMLButtonElement | null>(null)
 const menuRoot = ref<HTMLElement | null>(null)

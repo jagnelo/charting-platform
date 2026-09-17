@@ -186,6 +186,26 @@ describe('ChartTemplateControl', () => {
     wrapper.unmount()
   })
 
+  it('links the template disclosure to its per-instance menu', async () => {
+    const first = mount(ChartTemplateControl, { props: { configuration: { symbol: 'SPY' } } })
+    const second = mount(ChartTemplateControl, { props: { configuration: { symbol: 'XLK' } } })
+    const firstTrigger = first.get('button[aria-label="Chart templates"]')
+    const secondTrigger = second.get('button[aria-label="Chart templates"]')
+    const firstId = firstTrigger.attributes('aria-controls')
+    const secondId = secondTrigger.attributes('aria-controls')
+    expect(firstId).toBeTruthy()
+    expect(secondId).toBeTruthy()
+    expect(firstId).not.toBe(secondId)
+    expect(firstTrigger.attributes('aria-expanded')).toBe('false')
+
+    await firstTrigger.trigger('click')
+    expect(first.get(`#${firstId}`).attributes('role')).toBe('menu')
+    expect(firstTrigger.attributes('aria-expanded')).toBe('true')
+    expect(second.find(`#${secondId}`).exists()).toBe(false)
+    first.unmount()
+    second.unmount()
+  })
+
   it('opens at the last enabled chart-template control when ArrowUp is pressed', async () => {
     const wrapper = mount(ChartTemplateControl, { attachTo: document.body, props: { configuration: {} } })
     const trigger = wrapper.get('button[aria-label="Chart templates"]')
