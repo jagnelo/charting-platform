@@ -483,12 +483,21 @@
                   <button
                     type="button"
                     class="multi-select-trigger"
+                    aria-label="Setup families"
+                    :aria-controls="radarSetupMenuId"
+                    :aria-expanded="radarSetupMenuOpen ? 'true' : 'false'"
                     @click="toggleRadarMenu('setup')"
                   >
                     <span>{{ radarSetupSummary }}</span>
                     <span class="multi-select-caret">{{ radarSetupMenuOpen ? '▴' : '▾' }}</span>
                   </button>
-                  <div v-if="radarSetupMenuOpen" class="multi-select-menu">
+                  <div
+                    v-if="radarSetupMenuOpen"
+                    :id="radarSetupMenuId"
+                    class="multi-select-menu"
+                    role="group"
+                    aria-label="Setup families"
+                  >
                     <label
                       v-for="option in radarSetupOptions"
                       :key="option.value"
@@ -518,12 +527,21 @@
                   <button
                     type="button"
                     class="multi-select-trigger"
+                    aria-label="States"
+                    :aria-controls="radarStateMenuId"
+                    :aria-expanded="radarStateMenuOpen ? 'true' : 'false'"
                     @click="toggleRadarMenu('state')"
                   >
                     <span>{{ radarStateSummary }}</span>
                     <span class="multi-select-caret">{{ radarStateMenuOpen ? '▴' : '▾' }}</span>
                   </button>
-                  <div v-if="radarStateMenuOpen" class="multi-select-menu">
+                  <div
+                    v-if="radarStateMenuOpen"
+                    :id="radarStateMenuId"
+                    class="multi-select-menu"
+                    role="group"
+                    aria-label="States"
+                  >
                     <label
                       v-for="option in radarStateOptions"
                       :key="option.value"
@@ -1753,6 +1771,8 @@ const sectionPanelIds = {
 const advancedRunOptionsId = `${strategyInstanceId}-advanced-run-options`
 const runHistoryId = `${strategyInstanceId}-run-history`
 const runSubsetMenuId = `${strategyInstanceId}-run-subset-menu`
+const radarSetupMenuId = `${strategyInstanceId}-radar-setup-menu`
+const radarStateMenuId = `${strategyInstanceId}-radar-state-menu`
 const availableWatchlists = ref<Watchlist[]>([])
 const availableScreeners = ref<ScreenerOption[]>([])
 const availableBaskets = ref<Basket[]>([])

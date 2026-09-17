@@ -1434,6 +1434,43 @@ describe('StrategyLabView', () => {
     }))
   })
 
+  it('links radar filter disclosures to their controlled groups', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await wrapper.find('input[placeholder="Momentum Continuation"]').setValue('Radar filters')
+    await wrapper.findAll('select')[0].setValue('radar')
+    await flushPromises()
+
+    const triggers = wrapper.findAll('.multi-select-trigger')
+    expect(triggers).toHaveLength(2)
+    const setupTrigger = triggers[0]
+    const stateTrigger = triggers[1]
+    const setupMenuId = setupTrigger.attributes('aria-controls')
+    const stateMenuId = stateTrigger.attributes('aria-controls')
+    expect(setupMenuId).toMatch(/-radar-setup-menu$/)
+    expect(stateMenuId).toMatch(/-radar-state-menu$/)
+    expect(setupMenuId).not.toBe(stateMenuId)
+    expect(setupTrigger.attributes('aria-label')).toBe('Setup families')
+    expect(stateTrigger.attributes('aria-label')).toBe('States')
+    expect(setupTrigger.attributes('aria-expanded')).toBe('false')
+    expect(stateTrigger.attributes('aria-expanded')).toBe('false')
+
+    await setupTrigger.trigger('click')
+    expect(setupTrigger.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.get(`#${setupMenuId}`).attributes('role')).toBe('group')
+    expect(wrapper.get(`#${setupMenuId}`).attributes('aria-label')).toBe('Setup families')
+    expect(wrapper.find(`#${stateMenuId}`).exists()).toBe(false)
+
+    await stateTrigger.trigger('click')
+    expect(setupTrigger.attributes('aria-expanded')).toBe('false')
+    expect(stateTrigger.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.find(`#${setupMenuId}`).exists()).toBe(false)
+    expect(wrapper.get(`#${stateMenuId}`).attributes('role')).toBe('group')
+    expect(wrapper.get(`#${stateMenuId}`).attributes('aria-label')).toBe('States')
+  })
+
   it('publishes only resolved benchmark symbols and limits subset runs to selected universe symbols', async () => {
     const wrapper = mountView()
 
