@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
@@ -19,7 +20,7 @@ from app.strategy_lab_v2.sdk import (
     TargetPositionIntent,
     build_strategy_context,
 )
-from strategy_runtime import InvocationStatus, run_strategy_event
+from strategy_runtime import InvocationStatus, StrategyInvocationSession, run_strategy_event
 
 NOW = datetime(2024, 1, 2, 15, 0, tzinfo=UTC)
 
@@ -163,3 +164,79 @@ class Strategy:
     )
     assert result.status is InvocationStatus.REJECTED
     assert any("forbidden_import" in item for item in result.rejection_reasons)
+
+
+def test_stateful_runtime_session_preserves_strategy_instance_across_events() -> None:
+    source = """
+class Strategy:
+    def __init__(self):
+        self.count = 0
+
+    def on_event(self, context):
+        self.count += 1
+        return [TargetPositionIntent('US.AAPL', Decimal(self.count) / Decimal(10))]
+"""
+    manifest = _manifest(source)
+    first = _context(manifest)
+    second_event = MarketEvent(
+        "daily-bars",
+        "bar-2",
+        "US.AAPL",
+        NOW + timedelta(days=1),
+        2,
+        {"close": Decimal("191")},
+    )
+    second = build_strategy_context(
+        manifest,
+        event_time=NOW + timedelta(days=1),
+        event_sequence=2,
+        random_seed=17,
+        parameters={"threshold": Decimal("1.5")},
+        market_events={"daily-bars": (second_event,)},
+    )
+    session = StrategyInvocationSession(
+        source,
+        manifest=manifest,
+        entrypoint="strategy.main:Strategy",
+    )
+    assert session.ready
+    first_result = session.invoke(first)
+    second_result = session.invoke(second)
+    assert first_result.status is InvocationStatus.SUCCEEDED
+    assert second_result.status is InvocationStatus.SUCCEEDED
+    assert isinstance(first_result.intents[0], TargetPositionIntent)
+    assert isinstance(second_result.intents[0], TargetPositionIntent)
+    assert first_result.intents[0].target_fraction == Decimal("0.1")
+    assert second_result.intents[0].target_fraction == Decimal("0.2")
+
+
+def test_stateful_runtime_session_rejects_context_drift_without_advancing_state() -> None:
+    source = """
+class Strategy:
+    def __init__(self):
+        self.count = 0
+
+    def on_event(self, context):
+        self.count += 1
+        return [TargetPositionIntent('US.AAPL', Decimal(self.count) / Decimal(10))]
+"""
+    manifest = _manifest(source)
+    first = _context(manifest)
+    session = StrategyInvocationSession(
+        source,
+        manifest=manifest,
+        entrypoint="strategy.main:Strategy",
+    )
+    assert session.invoke(first).status is InvocationStatus.SUCCEEDED
+    changed_parameters = replace(
+        first,
+        event_time=NOW + timedelta(days=1),
+        event_sequence=2,
+        parameters={"threshold": Decimal("9")},
+    )
+    rejected = session.invoke(changed_parameters)
+    assert rejected.status is InvocationStatus.REJECTED
+    assert rejected.rejection_reasons == ("context_parameters_changed",)
+    repeated = session.invoke(first)
+    assert repeated.status is InvocationStatus.REJECTED
+    assert repeated.rejection_reasons == ("context_not_monotonic",)

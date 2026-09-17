@@ -16,6 +16,7 @@ from strategy_runtime.protocol import (
 from strategy_runtime.runner import (
     InvocationStatus,
     StrategyInvocationResult,
+    StrategyInvocationSession,
     main,
     run_strategy_event,
 )
@@ -23,6 +24,7 @@ from strategy_runtime.runner import (
 __all__ = [
     "InvocationStatus",
     "StrategyInvocationResult",
+    "StrategyInvocationSession",
     "WIRE_PROTOCOL_VERSION",
     "deserialize_invocation",
     "deserialize_invocation_result",

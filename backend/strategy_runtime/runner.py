@@ -195,6 +195,214 @@ def _failed(
     )
 
 
+def _context_matches_manifest(
+    manifest: StrategySdkManifest,
+    context: StrategyContext,
+) -> bool:
+    """Check manifest scope without discarding already-typed optional fields."""
+
+    declared = {item.dependency_id: item for item in manifest.data_dependencies}
+    if set(context.market_events) != set(declared):
+        return False
+    allowed_instruments = {item.requirement.instrument_id for item in declared.values()}
+    if not set(context.positions).issubset(allowed_instruments):
+        return False
+    for dependency_id, events in context.market_events.items():
+        dependency = declared[dependency_id]
+        if not isinstance(events, Sequence) or isinstance(events, str | bytes):
+            return False
+        if len(events) > dependency.lookback_periods + 1:
+            return False
+        required_fields = set(dependency.fields)
+        for event in events:
+            if not isinstance(event, MarketEvent):
+                return False
+            if event.dependency_id != dependency_id:
+                return False
+            if event.instrument_id != dependency.requirement.instrument_id:
+                return False
+            if not required_fields.issubset(set(event.values)):
+                return False
+            if not dependency.requirement.start <= event.event_time < dependency.requirement.end:
+                return False
+    return True
+
+
+class StrategyInvocationSession:
+    """Stateful, source-bound strategy invocation within one worker lifetime.
+
+    A one-shot invocation is useful for protocol smoke tests, but a real replay
+    must preserve strategy instance state across event boundaries. This class
+    loads and validates the source once, then admits only manifest-compatible,
+    monotonically advancing contexts. It remains process-local; the containing
+    worker is still responsible for the isolated no-network resource boundary.
+    """
+
+    __slots__ = (
+        "_entrypoint",
+        "_failure_digest",
+        "_initialization_error",
+        "_last_context_key",
+        "_manifest",
+        "_max_intents_per_event",
+        "_parameters_digest",
+        "_random_seed",
+        "_rejection_reasons",
+        "_source_digest",
+        "_strategy",
+    )
+
+    def __init__(
+        self,
+        source: str,
+        *,
+        manifest: StrategySdkManifest,
+        entrypoint: str,
+        max_intents_per_event: int = 100,
+    ) -> None:
+        if not isinstance(source, str):
+            raise TypeError("source must be a string")
+        if not isinstance(manifest, StrategySdkManifest):
+            raise TypeError("manifest must use StrategySdkManifest")
+        if not isinstance(entrypoint, str) or not entrypoint.strip():
+            raise ValueError("entrypoint must not be empty")
+        if (
+            not isinstance(max_intents_per_event, int)
+            or isinstance(max_intents_per_event, bool)
+            or max_intents_per_event < 1
+        ):
+            raise ValueError("max_intents_per_event must be a positive integer")
+
+        self._source_digest = content_digest(source)
+        self._manifest = manifest
+        self._entrypoint = entrypoint
+        self._max_intents_per_event = max_intents_per_event
+        self._last_context_key: tuple[Any, int] | None = None
+        self._parameters_digest: str | None = None
+        self._random_seed: int | None = None
+        self._strategy: EngineNeutralStrategy | None = None
+        self._rejection_reasons: tuple[str, ...] = ()
+        self._initialization_error: BaseException | None = None
+        self._failure_digest: str | None = None
+
+        if self._source_digest != manifest.strategy.source_digest:
+            self._rejection_reasons = ("source_digest_mismatch",)
+            return
+        validation = validate_strategy_source(source)
+        if not validation.accepted:
+            self._rejection_reasons = tuple(
+                sorted(f"source:{violation}" for violation in validation.violations)
+            )
+            return
+        try:
+            self._strategy = _load_strategy(source, entrypoint, self._source_digest)
+        except BaseException as error:
+            if isinstance(error, KeyboardInterrupt | SystemExit):
+                raise
+            self._initialization_error = error
+
+    @property
+    def source_digest(self) -> str:
+        return self._source_digest
+
+    @property
+    def entrypoint(self) -> str:
+        return self._entrypoint
+
+    @property
+    def ready(self) -> bool:
+        """Whether source loading and static preflight admitted the session."""
+
+        return not self._rejection_reasons and self._initialization_error is None
+
+    def invoke(self, context: StrategyContext) -> StrategyInvocationResult:
+        """Invoke the same loaded strategy instance for one next context."""
+
+        if not isinstance(context, StrategyContext):
+            raise TypeError("context must use StrategyContext")
+        if self._rejection_reasons:
+            return _rejected(
+                self._source_digest,
+                context,
+                self._entrypoint,
+                *self._rejection_reasons,
+            )
+        if self._failure_digest is not None:
+            return self._failed_digest(context, self._failure_digest)
+        if self._initialization_error is not None or self._strategy is None:
+            error = self._initialization_error or RuntimeError("strategy session is unavailable")
+            return _failed(self._source_digest, context, self._entrypoint, error)
+
+        # Re-run the SDK boundary for contexts constructed by direct callers;
+        # a typed StrategyContext alone does not prove manifest scope. Optional
+        # event fields remain available to the strategy, while every declared
+        # field, instrument, lookback, and interval is still enforced.
+        if not _context_matches_manifest(self._manifest, context):
+            return _rejected(
+                self._source_digest,
+                context,
+                self._entrypoint,
+                "context_manifest_mismatch",
+            )
+
+        context_key = (context.event_time, context.event_sequence)
+        if self._last_context_key is not None and context_key <= self._last_context_key:
+            return _rejected(
+                self._source_digest,
+                context,
+                self._entrypoint,
+                "context_not_monotonic",
+            )
+        parameters_digest = content_digest(context.parameters)
+        if self._parameters_digest is not None and parameters_digest != self._parameters_digest:
+            return _rejected(
+                self._source_digest,
+                context,
+                self._entrypoint,
+                "context_parameters_changed",
+            )
+        if self._random_seed is not None and context.random_seed != self._random_seed:
+            return _rejected(
+                self._source_digest,
+                context,
+                self._entrypoint,
+                "context_seed_changed",
+            )
+
+        try:
+            raw_intents = self._strategy.on_event(context)
+            intents = validate_strategy_output(
+                self._manifest,
+                raw_intents,
+                max_intents_per_event=self._max_intents_per_event,
+            )
+        except BaseException as error:
+            if isinstance(error, KeyboardInterrupt | SystemExit):
+                raise
+            self._failure_digest = _error_digest(error)
+            return self._failed_digest(context, self._failure_digest)
+
+        self._last_context_key = context_key
+        self._parameters_digest = parameters_digest
+        self._random_seed = context.random_seed
+        return StrategyInvocationResult(
+            source_digest=self._source_digest,
+            context_fingerprint=content_digest(context),
+            entrypoint=self._entrypoint,
+            status=InvocationStatus.SUCCEEDED,
+            intents=intents,
+        )
+
+    def _failed_digest(self, context: StrategyContext, error_digest: str) -> StrategyInvocationResult:
+        return StrategyInvocationResult(
+            source_digest=self._source_digest,
+            context_fingerprint=content_digest(context),
+            entrypoint=self._entrypoint,
+            status=InvocationStatus.FAILED,
+            error_digest=error_digest,
+        )
+
+
 def _load_strategy(source: str, entrypoint: str, source_digest: str) -> EngineNeutralStrategy:
     module_name, separator, callable_name = entrypoint.partition(":")
     if not separator or not module_name or not callable_name:
@@ -248,52 +456,15 @@ def run_strategy_event(
     runtime evidence.
     """
 
-    if not isinstance(source, str):
-        raise TypeError("source must be a string")
-    if not isinstance(manifest, StrategySdkManifest):
-        raise TypeError("manifest must use StrategySdkManifest")
     if not isinstance(context, StrategyContext):
         raise TypeError("context must use StrategyContext")
-    if not isinstance(entrypoint, str) or not entrypoint.strip():
-        raise ValueError("entrypoint must not be empty")
-    if (
-        not isinstance(max_intents_per_event, int)
-        or isinstance(max_intents_per_event, bool)
-        or max_intents_per_event < 1
-    ):
-        raise ValueError("max_intents_per_event must be a positive integer")
-
-    source_digest = content_digest(source)
-    if source_digest != manifest.strategy.source_digest:
-        return _rejected(source_digest, context, entrypoint, "source_digest_mismatch")
-    validation = validate_strategy_source(source)
-    if not validation.accepted:
-        return _rejected(
-            source_digest,
-            context,
-            entrypoint,
-            *(f"source:{violation}" for violation in validation.violations),
-        )
-
-    try:
-        strategy = _load_strategy(source, entrypoint, source_digest)
-        raw_intents = strategy.on_event(context)
-        intents = validate_strategy_output(
-            manifest,
-            raw_intents,
-            max_intents_per_event=max_intents_per_event,
-        )
-    except BaseException as error:
-        if isinstance(error, KeyboardInterrupt | SystemExit):
-            raise
-        return _failed(source_digest, context, entrypoint, error)
-    return StrategyInvocationResult(
-        source_digest=source_digest,
-        context_fingerprint=content_digest(context),
+    session = StrategyInvocationSession(
+        source,
+        manifest=manifest,
         entrypoint=entrypoint,
-        status=InvocationStatus.SUCCEEDED,
-        intents=intents,
+        max_intents_per_event=max_intents_per_event,
     )
+    return session.invoke(context)
 
 
 def _atomic_write(path: Path, payload: str) -> None:
@@ -363,4 +534,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 0 if result.status is InvocationStatus.SUCCEEDED else 2
 
 
-__all__ = ["InvocationStatus", "StrategyInvocationResult", "main", "run_strategy_event"]
+__all__ = [
+    "InvocationStatus",
+    "StrategyInvocationResult",
+    "StrategyInvocationSession",
+    "main",
+    "run_strategy_event",
+]
