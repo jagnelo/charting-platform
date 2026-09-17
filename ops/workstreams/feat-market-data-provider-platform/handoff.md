@@ -5268,3 +5268,7 @@ the authoritative record for this replay; it made zero provider calls.
   evidence controls; no rolling hourly or 31-day symbol window is inferred.
 - The focused quota/registry suite passed `134/134`. No provider request was
   made for this documentation/contract correction.
+- The current-source full backend unit replay at `0fd92bdc1` passed
+  `2,364/2,364` with `37` warnings and `70.82%` coverage. This is automated
+  regression evidence only; provider live, legal/source, universe,
+  deployment-secret, and final-shadow gates remain separate.

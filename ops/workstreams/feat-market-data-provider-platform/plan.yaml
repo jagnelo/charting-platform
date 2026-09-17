@@ -741,6 +741,12 @@ progress:
       registry coverage passes 134/134 and the complete backend unit gate
       passes 2,364/2,364 with 37 warnings and 70.82% coverage.
     - >-
+      2026-09-17 current-source full backend unit replay at `0fd92bdc1`
+      passed `2,364/2,364` with 37 warnings and 70.82% coverage. The Tiingo
+      reset-contract clarification did not regress provider, routing, quota,
+      migration, API, worker, or compatibility coverage; no live provider
+      requests were made by this gate.
+    - >-
       2026-09-17 exact-current-source EODHD account-usage replay at
       `cfe08fde0` passed `1/1` with one bounded `/user` request and 304
       response bytes. The redacted receipt reconciles the native account
