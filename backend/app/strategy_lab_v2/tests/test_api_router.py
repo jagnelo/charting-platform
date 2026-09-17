@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -17,6 +18,8 @@ from app.strategy_lab_v2.api_resources import (
 from app.strategy_lab_v2.api_router import (
     SubmissionServiceResult,
     _json_value,
+    _request_id,
+    _safe_header_value,
     create_strategy_lab_router,
     serialize_resource,
 )
@@ -176,6 +179,14 @@ def test_api_json_serialization_handles_dates_and_rejects_unsafe_scalars() -> No
         _json_value(float("nan"))
     with pytest.raises(TypeError, match="unsupported API JSON value"):
         _json_value(object())
+
+
+def test_api_request_metadata_rejects_control_characters() -> None:
+    request = SimpleNamespace(headers={"X-Request-ID": "request\nforged"})
+    with pytest.raises(ValueError, match="control-free"):
+        _request_id(request, lambda: "unused")
+    with pytest.raises(ValueError, match="control characters"):
+        _safe_header_value("key\r\nforged", "Idempotency-Key", 256)
 
 
 def test_router_lists_and_reads_cursor_bound_resources() -> None:

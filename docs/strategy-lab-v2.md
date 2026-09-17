@@ -643,7 +643,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `api_router.py` provides a registration-neutral `/strategy-lab/v2` FastAPI
   router factory. It serializes exact Decimal/date/timestamp values, rejects
   non-finite or unsupported JSON scalars, and emits typed errors; validates
-  cursor ownership at the collection boundary; exposes
+  cursor ownership at the collection boundary; rejects control characters in
+  request IDs and idempotency keys; exposes
   static strategy-source validation; and delegates idempotent submissions plus
   retry/cancellation commands to an injected adapter. The adapter must scope
   reads to the authenticated principal and atomically persist receipts before

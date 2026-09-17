@@ -3299,6 +3299,13 @@ payloads while preserving the existing boundary that checksums are integrity
 signals, not authorization. Route ownership and persistence integration remain
 deferred behind the shared-path gates.
 
+The focused API contract suite passed 6 tests with Ruff and MyPy green. The
+exact pushed tip passed the branch gate: 687 package tests, Ruff, MyPy across
+237 source files, diff check, and workstream validation. The same tip passed
+the Docker-backed combined coverage gate: 2,334 tests with 83.69% total
+coverage, above the required 75% threshold; setup and cleanup completed
+successfully.
+
 ## 2026-09-17 - Strict REST JSON serialization checkpoint
 
 The registration-neutral API serializer now emits date values as ISO strings,
@@ -3315,12 +3322,17 @@ The exact pushed tip passed the branch gate: 688 package tests, Ruff, MyPy acros
 Docker-backed combined coverage gate: 2,335 tests with 83.70% total coverage,
 above the required 75% threshold; setup and cleanup completed successfully.
 
-The focused API contract suite passed 6 tests with Ruff and MyPy green. The
-exact pushed tip passed the branch gate: 687 package tests, Ruff, MyPy across
-237 source files, diff check, and workstream validation. The same tip passed
-the Docker-backed combined coverage gate: 2,334 tests with 83.69% total
-coverage, above the required 75% threshold; setup and cleanup completed
-successfully.
+## 2026-09-17 - Strict REST request metadata checkpoint
+
+The registration-neutral API boundary now rejects control characters in
+`X-Request-ID` and `Idempotency-Key` values before they can reach response
+headers, adapter calls, or durable idempotency fingerprints. Header values are
+trimmed and bounded consistently across submissions and retry/cancellation
+commands; authentication and persistence ownership remain unchanged.
+
+Focused request-metadata coverage passed 10 tests with Ruff and MyPy green. The
+exact implementation tip still requires the branch-wide validation checkpoint
+below before this ops record is finalized.
 
 ## 2026-09-17 - Combined backend coverage revalidation
 

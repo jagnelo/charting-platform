@@ -265,10 +265,26 @@ def serialize_command(resolution: ExecutionCommandResolution) -> dict[str, Any]:
 
 def _request_id(request: Request, factory: Callable[[], str]) -> str:
     supplied = request.headers.get("X-Request-ID")
-    value = supplied.strip() if supplied is not None else str(factory())
-    if not value or len(value) > MAX_REQUEST_ID_LENGTH:
-        raise ValueError("X-Request-ID must be non-empty and at most 128 characters")
-    return value
+    raw_value = supplied if supplied is not None else factory()
+    try:
+        return _safe_header_value(raw_value, "X-Request-ID", MAX_REQUEST_ID_LENGTH)
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            "X-Request-ID must be non-empty, at most 128 characters, and control-free"
+        ) from error
+
+
+def _safe_header_value(value: str | None, field_name: str, max_length: int) -> str:
+    """Normalize a request header without allowing response/header injection."""
+
+    if not isinstance(value, str):
+        raise TypeError(f"{field_name} must be a string")
+    normalized = value.strip()
+    if not normalized or len(normalized) > max_length:
+        raise ValueError(f"{field_name} must be non-empty and within its length limit")
+    if any(ord(character) < 0x20 or ord(character) == 0x7F for character in normalized):
+        raise ValueError(f"{field_name} must not contain control characters")
+    return normalized
 
 
 def _error_response(error: ApiError) -> JSONResponse:
@@ -370,16 +386,17 @@ def _parse_submission(
                 status.HTTP_400_BAD_REQUEST,
             )
         )
-    key = idempotency_key.strip()
-    if len(key) > 256:
+    try:
+        key = _safe_header_value(idempotency_key, "Idempotency-Key", 256)
+    except (TypeError, ValueError) as error:
         raise ApiAdapterError(
             _api_error(
                 ApiErrorCode.VALIDATION_ERROR,
-                "Idempotency-Key must not exceed 256 characters",
+                "Idempotency-Key must be non-empty, at most 256 characters, and control-free",
                 request_id,
                 status.HTTP_400_BAD_REQUEST,
             )
-        )
+        ) from error
     if not isinstance(body, Mapping) or set(body) != {"operation", "attempt_id", "payload"}:
         raise ApiAdapterError(
             _api_error(
@@ -760,11 +777,15 @@ def create_strategy_lab_router(
     ) -> JSONResponse:
         try:
             request_id = _request_id(request, request_id_factory)
-            if idempotency_key is None or not idempotency_key.strip():
+            try:
+                command_idempotency_key = _safe_header_value(
+                    idempotency_key, "Idempotency-Key", 256
+                )
+            except (TypeError, ValueError):
                 return _error_response(
                     _api_error(
                         ApiErrorCode.VALIDATION_ERROR,
-                        "Idempotency-Key header is required",
+                        "Idempotency-Key must be non-empty, at most 256 characters, and control-free",
                         request_id,
                         status.HTTP_400_BAD_REQUEST,
                     )
@@ -783,7 +804,7 @@ def create_strategy_lab_router(
                 adapter.command(
                     principal=principal,
                     request_id=request_id,
-                    idempotency_key=idempotency_key.strip(),
+                    idempotency_key=command_idempotency_key,
                     command=command,
                 )
             )
