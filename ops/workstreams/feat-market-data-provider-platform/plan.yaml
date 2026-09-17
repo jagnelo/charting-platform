@@ -743,6 +743,13 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 current-source backend acceptance replay passed `2,757/2,757`
+      unit and Docker-backed integration tests with `89` warnings and `82.04%`
+      coverage, above the 75% gate. Docker Server `29.7.2` and the repository
+      Postgres/Redis testcontainers were available. The receipt is recorded in
+      `validation.jsonl`; no frontend, ETF-provider, credential, or payload
+      changes were made.
+    - >-
       2026-09-17 current-source Alpaca live validation passed `7/7` after the
       rolling-window correction. The native account-usage snapshot reconciled
       first, followed by daily and five-minute history, latest price, equity
