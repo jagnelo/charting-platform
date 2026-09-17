@@ -26,6 +26,7 @@ from app.strategy_lab_v2.contracts import (
     DataSnapshot,
     EvaluationWindow,
     EventGranularity,
+    ExperimentDefinition,
     ForwardInstance,
     ForwardState,
     KeyedRandomStreamPairingClaim,
@@ -785,6 +786,61 @@ def test_sdk_manifest_canonicalizes_dependency_and_field_order() -> None:
         "a-model",
         "z-model",
     )
+
+
+def test_scientific_contracts_canonicalize_dependency_and_strategy_order() -> None:
+    dependencies = (
+        StrategyDependency("z-model", "2.0.0", content_digest("z-model")),
+        StrategyDependency("a-model", "1.0.0", content_digest("a-model")),
+    )
+    first_strategy = StrategyVersion(
+        "s-1", "v-1", "2.0", SOURCE_DIGEST, dependencies=dependencies
+    )
+    second_strategy = StrategyVersion(
+        "s-1", "v-1", "2.0", SOURCE_DIGEST, dependencies=tuple(reversed(dependencies))
+    )
+    assert first_strategy == second_strategy
+    assert first_strategy.fingerprint == second_strategy.fingerprint
+    assert tuple(item.distribution for item in first_strategy.dependencies) == (
+        "a-model",
+        "z-model",
+    )
+
+    portfolio = content_digest("portfolio")
+    snapshot = content_digest("snapshot")
+    capability = content_digest("capability")
+    strategy_fingerprints = (content_digest("z-strategy"), content_digest("a-strategy"))
+    first_experiment = ExperimentDefinition(
+        "experiment-1",
+        portfolio,
+        strategy_fingerprints,
+        snapshot,
+        capability,
+        7,
+        "metrics-v1",
+    )
+    second_experiment = ExperimentDefinition(
+        "experiment-1",
+        portfolio,
+        tuple(reversed(strategy_fingerprints)),
+        snapshot,
+        capability,
+        7,
+        "metrics-v1",
+    )
+    assert first_experiment == second_experiment
+    assert first_experiment.fingerprint == second_experiment.fingerprint
+    assert first_experiment.strategy_fingerprints == tuple(sorted(strategy_fingerprints))
+    with pytest.raises(ValueError, match="must be unique"):
+        ExperimentDefinition(
+            "experiment-1",
+            portfolio,
+            (strategy_fingerprints[0], strategy_fingerprints[0]),
+            snapshot,
+            capability,
+            7,
+            "metrics-v1",
+        )
 
 
 def test_sdk_public_boundaries_reject_malformed_runtime_values() -> None:

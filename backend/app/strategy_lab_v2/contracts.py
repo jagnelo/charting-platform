@@ -159,10 +159,26 @@ class StrategyVersion:
         for name in ("strategy_id", "version_id", "sdk_version"):
             _nonempty(getattr(self, name), name)
         require_sha256_digest(self.source_digest, field_name="source_digest")
-        names = [dependency.distribution.casefold() for dependency in self.dependencies]
+        dependencies = tuple(self.dependencies)
+        if any(not isinstance(item, StrategyDependency) for item in dependencies):
+            raise TypeError("strategy dependencies must contain StrategyDependency values")
+        names = [dependency.distribution.casefold() for dependency in dependencies]
         if len(set(names)) != len(names):
             raise ValueError("strategy dependencies must have unique distribution names")
-        object.__setattr__(self, "dependencies", tuple(self.dependencies))
+        object.__setattr__(
+            self,
+            "dependencies",
+            tuple(
+                sorted(
+                    dependencies,
+                    key=lambda item: (
+                        item.distribution.casefold(),
+                        item.version,
+                        item.artifact_digest,
+                    ),
+                )
+            ),
+        )
         object.__setattr__(self, "parameter_schema", freeze_json(self.parameter_schema))
         object.__setattr__(self, "default_parameters", freeze_json(self.default_parameters))
 
@@ -636,8 +652,10 @@ class ExperimentDefinition:
             raise ValueError("an experiment must declare at least one strategy version")
         for strategy_fingerprint in strategies:
             require_sha256_digest(strategy_fingerprint, field_name="strategy_fingerprint")
+        if len(set(strategies)) != len(strategies):
+            raise ValueError("experiment strategy fingerprints must be unique")
         _nonempty(self.metric_definition_version, "metric_definition_version")
-        object.__setattr__(self, "strategy_fingerprints", strategies)
+        object.__setattr__(self, "strategy_fingerprints", tuple(sorted(strategies)))
         object.__setattr__(self, "engine_contract", freeze_json(self.engine_contract))
 
     @property
