@@ -677,6 +677,15 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   integration concerns. Collection adapters receive the route-generated request
   identity and must return it unchanged in the collection envelope, preventing
   response evidence from being detached from the originating request.
+- `application.py` is the additive application seam for the first durable API
+  slice. It converts the existing integer-backed authenticated `User.id` into
+  the opaque string owner key expected by the package contracts, composes the
+  PostgreSQL resource, submission/dispatch, execution-state, and command
+  adapters over `AsyncSessionLocal`, and supplies the authenticated dependency
+  functions to the router factory. `app.main` registers this router at
+  `/api/v1/strategy-lab/v2` while the legacy Strategy Lab routes remain
+  unchanged. Remaining resource projections, worker effects, and engine
+  execution are still explicit gates.
 - `postgres_resources.py` supplies the read-only persistence bridge for that
   boundary. It projects authenticated-owner aggregate snapshots into immutable
   resource documents, orders pages deterministically, and binds every cursor to
@@ -706,14 +715,15 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   enforces contiguous sequence/cursor identity, persists all four linked rows
   atomically, supports exact replay and caller cursor compare-and-set, and
   leaves Redis publication and worker effects to later adapters; migrations
-  and application registration remain gated.
+  and event-stream registration remain gated.
 - `postgres_execution_state.py` maps owner-scoped outcome and progress
   checkpoints to additive PostgreSQL rows. It locks both attempt records,
   preserves monotonic outcome transitions and progress update fingerprints,
   applies combined updates atomically, exposes an authenticated command-state
   reader, and fails closed on partial or tampered state. It remains a
-  registration-neutral adapter; migrations, route wiring, and worker effects
-  are still shared integration concerns.
+  registration-neutral adapter; startup migration rollout and worker effects
+  are still shared integration concerns. The initial authenticated command
+  route is composed by `application.py`.
 - `postgres_worker_state.py` maps immutable worker profiles, serial reservation
   capacity, and execution-attempt lease observations to additive PostgreSQL
   rows. Profile and lease identities are re-authenticated before use; active
@@ -798,8 +808,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   identities are append-only, exact retries replay, and changed content for a
   checkpoint conflicts; reads authenticate the projection and select the latest
   state for an attempt while preserving history. Submission/outcome persistence,
-  result publication, migrations, authorization, and route wiring remain
-  separate integration concerns.
+  result publication, migrations, authorization, and the remaining result
+  routes remain separate integration concerns.
 - `postgres_result_completion.py` maps terminal result completion and the
   shared artifact commit ledger into one additive PostgreSQL transaction.
   Runtime/outcome/progress/publication evidence is resolved by the pure
@@ -1057,15 +1067,16 @@ and Redis services.
 
 ## Deferred integration gates
 
-Do not add shared models/migrations, router registration, worker/task entrypoints,
-global dependencies, lockfile changes, Compose services, or frontend work until
-the provider-platform, ETF, and TC2000 branches reach staging and their shared
-paths are semantically reconciled. Consume their canonical acquisition,
-point-in-time membership, and immutable CodeVersion/Study Lab contracts rather
-than building duplicate adapters or authoring flows. The package-local router
-factory is intentionally unregistered until that reconciliation; its injected
-adapter remains the only place allowed to authorize, persist, enqueue, or
-execute a request.
+Do not add remaining shared models, worker/task entrypoints, global dependency
+or lockfile changes, Compose services, or frontend work until the
+provider-platform, ETF, and TC2000 branches reach staging and their shared
+paths are semantically reconciled. The initial v2 router registration is
+additive and uses only the existing auth/database graph; any expansion into
+provider-backed acquisition, point-in-time membership, CodeVersion/Study Lab
+objects, or worker scheduling must consume those staged contracts rather than
+duplicating flows. The application adapter remains the only place allowed to
+authorize, persist, enqueue, or execute a request; the package router itself
+continues to own no I/O.
 
 Nautilus is the planned authoritative simulator, isolated from the legacy 1.x
 environment. Production execution remains disabled until a stable v2 version is

@@ -12,6 +12,20 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Initial authenticated API/application wiring
+
+`backend/app/strategy_lab_v2/application.py` now composes the existing
+`get_current_user` dependency and `AsyncSessionLocal` with the additive
+PostgreSQL resource, submission/dispatch, execution-state, and command
+adapters. Integer-backed ORM user IDs are normalized once at the application
+boundary to the opaque string owner keys used by the engine-neutral contracts.
+`backend/app/main.py` registers the resulting router additively at
+`/api/v1/strategy-lab/v2`; the legacy Strategy Lab router remains unchanged.
+Focused application tests cover identity normalization, adapter composition,
+and the versioned route factory. Remaining resource projections, startup
+migration rollout, worker scheduling/activation, and stable Nautilus execution
+remain deferred integration gates.
+
 ## 2026-09-17 - Additive Strategy Lab v2 schema migration
 
 Alembic revision `ff0a1b2c3d4e_add_strategy_lab_v2_storage.py` now creates the
