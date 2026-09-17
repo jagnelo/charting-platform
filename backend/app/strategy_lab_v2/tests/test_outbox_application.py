@@ -17,6 +17,7 @@ from app.strategy_lab_v2.outbox_application import OutboxRelayScheduler, OutboxR
 from app.strategy_lab_v2.redis_application import RedisDispatchRuntime
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
 from app.strategy_lab_v2.worker_consumer import RedisDispatchWorkerScheduler
+from app.strategy_lab_v2.worker_service import DedicatedStrategyWorkerService
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 
@@ -184,6 +185,25 @@ async def test_redis_runtime_composes_transport_relay_and_closes_once() -> None:
 
     scheduler = runtime.worker_scheduler(worker, sleep=sleep)
     assert isinstance(scheduler, RedisDispatchWorkerScheduler)
+
+    class Loader:
+        async def load_payload(self, _: str):
+            return None
+
+    async def materialize(*_args):
+        raise AssertionError("materializer must not run during composition")
+
+    async def complete(*_args):
+        raise AssertionError("completion writer must not run during composition")
+
+    service = runtime.worker_service(
+        worker,
+        payload_loader=Loader(),
+        materializer=materialize,
+        completion_writer=complete,
+        sleep=sleep,
+    )
+    assert isinstance(service, DedicatedStrategyWorkerService)
     await runtime.aclose()
     await runtime.aclose()
     assert client.close_calls == 1

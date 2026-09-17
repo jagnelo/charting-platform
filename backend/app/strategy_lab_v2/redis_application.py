@@ -7,11 +7,18 @@ from collections.abc import Awaitable, Callable
 from importlib import import_module
 from typing import Any
 
+from app.strategy_lab_v2.dispatch_payload import DispatchPayloadLoader
 from app.strategy_lab_v2.outbox_application import OutboxPersistence, OutboxRelayService
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
 from app.strategy_lab_v2.worker_consumer import (
     RedisDispatchWorker,
     RedisDispatchWorkerScheduler,
+)
+from app.strategy_lab_v2.worker_process import SerialWorkerProcessExecutor
+from app.strategy_lab_v2.worker_service import (
+    DedicatedStrategyWorkerService,
+    WorkerCompletionWriter,
+    WorkerHandoffMaterializer,
 )
 
 
@@ -111,6 +118,32 @@ class RedisDispatchRuntime:
             worker,
             interval_seconds=interval_seconds,
             sleep=sleep,
+        )
+
+    def worker_service(
+        self,
+        worker: RedisDispatchWorker,
+        *,
+        payload_loader: DispatchPayloadLoader,
+        materializer: WorkerHandoffMaterializer,
+        completion_writer: WorkerCompletionWriter,
+        interval_seconds: float = 1.0,
+        sleep: Callable[[float], Awaitable[None]],
+        process_executor: SerialWorkerProcessExecutor | None = None,
+    ) -> DedicatedStrategyWorkerService:
+        """Compose the dedicated Redis-to-process worker service."""
+
+        scheduler = self.worker_scheduler(
+            worker,
+            interval_seconds=interval_seconds,
+            sleep=sleep,
+        )
+        return DedicatedStrategyWorkerService(
+            scheduler,
+            payload_loader,
+            materializer,
+            completion_writer,
+            process_executor=process_executor,
         )
 
     async def aclose(self) -> None:
