@@ -40,6 +40,22 @@ for malformed input or output setup without printing strategy exception text.
 The focused runtime/protocol suite passes 9 tests; worker image wiring,
 container activation, and application scheduling remain deferred shared gates.
 
+## 2026-09-17 - Stateful strategy runtime session checkpoint
+
+`StrategyInvocationSession` now loads one source-bound strategy instance for an
+entire worker lifetime instead of rebuilding the strategy for every event. It
+revalidates manifest scope for direct typed contexts, preserves state across
+monotonically advancing events, pins random-seed and parameter identity, and
+turns context drift or a terminal strategy error into deterministic typed
+evidence. The existing one-event API remains a compatibility wrapper over a
+fresh session, while the mounted CLI continues to execute one request/event.
+
+The complete Strategy Lab v2 package passed 655 tests with Ruff, MyPy,
+`git diff --check`, and workstream validation green. The Docker-backed combined
+coverage gate passed 2,302 tests with 83.61% total coverage (required threshold:
+75%); setup and cleanup completed successfully. Worker image/entrypoint,
+application scheduling, and authoritative Nautilus execution remain deferred.
+
 ## 2026-09-17 - Replay-safe wall-clock preflight hardening
 
 Static strategy validation now rejects wall-clock method references at the

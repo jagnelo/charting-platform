@@ -823,7 +823,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and a vetted standard-library import surface, and validates every emitted
   intent against the manifest before returning a content-addressed result.
   Source/entrypoint/output failures are typed without returning exception text;
-  the package still requires the hardened container for actual isolation. Its
+  the package still requires the hardened container for actual isolation. A
+  `StrategyInvocationSession` loads one strategy instance for an entire worker
+  lifetime, preserving state across monotonically advancing contexts while
+  pinning seed/parameter identity and rejecting context-scope drift. Its
   explicit JSON wire protocol preserves typed values and fingerprints request
   and result envelopes; `python -m strategy_runtime` reads a mounted request,
   invokes one event, and atomically publishes the result with status-based exit
