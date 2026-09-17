@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 committed-source safety-preflight replay
+
+- At implementation source `37e616e65`, the focused Alpha Vantage, SEC EDGAR,
+  and Finnhub live selection was evaluated against the owner-local durable
+  quota ledger. Routing safety passed for all three under their explicit
+  provider-scoped rolling envelopes (25/day, 10/second, and independent
+  60/minute + 30/second respectively).
+- The runner stopped before transport with `0/0` cases and zero provider
+  requests because each metered provider/IP baseline was unknown. This is the
+  intended fail-closed cross-session behavior: a safety window makes reset
+  calculation safe but does not fabricate prior external usage. The redacted
+  receipt is recorded in `validation.jsonl`; no credentials or payloads were
+  persisted. Receipt-record commit: `49d7c43b2`.
+
 ## 2026-09-17 explicit provider-scoped safety envelopes
 
 - Applied the Alpaca reset-boundary decision to the other providers whose
