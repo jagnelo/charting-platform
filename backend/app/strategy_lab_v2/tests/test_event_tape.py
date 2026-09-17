@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 import pytest
 
@@ -25,7 +27,18 @@ from app.strategy_lab_v2.event_tape import (
     FrozenEventTape,
     bind_event_tape,
 )
-from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
+from app.strategy_lab_v2.replay import (
+    ReplayStatus,
+    build_event_tape_contexts,
+    replay_event_tape,
+)
+from app.strategy_lab_v2.sdk import (
+    MarketEvent,
+    StrategyDataDependency,
+    StrategySdkManifest,
+    TargetPositionIntent,
+)
+from strategy_runtime import InvocationStatus
 
 SNAPSHOT = content_digest("snapshot")
 BASE = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
@@ -315,3 +328,144 @@ def test_binding_rejects_empty_tape_and_unsupported_or_missing_snapshot_decision
     )
     with pytest.raises(ValueError, match="dependency mismatch"):
         bind_event_tape(tape, valid_snapshot, other_manifest)
+
+
+def test_replay_contexts_group_same_time_events_and_bound_lookback() -> None:
+    tape, snapshot, manifest = _binding_inputs()
+    manifest = replace(
+        manifest,
+        data_dependencies=(replace(manifest.data_dependencies[0], lookback_periods=1),),
+    )
+    same_time = MarketEvent(
+        "daily-bars",
+        "bar-0b",
+        "US.AAPL",
+        BASE,
+        1,
+        {"close": 100.5},
+    )
+    tape = FrozenEventTape(
+        snapshot.fingerprint,
+        (tape.events[0], same_time, replace(tape.events[1], sequence=2)),
+    )
+
+    contexts = build_event_tape_contexts(
+        tape,
+        manifest,
+        random_seed=19,
+        parameters={"threshold": 1},
+    )
+
+    assert len(contexts) == 2
+    assert contexts[0].event_time == BASE
+    assert contexts[0].event_sequence == 1
+    assert [event.event_id for event in contexts[0].market_events["daily-bars"]] == [
+        "bar-1",
+        "bar-0b",
+    ]
+    assert [event.event_id for event in contexts[1].market_events["daily-bars"]] == [
+        "bar-0b",
+        "bar-2",
+    ]
+
+
+def test_replay_uses_one_stateful_strategy_and_returns_binding_provenance() -> None:
+    source = """
+class Strategy:
+    def __init__(self):
+        self.count = 0
+
+    def on_event(self, context):
+        self.count += 1
+        return [TargetPositionIntent('US.AAPL', Decimal(self.count) / Decimal(10))]
+"""
+    tape, snapshot, manifest = _binding_inputs()
+    manifest = replace(
+        manifest,
+        strategy=replace(manifest.strategy, source_digest=content_digest(source)),
+    )
+
+    replay = replay_event_tape(
+        source,
+        tape=tape,
+        snapshot=snapshot,
+        manifest=manifest,
+        random_seed=17,
+        parameters={"threshold": Decimal("1.5")},
+        entrypoint="strategy.main:Strategy",
+    )
+
+    assert replay.status is ReplayStatus.SUCCEEDED
+    assert replay.accepted
+    assert replay.batch_count == replay.processed_batches == 2
+    assert replay.stopped_batch_sequence is None
+    assert all(item.status is InvocationStatus.SUCCEEDED for item in replay.invocations)
+    first_intent = replay.invocations[0].intents[0]
+    second_intent = replay.invocations[1].intents[0]
+    assert isinstance(first_intent, TargetPositionIntent)
+    assert isinstance(second_intent, TargetPositionIntent)
+    assert first_intent.target_fraction == Decimal("0.1")
+    assert second_intent.target_fraction == Decimal("0.2")
+    assert replay.tape_fingerprint == tape.fingerprint
+    assert replay.manifest_fingerprint == manifest.fingerprint
+    assert replay.binding_fingerprint.startswith("sha256:")
+    assert replay.fingerprint.startswith("sha256:")
+
+
+def test_replay_stops_at_first_typed_failure_without_exposing_later_contexts() -> None:
+    source = """
+class Strategy:
+    def on_event(self, context):
+        if context.event_sequence > 0:
+            raise RuntimeError('failure detail must remain private')
+        return []
+"""
+    tape, snapshot, manifest = _binding_inputs()
+    manifest = replace(
+        manifest,
+        strategy=replace(manifest.strategy, source_digest=content_digest(source)),
+    )
+
+    replay = replay_event_tape(
+        source,
+        tape=tape,
+        snapshot=snapshot,
+        manifest=manifest,
+        random_seed=17,
+        parameters={},
+        entrypoint="strategy.main:Strategy",
+    )
+
+    assert replay.status is ReplayStatus.FAILED
+    assert not replay.accepted
+    assert replay.batch_count == 2
+    assert replay.processed_batches == 2
+    assert replay.stopped_batch_sequence == 1
+    assert replay.invocations[0].status is InvocationStatus.SUCCEEDED
+    assert replay.invocations[1].status is InvocationStatus.FAILED
+    assert replay.invocations[1].error_digest is not None
+    assert "failure detail" not in str(replay.invocations[1].error_digest)
+
+
+def test_replay_requires_a_non_empty_bound_tape_and_rejects_unknown_positions() -> None:
+    _, snapshot, manifest = _binding_inputs()
+    with pytest.raises(ValueError, match="empty event set"):
+        replay_event_tape(
+            "class Strategy:\n    def on_event(self, context):\n        return []\n",
+            tape=FrozenEventTape(snapshot.fingerprint),
+            snapshot=snapshot,
+            manifest=manifest,
+            random_seed=1,
+            parameters={},
+            entrypoint="strategy.main:Strategy",
+        )
+
+    tape, _, manifest = _binding_inputs()
+    with pytest.raises(ValueError, match="unknown batch sequence"):
+        build_event_tape_contexts(
+            tape,
+            manifest,
+            random_seed=1,
+            parameters={},
+            positions_by_batch={99: {}},
+        )
