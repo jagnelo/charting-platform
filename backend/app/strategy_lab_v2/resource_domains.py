@@ -2,7 +2,7 @@
 
 The REST router intentionally accepts registration-neutral resource envelopes.
 This module is the first application-owned domain boundary: it turns strategy,
-package, portfolio, experiment, attempt, and snapshot resources into immutable
+package, portfolio, experiment, attempt, snapshot, and trial resources into immutable
 typed contracts before the application persists them, while leaving other
 resource types available to their future domain adapters.
 """
@@ -29,6 +29,7 @@ from app.strategy_lab_v2.contracts import (
     AttemptState,
     DataSeriesManifest,
     DataSnapshot,
+    EvaluationWindow,
     EventGranularity,
     ExperimentDefinition,
     PortfolioComponent,
@@ -37,12 +38,15 @@ from app.strategy_lab_v2.contracts import (
     ProductRiskModel,
     RiskExposureMeasure,
     RunAttempt,
+    ScientificTrial,
     SharedRiskPolicy,
     StrategyDependency,
     StrategyPackage,
     StrategyPackageFormat,
     StrategyVersion,
     TargetConflictPolicy,
+    TrialRandomization,
+    TrialSeedPolicy,
 )
 from app.strategy_lab_v2.rebalance import (
     CalendarRebalancePolicy,
@@ -97,6 +101,8 @@ def normalize_resource_attributes(
         return _normalize_attempt(attributes)
     if resource_type is ApiResourceType.SNAPSHOT:
         return _normalize_snapshot(attributes)
+    if resource_type is ApiResourceType.TRIAL:
+        return _normalize_trial(attributes)
     return ResourceDomainNormalization(attributes)
 
 
@@ -503,6 +509,155 @@ def _normalize_snapshot(attributes: Mapping[str, Any]) -> ResourceDomainNormaliz
     if api_ids:
         normalized["resource_id"] = api_ids[0]
     return ResourceDomainNormalization(normalized, snapshot.fingerprint)
+
+
+def _normalize_trial(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
+    allowed = {
+        "trial_id",
+        "experiment_fingerprint",
+        "snapshot_fingerprint",
+        "preflight_report",
+        "parameter_set",
+        "scenario",
+        "seed",
+        "randomization",
+        "evaluation_window",
+        "resource_id",
+        "id",
+    }
+    unknown = sorted(set(attributes) - allowed)
+    if unknown:
+        raise ValueError(f"trial attributes contain unsupported fields: {', '.join(unknown)}")
+    api_ids = [attributes[name] for name in ("resource_id", "id") if name in attributes]
+    if any(not isinstance(value, str) or not value.strip() for value in api_ids):
+        raise ValueError("trial resource_id/id must be a non-empty string")
+    if len(api_ids) == 2 and api_ids[0] != api_ids[1]:
+        raise ValueError("trial resource_id and id must agree")
+    parameter_set = attributes.get("parameter_set", {})
+    scenario = attributes.get("scenario", {})
+    if not isinstance(parameter_set, Mapping):
+        raise ValueError("trial parameter_set must be a mapping")
+    if not isinstance(scenario, Mapping):
+        raise ValueError("trial scenario must be a mapping")
+    try:
+        randomization = (
+            _trial_randomization(attributes["randomization"])
+            if "randomization" in attributes
+            else None
+        )
+        evaluation_window = (
+            _evaluation_window(attributes["evaluation_window"])
+            if "evaluation_window" in attributes
+            else None
+        )
+        trial = ScientificTrial.create(
+            experiment_fingerprint=attributes["experiment_fingerprint"],
+            snapshot_fingerprint=attributes["snapshot_fingerprint"],
+            preflight_report=_preflight_report(attributes["preflight_report"]),
+            parameter_set=parameter_set,
+            scenario=scenario,
+            seed=attributes.get("seed"),
+            randomization=randomization,
+            evaluation_window=evaluation_window,
+        )
+        if "trial_id" in attributes and attributes["trial_id"] != trial.trial_id:
+            raise ValueError("trial_id does not match the immutable trial identity")
+    except KeyError as error:
+        raise ValueError(f"trial attribute is required: {error.args[0]}") from error
+    except (AttributeError, TypeError, ValueError) as error:
+        raise ValueError(f"trial attributes are invalid: {error}") from error
+
+    normalized: dict[str, Any] = {
+        "trial_id": trial.trial_id,
+        "experiment_fingerprint": trial.experiment_fingerprint,
+        "snapshot_fingerprint": trial.snapshot_fingerprint,
+        "preflight_report": _preflight_attributes(trial.preflight_report),
+        "parameter_set": trial.parameter_set,
+        "scenario": trial.scenario,
+        "seed": trial.seed,
+        "randomization": _trial_randomization_attributes(trial.randomization),
+        "evaluation_window": _evaluation_window_attributes(trial.evaluation_window),
+    }
+    if api_ids:
+        normalized["resource_id"] = api_ids[0]
+    return ResourceDomainNormalization(normalized, trial.trial_id)
+
+
+def _trial_randomization(value: Any) -> TrialRandomization:
+    if not isinstance(value, Mapping):
+        raise ValueError("trial randomization must be a mapping")
+    allowed = {
+        "master_seed",
+        "seed",
+        "policy",
+        "replicate_index",
+        "scope_fingerprint",
+        "seed_group_fingerprint",
+        "replicate_count",
+        "derivation_version",
+    }
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"trial randomization contains unsupported fields: {', '.join(unknown)}")
+    try:
+        return TrialRandomization(
+            master_seed=value["master_seed"],
+            seed=value["seed"],
+            policy=_enum_attribute(TrialSeedPolicy, value["policy"], "trial seed policy"),
+            replicate_index=value["replicate_index"],
+            scope_fingerprint=value.get("scope_fingerprint"),
+            seed_group_fingerprint=value.get("seed_group_fingerprint"),
+            replicate_count=value["replicate_count"],
+            derivation_version=value["derivation_version"],
+        )
+    except KeyError as error:
+        raise ValueError(f"trial randomization field is required: {error.args[0]}") from error
+
+
+def _evaluation_window(value: Any) -> EvaluationWindow:
+    if not isinstance(value, Mapping):
+        raise ValueError("trial evaluation_window must be a mapping")
+    allowed = {"start", "end", "purpose", "warmup_start"}
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"evaluation_window contains unsupported fields: {', '.join(unknown)}")
+    try:
+        return EvaluationWindow(
+            start=_datetime_attribute(value["start"], "evaluation start"),
+            end=_datetime_attribute(value["end"], "evaluation end"),
+            purpose=value["purpose"],
+            warmup_start=(
+                _datetime_attribute(value["warmup_start"], "evaluation warmup_start")
+                if value.get("warmup_start") is not None
+                else None
+            ),
+        )
+    except KeyError as error:
+        raise ValueError(f"evaluation_window field is required: {error.args[0]}") from error
+
+
+def _trial_randomization_attributes(value: TrialRandomization) -> Mapping[str, Any]:
+    return {
+        "master_seed": value.master_seed,
+        "seed": value.seed,
+        "policy": value.policy,
+        "replicate_index": value.replicate_index,
+        "scope_fingerprint": value.scope_fingerprint,
+        "seed_group_fingerprint": value.seed_group_fingerprint,
+        "replicate_count": value.replicate_count,
+        "derivation_version": value.derivation_version,
+    }
+
+
+def _evaluation_window_attributes(value: EvaluationWindow | None) -> Mapping[str, Any] | None:
+    if value is None:
+        return None
+    return {
+        "start": value.start,
+        "end": value.end,
+        "purpose": value.purpose,
+        "warmup_start": value.warmup_start,
+    }
 
 
 def _preflight_report(value: Any) -> PreflightReport:

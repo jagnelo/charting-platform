@@ -85,10 +85,10 @@ def test_strategy_rejects_unknown_or_invalid_dependency_fields() -> None:
         raise AssertionError("malformed strategy dependencies should be rejected")
 
 
-def test_non_strategy_resources_remain_frozen_until_their_domain_adapter_exists() -> None:
-    attributes = {"name": "trial", "nested": {"values": [1, 2]}}
+def test_non_domain_resources_remain_frozen_until_their_domain_adapter_exists() -> None:
+    attributes = {"name": "metric-set", "nested": {"values": [1, 2]}}
 
-    result = normalize_resource_attributes(ApiResourceType.TRIAL, attributes)
+    result = normalize_resource_attributes(ApiResourceType.METRIC_SET, attributes)
 
     assert result.domain_fingerprint is None
     assert result.attributes["nested"]["values"] == (1, 2)
@@ -409,3 +409,49 @@ def test_snapshot_rejects_tampered_preflight_or_series_fields() -> None:
     unknown["unexpected"] = True
     with pytest.raises(ValueError, match="unsupported fields"):
         normalize_resource_attributes(ApiResourceType.SNAPSHOT, unknown)
+
+
+def test_trial_attributes_generate_and_bind_reproducible_trial_identity() -> None:
+    result = normalize_resource_attributes(
+        ApiResourceType.TRIAL,
+        {
+            "experiment_fingerprint": content_digest("experiment-v1"),
+            "snapshot_fingerprint": content_digest("snapshot-v1"),
+            "preflight_report": _preflight_payload(),
+            "parameter_set": {"lookback": 20, "threshold": "0.03"},
+            "scenario": {"slippage_bps": 2},
+            "seed": 19,
+            "evaluation_window": {
+                "start": "2021-01-01T00:00:00Z",
+                "end": "2021-12-31T00:00:00Z",
+                "purpose": "out_of_sample",
+                "warmup_start": "2020-12-01T00:00:00Z",
+            },
+            "resource_id": "trial-1",
+        },
+    )
+
+    assert result.domain_fingerprint == result.attributes["trial_id"]
+    assert result.attributes["randomization"]["policy"] == "per_candidate"
+    assert result.attributes["evaluation_window"]["purpose"] == "out_of_sample"
+    assert result.attributes["parameter_set"]["lookback"] == 20
+
+
+def test_trial_rejects_mismatched_identity_and_invalid_randomization() -> None:
+    attributes = {
+        "trial_id": content_digest("not-the-derived-id"),
+        "experiment_fingerprint": content_digest("experiment-v1"),
+        "snapshot_fingerprint": content_digest("snapshot-v1"),
+        "preflight_report": _preflight_payload(),
+        "parameter_set": {},
+        "scenario": {},
+        "seed": 19,
+    }
+
+    with pytest.raises(ValueError, match="trial_id"):
+        normalize_resource_attributes(ApiResourceType.TRIAL, attributes)
+
+    attributes.pop("trial_id")
+    attributes["randomization"] = {"policy": "not-a-policy"}
+    with pytest.raises(ValueError, match="required|invalid"):
+        normalize_resource_attributes(ApiResourceType.TRIAL, attributes)

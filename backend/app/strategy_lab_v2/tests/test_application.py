@@ -120,7 +120,7 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     )
     adapter._clock = lambda: next(clocks)
     request = ResourceMutationRequest(
-        ApiResourceType.TRIAL,
+        ApiResourceType.METRIC_SET,
         "trial-key",
         {"attributes": {"resource_id": "trial-1", "name": "demo"}},
         NOW,

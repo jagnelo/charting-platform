@@ -155,6 +155,20 @@ Focused snapshot/preflight tests passed (14 tests); the full Strategy Lab v2
 package passed 796 tests. Compose activation, stable Nautilus conformance,
 upstream contract reconciliation, and full repository integration remain open.
 
+## 2026-09-17 - Typed trial resource registration
+
+`resource_domains.py` now extends typed mutation validation to scientific
+trials. It rehydrates the embedded fail-closed preflight report, freezes
+parameter/scenario inputs, preserves explicit or derived `TrialRandomization`
+provenance, validates optional UTC evaluation windows, and derives the
+canonical `ScientificTrial.trial_id` when omitted. Supplied IDs must match the
+immutable identity; malformed randomization, unsupported capability reports,
+and conflicting API ID aliases fail closed before aggregate persistence.
+
+Focused trial/domain tests passed (16 tests); the full Strategy Lab v2 package
+passed 798 tests. Compose activation, stable Nautilus conformance, upstream
+contract reconciliation, and full repository integration remain open.
+
 ## 2026-09-17 - Executable Nautilus conformance harness
 
 `conformance_fixtures.py` now exposes `execute_conformance_suite(...)`, an
