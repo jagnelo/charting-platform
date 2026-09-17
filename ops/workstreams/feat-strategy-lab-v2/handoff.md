@@ -11,6 +11,21 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable metric-set checkpoint
+
+`postgres_metrics.py` now retains immutable `MetricSet` summaries as
+owner-scoped canonical projections. Full metric-set payloads and compact value
+summaries are content-addressed; one attempt cannot silently replace a prior
+metric set, exact retries replay, and payload/record tampering is detected
+before metric data can be read by later result/API adapters. Metric calculation,
+artifact bytes, migrations, authorization, and application wiring remain
+separate integration gates.
+
+The focused metric persistence suite passes 3 tests. Package/static and
+combined coverage evidence will be recorded after this boundary is committed
+and rerun; upstream reconciliation and stable Nautilus execution remain open
+gates.
+
 ## 2026-09-17 - Durable runtime-receipts checkpoint
 
 `postgres_runtime_receipts.py` now retains immutable strategy-runtime request

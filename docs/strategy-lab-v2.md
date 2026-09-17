@@ -751,6 +751,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   replay, changed content conflicts against the same attempt/request, and
   rejected preflight reasons remain inspectable without exposing secrets or
   starting a process.
+- `postgres_metrics.py` retains immutable `MetricSet` summaries as
+  owner-scoped canonical projections. Metric-set payloads and compact value
+  summaries are content-addressed, one attempt cannot silently replace a
+  prior metric set, exact retries replay, and tampering is detected before
+  metric data can be read by result/API adapters.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.
