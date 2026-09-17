@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from decimal import Decimal
+from typing import Any
+
+import pytest
+
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
@@ -132,3 +137,89 @@ def test_package_rejects_unknown_fields_and_invalid_runtime_identity() -> None:
         assert "invalid" in str(error) or "digest" in str(error)
     else:  # pragma: no cover - assertion branch
         raise AssertionError("invalid package identity should be rejected")
+
+
+def test_portfolio_attributes_are_normalized_with_risk_and_rebalance_contracts() -> None:
+    attributes = {
+        "portfolio_id": "balanced",
+        "version_id": "v1",
+        "initial_capital": "100000.00",
+        "base_currency": "usd",
+        "components": [
+            {
+                "component_id": "momentum",
+                "strategy_fingerprint": content_digest("momentum-strategy"),
+                "instrument_ids": ["US.AAPL", "US.MSFT"],
+                "capital_weight": "0.60",
+                "priority": 2,
+            },
+            {
+                "component_id": "defensive",
+                "strategy_fingerprint": content_digest("defensive-strategy"),
+                "instrument_ids": ["US.TLT"],
+                "capital_weight": "0.40",
+            },
+        ],
+        "rebalance_policy": {
+            "calendar_id": "nyse",
+            "calendar_fingerprint": content_digest("nyse-calendar"),
+            "cadence": "monthly",
+            "trigger": "session_close_after_events",
+            "selection": "last_session",
+            "misfire_policy": "fail_run",
+        },
+        "shared_risk_policy": {
+            "max_gross_exposure_fraction": "1.25",
+            "max_net_exposure_fraction": "0.80",
+            "max_component_leverage": "1.25",
+            "allow_short_positions": False,
+            "target_conflict_policy": "reject",
+            "risk_models": [
+                {
+                    "product_class": "equity",
+                    "exposure_measure": "signed_base_notional",
+                    "definition_digest": content_digest("equity-risk"),
+                }
+            ],
+        },
+    }
+
+    result = normalize_resource_attributes(ApiResourceType.PORTFOLIO, attributes)
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["base_currency"] == "USD"
+    assert result.attributes["initial_capital"] == Decimal("100000.00")
+    assert result.attributes["components"][0]["capital_weight"] == Decimal("0.60")
+    assert result.attributes["rebalance_policy"]["cadence"] == "monthly"
+    assert result.attributes["shared_risk_policy"]["risk_models"][0]["product_class"] == "equity"
+
+
+def test_portfolio_rejects_unknown_fields_and_overweight_components() -> None:
+    attributes = {
+        "portfolio_id": "balanced",
+        "version_id": "v1",
+        "initial_capital": "1000",
+        "base_currency": "USD",
+        "components": [
+            {
+                "component_id": "one",
+                "strategy_fingerprint": content_digest("one"),
+                "instrument_ids": ["US.AAPL"],
+                "capital_weight": "0.75",
+            },
+            {
+                "component_id": "two",
+                "strategy_fingerprint": content_digest("two"),
+                "instrument_ids": ["US.MSFT"],
+                "capital_weight": "0.50",
+            },
+        ],
+    }
+
+    with pytest.raises(ValueError, match="must not exceed one"):
+        normalize_resource_attributes(ApiResourceType.PORTFOLIO, attributes)
+
+    unknown: dict[str, Any] = dict(attributes)
+    unknown["unexpected"] = True
+    with pytest.raises(ValueError, match="unsupported fields"):
+        normalize_resource_attributes(ApiResourceType.PORTFOLIO, unknown)

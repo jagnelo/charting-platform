@@ -1,25 +1,41 @@
 """Domain validation and canonicalization for API resource mutations.
 
 The REST router intentionally accepts registration-neutral resource envelopes.
-This module is the first application-owned domain boundary: it turns strategy
-and package resources into immutable :class:`StrategyVersion` and
-:class:`StrategyPackage` contracts before the application persists them, while
-leaving other resource types available to their future domain adapters.
+This module is the first application-owned domain boundary: it turns strategy,
+package, and portfolio resources into immutable :class:`StrategyVersion`,
+:class:`StrategyPackage`, and :class:`PortfolioComposition` contracts before
+the application persists them, while leaving other resource types available to
+their future domain adapters.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.canonical import freeze_json, require_sha256_digest
 from app.strategy_lab_v2.contracts import (
+    PortfolioComponent,
+    PortfolioComposition,
+    ProductClass,
+    ProductRiskModel,
+    RiskExposureMeasure,
+    SharedRiskPolicy,
     StrategyDependency,
     StrategyPackage,
     StrategyPackageFormat,
     StrategyVersion,
+    TargetConflictPolicy,
+)
+from app.strategy_lab_v2.rebalance import (
+    CalendarRebalancePolicy,
+    RebalanceCadence,
+    RebalanceMisfirePolicy,
+    RebalanceSelection,
+    RebalanceTrigger,
 )
 
 
@@ -59,6 +75,8 @@ def normalize_resource_attributes(
         return _normalize_strategy(attributes)
     if resource_type is ApiResourceType.PACKAGE:
         return _normalize_package(attributes)
+    if resource_type is ApiResourceType.PORTFOLIO:
+        return _normalize_portfolio(attributes)
     return ResourceDomainNormalization(attributes)
 
 
@@ -200,6 +218,261 @@ def _normalize_package(attributes: Mapping[str, Any]) -> ResourceDomainNormaliza
     if api_ids:
         normalized["resource_id"] = api_ids[0]
     return ResourceDomainNormalization(normalized, package.fingerprint)
+
+
+def _decimal_attribute(value: Any, field_name: str) -> Decimal:
+    if isinstance(value, bool) or isinstance(value, float):
+        raise ValueError(f"{field_name} must be an exact decimal string or integer")
+    try:
+        decimal_value = value if isinstance(value, Decimal) else Decimal(value)
+    except (InvalidOperation, TypeError, ValueError) as error:
+        raise ValueError(f"{field_name} must be an exact decimal string or integer") from error
+    if not decimal_value.is_finite():
+        raise ValueError(f"{field_name} must be finite")
+    return decimal_value
+
+
+def _enum_attribute(enum_type: type[Any], value: Any, field_name: str) -> Any:
+    try:
+        return enum_type(value)
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"{field_name} is invalid") from error
+
+
+def _normalize_portfolio(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
+    allowed = {
+        "portfolio_id",
+        "version_id",
+        "initial_capital",
+        "base_currency",
+        "components",
+        "rebalance_policy",
+        "shared_risk_policy",
+        "resource_id",
+        "id",
+    }
+    unknown = sorted(set(attributes) - allowed)
+    if unknown:
+        raise ValueError(f"portfolio attributes contain unsupported fields: {', '.join(unknown)}")
+    api_ids = [attributes[name] for name in ("resource_id", "id") if name in attributes]
+    if any(not isinstance(value, str) or not value.strip() for value in api_ids):
+        raise ValueError("portfolio resource_id/id must be a non-empty string")
+    if len(api_ids) == 2 and api_ids[0] != api_ids[1]:
+        raise ValueError("portfolio resource_id and id must agree")
+
+    try:
+        components_raw = attributes["components"]
+        if not isinstance(components_raw, Sequence) or isinstance(components_raw, str | bytes):
+            raise ValueError("portfolio components must be a sequence")
+        components = tuple(_portfolio_component(item) for item in components_raw)
+        rebalance_policy = _rebalance_policy(attributes.get("rebalance_policy"))
+        shared_risk_policy = _shared_risk_policy(attributes.get("shared_risk_policy", {}))
+        portfolio = PortfolioComposition(
+            portfolio_id=attributes["portfolio_id"],
+            version_id=attributes["version_id"],
+            initial_capital=_decimal_attribute(attributes["initial_capital"], "initial_capital"),
+            base_currency=attributes["base_currency"],
+            components=components,
+            rebalance_policy=rebalance_policy,
+            shared_risk_policy=shared_risk_policy,
+        )
+    except KeyError as error:
+        raise ValueError(f"portfolio attribute is required: {error.args[0]}") from error
+    except (AttributeError, TypeError, ValueError) as error:
+        if isinstance(error, ValueError) and str(error).startswith("portfolio "):
+            raise
+        raise ValueError(f"portfolio attributes are invalid: {error}") from error
+
+    normalized: dict[str, Any] = {
+        "portfolio_id": portfolio.portfolio_id,
+        "version_id": portfolio.version_id,
+        "initial_capital": portfolio.initial_capital,
+        "base_currency": portfolio.base_currency,
+        "components": tuple(
+            {
+                "component_id": item.component_id,
+                "strategy_fingerprint": item.strategy_fingerprint,
+                "instrument_ids": item.instrument_ids,
+                "capital_weight": item.capital_weight,
+                "priority": item.priority,
+            }
+            for item in portfolio.components
+        ),
+        "rebalance_policy": _rebalance_attributes(portfolio.rebalance_policy),
+        "shared_risk_policy": _shared_risk_attributes(portfolio.shared_risk_policy),
+    }
+    if api_ids:
+        normalized["resource_id"] = api_ids[0]
+    return ResourceDomainNormalization(normalized, portfolio.fingerprint)
+
+
+def _portfolio_component(value: Any) -> PortfolioComponent:
+    if not isinstance(value, Mapping):
+        raise ValueError("portfolio components must contain mappings")
+    allowed = {"component_id", "strategy_fingerprint", "instrument_ids", "capital_weight", "priority"}
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"portfolio component contains unsupported fields: {', '.join(unknown)}")
+    instruments = value.get("instrument_ids")
+    if not isinstance(instruments, Sequence) or isinstance(instruments, str | bytes):
+        raise ValueError("portfolio component instrument_ids must be a sequence")
+    if any(not isinstance(item, str) or not item.strip() for item in instruments):
+        raise ValueError("portfolio component instrument_ids must contain non-empty strings")
+    return PortfolioComponent(
+        component_id=value["component_id"],
+        strategy_fingerprint=value["strategy_fingerprint"],
+        instrument_ids=tuple(instruments),
+        capital_weight=_decimal_attribute(value["capital_weight"], "capital_weight"),
+        priority=value.get("priority", 0),
+    )
+
+
+def _rebalance_policy(value: Any) -> CalendarRebalancePolicy | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise ValueError("rebalance_policy must be a mapping or null")
+    allowed = {
+        "calendar_id",
+        "calendar_fingerprint",
+        "cadence",
+        "trigger",
+        "selection",
+        "misfire_policy",
+        "definition_version",
+    }
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"rebalance_policy contains unsupported fields: {', '.join(unknown)}")
+    try:
+        return CalendarRebalancePolicy(
+            calendar_id=value["calendar_id"],
+            calendar_fingerprint=value["calendar_fingerprint"],
+            cadence=_enum_attribute(RebalanceCadence, value["cadence"], "rebalance cadence"),
+            trigger=_enum_attribute(RebalanceTrigger, value["trigger"], "rebalance trigger"),
+            selection=_enum_attribute(
+                RebalanceSelection,
+                value.get("selection", RebalanceSelection.FIRST_SESSION),
+                "rebalance selection",
+            ),
+            misfire_policy=_enum_attribute(
+                RebalanceMisfirePolicy,
+                value.get("misfire_policy", RebalanceMisfirePolicy.FAIL_RUN),
+                "rebalance misfire policy",
+            ),
+            definition_version=value.get("definition_version", "strategy-lab.rebalance-policy.v1"),
+        )
+    except KeyError as error:
+        raise ValueError(f"rebalance_policy field is required: {error.args[0]}") from error
+
+
+def _shared_risk_policy(value: Any) -> SharedRiskPolicy:
+    if not isinstance(value, Mapping):
+        raise ValueError("shared_risk_policy must be a mapping")
+    allowed = {
+        "max_gross_exposure_fraction",
+        "max_net_exposure_fraction",
+        "max_instrument_gross_exposure_fraction",
+        "max_component_gross_exposure_fraction",
+        "max_component_leverage",
+        "max_open_instruments",
+        "allow_short_positions",
+        "target_conflict_policy",
+        "risk_models",
+        "definition_version",
+    }
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"shared_risk_policy contains unsupported fields: {', '.join(unknown)}")
+    risk_models_raw = value.get("risk_models", ())
+    if not isinstance(risk_models_raw, Sequence) or isinstance(risk_models_raw, str | bytes):
+        raise ValueError("shared_risk_policy risk_models must be a sequence")
+    risk_models = tuple(_product_risk_model(item) for item in risk_models_raw)
+    return SharedRiskPolicy(
+        max_gross_exposure_fraction=_decimal_attribute(
+            value.get("max_gross_exposure_fraction", Decimal("1.0")),
+            "max_gross_exposure_fraction",
+        ),
+        max_net_exposure_fraction=_decimal_attribute(
+            value.get("max_net_exposure_fraction", Decimal("1.0")),
+            "max_net_exposure_fraction",
+        ),
+        max_instrument_gross_exposure_fraction=_decimal_attribute(
+            value.get("max_instrument_gross_exposure_fraction", Decimal("1.0")),
+            "max_instrument_gross_exposure_fraction",
+        ),
+        max_component_gross_exposure_fraction=_decimal_attribute(
+            value.get("max_component_gross_exposure_fraction", Decimal("1.0")),
+            "max_component_gross_exposure_fraction",
+        ),
+        max_component_leverage=_decimal_attribute(
+            value.get("max_component_leverage", Decimal("1.0")), "max_component_leverage"
+        ),
+        max_open_instruments=value.get("max_open_instruments"),
+        allow_short_positions=value.get("allow_short_positions", False),
+        target_conflict_policy=_enum_attribute(
+            TargetConflictPolicy,
+            value.get("target_conflict_policy", TargetConflictPolicy.REJECT),
+            "target_conflict_policy",
+        ),
+        risk_models=risk_models,
+        definition_version=value.get("definition_version", "strategy-lab.shared-risk.v1"),
+    )
+
+
+def _product_risk_model(value: Any) -> ProductRiskModel:
+    if not isinstance(value, Mapping):
+        raise ValueError("risk_models must contain mappings")
+    allowed = {"product_class", "exposure_measure", "definition_digest"}
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"risk model contains unsupported fields: {', '.join(unknown)}")
+    try:
+        return ProductRiskModel(
+            product_class=_enum_attribute(ProductClass, value["product_class"], "product_class"),
+            exposure_measure=_enum_attribute(
+                RiskExposureMeasure, value["exposure_measure"], "exposure_measure"
+            ),
+            definition_digest=value["definition_digest"],
+        )
+    except KeyError as error:
+        raise ValueError(f"risk model field is required: {error.args[0]}") from error
+
+
+def _rebalance_attributes(policy: CalendarRebalancePolicy | None) -> Mapping[str, Any] | None:
+    if policy is None:
+        return None
+    return {
+        "calendar_id": policy.calendar_id,
+        "calendar_fingerprint": policy.calendar_fingerprint,
+        "cadence": policy.cadence,
+        "trigger": policy.trigger,
+        "selection": policy.selection,
+        "misfire_policy": policy.misfire_policy,
+        "definition_version": policy.definition_version,
+    }
+
+
+def _shared_risk_attributes(policy: SharedRiskPolicy) -> Mapping[str, Any]:
+    return {
+        "max_gross_exposure_fraction": policy.max_gross_exposure_fraction,
+        "max_net_exposure_fraction": policy.max_net_exposure_fraction,
+        "max_instrument_gross_exposure_fraction": policy.max_instrument_gross_exposure_fraction,
+        "max_component_gross_exposure_fraction": policy.max_component_gross_exposure_fraction,
+        "max_component_leverage": policy.max_component_leverage,
+        "max_open_instruments": policy.max_open_instruments,
+        "allow_short_positions": policy.allow_short_positions,
+        "target_conflict_policy": policy.target_conflict_policy,
+        "risk_models": tuple(
+            {
+                "product_class": item.product_class,
+                "exposure_measure": item.exposure_measure,
+                "definition_digest": item.definition_digest,
+            }
+            for item in policy.risk_models
+        ),
+        "definition_version": policy.definition_version,
+    }
 
 
 __all__ = ["ResourceDomainNormalization", "normalize_resource_attributes"]

@@ -104,7 +104,8 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     conflict_clock = NOW.replace(hour=14)
     strategy_clock = NOW.replace(hour=15)
     package_clock = NOW.replace(hour=16)
-    clocks = iter((accepted_at, conflict_clock, strategy_clock, package_clock))
+    portfolio_clock = NOW.replace(hour=17)
+    clocks = iter((accepted_at, conflict_clock, strategy_clock, package_clock, portfolio_clock))
     adapter._clock = lambda: next(clocks)
     request = ResourceMutationRequest(
         ApiResourceType.TRIAL,
@@ -184,3 +185,35 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     assert package.receipt is not None
     assert package.receipt.resource.attributes["package_format"] == "source_archive"
     assert package.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")
+
+    portfolio = await adapter.create_resource(
+        principal=_User(42),
+        request_id="request-6",
+        request=ResourceMutationRequest(
+            ApiResourceType.PORTFOLIO,
+            "portfolio-key",
+            {
+                "attributes": {
+                    "portfolio_id": "balanced",
+                    "version_id": "v1",
+                    "initial_capital": "100000",
+                    "base_currency": "usd",
+                    "components": [
+                        {
+                            "component_id": "momentum",
+                            "strategy_fingerprint": strategy.receipt.resource.meta[
+                                "domain_fingerprint"
+                            ],
+                            "instrument_ids": ["US.AAPL"],
+                            "capital_weight": "1.0",
+                        }
+                    ],
+                }
+            },
+            NOW,
+        ),
+    )
+    assert portfolio.resolution.decision.value == "accept"
+    assert portfolio.receipt is not None
+    assert portfolio.receipt.resource.attributes["base_currency"] == "USD"
+    assert portfolio.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")

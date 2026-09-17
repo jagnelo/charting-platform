@@ -90,6 +90,23 @@ Lab v2 package passed 788 tests, branch-declared validation passed, and Compose
 activation, stable Nautilus conformance, upstream contract reconciliation, and
 full repository integration remain open.
 
+## 2026-09-17 - Typed portfolio resource registration
+
+`resource_domains.py` now extends typed mutation validation to portfolio
+compositions. The application decodes exact decimal initial capital and
+component weights, strategy-linked instrument components, shared risk limits
+and product risk models, and optional calendar rebalance policy into the
+immutable `PortfolioComposition` contract. Nested unknown fields, invalid
+digests/enums/decimals, duplicate or overweight components, and conflicting
+API ID aliases fail closed; the portfolio fingerprint is retained in resource
+metadata through the existing owner-scoped compare-and-set and exact-replay
+bridge.
+
+Focused portfolio/domain/application tests passed (13 tests); the full Strategy
+Lab v2 package passed 790 tests. Compose activation, stable Nautilus
+conformance, upstream contract reconciliation, and full repository integration
+remain open.
+
 ## 2026-09-17 - Executable Nautilus conformance harness
 
 `conformance_fixtures.py` now exposes `execute_conformance_suite(...)`, an
