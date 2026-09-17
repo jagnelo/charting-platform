@@ -913,6 +913,10 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     statuses = routing_safety_preflight()
     assert statuses["tiingo"] == "routable"
 
+    monkeypatch.setenv("FMP_BANDWIDTH_QUOTA_EVIDENCE", "current plan evidence")
+    statuses = routing_safety_preflight()
+    assert statuses["fmp"] == "routable"
+
     monkeypatch.setenv("FMP_REVIEWED_DAILY_RESET", "calendar_day_utc")
     monkeypatch.setenv("FMP_REVIEWED_BANDWIDTH_RESET", "rolling_30_days")
     monkeypatch.setenv("FMP_DAILY_QUOTA_EVIDENCE", "current account evidence")

@@ -334,13 +334,19 @@
   provider-specific `rolling_30_days` reset instead of leaving that boundary
   unknown.
 - The configured account's reported 512 MB value remains documented as a
-  source discrepancy; no higher allowance is inferred. The daily 250-call
-  reset still requires `FMP_REVIEWED_DAILY_RESET` and current evidence.
+  source discrepancy; no higher allowance is inferred. The exact daily
+  250-call ceiling uses a provider-scoped rolling-24-hour application safety
+  envelope because the native bucket boundary is not documented. A reviewed
+  native reset and evidence may replace that envelope through
+  `FMP_REVIEWED_DAILY_RESET` and `FMP_DAILY_QUOTA_EVIDENCE`; they are not
+  required for the default safety path.
 - `FMP_REVIEWED_BANDWIDTH_RESET` remains available as an optional validated
   override for a future plan. Complete operation-byte bounds and current
-  daily/bandwidth entitlement evidence remain mandatory before routing.
-- Focused quota/registry coverage and static checks are being replayed against
-  this source-only contract correction; no provider request is required.
+  bandwidth entitlement evidence remain mandatory before routing; the
+  documented rolling-30-day boundary is used when that override is blank.
+- Focused quota/registry/wiring coverage passes 161/161; the Docker-backed
+  complete backend gate passes 2,767/2,767 with 89 warnings and 82.05%
+  coverage. No provider request is required for these checks.
 
 ## 2026-09-17 Bybit live-preflight diagnostic correction
 

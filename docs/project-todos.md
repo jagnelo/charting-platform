@@ -297,18 +297,23 @@
       review Massive's free-plan use/redistribution terms before promoting
       ordinary routing or corporate-action history.
 
-### 2026-09-16 — FMP independent quota-reset admission controls
+### 2026-09-17 — FMP daily-cap safety envelope and independent quota controls
 
 - [x] Add explicit FMP controls for the independent 250-calls/day and
-      512 MB/30-day bandwidth pools: `FMP_REVIEWED_DAILY_RESET`,
-      `FMP_REVIEWED_BANDWIDTH_RESET`, `FMP_DAILY_QUOTA_EVIDENCE`, and
-      `FMP_BANDWIDTH_QUOTA_EVIDENCE`. A complete response-byte map alone no
-      longer promotes FMP; blank or invalid controls keep routing fail-closed.
+      512 MB/30-day bandwidth pools. The exact daily ceiling now uses a
+      provider-scoped rolling-24-hour application safety envelope because the
+      native bucket boundary is not documented; `FMP_REVIEWED_DAILY_RESET`
+      and `FMP_DAILY_QUOTA_EVIDENCE` remain optional native-reset overrides.
+      `FMP_BANDWIDTH_QUOTA_EVIDENCE` and the complete response-byte map remain
+      mandatory, while the documented rolling-30-day bandwidth boundary is
+      used by default. No generic provider limit is inferred.
 - [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
-      diagnostics, and durable provider documentation. Focused coverage passes
-      `155/155`; the full backend unit suite passes `2,357/2,357` with 37
-      warnings. Reset semantics remain intentionally unresolved until current
-      provider/account evidence is reviewed.
+      diagnostics, and durable provider documentation. Focused quota/registry/
+      wiring coverage passes `161/161`; the Docker-backed full backend gate
+      passes `2,767/2,767` with 89 warnings and 82.05% coverage. The daily
+      native boundary remains audit-labelled as provider
+      defined, but the rolling safety envelope prevents unsafe admission until
+      a reviewed native reset is supplied.
 
 ### 2026-09-16 — Tiingo independent quota-reset admission controls
 

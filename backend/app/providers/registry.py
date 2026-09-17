@@ -939,6 +939,23 @@ def provider_missing_routing_controls(
         return missing
     if name == "fmp":
         missing: list[str] = []
+        seed_contract = provider_rate_limit_seed(name).get("quota_contract")
+        dimensions = (
+            seed_contract.get("dimensions", [])
+            if isinstance(seed_contract, dict)
+            else []
+        )
+        daily_dimension = next(
+            (
+                item
+                for item in dimensions
+                if isinstance(item, dict) and item.get("name") == "calls_per_day"
+            ),
+            None,
+        )
+        has_daily_safety = isinstance(daily_dimension, dict) and provider_quota_reset_is_admission_safe(
+            daily_dimension.get("safety_reset")
+        )
         configured_map = getattr(settings, "FMP_OPERATION_BYTE_BOUNDS", {}) or {}
         operations = provider_required_operation_byte_bounds(name)
         if not isinstance(configured_map, dict) or not all(
@@ -948,10 +965,17 @@ def provider_missing_routing_controls(
             for operation in operations
         ):
             missing.append("FMP_OPERATION_BYTE_BOUNDS")
-        if not provider_quota_reset_is_admission_safe(
-            getattr(settings, "FMP_REVIEWED_DAILY_RESET", "")
-        ):
-            missing.append("FMP_REVIEWED_DAILY_RESET")
+        daily_reset = str(
+            getattr(settings, "FMP_REVIEWED_DAILY_RESET", "") or ""
+        ).strip()
+        daily_evidence = str(
+            getattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        if not (has_daily_safety and not daily_reset and not daily_evidence):
+            if not provider_quota_reset_is_admission_safe(daily_reset):
+                missing.append("FMP_REVIEWED_DAILY_RESET")
+            if not daily_evidence:
+                missing.append("FMP_DAILY_QUOTA_EVIDENCE")
         # The current official FMP pricing contract defines the bandwidth
         # pool as trailing 30 days. A blank override therefore keeps the
         # documented rolling window; a supplied value is still validated so a
@@ -963,8 +987,6 @@ def provider_missing_routing_controls(
             reviewed_bandwidth_reset
         ):
             missing.append("FMP_REVIEWED_BANDWIDTH_RESET")
-        if not str(getattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "") or "").strip():
-            missing.append("FMP_DAILY_QUOTA_EVIDENCE")
         if not str(
             getattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "") or ""
         ).strip():

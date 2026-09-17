@@ -1054,6 +1054,11 @@ class Settings(BaseSettings):
                         "quota_group": "api_key",
                         "source": "operator_account_dashboard_2026-09-07",
                         "reset": "provider_defined",
+                        # The account ceiling is exact, but its daily bucket
+                        # boundary is not documented.  Keep the provider
+                        # label for audit and enforce a provider-scoped
+                        # rolling 24-hour safety envelope.
+                        "safety_reset": "rolling",
                     }
                 ],
                 "reset": "provider_defined",
@@ -2133,9 +2138,9 @@ class Settings(BaseSettings):
     FMP_OPERATION_BYTE_BOUNDS: dict[str, int] = {}
     # FMP publishes separate daily-call and trailing-30-day bandwidth pools.
     # The official pricing page establishes the bandwidth window, while the
-    # daily-call reset boundary remains provider-defined. Keep the bandwidth
-    # reset override configurable for future plan changes, but do not require
-    # a duplicate setting for the current documented contract.
+    # daily-call reset boundary remains provider-defined. The seed enforces a
+    # rolling 24-hour safety envelope for the daily pool; this optional native
+    # reset override remains configurable for future plan changes.
     FMP_REVIEWED_DAILY_RESET: str = ""
     FMP_REVIEWED_BANDWIDTH_RESET: str = ""
     FMP_DAILY_QUOTA_EVIDENCE: str = ""
@@ -3442,9 +3447,10 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
     if provider_name == "fmp":
         # FMP exposes independent daily-call and bandwidth pools. The current
         # official pricing contract defines bandwidth as a trailing 30-day
-        # pool; the daily-call reset remains provider-defined. An operator may
-        # override the bandwidth boundary for a future plan, but a blank value
-        # retains the documented rolling-30-day semantics.
+        # pool; the daily-call reset remains provider-defined. The daily pool
+        # carries an explicit rolling 24-hour safety envelope. An operator may
+        # override either boundary for a future plan, but a blank bandwidth
+        # override retains the documented rolling-30-day semantics.
         daily_reset = str(
             getattr(settings, "FMP_REVIEWED_DAILY_RESET", "") or ""
         ).strip()
@@ -3458,10 +3464,31 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         bandwidth_evidence = str(
             getattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "") or ""
         ).strip()
+        contract = seed.get("quota_contract")
+        daily_dimension = next(
+            (
+                item
+                for item in (contract.get("dimensions", []) if isinstance(contract, dict) else [])
+                if isinstance(item, dict) and item.get("name") == "calls_per_day"
+            ),
+            None,
+        )
+        daily_safety_reset = (
+            str(daily_dimension.get("safety_reset") or "").strip()
+            if isinstance(daily_dimension, dict)
+            else ""
+        )
+        daily_override_valid = (
+            provider_quota_reset_is_admission_safe(daily_reset) and bool(daily_evidence)
+        )
+        daily_default_valid = (
+            not daily_reset
+            and not daily_evidence
+            and provider_quota_reset_is_admission_safe(daily_safety_reset)
+        )
         if not (
-            provider_quota_reset_is_admission_safe(daily_reset)
+            (daily_override_valid or daily_default_valid)
             and provider_quota_reset_is_admission_safe(bandwidth_reset)
-            and daily_evidence
             and bandwidth_evidence
         ):
             return seed
@@ -3471,7 +3498,6 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         bounds = provider_operation_byte_bounds(provider_name)
         if any(operation not in bounds for operation in required):
             return seed
-        contract = seed.get("quota_contract")
         if not isinstance(contract, dict):
             return seed
         untracked = list(contract.get("untracked_constraints") or [])
@@ -3498,23 +3524,43 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             dimensions.append(dict(byte_constraint))
         contract["dimensions"] = dimensions
         contract["reset"] = "per_dimension"
-        contract["unknown_dimensions"] = []
+        if daily_override_valid:
+            contract["unknown_dimensions"] = [
+                item
+                for item in (contract.get("unknown_dimensions") or [])
+                if item != "calls_daily_reset_anchor"
+            ]
         for dimension in dimensions:
             if not isinstance(dimension, dict):
                 continue
             if dimension.get("name") == "calls_per_day":
-                dimension["reset"] = daily_reset
+                if daily_override_valid:
+                    dimension["reset"] = daily_reset
+                else:
+                    dimension.pop("reset", None)
+                    dimension["safety_reset"] = "rolling"
             elif dimension.get("name") == byte_constraint.get("name"):
                 dimension["reset"] = bandwidth_reset
         contract["dimension_costs_required"] = True
         contract["operation_costs_required"] = True
         contract["source"] = (
             f"{contract.get('source', 'FMP account and pricing evidence')} plus "
-            "operator-reviewed daily/bandwidth reset evidence"
+            + (
+                "provider-scoped rolling daily safety envelope and "
+                "documented rolling bandwidth semantics"
+                if not daily_override_valid
+                else "operator-reviewed daily/bandwidth reset evidence"
+            )
         )
         seed["quota_contract"] = contract
         seed["quota_source"] = (
-            "FMP account allowance plus operator-reviewed daily/bandwidth reset evidence"
+            "FMP account allowance plus "
+            + (
+                "provider-scoped rolling daily safety envelope and documented "
+                "rolling bandwidth semantics"
+                if not daily_override_valid
+                else "operator-reviewed daily/bandwidth reset evidence"
+            )
         )
         seed["_byte_reservation_bounds"] = bounds
         return seed

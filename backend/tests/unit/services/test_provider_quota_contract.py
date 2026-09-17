@@ -626,7 +626,7 @@ def test_tiingo_byte_pool_also_requires_symbol_reset_review(monkeypatch):
     assert seed["quota_contract"].get("untracked_constraints")
 
 
-def test_fmp_byte_pool_uses_documented_trailing_window_and_requires_daily_review(monkeypatch):
+def test_fmp_byte_pool_uses_documented_trailing_window_and_daily_safety_envelope(monkeypatch):
     bounds = {
         "fetch_ohlcv": 1_000_000,
         "fetch_latest_ohlcv": 1_000_000,
@@ -640,6 +640,19 @@ def test_fmp_byte_pool_uses_documented_trailing_window_and_requires_daily_review
     monkeypatch.setattr(settings, "FMP_REVIEWED_DAILY_RESET", "")
     monkeypatch.setattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "")
     monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "")
+    monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "current plan evidence")
+    promoted_by_safety = provider_rate_limit_seed("fmp")
+    safety_contract = promoted_by_safety["quota_contract"]
+    assert safety_contract["untracked_constraints"] == []
+    assert safety_contract["unknown_dimensions"] == ["calls_daily_reset_anchor"]
+    safety_daily = next(
+        item for item in safety_contract["dimensions"] if item["name"] == "calls_per_day"
+    )
+    assert "reset" not in safety_daily
+    assert safety_daily["safety_reset"] == "rolling"
+    assert safety_contract["reset"] == "per_dimension"
+    assert promoted_by_safety["_byte_reservation_bounds"] == bounds
+
     monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "")
     blocked = provider_rate_limit_seed("fmp")["quota_contract"]
     assert blocked["untracked_constraints"]

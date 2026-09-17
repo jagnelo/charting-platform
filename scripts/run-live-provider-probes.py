@@ -1840,16 +1840,19 @@ def routing_safety_preflight() -> dict[str, str]:
             if not os.getenv("TIINGO_HOURLY_QUOTA_EVIDENCE", "").strip():
                 missing.append("TIINGO_HOURLY_QUOTA_EVIDENCE")
         if provider == "fmp" and not missing:
-            if not provider_quota_reset_is_admission_safe(
-                os.getenv("FMP_REVIEWED_DAILY_RESET", "").strip()
-            ):
-                missing.append("FMP_REVIEWED_DAILY_RESET")
-            if not provider_quota_reset_is_admission_safe(
-                os.getenv("FMP_REVIEWED_BANDWIDTH_RESET", "").strip()
+            daily_reset = os.getenv("FMP_REVIEWED_DAILY_RESET", "").strip()
+            daily_evidence = os.getenv("FMP_DAILY_QUOTA_EVIDENCE", "").strip()
+            daily_safety = _seed_safety_reset("fmp", "calls_per_day")
+            if not (daily_safety and not daily_reset and not daily_evidence):
+                if not provider_quota_reset_is_admission_safe(daily_reset):
+                    missing.append("FMP_REVIEWED_DAILY_RESET")
+                if not daily_evidence:
+                    missing.append("FMP_DAILY_QUOTA_EVIDENCE")
+            bandwidth_reset = os.getenv("FMP_REVIEWED_BANDWIDTH_RESET", "").strip()
+            if bandwidth_reset and not provider_quota_reset_is_admission_safe(
+                bandwidth_reset
             ):
                 missing.append("FMP_REVIEWED_BANDWIDTH_RESET")
-            if not os.getenv("FMP_DAILY_QUOTA_EVIDENCE", "").strip():
-                missing.append("FMP_DAILY_QUOTA_EVIDENCE")
             if not os.getenv("FMP_BANDWIDTH_QUOTA_EVIDENCE", "").strip():
                 missing.append("FMP_BANDWIDTH_QUOTA_EVIDENCE")
         result[provider] = (

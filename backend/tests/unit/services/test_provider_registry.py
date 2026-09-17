@@ -545,8 +545,6 @@ class TestProviderRegistry:
         ]
         assert provider_missing_routing_controls("fmp") == [
             "FMP_OPERATION_BYTE_BOUNDS",
-            "FMP_REVIEWED_DAILY_RESET",
-            "FMP_DAILY_QUOTA_EVIDENCE",
             "FMP_BANDWIDTH_QUOTA_EVIDENCE",
         ]
         assert provider_routing_control_settings("marketstack") == (

@@ -203,17 +203,18 @@ remaining_gaps:
     independent provider-specific admission controls. The current official
     pricing page explicitly defines the free bandwidth pool as 500 MB over a
     trailing 30-day window, so the seed uses the conservative decimal-byte
-    ceiling and `rolling_30_days`; only the daily-call reset remains
-    provider-defined. A complete `FMP_OPERATION_BYTE_BOUNDS` map is
-    insufficient: routing also requires admission-safe
-    `FMP_REVIEWED_DAILY_RESET` plus independent current evidence
-    (`FMP_DAILY_QUOTA_EVIDENCE` and `FMP_BANDWIDTH_QUOTA_EVIDENCE`).
-    `FMP_REVIEWED_BANDWIDTH_RESET` remains an optional validated override for
-    a future plan. Blank or invalid required controls preserve the unresolved
-    contract and fail closed. The controls are wired through local/RPi
+    ceiling and `rolling_30_days`. The exact daily-call ceiling has an explicit
+    provider-scoped rolling-24-hour application safety envelope because the
+    native bucket boundary is not documented; `FMP_REVIEWED_DAILY_RESET` and
+    `FMP_DAILY_QUOTA_EVIDENCE` are optional native-reset overrides. A complete
+    `FMP_OPERATION_BYTE_BOUNDS` map and current
+    `FMP_BANDWIDTH_QUOTA_EVIDENCE` remain mandatory. The optional
+    `FMP_REVIEWED_BANDWIDTH_RESET` override is validated when supplied. Blank
+    or invalid byte/evidence controls preserve the unresolved contract and
+    fail closed; no generic limit is inferred. The controls are wired through local/RPi
     Compose and GitHub live CI. Focused quota/registry/wiring coverage passes
-    155/155 and the complete backend unit gate passes 2,357/2,357 with 37
-    warnings at 70.79% coverage.
+    161/161 and the Docker-backed complete backend gate passes 2,767/2,767
+    with 89 warnings at 82.05% coverage.
   - >-
     2026-09-17 FMP source correction: the bandwidth seed now cites the
     current official `/developer/docs/pricing` document for the 500 MB
