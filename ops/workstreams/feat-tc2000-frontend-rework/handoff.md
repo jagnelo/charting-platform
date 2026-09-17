@@ -1,5 +1,39 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-17 — R6 Strategy section disclosure semantics
+
+Product commit `27629e5fd` links each of the six Strategy Lab section headings
+and chevron controls to its conditional body through stable `aria-controls` and
+`id` relationships. The existing expanded state, mouse/keyboard toggles, and
+visual layout are unchanged.
+
+Focused Strategy Lab coverage passed `34/34`; full frontend Vitest passed
+`1,135/1,135`; frontend type-check and production build passed with the
+existing large-chunk warning; TC scope validation/self-tests, workstream
+validation, and `git diff --check` passed. No provider-platform, ETF,
+visual-oracle, or acceptance-policy behavior changed.
+
+The exact raw-capture gate
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration`
+passed at product tip `27629e5fd`: backend combined coverage passed `1,621`
+tests, frontend Vitest passed `1,135/1,135`, type-check/build,
+Compose/provider contracts, branch-scoped Docker health, research-runner
+probes, authenticated functional Chromium passed `170` with `107` documented
+skips, and all four visual projects passed `104/104`. Teardown removed the
+assigned containers, volumes, network, four generated images, and test
+sessions; post-gate accounting reported zero retained resources. The standard
+`/usr/bin/make` wrapper remains unavailable because of the unchanged host
+Xcode-license status `69`; the installed CommandLineTools Make binary ran the
+same target. No provider-platform, ETF, visual baseline, threshold, mask,
+skip, V25-media, or acceptance-policy behavior changed.
+
+The broader goal remains active/in progress: no TC-owned product or validation
+blocker is present. Provider/ETF consumer integration remains deferred until
+both upstream branches reach staging, after which shared paths require
+semantic reconciliation and another exact-tip gate. Origin synchronization
+remains a separate private-origin operational hold. This slice does not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-17 — R6 Instrument Report disclosure semantics
 
 Product commit `f5e41e4ed` closes a bounded TC-owned accessibility gap in the
