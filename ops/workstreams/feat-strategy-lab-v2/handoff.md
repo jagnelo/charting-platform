@@ -148,6 +148,18 @@ passes 2,341 tests with 83.71% total coverage (required threshold: 75%); Docker
 services were branch-scoped and cleaned afterward. Worker image activation,
 application wiring, and stable Nautilus execution remain deferred.
 
+## 2026-09-17 - Bounded mounted runtime request reads
+
+Both mounted strategy and custom-metric CLIs now read request files through a
+bounded binary reader, consuming at most the 16 MiB wire limit plus one byte
+before strict UTF-8 decoding. Oversized files therefore fail before an
+unbounded `read_text()` allocation can bypass the protocol decoder guard, while
+valid single and batch requests retain their existing atomic result publication.
+Regression coverage verifies that neither CLI publishes a result for an
+oversized request. The focused runtime/custom-metric protocol suite passes 23
+tests, and the complete Strategy Lab v2 package passes 696 tests; worker image
+activation, application wiring, and stable Nautilus execution remain deferred.
+
 ## 2026-09-17 - Runtime wire source-binding hardening
 
 Single and batch invocation serializers and decoders now verify that the source

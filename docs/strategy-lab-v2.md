@@ -870,7 +870,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   exception-type-only digest; exception text and process-specific repr values
   never affect the published result. Inbound wire decoders reject envelopes
   larger than 16 MiB before JSON parsing, keeping mounted request parsing
-  bounded independently of the container's memory and output limits. The SDK's
+  bounded independently of the container's memory and output limits. Both
+  mounted strategy and custom-metric CLIs read at most that limit plus one byte
+  before decoding, so oversized request files cannot bypass the decoder guard.
+  The SDK's
   `MarketEvent` and
   `StrategyContext` also normalize aware event times to UTC before scope and
   fingerprint checks, so direct SDK callers cannot reintroduce offset-specific
