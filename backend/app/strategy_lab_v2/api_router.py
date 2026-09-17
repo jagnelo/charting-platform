@@ -16,7 +16,7 @@ import logging
 import math
 import re
 import uuid
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -44,6 +44,12 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandKind,
     ExecutionCommandResolution,
 )
+from app.strategy_lab_v2.resource_mutations import (
+    ResourceMutationDecision,
+    ResourceMutationReceipt,
+    ResourceMutationRequest,
+    ResourceMutationResolution,
+)
 from app.strategy_lab_v2.strategy_validation import validate_strategy_source
 from app.strategy_lab_v2.submissions import (
     SubmissionDecision,
@@ -58,8 +64,21 @@ MAX_PAGE_SIZE = 100
 MAX_REQUEST_ID_LENGTH = 128
 MAX_OPERATION_LENGTH = 128
 MAX_SOURCE_BYTES = 1_000_000
+MAX_RESOURCE_PAYLOAD_BYTES = 1_000_000
 _OPERATION_PATTERN = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
 _T = TypeVar("_T")
+_MUTABLE_RESOURCE_TYPES = frozenset(
+    {
+        ApiResourceType.STRATEGY,
+        ApiResourceType.PACKAGE,
+        ApiResourceType.PORTFOLIO,
+        ApiResourceType.SNAPSHOT,
+        ApiResourceType.EXPERIMENT,
+        ApiResourceType.TRIAL,
+        ApiResourceType.ATTEMPT,
+        ApiResourceType.FORWARD_INSTANCE,
+    }
+)
 
 
 class StrategyLabApiAdapter(Protocol):
@@ -88,6 +107,14 @@ class StrategyLabApiAdapter(Protocol):
         resource_type: ApiResourceType,
         resource_id: str,
     ) -> Awaitable[ResourceDocument | None] | ResourceDocument | None: ...
+
+    def create_resource(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        request: ResourceMutationRequest,
+    ) -> Awaitable[ResourceMutationServiceResult] | ResourceMutationServiceResult: ...
 
     def submit(
         self,
@@ -128,6 +155,29 @@ class SubmissionServiceResult:
         elif self.resolution.decision is SubmissionDecision.REPLAY_EXISTING:
             if self.resolution.existing_receipt != self.receipt:
                 raise ValueError("replayed submission must return its existing receipt")
+
+
+@dataclass(frozen=True, slots=True)
+class ResourceMutationServiceResult:
+    """Adapter response carrying the durable resource mutation receipt."""
+
+    resolution: ResourceMutationResolution
+    receipt: ResourceMutationReceipt | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.resolution, ResourceMutationResolution):
+            raise TypeError("resolution must be a ResourceMutationResolution")
+        if self.resolution.decision is ResourceMutationDecision.REJECT:
+            if self.receipt is not None:
+                raise ValueError("rejected resource mutations cannot carry a receipt")
+            return
+        if not isinstance(self.receipt, ResourceMutationReceipt):
+            raise TypeError("accepted resource mutations require a receipt")
+        if self.resolution.decision is ResourceMutationDecision.ACCEPT:
+            if self.receipt.request.fingerprint != self.resolution.request_fingerprint:
+                raise ValueError("resource mutation receipt does not match the resolved request")
+        elif self.receipt != self.resolution.existing_receipt:
+            raise ValueError("replayed/conflicting resource mutations require the existing receipt")
 
 
 class ApiAdapterError(Exception):
@@ -238,6 +288,27 @@ def serialize_submission(result: SubmissionServiceResult) -> dict[str, Any]:
             "meta": {"decision": result.resolution.decision.value},
         }
     })
+
+
+def serialize_resource_mutation(result: ResourceMutationServiceResult) -> dict[str, Any]:
+    """Serialize an accepted or replayed resource creation as a 202 document."""
+
+    if not isinstance(result, ResourceMutationServiceResult):
+        raise TypeError("result must be a ResourceMutationServiceResult")
+    if result.receipt is None:
+        raise ValueError("accepted resource mutations require a receipt")
+    receipt = result.receipt
+    return _json_value(
+        {
+            "data": serialize_resource(receipt.resource),
+            "meta": {
+                "decision": result.resolution.decision.value,
+                "mutation_id": receipt.mutation_id,
+                "payload_digest": receipt.request.payload_digest,
+                "accepted_at": receipt.accepted_at,
+            },
+        }
+    )
 
 
 def serialize_command(resolution: ExecutionCommandResolution) -> dict[str, Any]:
@@ -502,6 +573,159 @@ def _parse_submission(
                 details={"reason": str(error)},
             )
         ) from error
+
+
+def _parse_resource_mutation(
+    body: Mapping[str, Any],
+    *,
+    resource_type: ApiResourceType,
+    idempotency_key: str | None,
+    request_id: str,
+    now: datetime,
+) -> ResourceMutationRequest:
+    """Parse a strict resource-creation body without constructing domain state."""
+
+    if idempotency_key is None or not idempotency_key.strip():
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "Idempotency-Key header is required",
+                request_id,
+                status.HTTP_400_BAD_REQUEST,
+            )
+        )
+    try:
+        key = _safe_header_value(idempotency_key, "Idempotency-Key", 256)
+    except (TypeError, ValueError) as error:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "Idempotency-Key must be non-empty, at most 256 characters, and control-free",
+                request_id,
+                status.HTTP_400_BAD_REQUEST,
+            )
+        ) from error
+    if not isinstance(body, Mapping) or "attributes" not in body:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "resource body must contain attributes and may contain relationships or meta",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    allowed = {"attributes", "relationships", "meta"}
+    if set(body) - allowed:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "resource body contains unknown fields",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                details={"allowed_fields": sorted(allowed)},
+            )
+        )
+    attributes = body["attributes"]
+    if not isinstance(attributes, Mapping):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "resource attributes must be a JSON object",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    relationships = body.get("relationships", {})
+    if not isinstance(relationships, Mapping):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "resource relationships must be a JSON object",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    for name, targets in relationships.items():
+        if not isinstance(name, str) or not name.strip():
+            raise ApiAdapterError(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "relationship names must be non-empty strings",
+                    request_id,
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
+            )
+        if not isinstance(targets, Sequence) or isinstance(targets, str | bytes):
+            raise ApiAdapterError(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "relationship values must be arrays",
+                    request_id,
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
+            )
+        for target in targets:
+            if not isinstance(target, Mapping) or set(target) != {"type", "id"}:
+                raise ApiAdapterError(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "relationship targets must contain type and id only",
+                        request_id,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+                )
+            if not isinstance(target["type"], str) or not target["type"].strip():
+                raise ApiAdapterError(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "relationship target type must be a non-empty string",
+                        request_id,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+                )
+            if not isinstance(target["id"], str) or not target["id"].strip():
+                raise ApiAdapterError(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "relationship target id must be a non-empty string",
+                        request_id,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+                )
+    meta = body.get("meta", {})
+    if not isinstance(meta, Mapping):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "resource meta must be a JSON object",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    payload = {"attributes": attributes, "relationships": relationships, "meta": meta}
+    try:
+        request = ResourceMutationRequest(resource_type, key, payload, now)
+    except (TypeError, ValueError) as error:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "resource mutation body is not canonical JSON",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                details={"reason": str(error)},
+            )
+        ) from error
+    if len(json.dumps(_json_value(payload), separators=(",", ":"), ensure_ascii=False).encode("utf-8")) > MAX_RESOURCE_PAYLOAD_BYTES:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "resource mutation payload exceeds the maximum size",
+                request_id,
+                status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                details={"max_bytes": MAX_RESOURCE_PAYLOAD_BYTES},
+            )
+        )
+    return request
 
 
 def _parse_command(
@@ -817,6 +1041,102 @@ def create_strategy_lab_router(
                 _api_error(
                     ApiErrorCode.INTERNAL_ERROR,
                     "Strategy Lab v2 submission failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
+    @router.post("/{resource}", status_code=status.HTTP_202_ACCEPTED)
+    async def create_resource(
+        resource: str,
+        request: Request,
+        body: Any = Body(...),
+        idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Create one mutable resource through an application-owned adapter."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            parsed_resource = _resource_type(resource, request_id)
+            if isinstance(parsed_resource, JSONResponse):
+                return parsed_resource
+            if parsed_resource not in _MUTABLE_RESOURCE_TYPES:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "the requested Strategy Lab v2 resource is read-only",
+                        request_id,
+                        status.HTTP_405_METHOD_NOT_ALLOWED,
+                        details={"resource": parsed_resource.value},
+                    )
+                )
+            body = await _strict_json_body(request, request_id)
+            mutation = _parse_resource_mutation(
+                body,
+                resource_type=parsed_resource,
+                idempotency_key=idempotency_key,
+                request_id=request_id,
+                now=clock(),
+            )
+            result = await _resolve(
+                adapter.create_resource(
+                    principal=principal,
+                    request_id=request_id,
+                    request=mutation,
+                )
+            )
+            if not isinstance(result, ResourceMutationServiceResult):
+                raise TypeError("adapter returned an invalid resource mutation result")
+            if result.resolution.decision is ResourceMutationDecision.IDEMPOTENCY_CONFLICT:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.IDEMPOTENCY_CONFLICT,
+                        "Idempotency-Key is already bound to different resource content",
+                        request_id,
+                        status.HTTP_409_CONFLICT,
+                        details={
+                            "mutation_id": (
+                                result.receipt.mutation_id if result.receipt is not None else None
+                            )
+                        },
+                    )
+                )
+            if result.resolution.decision is ResourceMutationDecision.REJECT:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        result.resolution.rejection_reason or "resource mutation was rejected",
+                        request_id,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+                )
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content=serialize_resource_mutation(result),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "resource mutation request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 resource mutation failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 resource mutation failed",
                     locals().get("request_id", "unknown"),
                     status.HTTP_500_INTERNAL_SERVER_ERROR,
                     retryable=True,

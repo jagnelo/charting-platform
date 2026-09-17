@@ -661,6 +661,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   versioned REST surface. Collection items, resource types, opaque cursors, and
   snapshot digests must agree before a page can be returned; attributes,
   relationships, and metadata are frozen and content-addressed.
+- `resource_mutations.py` defines idempotent create receipts for mutable
+  resources. The router accepts strict `attributes`/`relationships`/`meta`
+  bodies, returns 202 resource documents, replays exact keys, and exposes
+  typed conflicts or rejected preconditions without allowing artifact or
+  metric-set creation through the generic route.
 - `api_router.py` provides a registration-neutral `/strategy-lab/v2` FastAPI
   router factory. It serializes exact Decimal/date/timestamp values, rejects
   non-finite or unsupported JSON scalars, and emits typed errors; validates
@@ -689,9 +694,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   later worker and API projections on the same application-owned seam.
   `app.main` registers this router at
   `/api/v1/strategy-lab/v2` while the legacy Strategy Lab routes remain
-  unchanged. Remaining resource projections, worker effects, and engine
-  execution are still explicit gates; richer mutation/result-publication
-  routes and artifact byte lifecycle remain outside this seam.
+  unchanged. Remaining resource projections, worker effects, result
+  publication, and engine execution are still explicit gates; artifact byte
+  lifecycle remains outside this seam.
 - `outbox_application.py` adds the application-owned relay seam on top of the
   shared persistence bundle. `OutboxRelayService` loads the authenticated
   PostgreSQL outbox, relays only available messages through the idempotent Redis
