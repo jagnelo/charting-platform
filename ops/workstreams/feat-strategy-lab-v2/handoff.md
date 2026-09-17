@@ -128,10 +128,12 @@ used by the other v2 routes. Invalid request metadata therefore cannot escape
 before raw-body validation and static source preflight, while valid request IDs
 and existing 422 body errors remain unchanged.
 
-The focused API-router suite and complete Strategy Lab v2 package gate will be
-recorded with exact-worktree coverage after this checkpoint. Authentication,
-application registration, and shared persistence remain deferred behind the
-existing gates.
+The focused API-router suite passes 13 tests and the complete Strategy Lab v2
+package passes 693 tests with Ruff and MyPy green. The exact-worktree combined
+coverage gate passes 2,340 tests with 83.71% total coverage (required
+threshold: 75%); Docker services were branch-scoped and cleaned afterward.
+Authentication, application registration, and shared persistence remain
+deferred behind the existing gates.
 
 ## 2026-09-17 - Runtime wire source-binding hardening
 
