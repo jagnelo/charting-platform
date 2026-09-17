@@ -731,6 +731,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   authenticated on reads; exact retries replay while distinct decisions remain
   separate audit evidence. Publication bytes, completion coordination,
   migrations, authorization, and route wiring remain outside the adapter.
+- `postgres_runtime_execution.py` maps accepted runtime state and immutable
+  sandbox update receipts to owner-scoped additive PostgreSQL tables. Runtime
+  transitions are resolved through the pure monotonic contract, committed with
+  compare-and-set state updates, and replayed by exact sequence/fingerprint;
+  sandbox materialization commits running and terminal evidence atomically.
+  Process execution, artifact bytes, migrations, authorization, and official
+  result publication remain separate integration concerns.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

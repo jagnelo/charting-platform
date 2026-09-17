@@ -11,6 +11,24 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable runtime-execution checkpoint
+
+`postgres_runtime_execution.py` now maps accepted `RuntimeExecutionState`
+values and immutable `RuntimeExecutionUpdate` receipts to owner-scoped additive
+PostgreSQL tables. Initialization is idempotent, every update is resolved by
+the pure monotonic runtime contract and committed with a compare-and-set state
+write, and exact sequence/fingerprint retries replay while conflicting content
+is rejected. Sandbox result materialization verifies request/plan evidence and
+commits running plus terminal receipts atomically, preserving bounded output or
+typed failure identity for restart recovery. Process execution, artifact bytes,
+migrations, authorization, and official result publication remain separate
+integration gates.
+
+The focused runtime persistence suite passes 5 tests in addition to the
+existing runtime contract coverage. Package/static and combined coverage
+evidence will be recorded after this boundary is committed and rerun; upstream
+reconciliation and stable Nautilus execution remain open gates.
+
 ## 2026-09-17 - Durable result-publication checkpoint
 
 `postgres_result_publication.py` now maps immutable publish/replay/reject
