@@ -11,6 +11,21 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable acquisition-receipt checkpoint
+
+`postgres_acquisition.py` now maps provider-produced acquisition receipts to an
+owner-scoped additive PostgreSQL handoff registry keyed by the preflight request
+identity. Snapshot, provider-snapshot, coverage-resolution, and opaque provider
+receipt digests are authenticated before reuse; exact retries replay while
+changed handoffs conflict. Provider fetching/repair, snapshot creation,
+execution admission, shared migrations, authorization, and application wiring
+remain outside this adapter.
+
+The focused acquisition-adapter suite passed 4 tests. Package/static and
+combined coverage evidence will be recorded after this boundary is committed
+and rerun; upstream reconciliation and stable Nautilus execution remain open
+gates.
+
 ## 2026-09-17 - Durable capability-summary checkpoint
 
 `postgres_capability.py` now maps immutable data/engine capability summaries to

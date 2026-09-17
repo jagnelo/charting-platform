@@ -698,6 +698,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   altered projections conflict instead of silently replacing preflight
   evidence. Capability calculation, provider entitlement, engine registration,
   migrations, and API authorization remain outside the adapter.
+- `postgres_acquisition.py` maps provider-produced acquisition receipts to an
+  owner-scoped additive PostgreSQL handoff registry keyed by the preflight
+  request identity. Frozen snapshot, provider snapshot, coverage-resolution,
+  and opaque provider-receipt digests are authenticated before reuse; exact
+  retries replay and changed handoffs conflict. Fetching, repair, snapshot
+  creation, provider policy, migrations, and execution admission remain
+  outside this adapter.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.
