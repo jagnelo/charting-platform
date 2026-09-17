@@ -744,6 +744,17 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 configured-provider live validation: with the owner-local
+      durable quota coordinator available, the configured MarketData.app trial
+      focused live suite passed 7/7 tests with 9 HTTP requests, including
+      account usage, latest price, intraday history, option chain/expirations,
+      and option quote history; the intentional unbounded-history guard made
+      no request. The configured Dinari credentials passed the explicitly
+      bounded 24-request Sandbox canary 1/1. This is transport/schema evidence
+      only and does not promote Dinari to routing because Sandbox quota and
+      commercial terms remain unknown. Receipts contain aggregate telemetry
+      only; no frontend or ETF files changed.
+    - >-
       2026-09-17 EODHD routing-control regression correction: the diagnostic
       path no longer rejects a positive reviewed minute entitlement merely
       because it exceeds the old 1,000/minute conservative seed. The

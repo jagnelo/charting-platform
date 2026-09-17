@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-17 — Configured-provider live validation
+
+- [x] Run the configured MarketData.app trial through the durable live-test
+      coordinator: focused suite passed `7/7` with `9` HTTP requests, including
+      account usage, latest price, intraday history, option chain/expirations,
+      and option quote history; the unbounded response-priced history guard
+      made no request as intended.
+- [x] Run the configured Dinari Sandbox credentials through the explicit
+      `24`-request canary: `1/1` passed. Keep this as Sandbox transport/schema
+      evidence only; unknown Sandbox quota/commercial terms keep ordinary
+      routing disabled.
+- [x] Verify the live receipts contain only redacted aggregate telemetry while
+      the durable owner-local quota ledger remains outside Git; no secrets or
+      provider payloads were persisted.
+
 ### 2026-09-17 — EODHD reviewed-entitlement routing correction
 
 - [x] Remove the obsolete routing-diagnostic ceiling that rejected reviewed

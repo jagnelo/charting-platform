@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 configured-provider live validation
+
+- With the owner-local quota coordinator running under elevated filesystem
+  access, the configured MarketData.app trial passed its focused live suite:
+  `7/7` tests and `9` HTTP requests, including account usage, latest price,
+  intraday history, option chain/expirations, and option quote history. The
+  response-priced history guard correctly made no request because its reviewed
+  result/credit ceiling is still absent.
+- The configured Dinari credentials passed the explicitly authorized Sandbox
+  canary (`1/1` test) under a `24`-request process cap. This is transport and
+  schema evidence only; Sandbox quota/commercial terms remain unknown and the
+  provider is not promoted to ordinary routing.
+- The receipts contain aggregate request/byte telemetry only. No credential,
+  response payload, frontend file, or ETF-provider adapter changed.
+
 ## 2026-09-17 EODHD reviewed-entitlement routing correction
 
 - The EODHD quota seed already accepted a positive operator-reviewed native
