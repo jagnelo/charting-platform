@@ -3224,6 +3224,14 @@ passed 13 tests, Ruff, and MyPy for the changed modules. The branch remains
 stable Nautilus execution, frontend work, promotion, and deployment remain
 deferred.
 
+## 2026-09-17 - Combined backend coverage revalidation
+
+The exact pushed checkpoint tip passed the Docker-backed combined coverage gate:
+2,318 tests passed with 83.65% total coverage, above the required 75% threshold.
+PostgreSQL/Redis setup and cleanup completed successfully, and the run produced
+the combined coverage reports. This supersedes the earlier transient connection
+refusal record; no product or shared-path integration gates were changed.
+
 ## 2026-09-17 - SDK UTC event-time normalization checkpoint
 
 `MarketEvent` and `StrategyContext` now normalize every aware event time to
@@ -3264,16 +3272,6 @@ passed 668 tests with Ruff, MyPy, `git diff --check`, and workstream validation
 green. Worker image/entrypoint, application scheduling, migrations, upstream
 reconciliation, and authoritative Nautilus execution remain deferred behind
 the existing gates.
-
-## 2026-09-17 - Combined backend coverage revalidation
-
-The repository-authoritative `make test-backend-coverage` gate now passes at
-the current implementation tip: 2,316 backend unit, integration, and Strategy
-Lab v2 tests completed with 83.65% combined coverage, exceeding the required
-75% threshold. Docker setup and cleanup completed successfully, including the
-PostgreSQL/Redis-backed integration suite. This supersedes the earlier
-transient connection-refusal attempt; shared-path integration and stable
-Nautilus release execution remain gated by the approved plan.
 
 ## 2026-09-17 - Metric-set identity canonicalization checkpoint
 
