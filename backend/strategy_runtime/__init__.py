@@ -19,6 +19,7 @@ from strategy_runtime.protocol import (
     serialize_invocation_result,
 )
 from strategy_runtime.runner import (
+    RUNTIME_ERROR_EVIDENCE_VERSION,
     InvocationStatus,
     StrategyInvocationResult,
     StrategyInvocationSession,
@@ -29,6 +30,7 @@ from strategy_runtime.runner import (
 
 __all__ = [
     "InvocationStatus",
+    "RUNTIME_ERROR_EVIDENCE_VERSION",
     "StrategyInvocationResult",
     "StrategyInvocationSession",
     "BATCH_WIRE_PROTOCOL_VERSION",

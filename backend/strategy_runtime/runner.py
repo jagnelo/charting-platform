@@ -161,8 +161,20 @@ def _restricted_builtins() -> dict[str, Any]:
     return result
 
 
+RUNTIME_ERROR_EVIDENCE_VERSION = "strategy-lab.strategy-runtime.error.v1"
+
+
 def _error_digest(error: BaseException) -> str:
-    return content_digest({"type": type(error).__name__, "message": str(error)})
+    """Return deterministic private failure evidence without exception text.
+
+    Exception messages can contain strategy data, memory addresses, or other
+    process-specific values. The runtime result intentionally exposes only a
+    versioned exception-type identity; the context and source digests already
+    bind the failed invocation itself.
+    """
+
+    error_type = f"{type(error).__module__}.{type(error).__qualname__}"
+    return content_digest({"type": error_type, "version": RUNTIME_ERROR_EVIDENCE_VERSION})
 
 
 def _rejected(
@@ -597,6 +609,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 __all__ = [
     "InvocationStatus",
+    "RUNTIME_ERROR_EVIDENCE_VERSION",
     "StrategyInvocationResult",
     "StrategyInvocationSession",
     "main",

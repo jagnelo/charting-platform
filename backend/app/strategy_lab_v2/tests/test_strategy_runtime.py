@@ -147,6 +147,35 @@ class Strategy:
     assert "MSFT" not in str(bad_output.error_digest)
 
 
+def test_runtime_failure_digest_is_stable_and_excludes_exception_message() -> None:
+    first_source = """
+class Strategy:
+    def on_event(self, context):
+        raise RuntimeError('first private detail')
+"""
+    second_source = first_source.replace("first private detail", "second private detail")
+    first_manifest = _manifest(first_source)
+    second_manifest = _manifest(second_source)
+
+    first = run_strategy_event(
+        first_source,
+        manifest=first_manifest,
+        context=_context(first_manifest),
+        entrypoint="strategy.main:Strategy",
+    )
+    second = run_strategy_event(
+        second_source,
+        manifest=second_manifest,
+        context=_context(second_manifest),
+        entrypoint="strategy.main:Strategy",
+    )
+
+    assert first.status is InvocationStatus.FAILED
+    assert second.status is InvocationStatus.FAILED
+    assert first.error_digest == second.error_digest
+    assert "private detail" not in str(first.error_digest)
+
+
 def test_runtime_restricts_imports_even_when_called_without_a_container() -> None:
     source = """
 from os import environ

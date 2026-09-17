@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -81,7 +81,7 @@ def _load_json(payload: str, field_name: str) -> Any:
 def _iso_datetime(value: datetime) -> str:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("wire datetimes must be timezone-aware")
-    return value.isoformat(timespec="microseconds").replace("+00:00", "Z")
+    return value.astimezone(UTC).isoformat(timespec="microseconds").replace("+00:00", "Z")
 
 
 def _decode_datetime(value: Any, field_name: str) -> datetime:
@@ -93,7 +93,7 @@ def _decode_datetime(value: Any, field_name: str) -> datetime:
         raise ValueError(f"{field_name} must be an ISO-8601 timestamp") from error
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise ValueError(f"{field_name} must be timezone-aware")
-    return parsed
+    return parsed.astimezone(UTC)
 
 
 def _encode_value(value: Any) -> Any:

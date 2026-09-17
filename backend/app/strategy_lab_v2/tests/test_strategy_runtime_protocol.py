@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 
 import pytest
@@ -230,6 +230,43 @@ class Strategy:
     )
     with pytest.raises(ValueError, match="fingerprint"):
         deserialize_invocation_batch_result(tampered)
+
+
+def test_wire_datetimes_normalize_equivalent_offsets_to_utc() -> None:
+    source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
+    manifest = _manifest(source)
+    offset = timezone(timedelta(hours=2))
+    offset_event = MarketEvent(
+        "daily-bars",
+        "bar-1",
+        "US.AAPL",
+        NOW.astimezone(offset),
+        1,
+        {"close": Decimal("190"), "tags": frozenset({"regular", "close"})},
+    )
+    offset_context = replace(
+        _context(),
+        event_time=NOW.astimezone(offset),
+        market_events={"daily-bars": (offset_event,)},
+    )
+
+    encoded_utc = serialize_invocation(
+        source=source,
+        manifest=manifest,
+        context=_context(),
+        entrypoint="strategy.main:Strategy",
+    )
+    encoded_offset = serialize_invocation(
+        source=source,
+        manifest=manifest,
+        context=offset_context,
+        entrypoint="strategy.main:Strategy",
+    )
+
+    assert encoded_offset == encoded_utc
+    decoded = deserialize_invocation(encoded_offset)[2]
+    assert decoded.event_time.tzinfo is UTC
+    assert decoded.market_events["daily-bars"][0].event_time.tzinfo is UTC
 
 
 def test_batch_wire_rejects_empty_contexts_unknown_fields_and_versions() -> None:
