@@ -745,6 +745,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   authenticated on every read. Nested manifest decoding, artifact bytes,
   migrations, authorization, and publication remain separate integration
   concerns.
+- `postgres_runtime_receipts.py` retains immutable strategy-runtime request and
+  isolation-preflight evidence as owner-scoped canonical projections. Request
+  and preflight payloads are independently content-addressed, exact retries
+  replay, changed content conflicts against the same attempt/request, and
+  rejected preflight reasons remain inspectable without exposing secrets or
+  starting a process.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

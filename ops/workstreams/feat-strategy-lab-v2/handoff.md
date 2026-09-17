@@ -11,6 +11,21 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable runtime-receipts checkpoint
+
+`postgres_runtime_receipts.py` now retains immutable strategy-runtime request
+and isolation-preflight evidence as owner-scoped canonical projections. Request
+and preflight payloads carry independent content-addressed identities; exact
+retries replay, changed content conflicts against the same attempt/request, and
+rejected preflight reasons remain inspectable without exposing secrets or
+starting a process. The adapter is registration-neutral and does not mutate
+runtime execution state; process execution, migrations, authorization, and
+application wiring remain open gates.
+
+The focused runtime-receipts suite passes 4 tests. Package/static and combined
+coverage evidence will be recorded after this boundary is committed and rerun;
+upstream reconciliation and stable Nautilus execution remain open gates.
+
 ## 2026-09-17 - Durable result-manifest checkpoint
 
 `postgres_result_materialization.py` now retains immutable `RunResultManifest`
