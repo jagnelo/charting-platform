@@ -16,10 +16,13 @@
   including the native usage snapshot, discovery, latest/history, and price;
   its aggregate receipt records `17,616,811` response bytes and no payloads or
   credentials.
-- The receipt is marked `not_current_source` because this validation exercised
-  the uncommitted correction. The correction still requires the full backend
-  unit gate and branch validation before commit; all other provider-specific,
-  legal/source, universe, target-secret, and final-shadow gates remain open.
+- The initial receipt is marked `not_current_source` because it exercised the
+  uncommitted correction. After commit `c2907967c`, the same bounded suite was
+  replayed and passed `3/3` with seven requests at source
+  `c2907967c8aaedbfa85d520dbaaab0d2baa21f0e`; the receipt has no dirty source
+  paths. Full unit, workflow, Compose, diff, and workstream gates are green.
+  All other provider-specific, legal/source, universe, target-secret, and
+  final-shadow gates remain open.
 
 ## 2026-09-17 configured-provider live validation
 

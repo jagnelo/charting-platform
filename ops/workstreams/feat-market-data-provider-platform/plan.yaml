@@ -744,6 +744,15 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 post-commit live evidence: after committing the native-usage
+      bootstrap correction as `c2907967c`, the bounded Binance matrix was
+      replayed against source `c2907967c8aaedbfa85d520dbaaab0d2baa21f0e` with
+      no dirty source paths. The native account-usage snapshot ran first and
+      all three cases passed with seven HTTP requests and 17,616,811 aggregate
+      response bytes. Full backend unit coverage passed 2,366/2,366 with 37
+      warnings and 70.82% coverage; workflow 46/46, Compose/deployment
+      contracts, diff checks, and workstream validation also passed.
+    - >-
       2026-09-17 native-usage bootstrap admission correction: the live
       preflight now permits only providers with an explicit manifest
       `fetch_account_usage` case to establish an expired fixed-window baseline

@@ -12,9 +12,11 @@
       account-usage snapshot ran first and the bounded matrix passed `3/3`
       with seven requests. The aggregate receipt is redacted and marked
       `not_current_source` until the correction is committed.
-- [ ] Replay the full backend unit gate and branch validation, then commit the
-      correction. Keep all other provider quota, legal/source, universe,
-      deployment-secret, and final-shadow gates unchanged.
+- [x] Replay the full backend unit gate and branch validation, commit the
+      correction as `c2907967c`, and replay the same bounded Binance suite
+      against the committed source (`3/3`, seven requests, no dirty paths).
+      Keep all other provider quota, legal/source, universe, deployment-secret,
+      and final-shadow gates unchanged.
 
 ### 2026-09-17 — Configured-provider live validation
 
