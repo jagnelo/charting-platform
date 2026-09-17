@@ -842,8 +842,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   executor revalidates the complete hardened argv immediately before spawn so
   manually forged plans cannot add host networking, privilege, writable-root,
   or unbounded-process controls. Typed results distinguish success, non-zero
-  exit, timeout, output overflow, and process-start failure; Docker remains the
-  production command boundary.
+  exit, timeout, output overflow, and process-start failure. Process-start
+  evidence is a versioned exception-type digest rather than a host-specific OS
+  error string, preserving deterministic identities without exposing paths.
+  Docker remains the production command boundary.
 - `backend/strategy_runtime/` provides the restricted invocation runner used
   inside that command boundary. It binds source bytes to the declared digest,
   repeats static source preflight, exposes only the engine-neutral SDK symbols

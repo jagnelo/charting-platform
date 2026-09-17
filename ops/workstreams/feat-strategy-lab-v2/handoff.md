@@ -160,6 +160,17 @@ oversized request. The focused runtime/custom-metric protocol suite passes 23
 tests, and the complete Strategy Lab v2 package passes 696 tests; worker image
 activation, application wiring, and stable Nautilus execution remain deferred.
 
+## 2026-09-17 - Deterministic sandbox start-failure evidence
+
+Sandbox process-start failures now publish a versioned digest of the fully
+qualified exception type instead of hashing the OS error string. Host-specific
+paths and launcher details therefore cannot create divergent run identities or
+leak through evidence, while timeout and output-limit evidence remains unchanged.
+Regression coverage confirms two different missing launch paths produce the same
+typed start-failure digest. The package and exact-worktree coverage gates remain
+green; worker activation, application wiring, and stable Nautilus execution
+remain deferred.
+
 ## 2026-09-17 - Runtime wire source-binding hardening
 
 Single and batch invocation serializers and decoders now verify that the source
