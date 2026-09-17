@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta, timezone
 
 from app.strategy_lab_v2.canonical import content_digest
@@ -138,3 +139,18 @@ def test_forward_event_and_cursor_times_normalize_to_utc_for_identity() -> None:
     assert offset_event.event_time == NOW
     assert cursor.last_event_time == NOW
     assert content_digest(offset_event) == content_digest(event)
+
+
+def test_forward_instance_times_normalize_to_utc_for_identity() -> None:
+    offset = timezone(timedelta(hours=2))
+    instance = _instance()
+    offset_instance = _instance()
+    offset_instance = replace(
+        offset_instance,
+        created_at=(NOW + timedelta(hours=2)).replace(tzinfo=offset),
+        updated_at=(NOW + timedelta(hours=2)).replace(tzinfo=offset),
+    )
+
+    assert offset_instance.created_at == instance.created_at
+    assert offset_instance.updated_at == instance.updated_at
+    assert content_digest(offset_instance) == content_digest(instance)

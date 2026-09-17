@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -131,6 +131,18 @@ def test_warmup_completion_time_and_live_cursor_are_monotonic() -> None:
     overwritten = resolve_forward_warmup(with_cursor, _receipt())
     assert overwritten.decision is ForwardWarmupDecision.REJECT
     assert "existing live cursor" in (overwritten.rejection_reason or "")
+
+
+def test_warmup_receipt_time_normalizes_to_utc_for_identity() -> None:
+    offset = timezone(timedelta(hours=2))
+    completed_at = NOW + timedelta(minutes=1)
+    offset_receipt = _receipt(
+        completed_at=(completed_at + timedelta(hours=2)).replace(tzinfo=offset)
+    )
+    utc_receipt = _receipt(completed_at=completed_at)
+
+    assert offset_receipt.completed_at == completed_at
+    assert offset_receipt.fingerprint == utc_receipt.fingerprint
 
 
 def test_warmup_receipt_identity_requires_event_id_for_nonzero_sequence() -> None:

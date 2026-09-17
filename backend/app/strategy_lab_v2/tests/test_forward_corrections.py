@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -8,6 +9,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import CarryInMode, ForwardInstance, ForwardState
 from app.strategy_lab_v2.forward_admission import admit_forward_event
 from app.strategy_lab_v2.forward_corrections import (
+    CounterfactualReplayPlan,
     ForwardCorrectionCommand,
     ForwardCorrectionDecision,
     resolve_forward_correction,
@@ -157,3 +159,30 @@ def test_correction_command_requires_valid_digest_and_reason() -> None:
         ForwardCorrectionCommand("bad", "forward-1", "correction", "original", content_digest("base"), NOW, "reason")
     with pytest.raises(ValueError, match="base_checkpoint"):
         ForwardCorrectionCommand(content_digest("command"), "forward-1", "correction", "original", "bad", NOW, "reason")
+
+
+def test_correction_command_and_plan_times_normalize_to_utc() -> None:
+    offset = timezone(timedelta(hours=2))
+    command = _command(content_digest("base"))
+    offset_command = replace(
+        command,
+        requested_at=(command.requested_at + timedelta(hours=2)).replace(tzinfo=offset),
+    )
+    assert offset_command.requested_at == command.requested_at
+    assert offset_command.fingerprint == command.fingerprint
+
+    plan = CounterfactualReplayPlan(
+        replay_id=content_digest("replay"),
+        instance_id="forward-1",
+        correction_event_id="correction-1",
+        original_event_id="live-0",
+        base_checkpoint_fingerprint=content_digest("base"),
+        warmup_receipt_fingerprint=content_digest("warmup"),
+        planned_at=NOW + timedelta(minutes=4),
+    )
+    offset_plan = replace(
+        plan,
+        planned_at=(plan.planned_at + timedelta(hours=2)).replace(tzinfo=offset),
+    )
+    assert offset_plan.planned_at == plan.planned_at
+    assert offset_plan.fingerprint == plan.fingerprint

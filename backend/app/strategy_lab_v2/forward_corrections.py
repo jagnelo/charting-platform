@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -47,6 +47,7 @@ class ForwardCorrectionCommand:
         )
         _aware(self.requested_at, "requested_at")
         _nonempty(self.reason, "reason")
+        object.__setattr__(self, "requested_at", self.requested_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:
@@ -81,6 +82,7 @@ class CounterfactualReplayPlan:
         for name in ("base_checkpoint_fingerprint", "warmup_receipt_fingerprint"):
             require_sha256_digest(getattr(self, name), field_name=name)
         _aware(self.planned_at, "planned_at")
+        object.__setattr__(self, "planned_at", self.planned_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:

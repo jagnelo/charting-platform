@@ -205,6 +205,17 @@ and the complete Strategy Lab v2 package passes 701 tests; persistence migration
 event-stream wiring, worker activation, and stable Nautilus execution remain
 deferred.
 
+## 2026-09-17 - Forward lifecycle temporal identities
+
+Forward instance `created_at`/`updated_at`, warm-up receipt `completed_at`,
+correction command `requested_at`, and counterfactual replay-plan `planned_at`
+now normalize aware offsets to UTC during immutable construction. Restart,
+warm-up, and correction records therefore retain one identity for equivalent
+instants regardless of transport offset formatting. Regression coverage adds
+three identity tests; the complete Strategy Lab v2 package passes 704 tests.
+Persistence migration, event-stream wiring, worker activation, and stable
+Nautilus execution remain deferred.
+
 ## 2026-09-17 - Runtime wire source-binding hardening
 
 Single and batch invocation serializers and decoders now verify that the source

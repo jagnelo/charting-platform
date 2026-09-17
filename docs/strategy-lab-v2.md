@@ -75,7 +75,11 @@ rejecting forged accepted/gap classifications and cursor movement; buffered
 event IDs remain content-bound, so a changed retry is a conflict rather than a
 silent replacement. Canonical forward event and cursor timestamps normalize
 aware offsets to UTC before comparison and fingerprinting, keeping equivalent
-instants on one replay identity.
+instants on one replay identity. Forward instance lifecycle timestamps,
+warm-up completion timestamps, correction request timestamps, and
+counterfactual replay-plan timestamps apply the same UTC normalization before
+identity checks, so restart, warm-up, and correction records cannot diverge on
+offset formatting alone.
 
 ## Current engine-neutral package
 

@@ -339,6 +339,7 @@ remaining_gaps:
   - Forward admission now validates observation structure and cursor/disposition semantics against live state, and content-checks buffered event retries before mutation; persistence and event-stream wiring remain open.
   - Strategy and custom-metric single/batch serializers now enforce the 16 MiB wire bound before emitting request or result envelopes; worker activation and application wiring remain open.
   - Canonical forward event and cursor timestamps now normalize aware offsets to UTC before comparison and fingerprinting; persistence migration and event-stream wiring remain open.
+  - Forward instance lifecycle, warm-up receipt, correction-command, and counterfactual replay-plan timestamps now normalize aware offsets to UTC before identity checks; persistence migration, event-stream wiring, and worker/application wiring remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -385,7 +386,8 @@ progress:
     - forward-observation-admission-integrity
     - bounded-runtime-wire-serialization
     - canonical-forward-event-time-identities
+    - forward-lifecycle-temporal-identities
   total: 18
-  current_phase: canonical-forward-event-time-identities-staging-ready-for-human-review
+  current_phase: forward-lifecycle-temporal-identities-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary

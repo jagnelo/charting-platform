@@ -1669,5 +1669,9 @@ class ForwardInstance:
             raise ValueError("a forward event sequence requires its last_event_id")
         _aware(self.created_at, "created_at")
         _aware(self.updated_at, "updated_at")
-        if self.updated_at < self.created_at:
+        created_at = self.created_at.astimezone(UTC)
+        updated_at = self.updated_at.astimezone(UTC)
+        if updated_at < created_at:
             raise ValueError("updated_at must not precede created_at")
+        object.__setattr__(self, "created_at", created_at)
+        object.__setattr__(self, "updated_at", updated_at)

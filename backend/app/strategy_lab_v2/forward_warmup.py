@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -58,6 +58,7 @@ class ForwardWarmupReceipt:
                 raise ValueError("final_event_fingerprint requires final_event_id")
         elif self.final_event_id is not None:
             raise ValueError("final_event_id requires final_event_fingerprint")
+        object.__setattr__(self, "completed_at", self.completed_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:
