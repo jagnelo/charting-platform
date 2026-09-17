@@ -38,6 +38,23 @@ event-stream/worker
 wiring, application authorization, upstream reconciliation, and stable Nautilus
 execution remain open shared-path gates.
 
+## 2026-09-17 - Durable search-state checkpoint
+
+`postgres_search_state.py` now maps immutable experiment queues and candidate
+checkpoints to additive PostgreSQL tables. Candidate starts/retries, terminal
+receipts, and cancellation requests delegate to the pure search state machine,
+then update candidate and experiment fingerprints through one owner-scoped
+compare-and-set transaction. Exact retries replay, while missing, foreign,
+malformed, or tampered candidate rows fail closed; dispatch transport, worker
+execution, migrations, and application wiring remain outside this adapter.
+
+The focused search-state adapter suite passed 4 tests. The complete Strategy
+Lab v2 package passed 570 tests with Ruff, MyPy, and `git diff --check` clean.
+All five declared branch checks passed, and the Docker-backed combined gate
+passed 2,217 tests with 83.26% total coverage (required threshold: 75%), with
+setup and cleanup successful. Shared migrations, API/worker integration,
+upstream reconciliation, and stable Nautilus execution remain open gates.
+
 ## 2026-09-17 - Durable artifact-lineage checkpoint
 
 `postgres_lineage.py` now maps owner-scoped immutable artifact-lineage edges to

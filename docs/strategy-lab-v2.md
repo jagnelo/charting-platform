@@ -670,6 +670,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   so a correction can never be admitted without replay evidence. The adapter
   never fetches provider data, submits broker orders, starts workers, or applies
   migrations.
+- `postgres_search_state.py` maps immutable experiment queues and candidate
+  checkpoints to additive PostgreSQL tables. Candidate starts/retries,
+  terminal receipts, and cancellation requests delegate to the pure search
+  state machine and persist only through owner-scoped row locks and
+  compare-and-set fingerprints. Exact retries replay, while candidate or
+  experiment tampering fails closed; dispatch transport and worker effects
+  remain separate integration concerns.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.
