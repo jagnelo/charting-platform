@@ -171,7 +171,9 @@ remaining_gaps:
     matching filing in the retrieved submissions response rather than applying
     the compatibility-only local max-events cap. Migration
     `ce5f6a7b8c9d_add_provider_pagination_state.py` and focused regressions are
-    present; Docker-backed full validation of this source change remains open.
+    present; the exact-source Docker-backed full validation is closed with
+    2,766/2,766 tests passed, 89 warnings, and 82.05% coverage at source
+    `0e1492a45`.
   - >-
     Resolved in the current source: Alpaca's official market-data contract
     documents a 200-requests/minute pool and native
