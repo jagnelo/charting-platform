@@ -2,28 +2,30 @@
 
 The REST router intentionally accepts registration-neutral resource envelopes.
 This module is the first application-owned domain boundary: it turns strategy,
-package, and portfolio resources into immutable :class:`StrategyVersion`,
-:class:`StrategyPackage`, and :class:`PortfolioComposition` contracts before
-the application persists them, while leaving other resource types available to
-their future domain adapters.
+package, portfolio, experiment, and attempt resources into immutable typed
+contracts before the application persists them, while leaving other resource
+types available to their future domain adapters.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from app.strategy_lab_v2.api_resources import ApiResourceType
-from app.strategy_lab_v2.canonical import freeze_json, require_sha256_digest
+from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
 from app.strategy_lab_v2.contracts import (
+    AttemptState,
     ExperimentDefinition,
     PortfolioComponent,
     PortfolioComposition,
     ProductClass,
     ProductRiskModel,
     RiskExposureMeasure,
+    RunAttempt,
     SharedRiskPolicy,
     StrategyDependency,
     StrategyPackage,
@@ -80,6 +82,8 @@ def normalize_resource_attributes(
         return _normalize_portfolio(attributes)
     if resource_type is ApiResourceType.EXPERIMENT:
         return _normalize_experiment(attributes)
+    if resource_type is ApiResourceType.ATTEMPT:
+        return _normalize_attempt(attributes)
     return ResourceDomainNormalization(attributes)
 
 
@@ -374,6 +378,72 @@ def _normalize_experiment(attributes: Mapping[str, Any]) -> ResourceDomainNormal
     if api_ids:
         normalized["resource_id"] = api_ids[0]
     return ResourceDomainNormalization(normalized, experiment.fingerprint)
+
+
+def _datetime_attribute(value: Any, field_name: str) -> datetime:
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as error:
+            raise ValueError(f"{field_name} must be an ISO-8601 timestamp") from error
+    if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError(f"{field_name} must be a timezone-aware timestamp")
+    return value.astimezone(UTC)
+
+
+def _normalize_attempt(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
+    allowed = {
+        "attempt_id",
+        "trial_id",
+        "ordinal",
+        "state",
+        "created_at",
+        "updated_at",
+        "resource_id",
+        "id",
+    }
+    unknown = sorted(set(attributes) - allowed)
+    if unknown:
+        raise ValueError(f"attempt attributes contain unsupported fields: {', '.join(unknown)}")
+    api_ids = [attributes[name] for name in ("resource_id", "id") if name in attributes]
+    if any(not isinstance(value, str) or not value.strip() for value in api_ids):
+        raise ValueError("attempt resource_id/id must be a non-empty string")
+    if len(api_ids) == 2 and api_ids[0] != api_ids[1]:
+        raise ValueError("attempt resource_id and id must agree")
+    try:
+        attempt = RunAttempt(
+            attempt_id=attributes["attempt_id"],
+            trial_id=attributes["trial_id"],
+            ordinal=attributes["ordinal"],
+            state=_enum_attribute(AttemptState, attributes["state"], "attempt state"),
+            created_at=_datetime_attribute(attributes["created_at"], "created_at"),
+            updated_at=(
+                _datetime_attribute(attributes["updated_at"], "updated_at")
+                if "updated_at" in attributes
+                else None
+            ),
+        )
+    except KeyError as error:
+        raise ValueError(f"attempt attribute is required: {error.args[0]}") from error
+    except (AttributeError, TypeError, ValueError) as error:
+        raise ValueError(f"attempt attributes are invalid: {error}") from error
+
+    normalized: dict[str, Any] = {
+        "attempt_id": attempt.attempt_id,
+        "trial_id": attempt.trial_id,
+        "ordinal": attempt.ordinal,
+        "state": attempt.state,
+        "created_at": attempt.created_at,
+        "updated_at": attempt.updated_at,
+    }
+    if api_ids:
+        normalized["resource_id"] = api_ids[0]
+    identity = {
+        "attempt_id": attempt.attempt_id,
+        "trial_id": attempt.trial_id,
+        "ordinal": attempt.ordinal,
+    }
+    return ResourceDomainNormalization(normalized, content_digest(identity))
 
 
 def _portfolio_component(value: Any) -> PortfolioComponent:

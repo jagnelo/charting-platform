@@ -124,6 +124,21 @@ Strategy Lab v2 package passed 792 tests. Compose activation, stable Nautilus
 conformance, upstream contract reconciliation, and full repository integration
 remain open.
 
+## 2026-09-17 - Typed run-attempt resource registration
+
+`resource_domains.py` now extends typed mutation validation to run attempts.
+Attempt identity, trial linkage, positive ordinal, lifecycle state, and
+timezone-aware creation/update timestamps are decoded into the immutable
+`RunAttempt` contract; API ID aliases and malformed timestamps/states fail
+closed. A stable identity digest excludes mutable timestamps/state while the
+normalized lifecycle envelope remains available to the owner-scoped
+compare-and-set and exact-replay bridge.
+
+Focused attempt/domain/application tests passed (17 tests); the full Strategy
+Lab v2 package passed 794 tests. Compose activation, stable Nautilus
+conformance, upstream contract reconciliation, and full repository integration
+remain open.
+
 ## 2026-09-17 - Executable Nautilus conformance harness
 
 `conformance_fixtures.py` now exposes `execute_conformance_suite(...)`, an

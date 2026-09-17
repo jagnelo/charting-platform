@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -266,3 +267,42 @@ def test_experiment_rejects_non_integer_seed_and_unknown_fields() -> None:
     unknown["seed"] = 42
     with pytest.raises(ValueError, match="unsupported fields"):
         normalize_resource_attributes(ApiResourceType.EXPERIMENT, unknown)
+
+
+def test_attempt_attributes_are_normalized_with_utc_lifecycle_timestamps() -> None:
+    created_at = datetime(2026, 9, 17, 12, 0, tzinfo=UTC)
+    result = normalize_resource_attributes(
+        ApiResourceType.ATTEMPT,
+        {
+            "attempt_id": content_digest("attempt-1"),
+            "trial_id": content_digest("trial-1"),
+            "ordinal": 1,
+            "state": "queued",
+            "created_at": "2026-09-17T12:00:00Z",
+            "updated_at": created_at,
+            "resource_id": "attempt-1",
+        },
+    )
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["state"] == "queued"
+    assert result.attributes["created_at"] == created_at
+    assert result.attributes["updated_at"] == created_at
+    assert result.attributes["resource_id"] == "attempt-1"
+
+
+def test_attempt_rejects_naive_timestamps_and_invalid_state() -> None:
+    attributes = {
+        "attempt_id": content_digest("attempt-1"),
+        "trial_id": content_digest("trial-1"),
+        "ordinal": 1,
+        "state": "not-a-state",
+        "created_at": "2026-09-17T12:00:00",
+    }
+
+    with pytest.raises(ValueError, match="invalid"):
+        normalize_resource_attributes(ApiResourceType.ATTEMPT, attributes)
+
+    attributes["state"] = "queued"
+    with pytest.raises(ValueError, match="timezone-aware"):
+        normalize_resource_attributes(ApiResourceType.ATTEMPT, attributes)

@@ -106,8 +106,17 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     package_clock = NOW.replace(hour=16)
     portfolio_clock = NOW.replace(hour=17)
     experiment_clock = NOW.replace(hour=18)
+    attempt_clock = NOW.replace(hour=19)
     clocks = iter(
-        (accepted_at, conflict_clock, strategy_clock, package_clock, portfolio_clock, experiment_clock)
+        (
+            accepted_at,
+            conflict_clock,
+            strategy_clock,
+            package_clock,
+            portfolio_clock,
+            experiment_clock,
+            attempt_clock,
+        )
     )
     adapter._clock = lambda: next(clocks)
     request = ResourceMutationRequest(
@@ -250,3 +259,26 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     assert experiment.receipt is not None
     assert experiment.receipt.resource.attributes["seed"] == 42
     assert experiment.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")
+
+    attempt = await adapter.create_resource(
+        principal=_User(42),
+        request_id="request-8",
+        request=ResourceMutationRequest(
+            ApiResourceType.ATTEMPT,
+            "attempt-key",
+            {
+                "attributes": {
+                    "attempt_id": content_digest("attempt-1"),
+                    "trial_id": content_digest("trial-1"),
+                    "ordinal": 1,
+                    "state": "queued",
+                    "created_at": "2026-09-17T12:00:00Z",
+                }
+            },
+            NOW,
+        ),
+    )
+    assert attempt.resolution.decision.value == "accept"
+    assert attempt.receipt is not None
+    assert attempt.receipt.resource.attributes["state"] == "queued"
+    assert attempt.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")
