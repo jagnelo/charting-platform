@@ -893,13 +893,19 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   read so tampering or path/symlink escapes fail closed. Its retention-aware
   collector verifies the same bytes again and removes them only for an explicit
   tier/expiry-eligible, unpinned decision; retained and missing content are
-  idempotently reported, with directory fsync after deletion.
+  idempotently reported, with directory fsync after deletion. Its cleanup
+  reconciler treats PostgreSQL commit records as authoritative, removes only
+  digest-verified aged uncommitted content or recognized crash-left temporary
+  files, retains fresh/committed entries, and never touches unknown files.
 - `artifact_application.py` composes that byte store with the PostgreSQL commit
   ledger. It verifies and publishes bytes before finalizing durable commit
   evidence, maps exact retries to replayed commit records, and exposes an
   explicit factory with a caller-supplied NAS-mountable root. A crash between
   byte publication and metadata finalization leaves only an immutable orphan
-  for later reconciliation; it cannot overwrite a committed digest.
+  for later reconciliation; it cannot overwrite a committed digest. The
+  application cleanup service and cancellable scheduler provide bounded,
+  explicit-time reconciliation cycles without starting workers or hiding
+  failures.
 - `persistence.py` composes every registration-neutral PostgreSQL v2 adapter
   over one async session factory, exposing a single application-owned graph for
   resource, lifecycle, result, coverage, capability, lineage, artifact, and
@@ -907,7 +913,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   initial API slice, and artifact publication can be created from the same
   graph with an explicit local/NAS-mountable root. Its retention service first
   resolves PostgreSQL retention at an explicit observation time, then invokes
-  the guarded collector; orphan discovery and scheduling remain caller-owned.
+  the guarded collector; its cleanup factory shares the authoritative commit
+  ledger for orphan discovery and scheduled reconciliation.
 - `artifacts.py` and `ArtifactManifest` enforce typed byte lengths, retention
   classes, and authenticated integrity receipts. Verified receipts cannot claim
   success with mismatched observed bytes, and failure reasons are canonicalized

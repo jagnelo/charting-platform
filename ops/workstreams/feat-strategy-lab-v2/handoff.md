@@ -12,6 +12,28 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Artifact orphan reconciliation and scheduled cleanup
+
+`LocalArtifactStore.cleanup_uncommitted()` now scans only the store's
+sharded content-addressed entries and recognized crash-left publication
+temporaries. PostgreSQL commit records are authoritative: digest-verified
+uncommitted content and aged temporary files are deleted only after an
+explicit minimum-age guard, while committed/fresh/unknown entries remain
+untouched. Deletions fsync their shard directory and every result is returned
+as deterministic audit evidence.
+
+`LocalArtifactCleanupService` and `ArtifactCleanupScheduler` expose the
+application and bounded periodic seams over the same persistence bundle. The
+scheduler uses an injected clock/sleep, supports explicit cancellation and a
+test cycle cap, and does not start workers or hide cleanup failures.
+
+The full Strategy Lab v2 package passed 744 tests with Ruff/MyPy green. The
+exact backend gate then passed 2,393 tests with 83.76% combined coverage
+(required threshold: 75%); branch-scoped Docker resources were cleaned and no
+retained testcontainer sessions remain. Isolated worker process/runtime
+execution, migration startup, upstream contract reconciliation, stable
+Nautilus activation, and full repository integration remain deferred.
+
 ## 2026-09-17 - Artifact path-integrity regression hardening
 
 `LocalArtifactStore` now rejects broken target symlinks before treating a
