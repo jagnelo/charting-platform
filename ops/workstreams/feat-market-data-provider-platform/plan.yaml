@@ -201,6 +201,13 @@ remaining_gaps:
     155/155 and the complete backend unit gate passes 2,357/2,357 with 37
     warnings at 70.79% coverage.
   - >-
+    2026-09-17 FMP source correction: the bandwidth seed now cites the
+    current official `/developer/docs/pricing` document for the 500 MB
+    trailing-30-day free-plan pool, replacing the legacy pricing URL. No
+    quota/reset behavior was widened; the daily-call and bandwidth reset
+    controls remain fail-closed until independently reviewed. Focused
+    quota-contract coverage passed 110/110 with no provider request.
+  - >-
     Tiingo's 500-unique-symbol monthly and 50-request/hour pools now have
     independent provider-specific admission controls. Tiingo's current
     general documentation confirms that hourly requests reset every hour, but

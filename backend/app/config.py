@@ -1037,7 +1037,7 @@ class Settings(BaseSettings):
                         "unit": "bytes",
                         "scope": "api_key",
                         "quota_group": "api_key",
-                        "source": "https://site.financialmodelingprep.com/pricing-plans",
+                        "source": "https://site.financialmodelingprep.com/developer/docs/pricing",
                         "window_seconds": 2_592_000,
                         "reset": "provider_defined",
                         "limit_basis": "decimal_bytes_conservative_for_published_MB",

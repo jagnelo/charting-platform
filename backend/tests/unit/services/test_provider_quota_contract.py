@@ -2878,6 +2878,10 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     ]
     assert fmp["untracked_constraints"][0]["limit"] == 500_000_000
     assert fmp["untracked_constraints"][0]["window_seconds"] == 2_592_000
+    assert (
+        fmp["untracked_constraints"][0]["source"]
+        == "https://site.financialmodelingprep.com/developer/docs/pricing"
+    )
     assert fmp["untracked_constraints"][0]["reset"] == "provider_defined"
 
 

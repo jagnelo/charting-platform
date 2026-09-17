@@ -5272,3 +5272,15 @@ the authoritative record for this replay; it made zero provider calls.
   `2,364/2,364` with `37` warnings and `70.82%` coverage. This is automated
   regression evidence only; provider live, legal/source, universe,
   deployment-secret, and final-shadow gates remain separate.
+
+## 2026-09-17 FMP quota-source citation correction
+
+- The FMP bandwidth quota seed now cites the current official pricing document
+  (`/developer/docs/pricing`), which states the Basic allowance of 250 calls/day
+  and the free-plan 500 MB trailing-30-day bandwidth pool. The previous legacy
+  `/pricing-plans` citation was removed; no quota value or reset semantics were
+  changed.
+- The daily-call and trailing-bandwidth reset anchors remain provider-defined
+  and require their existing independent review/evidence controls before FMP
+  routing can be admitted. Focused quota-contract coverage passed `110/110`;
+  no provider request was made.
