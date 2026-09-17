@@ -635,6 +635,7 @@ def _invocation_result_payload(result: Any) -> dict[str, Any]:
     return {
         "protocol_version": WIRE_PROTOCOL_VERSION,
         "source_digest": result.source_digest,
+        "manifest_fingerprint": result.manifest_fingerprint,
         "context_fingerprint": result.context_fingerprint,
         "entrypoint": result.entrypoint,
         "status": result.status.value,
@@ -664,6 +665,7 @@ def deserialize_invocation_result(payload: str) -> Any:
     required = {
         "protocol_version",
         "source_digest",
+        "manifest_fingerprint",
         "context_fingerprint",
         "entrypoint",
         "status",
@@ -718,6 +720,7 @@ def deserialize_invocation_result(payload: str) -> Any:
             raise ValueError("unsupported strategy intent type")
     result = StrategyInvocationResult(
         source_digest=item["source_digest"],
+        manifest_fingerprint=item["manifest_fingerprint"],
         context_fingerprint=item["context_fingerprint"],
         entrypoint=item["entrypoint"],
         status=InvocationStatus(item["status"]),

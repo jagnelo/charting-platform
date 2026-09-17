@@ -53,6 +53,7 @@ class StrategyInvocationResult:
     """Content-addressed result of one strategy event invocation."""
 
     source_digest: str
+    manifest_fingerprint: str
     context_fingerprint: str
     entrypoint: str
     status: InvocationStatus
@@ -62,6 +63,7 @@ class StrategyInvocationResult:
 
     def __post_init__(self) -> None:
         require_sha256_digest(self.source_digest, field_name="source_digest")
+        require_sha256_digest(self.manifest_fingerprint, field_name="manifest_fingerprint")
         require_sha256_digest(self.context_fingerprint, field_name="context_fingerprint")
         if not isinstance(self.entrypoint, str) or not self.entrypoint.strip():
             raise ValueError("entrypoint must not be empty")
@@ -179,12 +181,14 @@ def _error_digest(error: BaseException) -> str:
 
 def _rejected(
     source_digest: str,
+    manifest_fingerprint: str,
     context: StrategyContext,
     entrypoint: str,
     *reasons: str,
 ) -> StrategyInvocationResult:
     return StrategyInvocationResult(
         source_digest=source_digest,
+        manifest_fingerprint=manifest_fingerprint,
         context_fingerprint=content_digest(context),
         entrypoint=entrypoint,
         status=InvocationStatus.REJECTED,
@@ -194,12 +198,14 @@ def _rejected(
 
 def _failed(
     source_digest: str,
+    manifest_fingerprint: str,
     context: StrategyContext,
     entrypoint: str,
     error: BaseException,
 ) -> StrategyInvocationResult:
     return StrategyInvocationResult(
         source_digest=source_digest,
+        manifest_fingerprint=manifest_fingerprint,
         context_fingerprint=content_digest(context),
         entrypoint=entrypoint,
         status=InvocationStatus.FAILED,
@@ -335,6 +341,7 @@ class StrategyInvocationSession:
         if self._rejection_reasons:
             return _rejected(
                 self._source_digest,
+                self._manifest.fingerprint,
                 context,
                 self._entrypoint,
                 *self._rejection_reasons,
@@ -343,7 +350,13 @@ class StrategyInvocationSession:
             return self._failed_digest(context, self._failure_digest)
         if self._initialization_error is not None or self._strategy is None:
             error = self._initialization_error or RuntimeError("strategy session is unavailable")
-            return _failed(self._source_digest, context, self._entrypoint, error)
+            return _failed(
+                self._source_digest,
+                self._manifest.fingerprint,
+                context,
+                self._entrypoint,
+                error,
+            )
 
         # Re-run the SDK boundary for contexts constructed by direct callers;
         # a typed StrategyContext alone does not prove manifest scope. Optional
@@ -352,6 +365,7 @@ class StrategyInvocationSession:
         if not _context_matches_manifest(self._manifest, context):
             return _rejected(
                 self._source_digest,
+                self._manifest.fingerprint,
                 context,
                 self._entrypoint,
                 "context_manifest_mismatch",
@@ -361,6 +375,7 @@ class StrategyInvocationSession:
         if self._last_context_key is not None and context_key <= self._last_context_key:
             return _rejected(
                 self._source_digest,
+                self._manifest.fingerprint,
                 context,
                 self._entrypoint,
                 "context_not_monotonic",
@@ -369,6 +384,7 @@ class StrategyInvocationSession:
         if self._parameters_digest is not None and parameters_digest != self._parameters_digest:
             return _rejected(
                 self._source_digest,
+                self._manifest.fingerprint,
                 context,
                 self._entrypoint,
                 "context_parameters_changed",
@@ -376,6 +392,7 @@ class StrategyInvocationSession:
         if self._random_seed is not None and context.random_seed != self._random_seed:
             return _rejected(
                 self._source_digest,
+                self._manifest.fingerprint,
                 context,
                 self._entrypoint,
                 "context_seed_changed",
@@ -399,6 +416,7 @@ class StrategyInvocationSession:
         self._random_seed = context.random_seed
         return StrategyInvocationResult(
             source_digest=self._source_digest,
+            manifest_fingerprint=self._manifest.fingerprint,
             context_fingerprint=content_digest(context),
             entrypoint=self._entrypoint,
             status=InvocationStatus.SUCCEEDED,
@@ -408,6 +426,7 @@ class StrategyInvocationSession:
     def _failed_digest(self, context: StrategyContext, error_digest: str) -> StrategyInvocationResult:
         return StrategyInvocationResult(
             source_digest=self._source_digest,
+            manifest_fingerprint=self._manifest.fingerprint,
             context_fingerprint=content_digest(context),
             entrypoint=self._entrypoint,
             status=InvocationStatus.FAILED,

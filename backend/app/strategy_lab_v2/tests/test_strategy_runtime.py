@@ -91,6 +91,7 @@ class Strategy:
     assert intent.instrument_id == "US.AAPL"
     assert intent.target_fraction == Decimal("0.5")
     assert result.error_digest is None
+    assert result.manifest_fingerprint == manifest.fingerprint
     assert result.fingerprint.startswith("sha256:")
 
 

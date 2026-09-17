@@ -142,6 +142,7 @@ def test_result_wire_round_trip_preserves_intents_and_fingerprint() -> None:
     assert result.status is InvocationStatus.SUCCEEDED
     with_order = result.__class__(
         source_digest=result.source_digest,
+        manifest_fingerprint=result.manifest_fingerprint,
         context_fingerprint=result.context_fingerprint,
         entrypoint=result.entrypoint,
         status=InvocationStatus.SUCCEEDED,
