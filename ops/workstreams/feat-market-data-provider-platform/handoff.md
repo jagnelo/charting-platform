@@ -34,10 +34,9 @@
   the documented EST daily request and monthly bandwidth boundaries remain
   explicit. The durable distinct-symbol identity ledger continues to claim
   each provider symbol once per safety window and never discards observations.
-- The focused quota/registry/wiring suite remains green at `216/216`; no
-  Tiingo request was made. The implementation is included in the current
-  working tree and must be covered by the next full Docker gate before its
-  receipt is committed.
+- The focused registry/runtime/quota/secret suite is green at `216/216`; no
+  Tiingo request was made. The Docker-backed combined backend gate also passes
+  `2,767/2,767` with 89 warnings and 82.06% coverage.
 
 ## 2026-09-17 FINRA public-byte safety envelope completion
 
@@ -59,6 +58,17 @@
   ORF, terms, and source gates); Tiingo remains blocked by the required
   operation-byte map. Receipt commit: `validation.jsonl` recorded in the
   follow-up test commit.
+
+## 2026-09-17 EODHD native usage refresh
+
+- The existing EODHD credential completed a dedicated account-usage probe at
+  the current source (`1/1`, one request, 304 response bytes). The redacted
+  receipt is committed in `validation.jsonl`; no credentials or payloads were
+  persisted.
+- The snapshot remains observation-only: EODHD's official minute-pool sources
+  conflict and the current account/reset evidence does not yet establish an
+  admission-safe ordinary minute contract. No EODHD history/profile request
+  was admitted or inferred from this usage probe.
 
 ## 2026-09-17 committed-source safety-preflight replay
 

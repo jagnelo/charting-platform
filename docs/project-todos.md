@@ -309,7 +309,7 @@
       used by default. No generic provider limit is inferred.
 - [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
       diagnostics, and durable provider documentation. Focused quota/registry/
-      wiring coverage passes `161/161`; the Docker-backed full backend gate
+      wiring coverage passes `216/216`; the Docker-backed full backend gate
       passes `2,767/2,767` with 89 warnings and 82.05% coverage. The daily
       native boundary remains audit-labelled as provider
       defined, but the rolling safety envelope prevents unsafe admission until

@@ -235,8 +235,8 @@ remaining_gaps:
     EST daily and monthly bandwidth boundaries stay explicit. Blank or invalid
     byte controls preserve the unresolved bandwidth contract and fail closed;
     no generic limiter is inferred. Controls are wired through local/RPi
-    Compose and GitHub live CI. Focused quota/registry/wiring coverage passes
-    161/161 and the Docker-backed complete backend gate passes 2,767/2,767
+    Compose and GitHub live CI. Focused registry/runtime/quota/secret coverage
+    passes 216/216 and the Docker-backed complete backend gate passes 2,767/2,767
     with 89 warnings at 82.05% coverage.
   - >-
     FINRA's exact public-credential 10 GB allowance retains the
