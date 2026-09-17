@@ -102,12 +102,20 @@ class ExecutionAttemptLease:
             value = getattr(self, name)
             if value is not None and (value.tzinfo is None or value.utcoffset() is None):
                 raise ValueError(f"lease {name} must be timezone-aware")
-        if self.heartbeat_at < self.leased_at:
+        leased_at = self.leased_at.astimezone(UTC)
+        heartbeat_at = self.heartbeat_at.astimezone(UTC)
+        expires_at = self.expires_at.astimezone(UTC)
+        released_at = self.released_at.astimezone(UTC) if self.released_at is not None else None
+        if heartbeat_at < leased_at:
             raise ValueError("lease heartbeat cannot precede lease acquisition")
-        if self.expires_at <= self.heartbeat_at:
+        if expires_at <= heartbeat_at:
             raise ValueError("lease expiry must follow the latest heartbeat")
-        if self.released_at is not None and self.released_at < self.heartbeat_at:
+        if released_at is not None and released_at < heartbeat_at:
             raise ValueError("lease release cannot precede the latest heartbeat")
+        object.__setattr__(self, "leased_at", leased_at)
+        object.__setattr__(self, "heartbeat_at", heartbeat_at)
+        object.__setattr__(self, "expires_at", expires_at)
+        object.__setattr__(self, "released_at", released_at)
 
     def status_at(self, now: datetime) -> AttemptLeaseStatus:
         if now.tzinfo is None or now.utcoffset() is None:

@@ -148,6 +148,17 @@ passes 2,341 tests with 83.71% total coverage (required threshold: 75%); Docker
 services were branch-scoped and cleaned afterward. Worker image activation,
 application wiring, and stable Nautilus execution remain deferred.
 
+## 2026-09-17 - Attempt and lease temporal identities
+
+`RunAttempt` creation/transition timestamps and `ExecutionAttemptLease`
+acquisition, heartbeat, expiry, and release timestamps now normalize aware
+offsets to UTC during immutable construction. Retry lineage and worker-capacity
+comparisons therefore remain stable across offset-changing persistence or
+transport boundaries. Attempt/lease regression coverage is green and the
+complete Strategy Lab v2 package passes 712 tests; persistence migration,
+worker activation, application wiring, and stable Nautilus execution remain
+deferred.
+
 ## 2026-09-17 - Bounded mounted runtime request reads
 
 Both mounted strategy and custom-metric CLIs now read request files through a

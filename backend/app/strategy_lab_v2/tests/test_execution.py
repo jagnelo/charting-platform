@@ -94,6 +94,18 @@ def test_authorization_time_normalizes_to_utc_for_identity() -> None:
     assert replace(authorization, authoritative=False).authoritative is False
 
 
+def test_attempt_lease_times_normalize_to_utc_for_identity() -> None:
+    _, _, _, _, lease = _execution_fixture()
+    offset = timezone(timedelta(hours=2))
+    offset_lease = replace(
+        lease,
+        leased_at=(NOW + timedelta(hours=2, seconds=2)).replace(tzinfo=offset),
+        heartbeat_at=(NOW + timedelta(hours=2, seconds=2)).replace(tzinfo=offset),
+        expires_at=(NOW + timedelta(hours=2, seconds=32)).replace(tzinfo=offset),
+    )
+    assert offset_lease == lease
+
+
 def test_authorize_execution_rejects_invalid_source_capability_or_lease() -> None:
     trial, attempt, validation, capability, lease = _execution_fixture()
     invalid_source = validate_strategy_source("import os\n")

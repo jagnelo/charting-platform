@@ -905,10 +905,12 @@ class RunAttempt:
         if not isinstance(self.state, AttemptState):
             raise TypeError("attempt state must be an AttemptState")
         _aware(self.created_at, "created_at")
-        updated_at = self.updated_at or self.created_at
+        created_at = self.created_at.astimezone(UTC)
+        updated_at = (self.updated_at or self.created_at).astimezone(UTC)
         _aware(updated_at, "updated_at")
-        if updated_at < self.created_at:
+        if updated_at < created_at:
             raise ValueError("attempt updated_at must not precede created_at")
+        object.__setattr__(self, "created_at", created_at)
         object.__setattr__(self, "updated_at", updated_at)
 
 

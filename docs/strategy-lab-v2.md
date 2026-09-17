@@ -87,6 +87,11 @@ authorization, and execution-summary timestamps. Retries and persisted
 read-model projections therefore retain one identity for equivalent instants
 through the full local execution handoff.
 
+Attempt records and worker leases apply the same normalization to acquisition,
+heartbeat, expiry, release, creation, and transition timestamps, keeping
+capacity reservations and retry lineage stable across offset-changing storage
+or transport boundaries.
+
 ## Current engine-neutral package
 
 The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:

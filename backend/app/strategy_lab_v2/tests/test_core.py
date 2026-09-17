@@ -1403,6 +1403,25 @@ def test_attempt_retry_preserves_trial_and_forward_events_are_auditable() -> Non
     assert retry.trial_id == first.trial_id
     assert retry.ordinal == 2
 
+    offset_attempt = RunAttempt(
+        "attempt-offset",
+        "same-trial",
+        3,
+        AttemptState.QUEUED,
+        (created + timedelta(hours=2)).replace(tzinfo=timezone(timedelta(hours=2))),
+        (created + timedelta(hours=2, seconds=1)).replace(tzinfo=timezone(timedelta(hours=2))),
+    )
+    canonical_attempt = RunAttempt(
+        "attempt-offset",
+        "same-trial",
+        3,
+        AttemptState.QUEUED,
+        created,
+        created + timedelta(seconds=1),
+    )
+    assert offset_attempt == canonical_attempt
+    assert content_digest(offset_attempt) == content_digest(canonical_attempt)
+
     cursor = ForwardCursor(last_sequence=3, last_event_id="e3", last_event_time=created)
     gap_event = CanonicalForwardEvent(
         "e6", 6, created + timedelta(seconds=3), created + timedelta(seconds=3), EVIDENCE_DIGEST

@@ -341,6 +341,7 @@ remaining_gaps:
   - Canonical forward event and cursor timestamps now normalize aware offsets to UTC before comparison and fingerprinting; persistence migration and event-stream wiring remain open.
   - Forward instance lifecycle, warm-up receipt, correction-command, and counterfactual replay-plan timestamps now normalize aware offsets to UTC before identity checks; persistence migration, event-stream wiring, and worker/application wiring remain open.
   - Asynchronous submission, admission, runtime, outcome, progress, command, authorization, and execution-summary timestamps now normalize aware offsets to UTC before identity checks; application persistence and worker wiring remain open.
+  - Run-attempt and worker-lease lifecycle timestamps now normalize aware offsets to UTC before transition, capacity, and retry-lineage identity checks; application persistence and worker wiring remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -389,7 +390,8 @@ progress:
     - canonical-forward-event-time-identities
     - forward-lifecycle-temporal-identities
     - execution-lifecycle-temporal-identities
+    - attempt-lease-temporal-identities
   total: 18
-  current_phase: execution-lifecycle-temporal-identities-staging-ready-for-human-review
+  current_phase: attempt-lease-temporal-identities-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary
