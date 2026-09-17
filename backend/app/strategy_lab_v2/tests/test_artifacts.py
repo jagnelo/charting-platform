@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from app.strategy_lab_v2.artifacts import artifact_content_digest, verify_artifact_payload
+from app.strategy_lab_v2.artifacts import (
+    ArtifactIntegrityReceipt,
+    artifact_content_digest,
+    verify_artifact_payload,
+)
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest
 
@@ -40,7 +44,7 @@ def test_artifact_integrity_receipt_reports_digest_and_length_mismatches() -> No
     receipt = verify_artifact_payload(manifest, b"different")
 
     assert not receipt.verified
-    assert receipt.failure_reasons == ("digest_mismatch", "byte_length_mismatch")
+    assert receipt.failure_reasons == ("byte_length_mismatch", "digest_mismatch")
 
 
 def test_artifact_integrity_rejects_non_bytes_payloads() -> None:
@@ -54,3 +58,32 @@ def test_artifact_content_digest_is_deterministic() -> None:
     assert artifact_content_digest(payload) == artifact_content_digest(payload)
     with pytest.raises(TypeError, match="payload must be bytes"):
         artifact_content_digest("same-bytes")  # type: ignore[arg-type]
+
+
+def test_integrity_receipt_rejects_forged_verified_mismatches() -> None:
+    expected = artifact_content_digest(b"expected")
+    observed = artifact_content_digest(b"observed")
+    with pytest.raises(ValueError, match="verified artifact integrity"):
+        ArtifactIntegrityReceipt(
+            manifest_fingerprint=content_digest("manifest"),
+            expected_digest=expected,
+            observed_digest=observed,
+            expected_byte_length=8,
+            observed_byte_length=8,
+        )
+
+
+def test_artifact_manifest_requires_typed_length_and_retention() -> None:
+    payload = b"payload"
+    digest = artifact_content_digest(payload)
+    with pytest.raises(ValueError, match="byte_length"):
+        ArtifactManifest(digest, True, "application/octet-stream", "1", digest)  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="retention_class"):
+        ArtifactManifest(  # type: ignore[arg-type]
+            digest,
+            len(payload),
+            "application/octet-stream",
+            "1",
+            digest,
+            "permanent_manifest",
+        )

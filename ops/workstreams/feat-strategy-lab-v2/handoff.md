@@ -3232,6 +3232,21 @@ PostgreSQL/Redis setup and cleanup completed successfully, and the run produced
 the combined coverage reports. This supersedes the earlier transient connection
 refusal record; no product or shared-path integration gates were changed.
 
+## 2026-09-17 - Artifact manifest and integrity hardening checkpoint
+
+`ArtifactManifest` now rejects boolean/non-integer byte lengths and untyped
+retention classes. `ArtifactIntegrityReceipt` validates all digest and length
+fields, canonicalizes failure reasons, and rejects a forged receipt that claims
+verification while observed bytes differ from the manifest. Publication and
+local-store adapters therefore receive only typed, content-consistent evidence;
+durable byte lifecycle, migrations, authorization, and application wiring
+remain deferred behind the existing shared-path gates.
+
+The focused artifact/core regression set passed 31 tests with Ruff and MyPy
+green. The branch remains `ready_for_human_review`; the Docker-backed combined
+coverage evidence is recorded above for the preceding exact checkpoint tip and
+will be revalidated after this slice is committed.
+
 ## 2026-09-17 - SDK UTC event-time normalization checkpoint
 
 `MarketEvent` and `StrategyContext` now normalize every aware event time to

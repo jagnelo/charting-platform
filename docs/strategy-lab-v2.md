@@ -819,6 +819,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   same-directory temporary files and atomic create-if-absent links, deduplicates
   concurrent writers, makes published files read-only, and re-verifies every
   read so tampering or path/symlink escapes fail closed.
+- `artifacts.py` and `ArtifactManifest` enforce typed byte lengths, retention
+  classes, and authenticated integrity receipts. Verified receipts cannot claim
+  success with mismatched observed bytes, and failure reasons are canonicalized
+  before publication planning so equivalent corruption evidence has one stable
+  identity.
 - `sandbox.py` builds deterministic, shell-free Docker argv plans only after
   runtime preflight succeeds. Plans pin the runtime image digest, disable the
   network, make the root read-only, drop capabilities, disable privilege

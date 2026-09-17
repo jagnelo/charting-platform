@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest
 
 
@@ -33,6 +33,26 @@ class ArtifactIntegrityReceipt:
     expected_byte_length: int
     observed_byte_length: int
     failure_reasons: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        for name in ("manifest_fingerprint", "expected_digest", "observed_digest"):
+            require_sha256_digest(getattr(self, name), field_name=name)
+        for name in ("expected_byte_length", "observed_byte_length"):
+            value = getattr(self, name)
+            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                raise ValueError(f"{name} must be a non-negative integer")
+        reasons = tuple(self.failure_reasons)
+        if any(not isinstance(reason, str) or not reason.strip() for reason in reasons):
+            raise ValueError("failure_reasons must contain non-empty strings")
+        canonical_reasons = tuple(sorted(set(reasons)))
+        if len(canonical_reasons) != len(reasons):
+            raise ValueError("failure_reasons must be unique")
+        if not reasons and (
+            self.expected_digest != self.observed_digest
+            or self.expected_byte_length != self.observed_byte_length
+        ):
+            raise ValueError("verified artifact integrity must match digest and byte length")
+        object.__setattr__(self, "failure_reasons", canonical_reasons)
 
     @property
     def verified(self) -> bool:

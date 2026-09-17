@@ -923,12 +923,18 @@ class ArtifactManifest:
 
     def __post_init__(self) -> None:
         require_sha256_digest(self.content_digest, field_name="content_digest")
-        if self.byte_length < 0:
-            raise ValueError("byte_length must not be negative")
+        if (
+            not isinstance(self.byte_length, int)
+            or isinstance(self.byte_length, bool)
+            or self.byte_length < 0
+        ):
+            raise ValueError("byte_length must be a non-negative integer")
         if self.storage_key != self.content_digest:
             raise ValueError("artifact storage_key must equal its content digest")
         for name in ("media_type", "schema_version"):
             _nonempty(getattr(self, name), name)
+        if not isinstance(self.retention_class, ArtifactRetention):
+            raise TypeError("retention_class must be an ArtifactRetention")
 
 
 @dataclass(frozen=True, slots=True)
