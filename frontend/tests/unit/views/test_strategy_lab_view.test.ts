@@ -664,10 +664,16 @@ describe('StrategyLabView', () => {
         expect(point.value).toBeLessThanOrEqual(0)
       }
     }
+    expect(wrapper.get('button.mode-pill').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.findAll('button.mode-pill')[1].attributes('aria-pressed')).toBe('false')
+    expect(wrapper.get('button[aria-label="Show position evolution in currency"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.get('button[aria-label="Show position evolution in percent"]').attributes('aria-pressed')).toBe('false')
     await wrapper.get('button[aria-label="Show position evolution in percent"]').trigger('click')
     await nextTick()
     expect(positionEvolutionChart!.props('currency')).toBe(false)
     expect(positionEvolutionChart!.props('percent')).toBe(true)
+    expect(wrapper.get('button[aria-label="Show position evolution in currency"]').attributes('aria-pressed')).toBe('false')
+    expect(wrapper.get('button[aria-label="Show position evolution in percent"]').attributes('aria-pressed')).toBe('true')
     expect(wrapper.findAll('button[aria-label="Export"]')).toHaveLength(1)
     expect(wrapper.find('button[aria-label="Export summary"]').exists()).toBe(false)
     expect(wrapper.find('button[aria-label="Export trades CSV"]').exists()).toBe(false)
@@ -677,6 +683,9 @@ describe('StrategyLabView', () => {
     expect(wrapper.find('button[aria-label="Show monthly returns"]').exists()).toBe(true)
     expect(wrapper.find('button[aria-label="Show quarterly returns"]').exists()).toBe(true)
     expect(wrapper.find('button[aria-label="Show yearly returns"]').exists()).toBe(true)
+    expect(wrapper.get('button[aria-label="Show monthly returns"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.get('button[aria-label="Show quarterly returns"]').attributes('aria-pressed')).toBe('false')
+    expect(wrapper.get('button[aria-label="Show yearly returns"]').attributes('aria-pressed')).toBe('false')
   })
 
   it('shows the current strategy revision in the sidebar regardless of API version order', async () => {

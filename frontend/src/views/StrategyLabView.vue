@@ -834,9 +834,9 @@
 
           <div v-if="sectionExpanded.runs" id="strategy-runs-panel" class="panel-body">
           <div class="mode-strip">
-            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'backtest' }" @click="runDraft.test_mode = 'backtest'">Backtest</button>
-            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'walk_forward' }" @click="runDraft.test_mode = 'walk_forward'">Walk forward</button>
-            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'paper_forward' }" @click="runDraft.test_mode = 'paper_forward'">Paper forward</button>
+            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'backtest' }" :aria-pressed="runDraft.test_mode === 'backtest' ? 'true' : 'false'" @click="runDraft.test_mode = 'backtest'">Backtest</button>
+            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'walk_forward' }" :aria-pressed="runDraft.test_mode === 'walk_forward' ? 'true' : 'false'" @click="runDraft.test_mode = 'walk_forward'">Walk forward</button>
+            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'paper_forward' }" :aria-pressed="runDraft.test_mode === 'paper_forward' ? 'true' : 'false'" @click="runDraft.test_mode = 'paper_forward'">Paper forward</button>
           </div>
 
           <div class="form-grid three-up">
@@ -1325,6 +1325,7 @@
                         type="button"
                         class="chart-mode-toggle__button"
                         :class="{ 'chart-mode-toggle__button--active': positionEvolutionMode === 'currency' }"
+                        :aria-pressed="positionEvolutionMode === 'currency' ? 'true' : 'false'"
                         aria-label="Show position evolution in currency"
                         @click="positionEvolutionMode = 'currency'"
                       >
@@ -1334,6 +1335,7 @@
                         type="button"
                         class="chart-mode-toggle__button"
                         :class="{ 'chart-mode-toggle__button--active': positionEvolutionMode === 'percent' }"
+                        :aria-pressed="positionEvolutionMode === 'percent' ? 'true' : 'false'"
                         aria-label="Show position evolution in percent"
                         @click="positionEvolutionMode = 'percent'"
                       >
@@ -1392,6 +1394,7 @@
                         type="button"
                         class="chart-mode-toggle__button"
                         :class="{ 'chart-mode-toggle__button--active': activeReturnsMode === 'monthly' }"
+                        :aria-pressed="activeReturnsMode === 'monthly' ? 'true' : 'false'"
                         aria-label="Show monthly returns"
                         @click="returnsViewMode = 'monthly'"
                       >
@@ -1401,6 +1404,7 @@
                         type="button"
                         class="chart-mode-toggle__button"
                         :class="{ 'chart-mode-toggle__button--active': activeReturnsMode === 'quarterly' }"
+                        :aria-pressed="activeReturnsMode === 'quarterly' ? 'true' : 'false'"
                         aria-label="Show quarterly returns"
                         @click="returnsViewMode = 'quarterly'"
                       >
@@ -1411,6 +1415,7 @@
                         type="button"
                         class="chart-mode-toggle__button"
                         :class="{ 'chart-mode-toggle__button--active': activeReturnsMode === 'yearly' }"
+                        :aria-pressed="activeReturnsMode === 'yearly' ? 'true' : 'false'"
                         aria-label="Show yearly returns"
                         @click="returnsViewMode = 'yearly'"
                       >
