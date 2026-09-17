@@ -40,6 +40,15 @@ for malformed input or output setup without printing strategy exception text.
 The focused runtime/protocol suite passes 9 tests; worker image wiring,
 container activation, and application scheduling remain deferred shared gates.
 
+## 2026-09-17 - Replay-safe wall-clock preflight hardening
+
+Static strategy validation now rejects wall-clock method references at the
+attribute-access site as well as direct calls. This closes the aliasing escape
+where a strategy could bind `datetime.now`/`date.today`/`utcnow` first and call
+the alias later, preserving deterministic replay requirements. A regression
+test covers the aliased method form; the exact package suite passes 633 tests,
+with Ruff, MyPy, branch checks, and Docker-backed combined coverage also green.
+
 ## 2026-09-17 - Engine-neutral SDK boundary hardening
 
 `sdk.py` now validates public input types before dereferencing them: manifests
