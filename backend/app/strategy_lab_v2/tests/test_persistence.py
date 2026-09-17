@@ -28,6 +28,7 @@ def test_persistence_bundle_shares_store_and_wires_all_initial_api_dependencies(
         ApiResourceType.ATTEMPT,
         ApiResourceType.METRIC_SET,
         ApiResourceType.FORWARD_INSTANCE,
+        ApiResourceType.ARTIFACT,
     }
 
     class _Redis:

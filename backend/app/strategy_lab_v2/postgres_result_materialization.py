@@ -9,6 +9,7 @@ leaving artifact bytes and official publication to their existing gates.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -19,6 +20,7 @@ from typing import Any, Protocol
 from app.strategy_lab_v2.canonical import canonical_json, content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import (
     ArtifactManifest,
+    ArtifactRetention,
     DataSnapshot,
     MetricSet,
     PortfolioComposition,
@@ -93,6 +95,33 @@ class PersistedResultManifest:
                 "trial_id": self.trial_id,
             }
         )
+
+
+@dataclass(frozen=True, slots=True)
+class PersistedArtifactReference:
+    """One owner-scoped artifact reference extracted from a result manifest."""
+
+    artifact: ArtifactManifest
+    manifest_fingerprint: str
+    attempt_id: str
+    trial_id: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.artifact, ArtifactManifest):
+            raise TypeError("artifact must be an ArtifactManifest")
+        require_sha256_digest(self.manifest_fingerprint, field_name="manifest_fingerprint")
+        require_sha256_digest(self.trial_id, field_name="trial_id")
+        for name in ("attempt_id",):
+            if not isinstance(getattr(self, name), str) or not getattr(self, name).strip():
+                raise ValueError(f"{name} must not be empty")
+
+    @property
+    def content_digest(self) -> str:
+        return self.artifact.content_digest
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
 
 
 @dataclass(frozen=True, slots=True)
@@ -277,6 +306,41 @@ class PostgresResultMaterializationAdapter:
                     raise ValueError("PostgreSQL result manifests are not deterministically ordered")
                 return records
 
+    async def load_artifacts(
+        self, *, principal: Any
+    ) -> tuple[PersistedArtifactReference, ...]:
+        """Read owner-scoped artifact references from authenticated manifests.
+
+        Artifact metadata is immutable result provenance, so the manifest table
+        remains the source of truth.  The tagged canonical payload is parsed
+        narrowly for its ``output_artifacts`` field and every extracted value
+        is rebuilt through :class:`ArtifactManifest` validation.
+        """
+
+        records = await self.load_all(principal=principal)
+        references: list[PersistedArtifactReference] = []
+        for record in records:
+            references.extend(
+                PersistedArtifactReference(
+                    artifact,
+                    record.manifest_fingerprint,
+                    record.attempt_id,
+                    record.trial_id,
+                )
+                for artifact in _decode_output_artifacts(record.manifest_json)
+            )
+        ordered = tuple(
+            sorted(
+                references,
+                key=lambda item: (
+                    item.content_digest,
+                    item.manifest_fingerprint,
+                    item.attempt_id,
+                ),
+            )
+        )
+        return ordered
+
     async def _load_one(
         self, session: AsyncSessionLike, owner_id: str, attempt_id: str
     ) -> PersistedResultManifest | None:
@@ -388,6 +452,128 @@ def _decode_record(row: Mapping[str, Any]) -> PersistedResultManifest:
         raise ValueError("PostgreSQL result manifest row is malformed") from error
 
 
+def _decode_output_artifacts(payload: str) -> tuple[ArtifactManifest, ...]:
+    """Decode only the canonical result-manifest artifact field.
+
+    The storage adapter intentionally does not need a general object decoder;
+    this narrow parser still verifies the tagged dataclass envelope, rejects
+    duplicate or missing fields, and delegates final value validation to the
+    public immutable artifact contract.
+    """
+
+    try:
+        root = json.loads(payload)
+    except (TypeError, json.JSONDecodeError) as error:
+        raise ValueError("PostgreSQL result manifest payload is not valid JSON") from error
+    root_fields = _tagged_dataclass_fields(
+        root,
+        "app.strategy_lab_v2.contracts.RunResultManifest",
+        "result manifest",
+    )
+    output = root_fields.get("output_artifacts")
+    if not isinstance(output, list) or len(output) != 2 or output[0] != "tuple":
+        raise ValueError("result manifest output_artifacts must be a tagged tuple")
+    values = output[1]
+    if not isinstance(values, list):
+        raise ValueError("result manifest output_artifacts tuple is malformed")
+    return tuple(_decode_artifact_manifest(item) for item in values)
+
+
+def _decode_artifact_manifest(value: Any) -> ArtifactManifest:
+    fields = _tagged_dataclass_fields(
+        value,
+        "app.strategy_lab_v2.contracts.ArtifactManifest",
+        "artifact manifest",
+    )
+    try:
+        return ArtifactManifest(
+            _tagged_string(fields["content_digest"], "content_digest"),
+            _tagged_int(fields["byte_length"], "byte_length"),
+            _tagged_string(fields["media_type"], "media_type"),
+            _tagged_string(fields["schema_version"], "schema_version"),
+            _tagged_string(fields["storage_key"], "storage_key"),
+            _tagged_retention(fields["retention_class"]),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("result manifest artifact payload is malformed") from error
+
+
+def _tagged_dataclass_fields(value: Any, class_name: str, label: str) -> dict[str, Any]:
+    if (
+        not isinstance(value, list)
+        or len(value) != 3
+        or value[0] != "dataclass"
+        or value[1] != class_name
+        or not isinstance(value[2], list)
+    ):
+        raise ValueError(f"{label} must be a tagged {class_name} dataclass")
+    fields: dict[str, Any] = {}
+    for item in value[2]:
+        if not isinstance(item, list) or len(item) != 2 or not isinstance(item[0], str):
+            raise ValueError(f"{label} field entry is malformed")
+        if item[0] in fields:
+            raise ValueError(f"{label} contains duplicate fields")
+        fields[item[0]] = item[1]
+    expected = {
+        "app.strategy_lab_v2.contracts.ArtifactManifest": {
+            "content_digest",
+            "byte_length",
+            "media_type",
+            "schema_version",
+            "storage_key",
+            "retention_class",
+        },
+        "app.strategy_lab_v2.contracts.RunResultManifest": {
+            "trial",
+            "attempt",
+            "strategy_packages",
+            "portfolio",
+            "snapshot",
+            "engine_name",
+            "engine_version",
+            "engine_build_digest",
+            "allocation_definition_version",
+            "dependency_catalog_digest",
+            "assumptions_digest",
+            "metric_set",
+            "output_artifacts",
+            "created_at",
+        },
+    }[class_name]
+    if set(fields) != expected:
+        raise ValueError(f"{label} fields do not match its canonical schema")
+    return fields
+
+
+def _tagged_string(value: Any, field_name: str) -> str:
+    if not isinstance(value, list) or len(value) != 2 or value[0] != "str" or not isinstance(value[1], str):
+        raise ValueError(f"{field_name} must be a tagged string")
+    return value[1]
+
+
+def _tagged_int(value: Any, field_name: str) -> int:
+    if not isinstance(value, list) or len(value) != 2 or value[0] != "int" or not isinstance(value[1], str):
+        raise ValueError(f"{field_name} must be a tagged integer")
+    try:
+        parsed = int(value[1])
+    except ValueError as error:
+        raise ValueError(f"{field_name} must contain an integer") from error
+    if str(parsed) != value[1]:
+        raise ValueError(f"{field_name} integer is not canonical")
+    return parsed
+
+
+def _tagged_retention(value: Any) -> ArtifactRetention:
+    if (
+        not isinstance(value, list)
+        or len(value) != 3
+        or value[0] != "enum"
+        or value[1] != "app.strategy_lab_v2.contracts.ArtifactRetention"
+    ):
+        raise ValueError("retention_class must be a tagged ArtifactRetention")
+    return ArtifactRetention(_tagged_string(value[2], "retention_class"))
+
+
 def _principal_id(principal: Any) -> str:
     value = getattr(principal, "id", principal)
     if not isinstance(value, str) or not value.strip():
@@ -407,6 +593,7 @@ def _statement(sql: str) -> Any:
 
 
 __all__ = [
+    "PersistedArtifactReference",
     "PersistedResultManifest",
     "PostgresResultMaterializationAdapter",
     "PostgresResultMaterializationSchema",

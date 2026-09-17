@@ -85,6 +85,10 @@ async def test_result_manifest_adapter_registers_replays_and_scopes_payload() ->
     assert loaded == registered.record
     assert await adapter.load(principal="owner-b", attempt_id=manifest.attempt_id) is None
     assert await adapter.load_all(principal="owner-a") == (registered.record,)
+    artifacts = await adapter.load_artifacts(principal="owner-a")
+    assert tuple(reference.artifact for reference in artifacts) == manifest.output_artifacts
+    assert all(reference.manifest_fingerprint == manifest.fingerprint for reference in artifacts)
+    assert await adapter.load_artifacts(principal="owner-b") == ()
 
 
 @pytest.mark.asyncio

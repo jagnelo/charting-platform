@@ -105,6 +105,7 @@ class PostgresStrategyLabV2Persistence:
         execution_state = PostgresExecutionStateAdapter(session_factory)
         execution_summaries = PostgresExecutionSummaryAdapter(session_factory)
         forward_state = PostgresForwardStateAdapter(session_factory)
+        result_materialization = PostgresResultMaterializationAdapter(session_factory)
         metrics = PostgresMetricsAdapter(session_factory)
 
         async def attempt_projection(*, principal: Any) -> tuple[ResourceDocument, ...]:
@@ -143,6 +144,58 @@ class PostgresStrategyLabV2Persistence:
                 for instance in instances
             )
 
+        async def artifact_projection(*, principal: Any) -> tuple[ResourceDocument, ...]:
+            references = await result_materialization.load_artifacts(principal=principal)
+            grouped: dict[str, list[Any]] = {}
+            for reference in references:
+                grouped.setdefault(reference.content_digest, []).append(reference)
+            documents: list[ResourceDocument] = []
+            for digest in sorted(grouped):
+                items = tuple(grouped[digest])
+                artifact = items[0].artifact
+                if any(item.artifact != artifact for item in items):
+                    raise ValueError("artifact content identity is inconsistent across manifests")
+                manifest_fingerprints = tuple(item.manifest_fingerprint for item in items)
+                attempt_ids = tuple(item.attempt_id for item in items)
+                trial_ids = tuple(item.trial_id for item in items)
+                revision_digest = content_digest(
+                    {
+                        "artifact": artifact,
+                        "manifest_fingerprints": manifest_fingerprints,
+                        "attempt_ids": attempt_ids,
+                        "trial_ids": trial_ids,
+                    }
+                )
+                attributes = asdict(artifact)
+                attributes.update(
+                    {
+                        "manifest_fingerprints": manifest_fingerprints,
+                        "attempt_ids": attempt_ids,
+                        "trial_ids": trial_ids,
+                    }
+                )
+                documents.append(
+                    ResourceDocument(
+                        ResourceIdentifier(
+                            ApiResourceType.ARTIFACT,
+                            digest,
+                            revision_digest=revision_digest,
+                        ),
+                        attributes=attributes,
+                        relationships={
+                            "attempts": tuple(
+                                ResourceIdentifier(ApiResourceType.ATTEMPT, attempt_id)
+                                for attempt_id in attempt_ids
+                            )
+                        },
+                        meta={
+                            "projection": "postgres",
+                            "reference_count": len(items),
+                        },
+                    )
+                )
+            return tuple(documents)
+
         return cls(
             aggregate_store=aggregate_store,
             resources=PostgresResourceReader(
@@ -151,6 +204,7 @@ class PostgresStrategyLabV2Persistence:
                     ApiResourceType.ATTEMPT: attempt_projection,
                     ApiResourceType.METRIC_SET: metric_set_projection,
                     ApiResourceType.FORWARD_INSTANCE: forward_instance_projection,
+                    ApiResourceType.ARTIFACT: artifact_projection,
                 },
             ),
             acquisition=PostgresAcquisitionAdapter(session_factory),
@@ -171,7 +225,7 @@ class PostgresStrategyLabV2Persistence:
             lineage=PostgresLineageAdapter(session_factory),
             metrics=metrics,
             result_completion=PostgresResultCompletionAdapter(session_factory),
-            result_materialization=PostgresResultMaterializationAdapter(session_factory),
+            result_materialization=result_materialization,
             result_publication=PostgresResultPublicationAdapter(session_factory),
             runtime_execution=PostgresRuntimeExecutionAdapter(session_factory),
             runtime_receipts=PostgresRuntimeReceiptAdapter(session_factory),
