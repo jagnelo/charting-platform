@@ -3248,6 +3248,18 @@ green. Worker image/entrypoint, application scheduling, migrations, upstream
 reconciliation, and authoritative Nautilus execution remain deferred behind
 the existing gates.
 
+## 2026-09-17 - Metric-set identity canonicalization checkpoint
+
+`MetricSet` now requires typed `MetricValue` records, validates that every
+value uses the declared metric-set definition version, and canonically orders
+records by metric identity. Equivalent result payloads therefore produce the
+same metric-set fingerprint regardless of calculation order, while duplicate
+`(name, basis)` values remain rejected. The complete Strategy Lab v2 package
+passed 669 tests with Ruff, MyPy, `git diff --check`, and workstream validation
+green. Worker image/entrypoint, application scheduling, migrations, upstream
+reconciliation, and authoritative Nautilus execution remain deferred behind
+the existing gates.
+
 ## 2026-09-17 - Snapshot-bound event-tape/SDK binding checkpoint
 
 `bind_event_tape()` now verifies that a frozen replay tape belongs to the exact

@@ -90,6 +90,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   the supported seed-group digest; unsupported derivation versions fail closed.
   Strategy dependencies and experiment strategy collections are canonicalized
   by identity, so equivalent declaration order cannot change trial provenance.
+  Authoritative metric sets likewise validate typed values and canonicalize
+  `(name, basis)` records before their content-addressed fingerprint is used.
 - `capabilities.py` implements strict/degraded capability-cell preflight.
   `execution_capabilities.py` binds that data decision to a registered engine
   build and conformance fingerprint, failing closed when product, execution,
