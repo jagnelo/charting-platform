@@ -70,6 +70,19 @@
   admission-safe ordinary minute contract. No EODHD history/profile request
   was admitted or inferred from this usage probe.
 
+## 2026-09-17 owner-scope native baseline refreshes
+
+- Alpaca's current credentialed matrix passed `7/7` after its native account
+  usage snapshot established the owner-scope rolling-window baseline. The
+  matrix made eight bounded upstream requests and covered equity/crypto
+  profiles, history, latest price, assets, and corporate actions. The redacted
+  receipt is committed in `validation.jsonl`.
+- Twelve Data's native account-usage snapshot passed `1/1` with one request;
+  the exact minute-credit pool was reconciled in the owner-scope ledger. Its
+  separate daily-credit pool remains explicitly unreconciled because the
+  provider exposes no cumulative daily counter. Both receipts contain only
+  aggregate telemetry.
+
 ## 2026-09-17 committed-source safety-preflight replay
 
 - At implementation source `37e616e65`, the focused Alpha Vantage, SEC EDGAR,

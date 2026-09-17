@@ -283,6 +283,13 @@ remaining_gaps:
     case passes 1/1 with one request and 304 response bytes. The minute limit,
     reset, and evidence controls remain the owner gate for ordinary routing.
   - >-
+    Owner-scope native baseline refreshes are current: Alpaca's credentialed
+    bounded matrix passed 7/7 with eight upstream requests after its account
+    snapshot; Twelve Data's account-usage snapshot passed 1/1 and reconciled
+    its exact minute-credit pool. Twelve Data's separate daily-credit pool
+    remains explicitly unreconciled because no cumulative daily counter is
+    exposed. Both receipts are aggregate-only and committed.
+  - >-
     Alpha Vantage's free-key 25-requests/day quota still has no
     provider-published reset boundary/timezone, but the current seed now
     declares an explicit rolling 24-hour application envelope for that exact

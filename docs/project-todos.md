@@ -346,6 +346,19 @@
       result-byte, ORF entitlement, legal terms, and external baseline gates
       remain independently required.
 
+### 2026-09-17 — Owner-scope native baseline refreshes
+
+- [x] Refresh Alpaca's owner-scope native account baseline and run its bounded
+      credentialed matrix: `7/7` cases passed with eight upstream requests,
+      covering equity/crypto profiles, history, latest price, assets, and
+      corporate actions.
+- [x] Refresh Twelve Data's owner-scope native minute-credit baseline: `1/1`
+      passed with one request. The separate daily-credit pool remains
+      explicitly unreconciled because its usage endpoint exposes no cumulative
+      daily counter.
+- [x] Keep both receipts aggregate-only and committed; no credentials or
+      provider payloads were persisted.
+
 ### 2026-09-16 — Marketstack monthly-cap admission review
 
 - [x] Add explicit `MARKETSTACK_REVIEWED_MONTHLY_LIMIT`,
