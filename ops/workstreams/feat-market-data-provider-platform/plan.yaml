@@ -743,6 +743,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 current-source Alpaca live validation passed `7/7` after the
+      rolling-window correction. The native account-usage snapshot reconciled
+      first, followed by daily and five-minute history, latest price, equity
+      and crypto profiles, asset/universe discovery, and a corporate-action
+      page. Eight upstream requests were observed with no dirty source paths;
+      this closes the Alpaca quota/bootstrap and adapter transport gate. Terms
+      and redistribution review remain separate provider-policy gates.
+    - >-
       2026-09-17 Alpaca quota correction: official documentation describes a
       200-requests/minute market-data pool and a native reset epoch for the
       next quota change, not a fixed calendar-minute boundary. The contract

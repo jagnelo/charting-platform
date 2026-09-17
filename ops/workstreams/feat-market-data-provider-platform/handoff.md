@@ -18,6 +18,12 @@
 - Focused quota/account-usage coverage passed `5/5` selected tests. One
   bounded native usage request was made for reset-shape verification; no
   credentials or provider payloads were persisted.
+- The exact current-source credentialed Alpaca matrix then passed `7/7` with
+  eight upstream requests: native usage bootstrap, daily and five-minute
+  history, latest price, equity and crypto profiles, asset/universe discovery,
+  and a corporate-action page. No dirty source paths were present. Alpaca's
+  remaining acceptance work is terms/redistribution review; the quota,
+  baseline, adapter, and bounded live-transport gates are closed.
 
 ## 2026-09-17 lossless, resumable provider-event ingestion
 
