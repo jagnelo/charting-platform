@@ -63,6 +63,10 @@ class MetricSetWriter(Protocol):
     async def ensure(self, *, principal: Any, metric_set: Any): ...
 
 
+class ResultManifestWriter(Protocol):
+    async def ensure(self, *, principal: Any, manifest: Any): ...
+
+
 @dataclass(frozen=True, slots=True)
 class WorkerTerminalEvidence:
     """Authenticated application evidence required after process execution."""
@@ -120,6 +124,7 @@ class PostgresWorkerTerminalAdapter:
         execution_state: PostgresExecutionStateAdapter,
         execution_summaries: Any,
         result_completion: PostgresResultCompletionAdapter,
+        result_materialization: ResultManifestWriter,
         metrics: MetricSetWriter,
         worker_state: PostgresWorkerStateAdapter,
         settlements: PostgresWorkerSettlementAdapter,
@@ -132,6 +137,7 @@ class PostgresWorkerTerminalAdapter:
             ("execution_state", execution_state),
             ("execution_summaries", execution_summaries),
             ("result_completion", result_completion),
+            ("result_materialization", result_materialization),
             ("metrics", metrics),
             ("worker_state", worker_state),
             ("settlements", settlements),
@@ -145,6 +151,7 @@ class PostgresWorkerTerminalAdapter:
         self._execution_state = execution_state
         self._execution_summaries = execution_summaries
         self._result_completion = result_completion
+        self._result_materialization = result_materialization
         self._metrics = metrics
         self._worker_state = worker_state
         self._settlements = settlements
@@ -250,6 +257,16 @@ class PostgresWorkerTerminalAdapter:
         if persisted_outcome.status.value == "succeeded":
             if evidence.publication is None or evidence.result is None:
                 return _reject(entry_fingerprint, "successful terminal evidence is missing publication")
+            try:
+                await self._result_materialization.ensure(
+                    principal=evidence.principal,
+                    manifest=evidence.result,
+                )
+            except Exception as error:  # pragma: no cover - persistence boundary
+                return _retry(
+                    entry_fingerprint,
+                    f"result manifest persistence failed: {type(error).__name__}",
+                )
             try:
                 completion = await self._result_completion.finalize(
                     principal=evidence.principal,

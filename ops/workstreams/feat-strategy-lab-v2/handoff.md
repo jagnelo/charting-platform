@@ -210,6 +210,18 @@ passed 802 package tests plus migration, Ruff, MyPy, diff, and workstream checks
 The exact combined backend gate passed 2,451 tests with 83.70% coverage (75%
 required); both branch-scoped cleanup passes left no testcontainer sessions.
 
+## 2026-09-17 - Worker terminal result-manifest persistence
+
+The dedicated PostgreSQL worker terminal callback now registers the successful
+`RunResultManifest` through the shared result-materialization adapter before
+result completion. The manifest remains owner-scoped, attempt-bound,
+immutable, and replay-safe; persistence failures leave the transport entry
+pending and prevent acknowledgement of an unregistered result. Metric-set
+persistence remains the post-completion idempotent step.
+
+Focused terminal/persistence tests passed (3 tests); branch-declared checks and
+the exact combined backend gate remain to be rerun for this wiring slice.
+
 ## 2026-09-17 - Executable Nautilus conformance harness
 
 `conformance_fixtures.py` now exposes `execute_conformance_suite(...)`, an

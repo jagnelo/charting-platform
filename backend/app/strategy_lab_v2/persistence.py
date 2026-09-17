@@ -300,6 +300,7 @@ class PostgresStrategyLabV2Persistence:
             execution_state=self.execution_state,
             execution_summaries=self.execution_summaries,
             result_completion=self.result_completion,
+            result_materialization=self.result_materialization,
             metrics=self.metrics,
             worker_state=self.worker_state,
             settlements=self.worker_settlements,
