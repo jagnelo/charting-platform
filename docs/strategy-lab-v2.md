@@ -429,7 +429,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   still own atomic persistence and transport.
 - `api_contracts.py` defines stable REST-boundary values for future routes:
   snapshot-bound opaque cursors round-trip deterministically with an integrity
-  checksum, page envelopes require consistent continuation cursors, and
+  checksum, strict decoding rejects duplicate fields and non-finite JSON
+  constants, page envelopes require consistent continuation cursors, and
   `ApiError` carries a typed code, HTTP status, retryability, request identity,
   and recursively frozen details. Cursor checksums are not authentication;
   authorization and snapshot ownership remain route responsibilities.

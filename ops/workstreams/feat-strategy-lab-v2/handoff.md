@@ -3290,6 +3290,19 @@ source files, diff check, and workstream validation. The same tip passed the
 Docker-backed combined coverage gate: 2,333 tests with 83.69% total coverage,
 above the required 75% threshold; setup and cleanup completed successfully.
 
+## 2026-09-17 - Strict REST cursor decoding checkpoint
+
+`ApiCursor.from_token()` now parses its base64 JSON envelope with duplicate-field
+rejection and non-finite-number rejection before checksum and snapshot validation.
+This keeps cursor identity deterministic under hostile or ambiguous transport
+payloads while preserving the existing boundary that checksums are integrity
+signals, not authorization. Route ownership and persistence integration remain
+deferred behind the shared-path gates.
+
+The focused API contract suite passed 6 tests with Ruff and MyPy green. The
+exact implementation tip still requires the branch-wide validation checkpoint
+below before this ops record is finalized.
+
 ## 2026-09-17 - Combined backend coverage revalidation
 
 The exact pushed checkpoint tip passed the Docker-backed combined coverage gate:

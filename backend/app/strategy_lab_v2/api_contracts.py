@@ -128,8 +128,12 @@ class ApiCursor:
         padded = token + "=" * (-len(token) % 4)
         try:
             decoded = base64.b64decode(padded, altchars=b"-_", validate=True)
-            envelope = json.loads(decoded.decode("utf-8"))
-        except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError) as error:
+            envelope = json.loads(
+                decoded.decode("utf-8"),
+                object_pairs_hook=_reject_duplicate_fields,
+                parse_constant=_reject_non_finite,
+            )
+        except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
             raise ValueError("cursor token is not valid base64 JSON") from error
         if not isinstance(envelope, Mapping) or set(envelope) != {"digest", "payload"}:
             raise ValueError("cursor token envelope is invalid")
@@ -156,6 +160,23 @@ class ApiCursor:
             item_id=payload_dict["item_id"],
             schema_version=payload_dict["schema_version"],
         )
+
+
+def _reject_duplicate_fields(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject ambiguous JSON objects before cursor integrity is evaluated."""
+
+    values: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in values:
+            raise ValueError("cursor token contains duplicate object fields")
+        values[key] = value
+    return values
+
+
+def _reject_non_finite(value: str) -> Any:
+    """Reject JSON extensions that cannot participate in canonical identity."""
+
+    raise ValueError(f"cursor token contains non-finite JSON constant: {value}")
 
 
 @dataclass(frozen=True, slots=True)

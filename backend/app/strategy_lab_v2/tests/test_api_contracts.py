@@ -47,6 +47,31 @@ def test_cursor_tampering_and_malformed_tokens_fail_closed() -> None:
         ApiCursor.from_token("not-a-cursor")
 
 
+def test_cursor_token_rejects_duplicate_fields_and_non_finite_constants() -> None:
+    duplicate = (
+        '{"digest":"sha256:'
+        + "0" * 64
+        + '","digest":"sha256:'
+        + "0" * 64
+        + '","payload":{}}'
+    )
+    duplicate_token = base64.urlsafe_b64encode(duplicate.encode("utf-8")).decode("ascii").rstrip("=")
+    with pytest.raises(ValueError, match="base64 JSON"):
+        ApiCursor.from_token(duplicate_token)
+
+    non_finite = (
+        '{"digest":"sha256:'
+        + "0" * 64
+        + '","payload":{"item_id":"trial-1","resource":"trials",'
+        '"schema_version":1,"snapshot_digest":"sha256:'
+        + "0" * 64
+        + '","sort_value":NaN}}'
+    )
+    non_finite_token = base64.urlsafe_b64encode(non_finite.encode("utf-8")).decode("ascii").rstrip("=")
+    with pytest.raises(ValueError, match="base64 JSON"):
+        ApiCursor.from_token(non_finite_token)
+
+
 def test_cursor_page_requires_consistent_next_cursor() -> None:
     cursor = _cursor()
     page = CursorPage("trials", ("trial-1",), True, cursor)
