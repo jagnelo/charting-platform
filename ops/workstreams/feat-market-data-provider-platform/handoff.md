@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 FMP trailing-bandwidth contract correction
+
+- The current official FMP pricing page states that the free-plan bandwidth
+  allowance is 500 MB over a trailing 30-day window. The seed now records the
+  conservative decimal ceiling (`500,000,000` bytes) with the explicit
+  provider-specific `rolling_30_days` reset instead of leaving that boundary
+  unknown.
+- The configured account's reported 512 MB value remains documented as a
+  source discrepancy; no higher allowance is inferred. The daily 250-call
+  reset still requires `FMP_REVIEWED_DAILY_RESET` and current evidence.
+- `FMP_REVIEWED_BANDWIDTH_RESET` remains available as an optional validated
+  override for a future plan. Complete operation-byte bounds and current
+  daily/bandwidth entitlement evidence remain mandatory before routing.
+- Focused quota/registry coverage and static checks are being replayed against
+  this source-only contract correction; no provider request is required.
+
 ## 2026-09-17 Bybit live-preflight diagnostic correction
 
 - Commit `a3ce59d2` fixes the `LIVE_PREFLIGHT_ROUTING_CONTROLS` alias for

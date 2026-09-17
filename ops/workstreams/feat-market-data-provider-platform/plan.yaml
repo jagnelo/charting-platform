@@ -190,23 +190,30 @@ remaining_gaps:
     with 37 warnings at 70.75% coverage. No provider request was made.
   - >-
     FMP's configured 250-calls/day and 512 MB/30-day bandwidth pools now have
-    independent provider-specific admission controls. A complete
-    `FMP_OPERATION_BYTE_BOUNDS` map is insufficient: routing also requires
-    admission-safe `FMP_REVIEWED_DAILY_RESET` and
-    `FMP_REVIEWED_BANDWIDTH_RESET` values plus independent current evidence
-    (`FMP_DAILY_QUOTA_EVIDENCE` and `FMP_BANDWIDTH_QUOTA_EVIDENCE`). Blank or
-    invalid controls preserve the unresolved contract and fail closed; no
-    reset boundary is inferred. The controls are wired through local/RPi
+    independent provider-specific admission controls. The current official
+    pricing page explicitly defines the free bandwidth pool as 500 MB over a
+    trailing 30-day window, so the seed uses the conservative decimal-byte
+    ceiling and `rolling_30_days`; only the daily-call reset remains
+    provider-defined. A complete `FMP_OPERATION_BYTE_BOUNDS` map is
+    insufficient: routing also requires admission-safe
+    `FMP_REVIEWED_DAILY_RESET` plus independent current evidence
+    (`FMP_DAILY_QUOTA_EVIDENCE` and `FMP_BANDWIDTH_QUOTA_EVIDENCE`).
+    `FMP_REVIEWED_BANDWIDTH_RESET` remains an optional validated override for
+    a future plan. Blank or invalid required controls preserve the unresolved
+    contract and fail closed. The controls are wired through local/RPi
     Compose and GitHub live CI. Focused quota/registry/wiring coverage passes
     155/155 and the complete backend unit gate passes 2,357/2,357 with 37
     warnings at 70.79% coverage.
   - >-
     2026-09-17 FMP source correction: the bandwidth seed now cites the
     current official `/developer/docs/pricing` document for the 500 MB
-    trailing-30-day free-plan pool, replacing the legacy pricing URL. No
-    quota/reset behavior was widened; the daily-call and bandwidth reset
-    controls remain fail-closed until independently reviewed. Focused
-    quota-contract coverage passed 110/110 with no provider request.
+    trailing-30-day free-plan pool, replacing the legacy pricing URL. The
+    implementation now uses the documented `rolling_30_days` boundary by
+    default; only the daily-call reset remains provider-defined, while the
+    bandwidth-reset setting is retained as an optional future-plan override.
+    Current plan evidence and complete operation-byte bounds remain required
+    before routing. Focused quota-contract coverage passed 110/110 with no
+    provider request.
   - >-
     Tiingo's 500-unique-symbol monthly and 50-request/hour pools now have
     independent provider-specific admission controls. Tiingo's current
@@ -736,6 +743,19 @@ remaining_gaps:
       phase remain open.
 progress:
   completed:
+    - >-
+      2026-09-17 FMP trailing-bandwidth contract correction: the current
+      official pricing source defines the free-plan pool as 500 MB over a
+      trailing 30-day window. The seed now uses a conservative 500,000,000
+      byte ceiling with `rolling_30_days`; the configured account's reported
+      512 MB value remains a source discrepancy and is not used to widen the
+      limit. `FMP_REVIEWED_BANDWIDTH_RESET` is now an optional validated
+      future-plan override, while the daily-call reset, current entitlement
+      evidence, and complete operation-byte map remain mandatory. Focused
+      quota/registry/wiring coverage passed 160/160; the full backend unit
+      gate passed 2,364/2,364 with 37 warnings and 70.82% coverage. Ruff,
+      compose/workflow contracts, workstream validation, and diff checks
+      passed; no provider requests were made.
     - >-
       2026-09-17 EODHD account-specific quota evidence: the configured key's
       credentialed `/user` snapshot reports the native daily allowance of 20
@@ -1551,7 +1571,7 @@ progress:
     - FINRA asynchronous presigned-result downloads now fail closed without a positive operator-supplied byte bound, validate declared and measured sizes, never forward OAuth credentials, and settle measured bytes against the durable monthly credential budget when a reviewed bound is configured
     - Twelve Data, Tradier, and Binance provider-native cumulative usage headers are retained and reconciled into their matching durable quota windows only when the observed values prove the reviewed contract limit; stale or mismatched observations cannot reduce local accounting
     - Tiingo's published symbol, request, and bandwidth magnitudes are represented with exact `calendar_day_est`/`calendar_month_est` resets where its current general documentation is explicit; the distinct-symbol and hourly reset anchors remain unconfirmed, so durable reservations stay fail-closed until those dimensions and reviewed per-operation byte bounds are admitted
-    - FMP's operator-reported 512 MiB bandwidth pool is represented with provider-defined reset semantics; the reset anchor remains unconfirmed and FMP stays fail-closed until a reviewed per-operation byte reservation exists
+    - FMP's current official pricing contract is represented as a conservative 500,000,000-byte trailing-30-day (`rolling_30_days`) pool; the configured account's 512 MB report is retained as a source discrepancy, while the daily-call reset and reviewed per-operation byte reservations remain required before routing
     - Massive's documented `reference/ipos` and `marketstatus/upcoming` endpoints are normalized into the shared market-event surfaces with inclusive date bounds, IPO status filtering, holiday/early-close exchange metadata, verbatim payload provenance, and explicit cursor-page continuation; each one-request operation has its own quota cost and never triggers hidden pagination or compound reads
     - tokenized provider transport now converts network, HTTP, rate-limit, and invalid-JSON failures into redacted typed errors; only allow-listed rate headers are retained, `Retry-After` is parsed for retry metadata, and the finite Robinhood retry consumes the typed 429 path without leaking raw httpx failures
     - tokenized live validation now covers the xStocks and Robinhood corporate-action endpoints with positive transport observations; Robinhood event normalization filters malformed rows before optional symbol matching, with fixture coverage for bounded pagination/filter semantics

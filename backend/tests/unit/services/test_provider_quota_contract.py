@@ -597,7 +597,7 @@ def test_tiingo_byte_pool_also_requires_symbol_reset_review(monkeypatch):
     assert seed["quota_contract"].get("untracked_constraints")
 
 
-def test_fmp_byte_pool_requires_independent_reset_review(monkeypatch):
+def test_fmp_byte_pool_uses_documented_trailing_window_and_requires_daily_review(monkeypatch):
     bounds = {
         "fetch_ohlcv": 1_000_000,
         "fetch_latest_ohlcv": 1_000_000,
@@ -614,13 +614,9 @@ def test_fmp_byte_pool_requires_independent_reset_review(monkeypatch):
     monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "")
     blocked = provider_rate_limit_seed("fmp")["quota_contract"]
     assert blocked["untracked_constraints"]
-    assert blocked["unknown_dimensions"] == [
-        "calls_daily_reset_anchor",
-        "bandwidth_reset_anchor",
-    ]
+    assert blocked["unknown_dimensions"] == ["calls_daily_reset_anchor"]
 
     monkeypatch.setattr(settings, "FMP_REVIEWED_DAILY_RESET", "calendar_day_utc")
-    monkeypatch.setattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "rolling_30_days")
     monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "current account evidence")
     monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "current plan evidence")
     promoted = provider_rate_limit_seed("fmp")
@@ -631,6 +627,9 @@ def test_fmp_byte_pool_requires_independent_reset_review(monkeypatch):
     assert next(item for item in contract["dimensions"] if item["name"] == "calls_per_day")["reset"] == "calendar_day_utc"
     assert next(item for item in contract["dimensions"] if item["name"] == "bandwidth_bytes_per_30_days")["reset"] == "rolling_30_days"
     assert promoted["_byte_reservation_bounds"] == bounds
+
+    monkeypatch.setattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "not-a-reset")
+    assert "bandwidth_bytes_per_30_days" in provider_rate_limit_seed("fmp")["quota_contract"]["untracked_constraints"][0]["name"]
 
 
 def test_marketstack_monthly_limit_and_reset_require_account_review(monkeypatch):
@@ -2872,17 +2871,14 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert tiingo["untracked_constraints"][0]["limit"] == 1_000_000_000
     assert fmp["dimensions"][0]["limit"] == 250
     assert fmp["dimensions"][0]["reset"] == "provider_defined"
-    assert fmp["unknown_dimensions"] == [
-        "calls_daily_reset_anchor",
-        "bandwidth_reset_anchor",
-    ]
+    assert fmp["unknown_dimensions"] == ["calls_daily_reset_anchor"]
     assert fmp["untracked_constraints"][0]["limit"] == 500_000_000
     assert fmp["untracked_constraints"][0]["window_seconds"] == 2_592_000
     assert (
         fmp["untracked_constraints"][0]["source"]
         == "https://site.financialmodelingprep.com/developer/docs/pricing"
     )
-    assert fmp["untracked_constraints"][0]["reset"] == "provider_defined"
+    assert fmp["untracked_constraints"][0]["reset"] == "rolling_30_days"
 
 
 def test_finnhub_reviewed_reset_boundaries_promote_each_dimension_only_with_evidence(

@@ -1039,17 +1039,22 @@ class Settings(BaseSettings):
                         "quota_group": "api_key",
                         "source": "https://site.financialmodelingprep.com/developer/docs/pricing",
                         "window_seconds": 2_592_000,
-                        "reset": "provider_defined",
+                        # The current official pricing page explicitly calls
+                        # this a trailing 30-day pool. Preserve that provider
+                        # semantics instead of requiring an invented calendar
+                        # anchor or an otherwise redundant manual reset.
+                        "reset": "rolling_30_days",
                         "limit_basis": "decimal_bytes_conservative_for_published_MB",
                     }
                 ],
                 "unknown_dimensions": [
                     "calls_daily_reset_anchor",
-                    "bandwidth_reset_anchor",
                 ],
             },
             "quota_scope": "api_key",
-            "quota_source": "FMP operator account dashboard",
+            "quota_source": (
+                "FMP official pricing bandwidth contract plus operator account evidence"
+            ),
         },
         "marketdata_app": {
             "quota_contract": {
@@ -2096,11 +2101,11 @@ class Settings(BaseSettings):
     TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE: str = ""
     TIINGO_HOURLY_QUOTA_EVIDENCE: str = ""
     FMP_OPERATION_BYTE_BOUNDS: dict[str, int] = {}
-    # FMP publishes separate daily-call and 30-day bandwidth pools, but the
-    # configured account evidence does not establish either reset boundary.
-    # Keep both dimensions fail-closed until each boundary and its current
-    # evidence are supplied explicitly; never infer a calendar or rolling
-    # window from the provider's headline allowance.
+    # FMP publishes separate daily-call and trailing-30-day bandwidth pools.
+    # The official pricing page establishes the bandwidth window, while the
+    # daily-call reset boundary remains provider-defined. Keep the bandwidth
+    # reset override configurable for future plan changes, but do not require
+    # a duplicate setting for the current documented contract.
     FMP_REVIEWED_DAILY_RESET: str = ""
     FMP_REVIEWED_BANDWIDTH_RESET: str = ""
     FMP_DAILY_QUOTA_EVIDENCE: str = ""
@@ -3368,16 +3373,18 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             )
         return seed
     if provider_name == "fmp":
-        # FMP exposes independent daily-call and bandwidth pools. Neither
-        # reset anchor is admitted from an operator's remembered plan value;
-        # both must be named with calculable semantics and backed by current
-        # evidence before the byte pool can be reserved at runtime.
+        # FMP exposes independent daily-call and bandwidth pools. The current
+        # official pricing contract defines bandwidth as a trailing 30-day
+        # pool; the daily-call reset remains provider-defined. An operator may
+        # override the bandwidth boundary for a future plan, but a blank value
+        # retains the documented rolling-30-day semantics.
         daily_reset = str(
             getattr(settings, "FMP_REVIEWED_DAILY_RESET", "") or ""
         ).strip()
-        bandwidth_reset = str(
+        reviewed_bandwidth_reset = str(
             getattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "") or ""
         ).strip()
+        bandwidth_reset = reviewed_bandwidth_reset or "rolling_30_days"
         daily_evidence = str(
             getattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "") or ""
         ).strip()

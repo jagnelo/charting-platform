@@ -979,8 +979,15 @@ def provider_missing_routing_controls(
             getattr(settings, "FMP_REVIEWED_DAILY_RESET", "")
         ):
             missing.append("FMP_REVIEWED_DAILY_RESET")
-        if not provider_quota_reset_is_admission_safe(
-            getattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "")
+        # The current official FMP pricing contract defines the bandwidth
+        # pool as trailing 30 days. A blank override therefore keeps the
+        # documented rolling window; a supplied value is still validated so a
+        # future plan cannot silently introduce an unsafe boundary.
+        reviewed_bandwidth_reset = str(
+            getattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "") or ""
+        ).strip()
+        if reviewed_bandwidth_reset and not provider_quota_reset_is_admission_safe(
+            reviewed_bandwidth_reset
         ):
             missing.append("FMP_REVIEWED_BANDWIDTH_RESET")
         if not str(getattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "") or "").strip():

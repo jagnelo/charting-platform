@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-17 — FMP trailing-bandwidth contract correction
+
+- [x] Reconcile the current official FMP pricing page's free-plan bandwidth
+      contract: 500 MB over a trailing 30-day window. The provider seed now
+      uses a conservative `500,000,000`-byte ceiling and the explicit
+      `rolling_30_days` reset.
+- [x] Keep the configured account's reported 512 MB value as a documented
+      source discrepancy; do not widen the limit without account evidence.
+- [x] Retain `FMP_REVIEWED_BANDWIDTH_RESET` as an optional validated override
+      for a future plan, while requiring the daily reset review, complete
+      operation-byte map, and current entitlement evidence before routing.
+- [ ] Obtain current account evidence for the 250-call/day reset and reviewed
+      endpoint byte bounds before promoting FMP routing.
+
 ### 2026-09-17 — Exact-source OpenFIGI anonymous matrix
 
 - [x] After an initial anonymous HTTP 429 was preserved as a typed rate-limit

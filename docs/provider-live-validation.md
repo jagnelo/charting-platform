@@ -429,7 +429,7 @@ environment secrets and with `EDGAR_USER_AGENT` and (only after source confirmat
 `TIINGO_OPERATION_BYTE_BOUNDS`, `TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET`,
 `TIINGO_REVIEWED_HOURLY_RESET`, `TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE`,
 `TIINGO_HOURLY_QUOTA_EVIDENCE`, `FMP_OPERATION_BYTE_BOUNDS`,
-`FMP_REVIEWED_DAILY_RESET`, `FMP_REVIEWED_BANDWIDTH_RESET`,
+`FMP_REVIEWED_DAILY_RESET`, optional `FMP_REVIEWED_BANDWIDTH_RESET`,
 `FMP_DAILY_QUOTA_EVIDENCE`, and `FMP_BANDWIDTH_QUOTA_EVIDENCE`,
 `PROVIDER_RATE_LIMIT_SEEDS`, `PROVIDER_FRESHNESS_SEEDS`,
 `PROVIDER_USAGE_PROFILE_SEEDS`,
@@ -570,13 +570,15 @@ On 2026-09-10, the configured FMP key also passed the bounded stable
 `9,444` response bytes). The adapter returned non-empty normalized earnings
 events with inclusive date bounds; the raw EPS/revenue estimate fields remain
 preserved in event provenance. This is positive transport/shape evidence for
-the configured account, not a promotion of FMP routing: the provider-reported
-512 MB bandwidth pool has provider-defined reset semantics that remain
-unconfirmed, and it still requires a complete operator-reviewed
-`FMP_OPERATION_BYTE_BOUNDS` map plus separately reviewed daily/bandwidth reset
-controls and evidence, and analyst-estimate/price-target endpoints
-remain outside this adapter until their plan entitlements are separately
-validated.
+the configured account, not a promotion of FMP routing: the current official
+pricing contract defines a 500 MB trailing-30-day bandwidth pool (the account
+reports 512 MB, so the implementation retains the conservative
+500,000,000-byte ceiling). FMP still requires a complete operator-reviewed
+`FMP_OPERATION_BYTE_BOUNDS` map, a reviewed daily-call reset, and current
+daily/bandwidth entitlement evidence; `FMP_REVIEWED_BANDWIDTH_RESET` is only
+an optional override for a future plan. Analyst-estimate/price-target
+endpoints remain outside this adapter until their plan entitlements are
+separately validated.
 
 The same day, the configured Massive key passed the bounded reference, IPO
 calendar, and market-holiday live case. Search, one `reference/ipos` page, and
