@@ -14,6 +14,7 @@ from app.strategy_lab_v2.api_resources import (
     ResourceIdentifier,
 )
 from app.strategy_lab_v2.artifact_application import (
+    LocalArtifactCleanupService,
     LocalArtifactPublicationService,
     LocalArtifactRetentionService,
 )
@@ -256,6 +257,16 @@ class PostgresStrategyLabV2Persistence:
         return LocalArtifactRetentionService(
             LocalArtifactStore(root),
             self.artifact_retention,
+        )
+
+    def artifact_cleanup_service(
+        self, root: str | os.PathLike[str]
+    ) -> LocalArtifactCleanupService:
+        """Create an orphan reconciler over this bundle's commit ledger."""
+
+        return LocalArtifactCleanupService(
+            LocalArtifactStore(root),
+            self.artifact_commits,
         )
 
     def outbox_relay(self, transport: RedisDispatchTransport) -> OutboxRelayService:

@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import os
 from datetime import UTC, datetime, timedelta
 
 from app.strategy_lab_v2.artifact_application import (
+    ArtifactCleanupScheduler,
     ArtifactPublicationDecision,
+    LocalArtifactCleanupService,
     LocalArtifactPublicationService,
     LocalArtifactRetentionService,
+    create_local_artifact_cleanup_service,
     create_local_artifact_publication_service,
     create_local_artifact_retention_service,
 )
@@ -20,7 +24,11 @@ from app.strategy_lab_v2.artifact_retention import (
     ArtifactRetentionState,
     resolve_artifact_retention,
 )
-from app.strategy_lab_v2.artifact_store import ArtifactStoreDecision, LocalArtifactStore
+from app.strategy_lab_v2.artifact_store import (
+    ArtifactCleanupResolution,
+    ArtifactStoreDecision,
+    LocalArtifactStore,
+)
 from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
@@ -112,6 +120,11 @@ def test_local_factory_uses_explicit_root_and_postgres_commit_adapter(tmp_path) 
     )
     assert isinstance(retention_service, LocalArtifactRetentionService)
     assert retention_service.store.root == (tmp_path / "retention-artifacts").resolve()
+    cleanup_service = create_local_artifact_cleanup_service(
+        tmp_path / "cleanup-artifacts", lambda: object()
+    )
+    assert isinstance(cleanup_service, LocalArtifactCleanupService)
+    assert cleanup_service.store.root == (tmp_path / "cleanup-artifacts").resolve()
 
 
 async def test_retention_service_deletes_only_after_resolver_authorizes(tmp_path) -> None:
@@ -139,3 +152,58 @@ async def test_retention_service_deletes_only_after_resolver_authorizes(tmp_path
     assert collected.decision.value == "deleted"
     assert resolver.calls == [(content_digest(manifest), eligible_at)]
     assert not store.path_for(manifest.storage_key).exists()
+
+
+async def test_cleanup_service_uses_commit_ledger_as_authority(tmp_path) -> None:
+    payload = b"orphan from interrupted publish"
+    manifest = _manifest(payload)
+    committer = _Committer()
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(manifest, payload)
+    old = NOW - timedelta(days=2)
+    target = store.path_for(manifest.storage_key)
+    os.utime(target, (old.timestamp(), old.timestamp()))
+    service = LocalArtifactCleanupService(store, committer)
+
+    resolution = await service.cleanup_uncommitted(
+        observed_at=NOW,
+        minimum_age=timedelta(days=1),
+    )
+
+    assert isinstance(resolution, ArtifactCleanupResolution)
+    assert resolution.deleted_count == 1
+    assert not target.exists()
+
+
+async def test_cleanup_scheduler_is_cancellable_and_bounded(tmp_path) -> None:
+    payload = b"scheduled cleanup"
+    manifest = _manifest(payload)
+    committer = _Committer()
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(manifest, payload)
+    old = NOW - timedelta(days=2)
+    os.utime(store.path_for(manifest.storage_key), (old.timestamp(), old.timestamp()))
+    service = LocalArtifactCleanupService(store, committer)
+    sleeps: list[float] = []
+    scheduler = ArtifactCleanupScheduler(
+        service,
+        clock=lambda: NOW,
+        minimum_age=timedelta(days=1),
+        interval_seconds=2,
+        sleep=lambda seconds: _record_sleep(sleeps, seconds),
+    )
+
+    results = await scheduler.run(_NeverStop(), max_cycles=1)
+
+    assert len(results) == 1
+    assert results[0].deleted_count == 1
+    assert sleeps == []
+
+
+async def _record_sleep(sleeps: list[float], seconds: float) -> None:
+    sleeps.append(seconds)
+
+
+class _NeverStop:
+    def is_set(self) -> bool:
+        return False

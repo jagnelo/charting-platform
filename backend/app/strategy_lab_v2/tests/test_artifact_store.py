@@ -171,3 +171,67 @@ def test_collect_preserves_pinned_bytes_and_rejects_foreign_retention(tmp_path) 
     other_manifest = _manifest(b"other")
     with pytest.raises(ValueError, match="different manifest"):
         store.collect(other_manifest, resolve_artifact_retention(state, observed_at=NOW))
+
+
+def test_cleanup_uncommitted_deletes_only_aged_uncommitted_content_and_temps(tmp_path) -> None:
+    old = NOW - timedelta(days=2)
+    payload = b"orphan bytes"
+    orphan_manifest = _manifest(payload)
+    committed_manifest = _manifest(b"committed bytes")
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(orphan_manifest, payload)
+    store.publish(committed_manifest, b"committed bytes")
+    temp_key = artifact_content_digest(b"temp bytes")
+    temp_path = store.path_for(temp_key)
+    temp_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = temp_path.with_name(f".{temp_path.name}.crash")
+    temp_path.write_bytes(b"partial")
+    for path in (store.path_for(orphan_manifest.storage_key), temp_path):
+        os.utime(path, (old.timestamp(), old.timestamp()))
+
+    resolution = store.cleanup_uncommitted(
+        {committed_manifest.storage_key},
+        observed_at=NOW,
+        minimum_age=timedelta(days=1),
+    )
+
+    assert resolution.deleted_count == 2
+    assert resolution.retained_count == 1
+    assert not store.path_for(orphan_manifest.storage_key).exists()
+    assert not temp_path.exists()
+    assert store.read(committed_manifest.storage_key) == b"committed bytes"
+    assert {record.reason for record in resolution.records} == {
+        "uncommitted_content",
+        "temporary_publication_file",
+        "committed",
+    }
+
+
+def test_cleanup_retains_fresh_uncommitted_content_and_rejects_symlinks(tmp_path) -> None:
+    payload = b"fresh orphan"
+    manifest = _manifest(payload)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(manifest, payload)
+    retained = store.cleanup_uncommitted(
+        set(),
+        observed_at=NOW,
+        minimum_age=timedelta(days=1),
+    )
+    assert retained.retained_count == 1
+    assert retained.records[0].reason == "minimum_age_not_reached"
+
+    symlink = store.path_for(artifact_content_digest(b"another"))
+    symlink.parent.mkdir(parents=True, exist_ok=True)
+    symlink.symlink_to(tmp_path / "missing")
+    with pytest.raises(ArtifactStoreCorruptionError, match="symlink"):
+        store.cleanup_uncommitted(set(), observed_at=NOW, minimum_age=timedelta(0))
+
+
+def test_cleanup_validates_commit_keys_and_policy(tmp_path) -> None:
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    with pytest.raises(ValueError, match="sha256"):
+        store.cleanup_uncommitted({"not-a-digest"}, observed_at=NOW, minimum_age=timedelta(0))
+    with pytest.raises(ValueError, match="minimum_age"):
+        store.cleanup_uncommitted(set(), observed_at=NOW, minimum_age=timedelta(days=-1))
+    with pytest.raises(ValueError, match="timezone"):
+        store.cleanup_uncommitted(set(), observed_at=datetime(2024, 1, 1), minimum_age=timedelta(0))

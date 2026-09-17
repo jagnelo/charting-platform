@@ -10,8 +10,11 @@ are made read-only after publication and every read is re-verified.
 from __future__ import annotations
 
 import os
+import re
 import tempfile
+from collections.abc import Collection
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 
@@ -98,6 +101,90 @@ class ArtifactByteResolution:
             raise ValueError("retained artifact bytes cannot contain a rejection reason")
         if self.decision is not ArtifactByteDecision.RETAINED and self.rejection_reason:
             raise ValueError("artifact byte resolutions cannot contain a rejection reason")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+class ArtifactCleanupKind(StrEnum):
+    """Kind of uncommitted filesystem entry observed during cleanup."""
+
+    CONTENT = "content"
+    TEMPORARY = "temporary"
+
+
+class ArtifactCleanupDecision(StrEnum):
+    """Outcome for one safely discovered uncommitted entry."""
+
+    DELETED = "deleted"
+    RETAINED = "retained"
+    NOT_FOUND = "not_found"
+
+
+@dataclass(frozen=True, slots=True)
+class ArtifactCleanupRecord:
+    """Auditable result for one content or crash-left temporary file."""
+
+    kind: ArtifactCleanupKind
+    storage_key: str
+    relative_path: str
+    byte_length: int
+    modified_at: datetime
+    decision: ArtifactCleanupDecision
+    reason: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.kind, ArtifactCleanupKind):
+            raise TypeError("kind must be an ArtifactCleanupKind")
+        require_sha256_digest(self.storage_key, field_name="storage_key")
+        for name in ("relative_path", "reason"):
+            if not isinstance(getattr(self, name), str) or not getattr(self, name).strip():
+                raise ValueError(f"{name} must not be empty")
+        if not isinstance(self.byte_length, int) or isinstance(self.byte_length, bool) or self.byte_length < 0:
+            raise ValueError("byte_length must be a non-negative integer")
+        if self.modified_at.tzinfo is None or self.modified_at.utcoffset() is None:
+            raise ValueError("modified_at must be timezone-aware")
+        if not isinstance(self.decision, ArtifactCleanupDecision):
+            raise TypeError("decision must be an ArtifactCleanupDecision")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
+class ArtifactCleanupResolution:
+    """Deterministic bounded cleanup evidence for one explicit observation."""
+
+    observed_at: datetime
+    minimum_age: timedelta
+    records: tuple[ArtifactCleanupRecord, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.observed_at.tzinfo is None or self.observed_at.utcoffset() is None:
+            raise ValueError("observed_at must be timezone-aware")
+        if not isinstance(self.minimum_age, timedelta) or self.minimum_age.total_seconds() < 0:
+            raise ValueError("minimum_age must be a non-negative timedelta")
+        records = tuple(self.records)
+        if any(not isinstance(record, ArtifactCleanupRecord) for record in records):
+            raise TypeError("records must contain ArtifactCleanupRecord values")
+        paths = [record.relative_path for record in records]
+        if paths != sorted(paths) or len(paths) != len(set(paths)):
+            raise ValueError("cleanup records must be unique and deterministically ordered")
+        object.__setattr__(self, "records", records)
+
+    @property
+    def deleted_count(self) -> int:
+        return sum(record.decision is ArtifactCleanupDecision.DELETED for record in self.records)
+
+    @property
+    def retained_count(self) -> int:
+        return sum(record.decision is ArtifactCleanupDecision.RETAINED for record in self.records)
+
+    @property
+    def not_found_count(self) -> int:
+        return sum(record.decision is ArtifactCleanupDecision.NOT_FOUND for record in self.records)
 
     @property
     def fingerprint(self) -> str:
@@ -301,6 +388,110 @@ class LocalArtifactStore:
             retention,
             integrity,
         )
+
+    def cleanup_uncommitted(
+        self,
+        committed_storage_keys: Collection[str],
+        *,
+        observed_at: datetime,
+        minimum_age: timedelta,
+    ) -> ArtifactCleanupResolution:
+        """Reconcile aged uncommitted bytes and crash-left temp files.
+
+        PostgreSQL commit records are authoritative.  A content file is only
+        deleted when its digest is verified, it is absent from that committed
+        set, and its explicit filesystem mtime is at least ``minimum_age`` in
+        the past.  Temporary publication files are identified by the store's
+        private naming pattern and receive the same age guard.  Unknown files
+        and directories are never touched.
+        """
+
+        if not isinstance(committed_storage_keys, Collection) or isinstance(
+            committed_storage_keys, str | bytes
+        ):
+            raise TypeError("committed_storage_keys must be a collection of digest strings")
+        if observed_at.tzinfo is None or observed_at.utcoffset() is None:
+            raise ValueError("observed_at must be timezone-aware")
+        if not isinstance(minimum_age, timedelta) or minimum_age.total_seconds() < 0:
+            raise ValueError("minimum_age must be a non-negative timedelta")
+        committed: set[str] = set()
+        for storage_key in committed_storage_keys:
+            require_sha256_digest(storage_key, field_name="committed_storage_key")
+            committed.add(storage_key)
+
+        records: list[ArtifactCleanupRecord] = []
+        for shard in sorted(self._root.iterdir(), key=lambda item: item.name):
+            if shard.is_symlink():
+                raise ArtifactStoreCorruptionError("artifact shard directory is a symlink")
+            if not shard.is_dir() or re.fullmatch(r"[0-9a-f]{2}", shard.name) is None:
+                continue
+            for entry in sorted(shard.iterdir(), key=lambda item: item.name):
+                if entry.is_symlink():
+                    raise ArtifactStoreCorruptionError("artifact cleanup target is a symlink")
+                if not entry.is_file():
+                    continue
+                content_match = re.fullmatch(r"[0-9a-f]{64}", entry.name)
+                temporary_match = re.fullmatch(r"\.([0-9a-f]{64})\.[^/]+", entry.name)
+                if content_match is None and temporary_match is None:
+                    continue
+                if content_match is not None:
+                    digest_hex = content_match.group(0)
+                else:
+                    if temporary_match is None:  # pragma: no cover - guarded above
+                        continue
+                    digest_hex = temporary_match.group(1)
+                storage_key = f"sha256:{digest_hex}"
+                stat_result = entry.stat(follow_symlinks=False)
+                modified_at = datetime.fromtimestamp(stat_result.st_mtime, tz=UTC)
+                age = observed_at - modified_at
+                eligible = age >= minimum_age
+                kind = (
+                    ArtifactCleanupKind.CONTENT
+                    if content_match is not None
+                    else ArtifactCleanupKind.TEMPORARY
+                )
+                if kind is ArtifactCleanupKind.CONTENT:
+                    payload = self._read_existing(entry, storage_key)
+                    if payload is None:  # pragma: no cover - entry was a regular file
+                        continue
+                    byte_length = len(payload)
+                    if storage_key in committed:
+                        decision, reason = ArtifactCleanupDecision.RETAINED, "committed"
+                    elif not eligible:
+                        decision, reason = ArtifactCleanupDecision.RETAINED, "minimum_age_not_reached"
+                    else:
+                        decision, reason = self._delete_cleanup_entry(entry, "uncommitted_content")
+                else:
+                    byte_length = stat_result.st_size
+                    if not eligible:
+                        decision, reason = ArtifactCleanupDecision.RETAINED, "minimum_age_not_reached"
+                    else:
+                        decision, reason = self._delete_cleanup_entry(entry, "temporary_publication_file")
+                records.append(
+                    ArtifactCleanupRecord(
+                        kind,
+                        storage_key,
+                        entry.relative_to(self._root).as_posix(),
+                        byte_length if decision is not ArtifactCleanupDecision.NOT_FOUND else 0,
+                        modified_at,
+                        decision,
+                        reason,
+                    )
+                )
+        return ArtifactCleanupResolution(observed_at, minimum_age, tuple(sorted(records, key=lambda item: item.relative_path)))
+
+    @staticmethod
+    def _delete_cleanup_entry(
+        entry: Path, reason: str
+    ) -> tuple[ArtifactCleanupDecision, str]:
+        if entry.is_symlink():
+            raise ArtifactStoreCorruptionError("artifact cleanup target became a symlink")
+        try:
+            entry.unlink()
+        except FileNotFoundError:
+            return ArtifactCleanupDecision.NOT_FOUND, "already_absent"
+        LocalArtifactStore._fsync_directory(entry.parent)
+        return ArtifactCleanupDecision.DELETED, reason
 
     @staticmethod
     def _read_existing(target: Path, storage_key: str) -> bytes | None:

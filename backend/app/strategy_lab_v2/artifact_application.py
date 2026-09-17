@@ -10,9 +10,12 @@ with different bytes.
 
 from __future__ import annotations
 
+import asyncio
+import math
 import os
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any, Protocol
 
@@ -25,6 +28,7 @@ from app.strategy_lab_v2.artifact_publication import plan_artifact_publication
 from app.strategy_lab_v2.artifact_retention import ArtifactRetentionResolution
 from app.strategy_lab_v2.artifact_store import (
     ArtifactByteResolution,
+    ArtifactCleanupResolution,
     ArtifactStoreDecision,
     ArtifactStoreResolution,
     LocalArtifactStore,
@@ -50,6 +54,10 @@ class ArtifactRetentionResolver(Protocol):
     async def resolve(
         self, *, manifest_fingerprint: str, observed_at: datetime
     ) -> ArtifactRetentionResolution: ...
+
+
+class ArtifactCommitLedgerProvider(Protocol):
+    async def load_ledger(self) -> ArtifactCommitLedger: ...
 
 
 class ArtifactPublicationDecision(StrEnum):
@@ -196,6 +204,102 @@ class LocalArtifactRetentionService:
         return self._store.collect(manifest, retention)
 
 
+class LocalArtifactCleanupService:
+    """Reconcile local bytes against the authoritative commit ledger."""
+
+    def __init__(self, store: LocalArtifactStore, committer: ArtifactCommitLedgerProvider) -> None:
+        if not isinstance(store, LocalArtifactStore):
+            raise TypeError("store must be a LocalArtifactStore")
+        if not callable(getattr(committer, "load_ledger", None)):
+            raise TypeError("committer must provide load_ledger")
+        self._store = store
+        self._committer = committer
+
+    @property
+    def store(self) -> LocalArtifactStore:
+        return self._store
+
+    async def cleanup_uncommitted(
+        self,
+        *,
+        observed_at: datetime,
+        minimum_age: timedelta,
+    ) -> ArtifactCleanupResolution:
+        """Run one bounded reconciliation at an explicit instant."""
+
+        if observed_at.tzinfo is None or observed_at.utcoffset() is None:
+            raise ValueError("observed_at must be timezone-aware")
+        if not isinstance(minimum_age, timedelta) or minimum_age.total_seconds() < 0:
+            raise ValueError("minimum_age must be a non-negative timedelta")
+        ledger = await self._committer.load_ledger()
+        if not isinstance(ledger, ArtifactCommitLedger):
+            raise TypeError("committer.load_ledger must return an ArtifactCommitLedger")
+        return self._store.cleanup_uncommitted(
+            {record.storage_key for record in ledger.records},
+            observed_at=observed_at,
+            minimum_age=minimum_age,
+        )
+
+
+class ArtifactCleanupScheduler:
+    """Cancellable periodic artifact reconciliation with explicit age policy."""
+
+    def __init__(
+        self,
+        service: LocalArtifactCleanupService,
+        *,
+        clock: Callable[[], datetime],
+        minimum_age: timedelta,
+        interval_seconds: float = 300.0,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    ) -> None:
+        if not callable(getattr(service, "cleanup_uncommitted", None)):
+            raise TypeError("service must provide cleanup_uncommitted")
+        if not callable(clock):
+            raise TypeError("clock must be callable")
+        if not isinstance(minimum_age, timedelta) or minimum_age.total_seconds() < 0:
+            raise ValueError("minimum_age must be a non-negative timedelta")
+        if (
+            not isinstance(interval_seconds, int | float)
+            or isinstance(interval_seconds, bool)
+            or not math.isfinite(float(interval_seconds))
+            or interval_seconds <= 0
+        ):
+            raise ValueError("interval_seconds must be a finite positive number")
+        if not callable(sleep):
+            raise TypeError("sleep must be callable")
+        self._service = service
+        self._clock = clock
+        self._minimum_age = minimum_age
+        self._interval_seconds = float(interval_seconds)
+        self._sleep = sleep
+
+    async def run_once(self) -> ArtifactCleanupResolution:
+        now = self._clock()
+        if not isinstance(now, datetime):
+            raise TypeError("clock must return a datetime")
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("clock must return a timezone-aware datetime")
+        return await self._service.cleanup_uncommitted(
+            observed_at=now,
+            minimum_age=self._minimum_age,
+        )
+
+    async def run(self, stop_event: Any, *, max_cycles: int | None = None) -> tuple[ArtifactCleanupResolution, ...]:
+        if not callable(getattr(stop_event, "is_set", None)):
+            raise TypeError("stop_event must provide is_set")
+        if max_cycles is not None and (
+            not isinstance(max_cycles, int) or isinstance(max_cycles, bool) or max_cycles < 1
+        ):
+            raise ValueError("max_cycles must be a positive integer when provided")
+        results: list[ArtifactCleanupResolution] = []
+        while not stop_event.is_set() and (max_cycles is None or len(results) < max_cycles):
+            results.append(await self.run_once())
+            if not stop_event.is_set() and (max_cycles is None or len(results) < max_cycles):
+                await self._sleep(self._interval_seconds)
+        return tuple(results)
+
+
 def create_local_artifact_publication_service(
     root: str | os.PathLike[str],
     session_factory: Any,
@@ -226,13 +330,29 @@ def create_local_artifact_retention_service(
     )
 
 
+def create_local_artifact_cleanup_service(
+    root: str | os.PathLike[str],
+    session_factory: Any,
+) -> LocalArtifactCleanupService:
+    """Build a local artifact reconciler over the PostgreSQL commit ledger."""
+
+    return LocalArtifactCleanupService(
+        LocalArtifactStore(root),
+        PostgresArtifactCommitAdapter(session_factory),
+    )
+
+
 __all__ = [
     "ArtifactCommitter",
+    "ArtifactCommitLedgerProvider",
     "ArtifactRetentionResolver",
     "ArtifactPublicationDecision",
     "ArtifactPublicationResolution",
     "LocalArtifactPublicationService",
     "LocalArtifactRetentionService",
+    "LocalArtifactCleanupService",
+    "ArtifactCleanupScheduler",
     "create_local_artifact_publication_service",
     "create_local_artifact_retention_service",
+    "create_local_artifact_cleanup_service",
 ]
