@@ -40,6 +40,24 @@ upstream contract reconciliation, and full repository integration remain open.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable resource-creation aggregate bridge
+
+`PostgresStrategyLabV2Adapter.create_resource()` now connects the generic
+mutable-resource route to the shared compare-and-set aggregate store. The
+application seam normalizes the authenticated owner, derives a stable resource
+identity, binds storage request identity to owner/resource/idempotency content,
+and persists the mutation fingerprint plus accepted timestamp alongside the
+resource envelope. Exact retries reconstruct the original receipt (including
+its original acceptance time) after a process restart; changed payloads,
+resource collisions, and cross-owner access fail closed without projecting the
+foreign document. Domain-specific validation, outbox publication, result
+policy, migration startup, worker activation, and stable Nautilus execution
+remain separate gates.
+
+Focused application/resource/router tests passed (25 tests). The next
+checkpoint must include the full Strategy Lab v2 package, exact backend
+coverage, branch validation, and branch-scoped resource cleanup.
+
 ## 2026-09-17 - Executable Nautilus conformance harness
 
 `conformance_fixtures.py` now exposes `execute_conformance_suite(...)`, an

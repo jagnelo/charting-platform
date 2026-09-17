@@ -1,5 +1,12 @@
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from types import SimpleNamespace
+from typing import Any, cast
 
+import pytest
+
+from app.strategy_lab_v2.api_resources import ApiResourceType
+from app.strategy_lab_v2.api_router import ResourceMutationServiceResult
 from app.strategy_lab_v2.application import (
     PostgresStrategyLabV2Adapter,
     _principal_identity,
@@ -11,11 +18,19 @@ from app.strategy_lab_v2.postgres_commands import PostgresCommandAdapter
 from app.strategy_lab_v2.postgres_execution_state import PostgresExecutionStateAdapter
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
+from app.strategy_lab_v2.resource_mutations import ResourceMutationRequest
+from app.strategy_lab_v2.storage import (
+    StorageTransactionDecision,
+    resolve_storage_transaction,
+)
 
 
 @dataclass
 class _User:
     id: int
+
+
+NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 
 
 def test_principal_identity_normalizes_existing_integer_user_ids() -> None:
@@ -53,3 +68,65 @@ def test_registered_router_uses_versioned_prefix_and_application_dependencies() 
         "/strategy-lab/v2/attempts/{attempt_id}/commands",
     }
     assert get_strategy_lab_v2_adapter() is get_strategy_lab_v2_adapter()
+
+
+@pytest.mark.asyncio
+async def test_application_adapter_persists_and_replays_resource_mutations() -> None:
+    class InMemoryAggregateStore:
+        def __init__(self) -> None:
+            self.current = ()
+            self.receipts = ()
+
+        async def get(self, key):
+            return next((aggregate for aggregate in self.current if aggregate.key == key), None)
+
+        async def list_type(self, aggregate_type):
+            return tuple(
+                aggregate
+                for aggregate in self.current
+                if aggregate.key.aggregate_type == aggregate_type
+            )
+
+        async def apply(self, request):
+            resolved = resolve_storage_transaction(self.current, request, self.receipts)
+            if resolved.decision is StorageTransactionDecision.APPLY:
+                self.current = resolved.aggregates
+                self.receipts = (*self.receipts, resolved.receipt)
+            return resolved
+
+    store = InMemoryAggregateStore()
+    reader = PostgresResourceReader(store)
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._persistence = SimpleNamespace(aggregate_store=store)
+    adapter._resources = reader
+    accepted_at = NOW.replace(hour=13)
+    conflict_clock = NOW.replace(hour=14)
+    clocks = iter((accepted_at, conflict_clock))
+    adapter._clock = lambda: next(clocks)
+    request = ResourceMutationRequest(
+        ApiResourceType.TRIAL,
+        "trial-key",
+        {"attributes": {"resource_id": "trial-1", "name": "demo"}},
+        NOW,
+    )
+
+    first = await adapter.create_resource(
+        principal=_User(42), request_id="request-1", request=request
+    )
+    assert isinstance(first, ResourceMutationServiceResult)
+    assert first.receipt is not None
+    assert first.receipt.resource.id == "trial-1"
+    assert first.receipt.resource.attributes["name"] == "demo"
+    assert first.receipt.accepted_at == accepted_at
+
+    replay = await adapter.create_resource(
+        principal=_User(42), request_id="request-2", request=request
+    )
+    assert replay.resolution.decision.value == "replay_existing"
+    assert replay.receipt == first.receipt
+
+    owner_conflict = await adapter.create_resource(
+        principal=_User(7), request_id="request-3", request=request
+    )
+    assert owner_conflict.resolution.decision.value == "reject"
+    assert owner_conflict.receipt is None

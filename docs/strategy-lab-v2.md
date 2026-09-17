@@ -688,7 +688,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   the opaque string owner key expected by the package contracts, composes the
   PostgreSQL resource, submission/dispatch, execution-state, and command
   adapters over `AsyncSessionLocal`, and supplies the authenticated dependency
-  functions to the router factory. `persistence.py` now owns the complete
+  functions to the router factory. Generic mutable-resource creation now
+  crosses this seam through the shared compare-and-set aggregate store: owner
+  identity, mutation fingerprint, accepted timestamp, and resource envelope
+  are persisted together, exact retries reconstruct the durable receipt, and
+  cross-owner or changed-content collisions fail closed. `persistence.py` now owns the complete
   PostgreSQL adapter graph behind one shared async session factory, preserving
   the aggregate-store sharing and the command/state dependency while keeping
   later worker and API projections on the same application-owned seam.
