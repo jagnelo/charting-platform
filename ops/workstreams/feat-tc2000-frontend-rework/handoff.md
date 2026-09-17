@@ -1,5 +1,48 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-17 — R5 saved-study reopen and immutable-version reuse
+
+Product commits `73dba81dc`, `a0d5d6aeb`, and `b076a4b77` complete a bounded
+TC-owned Study Lab slice. Code Library can now open the latest immutable
+version of a saved Study directly in Study Lab through the existing
+workspace event path. Reopened definitions retain their source, output
+contract, parameter schema/defaults, and asset-version identity; an unchanged
+source reuses the existing `code_version_id` without creating a duplicate
+`/code/assets` version, while an edited source creates a new immutable version
+and strips stale reopen metadata. Object-valued defaults used by factory
+studies (including Market Map conditions) are preserved through build, save,
+and run. Existing promotion controls and lineage remain unchanged.
+
+Focused Code Library/Study Lab coverage passed `50/50`; full frontend Vitest
+passed `1,131/1,131`; frontend coverage completed with all tests passing;
+`vue-tsc`, production build, TC scope validation/self-tests, workstream
+validation, and `git diff --check` passed. The first exact gate at the initial
+product tip exposed a real F8p high/low factory-configuration race. The
+follow-up fixes in `a0d5d6aeb` and `b076a4b77` removed the intermediate
+configuration emission and stale persisted metadata; a fresh branch-scoped
+F8p-high-low retry passed `1/1`.
+
+The definitive raw-capture run of
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration`
+at product tip `b076a4b77` passed the repository/dependency/migration/lint
+stages, backend combined coverage (`1,621` tests; `82.26%` total coverage),
+frontend Vitest `1,131/1,131`, type-check/build, Compose/provider contracts,
+branch-scoped Docker health, research-runner probes, authenticated functional
+Chromium (`170` passed, `107` documented skips), and all four visual projects
+(`104/104`). Teardown removed the assigned resources; post-gate accounting
+reported zero containers, volumes, test sessions, known bytes, and unknown
+components. The standard `/usr/bin/make` wrapper remains unavailable because
+of the unchanged host Xcode-license status `69`; the installed CommandLineTools
+Make binary ran the same target. No provider-platform, ETF, visual baseline,
+threshold, mask, skip, V25-media, or acceptance-policy behavior changed.
+
+The broader goal remains active/in progress: there is no current TC-owned
+product or validation blocker. Provider/ETF consumer integration remains
+deferred until both upstream branches reach staging, after which shared paths
+must be reconciled semantically and the exact-tip gate rerun. Origin
+synchronization remains a separate private-origin operational hold. This slice
+does not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-16 — R5 historical breadth to Strategy signal promotion
 
 Product commit `61c4ae34a` closes the Python breadth-history Strategy signal
