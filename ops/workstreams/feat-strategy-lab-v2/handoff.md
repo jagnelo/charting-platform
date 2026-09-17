@@ -21,10 +21,11 @@ fingerprints are authenticated on every read. The adapter exposes the compact
 identity projection for later API reads without attempting nested contract
 decoding, and does not write artifact bytes or publish official results.
 
-The focused result-manifest persistence suite passes 4 tests. Package/static
-and combined coverage evidence will be recorded after this boundary is
-committed and rerun; upstream reconciliation and stable Nautilus execution
-remain open gates.
+The focused result-manifest persistence suite passes 4 tests; the exact package
+suite passes 611 tests with Ruff and MyPy, all 5 branch-declared checks pass,
+and the Docker-backed combined gate passes 2,258 backend tests at 83.44%
+coverage. Upstream reconciliation and stable Nautilus execution remain open
+gates.
 
 ## 2026-09-17 - Durable runtime-execution checkpoint
 
@@ -40,9 +41,10 @@ migrations, authorization, and official result publication remain separate
 integration gates.
 
 The focused runtime persistence suite passes 5 tests in addition to the
-existing runtime contract coverage. Package/static and combined coverage
-evidence will be recorded after this boundary is committed and rerun; upstream
-reconciliation and stable Nautilus execution remain open gates.
+existing runtime contract coverage; its exact package suite passed 607 tests,
+all 5 branch-declared checks passed, and the Docker-backed combined gate passed
+2,254 backend tests at 83.42% coverage. Upstream reconciliation and stable
+Nautilus execution remain open gates.
 
 ## 2026-09-17 - Durable result-publication checkpoint
 
