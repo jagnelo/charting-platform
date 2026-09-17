@@ -213,6 +213,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and SDK manifest, returning a content-addressed binding with per-dependency
   event counts. Acquisition, coverage attestation, and fills remain outside
   this contract.
+- `replay.py` turns a verified frozen tape into one immutable SDK context per
+  same-time batch, retaining only each dependency's declared trailing lookback
+  and optional host-supplied position snapshots. `replay_event_tape()` repeats
+  snapshot/manifest binding, invokes one stateful strategy session in
+  chronological order, preserves tape/binding/source/parameter identities, and
+  stops at the first typed rejection or failure. It does not apply intents or
+  model fills; engine/account adapters remain responsible for those effects.
 - `observations.py` defines normalized event-time/sequence points, native
   fill-cost cash effects with explicit currency-conversion and slippage-benchmark
   evidence, explicit complete/partial/unavailable cost-report coverage, and

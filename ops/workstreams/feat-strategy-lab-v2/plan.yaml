@@ -338,7 +338,8 @@ progress:
     - snapshot-bound-event-tape-binding
     - sdk-context-history-interval-boundary
     - stateful-strategy-runtime-session
-  total: 18
-  current_phase: stateful-strategy-runtime-session-staging-ready-for-human-review
+    - deterministic-frozen-event-tape-replay
+  total: 19
+  current_phase: deterministic-frozen-event-tape-replay-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary

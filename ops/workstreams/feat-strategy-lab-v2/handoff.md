@@ -56,6 +56,23 @@ coverage gate passed 2,302 tests with 83.61% total coverage (required threshold:
 75%); setup and cleanup completed successfully. Worker image/entrypoint,
 application scheduling, and authoritative Nautilus execution remain deferred.
 
+## 2026-09-17 - Deterministic frozen-tape replay checkpoint
+
+`backend/app/strategy_lab_v2/replay.py` now builds one typed SDK context for
+each same-time batch in a bound frozen tape. Histories are truncated to each
+dependency's declared lookback, optional position snapshots are keyed to batch
+sequences, and the replay adapter invokes one stateful strategy session in
+chronological order. Snapshot/manifest binding is repeated at the execution
+boundary; tape, binding, source, parameters, and typed invocation outcomes are
+retained as content-addressed provenance. Replays stop at the first typed
+rejection or failure and never apply intents or model fills.
+
+The exact Strategy Lab package gate passes 659 tests with Ruff, MyPy,
+`git diff --check`, and workstream validation green. The combined Docker-backed
+coverage gate is the remaining validation step for this checkpoint; worker
+image/entrypoint, application scheduling, migrations, upstream reconciliation,
+and authoritative Nautilus execution remain deferred.
+
 ## 2026-09-17 - Replay-safe wall-clock preflight hardening
 
 Static strategy validation now rejects wall-clock method references at the
