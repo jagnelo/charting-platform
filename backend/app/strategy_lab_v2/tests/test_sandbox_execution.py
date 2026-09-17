@@ -76,6 +76,9 @@ def test_nonzero_exit_is_failed_and_start_error_is_typed(tmp_path) -> None:
     assert missing.status is SandboxRunStatus.START_FAILED
     assert missing.exit_code is None
     assert missing.error_digest is not None
+    other_missing = run_sandbox_command(_plan(), docker_binary=os.fspath(tmp_path / "other-missing"))
+    assert other_missing.status is SandboxRunStatus.START_FAILED
+    assert other_missing.error_digest == missing.error_digest
 
 
 def test_wall_timeout_kills_process_group(tmp_path) -> None:

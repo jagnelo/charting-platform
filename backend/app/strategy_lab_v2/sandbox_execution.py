@@ -31,6 +31,9 @@ class SandboxRunStatus(StrEnum):
     START_FAILED = "start_failed"
 
 
+SANDBOX_ERROR_EVIDENCE_VERSION = "strategy-lab.sandbox.error.v1"
+
+
 @dataclass(frozen=True, slots=True)
 class SandboxRunResult:
     """Bounded, content-addressed evidence from one sandbox process."""
@@ -141,7 +144,7 @@ def run_sandbox_command(
             None,
             stdout,
             stderr,
-            error_digest=content_digest(str(error)),
+            error_digest=_error_digest(error),
         )
 
     assert process.stdout is not None
@@ -200,6 +203,17 @@ def _result(
 
 def _raw_digest(payload: bytes) -> str:
     return f"sha256:{hashlib.sha256(payload).hexdigest()}"
+
+
+def _error_digest(error: BaseException) -> str:
+    """Keep process-start evidence deterministic and free of host paths."""
+
+    return content_digest(
+        {
+            "type": f"{type(error).__module__}.{type(error).__qualname__}",
+            "version": SANDBOX_ERROR_EVIDENCE_VERSION,
+        }
+    )
 
 
 def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
