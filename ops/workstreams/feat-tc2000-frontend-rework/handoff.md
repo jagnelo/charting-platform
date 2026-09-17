@@ -1,5 +1,40 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-17 — R6 Instrument Report disclosure semantics
+
+Product commit `f5e41e4ed` closes a bounded TC-owned accessibility gap in the
+chart Instrument Report. The existing keyboard-operable disclosure now links
+its expanded state to a Vue-generated per-instance report-body id through
+`aria-controls`; data, keyboard toggles, and visual layout are unchanged.
+
+Focused InstrumentInfoPanel coverage passed `5/5`; full frontend Vitest passed
+`1,135/1,135`; frontend type-check and production build passed with the
+existing large-chunk warning. The scope guard initially identified the missing
+chart-path allowlist entry; `frontend/src/components/chart/InstrumentInfoPanel.vue`
+was added as a durable TC-owned path, after which scope self-tests,
+workstream validation, and `git diff --check` passed.
+
+The exact raw-capture gate
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration`
+passed at product tip `f5e41e4ed`: backend combined coverage passed `1,621`
+tests, frontend Vitest passed `1,135/1,135`, type-check/build,
+Compose/provider contracts, branch-scoped Docker health, research-runner
+probes, authenticated functional Chromium passed `170` with `107` documented
+skips, and all four visual projects passed `104/104`. Teardown removed the
+assigned containers, volumes, network, four generated images, and test
+sessions; post-gate accounting reported zero retained resources. The standard
+`/usr/bin/make` wrapper remains unavailable because of the unchanged host
+Xcode-license status `69`; the installed CommandLineTools Make binary ran the
+same target. No provider-platform, ETF, visual baseline, threshold, mask,
+skip, V25-media, or acceptance-policy behavior changed.
+
+The broader goal remains active/in progress: no TC-owned product or validation
+blocker is present. Provider/ETF consumer integration remains deferred until
+both upstream branches reach staging, after which shared paths require
+semantic reconciliation and another exact-tip gate. Origin synchronization
+remains a separate private-origin operational hold. This slice does not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-17 — R6 Strategy Lab run-history disclosure semantics
 
 Product commit `bef305524` closes a bounded TC-owned accessibility gap in the

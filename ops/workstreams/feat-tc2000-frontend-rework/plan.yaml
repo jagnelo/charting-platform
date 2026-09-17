@@ -53,6 +53,7 @@ owned_paths:
   - frontend/src/views/StrategyLabView.vue
   - frontend/src/components/workstation/
   - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/chart/InstrumentInfoPanel.vue
   - frontend/src/components/strategy/
   - frontend/src/stores/workspace.ts
   - frontend/src/lib/workstation/
@@ -259,18 +260,18 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_strategy_run_history_disclosure_exact_gate_passed
+  current_phase: R6_instrument_report_disclosure_exact_gate_passed
   next_action: >-
-    Select the next bounded TC-owned R1/R5/R6 item, preserve the Strategy
-    Strategy run-history disclosure, section-keyboard, current-revision,
-    selected-study version, saved-study reopen, and dense-range
+    Select the next bounded TC-owned R1/R5/R6 item, preserve the Instrument
+    Report disclosure, Strategy run-history disclosure, section-keyboard,
+    current-revision, selected-study version, saved-study reopen, and dense-range
     exact-gate receipts, and keep provider/ETF consumer work deferred until both
     upstream branches reach staging. Do not retry origin synchronization under
     the existing private-origin safeguard without newly accepted exact-payload
     authorization.
   current_blocker: >-
     No active TC-owned product or validation blocker. The exact
-    full_stack_browser gate at product tip bef3055246d608b9055f5bce73b90a5dd7f61aa3
+    full_stack_browser gate at product tip f5e41e4edb15f29be98da8903622267f58f3b179
     passed and branch-scoped cleanup/resource accounting are clean. The
     initial F8p factory-configuration race was corrected and its focused retry
     passed; it is no longer a blocker. The preceding F8s timestamp mismatch is
@@ -281,6 +282,8 @@ progress:
     under the recorded private-origin safeguard, not a product or validation
     blocker.
 historical_implementation_records:
+  - "Product commit f5e41e4ed adds a Vue-generated per-instance aria-controls relationship from the keyboard-operable Instrument Report disclosure to its report body, preserving the existing keyboard toggles, data, and visual layout. Focused InstrumentInfoPanel coverage passed 5/5; full frontend Vitest passed 1,135/1,135; frontend type-check and production build passed with the existing large-chunk warning; the TC scope guard initially identified the missing chart-path allowlist entry, which was added as a durable TC-owned path, then scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
+  - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip f5e41e4edb15f29be98da8903622267f58f3b179: backend combined coverage 1,621 tests, frontend Vitest 1,135/1,135, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode-license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior changed. This receipt covers the Instrument Report disclosure slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commit bef305524 adds aria-controls to the Strategy Lab Run history disclosure and gives its controlled list a stable id, preserving the existing toggle state, layout, and mouse/keyboard behavior. Focused Strategy Lab coverage passed 34/34; full frontend Vitest passed 1,135/1,135; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip bef3055246d608b9055f5bce73b90a5dd7f61aa3: backend combined coverage 1,621 tests, frontend Vitest 1,135/1,135, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode-license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior changed. This receipt covers the Strategy run-history disclosure slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commit a8e6130fc makes the six Strategy Lab section headings keyboard reachable with button semantics, a tab stop, aria-expanded state, and Enter/Space toggles while preserving the existing mouse behavior, icon state, layout, and section model. Focused Strategy Lab coverage passed 33/33; full frontend Vitest passed 1,134/1,134; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
