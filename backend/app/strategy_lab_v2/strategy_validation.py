@@ -138,7 +138,11 @@ def validate_strategy_source(
                     f"forbidden_wall_clock@{node_location(node)}: {node.func.attr}"
                 )
         elif isinstance(node, ast.Attribute):
-            if node.attr in _FORBIDDEN_ATTRIBUTES or node.attr.startswith("__"):
+            if node.attr in _FORBIDDEN_CALL_ATTRIBUTES:
+                violations.append(
+                    f"forbidden_wall_clock@{node_location(node)}: {node.attr}"
+                )
+            elif node.attr in _FORBIDDEN_ATTRIBUTES or node.attr.startswith("__"):
                 violations.append(f"forbidden_attribute@{node_location(node)}: {node.attr}")
         elif isinstance(node, ast.Name) and node.id in _FORBIDDEN_NAMES:
             violations.append(f"forbidden_name@{node_location(node)}: {node.id}")
