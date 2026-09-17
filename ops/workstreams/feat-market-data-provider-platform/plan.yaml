@@ -290,6 +290,13 @@ remaining_gaps:
     remains explicitly unreconciled because no cumulative daily counter is
     exposed. Both receipts are aggregate-only and committed.
   - >-
+    The full current-source provider runner was replayed under the owner
+    durable scope and stopped before transport at 0/0 with zero provider
+    requests. The committed aggregate receipt retains the remaining
+    provider-specific baseline, conflicting/unbounded quota, legal/terms,
+    capability, universe, and secret-store gates; no routing or shadow
+    activation was enabled.
+  - >-
     Alpha Vantage's free-key 25-requests/day quota still has no
     provider-published reset boundary/timezone, but the current seed now
     declares an explicit rolling 24-hour application envelope for that exact

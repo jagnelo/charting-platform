@@ -359,6 +359,15 @@
 - [x] Keep both receipts aggregate-only and committed; no credentials or
       provider payloads were persisted.
 
+### 2026-09-17 — Owner-scope full safety audit
+
+- [x] Replay the full current-source provider runner under the owner durable
+      scope. It stopped before transport at `0/0` with zero provider requests
+      and recorded the remaining provider-specific baseline, quota, legal,
+      capability, universe, and secret-store gates.
+- [x] Preserve the result as an aggregate-only committed receipt; it does not
+      promote routing or authorize the deferred shadow run.
+
 ### 2026-09-16 — Marketstack monthly-cap admission review
 
 - [x] Add explicit `MARKETSTACK_REVIEWED_MONTHLY_LIMIT`,

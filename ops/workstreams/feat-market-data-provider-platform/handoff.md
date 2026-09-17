@@ -83,6 +83,17 @@
   provider exposes no cumulative daily counter. Both receipts contain only
   aggregate telemetry.
 
+## 2026-09-17 owner-scope full safety audit
+
+- The full current-source provider runner stopped before transport at
+  `0/0` with zero provider requests. Alpaca and the Twelve Data minute pool
+  now have refreshed owner-scope evidence; remaining blockers are surfaced per
+  provider for external baselines, conflicting or unbounded quota dimensions,
+  legal/terms controls, deferred capability cases, and universe/secret-store
+  gates. The aggregate-only receipt is committed in `validation.jsonl`.
+- This is a safety audit, not a live acceptance claim. No provider routing or
+  shadow activation was enabled by the run.
+
 ## 2026-09-17 committed-source safety-preflight replay
 
 - At implementation source `37e616e65`, the focused Alpha Vantage, SEC EDGAR,
