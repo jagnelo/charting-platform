@@ -176,9 +176,10 @@ remaining_gaps:
     with a partial usage snapshot bypass an unrelated unknown pool. Twelve
     Data's `/api_usage` still reconciles only `credits_per_minute`; its
     documented `credits_per_day` baseline remains visible and blocks ordinary
-    reads until independently established. A focused run confirmed the
-    provider-specific blocker before network access; no doomed data request
-    was sent.
+    reads until independently established. A bootstrap declaration without an
+    explicit mapping is also fail-closed rather than authorizing every unknown
+    pool. A focused run confirmed the provider-specific blocker before network
+    access; no doomed data request was sent.
   - >-
     2026-09-17 loss-prevention correction: provider-wide tokenized catalogue
     refreshes now use durable provider/page-size continuation state, so a

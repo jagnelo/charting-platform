@@ -1243,7 +1243,12 @@ def live_operation_quota_preflight(
                             if isinstance(bootstrap, dict)
                             else set()
                         )
-                        if not reconciled or dimension_name in reconciled:
+                        # A bootstrap contract without an explicit mapping is
+                        # not an authorization to treat every unknown pool as
+                        # reconciled. Unknown dimensions must fail closed until
+                        # the provider's native usage response is mapped to
+                        # that exact pool.
+                        if dimension_name in reconciled:
                             continue
                     blockers.setdefault(provider, []).append(
                         f"{label}: active {dimension_name} usage baseline is {state.get('status', 'unknown')}"

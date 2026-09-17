@@ -259,7 +259,11 @@ def test_live_quota_preflight_only_allows_explicit_bootstrap_unknown_baseline(
                         "limit": 1200,
                         "unit": "request_weight",
                     }
-                ]
+                ],
+                "account_usage_bootstrap": {
+                    "enabled": True,
+                    "reconciled_dimensions": ["request_weight_per_minute"],
+                },
             },
         },
     )
@@ -364,6 +368,55 @@ def test_live_quota_preflight_blocks_bootstrap_dimensions_without_native_mapping
     ) == {
         "twelve_data": [
             "twelve_data/fetch_ohlcv: active credits_per_day usage baseline is unknown"
+        ]
+    }
+
+
+def test_live_quota_preflight_requires_mapping_for_every_bootstrap_pool(monkeypatch):
+    runner = _runner_module()
+    from app import config
+    from app.services import provider_quota_coordinator as coordinator
+
+    monkeypatch.setattr(
+        config,
+        "provider_rate_limit_seed",
+        lambda _provider: {
+            "quota_scope": "api_key",
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "requests_per_day",
+                        "limit": 10,
+                        "window_seconds": 86400,
+                        "unit": "requests",
+                    }
+                ],
+                "account_usage_bootstrap": {"enabled": True},
+            },
+        },
+    )
+    monkeypatch.setattr(
+        coordinator,
+        "_reservation_plan_for_live_probe",
+        lambda *args, **kwargs: (
+            "per_dimension",
+            {"requests_per_day": 1},
+            [{"dimension": "requests_per_day", "quota_group": "api_key", "units": 1}],
+        ),
+    )
+    monkeypatch.setattr(
+        coordinator,
+        "provider_quota_baseline_status",
+        lambda **kwargs: {"status": "unknown", "remaining_units": None},
+    )
+
+    assert runner.live_operation_quota_preflight(
+        {"fixture"},
+        operations_override={"fixture": {"fetch_ohlcv"}},
+        bootstrap_providers={"fixture"},
+    ) == {
+        "fixture": [
+            "fixture/fetch_ohlcv: active requests_per_day usage baseline is unknown"
         ]
     }
 

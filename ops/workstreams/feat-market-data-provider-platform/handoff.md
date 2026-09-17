@@ -25,6 +25,9 @@
   `account_usage_bootstrap.reconciled_dimensions` map. A native usage endpoint
   can bootstrap only the pools it actually reports; an unknown second pool is
   never treated as zero or allowed through to a doomed request.
+- A bootstrap declaration without that explicit map is now itself fail-closed;
+  it cannot implicitly authorize every unknown quota dimension. The regression
+  suite covers both the mapped partial-pool case and the missing-map case.
 - The configured Twelve Data `/api_usage` probe still passes and reconciles
   `credits_per_minute`. Its separate `credits_per_day` pool has no cumulative
   counter, so the full Twelve Data matrix now stops before transport with an
