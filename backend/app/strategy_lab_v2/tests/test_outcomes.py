@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -46,6 +47,24 @@ def test_outcome_lifecycle_is_monotonic_and_terminal_result_is_bound() -> None:
     succeeded = apply_outcome_update(running, succeeded_update)
     assert succeeded.decision is OutcomeDecision.APPLY
     assert succeeded.state.result_digest == RESULT
+
+
+def test_outcome_times_normalize_to_utc_for_identity() -> None:
+    offset = timezone(timedelta(hours=2))
+    update = replace(
+        _running_update(),
+        observed_at=(NOW + timedelta(hours=2, seconds=1)).replace(tzinfo=offset),
+    )
+    canonical = _running_update()
+    assert update.observed_at == canonical.observed_at
+    assert update.fingerprint == canonical.fingerprint
+
+    state = new_execution_outcome(
+        SUBMISSION,
+        "attempt-1",
+        accepted_at=(NOW + timedelta(hours=2)).replace(tzinfo=offset),
+    )
+    assert state.updated_at == NOW
 
 
 def test_exact_terminal_repeats_replay_and_different_repeats_conflict() -> None:

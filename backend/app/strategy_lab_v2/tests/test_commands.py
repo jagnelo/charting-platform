@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -77,6 +77,18 @@ def test_cancel_command_accepts_and_exact_retry_replays() -> None:
     replay = resolve_execution_command(accepted.ledger, command, outcome, progress, accepted_at=NOW + timedelta(seconds=1))
     assert replay.decision is ExecutionCommandDecision.REPLAY_EXISTING
     assert replay.receipt == accepted.receipt
+
+
+def test_command_times_normalize_to_utc_for_identity() -> None:
+    offset = timezone(timedelta(hours=2))
+    command = _command(
+        "cancel",
+        ExecutionCommandKind.CANCEL,
+        requested_at=(NOW + timedelta(hours=2)).replace(tzinfo=offset),
+    )
+    canonical = _command("cancel", ExecutionCommandKind.CANCEL)
+    assert command.requested_at == NOW
+    assert command.fingerprint == canonical.fingerprint
 
 
 def test_changed_command_content_conflicts() -> None:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.api_contracts import ApiError
@@ -62,6 +62,7 @@ class ExecutionSummary:
             raise TypeError("cancellation_requested must be a boolean")
         if self.updated_at.tzinfo is None or self.updated_at.utcoffset() is None:
             raise ValueError("updated_at must be timezone-aware")
+        object.__setattr__(self, "updated_at", self.updated_at.astimezone(UTC))
         if self.result_digest is not None:
             require_sha256_digest(self.result_digest, field_name="result_digest")
         if self.publication_fingerprint is not None:

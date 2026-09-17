@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -56,6 +56,7 @@ class ExecutionAdmissionRequest:
         if not isinstance(self.worker_kind, WorkerKind):
             raise TypeError("worker_kind must be a WorkerKind")
         _aware(self.requested_at, "requested_at")
+        object.__setattr__(self, "requested_at", self.requested_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:
@@ -103,6 +104,7 @@ class ExecutionAdmission:
         if not isinstance(self.worker_kind, WorkerKind):
             raise TypeError("worker_kind must be a WorkerKind")
         _aware(self.admitted_at, "admitted_at")
+        object.__setattr__(self, "admitted_at", self.admitted_at.astimezone(UTC))
         if not isinstance(self.authoritative, bool):
             raise TypeError("authoritative must be a boolean")
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -36,6 +37,28 @@ def test_progress_updates_are_monotonic_and_terminal_success_is_complete() -> No
             succeeded,
             ExecutionProgressUpdate("attempt-1", 4, ProgressPhase.FAILED, 10, 10, NOW + timedelta(seconds=3)),
         )
+
+
+def test_progress_lifecycle_times_normalize_to_utc_for_identity() -> None:
+    offset = timezone(timedelta(hours=2))
+    state = new_progress_state(
+        "attempt-1",
+        total_units=10,
+        now=(NOW + timedelta(hours=2)).replace(tzinfo=offset),
+    )
+    canonical = new_progress_state("attempt-1", total_units=10, now=NOW)
+    assert state.updated_at == canonical.updated_at
+    update = ExecutionProgressUpdate(
+        "attempt-1",
+        1,
+        ProgressPhase.RUNNING,
+        1,
+        10,
+        (NOW + timedelta(hours=2, seconds=1)).replace(tzinfo=offset),
+    )
+    canonical_update = replace(update, emitted_at=NOW + timedelta(seconds=1))
+    assert update.emitted_at == canonical_update.emitted_at
+    assert update.fingerprint == canonical_update.fingerprint
 
 
 def test_progress_updates_reject_reordering_totals_and_incomplete_success() -> None:

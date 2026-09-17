@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -45,6 +45,21 @@ def test_idempotency_replay_ignores_submission_timestamp() -> None:
     assert replay.decision is SubmissionDecision.REPLAY_EXISTING
     assert replay.http_status == 202
     assert replay.existing_receipt == receipt
+
+
+def test_submission_lifecycle_times_normalize_to_utc_for_identity() -> None:
+    offset = timezone(timedelta(hours=2))
+    request = _request(
+        submitted_at=(NOW + timedelta(hours=2)).replace(tzinfo=offset)
+    )
+    receipt = create_submission_receipt(
+        request,
+        accepted_at=(NOW + timedelta(hours=3)).replace(tzinfo=offset),
+    )
+    canonical = create_submission_receipt(_request(), accepted_at=NOW + timedelta(hours=1))
+    assert request.submitted_at == NOW
+    assert receipt.accepted_at == NOW + timedelta(hours=1)
+    assert receipt.fingerprint == canonical.fingerprint
 
 
 def test_same_key_with_different_payload_is_a_409_conflict() -> None:

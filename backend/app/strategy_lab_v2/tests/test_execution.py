@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -73,6 +74,24 @@ def test_authorize_execution_composes_all_pre_execution_gates() -> None:
     assert authorization.lease_id == lease.lease_id
     assert authorization.authoritative
     assert authorization.fingerprint == content_digest(authorization)
+
+
+def test_authorization_time_normalizes_to_utc_for_identity() -> None:
+    trial, attempt, validation, capability, lease = _execution_fixture()
+    authorization = authorize_execution(
+        trial,
+        attempt,
+        validation,
+        capability,
+        lease,
+        now=(NOW + timedelta(hours=2, seconds=3)).replace(tzinfo=timezone(timedelta(hours=2))),
+    )
+    canonical = authorize_execution(
+        trial, attempt, validation, capability, lease, now=NOW + timedelta(seconds=3)
+    )
+    assert authorization.authorized_at == canonical.authorized_at
+    assert authorization.fingerprint == canonical.fingerprint
+    assert replace(authorization, authoritative=False).authoritative is False
 
 
 def test_authorize_execution_rejects_invalid_source_capability_or_lease() -> None:

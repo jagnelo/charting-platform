@@ -81,6 +81,12 @@ counterfactual replay-plan timestamps apply the same UTC normalization before
 identity checks, so restart, warm-up, and correction records cannot diverge on
 offset formatting alone.
 
+The asynchronous execution lifecycle applies this invariant to submission,
+worker admission, runtime request/update/state, outcome, progress, command,
+authorization, and execution-summary timestamps. Retries and persisted
+read-model projections therefore retain one identity for equivalent instants
+through the full local execution handoff.
+
 ## Current engine-neutral package
 
 The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:

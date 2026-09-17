@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import AttemptState, RunAttempt, ScientificTrial
@@ -53,6 +53,7 @@ class ExecutionAuthorization:
         )
         if self.authorized_at.tzinfo is None or self.authorized_at.utcoffset() is None:
             raise ValueError("authorization time must be timezone-aware")
+        object.__setattr__(self, "authorized_at", self.authorized_at.astimezone(UTC))
         if not isinstance(self.authoritative, bool):
             raise TypeError("authoritative must be a boolean")
 

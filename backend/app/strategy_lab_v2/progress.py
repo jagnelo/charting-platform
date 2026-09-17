@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest
@@ -51,6 +51,7 @@ class ExecutionProgressUpdate:
             raise ValueError("progress completed_units cannot exceed total_units")
         if self.emitted_at.tzinfo is None or self.emitted_at.utcoffset() is None:
             raise ValueError("progress emitted_at must be timezone-aware")
+        object.__setattr__(self, "emitted_at", self.emitted_at.astimezone(UTC))
         if not isinstance(self.detail, str):
             raise TypeError("progress detail must be a string")
 
@@ -75,6 +76,7 @@ class CancellationRequest:
                 raise ValueError(f"cancellation {name} must not be empty")
         if self.requested_at.tzinfo is None or self.requested_at.utcoffset() is None:
             raise ValueError("cancellation requested_at must be timezone-aware")
+        object.__setattr__(self, "requested_at", self.requested_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:
@@ -110,6 +112,7 @@ class ExecutionProgressState:
             raise TypeError("progress state cancellation_requested must be a boolean")
         if self.updated_at.tzinfo is None or self.updated_at.utcoffset() is None:
             raise ValueError("progress state updated_at must be timezone-aware")
+        object.__setattr__(self, "updated_at", self.updated_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:

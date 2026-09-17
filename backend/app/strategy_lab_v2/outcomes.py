@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.api_contracts import ApiError
@@ -67,6 +67,7 @@ class OutcomeUpdate:
             raise TypeError("status must be an OutcomeStatus")
         if self.observed_at.tzinfo is None or self.observed_at.utcoffset() is None:
             raise ValueError("outcome observed_at must be timezone-aware")
+        object.__setattr__(self, "observed_at", self.observed_at.astimezone(UTC))
         if self.result_digest is not None:
             require_sha256_digest(self.result_digest, field_name="result_digest")
         if self.error is not None and not isinstance(self.error, ApiError):
@@ -98,6 +99,9 @@ class ExecutionOutcome:
     error: ApiError | None = None
 
     def __post_init__(self) -> None:
+        if self.updated_at.tzinfo is None or self.updated_at.utcoffset() is None:
+            raise ValueError("outcome updated_at must be timezone-aware")
+        object.__setattr__(self, "updated_at", self.updated_at.astimezone(UTC))
         if self.sequence < 0:
             raise ValueError("outcome state sequence must be non-negative")
         if self.sequence == 0:
@@ -110,8 +114,6 @@ class ExecutionOutcome:
             require_sha256_digest(self.submission_id, field_name="submission_id")
             if not isinstance(self.attempt_id, str) or not self.attempt_id.strip():
                 raise ValueError("outcome attempt_id must not be empty")
-            if self.updated_at.tzinfo is None or self.updated_at.utcoffset() is None:
-                raise ValueError("outcome updated_at must be timezone-aware")
             return
         OutcomeUpdate(
             submission_id=self.submission_id,

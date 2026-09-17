@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -41,6 +41,7 @@ class SubmissionRequest:
         require_sha256_digest(self.payload_digest, field_name="payload_digest")
         if self.submitted_at.tzinfo is None or self.submitted_at.utcoffset() is None:
             raise ValueError("submission submitted_at must be timezone-aware")
+        object.__setattr__(self, "submitted_at", self.submitted_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:
@@ -66,6 +67,7 @@ class SubmissionReceipt:
             raise TypeError("receipt request must be a SubmissionRequest")
         if self.accepted_at.tzinfo is None or self.accepted_at.utcoffset() is None:
             raise ValueError("receipt accepted_at must be timezone-aware")
+        object.__setattr__(self, "accepted_at", self.accepted_at.astimezone(UTC))
         if self.accepted_at < self.request.submitted_at:
             raise ValueError("receipt accepted_at cannot precede submission")
 

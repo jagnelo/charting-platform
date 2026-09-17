@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -83,6 +84,18 @@ def test_accepted_summary_is_ready_and_identity_bound() -> None:
     assert summary.decision is ExecutionSummaryDecision.READY
     assert summary.status is OutcomeStatus.ACCEPTED
     assert summary.operation == "backtest"
+
+
+def test_summary_updated_at_normalizes_to_utc_for_identity() -> None:
+    summary = build_execution_summary(_receipt(), _outcome(), _progress())
+    offset = replace(
+        summary,
+        updated_at=(summary.updated_at + timedelta(hours=2)).replace(
+            tzinfo=timezone(timedelta(hours=2))
+        ),
+    )
+    assert offset.updated_at == summary.updated_at
+    assert offset.fingerprint == summary.fingerprint
 
 
 def test_running_summary_allows_preparing_running_and_finalizing_progress() -> None:

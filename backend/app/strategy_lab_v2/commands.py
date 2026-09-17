@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -42,6 +42,7 @@ class ExecutionCommand:
         if not isinstance(self.kind, ExecutionCommandKind):
             raise TypeError("kind must be an ExecutionCommandKind")
         _aware(self.requested_at, "requested_at")
+        object.__setattr__(self, "requested_at", self.requested_at.astimezone(UTC))
         _nonempty(self.reason, "reason")
 
     @property
@@ -81,6 +82,7 @@ class ExecutionCommandReceipt:
         if not isinstance(self.effect, CommandEffect):
             raise TypeError("effect must be a CommandEffect")
         _aware(self.accepted_at, "accepted_at")
+        object.__setattr__(self, "accepted_at", self.accepted_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:

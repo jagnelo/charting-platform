@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -64,6 +64,7 @@ class StrategyRuntimeRequest:
         if self.isolation_request.attempt_id != self.attempt_id:
             raise ValueError("isolation request must reference the runtime attempt")
         _aware(self.submitted_at, "submitted_at")
+        object.__setattr__(self, "submitted_at", self.submitted_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:
@@ -180,6 +181,7 @@ class RuntimeExecutionUpdate:
         if not isinstance(self.phase, RuntimeExecutionPhase):
             raise TypeError("phase must be a RuntimeExecutionPhase")
         _aware(self.observed_at, "observed_at")
+        object.__setattr__(self, "observed_at", self.observed_at.astimezone(UTC))
         if self.output_digest is not None:
             require_sha256_digest(self.output_digest, field_name="output_digest")
         if self.output_bytes is not None and (
@@ -228,6 +230,7 @@ class RuntimeExecutionState:
         if not isinstance(self.phase, RuntimeExecutionPhase):
             raise TypeError("phase must be a RuntimeExecutionPhase")
         _aware(self.updated_at, "updated_at")
+        object.__setattr__(self, "updated_at", self.updated_at.astimezone(UTC))
         if self.sequence == 0 and self.phase is not RuntimeExecutionPhase.ACCEPTED:
             raise ValueError("sequence-zero runtime state must be accepted")
         if self.output_bytes is not None and (

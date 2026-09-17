@@ -216,6 +216,17 @@ three identity tests; the complete Strategy Lab v2 package passes 704 tests.
 Persistence migration, event-stream wiring, worker activation, and stable
 Nautilus execution remain deferred.
 
+## 2026-09-17 - Execution lifecycle temporal identities
+
+Asynchronous submission and admission receipts, strategy-runtime requests and
+updates, execution outcomes and progress, retry/cancellation commands,
+authorization records, and execution-summary projections now normalize aware
+timestamps to UTC during immutable construction. Equivalent instants therefore
+retain one retry and read-model identity through the complete local execution
+handoff. Focused lifecycle coverage passes 50 tests and the complete Strategy
+Lab v2 package passes 711 tests; persistence migration, worker activation,
+application wiring, and stable Nautilus execution remain deferred.
+
 ## 2026-09-17 - Runtime wire source-binding hardening
 
 Single and batch invocation serializers and decoders now verify that the source
