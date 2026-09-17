@@ -670,10 +670,11 @@ removes configured secret values and credential-bearing URL/header values, and
 the persistence regression covers transport URLs that include an API key.
 
 Historical bounded transport evidence exists for EDGAR, Alpaca, MarketData.app,
-and the Dinari Sandbox pair. The latest exact-source Alpaca work live-verified
-only its native account-usage header snapshot; ordinary Alpaca routing remains
-fail-closed because the observed reset value did not prove a calculable minute
-window. The latest SEC EDGAR manifest preflight stopped before transport because
+and the Dinari Sandbox pair. The latest exact-source Alpaca matrix passed its
+native usage bootstrap plus six bounded data/metadata/event cases; ordinary
+Alpaca routing now uses the documented 200/min pool with a conservative rolling
+60-second safety envelope and native reset-header baseline. The latest SEC EDGAR
+manifest preflight stopped before transport because
 the reset boundary and current durable IP baseline are not yet reviewed. Tradier, Ondo, and
 IBKR are intentionally deferred. Every deployment and CI environment must
 still provide its own operator contact value.

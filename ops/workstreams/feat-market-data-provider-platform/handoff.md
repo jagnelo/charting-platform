@@ -24,8 +24,10 @@
   all match the reviewed contract. No daily allowance is inferred.
 - Invalid optional reset overrides cannot replace the rolling safety envelope.
   Corporate-action cursor pagination remains independently durable and
-  unbounded in retention; `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` only controls
-  per-invocation fairness and never discards later pages.
+  unbounded in retention; `ALPACA_CORPORATE_ACTIONS_MAX_PAGES=0` is now the
+  compatibility-only default and cannot discard later pages. The worker may
+  still process one page per invocation for fairness, but persisted cursors
+  are always requeued until completion.
 - Focused quota/account-usage coverage passed `5/5` selected tests. One
   bounded native usage request was made for reset-shape verification; no
   credentials or provider payloads were persisted.
@@ -35,6 +37,22 @@
   and a corporate-action page. No dirty source paths were present. Alpaca's
   remaining acceptance work is terms/redistribution review; the quota,
   baseline, adapter, and bounded live-transport gates are closed.
+
+## 2026-09-17 exact-current configured-provider revalidation
+
+- The exact-current Alpaca receipt was replayed after the pagination-default
+  correction at source `22e66317440d6e18212a7af8604593a1178cc3af`: `7/7`
+  cases passed with eight measured requests. The follow-up receipt commit only
+  records that result; no provider source changed between the tested source and
+  receipt commit.
+- MarketData.app's configured Starter Trial matrix passed `7/7` at source
+  `3d0413b5b48dd70b1580d452e64cc1d8246736d2`, with nine measured requests.
+  The response-priced unbounded-history guard made no request, while all
+  admission-safe account/candle/latest/options cases passed.
+- Dinari's replacement Sandbox pair passed the isolated canary at source
+  `49687424a480c73a4f0ee6758de4e589f64e7f57`: `1/1`, 14 requests, under a
+  transient 20-request cap. This does not promote Sandbox to ordinary
+  routing, and no Sandbox payload entered canonical persistence.
 
 ## 2026-09-17 lossless, resumable provider-event ingestion
 

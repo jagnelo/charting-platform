@@ -292,12 +292,14 @@ remaining_gaps:
     request. This proves the bounded transport/header path only; keyed-mode
     evidence remains unavailable until an OpenFIGI API key is configured.
   - >-
-    Alpaca's native account-usage bootstrap passed the exact current-source
-    manifest case 1/1 with one authenticated request. The adapter requires
-    the documented limit, remaining, and Unix reset headers and keeps the
-    observation durable, but ordinary Alpaca routing remains fail-closed
-    because the provider documentation does not establish the reset-window
-    semantics needed for reservations; no rolling/fixed boundary is inferred.
+    Historical pre-correction checkpoint only: Alpaca's native account-usage
+    bootstrap passed the exact current-source manifest case 1/1 with one
+    authenticated request, but the then-current implementation deliberately
+    left ordinary routing fail-closed because it had not yet modeled the
+    provider's reset header correctly. This is superseded by the current
+    rolling-safety-envelope contract and 7/7 current-source matrix recorded
+    in the completed-progress entries below; it is retained only to explain
+    why the earlier receipt is not current acceptance evidence.
   - >-
     Exact current-source native usage refreshes for EODHD, Twelve Data,
     MarketData.app, and Binance each passed their focused manifest case 1/1
@@ -742,6 +744,37 @@ remaining_gaps:
       phase remain open.
 progress:
   completed:
+    - >-
+      2026-09-17 exact-current Alpaca validation was replayed after the
+      unbounded corporate-action compatibility fix at source
+      `22e66317440d6e18212a7af8604593a1178cc3af`. The native usage snapshot,
+      daily and five-minute history, latest price, equity and crypto profiles,
+      universe discovery, and one corporate-action page all passed `7/7` with
+      eight upstream requests. The receipt was recorded after the tested
+      source commit; no provider payloads or credentials were persisted.
+    - >-
+      2026-09-17 exact-current MarketData.app validation at source
+      `3d0413b5b48dd70b1580d452e64cc1d8246736d2` passed the seven admission-safe
+      cases with nine upstream requests. It covered account usage, delayed
+      daily/five-minute candles, latest price, expirations, current option
+      chain, bounded option history, and the intentional no-request guard for
+      unbounded response-priced history. The configured Starter Trial expiry
+      and Free-Forever fallback remain provider-specific configuration.
+    - >-
+      2026-09-17 exact-current Dinari Sandbox canary at source
+      `49687424a480c73a4f0ee6758de4e589f64e7f57` passed `1/1` under the
+      transient 20-request process cap, making 14 bounded upstream requests
+      across metadata/identity, price, quote, DAY/WEEK/MONTH/YEAR history,
+      news, dividends, splits, and corporate actions. The receipt is
+      aggregate-only and Sandbox-isolated; Dinari's unpublished Sandbox
+      quota/reset and commercial/redistribution terms keep ordinary routing
+      disabled.
+    - >-
+      2026-09-17 the Alpaca corporate-action compatibility setting was changed
+      to `0` by default and documented as non-retention-only. The adapter and
+      durable event worker follow every provider cursor, persist every raw page
+      envelope, and resume incomplete chains; the setting cannot discard later
+      pages. Focused provider/event/wiring coverage passed `17/17`.
     - >-
       2026-09-17 current-source backend acceptance replay passed `2,757/2,757`
       unit and Docker-backed integration tests with `89` warnings and `82.04%`
