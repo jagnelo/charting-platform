@@ -653,14 +653,13 @@ def test_alpaca_credentialed_account_usage_snapshot():
     assert window.remaining is not None and 0 <= window.remaining <= window.limit
     assert window.consumed == window.limit - window.remaining
     assert window.reset_at is not None and window.reset_at.tzinfo is not None
-    # The OpenAPI contract defines the account request pool as per-minute.
-    # A single native snapshot is retained as telemetry, but it must not be
-    # treated as a durable baseline unless its reset boundary is proven to be
-    # in the active window.  The current paper-key response does not provide
-    # that proof, so this live assertion intentionally verifies fail-closed
-    # handling rather than guessing current usage.
+    # The native counter is accepted as a durable baseline only when the
+    # response proves the reviewed limit, a non-negative remaining count, and
+    # a future reset epoch. The runtime uses a conservative rolling 60-second
+    # safety envelope because Alpaca does not publish a fixed calendar-minute
+    # boundary; this is not a claim about the provider's internal algorithm.
     reconciliation = reconcile_native_account_usage("alpaca", usage)
-    assert [item["status"] for item in reconciliation] == ["not_reconciled"]
+    assert [item["status"] for item in reconciliation] == ["reconciled"]
 
 
 def test_alpaca_credentialed_profile():
