@@ -117,7 +117,7 @@
   "last_human_progress_update": "2026-09-17T19:34:43+01:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Preserve the Strategy toggle-state and run-subset disclosure semantics, VirtualWatchlist membership disclosure, IndicatorPanel section keyboard semantics, Strategy section disclosure, Instrument Report description disclosure, Strategy run-history disclosure, current-revision, selected-study version, saved-study reopen, dense-range, ChartPanel link-menu, LayoutPicker disclosure, EasyScan advanced-condition disclosure, Strategy per-instance disclosure-id, Workstation accessibility-id, Research Results artifact-summary-id, Study Lab artifact-summary-id, Strategy Coverage disclosure-id, ToolWindow menu disclosure-id, and Workstation shell-menu disclosure-id exact-gate receipts; select the next bounded TC-owned R1/R5/R6 item and keep provider and ETF consumer work deferred until both branches reach staging.",
-  "plan_hash": "03977410db031f9e4652916e80270c172fcf726d4589edb42c7aae892e04c658",
+  "plan_hash": "451eb20a8fbfba065676ed7e3e337e57b2cdb4ac4061366a5c7fb7b6a59f3926",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [

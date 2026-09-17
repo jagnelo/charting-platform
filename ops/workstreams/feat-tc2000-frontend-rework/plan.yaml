@@ -21,7 +21,7 @@ validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
   No active TC-owned product or validation blocker: the definitive exact gate
-  at product tip 99a0bd38d passed the repository stages, authenticated
+  at product tip d541c1e08 passed the repository stages, authenticated
   functional browser flows, and all four visual projects with clean
   branch-scoped teardown. The ToolWindow menu disclosure-id slice keeps each
   detached tool menu uniquely addressable while preserving menu behavior,
