@@ -3284,8 +3284,11 @@ supports `--batch` with all-or-nothing success status and atomic publication.
 This is intended for exhaustive local metric sweeps; the containing no-network
 worker and durable application scheduling remain deferred.
 
-Focused batch coverage passed 13 tests with Ruff and MyPy green. Branch and
-combined coverage evidence will be refreshed at the committed tip.
+Focused batch coverage passed 13 tests with Ruff and MyPy green. The exact
+pushed tip passed the branch gate: 686 package tests, Ruff, MyPy across 237
+source files, diff check, and workstream validation. The same tip passed the
+Docker-backed combined coverage gate: 2,333 tests with 83.69% total coverage,
+above the required 75% threshold; setup and cleanup completed successfully.
 
 ## 2026-09-17 - Combined backend coverage revalidation
 
