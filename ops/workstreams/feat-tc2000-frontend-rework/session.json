@@ -113,11 +113,11 @@
   "head": "c3ee381bfb97139017208037175360d038412cd4",
   "implementation_sha": "c3ee381bfb97139017208037175360d038412cd4",
   "interrupted": false,
-  "last_checkpoint": "2026-09-17T21:49:30+01:00",
-  "last_human_progress_update": "2026-09-17T21:49:30+01:00",
+  "last_checkpoint": "2026-09-17T22:18:00+01:00",
+  "last_human_progress_update": "2026-09-17T22:18:00+01:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Preserve the Strategy toggle-state and run-subset disclosure semantics, VirtualWatchlist membership disclosure, IndicatorPanel section keyboard semantics, Strategy section disclosure, Instrument Report description disclosure, Strategy run-history disclosure, current-revision, selected-study version, saved-study reopen, dense-range, ChartPanel link-menu, LayoutPicker disclosure, EasyScan advanced-condition disclosure, Strategy per-instance disclosure-id, Workstation accessibility-id, Research Results artifact-summary-id, Study Lab artifact-summary-id, Strategy Coverage disclosure-id, ToolWindow menu disclosure-id, Workstation shell-menu disclosure-id, Chart library disclosure-id, VirtualWatchlist editor-dialog disclosure-id, Strategy Lab radar-filter disclosure-id, and Strategy Lab export-menu keyboard-semantics receipts; rerun the exact gate at product tip c3ee381bf after the transient F8u-boolean failure is cleared or reproduced without changing the browser oracle; keep provider and ETF consumer work deferred until both branches reach staging.",
-  "plan_hash": "2981f83b5d2e87e0bef6ba471eff0ef478ed535e031f35f7a1b2f2b4c73ffcd3",
+  "next_action": "Preserve the Strategy toggle-state and run-subset disclosure semantics, VirtualWatchlist membership disclosure, IndicatorPanel section keyboard semantics, Strategy section disclosure, Instrument Report description disclosure, Strategy run-history disclosure, current-revision, selected-study version, saved-study reopen, dense-range, ChartPanel link-menu, LayoutPicker disclosure, EasyScan advanced-condition disclosure, Strategy per-instance disclosure-id, Workstation accessibility-id, Research Results artifact-summary-id, Study Lab artifact-summary-id, Strategy Coverage disclosure-id, ToolWindow menu disclosure-id, Workstation shell-menu disclosure-id, Chart library disclosure-id, VirtualWatchlist editor-dialog disclosure-id, Strategy Lab radar-filter disclosure-id, and Strategy Lab export-menu keyboard-semantics receipts; the definitive exact gate at product tip c3ee381bf passed after the transient F8u-boolean candidate cleared; keep provider and ETF consumer work deferred until both branches reach staging.",
+  "plan_hash": "ee15e17f46333b71ce0c28f05b34173d4cc4b7b967db5587c208c50a0ea999fd",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -129,11 +129,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "The Strategy Lab export-menu slice is locally green, but the first exact gate at product tip c3ee381bf had one unchanged F8u-boolean browser failure after all locked/non-browser stages passed. A fresh-stack retry with the same market-data fixtures passed F8u-boolean 1/1 without source changes; classify this as a transient seeded-workspace/browser timing candidate pending a clean exact-gate rerun. Provider-platform and ETF consumer integration remains a sequencing gate until both upstream branches reach staging, and origin synchronization remains a separate operational hold.",
-    "current_phase": "R6_strategy_lab_export_menu_keyboard_semantics_transient_gate_failure",
-    "next_action": "Preserve prior disclosure receipts plus the Strategy Lab export-menu keyboard-semantics receipt; rerun the exact gate at product tip c3ee381bf after the transient F8u-boolean failure is cleared or reproduced without changing the browser oracle; keep provider and ETF consumer work deferred until both branches reach staging.",
+    "current_blocker": "No TC-owned product or validation blocker is present after the definitive exact gate passed at product tip c3ee381bf. Provider-platform and ETF consumer integration remains a sequencing gate until both upstream branches reach staging; shared-path reconciliation and the final post-staging exact gate remain pending. Origin synchronization remains a separate operational hold under the recorded private-origin safeguard.",
+    "current_phase": "R6_strategy_lab_export_menu_keyboard_semantics_exact_gate_passed",
+    "next_action": "Preserve prior disclosure receipts plus the definitive Strategy Lab export-menu keyboard-semantics receipt; continue with the next bounded TC-owned R1/R5/R6 item; keep provider and ETF consumer work deferred until both branches reach staging.",
     "total": 9,
-    "updated_at": "2026-09-17T21:49:30+01:00"
+    "updated_at": "2026-09-17T22:18:00+01:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

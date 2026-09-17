@@ -263,7 +263,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_strategy_lab_export_menu_keyboard_semantics_transient_gate_failure
+  current_phase: R6_strategy_lab_export_menu_keyboard_semantics_exact_gate_passed
   next_action: >-
     Preserve the Strategy toggle-state and run-subset disclosure semantics,
     VirtualWatchlist membership disclosure, IndicatorPanel section keyboard
@@ -277,22 +277,20 @@ progress:
     Workstation shell-menu, Chart library, and VirtualWatchlist editor-dialog
     disclosure-id receipts, and add the Strategy Lab radar-filter
     disclosure-id receipt, and the Strategy Lab export-menu keyboard-semantics
-    receipt. Rerun the exact gate at product tip c3ee381bf after the transient
-    F8u-boolean failure is cleared or reproduced; do not alter the browser
-    oracle for this candidate. Continue with the next bounded TC-owned R1/R5/R6 item;
+    receipt. The clean exact gate at product tip c3ee381bf now passes after the
+    isolated F8u-boolean retry cleared the transient candidate; preserve the
+    unchanged browser oracle. Continue with the next bounded TC-owned R1/R5/R6 item;
     keep provider/ETF consumer work
     deferred until both upstream branches reach staging. Do not retry origin
     synchronization under the existing private-origin safeguard without newly
     accepted exact-payload authorization.
   current_blocker: >-
-    The Strategy Lab export-menu slice is locally green, but the first exact
-    gate at product tip c3ee381bf had one unchanged F8u-boolean browser failure
-    after all locked/non-browser stages passed. A fresh-stack retry with the
-    same market-data fixtures passed F8u-boolean 1/1 without source changes;
-    classify this as a transient seeded-workspace/browser timing candidate
-    pending a clean exact-gate rerun. Provider-platform and ETF consumer
-    integration remains a sequencing gate until both upstream branches reach
-    staging, and origin synchronization remains a separate operational hold.
+    No TC-owned product or validation blocker is present after the definitive
+    exact gate passed at product tip c3ee381bf. Provider-platform and ETF
+    consumer integration remains a sequencing gate until both upstream branches
+    reach staging; shared-path reconciliation and the final post-staging exact
+    gate remain pending. Origin synchronization remains a separate operational
+    hold under the recorded private-origin safeguard.
 historical_implementation_records:
   - "Product commit 797b29339 exposes aria-pressed state for Strategy Lab run-mode, position-evolution value-mode, and return-period toggle groups while preserving labels, active styling, state changes, run payloads, result projections, and visual layout. Focused Strategy Lab coverage passed 34/34; full frontend Vitest passed 1,136/1,136; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 797b29339f62cae9079bfa3766e4074762382e6b: backend combined coverage 1,621 tests with 82.26% total coverage, frontend Vitest 1,136/1,136, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the Strategy toggle-state semantics slice and does not close the broader workstream or upstream staging dependencies."
@@ -505,6 +503,7 @@ historical_implementation_records_continued:
   - "The definitive exact-tip PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip b8f8e97aa181f3042e76c66ac0c8d120943c1526: backend combined coverage passed 1,621 unit tests and 408 integration tests with 82.26% total coverage, frontend Vitest passed 1,149/1,149, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium passed 170 with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable because of host Xcode license status 69; the installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the Strategy Lab radar-filter disclosure-id semantics slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commit c3ee381bf adds a stable per-instance export-menu id and explicit menu semantics to Strategy Lab's result-export trigger, including aria-controls, aria-expanded, role=menu, role=menuitem, Arrow/Home/End/Escape navigation, and focus restoration while preserving every export action and payload. Focused Strategy Lab coverage passed 37/37; full frontend Vitest passed 1,150/1,150; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
   - "The first exact-tip gate at product tip c3ee381b passed locked dependencies/migrations, lint/format/type-check, backend combined coverage (1,621 unit plus 408 integration tests; 82.26%), frontend Vitest 1,150/1,150, production build, Compose/provider contracts, branch-scoped Docker health, and research-runner probes. Its exhaustive browser stage had one unchanged F8u-boolean failure: the expected RSI Boolean column header was not found after promotion; 169 cases passed and 107 documented cases were skipped. Teardown was clean. A fresh-stack retry with the same E2E_SEED_MARKET_DATA=true conditions passed F8u-boolean 1/1 in 4.6s without source changes, so record this as a transient seeded-workspace/browser timing candidate pending a clean exact-gate rerun. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed."
+  - "The definitive exact-tip PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip c3ee381bf: backend combined coverage passed 1,621 unit and 408 integration tests with 82.26% total coverage; frontend Vitest passed 1,150/1,150; type-check/build, Compose/provider contracts, branch-scoped Docker health, and research-runner probes passed; authenticated functional Chromium passed 170 with 107 documented skips; and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, generated images, and test sessions; resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable because of host Xcode license status 69; the installed CommandLineTools Make binary ran the same target. This clean rerun supersedes the earlier transient F8u-boolean candidate without changing the browser oracle or any provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy. This receipt covers the Strategy Lab export-menu keyboard-semantics slice and does not close the broader workstream or upstream staging dependencies."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."

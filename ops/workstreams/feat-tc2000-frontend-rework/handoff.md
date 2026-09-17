@@ -1,5 +1,37 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-17 — R6 Strategy Lab result-export menu keyboard semantics and definitive gate
+
+Product commit `c3ee381bf` gives Strategy Lab's result-export trigger a stable
+per-instance menu id and explicit menu semantics (`aria-controls`,
+`aria-expanded`, `role=menu`, `role=menuitem`, Arrow/Home/End/Escape
+navigation, and focus restoration). Export actions and payloads are unchanged.
+Focused Strategy Lab coverage passed `37/37`; full frontend Vitest passed
+`1,150/1,150`; type-check and production build passed.
+
+The clean exact gate
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` passed
+at product tip `c3ee381bf`: backend combined coverage passed `1,621` unit and
+`408` integration tests with `82.26%` total coverage; frontend Vitest passed
+`1,150/1,150`; type-check/build, Compose/provider contracts, branch-scoped
+Docker health, and research-runner probes passed; authenticated functional
+Chromium passed `170` with `107` documented skips; and all four visual
+projects passed `104/104`. Teardown removed the assigned containers, volumes,
+network, generated images, and test sessions; resource accounting reported
+zero retained resources. The standard `/usr/bin/make` wrapper remains
+unavailable because of host Xcode license status `69`; the installed
+CommandLineTools Make binary ran the same target. No provider-platform, ETF,
+visual-baseline, threshold, mask, skip, fallback, or acceptance policy
+changed.
+
+The earlier single `F8u-boolean` failure is superseded by this clean rerun and
+remains documented below as historical diagnosis. The broader goal remains
+active: provider/ETF consumer integration is still sequenced behind staging,
+after which shared paths require semantic reconciliation and another exact-tip
+gate. This slice does not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-17 — R6 Strategy Lab result-export menu keyboard semantics and gate diagnosis
 
 Product commit `c3ee381bf` gives Strategy Lab's result-export trigger a
