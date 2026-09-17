@@ -21,12 +21,11 @@ validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
   No active TC-owned product or validation blocker: the definitive exact gate
-  at product tip 8c51be339 passed the repository stages, authenticated
+  at product tip 4e4668c80 passed the repository stages, authenticated
   functional browser flows, and all four visual projects with clean
-  branch-scoped teardown. The Study Lab accessibility-id slice keeps artifact
-  summaries uniquely addressable across detached Study panes while preserving
-  scalar/non-scalar result relationships, selection, promotion, and visual
-  behavior. Provider-platform and
+  branch-scoped teardown. The Strategy Coverage disclosure-id slice keeps
+  coverage timelines uniquely addressable across detached Strategy panes while
+  preserving disclosure, coverage rendering, and visual behavior. Provider-platform and
   ETF consumer integration remains a sequencing gate until both upstream
   branches reach staging; that does not stop independent TC-owned work. Origin
   synchronization remains a separate operational hold under the recorded
@@ -264,7 +263,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_study_lab_accessibility_ids_exact_gate_passed
+  current_phase: R6_strategy_coverage_disclosure_ids_exact_gate_passed
   next_action: >-
     Preserve the Strategy toggle-state and run-subset disclosure semantics,
     VirtualWatchlist membership disclosure, IndicatorPanel section keyboard
@@ -274,17 +273,18 @@ progress:
     LayoutPicker disclosure, EasyScan advanced-condition disclosure,
     Strategy per-instance disclosure-id, Workstation accessibility-id, and
     Research Results artifact-summary-id and Study Lab artifact-summary-id
-    exact-gate receipts. Continue with the next bounded TC-owned R1/R5/R6 item;
+    exact-gate receipts, and add the Strategy Coverage disclosure-id receipt.
+    Continue with the next bounded TC-owned R1/R5/R6 item;
     keep provider/ETF consumer work
     deferred until both upstream branches reach staging. Do not retry origin
     synchronization under the existing private-origin safeguard without newly
     accepted exact-payload authorization.
   current_blocker: >-
     No active TC-owned product or validation blocker. The definitive
-    full_stack_browser gate at product tip 8c51be339 passed and branch-scoped
+    full_stack_browser gate at product tip 4e4668c80 passed and branch-scoped
     cleanup/resource accounting are clean. The focused Workstation
-    accessibility-id, Research Results artifact-summary-id, and Study Lab
-    artifact-summary-id suites and full
+    accessibility-id, Research Results artifact-summary-id, Study Lab
+    artifact-summary-id, and Strategy Coverage disclosure-id suites and full
     frontend checks passed before the definitive gate; no visual or functional
     policy changed. The preceding
     disclosure receipts remain valid, including their transient focused browser
@@ -492,6 +492,8 @@ historical_implementation_records_continued:
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 2e29749a6: backend combined coverage passed 1,621 tests with 82.26% total coverage, frontend Vitest passed 1,141/1,141, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium passed 170 with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the Research Results artifact-summary-id semantics slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commit 8c51be339 scopes Study Lab artifact summary ids to each mounted Study pane through a runtime-scoped sequence, preserving scalar and non-scalar summary text, aria-describedby relationships, selection, promotion behavior, and visual layout. Focused Study Lab coverage passed 41/41; full frontend Vitest passed 1,142/1,142; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 8c51be339: backend combined coverage passed 1,621 tests with 82.26% total coverage, frontend Vitest passed 1,142/1,142, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium passed 170 with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the Study Lab artifact-summary-id semantics slice and does not close the broader workstream or upstream staging dependencies."
+  - "Product commit 4e4668c80 scopes Strategy Coverage timeline disclosure ids to each mounted panel through a runtime-scoped sequence, adding the missing aria-controls relationship while preserving coverage rendering, toggle state, and visual layout. Focused Strategy Coverage coverage passed 5/5; full frontend Vitest passed 1,143/1,143; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
+  - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 4e4668c80884c1a0399cbe9fce0e70a67989ae0a: backend combined coverage passed 1,621 tests with 82.26% total coverage, frontend Vitest passed 1,143/1,143, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium passed 170 with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the Strategy Coverage disclosure-id semantics slice and does not close the broader workstream or upstream staging dependencies."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."
