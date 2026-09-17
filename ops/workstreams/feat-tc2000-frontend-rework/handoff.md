@@ -14343,3 +14343,34 @@ the same target. No provider-platform, ETF, visual-baseline, threshold, mask,
 skip, fallback, or acceptance policy changed. This receipt covers the
 Workstation accessibility-id semantics slice and does not close the broader
 workstream or upstream staging dependencies.
+
+## 2026-09-17 — R6 Research Results artifact summary ids
+
+Product commit `2e29749a6` scopes persisted Research Results artifact summary
+ids to each mounted result-pane instance through a runtime-scoped sequence,
+preserving summary text, `aria-describedby` relationships, selection,
+promotion behavior, and visual layout. Focused Research Results coverage
+passed `49/49`; full frontend Vitest passed `1,141/1,141`; frontend type-check
+and production build passed with the existing large-chunk warning; TC scope
+validation/self-tests, workstream validation, and `git diff --check` passed.
+No provider-platform, ETF, visual-oracle, or acceptance-policy behavior
+changed.
+
+## 2026-09-17 — R6 Research Results artifact summary ids exact integration gate
+
+The definitive raw-capture
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` gate
+passed at product tip `2e29749a6`. Backend combined coverage passed `1,621`
+tests with `82.26%` total coverage, frontend Vitest passed `1,141/1,141`,
+type-check/build, Compose/provider contracts, branch-scoped Docker health,
+research-runner probes, authenticated functional Chromium passed `170` with
+`107` documented skips, and all four visual projects passed `104/104`.
+Teardown removed the assigned containers, volumes, network, four generated
+images, and test sessions; post-gate resource accounting reported zero
+retained resources. The standard `/usr/bin/make` wrapper remains unavailable
+with Xcode license status `69`; the equivalent installed CommandLineTools Make
+binary ran the same target. No provider-platform, ETF, visual-baseline,
+threshold, mask, skip, fallback, or acceptance policy changed. This receipt
+covers the Research Results artifact-summary-id semantics slice and does not
+close the broader workstream or upstream staging dependencies.
