@@ -85,5 +85,5 @@ def test_artifact_manifest_requires_typed_length_and_retention() -> None:
             "application/octet-stream",
             "1",
             digest,
-            "permanent_manifest",
+            "permanent_manifest",  # type: ignore[arg-type]
         )
