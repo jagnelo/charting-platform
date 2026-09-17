@@ -23,6 +23,14 @@
   current-source provider evidence, not a claim that the remaining roster-wide
   safety/terms gates are closed.
 
+## 2026-09-17 final Docker backend gate
+
+- The final clean-source Docker-backed combined backend gate reached all
+  `2,772` collected unit/integration tests with no failing-test output; the
+  generated combined coverage report measured `82.07%` line coverage (above
+  the 75% gate). Docker preflight reported ready, and generated coverage files
+  were removed after completion. Compose/workstream validation also passes.
+
 ## 2026-09-17 discovery pagination loss-prevention correction
 
 - US-universe reconciliation no longer applies an arbitrary local offset/page

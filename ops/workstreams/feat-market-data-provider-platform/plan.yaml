@@ -161,6 +161,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-17 final validation replay: the clean-source Docker-backed
+    combined backend gate reached all 2,772 collected unit/integration tests
+    with no failing-test output; its combined coverage artifact reported
+    82.07% line coverage against the 75% threshold. Docker preflight was
+    ready, generated coverage artifacts were removed, and Compose/workstream
+    validation passed. This validates the implementation change but does not
+    close the separately documented provider entitlement, terms, universe,
+    secret-store, or deferred-provider gates.
+  - >-
     2026-09-17 native-usage mapping admission hardening: runtime routing and
     direct live-probe planning now enforce the same provider-specific
     `account_usage_bootstrap.reconciled_dimensions` contract as manifest
