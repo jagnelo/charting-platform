@@ -1044,7 +1044,12 @@ def provider_missing_routing_controls(
         reviewed_limit = provider_positive_integer(
             getattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 0)
         )
-        if reviewed_limit is None or reviewed_limit > 1000:
+        # Do not retain an arbitrary ceiling from the older conservative
+        # seed. The account-specific native entitlement may legitimately
+        # exceed the stale published conflict (the configured account exposed
+        # 1,200/minute); positivity is validated here and the provider/source
+        # evidence remains mandatory below.
+        if reviewed_limit is None:
             missing.append("EODHD_REVIEWED_MINUTE_LIMIT")
         if not provider_quota_reset_is_admission_safe(
             getattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "")

@@ -854,6 +854,7 @@ class TestProviderRegistry:
         assert eodhd_contract["dimensions"][0]["reset"] == "rolling"
         assert eodhd_seed["tokens_per_minute"] == 20
         monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 1200)
+        assert provider_missing_routing_controls("eodhd") == []
         eodhd_seed = provider_rate_limit_seed("eodhd")
         eodhd_contract = eodhd_seed["quota_contract"]
         assert eodhd_contract["dimensions"][0]["limit"] == 1200

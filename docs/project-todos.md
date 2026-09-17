@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-17 — EODHD reviewed-entitlement routing correction
+
+- [x] Remove the obsolete routing-diagnostic ceiling that rejected reviewed
+      EODHD minute limits above the conservative 1,000/minute seed.
+- [x] Add regression coverage proving the configured 1,200/minute native
+      entitlement passes diagnostics while reset and evidence controls remain
+      required.
+- [ ] Obtain the final admission-safe reset and evidence decision before
+      promoting ordinary EODHD routing.
+
 ### 2026-09-17 — FMP trailing-bandwidth contract correction
 
 - [x] Reconcile the current official FMP pricing page's free-plan bandwidth

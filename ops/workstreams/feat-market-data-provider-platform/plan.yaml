@@ -744,6 +744,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 EODHD routing-control regression correction: the diagnostic
+      path no longer rejects a positive reviewed minute entitlement merely
+      because it exceeds the old 1,000/minute conservative seed. The
+      configured account's reviewed 1,200/minute native entitlement now
+      passes the same routing-control check as the quota-seed promotion, while
+      reset and evidence controls remain mandatory. Focused registry/quota
+      coverage passed 134/134; no provider request was made.
+    - >-
       2026-09-17 FMP trailing-bandwidth contract correction: the current
       official pricing source defines the free-plan pool as 500 MB over a
       trailing 30-day window. The seed now uses a conservative 500,000,000

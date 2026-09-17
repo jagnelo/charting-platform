@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 EODHD reviewed-entitlement routing correction
+
+- The EODHD quota seed already accepted a positive operator-reviewed native
+  minute entitlement, including the configured account's `1,200/minute`
+  header, but the routing-control diagnostic retained an obsolete `<=1000`
+  check.
+- Removed that stale arbitrary cap. A positive reviewed limit now follows the
+  same path in both the seed promotion and routing-control diagnostics;
+  `EODHD_REVIEWED_MINUTE_RESET` and `EODHD_MINUTE_QUOTA_EVIDENCE` remain
+  mandatory, and no provider request was made.
+- Focused registry/quota coverage passed `134/134`; the new regression asserts
+  that the reviewed 1,200/minute entitlement is not rejected by diagnostics.
+
 ## 2026-09-17 FMP trailing-bandwidth contract correction
 
 - The current official FMP pricing page states that the free-plan bandwidth
