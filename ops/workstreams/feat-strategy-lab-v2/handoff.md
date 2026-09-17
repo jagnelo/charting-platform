@@ -3237,9 +3237,9 @@ hardened no-network sandbox; container activation, persistence, and API wiring
 remain deferred behind the existing shared-path gates.
 
 The focused custom-metric suite passed 4 tests with Ruff and MyPy green. The
-exact branch gate then passed 677 package tests, Ruff, MyPy across 234 source
-files, diff check, and workstream validation. The exact pushed tip subsequently
-passed the Docker-backed combined coverage gate: 2,324 tests with 83.67% total
+exact pushed tip passed the branch gate: 681 package tests, Ruff, MyPy across
+237 source files, diff check, and workstream validation. The same tip then
+passed the Docker-backed combined coverage gate: 2,328 tests with 83.68% total
 coverage, above the required 75% threshold; setup and cleanup completed
 successfully. The branch remains `ready_for_human_review`.
 
@@ -3257,8 +3257,8 @@ API wiring, and scheduling remain deferred behind the existing shared-path
 gates.
 
 Focused protocol/CLI coverage passed 4 tests with Ruff and MyPy green. The
-branch gate and combined coverage evidence will be refreshed at the committed
-tip before handoff.
+exact pushed tip passed the branch gate and combined coverage gate recorded
+above; no worker image, persistence, API, or scheduling gate was opened.
 
 ## 2026-09-17 - Combined backend coverage revalidation
 
