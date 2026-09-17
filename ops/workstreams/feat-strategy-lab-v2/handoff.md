@@ -3237,8 +3237,10 @@ hardened no-network sandbox; container activation, persistence, and API wiring
 remain deferred behind the existing shared-path gates.
 
 The focused custom-metric suite passed 4 tests with Ruff and MyPy green. The
-branch remains `ready_for_human_review` pending the full exact-tip branch and
-combined coverage gates.
+exact branch gate then passed 677 package tests, Ruff, MyPy across 234 source
+files, diff check, and workstream validation. The branch remains
+`ready_for_human_review` pending the combined coverage evidence for this new
+runtime slice.
 
 ## 2026-09-17 - Combined backend coverage revalidation
 
