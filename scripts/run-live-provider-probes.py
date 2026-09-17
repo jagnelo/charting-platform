@@ -10,8 +10,8 @@ credentials return exit code 2; they are never represented as passing skips.
 from __future__ import annotations
 
 import argparse
-import inspect
 import importlib.util
+import inspect
 import json
 import os
 import re
@@ -1080,8 +1080,8 @@ def durable_quota_preflight() -> tuple[bool, str | None]:
     try:
         from app.services.provider_quota_coordinator import (
             ProviderQuotaCoordinatorError,
-            reconcile_pending_live_receipts,
             ensure_provider_quota_coordinator,
+            reconcile_pending_live_receipts,
         )
 
         ensure_provider_quota_coordinator(
@@ -1139,7 +1139,10 @@ def live_operation_quota_preflight(
             _reservation_plan_for_live_probe,
             provider_quota_baseline_status,
         )
-        from app.services.provider_runtime import ProviderQuotaUnknownError
+        from app.services.provider_runtime import (
+            ProviderQuotaUnknownError,
+            account_usage_reconciled_dimensions,
+        )
     except Exception:
         return {"provider quota accounting": ["quota admission code is unavailable"]}
 
@@ -1233,15 +1236,8 @@ def live_operation_quota_preflight(
                         # bootstrap would spend a doomed request and hide the
                         # exact missing baseline behind a generic exhaustion
                         # error.
-                        bootstrap = contract.get("account_usage_bootstrap")
-                        reconciled = (
-                            {
-                                str(item).strip()
-                                for item in (bootstrap.get("reconciled_dimensions") or [])
-                                if str(item).strip()
-                            }
-                            if isinstance(bootstrap, dict)
-                            else set()
+                        reconciled = account_usage_reconciled_dimensions(
+                            policy, "fetch_account_usage"
                         )
                         # A bootstrap contract without an explicit mapping is
                         # not an authorization to treat every unknown pool as
@@ -1344,8 +1340,8 @@ def routing_safety_preflight() -> dict[str, str]:
     if str(backend_root) not in sys.path:
         sys.path.insert(0, str(backend_root))
     from app.config import (
-        bybit_xstocks_market_data_use_authority_missing,
         FRED_MAPPED_SERIES_IDS,
+        bybit_xstocks_market_data_use_authority_missing,
         coinbase_market_data_use_authority_missing,
         massive_market_data_use_authority_missing,
         provider_quota_admission_reset,

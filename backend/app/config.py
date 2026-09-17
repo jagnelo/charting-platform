@@ -1743,10 +1743,14 @@ class Settings(BaseSettings):
                 "history_constraints": {
                     "earliest_date": "2016-01-01",
                     "source": "https://docs.alpaca.markets/us/v1.1/docs/about-market-data-api",
-                }
+                },
+                "latest_data_delay_seconds": 900,
+                "latest_data_delay_source": "https://docs.alpaca.markets/us/docs/about-market-data-api",
+                "websocket_symbol_limit": 30,
+                "websocket_symbol_limit_source": "https://docs.alpaca.markets/us/docs/about-market-data-api",
             },
             "venue_coverage": "IEX US equities; provider-defined universe",
-            "freshness_semantics": "Delayed/limited free feed",
+            "freshness_semantics": "IEX free feed; historical/latest equity data limited to latest 15 minutes",
         },
         "edgar": {
             "configured_plan": "sec-public",

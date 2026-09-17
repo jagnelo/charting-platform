@@ -1815,6 +1815,7 @@ def _reservation_plan_for_live_probe(
     )
     from app.providers.registry import get_provider_usage_profile
     from app.services.provider_routing import _window_start_for_dimension
+    from app.services.provider_runtime import account_usage_reconciled_dimensions
 
     seed = provider_rate_limit_seed(provider_name)
     contract = seed.get("quota_contract")
@@ -1827,6 +1828,17 @@ def _reservation_plan_for_live_probe(
             f"provider quota reset semantics are unreviewed for live operation {provider_name}/{operation}"
         )
     bootstrap = contract.get("account_usage_bootstrap")
+    if operation == "fetch_account_usage" and isinstance(bootstrap, dict) and bootstrap.get(
+        "enabled"
+    ) is True:
+        bootstrap_policy = SimpleNamespace(
+            quota_contract=contract,
+            quota_scope=seed.get("quota_scope", ""),
+        )
+        if not account_usage_reconciled_dimensions(bootstrap_policy, operation):
+            raise ProviderQuotaAdmissionError(
+                f"provider account-usage bootstrap mapping is missing or invalid for {provider_name}"
+            )
     unknown_dimensions = {
         str(item or "").strip()
         for item in (contract.get("unknown_dimensions") or [])

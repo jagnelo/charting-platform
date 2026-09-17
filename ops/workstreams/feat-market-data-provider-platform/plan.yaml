@@ -161,6 +161,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-17 native-usage mapping admission hardening: runtime routing and
+    direct live-probe planning now enforce the same provider-specific
+    `account_usage_bootstrap.reconciled_dimensions` contract as manifest
+    preflight. The list must be non-empty, unique, and limited to finite
+    dimensions covered by the provider's native usage endpoint; missing,
+    duplicate, concurrency, or undeclared mappings fail closed before
+    transport. Focused provider-runtime/quota/live-runner coverage is green
+    (`141/141` with `--no-cov`).
+  - >-
     2026-09-17 discovery loss-prevention correction: US-universe reconciliation
     no longer rejects a valid provider continuation merely because its numeric
     offset exceeds an arbitrary local ceiling. Pagination-cycle and

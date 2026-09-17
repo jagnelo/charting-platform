@@ -164,6 +164,9 @@ def test_alpaca_native_minute_pool_uses_rolling_safety_envelope():
     assert alpaca["reset"] == "rolling"
     assert alpaca["dimensions"][0]["name"] == "market_data_requests_per_minute"
     assert alpaca["account_usage_bootstrap"]["enabled"] is True
+    alpaca_entitlement = settings.PROVIDER_ENTITLEMENT_SEEDS["alpaca"]
+    assert alpaca_entitlement["quota_policy"]["latest_data_delay_seconds"] == 900
+    assert alpaca_entitlement["quota_policy"]["websocket_symbol_limit"] == 30
     policy = ProviderPolicy(
         data_source_id=1,
         capability=ProviderCapability.PRICE_HISTORY,

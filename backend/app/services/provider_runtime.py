@@ -1437,6 +1437,47 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
     return missing
 
 
+def account_usage_reconciled_dimensions(
+    policy: ProviderPolicy, operation: str = "fetch_account_usage"
+) -> set[str]:
+    """Return the finite quota pools a native usage probe explicitly maps.
+
+    A bootstrap declaration is a narrow control-plane exception, not a
+    blanket waiver for every unresolved provider pool.  Keep the mapping
+    machine-checkable: it must be a non-empty list of unique names, every name
+    must identify a finite dimension that applies to the usage operation, and
+    concurrency leases can never be reconciled from an account counter.
+    """
+
+    contract = dict(getattr(policy, "quota_contract", None) or {})
+    bootstrap = contract.get("account_usage_bootstrap")
+    if not isinstance(bootstrap, dict) or bootstrap.get("enabled") is not True:
+        return set()
+    raw_names = bootstrap.get("reconciled_dimensions")
+    if not isinstance(raw_names, list) or not raw_names:
+        return set()
+    names = [str(item).strip() for item in raw_names]
+    if any(not item for item in names) or len(set(names)) != len(names):
+        return set()
+    declared_finite: set[str] = set()
+    dimensions = contract.get("dimensions")
+    if not isinstance(dimensions, list):
+        return set()
+    for dimension in dimensions:
+        if not isinstance(dimension, dict) or not _dimension_applies_to_operation(
+            dimension, operation
+        ):
+            continue
+        unit = str(dimension.get("unit") or "").strip().lower()
+        if unit in _IN_FLIGHT_UNITS:
+            continue
+        name = str(dimension.get("name") or "").strip()
+        if name:
+            declared_finite.add(name)
+    mapped = set(names)
+    return mapped if mapped <= declared_finite else set()
+
+
 def provider_contract_operation_costs_configured(
     policy: ProviderPolicy, data_source: DataSource
 ) -> bool:
@@ -1500,6 +1541,11 @@ def policy_allows_account_usage_bootstrap(
     if not isinstance(bootstrap, dict) or bootstrap.get("enabled") is not True:
         return False
     if not str(bootstrap.get("source") or "").strip():
+        return False
+    # The provider-specific native endpoint must say exactly which finite
+    # pools it reports.  Missing, duplicated, or unknown names are not an
+    # authorization to bootstrap every unresolved dimension.
+    if not account_usage_reconciled_dimensions(policy, operation):
         return False
     unknown_dimensions = {
         str(item or "").strip()

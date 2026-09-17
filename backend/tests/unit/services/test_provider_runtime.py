@@ -68,6 +68,7 @@ def test_account_usage_bootstrap_allows_only_explicit_unknown_dimensions():
             "enabled": True,
             "source": "application_policy:provider_native_baseline_bootstrap",
             "allowed_unknown_dimensions": ["provider_minute_pool"],
+            "reconciled_dimensions": ["calls_per_day"],
         },
         "dimensions": [
             {
@@ -100,6 +101,50 @@ def test_account_usage_bootstrap_allows_only_explicit_unknown_dimensions():
     )
     assert policy_allows_account_usage_bootstrap(policy, "fetch_account_usage") is True
     contract["account_usage_bootstrap"]["allowed_unknown_dimensions"] = []
+    assert policy_allows_account_usage_bootstrap(policy, "fetch_account_usage") is False
+
+
+def test_account_usage_bootstrap_requires_valid_reconciled_dimension_map():
+    contract = {
+        "reset": "per_dimension",
+        "account_usage_bootstrap": {
+            "enabled": True,
+            "source": "unit-test",
+            "reconciled_dimensions": ["not_declared"],
+        },
+        "dimensions": [
+            {
+                "name": "calls_per_day",
+                "limit": 20,
+                "window_seconds": 86400,
+                "unit": "calls",
+                "scope": "api_key",
+                "source": "unit-test",
+                "reset": "calendar_day_utc",
+            },
+            {
+                "name": "account_usage_probe_concurrency",
+                "limit": 1,
+                "window_seconds": 1,
+                "unit": "concurrent_requests",
+                "scope": "deployment",
+                "source": "unit-test",
+                "reset": "rolling",
+                "applies_to_operations": ["fetch_account_usage"],
+            },
+        ],
+    }
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.ACCOUNT_USAGE,
+        quota_contract=contract,
+        quota_scope="api_key",
+        quota_source="unit-test",
+    )
+    assert policy_allows_account_usage_bootstrap(policy, "fetch_account_usage") is False
+    contract["account_usage_bootstrap"]["reconciled_dimensions"] = ["calls_per_day", "calls_per_day"]
+    assert policy_allows_account_usage_bootstrap(policy, "fetch_account_usage") is False
+    contract["account_usage_bootstrap"]["reconciled_dimensions"] = ["account_usage_probe_concurrency"]
     assert policy_allows_account_usage_bootstrap(policy, "fetch_account_usage") is False
 
 

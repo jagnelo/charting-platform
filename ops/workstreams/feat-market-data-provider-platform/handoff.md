@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 native-usage mapping admission hardening
+
+- Applied the Alpaca account-usage decision consistently across runtime
+  routing, the direct live-probe planner, and manifest preflight. A bootstrap
+  contract now requires a non-empty, unique `reconciled_dimensions` list whose
+  names identify finite provider pools covered by that native endpoint; mapping
+  a concurrency lease or an undeclared pool is rejected before transport.
+- Added regressions for missing/invalid/duplicate mappings and updated the
+  coordinator fixture. Focused provider-runtime, quota-coordinator, and live
+  runner coverage passes `141/141` with `--no-cov`.
+
 ## 2026-09-17 discovery pagination loss-prevention correction
 
 - US-universe reconciliation no longer applies an arbitrary local offset/page

@@ -1367,6 +1367,8 @@ def test_live_account_usage_bootstrap_excludes_only_unknown_pools(tmp_path, monk
                     "reset": "per_dimension",
                     "account_usage_bootstrap": {
                         "enabled": True,
+                        "source": "unit-test provider contract",
+                        "reconciled_dimensions": ["credits_per_day"],
                         "allowed_unknown_dimensions": ["provider_minute_pool"],
                     },
                     "unknown_dimensions": ["provider_minute_pool"],
@@ -1419,6 +1421,14 @@ def test_live_account_usage_bootstrap_excludes_only_unknown_pools(tmp_path, monk
 
     assert dimension_units == {"account_usage_probe_concurrency": 1}
     assert [spec["dimension"] for spec in specs] == ["account_usage_probe_concurrency"]
+
+    settings.PROVIDER_RATE_LIMIT_SEEDS["fixture"]["quota_contract"][
+        "account_usage_bootstrap"
+    ]["reconciled_dimensions"] = []
+    with pytest.raises(ProviderQuotaAdmissionError, match="bootstrap mapping"):
+        _reservation_plan_for_live_probe(
+            "fixture", "fetch_account_usage", "identity", datetime.now(UTC)
+        )
 
 
 def test_live_probe_operation_cost_comes_from_provider_profile(tmp_path, monkeypatch):
