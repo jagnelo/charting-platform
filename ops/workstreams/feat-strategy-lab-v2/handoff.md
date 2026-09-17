@@ -3103,8 +3103,8 @@ deferred behind the existing gates.
 `bind_event_tape()` now verifies that a frozen replay tape belongs to the exact
 `DataSnapshot` and `StrategySdkManifest` it is about to drive. It checks the
 snapshot's preflight decisions and explicit degradations, matches effective
-series semantics and coverage, requires declared instruments and exact event
-fields, rejects missing/unsupported dependencies, and emits a
+series semantics and effective dependency intervals, requires declared
+instruments and exact event fields, rejects missing/unsupported dependencies, and emits a
 content-addressed `EventTapeBinding` with deterministic per-dependency counts.
 This keeps provider acquisition, coverage attestation, strategy execution,
 order routing, and fills behind their existing adapter/runtime gates.
