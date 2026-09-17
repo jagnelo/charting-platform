@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
@@ -27,11 +28,17 @@ from app.strategy_lab_v2.sdk import (
     TimeInForce,
 )
 from strategy_runtime import (
+    BATCH_WIRE_PROTOCOL_VERSION,
     InvocationStatus,
     deserialize_invocation,
+    deserialize_invocation_batch,
+    deserialize_invocation_batch_result,
     deserialize_invocation_result,
     main,
+    run_strategy_events,
     serialize_invocation,
+    serialize_invocation_batch,
+    serialize_invocation_batch_result,
     serialize_invocation_result,
 )
 from strategy_runtime.runner import run_strategy_event
@@ -159,6 +166,94 @@ def test_result_wire_round_trip_preserves_intents_and_fingerprint() -> None:
     tampered = encoded.replace(with_order.fingerprint, content_digest("tampered"))
     with pytest.raises(ValueError, match="fingerprint"):
         deserialize_invocation_result(tampered)
+
+
+def test_batch_wire_round_trip_preserves_context_order_and_result_identity() -> None:
+    source = """
+class Strategy:
+    def on_event(self, context):
+        return [TargetPositionIntent('US.AAPL', Decimal(context.event_sequence) / Decimal(10))]
+"""
+    manifest = _manifest(source)
+    first = _context()
+    second_event = MarketEvent(
+        "daily-bars",
+        "bar-2",
+        "US.AAPL",
+        NOW + timedelta(days=1),
+        2,
+        {"close": Decimal("191")},
+    )
+    second = replace(
+        first,
+        event_time=NOW + timedelta(days=1),
+        event_sequence=2,
+        market_events={"daily-bars": (second_event,)},
+    )
+    contexts = (first, second)
+    encoded = serialize_invocation_batch(
+        source=source,
+        manifest=manifest,
+        contexts=contexts,
+        entrypoint="strategy.main:Strategy",
+        max_intents_per_event=7,
+    )
+    decoded_source, decoded_manifest, decoded_contexts, entrypoint, limit = deserialize_invocation_batch(
+        encoded
+    )
+    assert decoded_source == source
+    assert decoded_manifest == manifest
+    assert decoded_contexts == contexts
+    assert entrypoint == "strategy.main:Strategy"
+    assert limit == 7
+    assert encoded == serialize_invocation_batch(
+        source=decoded_source,
+        manifest=decoded_manifest,
+        contexts=decoded_contexts,
+        entrypoint=entrypoint,
+        max_intents_per_event=limit,
+    )
+
+    results = run_strategy_events(
+        source,
+        manifest=manifest,
+        contexts=contexts,
+        entrypoint=entrypoint,
+        max_intents_per_event=limit,
+    )
+    assert len(results) == 2
+    assert all(item.status is InvocationStatus.SUCCEEDED for item in results)
+    result_payload = serialize_invocation_batch_result(results)
+    assert deserialize_invocation_batch_result(result_payload) == results
+    tampered = result_payload.replace(
+        '"fingerprint":"', '"fingerprint":"sha256:tampered', 1
+    )
+    with pytest.raises(ValueError, match="fingerprint"):
+        deserialize_invocation_batch_result(tampered)
+
+
+def test_batch_wire_rejects_empty_contexts_unknown_fields_and_versions() -> None:
+    source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
+    manifest = _manifest(source)
+    with pytest.raises(ValueError, match="must not be empty"):
+        serialize_invocation_batch(
+            source=source,
+            manifest=manifest,
+            contexts=(),
+            entrypoint="strategy.main:Strategy",
+        )
+    encoded = serialize_invocation_batch(
+        source=source,
+        manifest=manifest,
+        contexts=(_context(),),
+        entrypoint="strategy.main:Strategy",
+    )
+    with pytest.raises(ValueError, match="unsupported"):
+        deserialize_invocation_batch(encoded.replace(BATCH_WIRE_PROTOCOL_VERSION, "old"))
+    with pytest.raises(ValueError, match="duplicate"):
+        deserialize_invocation_batch(encoded.replace(
+            '"source":', '"source":"duplicate", "source":', 1
+        ))
 
 
 def test_protocol_rejects_unknown_fields_and_versions() -> None:

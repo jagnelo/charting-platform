@@ -28,7 +28,7 @@ from app.strategy_lab_v2.sdk import (
 from strategy_runtime.runner import (
     InvocationStatus,
     StrategyInvocationResult,
-    StrategyInvocationSession,
+    run_strategy_events,
 )
 
 
@@ -247,20 +247,20 @@ def replay_event_tape(
         parameters=parameters,
         positions_by_batch=positions_by_batch,
     )
-    session = StrategyInvocationSession(
-        source,
-        manifest=manifest,
-        entrypoint=entrypoint,
-        max_intents_per_event=max_intents_per_event,
+    invocations = list(
+        run_strategy_events(
+            source,
+            manifest=manifest,
+            contexts=contexts,
+            entrypoint=entrypoint,
+            max_intents_per_event=max_intents_per_event,
+        )
     )
-    invocations: list[StrategyInvocationResult] = []
-    stopped_batch_sequence: int | None = None
-    for batch_sequence, context in enumerate(contexts):
-        result = session.invoke(context)
-        invocations.append(result)
-        if result.status is not InvocationStatus.SUCCEEDED:
-            stopped_batch_sequence = batch_sequence
-            break
+    stopped_batch_sequence: int | None = (
+        len(invocations) - 1
+        if invocations[-1].status is not InvocationStatus.SUCCEEDED
+        else None
+    )
 
     last = invocations[-1]
     status = (

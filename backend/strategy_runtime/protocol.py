@@ -10,11 +10,12 @@ result envelope contains only typed intents and digest-bound evidence.
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
+from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capabilities import CapabilityRequirement
 from app.strategy_lab_v2.contracts import (
     AdjustmentMode,
@@ -38,6 +39,7 @@ from app.strategy_lab_v2.sdk import (
 )
 
 WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.v1"
+BATCH_WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.batch.v1"
 
 
 class _DuplicateFieldError(ValueError):
@@ -510,6 +512,80 @@ def deserialize_invocation(payload: str) -> tuple[str, StrategySdkManifest, Stra
     return source, _decode_manifest(item["manifest"]), _decode_context(item["context"]), entrypoint, max_intents
 
 
+def serialize_invocation_batch(
+    *,
+    source: str,
+    manifest: StrategySdkManifest,
+    contexts: Sequence[StrategyContext],
+    entrypoint: str,
+    max_intents_per_event: int = 100,
+) -> str:
+    """Serialize a deterministic multi-context request for one runtime session."""
+
+    if not isinstance(source, str):
+        raise TypeError("batch invocation source must be a string")
+    if not isinstance(contexts, Sequence) or isinstance(contexts, str | bytes):
+        raise TypeError("batch invocation contexts must be a sequence")
+    contexts_tuple = tuple(contexts)
+    if not contexts_tuple:
+        raise ValueError("batch invocation contexts must not be empty")
+    if any(not isinstance(context, StrategyContext) for context in contexts_tuple):
+        raise TypeError("batch invocation contexts must use StrategyContext values")
+    if not isinstance(entrypoint, str) or not entrypoint.strip():
+        raise ValueError("batch invocation entrypoint must not be empty")
+    if (
+        not isinstance(max_intents_per_event, int)
+        or isinstance(max_intents_per_event, bool)
+        or max_intents_per_event < 1
+    ):
+        raise ValueError("batch invocation max_intents_per_event must be positive")
+    payload = {
+        "protocol_version": BATCH_WIRE_PROTOCOL_VERSION,
+        "source": source,
+        "manifest": _encode_manifest(manifest),
+        "contexts": [_encode_context(context) for context in contexts_tuple],
+        "entrypoint": entrypoint,
+        "max_intents_per_event": max_intents_per_event,
+    }
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def deserialize_invocation_batch(
+    payload: str,
+) -> tuple[str, StrategySdkManifest, tuple[StrategyContext, ...], str, int]:
+    """Decode a strict multi-context request envelope."""
+
+    if not isinstance(payload, str) or not payload.strip():
+        raise ValueError("batch invocation payload must not be empty")
+    root = _load_json(payload, "batch invocation payload")
+    item = _mapping(root, "batch invocation")
+    if set(item) != {
+        "protocol_version",
+        "source",
+        "manifest",
+        "contexts",
+        "entrypoint",
+        "max_intents_per_event",
+    }:
+        raise ValueError("batch invocation fields are invalid")
+    if item["protocol_version"] != BATCH_WIRE_PROTOCOL_VERSION:
+        raise ValueError("unsupported strategy runtime batch protocol version")
+    source = item["source"]
+    if not isinstance(source, str):
+        raise TypeError("batch invocation source must be a string")
+    entrypoint = item["entrypoint"]
+    if not isinstance(entrypoint, str) or not entrypoint.strip():
+        raise ValueError("batch invocation entrypoint must not be empty")
+    max_intents = item["max_intents_per_event"]
+    if not isinstance(max_intents, int) or isinstance(max_intents, bool) or max_intents < 1:
+        raise ValueError("batch invocation max_intents_per_event must be positive")
+    raw_contexts = _list(item["contexts"], "batch invocation contexts")
+    if not raw_contexts:
+        raise ValueError("batch invocation contexts must not be empty")
+    contexts = tuple(_decode_context(raw) for raw in raw_contexts)
+    return source, _decode_manifest(item["manifest"]), contexts, entrypoint, max_intents
+
+
 def _encode_intent(intent: StrategyIntent) -> dict[str, Any]:
     if isinstance(intent, OrderIntent):
         return {
@@ -532,14 +608,14 @@ def _encode_intent(intent: StrategyIntent) -> dict[str, Any]:
     raise TypeError("result intents must use typed StrategyIntent values")
 
 
-def serialize_invocation_result(result: Any) -> str:
-    """Serialize a :class:`StrategyInvocationResult` without exception text."""
+def _invocation_result_payload(result: Any) -> dict[str, Any]:
+    """Return the strict JSON-shaped payload shared by single and batch results."""
 
     from strategy_runtime.runner import StrategyInvocationResult
 
     if not isinstance(result, StrategyInvocationResult):
         raise TypeError("result must use StrategyInvocationResult")
-    payload = {
+    return {
         "protocol_version": WIRE_PROTOCOL_VERSION,
         "source_digest": result.source_digest,
         "context_fingerprint": result.context_fingerprint,
@@ -550,6 +626,12 @@ def serialize_invocation_result(result: Any) -> str:
         "error_digest": result.error_digest,
         "fingerprint": result.fingerprint,
     }
+
+
+def serialize_invocation_result(result: Any) -> str:
+    """Serialize a :class:`StrategyInvocationResult` without exception text."""
+
+    payload = _invocation_result_payload(result)
     return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
@@ -631,10 +713,56 @@ def deserialize_invocation_result(payload: str) -> Any:
     return result
 
 
+def serialize_invocation_batch_result(results: Sequence[Any]) -> str:
+    """Serialize bounded typed results from one stateful batch runtime."""
+
+    if not isinstance(results, Sequence) or isinstance(results, str | bytes):
+        raise TypeError("batch results must be a sequence")
+    result_tuple = tuple(results)
+    if not result_tuple:
+        raise ValueError("batch results must not be empty")
+    payload = {
+        "protocol_version": BATCH_WIRE_PROTOCOL_VERSION,
+        "results": [_invocation_result_payload(result) for result in result_tuple],
+        "fingerprint": content_digest(result_tuple),
+    }
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def deserialize_invocation_batch_result(payload: str) -> tuple[Any, ...]:
+    """Decode batch results and verify every invocation and envelope identity."""
+
+    if not isinstance(payload, str) or not payload.strip():
+        raise ValueError("batch result payload must not be empty")
+    root = _load_json(payload, "batch result payload")
+    item = _mapping(root, "batch result")
+    if set(item) != {"protocol_version", "results", "fingerprint"}:
+        raise ValueError("batch result fields are invalid")
+    if item["protocol_version"] != BATCH_WIRE_PROTOCOL_VERSION:
+        raise ValueError("unsupported strategy runtime batch protocol version")
+    raw_results = _list(item["results"], "batch results")
+    if not raw_results:
+        raise ValueError("batch results must not be empty")
+    results = tuple(
+        deserialize_invocation_result(
+            json.dumps(raw, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        )
+        for raw in raw_results
+    )
+    if item["fingerprint"] != content_digest(results):
+        raise ValueError("batch result fingerprint does not match its payload")
+    return results
+
+
 __all__ = [
+    "BATCH_WIRE_PROTOCOL_VERSION",
     "WIRE_PROTOCOL_VERSION",
+    "deserialize_invocation_batch",
+    "deserialize_invocation_batch_result",
     "deserialize_invocation",
     "deserialize_invocation_result",
+    "serialize_invocation_batch",
+    "serialize_invocation_batch_result",
     "serialize_invocation",
     "serialize_invocation_result",
 ]

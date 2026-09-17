@@ -467,6 +467,44 @@ def run_strategy_event(
     return session.invoke(context)
 
 
+def run_strategy_events(
+    source: str,
+    *,
+    manifest: StrategySdkManifest,
+    contexts: Sequence[StrategyContext],
+    entrypoint: str,
+    max_intents_per_event: int = 100,
+) -> tuple[StrategyInvocationResult, ...]:
+    """Run a bounded chronological context sequence through one session.
+
+    The session is created exactly once and invocation stops at the first
+    typed rejection or failure.  This is the runtime-side primitive used by a
+    replay adapter or an isolated worker; it intentionally does not know about
+    snapshots, engines, orders, or persistence.
+    """
+
+    if not isinstance(contexts, Sequence) or isinstance(contexts, str | bytes):
+        raise TypeError("contexts must be a sequence of StrategyContext values")
+    contexts_tuple = tuple(contexts)
+    if not contexts_tuple:
+        raise ValueError("contexts must contain at least one StrategyContext")
+    if any(not isinstance(context, StrategyContext) for context in contexts_tuple):
+        raise TypeError("contexts must contain StrategyContext values")
+    session = StrategyInvocationSession(
+        source,
+        manifest=manifest,
+        entrypoint=entrypoint,
+        max_intents_per_event=max_intents_per_event,
+    )
+    results: list[StrategyInvocationResult] = []
+    for context in contexts_tuple:
+        result = session.invoke(context)
+        results.append(result)
+        if result.status is not InvocationStatus.SUCCEEDED:
+            break
+    return tuple(results)
+
+
 def _atomic_write(path: Path, payload: str) -> None:
     """Write a result beside the requested destination and publish it atomically."""
 
@@ -540,4 +578,5 @@ __all__ = [
     "StrategyInvocationSession",
     "main",
     "run_strategy_event",
+    "run_strategy_events",
 ]

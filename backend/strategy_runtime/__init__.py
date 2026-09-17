@@ -7,10 +7,15 @@ validation before an intent can reach host allocation and risk.
 """
 
 from strategy_runtime.protocol import (
+    BATCH_WIRE_PROTOCOL_VERSION,
     WIRE_PROTOCOL_VERSION,
     deserialize_invocation,
+    deserialize_invocation_batch,
+    deserialize_invocation_batch_result,
     deserialize_invocation_result,
     serialize_invocation,
+    serialize_invocation_batch,
+    serialize_invocation_batch_result,
     serialize_invocation_result,
 )
 from strategy_runtime.runner import (
@@ -19,17 +24,24 @@ from strategy_runtime.runner import (
     StrategyInvocationSession,
     main,
     run_strategy_event,
+    run_strategy_events,
 )
 
 __all__ = [
     "InvocationStatus",
     "StrategyInvocationResult",
     "StrategyInvocationSession",
+    "BATCH_WIRE_PROTOCOL_VERSION",
     "WIRE_PROTOCOL_VERSION",
+    "deserialize_invocation_batch",
+    "deserialize_invocation_batch_result",
     "deserialize_invocation",
     "deserialize_invocation_result",
     "main",
     "run_strategy_event",
+    "run_strategy_events",
+    "serialize_invocation_batch",
+    "serialize_invocation_batch_result",
     "serialize_invocation",
     "serialize_invocation_result",
 ]
