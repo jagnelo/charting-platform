@@ -475,6 +475,22 @@ class PostgresForwardStateAdapter:
         ordered = tuple(sorted(events, key=lambda item: item.event_id))
         if tuple(events) != ordered:
             raise ValueError("PostgreSQL seen events are not deterministically ordered")
+        seen_by_id = {item.event_id: item for item in ordered}
+        checkpoint_ids = (
+            checkpoint.processed_event_ids
+            | checkpoint.buffered_event_ids
+            | checkpoint.correction_event_ids
+        )
+        if not checkpoint_ids.issubset(seen_by_id):
+            raise ValueError("PostgreSQL checkpoint references missing seen events")
+        if checkpoint.instance.last_event_id is not None:
+            cursor_event = seen_by_id.get(checkpoint.instance.last_event_id)
+            if cursor_event is None or cursor_event.sequence != checkpoint.instance.last_event_sequence:
+                raise ValueError("PostgreSQL forward cursor does not match seen event")
+        if receipt.final_event_id is not None:
+            warmup_event = seen_by_id.get(receipt.final_event_id)
+            if warmup_event is None or warmup_event.event_fingerprint != receipt.final_event_fingerprint:
+                raise ValueError("PostgreSQL warm-up cursor does not match seen event")
         return ForwardLiveAdmissionState(
             checkpoint=checkpoint,
             warmup_receipt_fingerprint=receipt.fingerprint,
