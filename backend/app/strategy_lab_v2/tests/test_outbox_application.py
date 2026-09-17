@@ -14,6 +14,7 @@ from app.strategy_lab_v2.outbox import (
     acknowledge_outbox_message,
 )
 from app.strategy_lab_v2.outbox_application import OutboxRelayScheduler, OutboxRelayService
+from app.strategy_lab_v2.redis_application import RedisDispatchRuntime
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
@@ -58,6 +59,14 @@ class MemoryOutbox:
         resolution = acknowledge_outbox_message(self.state, message_id)
         self.state = resolution.state
         return resolution
+
+
+class CloseableRedis(FakeRedis):
+    def __init__(self) -> None:
+        self.close_calls = 0
+
+    async def aclose(self) -> None:
+        self.close_calls += 1
 
 
 def _message(label: str, *, available_at: datetime = NOW) -> OutboxMessage:
@@ -153,3 +162,26 @@ def test_relay_scheduler_rejects_invalid_configuration() -> None:
     )
     with pytest.raises(ValueError, match="interval_seconds"):
         OutboxRelayScheduler(service, clock=lambda: NOW, interval_seconds=0)
+
+
+@pytest.mark.asyncio
+async def test_redis_runtime_composes_transport_relay_and_closes_once() -> None:
+    client = CloseableRedis()
+    runtime = RedisDispatchRuntime(client, RedisDispatchTransport(cast(Any, client)))
+    relay = runtime.outbox_relay(MemoryOutbox(OutboxState()))
+    worker = runtime.worker(
+        queue_name="backtest",
+        group_name="workers",
+        consumer_name="worker-1",
+    )
+
+    assert isinstance(relay, OutboxRelayService)
+    assert worker._queue_name == "backtest"
+    await runtime.aclose()
+    await runtime.aclose()
+    assert client.close_calls == 1
+
+
+def test_redis_runtime_requires_closeable_client() -> None:
+    with pytest.raises(TypeError, match="aclose"):
+        RedisDispatchRuntime(object(), RedisDispatchTransport(cast(Any, FakeRedis())))
