@@ -12,6 +12,24 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Retention-authorized artifact byte lifecycle
+
+`artifact_store.py` now exposes a guarded `collect()` operation that verifies
+manifest-bound bytes and an authenticated `ArtifactRetentionResolution` before
+deleting content. Only `TIER_ELIGIBLE` or `EXPIRE_ELIGIBLE` resolutions may
+remove bytes; pinned/permanent/not-yet-eligible content is reported retained,
+missing content is idempotent, and digest/path corruption fails closed with a
+directory fsync after deletion. `LocalArtifactRetentionService` evaluates the
+existing PostgreSQL retention adapter at an explicit instant before collection,
+and both the standalone and shared-persistence factories expose this wiring.
+
+Focused artifact/application/persistence tests passed (13 tests), and the full
+Strategy Lab v2 package passed 737 tests with Ruff/MyPy green. The exact
+backend coverage gate and branch checkpoint remain to be run for this slice.
+Orphan discovery, scheduled cleanup, migration startup, worker process/runtime
+execution, upstream contract reconciliation, and stable Nautilus activation
+remain deferred.
+
 ## 2026-09-17 - Durable dispatch-payload materialization
 
 `dispatch_payload.py` now defines immutable canonical payload records with

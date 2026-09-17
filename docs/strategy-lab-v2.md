@@ -765,8 +765,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   operations update the pin and state fingerprints atomically, exact retries
   replay, and retention eligibility is resolved at an explicit observation time
   without deleting or tiering bytes. Malformed, foreign, tampered, or
-  compare-and-set-racing rows fail closed; artifact publication, migrations,
-  authorization, and storage lifecycle effects remain outside this adapter.
+  compare-and-set-racing rows fail closed; byte collection consumes only its
+  authenticated resolution through the application lifecycle service.
 - `postgres_artifact_commit.py` maps immutable artifact-publication commit
   records to an additive PostgreSQL ledger. It locks and authenticates the
   complete commit set, preserves create-if-absent semantics and exact retries,
@@ -890,7 +890,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   content-addressed artifacts. It verifies manifests before publication, uses
   same-directory temporary files and atomic create-if-absent links, deduplicates
   concurrent writers, makes published files read-only, and re-verifies every
-  read so tampering or path/symlink escapes fail closed.
+  read so tampering or path/symlink escapes fail closed. Its retention-aware
+  collector verifies the same bytes again and removes them only for an explicit
+  tier/expiry-eligible, unpinned decision; retained and missing content are
+  idempotently reported, with directory fsync after deletion.
 - `artifact_application.py` composes that byte store with the PostgreSQL commit
   ledger. It verifies and publishes bytes before finalizing durable commit
   evidence, maps exact retries to replayed commit records, and exposes an
@@ -902,7 +905,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   resource, lifecycle, result, coverage, capability, lineage, artifact, and
   worker-state projections. The application adapter uses this bundle for its
   initial API slice, and artifact publication can be created from the same
-  graph with an explicit local/NAS-mountable root.
+  graph with an explicit local/NAS-mountable root. Its retention service first
+  resolves PostgreSQL retention at an explicit observation time, then invokes
+  the guarded collector; orphan discovery and scheduling remain caller-owned.
 - `artifacts.py` and `ArtifactManifest` enforce typed byte lengths, retention
   classes, and authenticated integrity receipts. Verified receipts cannot claim
   success with mismatched observed bytes, and failure reasons are canonicalized
