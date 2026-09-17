@@ -302,6 +302,57 @@ class Strategy:
     assert len(decoded.intents) == 1
 
 
+def test_cli_runs_batch_request_in_one_stateful_process(tmp_path) -> None:
+    source = """
+class Strategy:
+    def __init__(self):
+        self.count = 0
+
+    def on_event(self, context):
+        self.count += 1
+        return [TargetPositionIntent('US.AAPL', Decimal(self.count) / Decimal(10))]
+"""
+    manifest = _manifest(source)
+    first = _context()
+    second = replace(
+        first,
+        event_time=NOW + timedelta(days=1),
+        event_sequence=2,
+        market_events={
+            "daily-bars": (
+                MarketEvent(
+                    "daily-bars",
+                    "bar-2",
+                    "US.AAPL",
+                    NOW + timedelta(days=1),
+                    2,
+                    {"close": Decimal("191")},
+                ),
+            )
+        },
+    )
+    request = tmp_path / "batch-request.json"
+    result_path = tmp_path / "batch-result.json"
+    request.write_text(
+        serialize_invocation_batch(
+            source=source,
+            manifest=manifest,
+            contexts=(first, second),
+            entrypoint="strategy.main:Strategy",
+        ),
+        encoding="utf-8",
+    )
+
+    assert main(["--request", str(request), "--result", str(result_path)]) == 0
+    decoded = deserialize_invocation_batch_result(result_path.read_text(encoding="utf-8"))
+    assert len(decoded) == 2
+    assert all(item.status is InvocationStatus.SUCCEEDED for item in decoded)
+    assert isinstance(decoded[0].intents[0], TargetPositionIntent)
+    assert isinstance(decoded[1].intents[0], TargetPositionIntent)
+    assert decoded[0].intents[0].target_fraction == Decimal("0.1")
+    assert decoded[1].intents[0].target_fraction == Decimal("0.2")
+
+
 def test_cli_returns_nonzero_without_publishing_malformed_request(tmp_path) -> None:
     request = tmp_path / "request.json"
     result_path = tmp_path / "result.json"

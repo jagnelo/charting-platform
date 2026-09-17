@@ -1,4 +1,4 @@
-"""Container entrypoint for one mounted Strategy Lab runtime invocation."""
+"""Container entrypoint for mounted Strategy Lab runtime invocation(s)."""
 
 from strategy_runtime.runner import main
 

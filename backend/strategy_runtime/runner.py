@@ -540,11 +540,13 @@ def _absolute_path(value: str, field_name: str) -> Path:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run one mounted invocation request and publish a typed result.
+    """Run a mounted single-event or batch request and publish typed results.
 
-    Exit status ``0`` means the strategy produced accepted intents.  Status
+    Exit status ``0`` means every context produced accepted intents.  Status
     ``2`` means the typed runtime result is rejected or failed.  Malformed
-    input/output setup returns ``1`` without exposing exception text.
+    input/output setup returns ``1`` without exposing exception text. Batch
+    requests are attempted first; a valid single-event envelope remains fully
+    backward compatible.
     """
 
     parser = argparse.ArgumentParser(description="run one Strategy Lab runtime invocation")
@@ -554,22 +556,43 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         request_path = _absolute_path(args.request, "request path")
         result_path = _absolute_path(args.result, "result path")
-        from strategy_runtime.protocol import deserialize_invocation, serialize_invocation_result
-
-        source, manifest, context, entrypoint, max_intents = deserialize_invocation(
-            request_path.read_text(encoding="utf-8")
+        from strategy_runtime.protocol import (
+            deserialize_invocation,
+            deserialize_invocation_batch,
+            serialize_invocation_batch_result,
+            serialize_invocation_result,
         )
-        result = run_strategy_event(
+
+        payload = request_path.read_text(encoding="utf-8")
+        try:
+            source, manifest, contexts, entrypoint, max_intents = deserialize_invocation_batch(
+                payload
+            )
+        except (TypeError, ValueError):
+            source, manifest, context, entrypoint, max_intents = deserialize_invocation(payload)
+            result = run_strategy_event(
+                source,
+                manifest=manifest,
+                context=context,
+                entrypoint=entrypoint,
+                max_intents_per_event=max_intents,
+            )
+            _atomic_write(result_path, serialize_invocation_result(result))
+            return 0 if result.status is InvocationStatus.SUCCEEDED else 2
+
+        results = run_strategy_events(
             source,
             manifest=manifest,
-            context=context,
+            contexts=contexts,
             entrypoint=entrypoint,
             max_intents_per_event=max_intents,
         )
-        _atomic_write(result_path, serialize_invocation_result(result))
+        _atomic_write(result_path, serialize_invocation_batch_result(results))
+        return 0 if len(results) == len(contexts) and all(
+            item.status is InvocationStatus.SUCCEEDED for item in results
+        ) else 2
     except (OSError, TypeError, UnicodeError, ValueError):
         return 1
-    return 0 if result.status is InvocationStatus.SUCCEEDED else 2
 
 
 __all__ = [
