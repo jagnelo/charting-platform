@@ -60,6 +60,16 @@ fields/versions, duplicate fields, and non-finite constants; the exact package
 suite remains green at 633 tests and the Docker-backed gate remains green at
 2,280 tests with 83.54% coverage.
 
+## 2026-09-17 - Module-introspection preflight hardening
+
+The restricted source preflight now rejects module-introspection attributes
+such as `sys`, `modules`, `environ`, and `builtins`, along with private
+attributes generally. This closes the public-attribute escape exposed by
+allowed modules such as `typing` (`typing.sys`) while preserving the intended
+engine-neutral SDK surface. A regression test covers the allowed-module case;
+the exact package suite passes 634 tests and the Docker-backed gate passes
+2,281 tests with 83.54% coverage.
+
 ## 2026-09-17 - Engine-neutral SDK boundary hardening
 
 `sdk.py` now validates public input types before dereferencing them: manifests
