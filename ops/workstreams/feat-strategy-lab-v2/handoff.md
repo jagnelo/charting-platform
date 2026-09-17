@@ -58,6 +58,22 @@ Focused application/resource/router tests passed (25 tests). The next
 checkpoint must include the full Strategy Lab v2 package, exact backend
 coverage, branch validation, and branch-scoped resource cleanup.
 
+## 2026-09-17 - Typed strategy resource registration
+
+`resource_domains.py` now owns the first domain-specific mutation decoder. A
+`POST /strategy-lab/v2/strategies` envelope is converted into the immutable
+`StrategyVersion` contract before aggregate persistence: source and dependency
+digests are validated, exact dependency versions are canonicalized, parameter
+maps are frozen, unknown fields are rejected, and conflicting `id`/
+`resource_id` aliases fail closed. The normalized strategy fingerprint is
+retained in resource metadata and the application bridge continues to provide
+owner-bound compare-and-set and exact replay.
+
+Other mutable resource types remain registration-neutral until their domain
+adapters are implemented. Focused domain/application/API tests passed (29
+tests); Compose activation, stable Nautilus conformance, upstream contract
+reconciliation, and full repository integration remain open.
+
 ## 2026-09-17 - Executable Nautilus conformance harness
 
 `conformance_fixtures.py` now exposes `execute_conformance_suite(...)`, an

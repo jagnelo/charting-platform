@@ -13,6 +13,7 @@ from app.strategy_lab_v2.application import (
     create_registered_strategy_lab_v2_router,
     get_strategy_lab_v2_adapter,
 )
+from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_commands import PostgresCommandAdapter
 from app.strategy_lab_v2.postgres_execution_state import PostgresExecutionStateAdapter
@@ -101,7 +102,8 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     adapter._resources = reader
     accepted_at = NOW.replace(hour=13)
     conflict_clock = NOW.replace(hour=14)
-    clocks = iter((accepted_at, conflict_clock))
+    strategy_clock = NOW.replace(hour=15)
+    clocks = iter((accepted_at, conflict_clock, strategy_clock))
     adapter._clock = lambda: next(clocks)
     request = ResourceMutationRequest(
         ApiResourceType.TRIAL,
@@ -130,3 +132,26 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     )
     assert owner_conflict.resolution.decision.value == "reject"
     assert owner_conflict.receipt is None
+
+    strategy = await adapter.create_resource(
+        principal=_User(42),
+        request_id="request-4",
+        request=ResourceMutationRequest(
+            ApiResourceType.STRATEGY,
+            "strategy-key",
+            {
+                "attributes": {
+                    "strategy_id": "momentum",
+                    "version_id": "2026-09-17",
+                    "sdk_version": "strategy-sdk.v2",
+                    "source_digest": content_digest("strategy-source"),
+                    "default_parameters": {"lookback": 20},
+                }
+            },
+            NOW,
+        ),
+    )
+    assert strategy.resolution.decision.value == "accept"
+    assert strategy.receipt is not None
+    assert strategy.receipt.resource.attributes["strategy_id"] == "momentum"
+    assert strategy.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")

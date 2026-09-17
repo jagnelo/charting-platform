@@ -29,6 +29,7 @@ from app.strategy_lab_v2.api_router import (
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
+from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
     ResourceMutationRequest,
@@ -145,14 +146,29 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise ValueError("resource attributes must be a mapping")
         if not isinstance(relationships, Mapping) or not isinstance(meta, Mapping):
             raise ValueError("resource relationships and meta must be mappings")
+        normalized_domain = normalize_resource_attributes(request.resource_type, attributes)
+        attributes = normalized_domain.attributes
+        state_meta = dict(meta)
+        if normalized_domain.domain_fingerprint is not None:
+            declared_domain_fingerprint = state_meta.get("domain_fingerprint")
+            if (
+                declared_domain_fingerprint is not None
+                and declared_domain_fingerprint != normalized_domain.domain_fingerprint
+            ):
+                raise ValueError("resource meta domain_fingerprint does not match its attributes")
+            state_meta["domain_fingerprint"] = normalized_domain.domain_fingerprint
         requested_id = attributes.get("resource_id", attributes.get("id"))
         if requested_id is not None and (
             not isinstance(requested_id, str) or not requested_id.strip()
         ):
             raise ValueError("resource_id must be a non-empty string when supplied")
-        resource_id = requested_id or content_digest(
-            {"resource_type": request.resource_type, "payload": request.payload}
-        )
+        resource_identity_payload: dict[str, Any] = {
+            "resource_type": request.resource_type,
+            "attributes": attributes,
+        }
+        if normalized_domain.domain_fingerprint is None:
+            resource_identity_payload.update({"relationships": relationships, "meta": meta})
+        resource_id = requested_id or content_digest(resource_identity_payload)
         aggregate_key = AggregateKey(request.resource_type.value, resource_id)
         existing = await self._persistence.aggregate_store.get(aggregate_key)
         existing_state = existing.state if existing is not None else None
@@ -200,12 +216,13 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             "schema_version": 1,
             "sort_value": resource_id,
             "mutation_fingerprint": request.fingerprint,
+            "domain_fingerprint": normalized_domain.domain_fingerprint,
             # Keep the response timestamp in the aggregate so a replay can
             # reconstruct the exact durable receipt after a process restart.
             "mutation_accepted_at": accepted_at,
             "attributes": attributes,
             "relationships": relationships,
-            "meta": meta,
+            "meta": state_meta,
         }
         storage_request_id = content_digest(
             {

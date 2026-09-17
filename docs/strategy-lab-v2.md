@@ -666,6 +666,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   bodies, returns 202 resource documents, replays exact keys, and exposes
   typed conflicts or rejected preconditions without allowing artifact or
   metric-set creation through the generic route.
+- `resource_domains.py` is the first domain-owned API mutation boundary. It
+  decodes strategy attributes into the immutable `StrategyVersion` contract,
+  canonicalizes dependency ordering and parameter maps, binds the normalized
+  domain fingerprint into projected resource metadata, and rejects unknown
+  fields, invalid source/dependency identities, or conflicting API IDs. Other
+  resource types remain registration-neutral until their domain adapters are
+  introduced.
 - `api_router.py` provides a registration-neutral `/strategy-lab/v2` FastAPI
   router factory. It serializes exact Decimal/date/timestamp values, rejects
   non-finite or unsupported JSON scalars, and emits typed errors; validates
@@ -692,7 +699,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   crosses this seam through the shared compare-and-set aggregate store: owner
   identity, mutation fingerprint, accepted timestamp, and resource envelope
   are persisted together, exact retries reconstruct the durable receipt, and
-  cross-owner or changed-content collisions fail closed. `persistence.py` now owns the complete
+  cross-owner or changed-content collisions fail closed. Strategy mutations
+  are normalized through the typed `StrategyVersion` contract before storage;
+  other resource domain adapters remain explicit follow-up gates. `persistence.py` now owns the complete
   PostgreSQL adapter graph behind one shared async session factory, preserving
   the aggregate-store sharing and the command/state dependency while keeping
   later worker and API projections on the same application-owned seam.
