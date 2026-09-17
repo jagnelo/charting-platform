@@ -1135,8 +1135,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   that seam. Its typed evidence resolver binds the authenticated submission,
   outcome/progress checkpoint, result/publication plan, and artifact plans; the
   adapter persists runtime evidence, terminal public state, successful result
-  completion, execution summary, durable worker settlement receipt, and the
-  lease/reservation release before returning an acknowledgement digest. The
+  completion, its immutable `MetricSet`, execution summary, durable worker
+  settlement receipt, and the lease/reservation release before returning an
+  acknowledgement digest. Metric persistence is idempotent and follows result
+  completion, so a retry after a crash cannot publish a different metric set.
+  The
   additive worker-settlement table makes the receipt replayable across a crash
   between immutable settlement and the capacity compare-and-set. The shared
   persistence bundle exposes this as `worker_terminal_writer(...)`; evidence

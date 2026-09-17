@@ -59,6 +59,10 @@ class WorkerSettlementLedgerWriter(Protocol):
     async def ensure(self, *, principal: Any, record: Any): ...
 
 
+class MetricSetWriter(Protocol):
+    async def ensure(self, *, principal: Any, metric_set: Any): ...
+
+
 @dataclass(frozen=True, slots=True)
 class WorkerTerminalEvidence:
     """Authenticated application evidence required after process execution."""
@@ -116,6 +120,7 @@ class PostgresWorkerTerminalAdapter:
         execution_state: PostgresExecutionStateAdapter,
         execution_summaries: Any,
         result_completion: PostgresResultCompletionAdapter,
+        metrics: MetricSetWriter,
         worker_state: PostgresWorkerStateAdapter,
         settlements: PostgresWorkerSettlementAdapter,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
@@ -127,6 +132,7 @@ class PostgresWorkerTerminalAdapter:
             ("execution_state", execution_state),
             ("execution_summaries", execution_summaries),
             ("result_completion", result_completion),
+            ("metrics", metrics),
             ("worker_state", worker_state),
             ("settlements", settlements),
         ):
@@ -139,6 +145,7 @@ class PostgresWorkerTerminalAdapter:
         self._execution_state = execution_state
         self._execution_summaries = execution_summaries
         self._result_completion = result_completion
+        self._metrics = metrics
         self._worker_state = worker_state
         self._settlements = settlements
         self._clock = clock
@@ -261,6 +268,13 @@ class PostgresWorkerTerminalAdapter:
                 ResultCompletionDecision.REJECT,
             }:
                 return _reject(entry_fingerprint, completion.rejection_reason or "result completion rejected")
+            try:
+                await self._metrics.ensure(
+                    principal=evidence.principal,
+                    metric_set=evidence.result.metric_set,
+                )
+            except Exception as error:  # pragma: no cover - persistence boundary
+                return _retry(entry_fingerprint, f"metric-set persistence failed: {type(error).__name__}")
         publication = evidence.publication if persisted_outcome.status.value == "succeeded" else None
         try:
             summary = await self._execution_summaries.ensure(

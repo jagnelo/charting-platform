@@ -350,7 +350,7 @@ remaining_gaps:
   - PostgreSQL runtime-execution persistence now stores owner-scoped accepted runtime state and immutable sandbox update receipts with authenticated fingerprints, exact sequence replay, monotonic compare-and-set transitions, and atomic running/terminal materialization; process execution, artifact publication integration, migrations, authorization, and application wiring remain open.
   - PostgreSQL result-manifest persistence now retains owner-scoped canonical `RunResultManifest` payload projections with authenticated payload/record fingerprints, single-attempt binding, exact retries, changed-content conflicts, pure materialization gating, and narrow authenticated `output_artifacts` extraction for the artifact API projection; full nested decoding, scheduled artifact cleanup, migrations, authorization, and application wiring remain open.
   - PostgreSQL runtime-receipt persistence now stores owner-scoped canonical strategy-runtime request and isolation-preflight projections with independently authenticated payload/record fingerprints, exact retries, same-attempt/request conflict handling, and preserved rejection reasons; process execution, migrations, authorization, and application wiring remain open.
-  - PostgreSQL metric-set persistence now stores owner-scoped canonical metric-set payloads and value-summary projections with authenticated payload/record fingerprints, deterministic reads, exact retries, and same-attempt conflict handling; metric calculation, migrations, authorization, and application wiring remain open.
+  - PostgreSQL metric-set persistence now stores owner-scoped canonical metric-set payloads and value-summary projections with authenticated payload/record fingerprints, deterministic reads, exact retries, and same-attempt conflict handling. The dedicated worker terminal callback now idempotently persists the result manifest's immutable MetricSet after successful completion before final summary/capacity settlement; metric calculation, migrations, authorization, and full application wiring remain open.
   - Execution and audit event contracts now normalize aware occurrence timestamps to UTC before identity and append/replay comparison, preventing offset-only retries from becoming false content conflicts; persistence, transport, and application wiring remain open.
   - Artifact manifests and integrity receipts now reject untyped lengths/retention values and forged verified mismatches, while canonicalizing failure evidence before publication; guarded retention-authorized byte collection and commit-ledger-based orphan cleanup are implemented, while migrations, authorization, and application wiring remain open.
   - A restricted custom-metric boundary now executes source-bound callables over frozen Decimal observations, emits versioned typed metrics with input evidence, and strips exception text; container worker activation and API/persistence wiring remain open.
@@ -514,6 +514,13 @@ remaining_gaps:
       unknown fields, and API ID aliases are validated deterministically; the
       normalized domain fingerprint is projected in resource metadata.
       Remaining generic resource domain adapters are separate follow-up gates.
+  - >-
+      `worker_terminal_adapter.py` now requires the application-owned metrics
+      adapter and persists the successful `RunResultManifest.metric_set` after
+      result completion, before execution summary and worker-capacity release.
+      Metric persistence is idempotent and retry-safe; a persistence failure
+      leaves the Redis entry pending and cannot acknowledge a partially
+      published metric result.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -600,7 +607,8 @@ progress:
     - strategy-lab-v2-typed-trial-resource-registration
     - strategy-lab-v2-typed-metric-set-resource-registration
     - strategy-lab-v2-typed-forward-instance-resource-registration
+    - strategy-lab-v2-worker-terminal-metric-persistence
   total: 18
-  current_phase: strategy-lab-v2-typed-forward-instance-resource-registration-staging-ready-for-human-review
+  current_phase: strategy-lab-v2-worker-terminal-metric-persistence-staging-ready-for-human-review
   current_blocker: Compose activation, stable Nautilus release, upstream contract reconciliation, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add Compose activation and stable-release conformance without changing the engine-neutral boundary

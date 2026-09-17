@@ -197,6 +197,17 @@ Focused metric/domain tests passed (20 tests); the full Strategy Lab v2 package
 passed 802 tests. Compose activation, stable Nautilus conformance, upstream
 contract reconciliation, and full repository integration remain open.
 
+## 2026-09-17 - Worker terminal metric-set persistence
+
+The dedicated PostgreSQL worker terminal callback now requires the shared
+metrics adapter and persists the successful `RunResultManifest.metric_set`
+after result completion. The operation is idempotent and retry-safe, so a crash
+between completion and final settlement can replay the exact metric-set record;
+metric persistence failures leave the transport entry pending for recovery.
+
+Focused terminal/persistence tests passed (3 tests); branch-declared checks and
+the exact combined backend gate remain to be rerun for this wiring slice.
+
 ## 2026-09-17 - Executable Nautilus conformance harness
 
 `conformance_fixtures.py` now exposes `execute_conformance_suite(...)`, an

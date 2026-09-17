@@ -43,6 +43,7 @@ def _adapter(resolver) -> PostgresWorkerTerminalAdapter:
         execution_state=cast(Any, object()),
         execution_summaries=object(),
         result_completion=cast(Any, object()),
+        metrics=cast(Any, object()),
         worker_state=cast(Any, object()),
         settlements=cast(Any, object()),
     )
