@@ -469,6 +469,14 @@ remaining_gaps:
       observation time before acknowledgement. The entrypoint and Redis runtime
       pass this fourth callback while preserving the legacy completion writer;
       concrete result/outcome/publication adapters remain application-owned.
+  - >-
+      `conformance_fixtures.py` now exposes an executable
+      `execute_conformance_suite(...)` boundary. It invokes every required
+      fixture through an injected engine runner, canonicalizes observed output,
+      reduces runner exceptions to deterministic failed evidence, and returns
+      the fixture suite, engine evidence, and gated report as one identity-bound
+      resolution. Stable authoritative execution remains gated on a published
+      stable Nautilus release and a complete passing suite.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -542,7 +550,8 @@ progress:
     - strategy-lab-v2-atomic-worker-capacity-settlement
     - strategy-lab-v2-terminal-completion-context
     - strategy-lab-v2-concrete-terminal-result-persistence-adapter
+    - strategy-lab-v2-executable-conformance-harness
   total: 18
-  current_phase: strategy-lab-v2-concrete-terminal-result-persistence-adapter-staging-ready-for-human-review
+  current_phase: strategy-lab-v2-executable-conformance-harness-staging-ready-for-human-review
   current_blocker: Compose activation, stable Nautilus release, upstream contract reconciliation, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add Compose activation and stable-release conformance without changing the engine-neutral boundary

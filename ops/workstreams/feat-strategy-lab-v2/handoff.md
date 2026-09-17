@@ -40,6 +40,22 @@ upstream contract reconciliation, and full repository integration remain open.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Executable Nautilus conformance harness
+
+`conformance_fixtures.py` now exposes `execute_conformance_suite(...)`, an
+engine-neutral executable fixture boundary. It requires an exact expected
+digest for every required conformance check, invokes each check in deterministic
+order through an injected runner, canonicalizes the observed JSON-shaped
+evidence, and reduces runner exceptions to stable failed observations without
+leaking exception text into identities. The returned suite, engine evidence,
+and conformance report are bound together and preserve the existing rule that
+only a complete passing stable release may be authoritative. No Nautilus import,
+provider access, or runtime activation is performed by the package harness.
+
+Focused executable-conformance tests passed (9 tests). Compose activation,
+stable Nautilus release/conformance against the real engine, upstream contract
+reconciliation, and full repository integration remain open.
+
 ## 2026-09-17 - Explicit terminal/result completion context
 
 `worker_service.py` now exposes an optional terminal writer that receives an

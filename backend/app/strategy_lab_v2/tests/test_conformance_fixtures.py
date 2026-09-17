@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any, cast
 
 import pytest
 
@@ -124,7 +125,8 @@ def test_executable_suite_runs_all_checks_and_binds_the_report() -> None:
         tested_at=NOW,
     )
     assert isinstance(resolved, ConformanceExecutionResolution)
-    assert calls == list(sorted(ConformanceCheck, key=lambda item: item.value))
+    expected_order = tuple(cast(Any, ConformanceCheck))
+    assert calls == list(sorted(expected_order, key=lambda item: item.value))
     assert resolved.report.authoritative
     assert resolved.suite.missing_checks == frozenset()
 
