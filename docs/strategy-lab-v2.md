@@ -856,9 +856,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   payloads as owner-scoped canonical JSON projections. Pure manifest validation
   runs before registration, attempt identities are single-bound, exact retries
   replay, changed candidates conflict, and payload/record fingerprints are
-  authenticated on every read. Nested manifest decoding, artifact bytes,
-  migrations, authorization, and publication remain separate integration
-  concerns.
+  authenticated on every read. Its narrow authenticated decoder now exposes
+  deterministic artifact references from the canonical `output_artifacts`
+  field; the application persistence bundle deduplicates those references into
+  owner-scoped `/artifacts` resources with attempt relationships. Full nested
+  manifest decoding, artifact bytes, migrations, authorization, and publication
+  remain separate integration concerns.
 - `postgres_runtime_receipts.py` retains immutable strategy-runtime request and
   isolation-preflight evidence as owner-scoped canonical projections. Request
   and preflight payloads are independently content-addressed, exact retries

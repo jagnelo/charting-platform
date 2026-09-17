@@ -12,6 +12,25 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Owner-scoped artifact resource projection
+
+`postgres_result_materialization.py` now exposes authenticated artifact
+references by narrowly decoding the tagged canonical `output_artifacts` field
+from each retained result manifest. The decoder rejects malformed envelopes,
+duplicate/missing fields, wrong tags, and non-canonical integers before
+rebuilding immutable `ArtifactManifest` values. `persistence.py` projects those
+references into deterministic `/artifacts` resources, deduplicating shared
+content digests while retaining manifest, attempt, and trial provenance plus
+attempt relationships; owner scoping remains inherited from the manifest
+adapter.
+
+The focused result-materialization/persistence suite passed 5 tests, the full
+Strategy Lab v2 package passed 725 tests, and Ruff/MyPy were green. The exact
+worktree backend gate passed 2,373 tests with 83.77% combined coverage (required
+threshold: 75%), and branch-scoped Docker resources were cleaned afterward.
+Artifact-byte reads, retention/pin projections, migration startup, worker
+scheduling, and stable Nautilus execution remain deferred.
+
 ## 2026-09-17 - PostgreSQL outbox to Redis relay
 
 `postgres_event_transaction.py` now exposes an authenticated complete-outbox
