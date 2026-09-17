@@ -513,6 +513,13 @@ async def seed_universe(db: AsyncSession) -> dict:
                     offset=offset,
                     page=page,
                 )
+                # Persist the raw response before attempting identity
+                # promotion. Discovery calls consume provider quota; a worker
+                # interruption must not erase a page that was already
+                # obtained. Promotion remains restart-safe because the page
+                # snapshot is immutable evidence and the next invocation
+                # replays the provider's exact pagination contract.
+                await db.commit()
                 quotes = page.get("quotes") or []
                 await record_discovery_ambiguities(
                     db,

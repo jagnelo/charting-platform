@@ -877,7 +877,13 @@ symbol APIs:
   provider symbol/venue presence, repeated missing confirmations, and
   provisional listing-discovered/delisted-candidate events. The opt-in worker
   `reconcile_market_universe` never treats an empty/failed provider response as
-  a complete universe and records core D1 coverage after a successful run.
+  a complete universe and records core D1 coverage after a successful run. It
+  follows every validated provider continuation without an arbitrary local
+  universe-size/page ceiling; each raw page is committed before normalization
+  so a worker interruption cannot erase an already-obtained, quota-consuming
+  response. Repeated/non-progressing cursors and contradictory totals still
+  fail closed, while the retained snapshots remain available for a later
+  continuation/reconciliation attempt.
 - QuantLib American-option calculations are labeled with model/version/input
   provenance and fall back explicitly to the legacy Black-Scholes estimator
   when the model cannot be evaluated.

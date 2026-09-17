@@ -1036,6 +1036,13 @@ async def reconcile_us_universe(
                         observed_at=observed_at,
                         fetched_at=observed_at,
                     )
+                    # Commit the raw page before normalisation/lifecycle work.
+                    # Discovery responses are quota-limited observations; a
+                    # worker crash after the HTTP response must not erase the
+                    # page that was already obtained. The run remains
+                    # inspectable as ``running``/``failed`` and can be
+                    # reconciled again without losing this evidence.
+                    await db.commit()
                     raw_page_rows = page.get("quotes")
                     if raw_page_rows is None:
                         raw_page_rows = []
@@ -1103,14 +1110,18 @@ async def reconcile_us_universe(
                         seen_next_urls.add(raw_next_url)
                     next_url = bool(raw_next_url)
                     if isinstance(next_offset, int) and next_offset > offset:
-                        if next_offset > 2_000_000:
-                            raise ValueError("discovery provider exceeded safety page limit")
+                        # Do not impose an arbitrary universe-size ceiling. A
+                        # provider cursor is the provider's authoritative
+                        # continuation; rejecting a valid offset would make
+                        # the corresponding rows permanently undiscoverable.
+                        # Pagination cycles and non-progressing cursors are
+                        # still rejected above, so removing this bound does
+                        # not turn malformed pagination into an unbounded
+                        # retry loop.
                         offset = next_offset
                         continue
                     if next_url:
                         offset += len(page_rows)
-                        if offset > 2_000_000:
-                            raise ValueError("discovery provider exceeded safety page limit")
                         continue
                     offset += len(page_rows)
                     if total is not None:

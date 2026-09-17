@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 discovery pagination loss-prevention correction
+
+- US-universe reconciliation no longer applies an arbitrary local offset/page
+  ceiling that could make a valid provider continuation permanently
+  undiscoverable. Provider-reported pagination is followed until explicit
+  completion, while repeated/non-progressing cursors and contradictory totals
+  still fail closed.
+- Each raw discovery page is committed before row normalization/lifecycle work
+  in both `reconcile_us_universe` and the legacy `seed_universe` path, so a
+  worker interruption cannot erase an already-obtained quota-consuming
+  response. Failed/incomplete runs remain non-authoritative and their stored
+  snapshots remain available for inspection and later reconciliation.
+- The focused market-universe and persistence suites pass (`50/50`); the
+  large-offset regression proves a continuation beyond the former 2,000,000
+  ceiling is retained.
+
 ## 2026-09-17 native usage bootstrap dimension correction
 
 - The live preflight now honors each provider's explicit

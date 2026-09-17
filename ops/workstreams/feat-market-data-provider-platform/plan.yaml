@@ -161,6 +161,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-17 discovery loss-prevention correction: US-universe reconciliation
+    no longer rejects a valid provider continuation merely because its numeric
+    offset exceeds an arbitrary local ceiling. Pagination-cycle and
+    non-progressing-cursor validation remains fail-closed, every raw page is
+    committed before normalization, and snapshots remain inspectable after a
+    worker interruption or failed reconciliation. This prevents an obtained
+    provider page from being silently discarded while preserving protection
+    against malformed infinite pagination.
+  - >-
     2026-09-17 bootstrap-dimension admission correction: native account-usage
     bootstrap is now explicitly mapped per provider to the quota dimensions
     its endpoint can reconcile. The live preflight no longer lets a provider

@@ -971,6 +971,50 @@ async def test_universe_reconciliation_follows_cursor_until_explicit_completion(
 
 
 @pytest.mark.asyncio
+async def test_universe_reconciliation_does_not_discard_valid_large_offsets(db, monkeypatch):
+    """A valid provider continuation beyond the old arbitrary cap is retained."""
+
+    from app.models.provider_observation import UniverseDiscoverySnapshot
+    from app.services import market_universe
+
+    source = DataSource(name="massive", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    provider = SimpleNamespace(supported_discovery_types=lambda: ["EQUITY"])
+    resolved = SimpleNamespace(provider_name="massive", data_source=source)
+    large_offset = 2_000_001
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return [resolved]
+
+    async def large_offset_pages(*args, **_kwargs):
+        page = (
+            {
+                "quotes": [{"symbol": "AAPL", "exchange": "XNAS"}],
+                "total": large_offset + 1,
+                "next_offset": large_offset,
+            }
+            if args[2].endswith(":0")
+            else {
+                "quotes": [{"symbol": "MSFT", "exchange": "XNAS"}],
+                "total": large_offset + 1,
+            }
+        )
+        return SimpleNamespace(result=page, data_source=source)
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda _name: provider)
+    monkeypatch.setattr(market_universe, "execute_provider_call", large_offset_pages)
+
+    result = await reconcile_us_universe(AsyncSessionAdapter(db), provider_name="massive")
+
+    assert result["status"] == "complete"
+    assert result["runs"][0]["observed"] == 2
+    snapshots = db.query(UniverseDiscoverySnapshot).all()
+    assert {snapshot.offset for snapshot in snapshots} == {0, large_offset}
+
+
+@pytest.mark.asyncio
 async def test_universe_reconciliation_rejects_repeated_pagination_next_url(db, monkeypatch):
     from app.services import market_universe
 
