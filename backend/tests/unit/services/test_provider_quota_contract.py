@@ -37,6 +37,7 @@ from app.services.provider_runtime import (
     _consumed_dimension_costs,
     _dimension_costs_for_operation,
     _observed_dimension_totals,
+    account_usage_reconciled_dimensions,
     policy_has_known_quota,
     provider_contract_operation_cost_known,
     provider_contract_operation_costs_configured,
@@ -156,6 +157,23 @@ def test_provider_seeds_do_not_reintroduce_generic_limiter_defaults():
     assert coinbase["burst_capacity"] == 15
     assert coinbase["quota_contract"]["dimensions"][0]["limit"] == 10
     assert coinbase["quota_contract"]["dimensions"][0]["window_seconds"] == 1
+
+
+def test_every_native_usage_bootstrap_seed_maps_finite_provider_pools():
+    for provider_name, seed in settings.PROVIDER_RATE_LIMIT_SEEDS.items():
+        contract = seed.get("quota_contract")
+        bootstrap = (
+            contract.get("account_usage_bootstrap")
+            if isinstance(contract, dict)
+            else None
+        )
+        if not isinstance(bootstrap, dict) or bootstrap.get("enabled") is not True:
+            continue
+        policy = SimpleNamespace(
+            quota_contract=contract,
+            quota_scope=seed.get("quota_scope", ""),
+        )
+        assert account_usage_reconciled_dimensions(policy), provider_name
 
 
 def test_alpaca_native_minute_pool_uses_rolling_safety_envelope():
