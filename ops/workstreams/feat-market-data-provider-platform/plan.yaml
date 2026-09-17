@@ -4031,4 +4031,19 @@ progress:
       migration `cd4e5f6a7b8c` is the single Alembic head. Focused event,
       provider, quota, runtime, registry, wiring, and live-runner checks are
       green; a deployed migration/resume probe remains an environment gate.
+    - >-
+      2026-09-17 FMP daily-cap safety-envelope completion: the exact
+      250-calls/day ceiling now uses a provider-scoped rolling-24-hour
+      application envelope because FMP does not publish a calculable native
+      bucket boundary; the provider-defined label remains audit-visible and
+      optional native reset/evidence overrides remain configurable. The
+      documented 500 MB trailing-30-day bandwidth pool is retained with the
+      conservative decimal-byte ceiling. Complete operation-byte bounds and
+      current bandwidth entitlement evidence remain required. Focused
+      quota/registry/wiring coverage passed 161/161; the Docker-backed full
+      backend gate passed 2,767/2,767 with 89 warnings and 82.05% coverage at
+      source 13cb2ca8f. The committed-source FMP preflight stopped before
+      transport with 0/0 cases because those byte/evidence controls are unset;
+      no FMP request was made. Receipts are recorded in validation.jsonl under
+      receipt commit 897b076ec.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.

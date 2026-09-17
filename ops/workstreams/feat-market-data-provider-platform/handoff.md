@@ -1,5 +1,28 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 FMP daily-cap safety-envelope completion
+
+- Applied the Alpaca reset-boundary decision to FMP's exact configured
+  250-calls/day pool. Because FMP does not publish a calculable native bucket
+  boundary, the provider contract retains `provider_defined` for audit and
+  enforces a provider-scoped rolling-24-hour application envelope. A reviewed
+  native reset plus evidence may replace it through the existing
+  `FMP_REVIEWED_DAILY_RESET` and `FMP_DAILY_QUOTA_EVIDENCE` settings.
+- The documented 500 MB trailing-30-day bandwidth pool remains explicit with
+  the conservative decimal-byte ceiling; complete per-operation response-byte
+  bounds and current bandwidth entitlement evidence remain required. No
+  generic fallback was introduced.
+- Focused quota/registry/wiring coverage passed `161/161`; the Docker-backed
+  full backend gate passed `2,767/2,767` with `89` warnings and `82.05%`
+  coverage. Compose/deployment contract validation passed for all 30
+  workstream records.
+- The committed-source FMP live preflight at `13cb2ca8f` stopped before
+  transport with `0/0` cases and zero FMP requests because the local
+  environment has no `FMP_OPERATION_BYTE_BOUNDS` map or current bandwidth
+  entitlement evidence. The receipt is retained in `validation.jsonl`; this
+  confirms fail-closed behavior, not live transport success. Receipt commit:
+  `897b076ec`.
+
 ## 2026-09-17 committed-source safety-preflight replay
 
 - At implementation source `37e616e65`, the focused Alpha Vantage, SEC EDGAR,
