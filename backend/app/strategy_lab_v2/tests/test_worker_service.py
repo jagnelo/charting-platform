@@ -29,7 +29,10 @@ from app.strategy_lab_v2.worker_process import (
     WorkerProcessDecision,
     WorkerProcessResolution,
 )
-from app.strategy_lab_v2.worker_service import DedicatedStrategyWorkerService
+from app.strategy_lab_v2.worker_service import (
+    DedicatedStrategyWorkerService,
+    WorkerCompletionContext,
+)
 
 
 def _entry(payload: DispatchPayload) -> RedisStreamEntry:
@@ -259,3 +262,57 @@ async def test_service_leaves_entry_pending_when_heartbeat_is_rejected(tmp_path:
 
     assert result.decision is WorkerHandleDecision.RETRY
     assert result.rejection_reason == "worker lease heartbeat rejected: reject"
+
+
+async def test_service_can_delegate_terminal_context_before_acknowledgement(
+    tmp_path: Path,
+) -> None:
+    service, payload, entry = _service(tmp_path)
+    initial_request = _request(tmp_path)
+    seen: list[WorkerCompletionContext] = []
+
+    class BlockingExecutor(SerialWorkerProcessExecutor):
+        def run(
+            self,
+            request: WorkerExecutionRequest,
+            *,
+            timeout_seconds: float | None = None,
+        ) -> WorkerProcessResolution:
+            del timeout_seconds
+            return WorkerProcessResolution(
+                request.request_fingerprint,
+                WorkerProcessDecision.CHILD_FAILED,
+                error_digest=content_digest("child-failed"),
+            )
+
+    async def materializer(
+        _entry: RedisStreamEntry, _payload: DispatchPayload
+    ) -> WorkerExecutionRequest:
+        return initial_request
+
+    async def completion(*_args: Any) -> WorkerHandleResult:
+        raise AssertionError("legacy completion writer must not run with terminal_writer")
+
+    async def terminal(context: WorkerCompletionContext) -> WorkerHandleResult:
+        seen.append(context)
+        return WorkerHandleResult(
+            context.entry.fingerprint,
+            WorkerHandleDecision.COMPLETE,
+            content_digest("terminal-receipt"),
+        )
+
+    service = DedicatedStrategyWorkerService(
+        service.scheduler,
+        _Loader(payload),
+        materializer,
+        completion,
+        process_executor=BlockingExecutor(timeout_seconds=1),
+        terminal_writer=terminal,
+    )
+    result = await service.handle(entry, payload)
+
+    assert result.decision is WorkerHandleDecision.COMPLETE
+    assert len(seen) == 1
+    assert seen[0].entry == entry
+    assert seen[0].request == initial_request
+    assert seen[0].process.request_fingerprint == initial_request.request_fingerprint

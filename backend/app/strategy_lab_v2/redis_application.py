@@ -22,6 +22,7 @@ from app.strategy_lab_v2.worker_service import (
     WorkerCompletionWriter,
     WorkerHandoffMaterializer,
     WorkerLeaseHeartbeatWriter,
+    WorkerTerminalWriter,
 )
 
 
@@ -138,6 +139,7 @@ class RedisDispatchRuntime:
         heartbeat_extension_seconds: float = 30.0,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         heartbeat_sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+        terminal_writer: WorkerTerminalWriter | None = None,
     ) -> DedicatedStrategyWorkerService:
         """Compose the dedicated Redis-to-process worker service."""
 
@@ -157,6 +159,7 @@ class RedisDispatchRuntime:
             heartbeat_extension_seconds=heartbeat_extension_seconds,
             clock=clock,
             heartbeat_sleep=heartbeat_sleep,
+            terminal_writer=terminal_writer,
         )
 
     async def aclose(self) -> None:

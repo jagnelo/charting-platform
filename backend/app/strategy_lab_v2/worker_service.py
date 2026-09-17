@@ -44,6 +44,34 @@ WorkerCompletionWriter = Callable[
     [RedisStreamEntry, WorkerProcessResolution], Awaitable[WorkerHandleResult]
 ]
 WorkerLeaseHeartbeatWriter = Callable[[LeaseObservation], Awaitable[LeaseObservationResolution]]
+WorkerTerminalWriter = Callable[["WorkerCompletionContext"], Awaitable[WorkerHandleResult]]
+
+
+@dataclass(frozen=True, slots=True)
+class WorkerCompletionContext:
+    """Immutable context handed to an authoritative terminal/result adapter."""
+
+    entry: RedisStreamEntry
+    request: WorkerExecutionRequest
+    process: WorkerProcessResolution
+    observed_at: datetime
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.entry, RedisStreamEntry):
+            raise TypeError("entry must be a RedisStreamEntry")
+        if not isinstance(self.request, WorkerExecutionRequest):
+            raise TypeError("request must be a WorkerExecutionRequest")
+        if not isinstance(self.process, WorkerProcessResolution):
+            raise TypeError("process must be a WorkerProcessResolution")
+        if self.process.request_fingerprint != self.request.request_fingerprint:
+            raise ValueError("process resolution references a different request")
+        if self.observed_at.tzinfo is None or self.observed_at.utcoffset() is None:
+            raise ValueError("observed_at must be timezone-aware")
+        object.__setattr__(self, "observed_at", self.observed_at.astimezone(UTC))
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +81,7 @@ class WorkerServiceCallbacks:
     materializer: WorkerHandoffMaterializer
     completion_writer: WorkerCompletionWriter
     heartbeat_writer: WorkerLeaseHeartbeatWriter | None = None
+    terminal_writer: WorkerTerminalWriter | None = None
 
     def __post_init__(self) -> None:
         if not callable(self.materializer):
@@ -61,6 +90,8 @@ class WorkerServiceCallbacks:
             raise TypeError("completion_writer must be callable")
         if self.heartbeat_writer is not None and not callable(self.heartbeat_writer):
             raise TypeError("heartbeat_writer must be callable")
+        if self.terminal_writer is not None and not callable(self.terminal_writer):
+            raise TypeError("terminal_writer must be callable")
 
 
 class DedicatedStrategyWorkerService:
@@ -79,6 +110,7 @@ class DedicatedStrategyWorkerService:
         heartbeat_extension_seconds: float = 30.0,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         heartbeat_sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+        terminal_writer: WorkerTerminalWriter | None = None,
     ) -> None:
         if not isinstance(scheduler, RedisDispatchWorkerScheduler):
             raise TypeError("scheduler must be a RedisDispatchWorkerScheduler")
@@ -94,6 +126,8 @@ class DedicatedStrategyWorkerService:
             raise TypeError("process_executor must be a SerialWorkerProcessExecutor")
         if heartbeat_writer is not None and not callable(heartbeat_writer):
             raise TypeError("heartbeat_writer must be callable")
+        if terminal_writer is not None and not callable(terminal_writer):
+            raise TypeError("terminal_writer must be callable")
         for name, value in (
             ("heartbeat_interval_seconds", heartbeat_interval_seconds),
             ("heartbeat_extension_seconds", heartbeat_extension_seconds),
@@ -119,6 +153,7 @@ class DedicatedStrategyWorkerService:
         self._heartbeat_extension_seconds = float(heartbeat_extension_seconds)
         self._clock = clock
         self._heartbeat_sleep = heartbeat_sleep
+        self._terminal_writer = terminal_writer
 
     @property
     def scheduler(self) -> RedisDispatchWorkerScheduler:
@@ -175,7 +210,18 @@ class DedicatedStrategyWorkerService:
                 WorkerHandleDecision.RETRY,
                 rejection_reason=heartbeat_failure[0],
             )
-        receipt = await self._completion_writer(entry, result)
+        if self._terminal_writer is not None:
+            try:
+                context = WorkerCompletionContext(entry, request, result, self._clock())
+                receipt = await self._terminal_writer(context)
+            except Exception as error:  # pragma: no cover - persistence boundary
+                return WorkerHandleResult(
+                    entry.fingerprint,
+                    WorkerHandleDecision.RETRY,
+                    rejection_reason=f"worker terminal completion failed: {type(error).__name__}",
+                )
+        else:
+            receipt = await self._completion_writer(entry, result)
         if not isinstance(receipt, WorkerHandleResult):
             raise TypeError("completion_writer must return a WorkerHandleResult")
         if receipt.entry_fingerprint != entry.fingerprint:
@@ -269,5 +315,7 @@ __all__ = [
     "WorkerCompletionWriter",
     "WorkerHandoffMaterializer",
     "WorkerLeaseHeartbeatWriter",
+    "WorkerTerminalWriter",
+    "WorkerCompletionContext",
     "WorkerServiceCallbacks",
 ]
