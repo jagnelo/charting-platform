@@ -9,10 +9,14 @@ direct caller cannot accidentally treat a digest as proof of safety.
 
 from __future__ import annotations
 
+import argparse
 import builtins
-from collections.abc import Mapping
+import os
+import tempfile
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import Path
 from types import ModuleType
 from typing import Any
 
@@ -292,4 +296,71 @@ def run_strategy_event(
     )
 
 
-__all__ = ["InvocationStatus", "StrategyInvocationResult", "run_strategy_event"]
+def _atomic_write(path: Path, payload: str) -> None:
+    """Write a result beside the requested destination and publish it atomically."""
+
+    parent = path.parent
+    if not parent.is_dir():
+        raise OSError("result parent directory does not exist")
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary = Path(handle.name)
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        temporary = None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def _absolute_path(value: str, field_name: str) -> Path:
+    path = Path(value)
+    if not path.is_absolute() or "\x00" in value:
+        raise ValueError(f"{field_name} must be an absolute path")
+    return path
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run one mounted invocation request and publish a typed result.
+
+    Exit status ``0`` means the strategy produced accepted intents.  Status
+    ``2`` means the typed runtime result is rejected or failed.  Malformed
+    input/output setup returns ``1`` without exposing exception text.
+    """
+
+    parser = argparse.ArgumentParser(description="run one Strategy Lab runtime invocation")
+    parser.add_argument("--request", required=True, help="absolute mounted invocation JSON")
+    parser.add_argument("--result", required=True, help="absolute result JSON destination")
+    args = parser.parse_args(argv)
+    try:
+        request_path = _absolute_path(args.request, "request path")
+        result_path = _absolute_path(args.result, "result path")
+        from strategy_runtime.protocol import deserialize_invocation, serialize_invocation_result
+
+        source, manifest, context, entrypoint, max_intents = deserialize_invocation(
+            request_path.read_text(encoding="utf-8")
+        )
+        result = run_strategy_event(
+            source,
+            manifest=manifest,
+            context=context,
+            entrypoint=entrypoint,
+            max_intents_per_event=max_intents,
+        )
+        _atomic_write(result_path, serialize_invocation_result(result))
+    except (OSError, TypeError, UnicodeError, ValueError):
+        return 1
+    return 0 if result.status is InvocationStatus.SUCCEEDED else 2
+
+
+__all__ = ["InvocationStatus", "StrategyInvocationResult", "main", "run_strategy_event"]

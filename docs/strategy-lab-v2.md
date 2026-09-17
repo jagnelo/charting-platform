@@ -803,7 +803,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and a vetted standard-library import surface, and validates every emitted
   intent against the manifest before returning a content-addressed result.
   Source/entrypoint/output failures are typed without returning exception text;
-  the package still requires the hardened container for actual isolation.
+  the package still requires the hardened container for actual isolation. Its
+  explicit JSON wire protocol preserves typed values and fingerprints request
+  and result envelopes; `python -m strategy_runtime` reads a mounted request,
+  invokes one event, and atomically publishes the result with status-based exit
+  codes, without exposing strategy exception text.
 - `engine_execution.py` binds the final Nautilus invocation gate to execution
   authorization, runtime preflight, sandbox request identity, data-snapshot
   identity, hardened sandbox argv validation, and complete conformance

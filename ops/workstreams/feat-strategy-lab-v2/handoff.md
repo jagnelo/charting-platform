@@ -26,6 +26,20 @@ the full package suite now passes 627 tests with Ruff and MyPy. Docker image,
 worker entrypoint, and application wiring remain deferred shared integration
 gates.
 
+## 2026-09-17 - Strategy runtime wire protocol and CLI
+
+`backend/strategy_runtime/protocol.py` now defines a canonical, versioned JSON
+envelope for mounted invocation requests and typed results. It preserves
+Decimal/datetime/date/float and collection values, reconstructs the immutable
+engine-neutral SDK records, encodes only typed order/target-position intents,
+and verifies the result content fingerprint on decode. The package CLI
+(`python -m strategy_runtime --request <absolute-path> --result <absolute-path>`)
+invokes one event in the already-isolated process, atomically publishes the
+result file, returns `0` for success, `2` for typed rejection/failure, and `1`
+for malformed input or output setup without printing strategy exception text.
+The focused runtime/protocol suite passes 9 tests; worker image wiring,
+container activation, and application scheduling remain deferred shared gates.
+
 ## 2026-09-17 - Engine-neutral SDK boundary hardening
 
 `sdk.py` now validates public input types before dereferencing them: manifests
