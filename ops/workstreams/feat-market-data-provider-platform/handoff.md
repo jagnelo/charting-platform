@@ -13,6 +13,16 @@
   quota-coordinator, and live-runner coverage passes `253/253` with
   `--no-cov`.
 
+## 2026-09-17 exact-current Alpaca revalidation
+
+- After the final bootstrap-contract validation change, the clean source
+  `2d3bd1160147cd48ef481fbce45660264daf863c` passed the bounded credentialed
+  Alpaca matrix `7/7` with eight measured requests (including the native usage
+  snapshot, equity/crypto history and metadata, latest price, discovery, and
+  corporate-action page). The receipt is aggregate-only and committed; this is
+  current-source provider evidence, not a claim that the remaining roster-wide
+  safety/terms gates are closed.
+
 ## 2026-09-17 discovery pagination loss-prevention correction
 
 - US-universe reconciliation no longer applies an arbitrary local offset/page
