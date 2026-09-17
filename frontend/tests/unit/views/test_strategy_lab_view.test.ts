@@ -894,6 +894,27 @@ describe('StrategyLabView', () => {
     expect(resultsPanel.get('.panel-toggle').attributes('aria-expanded')).toBe('false')
   })
 
+  it('associates the run history disclosure with its controlled list', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    const runsHeading = wrapper.findAll('.panel-head-heading').find(node => node.text().trim() === 'Research runs')
+    expect(runsHeading).toBeTruthy()
+    await runsHeading!.trigger('click')
+
+    const toggle = wrapper.get('.scroll-list-toggle')
+    expect(toggle.attributes('aria-controls')).toBe('strategy-run-history')
+    if (!wrapper.find('#strategy-run-history').exists()) {
+      await toggle.trigger('click')
+    }
+    expect(wrapper.find('#strategy-run-history').exists()).toBe(true)
+
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find('#strategy-run-history').exists()).toBe(false)
+  })
+
   it('does not preselect a comparison run by default', async () => {
     const multiRunDefinition = clone(definition)
     multiRunDefinition.runs = [

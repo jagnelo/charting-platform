@@ -1023,6 +1023,7 @@
               type="button"
               class="scroll-list-toggle"
               :aria-expanded="runHistoryExpanded ? 'true' : 'false'"
+              aria-controls="strategy-run-history"
               @click="runHistoryExpanded = !runHistoryExpanded"
             >
               <span class="scroll-list-toggle__icon" :class="{ 'scroll-list-toggle__icon--expanded': runHistoryExpanded }">▸</span>
@@ -1030,7 +1031,7 @@
               <small>{{ selectedRunBatches.length }} {{ selectedRunBatches.length === 1 ? 'batch' : 'batches' }}</small>
             </button>
 
-          <div v-if="runHistoryExpanded" class="run-list">
+          <div v-if="runHistoryExpanded" id="strategy-run-history" class="run-list">
             <article
               v-for="batch in selectedRunBatches"
               :key="batch.id"
