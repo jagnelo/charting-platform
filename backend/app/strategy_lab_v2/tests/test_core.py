@@ -693,6 +693,40 @@ def test_sdk_intents_are_typed_scoped_and_context_is_read_only() -> None:
         OrderIntent("US.AAPL", OrderSide.BUY, Decimal(1), OrderType.LIMIT)
 
 
+def test_sdk_public_boundaries_reject_malformed_runtime_values() -> None:
+    requirement = _requirement()
+    strategy = StrategyVersion("s-1", "v-1", "2.0", SOURCE_DIGEST)
+    dependency = StrategyDataDependency("daily-bars", requirement, ("close",))
+    manifest = StrategySdkManifest(strategy, (dependency,))
+
+    with pytest.raises(TypeError, match="data dependency requirement"):
+        StrategyDataDependency("daily-bars", "bad", ("close",))  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="data_dependencies"):
+        StrategySdkManifest(strategy, ("bad",))  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="market event values"):
+        MarketEvent("daily-bars", "bar-1", "US.AAPL", END, 1, ("close",))  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="quantity"):
+        PositionSnapshot("US.AAPL", 1, Decimal("10"), Decimal("10"))  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="order side"):
+        OrderIntent("US.AAPL", "buy", Decimal("1"))  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="order type"):
+        OrderIntent("US.AAPL", OrderSide.BUY, Decimal("1"), "market")  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="manifest"):
+        build_strategy_context("bad", event_time=END, event_sequence=0, random_seed=1, parameters={}, market_events={})  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="manifest"):
+        validate_strategy_output("bad", ())  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError, match="market data dependency events"):
+        build_strategy_context(
+            manifest,
+            event_time=END,
+            event_sequence=0,
+            random_seed=1,
+            parameters={},
+            market_events={"daily-bars": ("bad",)},  # type: ignore[arg-type]
+        )
+
+
 def test_metric_contracts_include_basis_sample_size_and_null_reason() -> None:
     metrics = calculate_performance_metrics(
         (Decimal(110), Decimal(100), Decimal(120)),

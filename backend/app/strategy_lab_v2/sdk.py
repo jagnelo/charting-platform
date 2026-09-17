@@ -6,7 +6,7 @@ run in the later no-network, resource-limited worker environment.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -46,10 +46,14 @@ class StrategyDataDependency:
     lookback_periods: int = 0
 
     def __post_init__(self) -> None:
-        if not self.dependency_id.strip():
+        if not isinstance(self.dependency_id, str) or not self.dependency_id.strip():
             raise ValueError("data dependency id must not be empty")
+        if not isinstance(self.requirement, CapabilityRequirement):
+            raise TypeError("data dependency requirement must use CapabilityRequirement")
+        if not isinstance(self.fields, Sequence) or isinstance(self.fields, str | bytes):
+            raise TypeError("data dependency fields must be a sequence")
         fields = tuple(self.fields)
-        if not fields or any(not value.strip() for value in fields):
+        if not fields or any(not isinstance(value, str) or not value.strip() for value in fields):
             raise ValueError("data dependencies must declare one or more fields")
         if len(set(fields)) != len(fields):
             raise ValueError("data dependency fields must be unique")
@@ -69,13 +73,21 @@ class StrategySdkManifest:
     model_dependencies: tuple[StrategyDependency, ...] = ()
 
     def __post_init__(self) -> None:
+        if not isinstance(self.strategy, StrategyVersion):
+            raise TypeError("strategy must use StrategyVersion")
         if not self.data_dependencies:
             raise ValueError("strategy SDK manifest must declare market-data dependencies")
-        dependency_ids = [item.dependency_id for item in self.data_dependencies]
+        data_dependencies = tuple(self.data_dependencies)
+        if any(not isinstance(item, StrategyDataDependency) for item in data_dependencies):
+            raise TypeError("data_dependencies must contain StrategyDataDependency values")
+        model_dependencies = tuple(self.model_dependencies)
+        if any(not isinstance(item, StrategyDependency) for item in model_dependencies):
+            raise TypeError("model_dependencies must contain StrategyDependency values")
+        dependency_ids = [item.dependency_id for item in data_dependencies]
         if len(set(dependency_ids)) != len(dependency_ids):
             raise ValueError("strategy data dependency ids must be unique")
-        object.__setattr__(self, "data_dependencies", tuple(self.data_dependencies))
-        object.__setattr__(self, "model_dependencies", tuple(self.model_dependencies))
+        object.__setattr__(self, "data_dependencies", data_dependencies)
+        object.__setattr__(self, "model_dependencies", model_dependencies)
 
     @property
     def capability_requirements(self) -> tuple[CapabilityRequirement, ...]:
@@ -96,17 +108,23 @@ class MarketEvent:
     values: Mapping[str, Any]
 
     def __post_init__(self) -> None:
-        if (
-            not self.dependency_id.strip()
-            or not self.event_id.strip()
-            or not self.instrument_id.strip()
+        if any(
+            not isinstance(value, str) or not value.strip()
+            for value in (self.dependency_id, self.event_id, self.instrument_id)
         ):
             raise ValueError("market event identifiers must not be empty")
+        if not isinstance(self.event_time, datetime):
+            raise TypeError("market event time must be a datetime")
         if self.event_time.tzinfo is None or self.event_time.utcoffset() is None:
             raise ValueError("market event time must be timezone-aware")
-        if self.sequence < 0:
+        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 0:
             raise ValueError("market event sequence must be non-negative")
-        object.__setattr__(self, "values", freeze_json(self.values))
+        if not isinstance(self.values, Mapping):
+            raise TypeError("market event values must be a mapping")
+        frozen_values = freeze_json(self.values)
+        if not isinstance(frozen_values, Mapping):
+            raise TypeError("market event values must be a mapping")
+        object.__setattr__(self, "values", frozen_values)
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,9 +135,11 @@ class PositionSnapshot:
     market_value: Decimal | None
 
     def __post_init__(self) -> None:
-        if not self.instrument_id.strip():
+        if not isinstance(self.instrument_id, str) or not self.instrument_id.strip():
             raise ValueError("position instrument_id must not be empty")
-        for name in ("quantity", "average_price", "market_value"):
+        if not isinstance(self.quantity, Decimal) or not self.quantity.is_finite():
+            raise ValueError("quantity must be finite")
+        for name in ("average_price", "market_value"):
             value = getattr(self, name)
             if value is not None and (not isinstance(value, Decimal) or not value.is_finite()):
                 raise ValueError(f"{name} must be finite")
@@ -135,16 +155,36 @@ class StrategyContext:
     positions: Mapping[str, PositionSnapshot] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        if not isinstance(self.event_time, datetime):
+            raise TypeError("strategy event_time must be a datetime")
         if self.event_time.tzinfo is None or self.event_time.utcoffset() is None:
             raise ValueError("strategy event_time must be timezone-aware")
-        if self.event_sequence < 0:
+        if (
+            not isinstance(self.event_sequence, int)
+            or isinstance(self.event_sequence, bool)
+            or self.event_sequence < 0
+        ):
             raise ValueError("event_sequence must be non-negative")
+        if not isinstance(self.random_seed, int) or isinstance(self.random_seed, bool):
+            raise TypeError("random_seed must be an integer")
+        if not isinstance(self.parameters, Mapping):
+            raise TypeError("strategy parameters must be a mapping")
+        if not isinstance(self.market_events, Mapping):
+            raise TypeError("market_events must be a mapping")
+        if not isinstance(self.positions, Mapping):
+            raise TypeError("positions must be a mapping")
         frozen_parameters = freeze_json(self.parameters)
+        if not isinstance(frozen_parameters, Mapping):
+            raise TypeError("strategy parameters must be a mapping")
         event_map: dict[str, tuple[MarketEvent, ...]] = {}
         for dependency_id, events in self.market_events.items():
-            if not dependency_id.strip():
+            if not isinstance(dependency_id, str) or not dependency_id.strip():
                 raise ValueError("market data dependency ids must not be empty")
+            if not isinstance(events, Sequence) or isinstance(events, str | bytes):
+                raise TypeError("market data dependency events must be a sequence")
             immutable_events = tuple(events)
+            if any(not isinstance(event, MarketEvent) for event in immutable_events):
+                raise TypeError("market data dependency events must use MarketEvent values")
             if any(event.dependency_id != dependency_id for event in immutable_events):
                 raise ValueError("market event does not match its declared dependency key")
             if any(
@@ -182,6 +222,14 @@ def build_strategy_context(
 ) -> StrategyContext:
     """Build context only from manifest-declared series, fields, and lookbacks."""
 
+    if not isinstance(manifest, StrategySdkManifest):
+        raise TypeError("manifest must use StrategySdkManifest")
+    if not isinstance(parameters, Mapping):
+        raise TypeError("strategy parameters must be a mapping")
+    if not isinstance(market_events, Mapping):
+        raise TypeError("market_events must be a mapping")
+    if positions is not None and not isinstance(positions, Mapping):
+        raise TypeError("positions must be a mapping")
     declared = {item.dependency_id: item for item in manifest.data_dependencies}
     provided = set(market_events)
     if provided != set(declared):
@@ -195,6 +243,10 @@ def build_strategy_context(
 
     for dependency_id, events in market_events.items():
         dependency = declared[dependency_id]
+        if not isinstance(events, Sequence) or isinstance(events, str | bytes):
+            raise TypeError("market data dependency events must be a sequence")
+        if any(not isinstance(event, MarketEvent) for event in events):
+            raise TypeError("market data dependency events must use MarketEvent values")
         if len(events) > dependency.lookback_periods + 1:
             raise ValueError(f"dependency {dependency_id!r} exceeds its declared lookback")
         allowed_fields = set(dependency.fields)
@@ -242,8 +294,14 @@ class OrderIntent:
     kind: IntentKind = field(default=IntentKind.ORDER, init=False)
 
     def __post_init__(self) -> None:
-        if not self.instrument_id.strip():
+        if not isinstance(self.instrument_id, str) or not self.instrument_id.strip():
             raise ValueError("order instrument_id must not be empty")
+        if not isinstance(self.side, OrderSide):
+            raise TypeError("order side must be an OrderSide")
+        if not isinstance(self.order_type, OrderType):
+            raise TypeError("order type must be an OrderType")
+        if not isinstance(self.time_in_force, TimeInForce):
+            raise TypeError("time_in_force must be a TimeInForce")
         if (
             not isinstance(self.quantity, Decimal)
             or not self.quantity.is_finite()
@@ -273,7 +331,7 @@ class TargetPositionIntent:
     kind: IntentKind = field(default=IntentKind.TARGET_POSITION, init=False)
 
     def __post_init__(self) -> None:
-        if not self.instrument_id.strip():
+        if not isinstance(self.instrument_id, str) or not self.instrument_id.strip():
             raise ValueError("target-position instrument_id must not be empty")
         if not isinstance(self.target_fraction, Decimal) or not self.target_fraction.is_finite():
             raise ValueError("target_fraction must be finite")
@@ -296,7 +354,13 @@ def validate_strategy_output(
 ) -> tuple[StrategyIntent, ...]:
     """Check intent shape and declared instrument scope before host allocation/risk."""
 
-    if max_intents_per_event < 1:
+    if not isinstance(manifest, StrategySdkManifest):
+        raise TypeError("manifest must use StrategySdkManifest")
+    if (
+        not isinstance(max_intents_per_event, int)
+        or isinstance(max_intents_per_event, bool)
+        or max_intents_per_event < 1
+    ):
         raise ValueError("max_intents_per_event must be positive")
     allowed_instruments = {
         requirement.instrument_id for requirement in manifest.capability_requirements
