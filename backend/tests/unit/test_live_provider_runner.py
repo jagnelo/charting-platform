@@ -224,6 +224,71 @@ def test_account_usage_only_selection_keeps_only_the_dedicated_case():
     ]
 
 
+def test_manifest_account_usage_providers_are_explicit():
+    runner = _runner_module()
+
+    assert runner.manifest_account_usage_providers(
+        {"binance", "twelve_data", "finnhub", "unknown"}
+    ) == {"binance", "twelve_data"}
+
+
+def test_live_quota_preflight_only_allows_explicit_bootstrap_unknown_baseline(
+    monkeypatch,
+):
+    runner = _runner_module()
+    from app import config
+    from app.services import provider_quota_coordinator as coordinator
+
+    monkeypatch.setattr(
+        config,
+        "provider_rate_limit_seed",
+        lambda _provider: {
+            "quota_scope": "shared-ip",
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "request_weight_per_minute",
+                        "limit": 1200,
+                        "unit": "request_weight",
+                    }
+                ]
+            },
+        },
+    )
+    monkeypatch.setattr(
+        coordinator,
+        "_reservation_plan_for_live_probe",
+        lambda *args, **kwargs: (
+            "fixed_minute",
+            {},
+            [
+                {
+                    "dimension": "request_weight_per_minute",
+                    "quota_group": "binance",
+                    "units": 1,
+                }
+            ],
+        ),
+    )
+    monkeypatch.setattr(
+        coordinator,
+        "provider_quota_baseline_status",
+        lambda **kwargs: {"status": "unknown", "remaining_units": None},
+    )
+
+    assert runner.live_operation_quota_preflight(
+        {"binance"},
+        operations_override={"binance": {"fetch_ohlcv"}},
+    ) == {"binance": [
+        "binance/fetch_ohlcv: active request_weight_per_minute usage baseline is unknown"
+    ]}
+    assert runner.live_operation_quota_preflight(
+        {"binance"},
+        operations_override={"binance": {"fetch_ohlcv"}},
+        bootstrap_providers={"binance"},
+    ) == {}
+
+
 def test_manifest_has_exact_operation_evidence_for_every_provider():
     runner = _runner_module()
 

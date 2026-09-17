@@ -744,6 +744,20 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 native-usage bootstrap admission correction: the live
+      preflight now permits only providers with an explicit manifest
+      `fetch_account_usage` case to establish an expired fixed-window baseline
+      before metered operations; providers without that native bootstrap still
+      fail closed on unknown usage. The manifest collection hook orders the
+      native snapshot first and every later operation retains atomic
+      fail-closed reservation. Added regression coverage for both admission
+      paths. The current Binance run passed 3/3 with seven HTTP requests and
+      17,616,811 aggregate response bytes, including the native usage,
+      discovery, latest/history, and price cases. Its receipt is marked
+      `not_current_source` because the correction was uncommitted; full unit
+      and branch gates remain required before commit. No credentials, payloads,
+      frontend files, or ETF-provider adapters changed.
+    - >-
       2026-09-17 configured-provider live validation: with the owner-local
       durable quota coordinator available, the configured MarketData.app trial
       focused live suite passed 7/7 tests with 9 HTTP requests, including

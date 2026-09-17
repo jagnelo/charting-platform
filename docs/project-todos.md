@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-17 — Native-usage bootstrap admission correction
+
+- [x] Allow a selected provider with an explicit manifest
+      `account_usage` case to establish an expired fixed-window baseline before
+      metered cases; keep every operation reservation atomic and fail-closed.
+- [x] Add regression coverage for both sides of the boundary: unknown
+      baselines remain blocked without the explicit bootstrap, and are only
+      admitted for that provider when the bootstrap is present.
+- [x] Validate the correction against Binance's current public API: the
+      account-usage snapshot ran first and the bounded matrix passed `3/3`
+      with seven requests. The aggregate receipt is redacted and marked
+      `not_current_source` until the correction is committed.
+- [ ] Replay the full backend unit gate and branch validation, then commit the
+      correction. Keep all other provider quota, legal/source, universe,
+      deployment-secret, and final-shadow gates unchanged.
+
 ### 2026-09-17 — Configured-provider live validation
 
 - [x] Run the configured MarketData.app trial through the durable live-test

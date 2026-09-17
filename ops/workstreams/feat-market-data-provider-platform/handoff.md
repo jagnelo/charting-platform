@@ -1,5 +1,26 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 native-usage bootstrap admission correction
+
+- The live runner previously blocked a provider's full matrix whenever its
+  fixed-window baseline had naturally expired, even when that provider's
+  manifest contained an explicit native `account_usage` snapshot capable of
+  re-establishing the current window.
+- The preflight now permits that narrowly identified bootstrap provider to
+  enter the matrix; the collection hook runs its native usage case first, and
+  each subsequent operation still performs an atomic fail-closed reservation.
+  Providers without a manifest usage bootstrap remain blocked on an unknown
+  baseline, so this is not a generic quota fallback.
+- Regression coverage passed `44/44` focused runner tests and Ruff/diff checks
+  passed. A current Binance run then passed `3/3` with seven HTTP requests,
+  including the native usage snapshot, discovery, latest/history, and price;
+  its aggregate receipt records `17,616,811` response bytes and no payloads or
+  credentials.
+- The receipt is marked `not_current_source` because this validation exercised
+  the uncommitted correction. The correction still requires the full backend
+  unit gate and branch validation before commit; all other provider-specific,
+  legal/source, universe, target-secret, and final-shadow gates remain open.
+
 ## 2026-09-17 configured-provider live validation
 
 - With the owner-local quota coordinator running under elevated filesystem

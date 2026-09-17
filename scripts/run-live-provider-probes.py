@@ -1102,6 +1102,7 @@ def live_operation_quota_preflight(
     providers: set[str],
     *,
     operations_override: dict[str, set[str]] | None = None,
+    bootstrap_providers: set[str] | None = None,
 ) -> dict[str, list[str]]:
     """Check every selected manifest operation before the first provider call.
 
@@ -1109,6 +1110,13 @@ def live_operation_quota_preflight(
     baselines. Individual live tests still reserve atomically immediately
     before transport; the preflight prevents spending one provider's quota
     before discovering that another selected provider cannot be accounted for.
+
+    Providers with an explicit manifest ``fetch_account_usage`` case may be
+    admitted with an unknown active baseline for a normal matrix run. The
+    manifest runner orders that native snapshot before metered cases, and each
+    live reservation still fails closed if the snapshot cannot reconcile a
+    current window. This is deliberately narrower than accepting an unknown
+    baseline: providers without a native bootstrap remain blocked here.
     """
 
     backend_root = ROOT / "backend"
@@ -1127,6 +1135,7 @@ def live_operation_quota_preflight(
         return {"provider quota accounting": ["quota admission code is unavailable"]}
 
     blockers: dict[str, list[str]] = {}
+    bootstrap_providers = set(bootstrap_providers or ())
     now = datetime.now(UTC)
     for provider in sorted(providers):
         operations = (
@@ -1190,6 +1199,16 @@ def live_operation_quota_preflight(
                     blockers.setdefault(provider, []).append(f"{label}: {exc}")
                     continue
                 if state.get("status") != "verified":
+                    if (
+                        state.get("status") == "unknown"
+                        and provider in bootstrap_providers
+                    ):
+                        # The account-usage test is collected first by the
+                        # manifest-runner hook. It must prove the active
+                        # provider window before any metered reservation is
+                        # admitted; this preflight only permits that ordered
+                        # bootstrap to occur.
+                        continue
                     blockers.setdefault(provider, []).append(
                         f"{label}: active {dimension_name} usage baseline is {state.get('status', 'unknown')}"
                     )
@@ -1205,6 +1224,19 @@ def usage_scope_is_configured() -> bool:
 
     value = os.getenv("PROVIDER_LIVE_USAGE_SCOPE", "").strip()
     return bool(value) and len(value) <= 128 and value.isprintable()
+
+
+def manifest_account_usage_providers(providers: set[str]) -> set[str]:
+    """Return selected providers whose manifest includes native usage bootstrap."""
+
+    return {
+        provider
+        for provider in providers
+        if any(
+            "account_usage" in function_name
+            for _relative_path, function_name in LIVE_PROVIDER_CASES.get(provider, ())
+        )
+    }
 
 
 def normalized_reviewed_https_source(value: str) -> str | None:
@@ -3068,7 +3100,16 @@ def main() -> int:
                 },
             )
         else:
-            live_quota_missing = live_operation_quota_preflight(selected_for_run)
+            bootstrap_providers = manifest_account_usage_providers(selected_for_run)
+            if bootstrap_providers:
+                live_quota_missing = live_operation_quota_preflight(
+                    selected_for_run,
+                    bootstrap_providers=bootstrap_providers,
+                )
+            else:
+                # Keep the helper call shape compatible with focused runner
+                # tests and synthetic manifests that have no usage bootstrap.
+                live_quota_missing = live_operation_quota_preflight(selected_for_run)
         if live_quota_missing:
             missing["provider-specific quota/cost/baseline admission"] = [
                 f"{provider}: {reason}"
