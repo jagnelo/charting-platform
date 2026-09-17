@@ -217,6 +217,14 @@ const timeframeOptions = [
   { value: 'M15', label: '15 minute' },
 ]
 const configString = (key: string, fallback: string) => typeof props.configuration?.[key] === 'string' ? String(props.configuration[key]) : fallback
+const configNumber = (key: string) => {
+  const value = Number(props.configuration?.[key])
+  return Number.isInteger(value) && value > 0 ? value : null
+}
+const configRecord = (key: string): Record<string, unknown> => {
+  const value = props.configuration?.[key]
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
 const factoryStudyKey = ref('positive_streak')
 const selectedFactoryStudy = computed(() => factoryStudyTemplates.find(item => item.key === factoryStudyKey.value))
 const requiresDeclaredUniverse = computed(() => selectedFactoryStudy.value?.requiresUniverse === true)
@@ -245,6 +253,15 @@ const endDate = ref(configString('end_date', ''))
 const asOf = ref(configString('as_of', '').slice(0, 16))
 const parameterSchemaText = ref(typeof props.configuration?.parameter_schema === 'string' ? String(props.configuration.parameter_schema) : '')
 const parameterDrafts = ref<Record<string, string | boolean>>({})
+const openedStudyVersionId = ref<number | null>(configNumber('study_asset_version_id'))
+const openedStudySource = ref(configString('study_source', ''))
+const openedStudyOutputContract = ref(configString('study_output_contract', ''))
+const openedStudyDefaultParameters = ref<Record<string, unknown>>(configRecord('study_default_parameters'))
+if (openedStudySource.value) {
+  name.value = configString('study_name', name.value)
+  source.value = openedStudySource.value
+  factoryStudyKey.value = 'custom'
+}
 const busy = ref(false)
 const promotionBusy = ref(false)
 const promotionStatus = ref('')
@@ -582,6 +599,15 @@ const parameterDefinitions = computed<ParameterDefinition[]>(() => {
 const parameterSchemaError = computed(() => parameterSchemaText.value.trim() && !parsedParameterSchema.value ? 'Parameter schema must be a JSON object.' : '')
 watch(() => props.activeSymbol, value => { if (!symbol.value || symbol.value === 'SPY') symbol.value = value })
 watch(() => props.configuration, configuration => {
+  if (typeof configuration?.study_asset_version_id === 'number' && Number.isInteger(configuration.study_asset_version_id) && configuration.study_asset_version_id > 0) openedStudyVersionId.value = configuration.study_asset_version_id
+  if (typeof configuration?.study_source === 'string' && configuration.study_source.trim()) {
+    openedStudySource.value = configuration.study_source
+    source.value = configuration.study_source
+    factoryStudyKey.value = 'custom'
+  }
+  if (typeof configuration?.study_name === 'string' && configuration.study_name.trim()) name.value = configuration.study_name
+  if (typeof configuration?.study_output_contract === 'string') openedStudyOutputContract.value = configuration.study_output_contract
+  if (configuration && typeof configuration.study_default_parameters === 'object' && configuration.study_default_parameters && !Array.isArray(configuration.study_default_parameters)) openedStudyDefaultParameters.value = configuration.study_default_parameters as Record<string, unknown>
   if (typeof configuration?.timeframe === 'string') timeframe.value = normaliseTimeframe(configuration.timeframe)
   if (configuration && !('benchmark' in configuration)) benchmark.value = ''
   else if (typeof configuration?.benchmark === 'string') benchmark.value = configuration.benchmark
@@ -631,6 +657,21 @@ watch(parameterDefinitions, definitions => {
   parameterDrafts.value = next
 }, { immediate: true })
 function setParameterDraft(name: string, value: string | boolean) { parameterDrafts.value = { ...parameterDrafts.value, [name]: value } }
+function clearOpenedStudyDefinition(persist = true) {
+  openedStudyVersionId.value = null
+  openedStudySource.value = ''
+  openedStudyOutputContract.value = ''
+  openedStudyDefaultParameters.value = {}
+  if (persist) {
+    const configuration = { ...(props.configuration ?? {}) }
+    delete configuration.study_asset_version_id
+    delete configuration.study_name
+    delete configuration.study_source
+    delete configuration.study_output_contract
+    delete configuration.study_default_parameters
+    emit('configuration', configuration)
+  }
+}
 function applyFactoryStudy() {
   const template = factoryStudyTemplates.find(item => item.key === factoryStudyKey.value)
   if (!template) {
@@ -639,6 +680,7 @@ function applyFactoryStudy() {
   }
   name.value = template.name
   source.value = template.source
+  clearOpenedStudyDefinition()
   parameterSchemaText.value = template.parameterSchema ?? ''
   validation.value = null
   run.value = null
@@ -650,12 +692,17 @@ function applyFactoryStudy() {
 function markCustomSource() {
   factoryStudyKey.value = 'custom'
   parameterSchemaText.value = ''
+  clearOpenedStudyDefinition()
 }
 function buildParameters() {
-  const values: Record<string, unknown> = {}
+  const values: Record<string, unknown> = { ...openedStudyDefaultParameters.value }
   for (const definition of parameterDefinitions.value) {
     const value = parameterDrafts.value[definition.name]
     if (value === '' || value === undefined) continue
+    // Object-valued defaults (for example a Market Map breadth condition)
+    // cannot be represented by the compact parameter editor. Preserve the
+    // immutable definition value instead of serialising it as "[object Object]".
+    if (definition.type === 'object' && Object.prototype.hasOwnProperty.call(openedStudyDefaultParameters.value, definition.name)) continue
     values[definition.name] = definition.type === 'number' || definition.type === 'integer' ? Number(value) : value
   }
   return values
@@ -816,13 +863,21 @@ async function saveAndRun() {
     const directContracts = new Set(['scalar', 'series', 'boolean', 'events'])
     const candidateContract = validation.value.output_contracts.length === 1 ? validation.value.output_contracts[0] : null
     const executionContract = candidateContract && directContracts.has(candidateContract) ? candidateContract : 'study'
-    const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
-      stable_key: uniqueAssetKey(name.value),
-      name: name.value,
-      kind: 'study',
-      initial_version: { source: source.value, output_contract: executionContract, parameter_schema: parsedParameterSchema.value ?? {}, default_parameters: parameters },
-    })
-    void invalidateCodeAssets(queryClient)
+    const reuseOpenedVersion = openedStudyVersionId.value != null && source.value === openedStudySource.value
+    let codeVersionId: number
+    if (reuseOpenedVersion) {
+      codeVersionId = openedStudyVersionId.value!
+      runContract.value = openedStudyOutputContract.value || executionContract
+    } else {
+      const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
+        stable_key: uniqueAssetKey(name.value),
+        name: name.value,
+        kind: 'study',
+        initial_version: { source: source.value, output_contract: executionContract, parameter_schema: parsedParameterSchema.value ?? {}, default_parameters: parameters },
+      })
+      codeVersionId = asset.versions[0].id
+      void invalidateCodeAssets(queryClient)
+    }
     if (disposed || generation !== runGeneration) return
     const datasetControls: Record<string, string> = {
       timeframe: timeframe.value,
@@ -842,7 +897,7 @@ async function saveAndRun() {
         : { symbol: symbol.value.toUpperCase(), parameters, ...datasetControls }
     if (resultScope) runConfig.result_scope = resultScope
     const createdRun = await api.post<Run>('/research/runs', {
-      code_version_id: asset.versions[0].id,
+      code_version_id: codeVersionId,
       run_config: runConfig,
       dataset_manifest: { source: 'canonical_database', requested_at: new Date().toISOString(), ...datasetControls },
     })
@@ -858,7 +913,7 @@ async function saveAndRun() {
       return
     }
     run.value = createdRun
-    runCodeVersionId.value = createdRun.code_version_id ?? asset.versions[0]?.id ?? null
+    runCodeVersionId.value = createdRun.code_version_id ?? codeVersionId
     scheduleRunPolling(createdRun.id, generation)
     emit('configuration', {
       ...(props.configuration ?? {}),

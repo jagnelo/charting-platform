@@ -630,6 +630,43 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ run_config: expect.objectContaining({ symbols: ['SPY', 'XLK'], parameters: { lookback: 30 } }) }))
   })
 
+  it('reuses an opened immutable Study definition version without creating a duplicate asset', async () => {
+    const source = "condition = parameters.get('condition', {'kind': 'above_moving_average'})\noutput.scalar('current_percentage', 0.5)"
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['parameters', 'output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/research/runs') return Promise.resolve({ id: 314, code_version_id: 91, status: 'completed', artifacts: [{ id: 1, name: 'current_percentage', artifact_type: 'scalar', payload: { value: 0.5 } }] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({
+      activeSymbol: 'SPY',
+      configuration: {
+        study_asset_version_id: 91,
+        study_name: 'Saved breadth definition',
+        study_source: source,
+        study_output_contract: 'study',
+        study_default_parameters: { condition: { kind: 'above_moving_average' }, source_id: 'explicit:4,2' },
+        parameter_schema: JSON.stringify({ properties: { condition: { type: 'object' }, source_id: { type: 'string' } } }),
+        universe_source_id: 'explicit:4,2',
+      },
+    })
+
+    expect(wrapper.find('[aria-label="Study name"]').element).toHaveProperty('value', 'Saved breadth definition')
+    expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value).toBe(source)
+    await wrapper.findAll('button').find(button => button.text() === 'Validate')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #314'))
+
+    expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({
+      code_version_id: 91,
+      run_config: expect.objectContaining({
+        universe_source_id: 'explicit:4,2',
+        parameters: { condition: { kind: 'above_moving_average' }, source_id: 'explicit:4,2' },
+      }),
+    }))
+  })
+
   it('cancels an active study run when the Study Lab tool is destroyed', async () => {
     apiGet.mockResolvedValue({ id: 101, status: 'running', artifacts: [] })
     apiPost.mockImplementation((path: string) => {

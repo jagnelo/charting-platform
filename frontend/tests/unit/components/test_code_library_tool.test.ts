@@ -70,6 +70,24 @@ describe('CodeLibraryTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/code/assets/4/archive', { is_archived: true })
   })
 
+  it('opens the latest immutable study version in Study Lab', async () => {
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Open Streak study in Study Lab"]').trigger('click')
+
+    expect(wrapper.emitted('open-study')).toEqual([[
+      {
+        name: 'Streak study',
+        versionId: 8,
+        source: "output.scalar('n', 1)",
+        outputContract: 'study',
+        parameterSchema: {},
+        defaultParameters: {},
+      },
+    ]])
+  })
+
   it('creates a typed new study asset from the library form', async () => {
     apiPost.mockImplementation((path: string) => path === '/code/validate'
       ? Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })

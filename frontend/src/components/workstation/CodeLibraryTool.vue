@@ -53,6 +53,7 @@
           </details>
         </div>
         <div class="code-library-tool__asset-actions">
+          <button v-if="asset.kind === 'study'" type="button" :aria-label="`Open ${asset.name} in Study Lab`" title="Open in Study Lab" @click="openStudy(asset)">Open in Study Lab</button>
           <button type="button" title="Export asset" @click="exportAsset(asset)">Export</button>
           <button type="button" title="Clone asset" @click="cloneAsset(asset)">Clone</button>
           <button type="button" :title="asset.is_archived ? 'Unarchive asset' : 'Archive asset'" @click="toggleArchive(asset)">{{ asset.is_archived ? 'Unarchive' : 'Archive' }}</button>
@@ -93,6 +94,16 @@ interface CodeAsset {
   is_archived: boolean
   versions: CodeVersion[]
 }
+interface StudyOpenPayload {
+  name: string
+  versionId: number
+  source: string
+  outputContract: string
+  parameterSchema: Record<string, unknown>
+  defaultParameters: Record<string, unknown>
+}
+
+const emit = defineEmits<{ 'open-study': [payload: StudyOpenPayload] }>()
 
 const assets = ref<CodeAsset[]>([])
 const queryClient = useQueryClient()
@@ -214,6 +225,18 @@ function exportAsset(asset: CodeAsset) {
   URL.revokeObjectURL(url)
 }
 function latestVersion(asset: CodeAsset) { return [...asset.versions].sort((left, right) => right.version_number - left.version_number)[0] }
+function openStudy(asset: CodeAsset) {
+  const version = latestVersion(asset)
+  if (!version || typeof version.id !== 'number' || !Number.isInteger(version.id)) return
+  emit('open-study', {
+    name: asset.name,
+    versionId: version.id,
+    source: version.source,
+    outputContract: version.output_contract,
+    parameterSchema: version.parameter_schema ?? {},
+    defaultParameters: version.default_parameters ?? {},
+  })
+}
 function selectVersion(asset: CodeAsset) {
   const version = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
   if (!version) return

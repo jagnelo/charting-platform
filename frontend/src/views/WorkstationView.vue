@@ -186,6 +186,7 @@
         @stacked-column-keys="updateStackedColumnKeys"
         @configuration="updateToolConfiguration"
         @publish-analysis="publishMapAnalysis"
+        @open-study="openStudyDefinition"
         @update-link-group="updateLinkGroup"
         @timeframe="setLinkedTimeframe"
         @close="closePopoutTool"
@@ -1413,6 +1414,34 @@ async function remountDockAfterSnapshot(
   await nextTick()
 }
 
+type StudyDefinitionOpen = {
+  name: string
+  versionId: number
+  source: string
+  outputContract: string
+  parameterSchema: Record<string, unknown>
+  defaultParameters: Record<string, unknown>
+}
+
+async function openStudyDefinition(definition: StudyDefinitionOpen) {
+  const studyDefinition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'study_lab')
+  if (!studyDefinition || !Number.isInteger(definition.versionId) || !definition.source.trim()) return
+  const defaults = definition.defaultParameters ?? {}
+  const configuration: Record<string, unknown> = {
+    study_asset_version_id: definition.versionId,
+    study_name: definition.name,
+    study_source: definition.source,
+    study_output_contract: definition.outputContract,
+    parameter_schema: JSON.stringify(definition.parameterSchema ?? {}),
+    study_default_parameters: defaults,
+  }
+  const stringDefaults = ['universe_source_id', 'symbols', 'timeframe', 'benchmark', 'adjustment', 'session', 'start_date', 'end_date', 'as_of']
+  for (const key of stringDefaults) {
+    if (typeof defaults[key] === 'string' && defaults[key].trim()) configuration[key] = defaults[key]
+  }
+  await openTool(studyDefinition, configuration)
+}
+
 async function publishMapAnalysis(publication: MapAnalysisPublication) {
   if (!publication.sourceId) return
   // Let the source tool's selection/layout event settle before switching the
@@ -1786,6 +1815,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onStackedColumnKeys: (windowKey: string, keys: string[]) => updateStackedColumnKeys(windowKey, keys),
     onConfiguration: (windowKey: string, configuration: Record<string, unknown>) => updateToolConfiguration(windowKey, configuration),
     onPublishAnalysis: (publication: MapAnalysisPublication) => void publishMapAnalysis(publication),
+    onOpenStudy: (definition: StudyDefinitionOpen) => void openStudyDefinition(definition),
     onTimeframe: (timeframe: string, group: LinkGroup) => setLinkedTimeframe(timeframe, group),
     onFloat: (windowKey: string) => floatTool(windowKey),
     onMaximize: () => actions.toggleMaximize(),
