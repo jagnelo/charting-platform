@@ -320,6 +320,9 @@ class Settings(BaseSettings):
                 "account_usage_bootstrap": {
                     "enabled": True,
                     "source": "application_policy:provider_native_baseline_bootstrap",
+                    "reconciled_dimensions": [
+                        "market_data_requests_per_minute",
+                    ],
                 },
             },
             "tokens_per_minute": 200,
@@ -435,6 +438,9 @@ class Settings(BaseSettings):
                 "account_usage_bootstrap": {
                     "enabled": True,
                     "source": "application_policy:provider_native_baseline_bootstrap",
+                    "reconciled_dimensions": [
+                        "mapping_requests_per_minute",
+                    ],
                 },
                 "endpoint_constraints": {
                     "mapping": {
@@ -649,6 +655,9 @@ class Settings(BaseSettings):
                 "account_usage_bootstrap": {
                     "enabled": True,
                     "source": "application_policy:provider_native_baseline_bootstrap",
+                    "reconciled_dimensions": [
+                        "request_weight_per_minute",
+                    ],
                 },
             },
             "tokens_per_minute": 6000,
@@ -934,6 +943,9 @@ class Settings(BaseSettings):
                 "account_usage_bootstrap": {
                     "enabled": True,
                     "source": "application_policy:provider_native_baseline_bootstrap",
+                    "reconciled_dimensions": [
+                        "credits_per_minute",
+                    ],
                 },
             },
             "tokens_per_minute": 8,
@@ -1027,6 +1039,9 @@ class Settings(BaseSettings):
                 "account_usage_bootstrap": {
                     "enabled": True,
                     "source": "application_policy:provider_native_baseline_bootstrap",
+                    "reconciled_dimensions": [
+                        "calls_per_day",
+                    ],
                     # The native /user endpoint can safely establish the
                     # daily counter while the conflicting minute pool stays
                     # unresolved. These names are the only unknowns that the

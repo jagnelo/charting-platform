@@ -249,6 +249,13 @@ native usage surfaces do not establish an equivalent dimension safely. Binance
 uses the explicit one-weight `/api/v3/time` probe; it never treats an empty
 local ledger as zero usage.
 
+The provider seed also records the exact set of dimensions that each native
+usage endpoint can reconcile. The live preflight uses that set when a provider
+has a bootstrap case: an unknown dimension outside the set remains a blocker
+for ordinary operations. This prevents a successful partial usage snapshot
+from masking an unobservable pool (for example Twelve Data's documented
+`credits_per_day` allowance, which `/api_usage` does not report cumulatively).
+
 The direct live-test account snapshot cases use this same reconciliation path
 after the provider response has been durably settled. This is important across
 sessions: a successful `/user` or `/api_usage` test is not merely a receipt; it

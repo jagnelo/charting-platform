@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 native usage bootstrap dimension correction
+
+- The live preflight now honors each provider's explicit
+  `account_usage_bootstrap.reconciled_dimensions` map. A native usage endpoint
+  can bootstrap only the pools it actually reports; an unknown second pool is
+  never treated as zero or allowed through to a doomed request.
+- The configured Twelve Data `/api_usage` probe still passes and reconciles
+  `credits_per_minute`. Its separate `credits_per_day` pool has no cumulative
+  counter, so the full Twelve Data matrix now stops before transport with an
+  explicit daily-baseline blocker. The failed attempt made zero data requests.
+- Focused runner/quota/account-usage tests pass; commit and current-source
+  preflight evidence are the remaining recording steps for this correction.
+
 ## 2026-09-17 FMP daily-cap safety-envelope completion
 
 - Applied the Alpaca reset-boundary decision to FMP's exact configured

@@ -297,6 +297,77 @@ def test_live_quota_preflight_only_allows_explicit_bootstrap_unknown_baseline(
     ) == {}
 
 
+def test_live_quota_preflight_blocks_bootstrap_dimensions_without_native_mapping(
+    monkeypatch,
+):
+    runner = _runner_module()
+    from app import config
+    from app.services import provider_quota_coordinator as coordinator
+
+    monkeypatch.setattr(
+        config,
+        "provider_rate_limit_seed",
+        lambda _provider: {
+            "quota_scope": "api_key",
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "credits_per_minute",
+                        "limit": 8,
+                        "window_seconds": 60,
+                        "unit": "credits",
+                    },
+                    {
+                        "name": "credits_per_day",
+                        "limit": 800,
+                        "window_seconds": 86400,
+                        "unit": "credits",
+                    },
+                ],
+                "account_usage_bootstrap": {
+                    "enabled": True,
+                    "reconciled_dimensions": ["credits_per_minute"],
+                },
+            },
+        },
+    )
+    monkeypatch.setattr(
+        coordinator,
+        "_reservation_plan_for_live_probe",
+        lambda *args, **kwargs: (
+            "per_dimension",
+            {"credits_per_minute": 1, "credits_per_day": 1},
+            [
+                {
+                    "dimension": "credits_per_minute",
+                    "quota_group": "api_key",
+                    "units": 1,
+                },
+                {
+                    "dimension": "credits_per_day",
+                    "quota_group": "api_key",
+                    "units": 1,
+                },
+            ],
+        ),
+    )
+    monkeypatch.setattr(
+        coordinator,
+        "provider_quota_baseline_status",
+        lambda **kwargs: {"status": "unknown", "remaining_units": None},
+    )
+
+    assert runner.live_operation_quota_preflight(
+        {"twelve_data"},
+        operations_override={"twelve_data": {"fetch_ohlcv"}},
+        bootstrap_providers={"twelve_data"},
+    ) == {
+        "twelve_data": [
+            "twelve_data/fetch_ohlcv: active credits_per_day usage baseline is unknown"
+        ]
+    }
+
+
 def test_manifest_has_exact_operation_evidence_for_every_provider():
     runner = _runner_module()
 

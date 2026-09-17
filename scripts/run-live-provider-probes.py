@@ -1224,11 +1224,27 @@ def live_operation_quota_preflight(
                         and provider in bootstrap_providers
                     ):
                         # The account-usage test is collected first by the
-                        # manifest-runner hook. It must prove the active
-                        # provider window before any metered reservation is
-                        # admitted; this preflight only permits that ordered
-                        # bootstrap to occur.
-                        continue
+                        # manifest-runner hook. It may establish only the
+                        # dimensions that the provider-specific usage
+                        # contract explicitly maps to a native counter. A
+                        # provider can expose one pool while leaving another
+                        # (for example Twelve Data's daily credit pool)
+                        # unobservable; allowing that second pool through
+                        # bootstrap would spend a doomed request and hide the
+                        # exact missing baseline behind a generic exhaustion
+                        # error.
+                        bootstrap = contract.get("account_usage_bootstrap")
+                        reconciled = (
+                            {
+                                str(item).strip()
+                                for item in (bootstrap.get("reconciled_dimensions") or [])
+                                if str(item).strip()
+                            }
+                            if isinstance(bootstrap, dict)
+                            else set()
+                        )
+                        if not reconciled or dimension_name in reconciled:
+                            continue
                     blockers.setdefault(provider, []).append(
                         f"{label}: active {dimension_name} usage baseline is {state.get('status', 'unknown')}"
                     )

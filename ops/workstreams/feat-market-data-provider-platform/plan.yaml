@@ -161,6 +161,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-17 bootstrap-dimension admission correction: native account-usage
+    bootstrap is now explicitly mapped per provider to the quota dimensions
+    its endpoint can reconcile. The live preflight no longer lets a provider
+    with a partial usage snapshot bypass an unrelated unknown pool. Twelve
+    Data's `/api_usage` still reconciles only `credits_per_minute`; its
+    documented `credits_per_day` baseline remains visible and blocks ordinary
+    reads until independently established. A focused run confirmed the
+    provider-specific blocker before network access; no doomed data request
+    was sent.
+  - >-
     2026-09-17 loss-prevention correction: provider-wide tokenized catalogue
     refreshes now use durable provider/page-size continuation state, so a
     per-invocation fairness budget resumes the exact next page or opaque cursor

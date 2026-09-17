@@ -138,7 +138,11 @@ its minute headers remain observational while the provider's official
 minute-limit sources conflict. Twelve Data's native minute-credit observation can
 reconcile the exact reviewed `credits_per_minute` coordinator baseline; its
 separately documented daily allowance is stored as an observation only until
-the provider exposes a stable daily counter.
+the provider exposes a stable daily counter. The bootstrap contract records
+these mappings per provider; a native usage endpoint never grants an unknown
+second pool an implicit zero baseline. For example, Twelve Data's daily
+`credits_per_day` pool remains non-routable after `/api_usage` until an exact
+daily baseline is independently established.
 
 For MarketData.app specifically, `/user/` is tracked as an explicit
 account-usage operation and occupies the account-wide in-flight concurrency

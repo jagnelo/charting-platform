@@ -2218,6 +2218,9 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
         "calendar_day_utc",
         "rolling",
     ]
+    assert twelve["account_usage_bootstrap"]["reconciled_dimensions"] == [
+        "credits_per_minute"
+    ]
 
     eodhd = settings.PROVIDER_RATE_LIMIT_SEEDS["eodhd"]["quota_contract"]
     assert [item["reset"] for item in eodhd["dimensions"]] == [
@@ -2244,6 +2247,9 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     assert eodhd["account_usage_bootstrap"]["allowed_unknown_dimensions"] == [
         "published_minute_limit_conflict",
         "requests_per_minute_reset_boundary",
+    ]
+    assert eodhd["account_usage_bootstrap"]["reconciled_dimensions"] == [
+        "calls_per_day"
     ]
     assert eodhd["source_conflicts"] == [
         {
