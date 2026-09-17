@@ -1,5 +1,39 @@
 # Provider live-validation matrix
 
+## Current acceptance audit — 2026-09-17
+
+This is the current implementation boundary for
+`feat/market-data-provider-platform` at source `4ff3e4c59`. “Verified” means
+repository-controlled behavior has automated evidence; it does not imply
+that external entitlement, licensing, deployment, or account state has been
+approved.
+
+| Acceptance area | Current state | Evidence / remaining action |
+| --- | --- | --- |
+| Canonical FIGI identity, issuer/listing history, quarantine | Verified in code/tests | `backend/app/models/`, identity/mastering services, focused unit suites |
+| Series-scoped OHLCV, provenance, rollups, adjustments | Verified in code/tests | market-data persistence and series tests |
+| Exchange sessions and freshness | Verified in code/tests | session/calendar models and freshness tests |
+| Capability/entitlement/quota/health routing | Implemented; live promotion blocked | exact provider contracts, baselines, and legal controls remain unresolved |
+| Daily core refresh | Verified | UTC-dated idempotency key fix `410c25e73` |
+| Refresh throughput | Verified/configurable | `MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE`, commit `ba3893314`; deployment tuning still needs latency/quota evidence |
+| High-alert polling and evaluator preflight | Verified in code/tests | grouped alert preflight paths; deployed cadence still requires runtime validation |
+| Events, earnings, SEC facts, FINRA short interest, options, tokenized paths | Implemented with fixtures; selectively live-proven | provider entitlement/legal/account gates remain open |
+| Provider-specific operation costs and response-byte accounting | Implemented | unresolved provider plans still fail closed |
+| Admin/diagnostic APIs and queue telemetry | Verified in code/tests | backend provider, coverage, quarantine, session, queue, and shadow endpoints |
+| Compatibility aliases and yfinance isolation | Verified | yfinance remains explicit compatibility only |
+| Provider contract/live workflow enforcement | Verified | manifest, reservation, redaction, candidate-tree, and receipt checks |
+| Durable cross-session usage | Verified locally; deployment reconciliation open | owner ledger works; GitHub/RPi/production stores remain unverified |
+| NMS universe | Adapter and bounded evidence implemented | complete production reconciliation still required |
+| OTC universe | Daily List/lifecycle and candidate parsers implemented | authorized complete security-master source and rights are still required |
+| SEC directory/materialization | Staged policy implemented | clean dry-cycle review and operator admission remain required |
+| Dinari Sandbox isolation | Verified | canary is non-persisting and non-routable for ordinary production data |
+| Full current-source live matrix | Not accepted | latest elevated preflight: `0/0` cases, zero requests; provider-specific blockers recorded in `validation.jsonl` |
+| 30-day deployed shadow run | Not started by design | final gate only after all preceding controls pass |
+
+The authoritative branch workstream remains `ready_for_human_review`; it is not
+marked complete because the unresolved rows are acceptance requirements, not
+optional follow-up work.
+
 The live matrix is intentionally separate from normal unit/integration runs:
 
 ```sh
