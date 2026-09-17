@@ -245,9 +245,12 @@ remaining_gaps:
     byte ledger because the provider does not publish its reset timezone or
     byte convention. The 3 MB synchronous reservation bound and measured-byte
     settlement remain unchanged; async result-byte admission, ORF entitlement,
-    terms, and current baseline evidence remain separate gates. Focused quota
-    coverage must be replayed after this change; no generic limiter or data
-    loss is introduced.
+    terms, and current baseline evidence remain separate gates. Focused
+    registry/runtime/quota/secret coverage passes 216/216; the Docker-backed
+    complete backend gate passes 2,767/2,767 with 89 warnings at 82.06%
+    coverage. The committed-source preflight stops before transport with 0/0
+    cases and zero requests because FINRA baselines are unknown; no generic
+    limiter or data loss is introduced.
   - >-
     Marketstack's conflicting 100-versus-1,000 requests/month claims now have
     an explicit account-review gate. Routing requires positive

@@ -50,9 +50,15 @@
   measured response bytes still settle reservations. Async result-byte bounds,
   ORF entitlement, source terms, and current external baseline evidence remain
   separate admission gates; no data is dropped or permanently skipped.
-- The focused quota suite must be replayed after this change; the implementation
-  is included in the current working tree and the next Docker gate must cover it
-  before a validation receipt is committed.
+- The focused registry/runtime/quota/secret suite passed `216/216`; the
+  Docker-backed combined backend gate passed `2,767/2,767` with 89 warnings and
+  82.06% coverage. Compose/workstream/lint/diff checks also passed.
+- The committed-source provider preflight at `9919912fb` stopped before
+  transport with `0/0` cases and zero provider requests. FINRA remains blocked
+  only by unknown external request/byte baselines (plus its separate async,
+  ORF, terms, and source gates); Tiingo remains blocked by the required
+  operation-byte map. Receipt commit: `validation.jsonl` recorded in the
+  follow-up test commit.
 
 ## 2026-09-17 committed-source safety-preflight replay
 

@@ -338,9 +338,13 @@
 - [x] Keep the 3 MB synchronous response reservation and measured-byte
       settlement unchanged; this protects the durable ledger without dropping
       data or treating a guessed boundary as provider fact.
-- [ ] Replay the focused and Docker-backed gates, then refresh the committed
-      current-source live preflight. Async result-byte, ORF entitlement, legal
-      terms, and external baseline gates remain independently required.
+- [x] Replay the focused registry/runtime/quota/secret suite (`216/216`), the
+      Docker-backed combined backend gate (`2,767/2,767`, 89 warnings, 82.06%
+      coverage), and the committed-source preflight. The preflight stopped at
+      `0/0` with zero provider requests: FINRA's external request/byte
+      baselines are unknown and Tiingo's operation-byte map is unset. Async
+      result-byte, ORF entitlement, legal terms, and external baseline gates
+      remain independently required.
 
 ### 2026-09-16 — Marketstack monthly-cap admission review
 
