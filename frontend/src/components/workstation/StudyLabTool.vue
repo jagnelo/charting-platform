@@ -696,7 +696,10 @@ function applyFactoryStudy() {
 function markCustomSource() {
   factoryStudyKey.value = 'custom'
   parameterSchemaText.value = ''
-  clearOpenedStudyDefinition()
+  // PythonSourceEditor can emit while a factory template is being applied.
+  // Keep this local so that event cannot publish an intermediate configuration
+  // that races the template's parameter schema.
+  clearOpenedStudyDefinition(false)
 }
 function buildParameters() {
   const values: Record<string, unknown> = { ...openedStudyDefaultParameters.value }
@@ -919,13 +922,21 @@ async function saveAndRun() {
     run.value = createdRun
     runCodeVersionId.value = createdRun.code_version_id ?? codeVersionId
     scheduleRunPolling(createdRun.id, generation)
-    emit('configuration', {
+    const persistedConfiguration: Record<string, unknown> = {
       ...(props.configuration ?? {}),
       study_run_id: run.value.id,
       study_run_source: runSource.value,
       study_run_contract: runContract.value,
       promoted_scan_id: null,
-    })
+    }
+    if (!reuseOpenedVersion) {
+      delete persistedConfiguration.study_asset_version_id
+      delete persistedConfiguration.study_name
+      delete persistedConfiguration.study_source
+      delete persistedConfiguration.study_output_contract
+      delete persistedConfiguration.study_default_parameters
+    }
+    emit('configuration', persistedConfiguration)
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to start isolated study run' }
   finally { busy.value = false }
 }
