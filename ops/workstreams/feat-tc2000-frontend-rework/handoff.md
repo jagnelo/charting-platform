@@ -1,5 +1,34 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-18 — R6 Market Map hierarchy-state accessibility and definitive gate
+
+Product commit `a981101c` exposes the selected Market Map hierarchy/group and
+breadth breadcrumb controls through explicit `aria-pressed` state while
+preserving navigation, selection, data, and visual layout. Focused Market Map
+coverage passed `54/54`; full frontend Vitest passed `1,151/1,151`; type-check
+and production build passed; and authenticated Chromium
+`F8s-family-map-drilldown` passed `1/1`.
+
+The definitive raw-capture exact gate
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` passed
+at product tip `a981101cbe2a0838967f609cbd10e3cadc137e63`: backend combined
+coverage passed `1,621` unit and `408` integration tests at `82.26%`; frontend
+Vitest passed `1,151/1,151`; type-check/build, Compose/provider contracts,
+branch-scoped Docker health, and research-runner probes passed; authenticated
+functional Chromium passed `170` with `107` documented skips; and all four
+visual projects passed `104/104`. Teardown removed the assigned containers,
+volumes, network, four generated images, and test sessions; resource accounting
+reported zero retained resources. The standard `/usr/bin/make` wrapper remains
+unavailable because of host Xcode license status `69`; the installed
+CommandLineTools Make binary ran the same target. No provider-platform, ETF,
+visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed.
+
+The broader goal remains active: provider/ETF consumer integration is still
+sequenced behind staging, after which shared paths require semantic
+reconciliation and another exact-tip gate. This slice does not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-17 — R6 Strategy Lab result-export menu keyboard semantics and definitive gate
 
 Product commit `c3ee381bf` gives Strategy Lab's result-export trigger a stable
