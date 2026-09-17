@@ -13644,3 +13644,34 @@ F8s seeded timestamp mismatch remains classified as a transient browser/fixture
 instability. No provider-platform, ETF, visual-baseline, threshold, mask, skip,
 V25-media, or acceptance-policy behavior changed. This is a complete exact-gate
 receipt for the Symbol Performance slice, not closure of the overall workstream.
+
+## 2026-09-17 - Returns Heatmap empty-state accessibility
+
+Product commit `b9da0385d` gives the empty Returns Heatmap state explicit polite,
+atomic status semantics while preserving heatmap cell rendering, tooltip behavior,
+visible text, and layout. Focused ReturnsHeatmap coverage passed `7/7`; full
+frontend Vitest passed `1,127/1,127`; `vue-tsc` and production build passed with
+the existing large-chunk warning; TC scope validation and `git diff --check`
+passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior
+changed.
+
+## 2026-09-17 - Returns Heatmap exact integration gate
+
+The exact
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` gate
+completed at product tip `b9da0385d` with exit `0`. The saved Playwright result
+was `passed` with no failed tests; repository/workstream and locked dependency
+stages, migration compatibility, lint/format, backend unit and integration
+coverage, frontend Vitest `1,127/1,127`, type-check/build, Compose/provider
+contracts, branch-scoped Docker health, research-runner probes, authenticated
+functional Chromium, and the separate four-project TC2000 visual matrix all
+completed successfully. The host `/usr/bin/make` wrapper still exits with
+Xcode-license status `69`, so the equivalent installed CommandLineTools Make
+binary ran the same target without changing system state. Branch-scoped teardown
+and post-gate resource accounting reported zero containers, volumes, test
+sessions, known bytes, and unknown components. The preceding F8s seeded timestamp
+mismatch remains classified as transient. No provider-platform, ETF,
+visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior
+changed. This is a complete exact-gate receipt for the Returns Heatmap slice, not
+closure of the overall workstream.
