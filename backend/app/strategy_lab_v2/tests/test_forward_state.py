@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import CarryInMode, ForwardInstance, ForwardState
@@ -114,3 +114,27 @@ def test_checkpoint_rejects_overlapping_event_sets() -> None:
         assert "disjoint" in str(error)
     else:
         raise AssertionError("overlapping event sets should be rejected")
+
+
+def test_forward_event_and_cursor_times_normalize_to_utc_for_identity() -> None:
+    offset = timezone(timedelta(hours=2))
+    event = CanonicalForwardEvent(
+        "offset-event",
+        0,
+        NOW,
+        NOW,
+        SOURCE_DIGEST,
+    )
+    offset_event = CanonicalForwardEvent(
+        "offset-event",
+        0,
+        (NOW + timedelta(hours=2)).replace(tzinfo=offset),
+        (NOW + timedelta(hours=2)).replace(tzinfo=offset),
+        SOURCE_DIGEST,
+    )
+    cursor = ForwardCursor(0, "offset-event", (NOW + timedelta(hours=2)).replace(tzinfo=offset))
+
+    assert event.event_time == NOW
+    assert offset_event.event_time == NOW
+    assert cursor.last_event_time == NOW
+    assert content_digest(offset_event) == content_digest(event)

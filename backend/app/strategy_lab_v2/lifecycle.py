@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import require_sha256_digest
@@ -206,6 +206,7 @@ class CanonicalForwardEvent:
             value = getattr(self, name)
             if value.tzinfo is None or value.utcoffset() is None:
                 raise ValueError(f"{name} must be timezone-aware")
+            object.__setattr__(self, name, value.astimezone(UTC))
 
 
 @dataclass(frozen=True, slots=True)
@@ -227,6 +228,8 @@ class ForwardCursor:
             self.last_event_time.tzinfo is None or self.last_event_time.utcoffset() is None
         ):
             raise ValueError("cursor event time must be timezone-aware")
+        if self.last_event_time is not None:
+            object.__setattr__(self, "last_event_time", self.last_event_time.astimezone(UTC))
 
 
 @dataclass(frozen=True, slots=True)
