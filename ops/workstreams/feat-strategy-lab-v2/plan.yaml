@@ -346,7 +346,8 @@ progress:
     - manifest-bound-runtime-results
     - sdk-utc-event-time-normalization
     - sdk-manifest-identity-canonicalization
+    - scientific-identity-canonicalization
   total: 18
-  current_phase: sdk-manifest-identity-canonicalization-staging-ready-for-human-review
+  current_phase: scientific-identity-canonicalization-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary

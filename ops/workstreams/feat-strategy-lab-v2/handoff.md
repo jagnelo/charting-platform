@@ -3236,6 +3236,18 @@ workstream validation green. Worker image/entrypoint, application scheduling,
 migrations, upstream reconciliation, and authoritative Nautilus execution
 remain deferred behind the existing gates.
 
+## 2026-09-17 - Scientific identity canonicalization checkpoint
+
+`StrategyVersion` now validates and canonically orders exact dependency
+artifacts. `ExperimentDefinition` now rejects duplicate strategy identities and
+orders the strategy collection by fingerprint. Equivalent scientific
+declarations therefore produce one stable identity before trial expansion,
+seed derivation, and result provenance. The complete Strategy Lab v2 package
+passed 668 tests with Ruff, MyPy, `git diff --check`, and workstream validation
+green. Worker image/entrypoint, application scheduling, migrations, upstream
+reconciliation, and authoritative Nautilus execution remain deferred behind
+the existing gates.
+
 ## 2026-09-17 - Snapshot-bound event-tape/SDK binding checkpoint
 
 `bind_event_tape()` now verifies that a frozen replay tape belongs to the exact

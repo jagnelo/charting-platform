@@ -88,6 +88,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   seed, policy, replicate index/count, scope and seed-group fingerprints, and
   derivation version. Generated assignments verify their effective seed against
   the supported seed-group digest; unsupported derivation versions fail closed.
+  Strategy dependencies and experiment strategy collections are canonicalized
+  by identity, so equivalent declaration order cannot change trial provenance.
 - `capabilities.py` implements strict/degraded capability-cell preflight.
   `execution_capabilities.py` binds that data decision to a registered engine
   build and conformance fingerprint, failing closed when product, execution,
