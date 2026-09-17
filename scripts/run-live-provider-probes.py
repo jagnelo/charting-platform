@@ -493,7 +493,7 @@ LIVE_REQUIRED_OPERATIONS = {
 # Public adapter methods are not automatically equivalent merely because they
 # return a similar model.  These aliases are explicit reviewed classifications
 # for methods whose implementation delegates to another metered operation or
-# whose job is local contract math.  The inventory checker below fails closed
+    # whose job is local contract math.  The inventory checker below fails closed
 # when a new public provider method is added without one of these entries, a
 # required live operation, or an explicit disposition.
 LIVE_OPERATION_METHOD_ALIASES = {
@@ -507,6 +507,10 @@ LIVE_OPERATION_METHOD_ALIASES = {
     # service-level ingestion loop persists its cursor and resumes until the
     # direct full-history compatibility method reaches completion.
     "fetch_instrument_events_page": "fetch_instrument_events",
+    # Dinari's page-aware corporate-action adapter is the resumable form of
+    # the same provider operation; its tuple carries the opaque continuation
+    # cursor but does not create a second upstream capability.
+    "fetch_tokenized_corporate_actions_page": "fetch_tokenized_corporate_actions",
 }
 LIVE_LOCAL_PROVIDER_METHODS = frozenset(
     {
