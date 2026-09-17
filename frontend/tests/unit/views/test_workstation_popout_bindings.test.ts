@@ -636,6 +636,44 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('keeps each shell menu trigger linked to its controlled menu', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+      attachTo: document.body,
+    })
+
+    const triggers = [
+      wrapper.get('button[title="Manage workspace layouts"]'),
+      wrapper.get('button[title="Keyboard shortcuts"]'),
+      wrapper.get('button[aria-label="Recent symbols"]'),
+      wrapper.get('button[title="Open a workstation tool"]'),
+    ]
+    const menuIds = triggers.map(trigger => trigger.attributes('aria-controls'))
+
+    expect(menuIds.every(Boolean)).toBe(true)
+    expect(new Set(menuIds).size).toBe(menuIds.length)
+    expect(triggers.every(trigger => trigger.attributes('aria-expanded') === 'false')).toBe(true)
+
+    const menuSelectors = [
+      '.workstation__workspace-popover',
+      '.workstation__help-popover',
+      '.workstation__recent-symbols',
+      '.workstation__tool-library-menu',
+    ]
+    for (let index = 0; index < triggers.length; index += 1) {
+      await triggers[index].trigger('click')
+      const menu = wrapper.get(menuSelectors[index])
+      expect(menu.attributes('id')).toBe(menuIds[index])
+      expect(triggers[index].attributes('aria-expanded')).toBe('true')
+      await triggers[index].trigger('click')
+      expect(wrapper.find(menuSelectors[index]).exists()).toBe(false)
+    }
+
+    wrapper.unmount()
+  })
+
   it('opens the recent-symbol menu at its last item when ArrowUp is pressed', async () => {
     routeState.path = '/'
     routeState.params = {}

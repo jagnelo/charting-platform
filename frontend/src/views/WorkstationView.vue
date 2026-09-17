@@ -4,8 +4,8 @@
       <div class="workstation__brand">CHARTING WORKSTATION</div>
       <nav aria-label="Application menu">
         <div class="workstation__workspace-menu">
-          <button ref="workspaceMenuTrigger" type="button" title="Manage workspace layouts" aria-haspopup="menu" :aria-expanded="workspaceMenuOpen" @click="toggleWorkspaceMenu" @keydown="handleShellTriggerKeydown('workspace', $event)">Workspace</button>
-          <div v-if="workspaceMenuOpen" ref="workspaceMenuRoot" class="workstation__workspace-popover" role="menu" tabindex="-1" aria-label="Workspace layouts" :style="workspaceMenuStyle" @click.stop @keydown.capture="handleShellMenuKeydown('workspace', $event)">
+          <button ref="workspaceMenuTrigger" type="button" title="Manage workspace layouts" aria-haspopup="menu" :aria-expanded="workspaceMenuOpen" :aria-controls="workspaceMenuId" @click="toggleWorkspaceMenu" @keydown="handleShellTriggerKeydown('workspace', $event)">Workspace</button>
+          <div v-if="workspaceMenuOpen" :id="workspaceMenuId" ref="workspaceMenuRoot" class="workstation__workspace-popover" role="menu" tabindex="-1" aria-label="Workspace layouts" :style="workspaceMenuStyle" @click.stop @keydown.capture="handleShellMenuKeydown('workspace', $event)">
             <header><strong>Workspaces</strong><small>{{ workspaceStore.workspace?.name ?? 'Workspace' }}</small></header>
             <div class="workstation__workspace-list" role="listbox" aria-label="Saved workspaces" tabindex="0" :aria-activedescendant="workspaceStore.workspaces[workspaceOptionIndex] ? `saved-workspace-${workspaceStore.workspaces[workspaceOptionIndex].id}` : undefined" @keydown.stop="handleWorkspaceListKeydown" @focus="syncWorkspaceOptionIndex">
               <span v-if="!workspaceStore.workspaces.length" role="status">Loading workspaces…</span>
@@ -34,8 +34,8 @@
         <button type="button" title="Open Study Lab layout" @click="openStudyLab">Study</button>
         <button type="button" title="Open active-symbol alerts" @click="openAlertsTool">Alerts</button>
         <div class="workstation__help-menu">
-          <button ref="keyboardHelpTrigger" type="button" title="Keyboard shortcuts" aria-haspopup="menu" :aria-expanded="keyboardHelpOpen" @click="toggleKeyboardHelp()" @keydown="handleShellTriggerKeydown('help', $event)">Help</button>
-          <div v-if="keyboardHelpOpen" ref="keyboardHelpMenuRoot" class="workstation__help-popover" role="menu" aria-label="Keyboard shortcuts" :style="keyboardHelpMenuStyle" @click.stop @keydown="handleShellMenuKeydown('help', $event)">
+          <button ref="keyboardHelpTrigger" type="button" title="Keyboard shortcuts" aria-haspopup="menu" :aria-expanded="keyboardHelpOpen" :aria-controls="keyboardHelpMenuId" @click="toggleKeyboardHelp()" @keydown="handleShellTriggerKeydown('help', $event)">Help</button>
+          <div v-if="keyboardHelpOpen" :id="keyboardHelpMenuId" ref="keyboardHelpMenuRoot" class="workstation__help-popover" role="menu" aria-label="Keyboard shortcuts" :style="keyboardHelpMenuStyle" @click.stop @keydown="handleShellMenuKeydown('help', $event)">
             <header><strong>Keyboard shortcuts</strong><button type="button" role="menuitem" tabindex="-1" aria-label="Close keyboard shortcuts" @click="closeShellMenuToTrigger('help')"><WorkstationGlyph kind="close" /></button></header>
             <dl>
               <div><dt>Type</dt><dd>Open symbol search</dd></div>
@@ -75,12 +75,13 @@
           aria-label="Recent symbols"
           aria-haspopup="menu"
           :aria-expanded="recentSymbolsOpen"
+          :aria-controls="recentSymbolsMenuId"
           :disabled="!recentStore.recent.length"
           ref="recentSymbolsTrigger"
           @click.stop="toggleRecentSymbols()"
           @keydown="handleShellTriggerKeydown('recent', $event)"
         ><WorkstationGlyph kind="chevron-down" /></button>
-        <div v-if="recentSymbolsOpen && recentStore.recent.length" ref="recentSymbolsMenuRoot" class="workstation__recent-symbols" role="menu" aria-label="Recent symbols" :style="recentSymbolsMenuStyle" @click.stop @keydown="handleShellMenuKeydown('recent', $event)">
+        <div v-if="recentSymbolsOpen && recentStore.recent.length" :id="recentSymbolsMenuId" ref="recentSymbolsMenuRoot" class="workstation__recent-symbols" role="menu" aria-label="Recent symbols" :style="recentSymbolsMenuStyle" @click.stop @keydown="handleShellMenuKeydown('recent', $event)">
           <header><strong>Recent symbols</strong><button type="button" role="menuitem" tabindex="-1" aria-label="Clear recent symbols" @click="recentStore.clear()">Clear</button></header>
           <button v-for="item in recentStore.recent" :key="item.symbol" type="button" role="menuitem" tabindex="-1" @click="selectRecentSymbol(item.symbol)">
             <strong>{{ item.symbol }}</strong><span>{{ item.name || 'Viewed instrument' }}</span>
@@ -139,8 +140,8 @@
       >{{ tab.name }}</button>
       <button type="button" class="workstation__tab-add" title="Clone active layout" aria-label="Clone active layout" @click="workspaceStore.cloneActiveTab()">+</button>
       <div class="workstation__tool-library">
-          <button ref="toolLibraryTrigger" type="button" class="workstation__tab-add" title="Open a workstation tool" aria-haspopup="menu" :aria-expanded="toolLibraryOpen" @click="toggleToolLibrary()" @keydown="handleShellTriggerKeydown('tool-library', $event)">Add tool</button>
-        <div v-if="toolLibraryOpen" ref="toolLibraryMenuRoot" class="workstation__tool-library-menu" role="menu" aria-label="Workstation tools" :style="toolLibraryMenuStyle" @keydown="handleShellMenuKeydown('tool-library', $event)">
+          <button ref="toolLibraryTrigger" type="button" class="workstation__tab-add" title="Open a workstation tool" aria-haspopup="menu" :aria-expanded="toolLibraryOpen" :aria-controls="toolLibraryMenuId" @click="toggleToolLibrary()" @keydown="handleShellTriggerKeydown('tool-library', $event)">Add tool</button>
+        <div v-if="toolLibraryOpen" :id="toolLibraryMenuId" ref="toolLibraryMenuRoot" class="workstation__tool-library-menu" role="menu" aria-label="Workstation tools" :style="toolLibraryMenuStyle" @keydown="handleShellMenuKeydown('tool-library', $event)">
           <button v-for="tool in openableTools" :key="tool.instance_prefix" type="button" role="menuitem" tabindex="-1" @click="openTool(tool)">{{ tool.title }}</button>
         </div>
       </div>
@@ -248,6 +249,10 @@ const workstationInstanceId = useId()
 const symbolResultsId = `${workstationInstanceId}-symbol-results`
 const symbolSearchStateId = `${workstationInstanceId}-symbol-search-state`
 const symbolOptionId = (index: number) => `${workstationInstanceId}-symbol-option-${index}`
+const workspaceMenuId = `${workstationInstanceId}-workspace-menu`
+const keyboardHelpMenuId = `${workstationInstanceId}-keyboard-help-menu`
+const recentSymbolsMenuId = `${workstationInstanceId}-recent-symbols-menu`
+const toolLibraryMenuId = `${workstationInstanceId}-tool-library-menu`
 const popoutContextId = `${workstationInstanceId}-popout-context`
 const symbolInput = ref<HTMLInputElement | null>(null)
 const workspaceMenuTrigger = ref<HTMLButtonElement | null>(null)
