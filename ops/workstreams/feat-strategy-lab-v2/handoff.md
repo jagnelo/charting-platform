@@ -3267,8 +3267,11 @@ restricted loader resolves the declared dotted callable path instead of only
 top-level names. The `strategy_runtime` package exposes its custom-metric wire
 helpers lazily, preserving the earlier import-cycle fix while retaining a
 convenient public API. Focused coverage passed 10 tests with Ruff and MyPy
-green; the full branch and combined coverage receipts will be refreshed at the
-committed tip.
+green. The exact pushed tip passed the branch gate: 683 package tests, Ruff,
+MyPy across 237 source files, diff check, and workstream validation. The same
+tip passed the Docker-backed combined coverage gate: 2,330 tests with 83.68%
+total coverage, above the required 75% threshold; setup and cleanup completed
+successfully.
 
 ## 2026-09-17 - Combined backend coverage revalidation
 
