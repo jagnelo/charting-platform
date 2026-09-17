@@ -1,13 +1,13 @@
 <template>
   <section v-if="instrument" class="info-section" role="region" :aria-label="`${instrument.symbol} instrument report`" :class="{ collapsed: !isOpen }">
-    <div class="section-header" role="button" tabindex="0" :aria-expanded="isOpen" @click="toggleOpen" @keydown.enter.stop.prevent="toggleOpen" @keydown.space.stop.prevent="toggleOpen">
+    <div class="section-header" role="button" tabindex="0" :aria-expanded="isOpen" :aria-controls="`${reportBodyId}-body`" @click="toggleOpen" @keydown.enter.stop.prevent="toggleOpen" @keydown.space.stop.prevent="toggleOpen">
       <span class="section-title">{{ instrument.name }}</span>
       <span v-if="instrument.currency" class="info-currency">{{ instrument.currency }}</span>
       <span class="section-chevron"><WorkstationGlyph :kind="isOpen ? 'chevron-down' : 'chevron-right'" /></span>
     </div>
 
     <Transition name="slide">
-      <div v-if="isOpen" class="info-body">
+      <div v-if="isOpen" :id="`${reportBodyId}-body`" class="info-body">
 
         <!-- Synthetic expression + constituents -->
         <template v-if="instrument.is_synthetic">
@@ -144,7 +144,7 @@
 
 <script setup lang="ts">
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
-import { ref, computed } from 'vue'
+import { ref, computed, useId } from 'vue'
 import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import ProvenanceHint from '@/components/common/ProvenanceHint.vue'
 import type { Instrument } from '@/types'
@@ -161,6 +161,7 @@ const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null
 
 const isOpen      = ref(true)
 const descExpanded = ref(false)
+const reportBodyId = useId()
 function toggleOpen() { isOpen.value = !isOpen.value }
 
 const stats = computed(() => props.instrument?.stats ?? null)
