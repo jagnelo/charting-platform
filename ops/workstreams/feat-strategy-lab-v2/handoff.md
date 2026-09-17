@@ -25,10 +25,11 @@ and both the standalone and shared-persistence factories expose this wiring.
 
 Focused artifact/application/persistence tests passed (13 tests), and the full
 Strategy Lab v2 package passed 737 tests with Ruff/MyPy green. The exact
-backend coverage gate and branch checkpoint remain to be run for this slice.
-Orphan discovery, scheduled cleanup, migration startup, worker process/runtime
-execution, upstream contract reconciliation, and stable Nautilus activation
-remain deferred.
+backend gate then passed 2,386 tests with 83.75% combined coverage (required
+threshold: 75%); branch-scoped Docker resources were cleaned and no retained
+testcontainer sessions remain. Orphan discovery, scheduled cleanup, migration
+startup, worker process/runtime execution, upstream contract reconciliation,
+and stable Nautilus activation remain deferred.
 
 ## 2026-09-17 - Durable dispatch-payload materialization
 
