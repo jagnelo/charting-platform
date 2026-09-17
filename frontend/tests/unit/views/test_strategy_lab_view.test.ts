@@ -575,6 +575,7 @@ describe('StrategyLabView', () => {
     expect(heading).toBeTruthy()
     expect(heading!.attributes('role')).toBe('button')
     expect(heading!.attributes('tabindex')).toBe('0')
+    expect(heading!.attributes('aria-controls')).toBe('strategy-profile-panel')
 
     const initialExpanded = heading!.attributes('aria-expanded')
     await heading!.trigger('keydown', { key: 'Enter' })
