@@ -14,6 +14,9 @@
 - [x] Run Alpaca's configured paper credentials through the account-usage-only
       live case: `1/1` passed with one request. Keep ordinary routing disabled
       until the reset boundary and current quota evidence are reviewed.
+- [x] Run EODHD, Twelve Data, and Binance account-usage-only probes: `1/1`
+      passed for each. Record OpenFIGI's current typed `429` without a blind
+      retry; earlier bounded anonymous evidence remains the accepted proof.
 - [x] Verify the live receipts contain only redacted aggregate telemetry while
       the durable owner-local quota ledger remains outside Git; no secrets or
       provider payloads were persisted.

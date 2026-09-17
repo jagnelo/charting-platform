@@ -16,6 +16,10 @@
   case (`1/1`, one request, 125 response bytes). This records the native
   account-usage transport, but the provider's reset boundary and current quota
   evidence remain unresolved, so ordinary Alpaca routing stays fail-closed.
+- EODHD, Twelve Data, and Binance each passed their account-usage-only live
+  case (`1/1` each). The current OpenFIGI anonymous account-usage probe returned
+  a typed upstream `429`; it was recorded without a blind retry, and does not
+  replace the earlier bounded anonymous evidence.
 - The receipts contain aggregate request/byte telemetry only. No credential,
   response payload, frontend file, or ETF-provider adapter changed.
 

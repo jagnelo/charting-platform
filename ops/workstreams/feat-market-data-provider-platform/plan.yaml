@@ -755,8 +755,11 @@ progress:
       commercial terms remain unknown. Receipts contain aggregate telemetry
       only; Alpaca's configured paper credentials also passed the account-usage
       only live case 1/1 (one request, 125 response bytes), while its reset
-      boundary and current evidence remain unresolved. No frontend or ETF files
-      changed.
+      boundary and current evidence remain unresolved. EODHD, Twelve Data, and
+      Binance each also passed account-usage-only 1/1. The current OpenFIGI
+      anonymous account-usage probe returned a typed upstream 429; it was
+      recorded without a blind retry and does not replace earlier bounded
+      anonymous evidence. No frontend or ETF files changed.
     - >-
       2026-09-17 EODHD routing-control regression correction: the diagnostic
       path no longer rejects a positive reviewed minute entitlement merely
