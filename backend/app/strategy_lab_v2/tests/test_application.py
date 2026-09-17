@@ -6,6 +6,7 @@ from app.strategy_lab_v2.application import (
     create_registered_strategy_lab_v2_router,
     get_strategy_lab_v2_adapter,
 )
+from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_commands import PostgresCommandAdapter
 from app.strategy_lab_v2.postgres_execution_state import PostgresExecutionStateAdapter
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
@@ -35,6 +36,7 @@ def test_principal_identity_rejects_missing_or_boolean_identity() -> None:
 def test_application_adapter_composes_all_durable_api_adapters() -> None:
     adapter = PostgresStrategyLabV2Adapter(lambda: object())
 
+    assert isinstance(adapter._persistence, PostgresStrategyLabV2Persistence)
     assert isinstance(adapter._resources, PostgresResourceReader)
     assert isinstance(adapter._submissions, PostgresSubmissionDispatchAdapter)
     assert isinstance(adapter._execution_state, PostgresExecutionStateAdapter)

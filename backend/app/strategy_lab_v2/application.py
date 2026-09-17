@@ -26,11 +26,7 @@ from app.strategy_lab_v2.api_router import (
     create_strategy_lab_router,
 )
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
-from app.strategy_lab_v2.postgres_commands import PostgresCommandAdapter
-from app.strategy_lab_v2.postgres_execution_state import PostgresExecutionStateAdapter
-from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
-from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
-from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
+from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.submissions import SubmissionRequest
 
 
@@ -72,14 +68,11 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise TypeError("session_factory must be callable")
         if not callable(clock):
             raise TypeError("clock must be callable")
-        self._resources = PostgresResourceReader(PostgresAggregateStore(session_factory))
-        self._submissions = PostgresSubmissionDispatchAdapter(session_factory, clock=clock)
-        self._execution_state = PostgresExecutionStateAdapter(session_factory)
-        self._commands = PostgresCommandAdapter(
-            session_factory,
-            self._execution_state.read_context,
-            clock=clock,
-        )
+        self._persistence = PostgresStrategyLabV2Persistence.build(session_factory, clock=clock)
+        self._resources = self._persistence.resources
+        self._submissions = self._persistence.submissions
+        self._execution_state = self._persistence.execution_state
+        self._commands = self._persistence.commands
 
     async def list_resources(
         self,
