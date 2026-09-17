@@ -846,6 +846,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   exception-type-only digest; exception text and process-specific repr values
   never affect the published result. The dedicated worker image/entrypoint and
   Docker activation are still separate integration gates.
+- Runtime request serialization/deserialization now rejects any source bytes
+  whose content digest differs from the immutable SDK manifest. This keeps
+  malformed source/manifest pairs out of mounted bundles instead of deferring
+  the contradiction to strategy invocation.
 - `engine_execution.py` binds the final Nautilus invocation gate to execution
   authorization, runtime preflight, sandbox request identity, data-snapshot
   identity, hardened sandbox argv validation, and complete conformance

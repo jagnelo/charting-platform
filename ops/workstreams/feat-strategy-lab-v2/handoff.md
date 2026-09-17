@@ -104,6 +104,21 @@ Docker-backed combined coverage gate recorded below after this exact-tip
 checkpoint. Worker image/entrypoint, application scheduling, migrations,
 upstream reconciliation, and authoritative Nautilus execution remain deferred.
 
+## 2026-09-17 - Runtime wire source-binding hardening
+
+Single and batch invocation serializers and decoders now verify that the source
+bytes match the SDK manifest's declared source digest. Contradictory envelopes
+are rejected at the wire boundary, before a mounted bundle or strategy session
+can be created. Regression coverage includes both serializer-side mismatch and
+tampered single/batch payloads.
+
+The full Strategy Lab package gate passes 665 tests with Ruff, MyPy,
+`git diff --check`, and workstream validation green. The Docker-backed combined
+coverage gate passes 2,312 tests with 83.62% total coverage (required threshold:
+75%); setup and cleanup completed successfully. Worker image/entrypoint,
+application scheduling, migrations, upstream reconciliation, and authoritative
+Nautilus execution remain deferred.
+
 ## 2026-09-17 - Deterministic runtime identity hardening
 
 The strategy runtime wire protocol now normalizes every timezone-aware
