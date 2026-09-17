@@ -3,7 +3,7 @@
 ## Current acceptance audit — 2026-09-17
 
 This is the current implementation boundary for
-`feat/market-data-provider-platform` at source `4ff3e4c59`. “Verified” means
+`feat/market-data-provider-platform` at source `1d23a8f02`. “Verified” means
 repository-controlled behavior has automated evidence; it does not imply
 that external entitlement, licensing, deployment, or account state has been
 approved.
