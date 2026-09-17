@@ -698,8 +698,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   Streams transport, and compare-and-set acknowledges publication afterward.
   Redis enqueue/replay is therefore safe across crashes, while a lost
   acknowledgement leaves the authoritative row pending for a later retry.
-  The caller still owns relay scheduling, Redis client lifecycle, migration
-  startup, and worker activation.
+  `OutboxRelayScheduler` now supplies a bounded, cancellable periodic loop with
+  injected clock/sleep controls for deterministic tests. The caller still owns
+  Redis client lifecycle, migration startup, and worker activation.
 - `postgres_resources.py` supplies the read-only persistence bridge for that
   boundary. It projects authenticated-owner aggregate snapshots into immutable
   resource documents, orders pages deterministically, and binds every cursor to
@@ -1002,8 +1003,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `outbox_application.py` provides the durable caller for that pure relay:
   it loads the complete authenticated outbox, bounds each relay cycle, and
   persists publication through PostgreSQL compare-and-set acknowledgement.
-  This composes Redis idempotency with authoritative database state without
-  claiming that scheduling or worker activation is complete.
+  `OutboxRelayScheduler` adds bounded periodic execution with explicit
+  cancellation and injectable time controls. This composes Redis idempotency
+  with authoritative database state without claiming that Redis client
+  lifecycle or worker activation is complete.
 - `worker_consumer.py` provides the bounded Redis worker pump. It ensures the
   consumer group, reclaims idle deliveries before reading new entries, and
   requires an explicit handler receipt. Only a content-matched completed

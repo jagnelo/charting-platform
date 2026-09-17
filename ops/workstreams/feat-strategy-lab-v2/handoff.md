@@ -12,6 +12,22 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Bounded outbox relay scheduling
+
+`outbox_application.py` now includes `OutboxRelayScheduler`, an application
+owned loop that executes bounded relay cycles at an injected clock instant and
+stops on an explicit cancellation event. Interval and batch limits are finite
+and validated; clock/sleep injection keeps scheduling deterministic in tests,
+while the underlying Redis enqueue and PostgreSQL acknowledgement remain
+idempotent and authoritative respectively. Redis client construction and
+process lifecycle are still caller-owned.
+
+The full Strategy Lab v2 package passed 727 tests with Ruff and MyPy green.
+The exact-worktree backend gate passed 2,375 tests with 83.78% combined coverage
+(required threshold: 75%), and branch-scoped Docker resources were cleaned
+afterward. Production Redis lifecycle, migration startup, worker entrypoints,
+isolated execution, and stable Nautilus activation remain deferred.
+
 ## 2026-09-17 - Owner-scoped artifact resource projection
 
 `postgres_result_materialization.py` now exposes authenticated artifact

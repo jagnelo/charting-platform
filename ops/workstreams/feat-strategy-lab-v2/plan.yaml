@@ -373,6 +373,12 @@ remaining_gaps:
   - Asynchronous submission, admission, runtime, outcome, progress, command, authorization, and execution-summary timestamps now normalize aware offsets to UTC before identity checks; application persistence and worker wiring remain open.
   - Run-attempt and worker-lease lifecycle timestamps now normalize aware offsets to UTC before transition, capacity, and retry-lineage identity checks; application persistence and worker wiring remain open.
   - PostgreSQL execution-event transaction persistence now exposes authenticated outbox loading and compare-and-set publication acknowledgement; `outbox_application.py` relays available messages to Redis with idempotent replay and leaves failed acknowledgements pending for retry. Worker pump, relay scheduling, Redis production client lifecycle, migration startup, and runtime activation remain open.
+  - >-
+      `OutboxRelayScheduler` now provides bounded periodic relay cycles with
+      finite interval/batch validation, injected clock/sleep controls, and
+      explicit cancellation; Redis client construction, process lifecycle,
+      migration startup, worker entrypoints, and runtime activation remain
+      open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -430,7 +436,8 @@ progress:
     - strategy-lab-v2-relational-api-resource-projections
     - strategy-lab-v2-postgres-outbox-redis-relay
     - strategy-lab-v2-artifact-resource-projection
+    - strategy-lab-v2-bounded-outbox-relay-scheduling
   total: 18
-  current_phase: strategy-lab-v2-artifact-resource-projection-staging-ready-for-human-review
+  current_phase: strategy-lab-v2-bounded-outbox-relay-scheduling-staging-ready-for-human-review
   current_blocker: worker/runtime integration, migration startup, artifact byte/retention lifecycle, stable Nautilus release, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add migration startup, isolated worker/runtime integration, and artifact byte/retention lifecycle without changing the engine-neutral boundary
