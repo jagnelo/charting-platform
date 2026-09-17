@@ -11,6 +11,24 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable artifact-commit checkpoint
+
+`postgres_artifact_commit.py` now maps immutable artifact-publication commit
+records to an additive PostgreSQL ledger. It locks and authenticates the
+complete commit set, preserves create-if-absent and exact-replay semantics,
+and protects storage-key uniqueness so a different manifest cannot reuse an
+immutable address. The adapter only stages commit evidence; artifact-byte
+publication, manifest validation, retention policy, migration application, and
+application wiring remain outside this package-local boundary.
+
+The focused artifact-commit suite passed 4 tests. The complete Strategy Lab v2
+package passed 557 tests with Ruff, MyPy, and `git diff --check` clean. All
+five declared branch checks passed, and the Docker-backed combined gate passed
+2,204 tests with 83.20% total coverage (required threshold: 75%), with setup
+and cleanup successful. Schema migrations, application wiring, worker
+entrypoints, Compose integration, upstream reconciliation, and stable Nautilus
+execution remain open shared-path gates.
+
 ## 2026-09-17 - Durable artifact-retention checkpoint
 
 `postgres_artifact_retention.py` now maps manifest-bound retention state and

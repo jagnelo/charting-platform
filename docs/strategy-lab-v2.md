@@ -647,6 +647,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   without deleting or tiering bytes. Malformed, foreign, tampered, or
   compare-and-set-racing rows fail closed; artifact publication, migrations,
   authorization, and storage lifecycle effects remain outside this adapter.
+- `postgres_artifact_commit.py` maps immutable artifact-publication commit
+  records to an additive PostgreSQL ledger. It locks and authenticates the
+  complete commit set, preserves create-if-absent semantics and exact retries,
+  and lets storage-key collisions return the pure conflict decision before any
+  write. Artifact bytes, manifest validation, retention policy, migrations, and
+  application wiring remain outside this registration-neutral adapter.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.
