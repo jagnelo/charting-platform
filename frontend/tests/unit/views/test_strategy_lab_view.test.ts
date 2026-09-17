@@ -1428,7 +1428,12 @@ describe('StrategyLabView', () => {
     const subsetWrapper = mountView()
     await flushPromises()
     await ensurePanelExpanded(subsetWrapper, 'Research runs')
-    ;(subsetWrapper.get('.advanced-toggle').element as HTMLButtonElement).click()
+    const advancedToggle = subsetWrapper.get('.advanced-toggle')
+    expect(advancedToggle.attributes('aria-expanded')).toBe('false')
+    expect(advancedToggle.attributes('aria-controls')).toBe('strategy-advanced-run-options')
+    await advancedToggle.trigger('click')
+    expect(advancedToggle.attributes('aria-expanded')).toBe('true')
+    expect(subsetWrapper.get('#strategy-advanced-run-options').exists()).toBe(true)
     await flushPromises()
 
     const subsetToggle = subsetWrapper.get('.advanced-panel .field--checkbox input[type="checkbox"]')
@@ -1437,7 +1442,11 @@ describe('StrategyLabView', () => {
 
     const subsetTrigger = subsetWrapper.findAll('button').find(button => button.text().includes('Select at least one symbol'))
     expect(subsetTrigger).toBeTruthy()
+    expect(subsetTrigger!.attributes('aria-expanded')).toBe('false')
+    expect(subsetTrigger!.attributes('aria-controls')).toBe('strategy-run-subset-menu')
     await subsetTrigger!.trigger('click')
+    expect(subsetTrigger!.attributes('aria-expanded')).toBe('true')
+    expect(subsetWrapper.get('#strategy-run-subset-menu').exists()).toBe(true)
     await flushPromises()
 
     const subsetOptions = subsetWrapper.findAll('.multi-select-option')

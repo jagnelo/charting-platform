@@ -970,6 +970,8 @@
             <button
               type="button"
               class="advanced-toggle"
+              aria-controls="strategy-advanced-run-options"
+              :aria-expanded="showAdvancedRunOptions ? 'true' : 'false'"
               @click="showAdvancedRunOptions = !showAdvancedRunOptions"
             >
               <span class="advanced-toggle__title">
@@ -978,7 +980,7 @@
               </span>
             </button>
 
-            <div v-show="showAdvancedRunOptions" class="advanced-panel">
+            <div v-show="showAdvancedRunOptions" id="strategy-advanced-run-options" class="advanced-panel">
               <template v-if="availableRunSubsetSymbols.length">
                 <div class="subsection-head">
                   <div class="subsection-title">
@@ -999,12 +1001,14 @@
                     type="button"
                     class="multi-select-trigger"
                     :class="{ 'form-select--invalid': showRunSubsetValidation }"
+                    aria-controls="strategy-run-subset-menu"
+                    :aria-expanded="runSubsetMenuOpen ? 'true' : 'false'"
                     @click="runSubsetMenuOpen = !runSubsetMenuOpen"
                   >
                     <span>{{ runSubsetSummary }}</span>
                     <span class="multi-select-caret">{{ runSubsetMenuOpen ? '▴' : '▾' }}</span>
                   </button>
-                  <div v-if="runSubsetMenuOpen" class="multi-select-menu">
+                  <div v-if="runSubsetMenuOpen" id="strategy-run-subset-menu" class="multi-select-menu">
                     <label
                       v-for="symbol in availableRunSubsetSymbols"
                       :key="symbol"
