@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from importlib import import_module
 from typing import Any
 
 from app.strategy_lab_v2.outbox_application import OutboxPersistence, OutboxRelayService
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
-from app.strategy_lab_v2.worker_consumer import RedisDispatchWorker
+from app.strategy_lab_v2.worker_consumer import (
+    RedisDispatchWorker,
+    RedisDispatchWorkerScheduler,
+)
 
 
 class RedisDispatchRuntime:
@@ -93,6 +96,21 @@ class RedisDispatchRuntime:
             reclaim_idle_ms=reclaim_idle_ms,
             batch_size=batch_size,
             block_ms=block_ms,
+        )
+
+    def worker_scheduler(
+        self,
+        worker: RedisDispatchWorker,
+        *,
+        interval_seconds: float = 1.0,
+        sleep: Callable[[float], Awaitable[None]],
+    ) -> RedisDispatchWorkerScheduler:
+        """Build a cancellable scheduler for one bounded worker pump."""
+
+        return RedisDispatchWorkerScheduler(
+            worker,
+            interval_seconds=interval_seconds,
+            sleep=sleep,
         )
 
     async def aclose(self) -> None:

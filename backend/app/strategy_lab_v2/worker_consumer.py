@@ -12,7 +12,8 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Protocol
+from math import isfinite
+from typing import Any, Protocol
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload, DispatchPayloadLoader
@@ -372,6 +373,67 @@ class RedisDispatchWorker:
             return await handler(entry, payload)
 
         return await self.handle_once(materialized)
+
+
+class RedisDispatchWorkerScheduler:
+    """Run bounded worker cycles until an explicit cancellation signal."""
+
+    def __init__(
+        self,
+        worker: RedisDispatchWorker,
+        *,
+        interval_seconds: float = 1.0,
+        sleep: Callable[[float], Awaitable[None]],
+    ) -> None:
+        if not isinstance(worker, RedisDispatchWorker):
+            raise TypeError("worker must be a RedisDispatchWorker")
+        if (
+            not isinstance(interval_seconds, int | float)
+            or isinstance(interval_seconds, bool)
+            or not isfinite(interval_seconds)
+            or interval_seconds <= 0
+        ):
+            raise ValueError("interval_seconds must be a finite positive number")
+        if not callable(sleep):
+            raise TypeError("sleep must be callable")
+        self._worker = worker
+        self._interval_seconds = float(interval_seconds)
+        self._sleep = sleep
+
+    @property
+    def worker(self) -> RedisDispatchWorker:
+        return self._worker
+
+    async def run(
+        self,
+        stop_event: Any,
+        handler: WorkerEntryHandler | MaterializedWorkerEntryHandler,
+        *,
+        payload_loader: DispatchPayloadLoader | None = None,
+        max_cycles: int | None = None,
+    ) -> tuple[WorkerCycleResolution, ...]:
+        """Execute one bounded cycle at a time until stopped or capped."""
+
+        if not callable(getattr(stop_event, "is_set", None)):
+            raise TypeError("stop_event must expose is_set()")
+        if not callable(handler):
+            raise TypeError("handler must be callable")
+        if max_cycles is not None and (
+            not isinstance(max_cycles, int) or isinstance(max_cycles, bool) or max_cycles < 1
+        ):
+            raise ValueError("max_cycles must be a positive integer when provided")
+        cycles: list[WorkerCycleResolution] = []
+        while not stop_event.is_set() and (max_cycles is None or len(cycles) < max_cycles):
+            cycle = (
+                await self._worker.handle_materialized_once(payload_loader, handler)  # type: ignore[arg-type]
+                if payload_loader is not None
+                else await self._worker.handle_once(handler)  # type: ignore[arg-type]
+            )
+            cycles.append(cycle)
+            if stop_event.is_set() or (max_cycles is not None and len(cycles) >= max_cycles):
+                break
+            await self._sleep(self._interval_seconds)
+        return tuple(cycles)
 
 
 HandlerCallable = Callable[[RedisStreamEntry], Awaitable[WorkerHandleResult]]

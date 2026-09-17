@@ -9,6 +9,7 @@ from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport, RedisStreamEntry
 from app.strategy_lab_v2.worker_consumer import (
     RedisDispatchWorker,
+    RedisDispatchWorkerScheduler,
     WorkerEntryDecision,
     WorkerHandleDecision,
     WorkerHandleResult,
@@ -245,6 +246,53 @@ async def test_group_setup_failure_returns_typed_empty_poll() -> None:
     assert result.decision is WorkerPollDecision.REJECT
     assert result.entries == ()
     assert result.rejection_reason
+
+
+@pytest.mark.asyncio
+async def test_worker_scheduler_runs_bounded_cycles_and_stops_explicitly() -> None:
+    entry = _entry()
+    redis = FakeRedis(fresh=_stream_response(entry))
+    worker = RedisDispatchWorker(
+        RedisDispatchTransport(redis),
+        queue_name="backtest",
+        group_name="workers",
+        consumer_name="worker-1",
+    )
+    sleeps: list[float] = []
+
+    class StopEvent:
+        def __init__(self) -> None:
+            self.stopped = False
+
+        def is_set(self) -> bool:
+            return self.stopped
+
+    stop = StopEvent()
+
+    async def sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+        stop.stopped = True
+
+    scheduler = RedisDispatchWorkerScheduler(worker, interval_seconds=2, sleep=sleep)
+    cycles = await scheduler.run(stop, _complete_handler)
+
+    assert len(cycles) == 1
+    assert cycles[0].entries[0].decision is WorkerEntryDecision.ACKNOWLEDGED
+    assert sleeps == [2.0]
+
+
+def test_worker_scheduler_rejects_invalid_configuration() -> None:
+    worker = RedisDispatchWorker(
+        RedisDispatchTransport(FakeRedis()),
+        queue_name="backtest",
+        group_name="workers",
+        consumer_name="worker-1",
+    )
+    async def sleep(_: float) -> None:
+        return None
+
+    with pytest.raises(ValueError, match="interval_seconds"):
+        RedisDispatchWorkerScheduler(worker, interval_seconds=0, sleep=sleep)
 
 
 def test_handler_result_requires_terminal_receipt_or_reason() -> None:

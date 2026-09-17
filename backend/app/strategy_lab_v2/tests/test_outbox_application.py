@@ -16,6 +16,7 @@ from app.strategy_lab_v2.outbox import (
 from app.strategy_lab_v2.outbox_application import OutboxRelayScheduler, OutboxRelayService
 from app.strategy_lab_v2.redis_application import RedisDispatchRuntime
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
+from app.strategy_lab_v2.worker_consumer import RedisDispatchWorkerScheduler
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 
@@ -177,6 +178,12 @@ async def test_redis_runtime_composes_transport_relay_and_closes_once() -> None:
 
     assert isinstance(relay, OutboxRelayService)
     assert worker._queue_name == "backtest"
+
+    async def sleep(_: float) -> None:
+        return None
+
+    scheduler = runtime.worker_scheduler(worker, sleep=sleep)
+    assert isinstance(scheduler, RedisDispatchWorkerScheduler)
     await runtime.aclose()
     await runtime.aclose()
     assert client.close_calls == 1
