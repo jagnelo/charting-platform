@@ -13675,3 +13675,21 @@ mismatch remains classified as transient. No provider-platform, ETF,
 visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior
 changed. This is a complete exact-gate receipt for the Returns Heatmap slice, not
 closure of the overall workstream.
+
+## 2026-09-17 - Linked occurrence cursor race
+
+Product commits `e20c4f810` and `f1136669f` fence late uPlot cursor callbacks in
+the primary `UPlotChart` and `RatioUPlot` renderers. An explicit Study/Breadth
+occurrence timestamp remains authoritative through asynchronous renderer
+initialization; a real pointer move still resumes cursor publication. The
+chart-renderer path is now explicit in the TC owned-path allowlist.
+
+Focused `F8s-breadth-family-ratio` passed `10/10` on a fresh branch-scoped
+stack. Full frontend Vitest passed `1,128/1,128`; `vue-tsc`, production build,
+TC scope guard, workstream validation, and diff checks passed. The exact
+`validate-integration` gate was rerun at `f1136669f` through repository,
+Docker, authenticated functional Chromium, and all four visual stages; the
+saved Playwright result was passed with no failure markers. Teardown/resource
+accounting reported zero containers, volumes, test sessions, known bytes, and
+unknown components. No provider-platform, ETF, visual-oracle, or acceptance
+policy changed.

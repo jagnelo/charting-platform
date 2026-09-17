@@ -51,7 +51,11 @@
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -110,14 +114,14 @@
   "goal_request_state": "fulfilled",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "cf2e07051b5b024291a6e60f24e96da44f3fff7d",
-  "implementation_sha": "b9da0385d66137230552d895903eab51a286918d",
+  "head": "f1136669fd9a4cad62291e122fd1c487f2d5294b",
+  "implementation_sha": "f1136669fd9a4cad62291e122fd1c487f2d5294b",
   "interrupted": false,
-  "last_checkpoint": "2026-09-17T00:26:10.852036+00:00",
-  "last_human_progress_update": "2026-09-17T00:25:44.872242+00:00",
+  "last_checkpoint": "2026-09-17T04:00:00+00:00",
+  "last_human_progress_update": "2026-09-17T04:00:00+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Select the next bounded TC-owned R1/R5/R6 item; preserve the Returns Heatmap exact-gate receipt and keep provider and ETF consumer work deferred until both branches reach staging.",
-  "plan_hash": "029484758793fcd5e2cd9beb6ac7b05bc69b90cbeab960731962805491b33dae",
+  "next_action": "Select the next bounded TC-owned R1/R5/R6 item; preserve the linked-occurrence cursor exact-gate receipt and keep provider and ETF consumer work deferred until both branches reach staging.",
+  "plan_hash": "47ea93c2d276ac476cf00c2b72348980120502864a16eb63708eac66c28f11b9",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -129,20 +133,20 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "No active TC-owned product or validation blocker. The exact Returns Heatmap gate passed with clean branch-scoped teardown; provider/ETF staging and private-origin synchronization remain separate holds.",
-    "current_phase": "R6_returns_heatmap_empty_state_accessibility_exact_gate_passed",
-    "next_action": "Select the next bounded TC-owned R1/R5/R6 item; preserve the Returns Heatmap exact-gate receipt and keep provider and ETF consumer work deferred until both branches reach staging.",
+    "current_blocker": "No active TC-owned product or validation blocker. The linked-occurrence cursor gate passed with clean branch-scoped teardown; provider/ETF staging and private-origin synchronization remain separate holds.",
+    "current_phase": "R6_linked_occurrence_cursor_fence_exact_gate_passed",
+    "next_action": "Select the next bounded TC-owned R1/R5/R6 item; preserve the linked-occurrence cursor exact-gate receipt and keep provider and ETF consumer work deferred until both branches reach staging.",
     "total": 9,
-    "updated_at": "2026-09-17T00:25:44.872132+00:00"
+    "updated_at": "2026-09-17T04:00:00+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "b9da0385d66137230552d895903eab51a286918d",
-    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..b9da0385d66137230552d895903eab51a286918d",
+    "current_local_head": "f1136669fd9a4cad62291e122fd1c487f2d5294b",
+    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..f1136669fd9a4cad62291e122fd1c487f2d5294b",
     "failure_category": "a previous exact payload was rejected by the private-origin safeguard; this updated pending range was not retried without trusted exact-payload authorization; read-only remote lookup succeeds",
-    "head_at_product_checkpoint": "b9da0385d66137230552d895903eab51a286918d",
-    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..b9da0385d66137230552d895903eab51a286918d",
+    "head_at_product_checkpoint": "f1136669fd9a4cad62291e122fd1c487f2d5294b",
+    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..f1136669fd9a4cad62291e122fd1c487f2d5294b",
     "remote": "origin",
     "remote_tracking_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
     "status": "committed_locally_pending_push"
