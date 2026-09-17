@@ -1,3 +1,4 @@
+from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_artifact_commit import PostgresArtifactCommitAdapter
 from app.strategy_lab_v2.postgres_commands import PostgresCommandAdapter
@@ -19,3 +20,8 @@ def test_persistence_bundle_shares_store_and_wires_all_initial_api_dependencies(
     assert isinstance(bundle.commands, PostgresCommandAdapter)
     assert isinstance(bundle.submissions, PostgresSubmissionDispatchAdapter)
     assert isinstance(bundle.artifact_commits, PostgresArtifactCommitAdapter)
+    assert set(bundle.resources._projections) == {
+        ApiResourceType.ATTEMPT,
+        ApiResourceType.METRIC_SET,
+        ApiResourceType.FORWARD_INSTANCE,
+    }

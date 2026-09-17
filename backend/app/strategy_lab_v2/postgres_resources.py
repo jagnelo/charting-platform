@@ -10,7 +10,8 @@ later without changing the route contract.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+import inspect
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any, Protocol
 
 from app.strategy_lab_v2.api_contracts import ApiCursor
@@ -32,10 +33,20 @@ class AggregateReadStore(Protocol):
     async def list_type(self, aggregate_type: str) -> tuple[StoredAggregate, ...]: ...
 
 
+ResourceProjection = Callable[
+    ..., Awaitable[Sequence[ResourceDocument]] | Sequence[ResourceDocument]
+]
+
+
 class PostgresResourceReader:
     """Project owner-scoped aggregate state into immutable API resources."""
 
-    def __init__(self, store: AggregateReadStore) -> None:
+    def __init__(
+        self,
+        store: AggregateReadStore,
+        *,
+        projections: Mapping[ApiResourceType, ResourceProjection] | None = None,
+    ) -> None:
         # Protocol runtime checks are intentionally avoided; duck typing keeps
         # test doubles and future SQLAlchemy adapters usable without requiring
         # ``@runtime_checkable`` on the structural contract.
@@ -43,7 +54,17 @@ class PostgresResourceReader:
             getattr(store, "list_type", None)
         ):
             raise TypeError("store must provide async get and list_type methods")
+        if projections is not None:
+            if not isinstance(projections, Mapping):
+                raise TypeError("projections must be a mapping")
+            if any(
+                not isinstance(resource_type, ApiResourceType)
+                or not callable(loader)
+                for resource_type, loader in projections.items()
+            ):
+                raise TypeError("projections must map resource types to callables")
         self._store = store
+        self._projections = dict(projections or {})
 
     async def get_resource(
         self,
@@ -58,6 +79,10 @@ class PostgresResourceReader:
             raise TypeError("resource_type must be an ApiResourceType")
         if not isinstance(resource_id, str) or not resource_id.strip():
             raise ValueError("resource_id must not be empty")
+        projection = self._projections.get(resource_type)
+        if projection is not None:
+            documents = await self._load_projection(projection, principal)
+            return next((document for document in documents if document.id == resource_id), None)
         aggregate = await self._store.get(AggregateKey(resource_type.value, resource_id))
         if aggregate is None:
             return None
@@ -85,6 +110,17 @@ class PostgresResourceReader:
         if cursor is not None and not isinstance(cursor, ApiCursor):
             raise TypeError("cursor must be an ApiCursor or None")
 
+        projection = self._projections.get(resource_type)
+        if projection is not None:
+            documents = await self._load_projection(projection, principal)
+            return self._paginate_documents(
+                resource_type,
+                limit,
+                cursor,
+                request_id,
+                documents,
+            )
+
         aggregates = await self._store.list_type(resource_type.value)
         records: list[tuple[str, ResourceDocument]] = []
         for aggregate in aggregates:
@@ -99,16 +135,77 @@ class PostgresResourceReader:
         snapshot_digest = content_digest(
             tuple((sort_value, document.id, document.fingerprint) for sort_value, document in records)
         )
+        return self._paginate_records(
+            resource_type,
+            limit,
+            cursor,
+            request_id,
+            records,
+            snapshot_digest=snapshot_digest,
+        )
+
+    async def _load_projection(
+        self, projection: ResourceProjection, principal: Any
+    ) -> tuple[ResourceDocument, ...]:
+        value = projection(principal=principal)
+        if inspect.isawaitable(value):
+            value = await value
+        if not isinstance(value, Sequence) or isinstance(value, str | bytes):
+            raise TypeError("resource projection must return a sequence")
+        documents = tuple(value)
+        if any(
+            not isinstance(document, ResourceDocument) for document in documents
+        ):
+            raise TypeError("resource projections must contain ResourceDocument values")
+        if len({document.id for document in documents}) != len(documents):
+            raise ValueError("projected resource IDs must be unique")
+        return documents
+
+    @classmethod
+    def _paginate_documents(
+        cls,
+        resource_type: ApiResourceType,
+        limit: int,
+        cursor: ApiCursor | None,
+        request_id: str,
+        documents: Sequence[ResourceDocument],
+    ) -> ResourceCollection:
+        if any(document.identity.resource_type is not resource_type for document in documents):
+            raise ValueError("projected resource has the wrong collection type")
+        records = tuple(sorted(((document.id, document) for document in documents), key=lambda item: item[0]))
+        snapshot_digest = content_digest(
+            tuple((sort_value, document.id, document.fingerprint) for sort_value, document in records)
+        )
+        return cls._paginate_records(
+            resource_type,
+            limit,
+            cursor,
+            request_id,
+            records,
+            snapshot_digest=snapshot_digest,
+        )
+
+    @staticmethod
+    def _paginate_records(
+        resource_type: ApiResourceType,
+        limit: int,
+        cursor: ApiCursor | None,
+        request_id: str,
+        records: Sequence[tuple[str, ResourceDocument]],
+        *,
+        snapshot_digest: str,
+    ) -> ResourceCollection:
+        visible = tuple(records)
         if cursor is not None:
             if cursor.resource != resource_type.value:
                 raise ValueError("cursor resource does not match the requested collection")
             if cursor.snapshot_digest != snapshot_digest:
                 raise ValueError("cursor snapshot does not match the visible resource set")
-            records = [
-                item for item in records if (item[0], item[1].id) > (cursor.sort_value, cursor.item_id)
-            ]
-        page = records[:limit]
-        has_more = len(records) > len(page)
+            visible = tuple(
+                item for item in visible if (item[0], item[1].id) > (cursor.sort_value, cursor.item_id)
+            )
+        page = visible[:limit]
+        has_more = len(visible) > len(page)
         next_cursor = None
         if has_more:
             sort_value, document = page[-1]
@@ -206,4 +303,4 @@ class PostgresResourceReader:
         return result
 
 
-__all__ = ["AggregateReadStore", "PostgresResourceReader"]
+__all__ = ["AggregateReadStore", "PostgresResourceReader", "ResourceProjection"]

@@ -4,12 +4,18 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from app.strategy_lab_v2.api_resources import (
+    ApiResourceType,
+    ResourceDocument,
+    ResourceIdentifier,
+)
 from app.strategy_lab_v2.artifact_application import LocalArtifactPublicationService
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
+from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.postgres_acquisition import PostgresAcquisitionAdapter
 from app.strategy_lab_v2.postgres_artifact_commit import PostgresArtifactCommitAdapter
 from app.strategy_lab_v2.postgres_artifact_retention import PostgresArtifactRetentionAdapter
@@ -36,6 +42,21 @@ from app.strategy_lab_v2.postgres_snapshot_coverage import PostgresSnapshotCover
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
 from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
+
+
+def _record_document(
+    resource_type: ApiResourceType,
+    resource_id: str,
+    record: Any,
+    revision_digest: str,
+) -> ResourceDocument:
+    """Project one authenticated relational read model into the REST envelope."""
+
+    return ResourceDocument(
+        ResourceIdentifier(resource_type, resource_id, revision_digest=revision_digest),
+        attributes=asdict(record),
+        meta={"projection": "postgres", "record_fingerprint": revision_digest},
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,9 +101,56 @@ class PostgresStrategyLabV2Persistence:
             raise TypeError("clock must be callable")
         aggregate_store = PostgresAggregateStore(session_factory)
         execution_state = PostgresExecutionStateAdapter(session_factory)
+        execution_summaries = PostgresExecutionSummaryAdapter(session_factory)
+        forward_state = PostgresForwardStateAdapter(session_factory)
+        metrics = PostgresMetricsAdapter(session_factory)
+
+        async def attempt_projection(*, principal: Any) -> tuple[ResourceDocument, ...]:
+            summaries = await execution_summaries.load_all(principal=principal)
+            return tuple(
+                _record_document(
+                    ApiResourceType.ATTEMPT,
+                    summary.attempt_id,
+                    summary,
+                    summary.fingerprint,
+                )
+                for summary in summaries
+            )
+
+        async def metric_set_projection(*, principal: Any) -> tuple[ResourceDocument, ...]:
+            metric_sets = await metrics.load_all(principal=principal)
+            return tuple(
+                _record_document(
+                    ApiResourceType.METRIC_SET,
+                    metric_set.metric_set_fingerprint,
+                    metric_set,
+                    metric_set.record_fingerprint,
+                )
+                for metric_set in metric_sets
+            )
+
+        async def forward_instance_projection(*, principal: Any) -> tuple[ResourceDocument, ...]:
+            instances = await forward_state.load_all(principal=principal)
+            return tuple(
+                _record_document(
+                    ApiResourceType.FORWARD_INSTANCE,
+                    instance.instance_id,
+                    instance,
+                    content_digest(instance),
+                )
+                for instance in instances
+            )
+
         return cls(
             aggregate_store=aggregate_store,
-            resources=PostgresResourceReader(aggregate_store),
+            resources=PostgresResourceReader(
+                aggregate_store,
+                projections={
+                    ApiResourceType.ATTEMPT: attempt_projection,
+                    ApiResourceType.METRIC_SET: metric_set_projection,
+                    ApiResourceType.FORWARD_INSTANCE: forward_instance_projection,
+                },
+            ),
             acquisition=PostgresAcquisitionAdapter(session_factory),
             artifact_commits=PostgresArtifactCommitAdapter(session_factory),
             artifact_retention=PostgresArtifactRetentionAdapter(session_factory),
@@ -95,11 +163,11 @@ class PostgresStrategyLabV2Persistence:
             coverage=PostgresCoverageAdapter(session_factory),
             execution_events=PostgresExecutionEventTransactionAdapter(session_factory),
             execution_state=execution_state,
-            execution_summaries=PostgresExecutionSummaryAdapter(session_factory),
-            forward_state=PostgresForwardStateAdapter(session_factory),
+            execution_summaries=execution_summaries,
+            forward_state=forward_state,
             legacy_imports=PostgresLegacyImportAdapter(session_factory),
             lineage=PostgresLineageAdapter(session_factory),
-            metrics=PostgresMetricsAdapter(session_factory),
+            metrics=metrics,
             result_completion=PostgresResultCompletionAdapter(session_factory),
             result_materialization=PostgresResultMaterializationAdapter(session_factory),
             result_publication=PostgresResultPublicationAdapter(session_factory),

@@ -7,7 +7,11 @@ from typing import Any, cast
 import pytest
 
 from app.strategy_lab_v2.api_contracts import ApiCursor
-from app.strategy_lab_v2.api_resources import ApiResourceType
+from app.strategy_lab_v2.api_resources import (
+    ApiResourceType,
+    ResourceDocument,
+    ResourceIdentifier,
+)
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
 from app.strategy_lab_v2.storage import AggregateKey, StoredAggregate
@@ -158,6 +162,53 @@ async def test_reader_fails_closed_on_malformed_owner_or_relationships() -> None
         await reader.get_resource(
             principal="alice", resource_type=ApiResourceType.TRIAL, resource_id="trial-2"
         )
+
+
+@pytest.mark.asyncio
+async def test_reader_uses_owner_scoped_relational_projection_with_cursor_pagination() -> None:
+    documents = (
+        ResourceDocument(
+            ResourceIdentifier(ApiResourceType.ATTEMPT, "attempt-2"),
+            attributes={"status": "running"},
+        ),
+        ResourceDocument(
+            ResourceIdentifier(ApiResourceType.ATTEMPT, "attempt-1"),
+            attributes={"status": "queued"},
+        ),
+    )
+    seen_principals: list[Any] = []
+
+    async def projection(*, principal: Any) -> tuple[ResourceDocument, ...]:
+        seen_principals.append(principal)
+        return documents
+
+    reader = PostgresResourceReader(
+        MemoryStore([]),
+        projections={ApiResourceType.ATTEMPT: projection},
+    )
+    first = await reader.list_resources(
+        principal="alice",
+        resource_type=ApiResourceType.ATTEMPT,
+        limit=1,
+        cursor=None,
+        request_id="request-1",
+    )
+    assert [item.id for item in first.items] == ["attempt-1"]
+    assert first.next_cursor is not None
+    second = await reader.list_resources(
+        principal="alice",
+        resource_type=ApiResourceType.ATTEMPT,
+        limit=1,
+        cursor=first.next_cursor,
+        request_id="request-2",
+    )
+    assert [item.id for item in second.items] == ["attempt-2"]
+    assert await reader.get_resource(
+        principal="alice",
+        resource_type=ApiResourceType.ATTEMPT,
+        resource_id="attempt-2",
+    ) == documents[0]
+    assert seen_principals == ["alice", "alice", "alice"]
 
 
 def test_reader_requires_structural_store_methods() -> None:
