@@ -119,6 +119,35 @@ def test_ibkr_history_normalizes_millisecond_timestamps_and_raw_provenance(monke
     assert calls[0][2]["params"]["outsideRth"] == "false"
 
 
+def test_ibkr_history_does_not_apply_an_estimated_page_budget(monkeypatch):
+    _configure(monkeypatch, conid_map={"AAPL": 265598})
+    monkeypatch.setattr(
+        "app.providers.ibkr.estimate_ibkr_ohlcv_request_count",
+        lambda *_args, **_kwargs: pytest.fail("history must not use a page-count ceiling"),
+    )
+    start = datetime(2026, 1, 2, tzinfo=UTC)
+    end = start + timedelta(days=1)
+    monkeypatch.setattr(
+        "app.providers.ibkr.httpx.request",
+        lambda method, url, **kwargs: FakeResponse(
+            {
+                "data": [
+                    {
+                        "t": int(start.timestamp() * 1000),
+                        "o": 100,
+                        "h": 105,
+                        "l": 99,
+                        "c": 104,
+                        "v": 1000,
+                    }
+                ]
+            }
+        ),
+    )
+    bars = IBKRProvider().fetch_ohlcv("AAPL", Timeframe.D1, start, end, adjusted=False)
+    assert len(bars) == 1
+
+
 def test_ibkr_rejects_adjusted_history_instead_of_mislabeling_raw_bars(monkeypatch):
     _configure(monkeypatch, conid_map={"AAPL": 265598})
     with pytest.raises(ProviderResponseError, match="raw"):

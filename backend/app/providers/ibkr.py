@@ -6,10 +6,13 @@ cookie, so this adapter never attempts to automate authentication or silently
 fall back to an unauthenticated endpoint.  It exposes only documented
 read-only security search, historical bars, and latest-price snapshot calls.
 
-Historical responses are bounded by the documented 1,000-point endpoint
-ceiling.  When a request spans more than one response page, the adapter uses
-the documented ``startTime``/``direction`` cursor and refuses to return a
-partial series if the gateway does not make forward progress.
+Historical responses are bounded per response by the documented 1,000-point
+endpoint ceiling. When a request spans more than one response page, the
+adapter uses the documented ``startTime``/``direction`` cursor and refuses to
+return a partial series if the gateway does not make forward progress. It
+does not impose a client page-count ceiling: every page in the requested
+range is followed until the gateway returns a short/empty page or reaches the
+requested end.
 """
 
 from __future__ import annotations
@@ -437,12 +440,16 @@ class IBKRProvider:
         conid = self._resolve_conid(symbol)
         cursor = start
         bars: dict[datetime, OHLCVBar] = {}
-        max_pages = estimate_ibkr_ohlcv_request_count(timeframe, start, end) or 1
-        # Weekends/holidays can make a page cover less wall-clock time than its
-        # nominal point count; allow a bounded amount of extra cursor pages,
-        # but never loop indefinitely on a broken gateway response.
-        max_pages = max(1, max_pages + 10)
-        for _ in range(max_pages):
+        seen_cursors: set[datetime] = set()
+        page_number = 0
+        while True:
+            if cursor in seen_cursors:
+                raise ProviderResponseError(
+                    self.name,
+                    f"IBKR history cursor repeated at page {page_number + 1}",
+                )
+            seen_cursors.add(cursor)
+            page_number += 1
             rows = self._history_page(conid, timeframe, cursor, end)
             if not rows:
                 break
@@ -493,8 +500,6 @@ class IBKRProvider:
             cursor = next_cursor
             if cursor >= end:
                 break
-        else:
-            raise ProviderResponseError(self.name, "IBKR history pagination exceeded its bounded page budget")
         return [bars[ts] for ts in sorted(bars)]
 
     def fetch_latest_ohlcv(

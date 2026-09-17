@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 IBKR history pagination loss-prevention correction
+
+- The deferred, fixture-covered IBKR adapter no longer applies an estimated
+  page-count ceiling (`estimated pages + 10`) to historical reads. It now
+  follows every 1,000-bar response page through the requested range until the
+  gateway returns a short/empty page or reaches the end.
+- Safety remains fail-closed: repeated cursors and non-advancing timestamps
+  raise typed provider errors rather than returning a partial series. The
+  documented 15-year request and two-year post-expiry-futures limits remain
+  provider entitlement bounds, not pagination discard rules.
+- IBKR remains user-deferred and non-routable without a live Client Portal
+  Gateway session. Focused IBKR coverage passed `14/14`; no provider request,
+  credential, frontend file, or ETF adapter changed.
+
 ## 2026-09-17 Nasdaq directory first-window bootstrap
 
 - Nasdaq Trader's complete NMS directory refresh is governed by an explicit

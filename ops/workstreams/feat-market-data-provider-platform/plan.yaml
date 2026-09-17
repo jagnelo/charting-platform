@@ -745,6 +745,12 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 the deferred IBKR adapter's historical path no longer uses
+      an estimated page-count ceiling. It follows every 1,000-bar response
+      page until the requested range is complete, raising typed errors only
+      for repeated/non-advancing cursors. Focused IBKR coverage passed
+      `14/14`; the gateway/session and provider-account gates remain deferred.
+    - >-
       2026-09-17 committed-source Docker-backed backend acceptance replay passed
       `2,759/2,759` executable unit and integration tests with `89` warnings
       and `82.04%` coverage. Docker Server `29.7.2` and repository
