@@ -149,7 +149,7 @@ def _binding_inputs() -> tuple[FrozenEventTape, DataSnapshot, StrategySdkManifes
         event_type="ohlcv",
         timeframe="1d",
         start=BASE - timedelta(days=1),
-        end=BASE + timedelta(days=2),
+        end=BASE + timedelta(days=4),
         adjustment=AdjustmentMode.SPLIT_ADJUSTED,
         session="regular",
         feed="consolidated",
@@ -182,12 +182,12 @@ def _binding_inputs() -> tuple[FrozenEventTape, DataSnapshot, StrategySdkManifes
         session="regular",
         feed="consolidated",
         start=BASE - timedelta(days=1),
-        end=BASE + timedelta(days=2),
+        end=BASE + timedelta(days=4),
         adjustment=AdjustmentMode.SPLIT_ADJUSTED,
         corporate_action_semantics="split-adjusted-v1",
         coverage_evidence_digest=content_digest("coverage"),
         content_digest=content_digest("series"),
-        row_count=3,
+        row_count=5,
     )
     snapshot = DataSnapshot("snapshot-1", "provider-snapshot-1", report, (series,), BASE)
     manifest = StrategySdkManifest(
@@ -254,7 +254,7 @@ def test_binding_rejects_snapshot_drift_and_dependency_or_field_mismatch() -> No
         bind_event_tape(bad_fields, snapshot, manifest)
 
 
-def test_binding_rejects_instrument_or_coverage_drift() -> None:
+def test_binding_rejects_instrument_or_interval_drift() -> None:
     tape, snapshot, manifest = _binding_inputs()
     wrong_instrument = FrozenEventTape(
         snapshot.fingerprint,
@@ -268,18 +268,16 @@ def test_binding_rejects_instrument_or_coverage_drift() -> None:
     with pytest.raises(ValueError, match="undeclared instrument"):
         bind_event_tape(wrong_instrument, snapshot, manifest)
 
-    outside = FrozenEventTape(
+    outside_requirement = FrozenEventTape(
         snapshot.fingerprint,
         (
             MarketEvent(
-                "daily-bars", "bar-1", "US.AAPL", BASE + timedelta(days=3), 0, {"close": 100}
+                "daily-bars", "bar-1", "US.AAPL", BASE + timedelta(days=4), 0, {"close": 100}
             ),
         ),
     )
-    with pytest.raises(ValueError, match="outside snapshot coverage"):
-        # The one-event tape is still scoped correctly; the coverage check is
-        # reached after the dependency set has been validated.
-        bind_event_tape(outside, snapshot, manifest)
+    with pytest.raises(ValueError, match="declared interval"):
+        bind_event_tape(outside_requirement, snapshot, manifest)
 
 
 def test_binding_rejects_empty_tape_and_unsupported_or_missing_snapshot_decision() -> None:

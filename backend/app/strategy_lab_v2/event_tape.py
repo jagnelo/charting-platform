@@ -334,6 +334,10 @@ def bind_event_tape(
                     f"dependency {dependency.dependency_id!r} event fields do not match its declaration"
                 )
             event_time = event.event_time.astimezone(UTC)
+            if not effective_start <= event_time < effective_end:
+                raise ValueError(
+                    f"dependency {dependency.dependency_id!r} event falls outside its declared interval"
+                )
             if not any(item.start <= event_time < item.end for item in candidates):
                 raise ValueError(
                     f"dependency {dependency.dependency_id!r} event falls outside snapshot coverage"
