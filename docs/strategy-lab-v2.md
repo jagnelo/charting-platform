@@ -672,9 +672,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   typed client errors on every route; and delegates idempotent submissions plus
   retry/cancellation commands to an injected adapter. The adapter must scope
   reads to the authenticated principal and atomically persist receipts before
-  returning them. Router registration, authentication dependency selection,
-  PostgreSQL compare-and-set, Redis dispatch, and worker effects remain shared
-  integration concerns. Collection adapters receive the route-generated request
+  returning them. PostgreSQL compare-and-set, Redis dispatch, and worker effects
+  remain shared integration concerns; application registration and
+  authentication are composed in `application.py`. Collection adapters receive
+  the route-generated request
   identity and must return it unchanged in the collection envelope, preventing
   response evidence from being detached from the originating request.
 - `application.py` is the additive application seam for the first durable API
@@ -731,7 +732,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   release, while ordered heartbeat/release observations are applied atomically
   with exact replay and gap/stale/conflict decisions. The adapter performs no
   process scheduling, clock polling, engine disposal, queue publication, or
-  migration/application registration; those remain shared integration gates.
+  migration rollout; application registration is provided by the initial v2
+  composition, while worker scheduling remains a shared integration gate.
 - `postgres_artifact_retention.py` maps manifest-bound retention state and
   owner-scoped immutable pins to additive PostgreSQL rows. Pin add/release
   operations update the pin and state fingerprints atomically, exact retries
