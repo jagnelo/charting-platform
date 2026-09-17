@@ -3477,6 +3477,7 @@ class TestEdgarTickerMap:
                 "123456",
                 start=date(2024, 1, 1),
                 end=date(2024, 2, 29),
+                max_events=1,
             )
 
         assert [event.raw_payload["form"] for event in events] == ["S-1", "F-1/A"]

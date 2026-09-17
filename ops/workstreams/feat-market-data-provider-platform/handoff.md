@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 no-loss pagination and evidence retention correction
+
+- Tokenized catalogue refreshes now persist provider/page-size continuation in
+  `provider_pagination_state`. A per-invocation fairness budget can pause work,
+  but the next numeric page or opaque cursor is resumed on the next invocation;
+  repeated cursors fail closed and completed cycles restart from page zero only
+  after the prior cycle is marked complete.
+- SEC issuer-directory candidate reports are now append-only across completed
+  cycles. The prior three-cycle prune was removed so every observed directory
+  row remains available for reconciliation and audit.
+- SEC IPO-pipeline parsing no longer applies the local `max_events` result cap;
+  every matching filing in the retrieved submissions response is normalized and
+  persisted. The compatibility argument remains validated, while the provider
+  response remains the bounded request unit.
+- Added migration `ce5f6a7b8c9d_add_provider_pagination_state.py`, migration
+  smoke coverage, and focused regressions. Tokenized/SEC/IBKR focused tests,
+  Ruff, and diff checks are green; the Docker-backed full gate is still pending
+  for this source change.
+
 ## 2026-09-17 IBKR history pagination loss-prevention correction
 
 - The deferred, fixture-covered IBKR adapter no longer applies an estimated

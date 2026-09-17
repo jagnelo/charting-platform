@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 from typing import Any
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.market_data_foundation import (
@@ -608,15 +608,9 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             "active_cycle_failures": 0,
             "directory_offset": 0,
         }
-        # Keep the active report and the two preceding reports. This preserves
-        # the immediately reviewed clean dry-run when create_missing begins,
-        # while bounding report storage during repeated scans.
-        if active_cycle_number > 3:
-            await db.execute(
-                delete(SecIssuerDirectoryCandidate).where(
-                    SecIssuerDirectoryCandidate.cycle_number < active_cycle_number - 2
-                )
-            )
+        # Candidate reports are durable source evidence. Never prune prior
+        # cycles for storage fairness: later reconciliation and audit passes
+        # must be able to inspect every observed directory row.
         state.cycle_started_at = now
     wrapped = start_new_cycle and state.cycle_count > 0
     state.status = "running"

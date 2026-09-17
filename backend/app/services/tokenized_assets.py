@@ -14,13 +14,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
-from app.models.market_data_foundation import AdjustmentBasis, Issuer
+from app.models.market_data_foundation import AdjustmentBasis, Issuer, ProviderPaginationState
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_runtime import ProviderCapability
 from app.models.tokenized_asset import TokenizedAssetDetail
 from app.providers.base import TokenizedAssetRecord
-from app.providers.errors import ProviderNotConfiguredError, bounded_redact_provider_message
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderResponseError,
+    bounded_redact_provider_message,
+)
 from app.services.instrument_mastering import ensure_instrument_type, register_provider_symbol
 from app.services.market_data import _attach_provider_series, persist_price_history_bars
 from app.services.market_data_identity import normalize_identifier_value
@@ -28,6 +32,118 @@ from app.services.market_data_persistence import persist_market_event
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
 _NON_PERSISTING_TOKENIZED_CANARIES = frozenset({"dinari"})
+
+
+def _tokenized_catalog_state_key(provider_name: str, page_size: int) -> str:
+    """Scope continuation by provider instance and the provider page size."""
+
+    return f"tokenized-assets:{str(provider_name).strip().lower()}:{int(page_size)}"
+
+
+async def _tokenized_catalog_state(
+    db: AsyncSession,
+    *,
+    provider_name: str,
+    page_size: int,
+) -> ProviderPaginationState:
+    """Load or create durable catalogue continuation state."""
+
+    state_key = _tokenized_catalog_state_key(provider_name, page_size)
+    state = (
+        await db.execute(
+            select(ProviderPaginationState).where(
+                ProviderPaginationState.state_key == state_key
+            )
+        )
+    ).scalar_one_or_none()
+    if state is None:
+        state = ProviderPaginationState(
+            state_key=state_key,
+            provider=str(provider_name).strip().lower(),
+            capability=ProviderCapability.TOKENIZED_ASSETS.value,
+            operation="discover_tokenized_assets",
+            page_number=0,
+            cursor=None,
+            page_size=page_size,
+            status="pending",
+            pages_fetched=0,
+            last_page_count=0,
+            cursor_history=[],
+            metadata_payload={},
+        )
+        db.add(state)
+        await db.flush()
+    elif state.status == "complete":
+        # A completed cycle starts a fresh snapshot on the next scheduled
+        # invocation. Partial/failed cycles retain their exact continuation.
+        state.page_number = 0
+        state.cursor = None
+        state.status = "pending"
+        state.pages_fetched = 0
+        state.last_page_count = 0
+        state.last_error = None
+        state.cursor_history = []
+        state.metadata_payload = {
+            **(state.metadata_payload or {}),
+            "previous_cycle_completed_at": state.last_success_at.isoformat()
+            if state.last_success_at
+            else None,
+        }
+    return state
+
+
+async def _tokenized_event_state(
+    db: AsyncSession,
+    *,
+    provider_name: str,
+    phase: str,
+    page_size: int,
+) -> ProviderPaginationState:
+    """Load or create durable continuation for one corporate-action feed."""
+
+    state_key = (
+        f"tokenized-events:{str(provider_name).strip().lower()}"
+        f":{str(phase).strip().lower()}:{int(page_size)}"
+    )
+    state = (
+        await db.execute(
+            select(ProviderPaginationState).where(
+                ProviderPaginationState.state_key == state_key
+            )
+        )
+    ).scalar_one_or_none()
+    if state is None:
+        state = ProviderPaginationState(
+            state_key=state_key,
+            provider=str(provider_name).strip().lower(),
+            capability=ProviderCapability.TOKENIZED_CORPORATE_ACTIONS.value,
+            operation="fetch_tokenized_corporate_actions",
+            page_number=1,
+            cursor=None,
+            page_size=page_size,
+            status="pending",
+            pages_fetched=0,
+            last_page_count=0,
+            cursor_history=[],
+            metadata_payload={"phase": phase},
+        )
+        db.add(state)
+        await db.flush()
+    elif state.status == "complete":
+        state.page_number = 1
+        state.cursor = None
+        state.status = "pending"
+        state.pages_fetched = 0
+        state.last_page_count = 0
+        state.last_error = None
+        state.cursor_history = []
+        state.metadata_payload = {
+            **(state.metadata_payload or {}),
+            "previous_cycle_completed_at": state.last_success_at.isoformat()
+            if state.last_success_at
+            else None,
+        }
+    return state
 
 
 def _ensure_provider_data_may_be_persisted(provider_name: str) -> None:
@@ -448,6 +564,27 @@ async def upsert_tokenized_asset(
     return instrument
 
 
+def _discover_tokenized_catalog_page(
+    provider: Any,
+    *,
+    page: int,
+    cursor: str | None,
+    page_size: int,
+    use_cursor: bool,
+    continuation: dict[str, str | None],
+) -> list[TokenizedAssetRecord]:
+    """Read one catalogue page while exposing opaque continuation metadata."""
+
+    if use_cursor:
+        rows, next_cursor = provider.discover_tokenized_page(
+            cursor=cursor,
+            page_size=page_size,
+        )
+        continuation["next_cursor"] = next_cursor
+        return rows
+    return provider.discover_tokenized_assets(page=page, page_size=page_size)
+
+
 async def refresh_tokenized_assets(
     db: AsyncSession,
     *,
@@ -475,20 +612,36 @@ async def refresh_tokenized_assets(
     successful_providers = 0
     truncated_any = False
     for resolved in chain:
+        provider_name = str(resolved.provider_name).strip()
+        state = await _tokenized_catalog_state(
+            db,
+            provider_name=provider_name,
+            page_size=bounded_page_size,
+        )
+        cursor_history = list(state.cursor_history or [])
+        cursor_provider = callable(getattr(resolved.provider, "discover_tokenized_page", None))
         count = 0
         pages_fetched = 0
-        truncated = True
+        truncated = False
         provider_failed = False
-        for page in range(bounded_max_pages):
+        for _budget_page in range(bounded_max_pages):
             pages_fetched += 1
+            requested_page = int(state.page_number or 0)
+            requested_cursor = state.cursor
+            continuation: dict[str, str | None] = {"next_cursor": None}
             try:
                 execution = await execute_provider_call(
                     db,
                     ProviderCapability.TOKENIZED_ASSETS,
-                    f"discover_tokenized_assets:{page}",
-                    provider_name=resolved.provider_name,
-                    invoke=lambda provider, _symbol, page=page: provider.discover_tokenized_assets(
-                        page=page, page_size=bounded_page_size
+                    f"discover_tokenized_assets:{requested_page}",
+                    provider_name=provider_name,
+                    invoke=lambda provider, _symbol: _discover_tokenized_catalog_page(
+                        provider,
+                        page=requested_page,
+                        cursor=requested_cursor,
+                        page_size=bounded_page_size,
+                        use_cursor=cursor_provider,
+                        continuation=continuation,
                     ),
                     response_items=len,
                     treat_empty_as_failure=False,
@@ -499,26 +652,78 @@ async def refresh_tokenized_assets(
                     count += 1
             except Exception as exc:  # noqa: BLE001 - retain per-provider evidence.
                 provider_failed = True
+                state.status = "failed"
+                state.last_failure_at = datetime.now(UTC)
+                state.last_error = bounded_redact_provider_message(exc, max_length=500)
+                truncated = True
                 failures.append(
                     {
-                        "provider": resolved.provider_name,
-                        "page": page,
-                        "error": bounded_redact_provider_message(exc, max_length=500),
+                        "provider": provider_name,
+                        "page": requested_page,
+                        "cursor": bool(requested_cursor),
+                        "error": state.last_error,
                     }
                 )
                 # A failed page is not evidence of completion. Continue with
                 # the next provider so one outage cannot suppress the rest of
                 # the qualified tokenized universe.
                 break
-            if len(rows) < bounded_page_size:
+
+            state.pages_fetched = int(state.pages_fetched or 0) + 1
+            state.last_page_count = len(rows)
+            state.last_success_at = datetime.now(UTC)
+            state.last_failure_at = None
+            state.last_error = None
+            next_cursor = continuation.get("next_cursor") if cursor_provider else None
+            if cursor_provider:
+                if next_cursor is None:
+                    state.page_number = 0
+                    state.cursor = None
+                    state.status = "complete"
+                    state.cursor_history = cursor_history
+                    truncated = False
+                    break
+                cursor_token = str(next_cursor).strip()
+                cursor_digest = hashlib.sha256(cursor_token.encode("utf-8")).hexdigest()
+                if not cursor_token or cursor_token == requested_cursor or cursor_digest in cursor_history:
+                    provider_failed = True
+                    state.status = "failed"
+                    state.last_failure_at = datetime.now(UTC)
+                    state.last_error = "provider returned a repeated tokenized catalogue cursor"
+                    failures.append(
+                        {
+                            "provider": provider_name,
+                            "page": requested_page,
+                            "cursor": bool(requested_cursor),
+                            "error": state.last_error,
+                        }
+                    )
+                    truncated = True
+                    break
+                cursor_history.append(cursor_digest)
+                state.cursor_history = cursor_history
+                state.page_number = requested_page + 1
+                state.cursor = cursor_token
+                state.status = "partial"
+                truncated = True
+            elif len(rows) < bounded_page_size:
+                state.page_number = 0
+                state.cursor = None
+                state.status = "complete"
+                state.cursor_history = []
                 truncated = False
                 break
+            else:
+                state.page_number = requested_page + 1
+                state.cursor = None
+                state.status = "partial"
+                truncated = True
         truncated_any = truncated_any or truncated
         if not provider_failed:
             successful_providers += 1
         refreshed.append(
             {
-                "provider": resolved.provider_name,
+                "provider": provider_name,
                 "assets": count,
                 "pages_fetched": pages_fetched,
                 "truncated": truncated,
@@ -549,6 +754,7 @@ async def refresh_tokenized_events(
     *,
     provider_name: str | None = None,
     max_providers: int = 2,
+    max_pages: int = 1,
     page_size: int = 100,
     include_upcoming: bool = True,
 ) -> dict[str, Any]:
@@ -564,6 +770,7 @@ async def refresh_tokenized_events(
     """
 
     bounded_providers = max(1, min(int(max_providers), 10))
+    bounded_max_pages = max(1, min(int(max_pages), 1000))
     bounded_page_size = max(1, min(int(page_size), 100))
     # Corporate actions have their own capability contract. This prevents a
     # provider that only advertises catalogue/quote support from being selected
@@ -582,11 +789,15 @@ async def refresh_tokenized_events(
         item
         for item in chain
         if callable(getattr(item.provider, "fetch_tokenized_corporate_actions", None))
+        or callable(getattr(item.provider, "fetch_tokenized_corporate_actions_page", None))
     ][:bounded_providers]
     unsupported = [
         item.provider_name
         for item in catalog_chain
-        if not callable(getattr(item.provider, "fetch_tokenized_corporate_actions", None))
+        if not (
+            callable(getattr(item.provider, "fetch_tokenized_corporate_actions", None))
+            or callable(getattr(item.provider, "fetch_tokenized_corporate_actions_page", None))
+        )
     ]
     if not supported:
         return {
@@ -604,6 +815,7 @@ async def refresh_tokenized_events(
     total_events = 0
     total_linked = 0
     total_unlinked = 0
+    truncated_any = False
 
     for resolved in supported:
         phases = ["history", "upcoming"] if include_upcoming else ["history"]
@@ -616,76 +828,175 @@ async def refresh_tokenized_events(
         provider_count = 0
         provider_linked = 0
         provider_unlinked = 0
+        provider_truncated = False
+        provider_pages = 0
+        cursor_page_provider = callable(
+            getattr(resolved.provider, "fetch_tokenized_corporate_actions_page", None)
+        )
         for phase in phases:
+            state = await _tokenized_event_state(
+                db,
+                provider_name=resolved.provider_name,
+                phase=phase,
+                page_size=bounded_page_size,
+            )
+            cursor_history = list(state.cursor_history or [])
+            phase_truncated = False
             try:
-                execution = await execute_provider_call(
-                    db,
-                    ProviderCapability.TOKENIZED_CORPORATE_ACTIONS,
-                    "fetch_tokenized_corporate_actions",
-                    provider_name=resolved.provider_name,
-                    response_items=len,
-                    treat_empty_as_failure=False,
-                    invoke=lambda provider, _symbol, phase=phase: (
-                        provider.fetch_tokenized_corporate_actions(
-                            upcoming=phase == "upcoming",
-                            page=1,
-                            page_size=bounded_page_size,
-                        )
-                        if resolved.provider_name == "xstocks"
-                        else provider.fetch_tokenized_corporate_actions()
-                    ),
-                )
-                rows = execution.result or []
-                if not isinstance(rows, list):
-                    raise TypeError("tokenized corporate-action provider returned a non-list")
-                for row in rows:
-                    if not isinstance(row, dict):
-                        continue
-                    event_payload = _tokenized_event_payload(
-                        resolved.provider_name, row, phase=phase
-                    )
-                    instrument_id = _resolve_tokenized_instrument(row, by_asset, by_symbol)
-                    if instrument_id is None:
-                        provider_unlinked += 1
-                    else:
-                        provider_linked += 1
-                    await persist_market_event(
+                for _ in range(bounded_max_pages):
+                    provider_pages += 1
+                    requested_page = int(state.page_number or 1)
+                    requested_cursor = state.cursor
+
+                    def _invoke(provider, _symbol):
+                        if callable(
+                            getattr(provider, "fetch_tokenized_corporate_actions_page", None)
+                        ):
+                            return provider.fetch_tokenized_corporate_actions_page(
+                                page=requested_page,
+                                page_size=bounded_page_size,
+                                cursor=requested_cursor,
+                            )
+                        if resolved.provider_name == "xstocks":
+                            return (
+                                provider.fetch_tokenized_corporate_actions(
+                                    upcoming=phase == "upcoming",
+                                    page=requested_page,
+                                    page_size=bounded_page_size,
+                                ),
+                                None,
+                            )
+                        # Robinhood's public feed is not paginated and returns
+                        # its complete response in one request.
+                        return (provider.fetch_tokenized_corporate_actions(), None)
+
+                    execution = await execute_provider_call(
                         db,
-                        event_key=_tokenized_action_key(resolved.provider_name, row),
-                        event_type="tokenized_corporate_action",
-                        source=resolved.provider_name,
-                        instrument_id=instrument_id,
-                        event_time=_parse_datetime(_first_scalar(row, _EVENT_TIME_FIELDS)),
-                        effective_date=_parse_date(_first_scalar(row, _EFFECTIVE_DATE_FIELDS)),
-                        announced_at=_parse_datetime(
-                            _first_scalar(row, _ANNOUNCED_AT_FIELDS)
-                        ),
-                        payload=event_payload,
-                        is_provisional=True,
+                        ProviderCapability.TOKENIZED_CORPORATE_ACTIONS,
+                        "fetch_tokenized_corporate_actions",
+                        provider_name=resolved.provider_name,
+                        response_items=lambda result: len(result[0])
+                        if isinstance(result, tuple)
+                        else len(result),
+                        treat_empty_as_failure=False,
+                        invoke=_invoke,
                     )
-                    provider_count += 1
+                    result = execution.result
+                    if isinstance(result, tuple) and len(result) == 2:
+                        rows, next_cursor = result
+                    elif isinstance(result, list):
+                        # Compatibility with test doubles and older adapters
+                        # that expose a complete non-paginated response.
+                        rows, next_cursor = result, None
+                    else:
+                        raise TypeError(
+                            "tokenized corporate-action provider returned an invalid page"
+                        )
+                    if not isinstance(rows, list) or not isinstance(next_cursor, str | type(None)):
+                        raise TypeError("tokenized corporate-action provider returned an invalid page")
+                    for row in rows:
+                        if not isinstance(row, dict):
+                            continue
+                        event_payload = _tokenized_event_payload(
+                            resolved.provider_name, row, phase=phase
+                        )
+                        instrument_id = _resolve_tokenized_instrument(row, by_asset, by_symbol)
+                        if instrument_id is None:
+                            provider_unlinked += 1
+                        else:
+                            provider_linked += 1
+                        await persist_market_event(
+                            db,
+                            event_key=_tokenized_action_key(resolved.provider_name, row),
+                            event_type="tokenized_corporate_action",
+                            source=resolved.provider_name,
+                            instrument_id=instrument_id,
+                            event_time=_parse_datetime(_first_scalar(row, _EVENT_TIME_FIELDS)),
+                            effective_date=_parse_date(_first_scalar(row, _EFFECTIVE_DATE_FIELDS)),
+                            announced_at=_parse_datetime(
+                                _first_scalar(row, _ANNOUNCED_AT_FIELDS)
+                            ),
+                            payload=event_payload,
+                            is_provisional=True,
+                        )
+                        provider_count += 1
+
+                    state.pages_fetched = int(state.pages_fetched or 0) + 1
+                    state.last_page_count = len(rows)
+                    state.last_success_at = datetime.now(UTC)
+                    state.last_failure_at = None
+                    state.last_error = None
+                    if next_cursor is not None:
+                        cursor_token = next_cursor.strip()
+                        cursor_digest = hashlib.sha256(cursor_token.encode("utf-8")).hexdigest()
+                        if (
+                            not cursor_token
+                            or cursor_token == requested_cursor
+                            or cursor_digest in cursor_history
+                        ):
+                            raise ProviderResponseError(
+                                resolved.provider_name,
+                                "provider returned a repeated tokenized event cursor",
+                            )
+                        cursor_history.append(cursor_digest)
+                        state.cursor_history = cursor_history
+                        state.page_number = requested_page + 1
+                        state.cursor = cursor_token
+                        state.status = "partial"
+                        phase_truncated = True
+                        continue
+                    if not cursor_page_provider and len(rows) >= bounded_page_size:
+                        state.page_number = requested_page + 1
+                        state.cursor = None
+                        state.status = "partial"
+                        phase_truncated = True
+                        continue
+                    state.page_number = 1
+                    state.cursor = None
+                    state.status = "complete"
+                    state.cursor_history = []
+                    break
             except Exception as exc:  # noqa: BLE001 - retain per-provider evidence.
+                state.status = "failed"
+                state.last_failure_at = datetime.now(UTC)
+                state.last_error = bounded_redact_provider_message(exc, max_length=500)
+                phase_truncated = True
                 failures.append(
                     {
                         "provider": resolved.provider_name,
                         "phase": phase,
-                        "error": bounded_redact_provider_message(exc, max_length=500),
+                        "page": int(state.page_number or 1),
+                        "cursor": bool(state.cursor),
+                        "error": state.last_error,
                     }
                 )
+            provider_truncated = provider_truncated or phase_truncated
         provider_results.append(
             {
                 "provider": resolved.provider_name,
                 "events": provider_count,
                 "linked": provider_linked,
                 "unlinked": provider_unlinked,
+                "pages_fetched": provider_pages,
+                "truncated": provider_truncated,
+                "complete": not provider_truncated,
             }
         )
+        truncated_any = truncated_any or provider_truncated
         total_events += provider_count
         total_linked += provider_linked
         total_unlinked += provider_unlinked
 
     await db.commit()
-    status = "refreshed" if total_events else ("failed" if failures else "no_events")
+    status = (
+        "failed"
+        if failures and total_events == 0
+        else "partial"
+        if truncated_any or failures
+        else "refreshed"
+        if total_events
+        else "no_events"
+    )
     return {
         "status": status,
         "providers": provider_results,
@@ -693,6 +1004,8 @@ async def refresh_tokenized_events(
         "events": total_events,
         "linked": total_linked,
         "unlinked": total_unlinked,
+        "truncated": truncated_any,
+        "complete": not truncated_any,
         "failed": len(failures),
         "failures": failures,
     }

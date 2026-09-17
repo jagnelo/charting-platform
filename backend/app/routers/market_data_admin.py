@@ -856,7 +856,7 @@ async def list_sec_directory_candidates(
     if candidate_count == 0 and not is_current_cycle and cycle_number != latest_completed_cycle:
         raise HTTPException(
             status_code=404,
-            detail="SEC directory candidate cycle is unavailable or outside retention",
+            detail="SEC directory candidate cycle is unavailable",
         )
     if directory_total is None and cycle_number == latest_completed_cycle:
         directory_total = provenance.get("last_completed_directory_total")

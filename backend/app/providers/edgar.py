@@ -365,11 +365,16 @@ class EdgarProvider:
         This is deliberately a candidate detector, not an IPO-date oracle:
         EDGAR filings expose submission dates and filing forms, while an
         exchange listing may later be postponed, withdrawn, or never occur.
-        The method performs one bounded submissions request for the supplied
-        issuer CIK and only inspects the SEC ``recent`` filing arrays.  It does
-        not enumerate every issuer or fetch archived submission files
-        implicitly; callers must provide an explicit bounded CIK set when
-        building a watchlist.
+        The method performs one submissions request for the supplied issuer
+        CIK and only inspects the SEC ``recent`` filing arrays. It does not
+        enumerate every issuer or fetch archived submission files implicitly;
+        callers must provide an explicit CIK set when building a watchlist.
+
+        ``max_events`` remains a validated compatibility argument for callers
+        that already provide it. It is not used as a result-set ceiling:
+        silently dropping matching filings would make a quota-limited refresh
+        permanently incomplete. The SEC response itself is the bounded unit
+        and every matching row in that response is normalized and persisted.
         """
 
         normalized_cik = _normalize_cik(cik)
@@ -583,7 +588,7 @@ def _parse_ipo_pipeline_events(
     end: date | None,
     max_events: int,
 ) -> list[MarketEventRecord]:
-    """Normalize recent SEC prospectus/registration filings as candidates."""
+    """Normalize every matching recent SEC filing as a candidate."""
 
     filings = submissions.get("filings")
     if not isinstance(filings, dict):
@@ -695,8 +700,6 @@ def _parse_ipo_pipeline_events(
                 raw_payload=payload,
             )
         )
-        if len(events) >= max_events:
-            break
     return events
 
 

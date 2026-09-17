@@ -8,7 +8,13 @@ from sqlalchemy import select
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
-from app.models.market_data_foundation import Issuer, MarketEvent, MarketSeries, MarketSeriesDefault
+from app.models.market_data_foundation import (
+    Issuer,
+    MarketEvent,
+    MarketSeries,
+    MarketSeriesDefault,
+    ProviderPaginationState,
+)
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import (
     InstrumentDatasetState,
@@ -676,6 +682,115 @@ async def test_refresh_tokenized_assets_reports_full_page_as_partial(
 
 
 @pytest.mark.asyncio
+async def test_refresh_tokenized_assets_resumes_page_after_fairness_budget(
+    db, monkeypatch
+):
+    calls: list[int] = []
+    record = TokenizedAssetRecord(
+        provider="robinhood_tokens",
+        asset_id="rh-aapl",
+        symbol="AAPLx",
+        name="Apple Stock Token",
+        raw_payload={"page": 0},
+    )
+
+    class Provider:
+        name = "robinhood_tokens"
+
+        def discover_tokenized_assets(self, *, page: int = 0, page_size: int = 100):
+            calls.append(page)
+            if page < 2:
+                return [record]
+            return []
+
+    provider = Provider()
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name=provider.name, provider=provider)]
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        return SimpleNamespace(result=kwargs["invoke"](provider, None))
+
+    async def fake_upsert(_db, _record):
+        return None
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(tokenized_assets, "upsert_tokenized_asset", fake_upsert)
+
+    first = await refresh_tokenized_assets(AsyncSessionAdapter(db), max_pages=1, page_size=1)
+    second = await refresh_tokenized_assets(AsyncSessionAdapter(db), max_pages=1, page_size=1)
+    third = await refresh_tokenized_assets(AsyncSessionAdapter(db), max_pages=1, page_size=1)
+
+    assert calls == [0, 1, 2]
+    assert first["status"] == "partial" and first["providers"][0]["pages_fetched"] == 1
+    assert second["status"] == "partial" and second["providers"][0]["pages_fetched"] == 1
+    assert third["status"] == "refreshed" and third["complete"] is True
+    state = db.execute(
+        select(ProviderPaginationState).where(
+            ProviderPaginationState.state_key == "tokenized-assets:robinhood_tokens:1"
+        )
+    ).scalar_one()
+    assert state.status == "complete"
+    assert state.page_number == 0
+    assert state.cursor is None
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_assets_resumes_opaque_cursor_page(
+    db, monkeypatch
+):
+    calls: list[str | None] = []
+    record = TokenizedAssetRecord(
+        provider="bybit_xstocks",
+        asset_id="AAPLx",
+        symbol="AAPLx",
+        name="Apple xStock",
+        raw_payload={},
+    )
+
+    class Provider:
+        name = "bybit_xstocks"
+
+        def discover_tokenized_assets(self, **_kwargs):
+            raise AssertionError("opaque-cursor provider must use its cursor method")
+
+        def discover_tokenized_page(self, *, cursor=None, page_size=100):
+            calls.append(cursor)
+            return ([record], "cursor-2") if cursor is None else ([record], None)
+
+    provider = Provider()
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name=provider.name, provider=provider)]
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        return SimpleNamespace(result=kwargs["invoke"](provider, None))
+
+    async def fake_upsert(_db, _record):
+        return None
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(tokenized_assets, "upsert_tokenized_asset", fake_upsert)
+
+    first = await refresh_tokenized_assets(AsyncSessionAdapter(db), max_pages=1, page_size=1)
+    second = await refresh_tokenized_assets(AsyncSessionAdapter(db), max_pages=1, page_size=1)
+
+    assert calls == [None, "cursor-2"]
+    assert first["truncated"] is True
+    assert second["complete"] is True
+    state = db.execute(
+        select(ProviderPaginationState).where(
+            ProviderPaginationState.state_key == "tokenized-assets:bybit_xstocks:1"
+        )
+    ).scalar_one()
+    assert state.status == "complete"
+    assert state.cursor is None
+    assert len(state.cursor_history) == 1
+
+
+@pytest.mark.asyncio
 async def test_refresh_tokenized_assets_marks_short_page_complete(
     db, monkeypatch
 ):
@@ -989,6 +1104,113 @@ async def test_refresh_tokenized_events_runs_bounded_global_split_feed(
     # The scheduler uses the selected provider's bounded global split feed and
     # never guesses an unsupported upcoming filter.
     assert action_kwargs == [{}]
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_events_resumes_numeric_pages_after_fairness_budget(
+    db, monkeypatch
+):
+    calls = []
+    pages = {
+        1: [{"id": "page-1", "effectiveDate": "2026-09-11"}],
+        2: [{"id": "page-2", "effectiveDate": "2026-09-12"}],
+        3: [],
+    }
+    provider = SimpleNamespace(
+        name="xstocks",
+        fetch_tokenized_corporate_actions=lambda **kwargs: (
+            calls.append(dict(kwargs)) or pages[kwargs["page"]]
+        ),
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="xstocks", provider=provider)]
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        result = kwargs["invoke"](provider, None)
+        return SimpleNamespace(provider_name="xstocks", result=result)
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+
+    first = await refresh_tokenized_events(
+        AsyncSessionAdapter(db), max_pages=1, page_size=1, include_upcoming=False
+    )
+    second = await refresh_tokenized_events(
+        AsyncSessionAdapter(db), max_pages=1, page_size=1, include_upcoming=False
+    )
+    third = await refresh_tokenized_events(
+        AsyncSessionAdapter(db), max_pages=1, page_size=1, include_upcoming=False
+    )
+
+    assert first["status"] == "partial"
+    assert second["status"] == "partial"
+    assert third["status"] == "no_events"
+    assert calls == [
+        {"upcoming": False, "page": 1, "page_size": 1},
+        {"upcoming": False, "page": 2, "page_size": 1},
+        {"upcoming": False, "page": 3, "page_size": 1},
+    ]
+    state = db.execute(
+        select(ProviderPaginationState).where(
+            ProviderPaginationState.state_key == "tokenized-events:xstocks:history:1"
+        )
+    ).scalar_one()
+    assert state.status == "complete"
+    assert state.page_number == 1
+    assert state.cursor is None
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_events_resumes_opaque_cursor_across_provider_instances(
+    db, monkeypatch
+):
+    calls = []
+    provider_rows = {
+        None: ([{"id": "dinari-page-1", "effectiveDate": "2026-09-11"}], "cursor-1"),
+        "cursor-1": ([{"id": "dinari-page-2", "effectiveDate": "2026-09-12"}], None),
+    }
+
+    def make_provider():
+        def fetch_page(**kwargs):
+            calls.append((kwargs["page"], kwargs["cursor"]))
+            return provider_rows[kwargs["cursor"]]
+
+        return SimpleNamespace(
+            name="dinari", fetch_tokenized_corporate_actions_page=fetch_page
+        )
+
+    provider = make_provider()
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="xstocks", provider=provider)]
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        result = kwargs["invoke"](provider, None)
+        return SimpleNamespace(provider_name="xstocks", result=result)
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+
+    first = await refresh_tokenized_events(
+        AsyncSessionAdapter(db), max_pages=1, page_size=1, include_upcoming=False
+    )
+    provider = make_provider()
+    second = await refresh_tokenized_events(
+        AsyncSessionAdapter(db), max_pages=1, page_size=1, include_upcoming=False
+    )
+
+    assert first["status"] == "partial"
+    assert second["status"] == "refreshed"
+    assert calls == [(1, None), (2, "cursor-1")]
+    state = db.execute(
+        select(ProviderPaginationState).where(
+            ProviderPaginationState.state_key == "tokenized-events:xstocks:history:1"
+        )
+    ).scalar_one()
+    assert state.status == "complete"
+    assert state.cursor is None
+    assert len(state.cursor_history) == 0
 
 
 @pytest.mark.asyncio

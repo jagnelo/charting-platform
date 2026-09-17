@@ -978,7 +978,9 @@ class DinariTokenProvider:
         self._split_cursors: dict[tuple[str, int, int], str] = {}
         self._split_exhausted_pages: set[tuple[str, int, int]] = set()
         self._split_seen_cursors: dict[tuple[str, int], set[str]] = {}
+        self._split_last_cursors: dict[tuple[str, int], str | None] = {}
         self._split_legacy_page_size: int | None = None
+        self._last_split_scope: str = "global"
 
     def _base_url(self) -> str:
         value = str(getattr(settings, "DINARI_API_BASE_URL", "") or "").strip().rstrip("/")
@@ -1376,6 +1378,7 @@ class DinariTokenProvider:
         scope: str,
         page: int,
         page_size: int,
+        cursor: str | None = None,
     ) -> list[dict[str, Any]]:
         """Read one documented split page and retain only its next cursor.
 
@@ -1393,7 +1396,7 @@ class DinariTokenProvider:
         requested_page_size = min(page_size, 100)
         limit = max(20, requested_page_size)
         scope_key = (scope, limit)
-        if page == 1:
+        if page == 1 and cursor is None:
             self._split_seen_cursors[scope_key] = set()
             self._split_cursors = {
                 key: value for key, value in self._split_cursors.items() if key[:2] != scope_key
@@ -1401,6 +1404,8 @@ class DinariTokenProvider:
             self._split_exhausted_pages = {
                 key for key in self._split_exhausted_pages if key[:2] != scope_key
             }
+        elif page == 1 and cursor is not None:
+            raise ProviderResponseError(self.name, "Dinari first split page cannot carry a cursor")
         cursor_key = (scope, limit, page)
         if self._split_legacy_page_size is not None:
             params: dict[str, Any] = {
@@ -1412,12 +1417,12 @@ class DinariTokenProvider:
         else:
             if cursor_key in self._split_exhausted_pages:
                 return []
-            cursor = self._split_cursors.get(cursor_key)
-            if cursor is None:
+            continuation = cursor or self._split_cursors.get(cursor_key)
+            if continuation is None:
                 raise ProviderResponseError(
                     self.name, "Dinari split page requires the preceding page cursor"
                 )
-            params = {"limit": limit, "order": "desc", "next": cursor}
+            params = {"limit": limit, "order": "desc", "next": continuation}
         payload = _dinari_json(
             endpoint,
             params=params,
@@ -1457,8 +1462,10 @@ class DinariTokenProvider:
                 self._split_cursors[(scope, limit, page + 1)] = next_cursor
             else:
                 self._split_exhausted_pages.add((scope, limit, page + 1))
+            self._split_last_cursors[scope_key] = next_cursor
         else:
             rows = None
+            self._split_last_cursors[scope_key] = None
         if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
             raise ProviderResponseError(
                 self.name, "provider returned an invalid stock split row container"
@@ -1466,13 +1473,19 @@ class DinariTokenProvider:
         return rows
 
     def _fetch_splits_for_stock_id(
-        self, stock_id: str, *, page: int = 1, page_size: int = 100
+        self,
+        stock_id: str,
+        *,
+        page: int = 1,
+        page_size: int = 100,
+        cursor: str | None = None,
     ) -> list[dict[str, Any]]:
         return self._fetch_split_page(
             endpoint=f"{self._base_url()}/market_data/stocks/{stock_id}/splits",
             scope=f"stock:{stock_id}",
             page=page,
             page_size=page_size,
+            cursor=cursor,
         )
 
     def fetch_tokenized_splits(
@@ -1485,12 +1498,19 @@ class DinariTokenProvider:
             else []
         )
 
-    def _fetch_global_splits(self, *, page: int, page_size: int) -> list[dict[str, Any]]:
+    def _fetch_global_splits(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        cursor: str | None = None,
+    ) -> list[dict[str, Any]]:
         return self._fetch_split_page(
             endpoint=f"{self._base_url()}/market_data/stocks/splits",
             scope="global",
             page=page,
             page_size=page_size,
+            cursor=cursor,
         )
 
     def fetch_tokenized_corporate_actions(
@@ -1500,6 +1520,7 @@ class DinariTokenProvider:
         upcoming: bool = False,
         page: int = 1,
         page_size: int = 100,
+        cursor: str | None = None,
     ) -> list[dict[str, Any]]:
         """Expose Dinari's documented split/dividend reads as one action feed.
 
@@ -1523,15 +1544,46 @@ class DinariTokenProvider:
             stock_id = self._stock_id(str(symbol).strip())
             if stock_id is None:
                 return []
+            self._last_split_scope = f"stock:{stock_id}"
             dividends = self._fetch_dividends_for_stock_id(stock_id) if page == 1 else []
-            splits = self._fetch_splits_for_stock_id(stock_id, page=page, page_size=page_size)
+            splits = self._fetch_splits_for_stock_id(
+                stock_id,
+                page=page,
+                page_size=page_size,
+                cursor=cursor,
+            )
             return [
                 {**row, "action_type": "dividend", "stock_id": stock_id} for row in dividends
             ] + [{**row, "action_type": "split", "stock_id": stock_id} for row in splits]
+        self._last_split_scope = "global"
         return [
             {**row, "action_type": "split"}
-            for row in self._fetch_global_splits(page=page, page_size=page_size)
+            for row in self._fetch_global_splits(
+                page=page,
+                page_size=page_size,
+                cursor=cursor,
+            )
         ]
+
+    def fetch_tokenized_corporate_actions_page(
+        self,
+        *,
+        symbol: str | None = None,
+        page: int = 1,
+        page_size: int = 100,
+        cursor: str | None = None,
+    ) -> tuple[list[dict[str, Any]], str | None]:
+        """Return one Dinari action page and its resumable opaque cursor."""
+
+        rows = self.fetch_tokenized_corporate_actions(
+            symbol=symbol,
+            page=page,
+            page_size=page_size,
+            cursor=cursor,
+        )
+        requested_page_size = min(page_size, 100)
+        limit = max(20, requested_page_size)
+        return rows, self._split_last_cursors.get((self._last_split_scope, limit))
 
 
 class OndoGlobalMarketsProvider:

@@ -530,11 +530,12 @@ because each resolves
 provider metadata before the data read. Dinari's symbol-scoped corporate-action
 operation reserves three requests (metadata, dividends, and splits); the global
 split-only path safely uses the same bound because each invocation reads one
-explicit cursor page. Dinari split callers may request a later page only after
-the preceding page on the same provider instance; the adapter reuses the
-opaque `next` cursor, rejects missing/repeated cursors, and returns an empty
-page only after an observed terminal cursor. It never follows cursors in an
-unbounded loop. UUID metadata lookups refuse a paginated first-page miss
+explicit cursor page. Dinari split callers may request a later page with the
+durable opaque `next` cursor from the preceding page, including after a
+provider-instance restart; the adapter rejects missing/repeated cursors and
+returns an empty page only after an observed terminal cursor. The refresh
+service applies a per-job page fairness budget and persists the continuation so
+later pages are eventually ingested rather than excluded. UUID metadata lookups refuse a paginated first-page miss
 instead of returning a false not-found result; callers must first advance the
 documented catalogue cursor explicitly (for example through
 `discover_tokenized_assets(page=...)`).
@@ -620,7 +621,8 @@ Corporate actions use a dedicated `tokenized_corporate_actions` capability and
 a separate opt-in schedule so an operator can budget event-feed quota
 independently from quote polling. Set
 `TOKENIZED_EVENT_REFRESH_ENABLED=true`, with bounded
-`TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS` and
+`TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS`,
+`TOKENIZED_EVENT_REFRESH_MAX_PAGES`, and
 `TOKENIZED_EVENT_REFRESH_PAGE_SIZE`, in both the backend and worker
 environment. xStocks is read in separate historical and upcoming requests;
 Robinhood exposes one combined action feed; Dinari exposes global splits and
@@ -628,7 +630,9 @@ symbol-scoped dividend/split rows but has no upcoming filter, so that semantic
 is rejected rather than guessed. Every request uses the exact
 `fetch_tokenized_corporate_actions` operation cost declared for that provider.
 Rows are persisted as provisional `MarketEvent` records with the complete raw
-provider payload. A token is linked only when an explicit provider asset ID or
+provider payload. Per-job page limits persist the exact numeric page or opaque
+cursor and resume it on later runs; they never discard later action pages. A
+token is linked only when an explicit provider asset ID or
 unique token symbol matches the stored token detail; otherwise the event is
 retained unlinked for later reconciliation rather than guessed onto an
 underlying ticker. Exchange token adapters without an action endpoint are
@@ -719,6 +723,11 @@ requires a new clean dry scan and review. Materialization creates only missing
 `Issuer` rows from the SEC-conformed company name and CIK, records source/ticker
 provenance, and never creates instruments/listings, changes existing names,
 or deactivates records.
+
+SEC directory candidate reports are append-only across scan cycles. The filing
+parser also retains every matching prospectus/registration filing in each
+retrieved submissions response; local batch settings are compatibility and
+fairness controls, not retention limits.
 
 Scanning requires a positive,
 deployment-reviewed `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS`

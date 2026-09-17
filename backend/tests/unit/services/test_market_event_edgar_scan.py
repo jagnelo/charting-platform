@@ -403,7 +403,7 @@ async def test_sec_directory_dry_report_classifies_existing_new_and_conflicted_r
 
 
 @pytest.mark.asyncio
-async def test_sec_directory_report_retains_only_three_most_recent_scan_cycles(db, monkeypatch):
+async def test_sec_directory_report_retains_all_scan_cycles(db, monkeypatch):
     async def fake_execute(_db, _capability, _operation, **kwargs):
         provider = SimpleNamespace(
             discover_issuer_ciks_page=lambda offset, *, limit: {
@@ -437,7 +437,7 @@ async def test_sec_directory_report_retains_only_three_most_recent_scan_cycles(d
         .scalars()
         .all()
     )
-    assert rows == [2, 3, 4]
+    assert rows == [1, 2, 3, 4]
 
 
 @pytest.mark.asyncio

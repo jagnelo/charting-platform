@@ -500,5 +500,6 @@ async def refresh_tokenized_corporate_actions(ctx: dict) -> dict:
         return await refresh_tokenized_events(
             db,
             max_providers=settings.TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS,
+            max_pages=settings.TOKENIZED_EVENT_REFRESH_MAX_PAGES,
             page_size=settings.TOKENIZED_EVENT_REFRESH_PAGE_SIZE,
         )

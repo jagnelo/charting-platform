@@ -680,6 +680,43 @@ class MarketEventScanState(Base, TimestampMixin):
     )
 
 
+class ProviderPaginationState(Base, TimestampMixin):
+    """Durable continuation for provider-wide paginated refreshes.
+
+    A worker may stop after a provider-specific fairness/quota budget, but it
+    must leave the exact next page or opaque cursor for the next invocation.
+    This state is operational metadata only; provider payloads remain in their
+    normal observation tables.
+    """
+
+    __tablename__ = "provider_pagination_state"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    state_key: Mapped[str] = mapped_column(String(240), nullable=False, unique=True, index=True)
+    provider: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    capability: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    operation: Mapped[str] = mapped_column(String(120), nullable=False)
+    page_number: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cursor: Mapped[str | None] = mapped_column(Text, nullable=True)
+    page_size: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="pending", index=True)
+    pages_fetched: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_page_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_failure_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cursor_history: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    metadata_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    __table_args__ = (
+        Index(
+            "ix_provider_pagination_provider_capability",
+            "provider",
+            "capability",
+        ),
+    )
+
+
 class SecIssuerDirectoryCandidate(Base, TimestampMixin):
     """Row-level, reviewable decision from a bounded SEC issuer-directory scan.
 

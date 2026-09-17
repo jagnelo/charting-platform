@@ -161,6 +161,18 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-17 loss-prevention correction: provider-wide tokenized catalogue
+    refreshes now use durable provider/page-size continuation state, so a
+    per-invocation fairness budget resumes the exact next page or opaque cursor
+    instead of restarting at page zero. Repeated cursors fail closed and raw
+    tokenized payloads remain in the normal detail/provenance tables. SEC issuer
+    directory candidate reports are append-only across scan cycles (the former
+    three-cycle prune was removed), and SEC IPO-pipeline parsing emits every
+    matching filing in the retrieved submissions response rather than applying
+    the compatibility-only local max-events cap. Migration
+    `ce5f6a7b8c9d_add_provider_pagination_state.py` and focused regressions are
+    present; Docker-backed full validation of this source change remains open.
+  - >-
     Resolved in the current source: Alpaca's official market-data contract
     documents a 200-requests/minute pool and native
     `X-RateLimit-Limit`/`Remaining`/`Reset` headers, but does not state a

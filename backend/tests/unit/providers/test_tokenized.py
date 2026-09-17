@@ -807,6 +807,39 @@ def test_dinari_global_split_cursor_continuation_is_explicitly_reused():
     }
 
 
+def test_dinari_action_page_accepts_durable_cursor_on_a_new_provider_instance():
+    first_provider = DinariTokenProvider()
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        return_value=_response(
+            {"data": [{"stock_id": "stock-1"}], "pagination_metadata": {"next": "cursor-1"}}
+        ),
+    ):
+        first_rows, cursor = first_provider.fetch_tokenized_corporate_actions_page(
+            page=1, page_size=1
+        )
+    assert first_rows == [{"stock_id": "stock-1", "action_type": "split"}]
+    assert cursor == "cursor-1"
+
+    second_provider = DinariTokenProvider()
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        return_value=_response(
+            {"data": [{"stock_id": "stock-2"}], "pagination_metadata": {"next": None}}
+        ),
+    ) as get:
+        second_rows, next_cursor = second_provider.fetch_tokenized_corporate_actions_page(
+            page=2, page_size=1, cursor=cursor
+        )
+    assert second_rows == [{"stock_id": "stock-2", "action_type": "split"}]
+    assert next_cursor is None
+    assert get.call_args.kwargs["params"] == {
+        "limit": 20,
+        "order": "desc",
+        "next": "cursor-1",
+    }
+
+
 def test_dinari_global_split_cursor_cycle_fails_closed():
     provider = DinariTokenProvider()
     with patch(

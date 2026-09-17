@@ -327,11 +327,14 @@ async def refresh_edgar_ipo_pipeline(
     max_events_per_issuer: int = 100,
     commit: bool = True,
 ) -> dict[str, Any]:
-    """Persist bounded EDGAR filing candidates for an explicit CIK batch.
+    """Persist EDGAR filing candidates for an explicit CIK batch.
 
     EDGAR does not publish a global IPO calendar.  Requiring callers to supply
     the candidate CIKs makes the request budget and watchlist scope explicit;
-    this function never enumerates the SEC issuer universe implicitly.
+    this function never enumerates the SEC issuer universe implicitly. The
+    per-issuer argument remains for compatibility, but every matching filing
+    in each SEC submissions response is persisted rather than discarded at a
+    local result cap.
     """
 
     if not isinstance(max_ciks, int) or isinstance(max_ciks, bool) or not 1 <= max_ciks <= 500:
