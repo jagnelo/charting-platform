@@ -568,6 +568,23 @@ describe('StrategyLabView', () => {
     return panel!
   }
 
+  it('supports keyboard toggling for strategy section headings', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    const heading = wrapper.findAll('.panel-head-heading').find(node => node.text().trim() === 'Strategy profile')
+    expect(heading).toBeTruthy()
+    expect(heading!.attributes('role')).toBe('button')
+    expect(heading!.attributes('tabindex')).toBe('0')
+
+    const initialExpanded = heading!.attributes('aria-expanded')
+    await heading!.trigger('keydown', { key: 'Enter' })
+    expect(heading!.attributes('aria-expanded')).toBe(initialExpanded === 'true' ? 'false' : 'true')
+
+    const afterEnter = heading!.attributes('aria-expanded')
+    await heading!.trigger('keydown', { key: ' ' })
+    expect(heading!.attributes('aria-expanded')).toBe(afterEnter === 'true' ? 'false' : 'true')
+  })
+
   function findFieldByLabel(wrapper: ReturnType<typeof mount>, label: string) {
     return wrapper.findAll('.field').find(node =>
       node.find('.field-label').exists() && node.find('.field-label').text().trim().startsWith(label),
