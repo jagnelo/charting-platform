@@ -205,8 +205,10 @@ after result completion. The operation is idempotent and retry-safe, so a crash
 between completion and final settlement can replay the exact metric-set record;
 metric persistence failures leave the transport entry pending for recovery.
 
-Focused terminal/persistence tests passed (3 tests); branch-declared checks and
-the exact combined backend gate remain to be rerun for this wiring slice.
+Focused terminal/persistence tests passed (3 tests); the branch-declared suite
+passed 802 package tests plus migration, Ruff, MyPy, diff, and workstream checks.
+The exact combined backend gate passed 2,451 tests with 83.70% coverage (75%
+required); both branch-scoped cleanup passes left no testcontainer sessions.
 
 ## 2026-09-17 - Executable Nautilus conformance harness
 
