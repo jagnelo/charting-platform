@@ -35,6 +35,12 @@ from app.strategy_lab_v2.observations import (
     PortfolioPnlObservation,
     StressScenarioObservation,
 )
+from app.strategy_lab_v2.paired_inference import (
+    DEFAULT_MAX_EXACT_OBSERVATIONS,
+    ExactPairedInference,
+    PairedInferenceUnavailable,
+    infer_paired_mean,
+)
 from app.strategy_lab_v2.pairing import (
     PairedMetricObservation,
 )
@@ -109,6 +115,11 @@ _METRIC_FORMULAS = {
     "paired_minimum_delta": "minimum aligned variant minus baseline metric delta",
     "paired_maximum_delta": "maximum aligned variant minus baseline metric delta",
     "paired_delta_sample_stddev": "sample standard deviation of aligned variant minus baseline metric deltas",
+    "paired_inference_observation_count": "count of paired observations supplied to the exact sign-flip inference",
+    "paired_inference_mean_delta": "mean of paired variant minus baseline metric deltas supplied to the exact sign-flip inference",
+    "paired_inference_two_sided_p_value": "inclusive exact two-sided sign-flip tail probability for a zero paired mean delta",
+    "paired_inference_extreme_permutation_count": "number of exact sign assignments at least as extreme as the observed paired mean delta",
+    "paired_inference_permutation_count": "number of exact sign assignments enumerated for the paired inference",
     "stress_scenario_count": "count of engine-reported stress scenarios",
     "loss_scenario_count": "count of stress scenarios with negative stressed P&L",
     "average_stressed_return": "arithmetic mean of stressed equity divided by initial equity minus one",
@@ -1515,6 +1526,139 @@ def calculate_paired_metric_metrics(
             "metric_name": metric_name,
             "observation_order": "sorted_by_observation_key",
             "inference_policy": "descriptive_only_no_ranking_or_significance",
+            "pairing_receipt_verifier": pairing_receipt.verifier_version,
+        },
+    )
+
+
+@deterministic_decimal_math
+def calculate_paired_inference_metrics(
+    observations: Sequence[PairedMetricObservation],
+    *,
+    metric_name: str,
+    unit: str,
+    basis: MetricBasis,
+    pairing_receipt: KeyedRandomStreamPairingReceipt,
+    maximum_exact_observations: int = DEFAULT_MAX_EXACT_OBSERVATIONS,
+) -> tuple[MetricValue, ...]:
+    """Publish bounded exact sign-flip inference for verified paired deltas.
+
+    The output is intentionally separate from the descriptive paired summary.
+    It reports an inclusive two-sided exact tail probability for a zero mean
+    delta only when all ``2**n`` sign assignments fit the configured bound.
+    Larger inputs retain an explicit null reason instead of silently switching
+    to an approximate or unseeded method.
+    """
+
+    if not isinstance(metric_name, str) or not metric_name.strip():
+        raise ValueError("metric_name must not be empty")
+    if not isinstance(unit, str) or not unit.strip():
+        raise ValueError("unit must not be empty")
+    if not isinstance(basis, MetricBasis):
+        raise TypeError("basis must be a MetricBasis")
+    outcome = infer_paired_mean(
+        observations,
+        metric_name=metric_name,
+        pairing_receipt=pairing_receipt,
+        maximum_exact_observations=maximum_exact_observations,
+    )
+    sample_size = outcome.sample_size
+    common_basis = (
+        f"metric={metric_name}; exact keyed-aligned observations {outcome.observation_digest}; "
+        f"verified pairing receipt {outcome.pairing_receipt_fingerprint}"
+    )
+    unavailable_reason = None
+    if isinstance(outcome, PairedInferenceUnavailable):
+        unavailable_reason = (
+            f"{outcome.reason.value}: exact sign-flip inference is bounded at "
+            f"{outcome.maximum_exact_observations} observations"
+        )
+        mean_delta: Decimal | None = None
+        p_value: Decimal | None = None
+        extreme_count: Decimal | None = None
+        permutation_count: Decimal | None = None
+    elif isinstance(outcome, ExactPairedInference):
+        mean_delta = outcome.mean_delta
+        p_value = outcome.two_sided_p_value
+        extreme_count = Decimal(outcome.extreme_permutation_count)
+        permutation_count = Decimal(outcome.permutation_count)
+    else:  # pragma: no cover - exhaustive union guard
+        raise TypeError("paired inference returned an unsupported outcome")
+
+    return _finalize_metric_values(
+        (
+            _value(
+                "paired_inference_observation_count",
+                Decimal(sample_size),
+                unit="observations",
+                basis=basis,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "count of paired observations supplied to the bounded exact sign-flip test; "
+                    f"{common_basis}"
+                ),
+            ),
+            _value(
+                "paired_inference_mean_delta",
+                mean_delta,
+                unit=unit,
+                basis=basis,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "arithmetic mean of paired variant minus baseline deltas tested by exact sign flips; "
+                    f"{common_basis}"
+                ),
+                null_reason=unavailable_reason,
+            ),
+            _value(
+                "paired_inference_two_sided_p_value",
+                p_value,
+                unit="probability",
+                basis=basis,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "inclusive exact two-sided sign-flip tail probability for mean delta equal to zero; "
+                    f"{common_basis}"
+                ),
+                null_reason=unavailable_reason,
+            ),
+            _value(
+                "paired_inference_extreme_permutation_count",
+                extreme_count,
+                unit="permutations",
+                basis=basis,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "number of sign assignments at least as extreme as the observed absolute delta sum; "
+                    f"{common_basis}"
+                ),
+                null_reason=unavailable_reason,
+            ),
+            _value(
+                "paired_inference_permutation_count",
+                permutation_count,
+                unit="permutations",
+                basis=basis,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "number of exact sign assignments enumerated for the paired inference; "
+                    f"{common_basis}"
+                ),
+                null_reason=unavailable_reason,
+            ),
+        ),
+        evidence_references=(
+            MetricEvidenceReference("paired_metric_observations", outcome.observation_digest),
+            MetricEvidenceReference("pairing_receipt", outcome.pairing_receipt_fingerprint),
+        ),
+        common_calculation_parameters={
+            "metric_name": metric_name,
+            "observation_order": "sorted_by_observation_key",
+            "inference_policy": "exact_sign_flip_two_sided_mean",
+            "null_hypothesis": "mean_delta_equals_zero",
+            "alternative": "two_sided",
+            "inclusive_tail": True,
+            "maximum_exact_observations": maximum_exact_observations,
             "pairing_receipt_verifier": pairing_receipt.verifier_version,
         },
     )

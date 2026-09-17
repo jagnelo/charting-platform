@@ -11,6 +11,23 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Trusted paired-inference checkpoint
+
+`paired_inference.py` now provides a bounded, deterministic exact two-sided
+sign-flip test for the mean of aligned metric deltas. It requires the existing
+verified keyed-stream pairing receipt, sorts and content-addresses observation
+keys, records the exact tail/permutation counts and statistical assumptions,
+and exposes a versioned `calculate_paired_inference_metrics()` projection.
+Requests above the configured 20-observation exact-enumeration bound return
+typed unavailable evidence rather than silently using an approximate or
+unseeded method. This is statistical evidence only and does not issue a
+profitability verdict; migrations, API wiring, workers, and stable Nautilus
+execution remain separate gates.
+
+The focused inference suite passes 4 tests; the full package suite passes 622
+tests with Ruff and MyPy. Combined coverage and exact-tip branch evidence will
+be recorded after this boundary is committed.
+
 ## 2026-09-17 - Durable metric-set checkpoint
 
 `postgres_metrics.py` now retains immutable `MetricSet` summaries as

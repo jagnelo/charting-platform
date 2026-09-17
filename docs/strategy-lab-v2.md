@@ -245,6 +245,16 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   baseline/variant means, nearest-rank delta median, extrema, and sample
   deviation. The receipt and observations establish provenance/alignment but
   no inferential model or significance claim is made.
+  `paired_inference.py` adds the bounded trusted-inference step separately:
+  `infer_paired_mean()` requires the verified keyed-stream receipt and performs
+  an inclusive two-sided exact sign-flip test for a zero paired mean delta.
+  Every sign assignment is enumerated deterministically and the result records
+  the observation/receipt identities, tail counts, method, null, and contract
+  version. A configurable maximum of 20 observations prevents unbounded CPU;
+  larger requests return typed unavailable evidence rather than an approximate
+  or unseeded result. `calculate_paired_inference_metrics()` projects the
+  p-value and enumeration counts as versioned metrics with explicit null
+  reasons. This is statistical evidence only and never a profitability verdict.
   `EvaluationWindow` is an immutable trial-bound interval with an optional
   warm-up start. Its fingerprint participates in trial identity and in
   sensitivity measurement scope, so variants with different evaluation or
@@ -319,7 +329,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   reports scenario counts, loss counts, average and worst stressed returns and
   P&L, and minimum stressed equity; it does not construct shocks or issue a
   solvency/risk verdict.
-  Trusted paired inference remains deferred.
+  Trusted paired inference is now available through the separate exact
+  sign-flip calculator described above; approximate/bootstrap inference and
+  inferential ranking remain outside this package boundary.
   `calculate_time_weighted_return_metrics()` now provides a strict,
   engine-neutral flow-adjusted return path. Each reported external event must
   carry explicit pre-flow and post-flow equity boundary marks whose difference
