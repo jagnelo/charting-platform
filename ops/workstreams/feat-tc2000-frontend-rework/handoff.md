@@ -14219,3 +14219,35 @@ binary ran the same target. No provider-platform, ETF, visual-baseline,
 threshold, mask, skip, fallback, or acceptance policy changed. This receipt
 covers the LayoutPicker disclosure slice and does not close the broader
 workstream or upstream staging dependencies.
+
+## 2026-09-17 — R6 Strategy run-subset disclosure semantics
+
+Product commit `584cc4261` makes the Strategy Lab run-subset disclosure
+instance-safe with a Vue-generated id, explicit `aria-controls`/`aria-expanded`
+semantics, a labelled controlled group, and accessible checkbox names while
+preserving subset selection, checkbox state, run payloads, and visual layout.
+
+Focused Strategy Lab coverage passed `34/34`; full frontend Vitest passed
+`1,139/1,139`; frontend type-check and production build passed with the
+existing large-chunk warning; TC scope validation/self-tests, workstream
+validation, and `git diff --check` passed. No provider-platform, ETF,
+visual-oracle, or acceptance-policy behavior changed.
+
+## 2026-09-17 — R6 Strategy run-subset exact integration gate
+
+The definitive raw-capture
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` gate
+passed at product tip `584cc4261a153506dac98ae6ee2875c84b79815f`. Backend
+combined coverage passed `1,621` tests with `82.26%` total coverage, frontend
+Vitest passed `1,139/1,139`, type-check/build, Compose/provider contracts,
+branch-scoped Docker health, research-runner probes, authenticated functional
+Chromium passed `170` with `107` documented skips, and all four visual projects
+passed `104/104`. Teardown removed the assigned containers, volumes, network,
+four generated images, and test sessions; post-gate accounting reported zero
+retained resources. The standard `/usr/bin/make` wrapper remains unavailable
+with Xcode-license status `69`; the equivalent installed CommandLineTools Make
+binary ran the same target. No provider-platform, ETF, visual-baseline,
+threshold, mask, skip, fallback, or acceptance policy changed. This receipt
+covers the Strategy run-subset disclosure slice and does not close the broader
+workstream or upstream staging dependencies.
