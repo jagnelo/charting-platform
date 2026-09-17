@@ -12,6 +12,25 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Explicit local worker entrypoint
+
+`worker_entrypoint.py` now owns the local dedicated-worker lifecycle without
+touching FastAPI, the general ARQ worker, Compose, or upstream worktrees. The
+validated environment contract selects Redis/PostgreSQL, queue/group/consumer
+identity, migration target, artifact root, process limits, and an explicit
+callback factory. Startup runs the idempotent Alembic service before opening
+Redis; a shared PostgreSQL persistence bundle supplies the durable payload
+loader; the Redis runtime composes the bounded scheduler and fresh serial
+process service; SIGINT/SIGTERM drive an `asyncio.Event`; and Redis is closed
+in `finally`. Callback materialization and completion persistence remain
+injected so the entrypoint does not invent engine or result-authority policy.
+
+The focused entrypoint tests cover environment validation, callback loading,
+migration fail-closed ordering, runtime closure/signal cleanup, and worker
+limit composition. Lease-heartbeat integration, forward-worker reservations,
+Compose service activation, stable Nautilus conformance, upstream contract
+reconciliation, and full repository integration remain deferred.
+
 ## 2026-09-17 - Explicit startup migration service
 
 `migration_startup.py` now provides the application-owned Alembic upgrade

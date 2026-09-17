@@ -1097,6 +1097,15 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   event loop in the serial executor, and delegates completion persistence to an
   injected writer before the transport can acknowledge the entry. The Redis
   runtime factory exposes this composition without starting it implicitly.
+- `worker_entrypoint.py` is the explicit local process boundary for that
+  composition. It validates namespaced environment configuration, runs startup
+  migrations before connecting Redis, builds the shared PostgreSQL persistence
+  bundle and callback factory, installs SIGINT/SIGTERM cancellation, and closes
+  Redis in `finally`. It never runs as an import side effect and does not add
+  engine, lease-heartbeat, or result-authority policy; those remain injected
+  worker adapters. Invoke it locally with
+  `python -m app.strategy_lab_v2.worker_entrypoint` once a callback factory is
+  configured.
 - `migration_startup.py` provides the explicit Alembic startup hook. It
   validates a PostgreSQL URL and absolute script location, runs the configured
   target off the event loop, serializes concurrent callers, replays the exact
