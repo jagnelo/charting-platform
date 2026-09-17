@@ -70,7 +70,7 @@ describe('VirtualWatchlistTool', () => {
     expect(first.find(`#${firstColumnId}`).exists()).toBe(false)
 
     await firstColumns.trigger('click')
-    expect(first.get(`#${firstColumnId}`).attributes('aria-labelledby')).toBe(firstColumns.attributes('id'))
+    expect(first.get(`#${firstColumnId}`).attributes('aria-label')).toBe('Column editor')
     expect(first.get('button[aria-label="Columns"]').attributes('aria-expanded')).toBe('true')
     expect(second.find(`[id="${secondColumnId}"]`).exists()).toBe(false)
 
@@ -79,7 +79,7 @@ describe('VirtualWatchlistTool', () => {
     expect(firstSetId).toBeTruthy()
     expect(firstSetId).not.toBe(firstColumnId)
     await firstSets.trigger('click')
-    expect(first.get(`[id="${firstSetId}"]`).attributes('aria-labelledby')).toBe(firstSets.attributes('id'))
+    expect(first.get(`[id="${firstSetId}"]`).attributes('aria-label')).toBe('Saved column sets')
     expect(first.find(`[id="${firstColumnId}"]`).exists()).toBe(false)
 
     first.unmount()
