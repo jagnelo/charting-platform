@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
@@ -7,10 +7,55 @@ from app.services.market_refresh_queue import (
     _acquire_enqueue_lock,
     claim_refresh_jobs,
     complete_refresh_job,
+    core_refresh_request_key,
     enqueue_refresh_job,
     retry_refresh_job,
 )
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+def test_core_refresh_request_key_is_idempotent_per_utc_run_date():
+    first = core_refresh_request_key(42, run_date=date(2026, 9, 17))
+    duplicate = core_refresh_request_key(42, run_date=date(2026, 9, 17))
+    next_day = core_refresh_request_key(42, run_date=date(2026, 9, 18))
+
+    assert first == duplicate == "d1:42:2026-09-17"
+    assert next_day == "d1:42:2026-09-18"
+    assert first != next_day
+
+
+@pytest.mark.asyncio
+async def test_completed_core_refresh_can_run_again_on_the_next_utc_date(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    first_date = date(2026, 9, 17)
+    first_now = datetime(2026, 9, 17, 5, tzinfo=UTC)
+    first = await enqueue_refresh_job(
+        async_db,
+        request_key=core_refresh_request_key(instrument.id, run_date=first_date),
+        capability="price_history",
+        instrument_id=instrument.id,
+        timeframe="D1",
+        metadata_payload={"schedule": "core_session_daily", "run_date": first_date.isoformat()},
+        now=first_now,
+    )
+    claimed = (await claim_refresh_jobs(async_db, now=first_now))[0]
+    await complete_refresh_job(async_db, claimed, now=first_now)
+
+    second_date = date(2026, 9, 18)
+    second_now = datetime(2026, 9, 18, 5, tzinfo=UTC)
+    second = await enqueue_refresh_job(
+        async_db,
+        request_key=core_refresh_request_key(instrument.id, run_date=second_date),
+        capability="price_history",
+        instrument_id=instrument.id,
+        timeframe="D1",
+        metadata_payload={"schedule": "core_session_daily", "run_date": second_date.isoformat()},
+        now=second_now,
+    )
+
+    assert second.id != first.id
+    assert second.status == "queued"
+    assert (await claim_refresh_jobs(async_db, now=second_now))[0].id == second.id
 
 
 @pytest.mark.asyncio

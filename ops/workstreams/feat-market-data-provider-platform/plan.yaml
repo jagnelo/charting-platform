@@ -744,6 +744,16 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 recurring core-refresh key correction: whole-universe D1
+      scheduler jobs now use an idempotency key containing the UTC run date.
+      Duplicate deliveries on one date still coalesce, while the following
+      date creates a new durable job instead of reusing the prior completed
+      row. Direct queue coverage passed 9/9 and the authoritative backend unit
+      gate passed 2,367/2,367 with 37 warnings and 70.82% coverage. No
+      provider calls, credentials, frontend files, or ETF-provider adapters
+      changed; all provider/source, universe, target-secret, deferred-provider,
+      and final-shadow gates remain open.
+    - >-
       2026-09-17 manifest-derived usage-only selection: removed the duplicate
       hard-coded `--account-usage-only` provider allowlist. The runner now
       derives accepted providers from explicit manifest `account_usage` cases,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import uuid4
 
 from sqlalchemy import func, or_, select, update
@@ -15,6 +15,18 @@ from app.providers.errors import redact_provider_message
 
 class RefreshLeaseLostError(RuntimeError):
     """Raised when a worker tries to mutate a job it no longer owns."""
+
+
+def core_refresh_request_key(instrument_id: int, *, run_date: date) -> str:
+    """Return the idempotency key for one instrument's daily core refresh.
+
+    A daily refresh must coalesce duplicate scheduler deliveries for the same
+    UTC run date, but it must not reuse yesterday's completed job forever.
+    Keeping the date in the key preserves both properties and leaves ad-hoc
+    repair/evaluator request keys independent of the recurring schedule.
+    """
+
+    return f"d1:{int(instrument_id)}:{run_date.isoformat()}"
 
 
 async def _acquire_enqueue_lock(db: AsyncSession, request_key: str) -> None:

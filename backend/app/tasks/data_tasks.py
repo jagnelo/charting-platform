@@ -17,6 +17,7 @@ from app.services.market_refresh_queue import (
     RefreshLeaseLostError,
     claim_refresh_jobs,
     complete_refresh_job,
+    core_refresh_request_key,
     enqueue_refresh_job,
     retry_refresh_job,
 )
@@ -107,6 +108,8 @@ async def fetch_all_instruments_history(ctx: dict) -> dict:
 async def enqueue_core_refresh_jobs(ctx: dict) -> dict:
     """Queue whole-universe D1 work without doing provider I/O in an evaluator."""
 
+    scheduled_at = datetime.now(UTC)
+    run_date = scheduled_at.date()
     async with AsyncSessionLocal() as db:
         instruments = (
             (await db.execute(select(Instrument).where(Instrument.is_active.is_(True))))
@@ -116,12 +119,16 @@ async def enqueue_core_refresh_jobs(ctx: dict) -> dict:
         for instrument in instruments:
             await enqueue_refresh_job(
                 db,
-                request_key=f"d1:{instrument.id}",
+                request_key=core_refresh_request_key(instrument.id, run_date=run_date),
                 capability="price_history",
                 instrument_id=instrument.id,
                 timeframe=Timeframe.D1.value,
                 priority=100,
-                metadata_payload={"schedule": "core_session_daily"},
+                metadata_payload={
+                    "schedule": "core_session_daily",
+                    "run_date": run_date.isoformat(),
+                },
+                now=scheduled_at,
             )
         await db.commit()
         return {"queued": len(instruments), "mode": "enqueue_only"}

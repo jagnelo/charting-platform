@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 recurring core-refresh key correction
+
+- Fixed the whole-universe daily D1 scheduler's permanent `d1:<instrument_id>`
+  request key. A completed row could otherwise absorb every later daily
+  delivery and prevent a new refresh from ever being queued.
+- Core refreshes now use `d1:<instrument_id>:<UTC run date>`, preserving
+  same-day scheduler idempotency while allowing the next day to create a new
+  durable job and retain prior-run history.
+- Queue/worker coverage passed `61/61` initially and the focused queue suite
+  passed `9/9` after the direct next-day regression was added. Ruff and diff
+  checks passed; the authoritative backend unit gate passed `2,367/2,367`
+  with 37 warnings and 70.82% coverage.
+- No provider calls, credentials, frontend files, or ETF-provider adapters
+  changed. Provider quota/legal/source, universe, target-secret, deferred
+  provider, and final-shadow gates remain unchanged and open.
+
 ## 2026-09-17 manifest-derived usage-only selection
 
 - Removed the duplicate hard-coded `--account-usage-only` provider allowlist.

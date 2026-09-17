@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-17 — Recurring core-refresh key correction
+
+- [x] Make whole-universe daily D1 refresh keys idempotent within a UTC run
+      date but distinct across dates; the previous permanent instrument key
+      could leave later daily deliveries coalesced into a completed row.
+- [x] Add direct next-day queue regression coverage and replay the full unit
+      gate: `2,367/2,367` passed with 37 warnings and 70.82% coverage.
+- [ ] Preserve the remaining provider quota, source/legal, universe,
+      deployment-secret, deferred-provider, and final-shadow gates.
+
 ### 2026-09-17 — Manifest-derived usage-only selection
 
 - [x] Derive the live runner's `--account-usage-only` provider set directly
