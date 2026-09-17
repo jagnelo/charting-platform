@@ -54,6 +54,7 @@ owned_paths:
   - frontend/src/components/workstation/
   - frontend/src/components/chart/UPlotChart.vue
   - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/LayoutPicker.vue
   - frontend/src/components/chart/InstrumentInfoPanel.vue
   - frontend/src/components/chart/IndicatorPanel.vue
   - frontend/src/components/strategy/

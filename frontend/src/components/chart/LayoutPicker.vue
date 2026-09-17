@@ -4,7 +4,10 @@
     <button
       v-for="opt in presets"
       :key="opt.value"
+      type="button"
       :title="opt.label"
+      :aria-label="opt.label"
+      :aria-pressed="layoutStore.layout === opt.value"
       :class="['lp-btn', { active: layoutStore.layout === opt.value }]"
       @click="layoutStore.setLayout(opt.value)"
     >
@@ -16,10 +19,14 @@
     <!-- Custom NxM grid picker -->
     <div class="custom-grid-wrap" @mouseleave="hoverCell = null">
       <button
+        :id="gridTriggerId"
+        type="button"
         :class="['lp-btn', { active: isCustomActive }]"
         title="Custom grid layout"
         ref="gridTrigger"
+        aria-label="Custom grid layout"
         :aria-expanded="showGrid"
+        :aria-controls="gridMenuId"
         aria-haspopup="menu"
         @click="toggleGrid"
       >
@@ -34,14 +41,19 @@
       </button>
 
       <Transition name="grid-popup">
-        <div v-if="showGrid" class="grid-popup" role="menu" aria-label="Custom grid layout" :style="gridPopupStyle" @mouseleave="hoverCell = null">
+        <div v-if="showGrid" :id="gridMenuId" class="grid-popup" role="menu" aria-label="Custom grid layout" :aria-labelledby="gridTriggerId" :style="gridPopupStyle" @mouseleave="hoverCell = null">
           <div class="grid-cells">
             <template v-for="row in MAX_ROWS" :key="row">
-              <div
+              <button
                 v-for="col in MAX_COLS"
                 :key="col"
+                type="button"
+                role="menuitem"
                 :class="['grid-cell', { lit: isCellLit(col, row) }]"
+                :aria-label="`${col} by ${row} layout`"
+                :aria-current="layoutStore.layout === `${col}x${row}` || (col === 1 && row === 1 && layoutStore.layout === '1') ? 'true' : undefined"
                 @mouseenter="hoverCell = { col, row }"
+                @focus="hoverCell = { col, row }"
                 @click="applyCustomGrid(col, row)"
               />
             </template>
@@ -57,8 +69,11 @@
 
     <!-- Crosshair sync toggle -->
     <button
+      type="button"
       :class="['lp-btn', 'sync-btn', { active: layoutStore.isSyncEnabled }]"
       title="Sync crosshair across panels"
+      aria-label="Sync crosshair across panels"
+      :aria-pressed="layoutStore.isSyncEnabled"
       @click="layoutStore.toggleSync"
     >
       <svg viewBox="0 0 20 14" width="20" height="14" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -70,13 +85,13 @@
     </button>
 
     <div class="profile-wrap">
-      <button ref="profileTrigger" class="lp-btn" title="Layout profiles" aria-haspopup="menu" :aria-expanded="showProfiles" @click="toggleProfiles">P</button>
-      <div v-if="showProfiles" class="profile-menu" role="menu" aria-label="Layout profiles" :style="profileMenuStyle" @click.stop>
-        <button class="profile-action" @click="saveProfile">Save current layout</button>
+      <button :id="profileTriggerId" ref="profileTrigger" type="button" class="lp-btn" title="Layout profiles" aria-label="Layout profiles" aria-haspopup="menu" :aria-expanded="showProfiles" :aria-controls="profileMenuId" @click="toggleProfiles">P</button>
+      <div v-if="showProfiles" :id="profileMenuId" class="profile-menu" role="menu" aria-label="Layout profiles" :aria-labelledby="profileTriggerId" :style="profileMenuStyle" @click.stop>
+        <button type="button" role="menuitem" class="profile-action" @click="saveProfile">Save current layout</button>
         <div class="profile-empty" v-if="!layoutStore.profiles.length">No saved profiles</div>
         <div v-for="profile in layoutStore.profiles" :key="profile.id" class="profile-row">
-          <button class="profile-load" @click="loadProfile(profile.id)">{{ profile.name }}</button>
-          <button class="profile-delete" title="Delete profile" @click="layoutStore.deleteProfile(profile.id)">x</button>
+          <button type="button" role="menuitem" class="profile-load" @click="loadProfile(profile.id)">{{ profile.name }}</button>
+          <button type="button" role="menuitem" class="profile-delete" :aria-label="`Delete ${profile.name}`" title="Delete profile" @click="layoutStore.deleteProfile(profile.id)">x</button>
         </div>
       </div>
     </div>
@@ -93,12 +108,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue'
 import { useLayoutStore } from '@/stores/layout'
 import type { PresetLayout } from '@/stores/layout'
 import TextPromptModal from '@/components/common/TextPromptModal.vue'
 
 const layoutStore = useLayoutStore()
+const pickerId = useId()
+const gridTriggerId = `${pickerId}-grid-trigger`
+const gridMenuId = `${pickerId}-grid-menu`
+const profileTriggerId = `${pickerId}-profile-trigger`
+const profileMenuId = `${pickerId}-profile-menu`
 
 const MAX_COLS = 6
 const MAX_ROWS = 4
@@ -414,6 +434,10 @@ const presets: LayoutOption[] = [
 .grid-cell {
   width: 18px;
   height: 18px;
+  padding: 0;
+  appearance: none;
+  color: inherit;
+  font: inherit;
   border-radius: 2px;
   background: #222;
   border: 1px solid #333;
