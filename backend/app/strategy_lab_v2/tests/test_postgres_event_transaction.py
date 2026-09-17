@@ -16,7 +16,10 @@ from app.strategy_lab_v2.events import (
 from app.strategy_lab_v2.execution_event_transaction import (
     ExecutionEventTransactionDecision,
 )
-from app.strategy_lab_v2.outbox import OutboxMessage
+from app.strategy_lab_v2.outbox import (
+    OutboxAcknowledgeDecision,
+    OutboxMessage,
+)
 from app.strategy_lab_v2.postgres_event_transaction import (
     PostgresExecutionEventSchema,
     PostgresExecutionEventTransactionAdapter,
@@ -123,6 +126,12 @@ class FakeSession:
                 cursor_fingerprint=values["cursor_fingerprint"],
             )
             return FakeResult(rowcount=1)
+        if sql.lstrip().startswith("UPDATE") and "published = TRUE" in sql:
+            row = self.outbox.get(values["message_id"])
+            if row is None or row["published"]:
+                return FakeResult(rowcount=0)
+            row["published"] = True
+            return FakeResult(rowcount=1)
         raise AssertionError(f"unexpected SQL: {sql}")
 
 
@@ -209,6 +218,35 @@ async def test_postgres_event_adapter_fails_closed_on_tampered_rows() -> None:
     session.events[event.event_id]["event_fingerprint"] = content_digest("tampered")
     with pytest.raises(ValueError, match="execution event row is malformed"):
         await adapter.append(event=event, entry=entry, message=message)
+
+
+@pytest.mark.asyncio
+async def test_postgres_event_adapter_loads_and_acknowledges_outbox_with_cas() -> None:
+    session = FakeSession()
+    adapter = PostgresExecutionEventTransactionAdapter(lambda: session)
+    event, entry, message = _records()
+    await adapter.append(event=event, entry=entry, message=message)
+
+    state = await adapter.load_outbox()
+    assert state.pending_messages == (message,)
+    acknowledged = await adapter.acknowledge_outbox(
+        message.message_id,
+        expected_state_fingerprint=state.fingerprint,
+    )
+    assert acknowledged.decision is OutboxAcknowledgeDecision.ACKNOWLEDGED
+    assert acknowledged.state.published_message_ids == frozenset({message.message_id})
+
+    replay = await adapter.acknowledge_outbox(
+        message.message_id,
+        expected_state_fingerprint=acknowledged.state.fingerprint,
+    )
+    assert replay.decision is OutboxAcknowledgeDecision.REPLAY_EXISTING
+
+    stale = await adapter.acknowledge_outbox(
+        message.message_id,
+        expected_state_fingerprint=state.fingerprint,
+    )
+    assert stale.decision is OutboxAcknowledgeDecision.REJECT
 
 
 def test_postgres_event_schema_is_explicit_but_not_applied() -> None:

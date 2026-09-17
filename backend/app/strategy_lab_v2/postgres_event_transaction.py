@@ -17,7 +17,7 @@ from datetime import UTC, datetime
 from typing import Any, Protocol
 
 from app.strategy_lab_v2.audit import AuditEntry, AuditEntryType, AuditJournal
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.events import (
     EventAppendDecision,
     EventStreamCursor,
@@ -29,7 +29,13 @@ from app.strategy_lab_v2.execution_event_transaction import (
     ExecutionEventTransactionResolution,
     resolve_execution_event_transaction,
 )
-from app.strategy_lab_v2.outbox import OutboxMessage, OutboxState
+from app.strategy_lab_v2.outbox import (
+    OutboxAcknowledgeDecision,
+    OutboxAcknowledgeResolution,
+    OutboxMessage,
+    OutboxState,
+    acknowledge_outbox_message,
+)
 
 
 class AsyncSessionFactory(Protocol):
@@ -143,6 +149,54 @@ class PostgresExecutionEventTransactionAdapter:
     @property
     def schema(self) -> PostgresExecutionEventSchema:
         return self._schema
+
+    async def load_outbox(self) -> OutboxState:
+        """Read and authenticate the complete transactional-outbox state."""
+
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                return await self._load_outbox(session)
+
+    async def acknowledge_outbox(
+        self,
+        message_id: str,
+        *,
+        expected_state_fingerprint: str,
+    ) -> OutboxAcknowledgeResolution:
+        """Mark one outbox message published with a state compare-and-set witness."""
+
+        require_sha256_digest(message_id, field_name="message_id")
+        require_sha256_digest(
+            expected_state_fingerprint,
+            field_name="expected_state_fingerprint",
+        )
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                state = await self._load_outbox(session)
+                if state.fingerprint != expected_state_fingerprint:
+                    return OutboxAcknowledgeResolution(
+                        OutboxAcknowledgeDecision.REJECT,
+                        state,
+                        message_id,
+                        "outbox state compare-and-set precondition failed",
+                    )
+                resolution = acknowledge_outbox_message(state, message_id)
+                if resolution.decision is OutboxAcknowledgeDecision.ACKNOWLEDGED:
+                    result = await session.execute(
+                        _statement(
+                            f"""
+                            UPDATE {self._schema.outbox_table}
+                            SET published = TRUE
+                            WHERE message_id = :message_id AND published = FALSE
+                            """
+                        ),
+                        {"message_id": message_id},
+                    )
+                    if getattr(result, "rowcount", 0) != 1:
+                        raise ValueError("PostgreSQL outbox publication compare-and-set lost a race")
+                return resolution
 
     async def append(
         self,

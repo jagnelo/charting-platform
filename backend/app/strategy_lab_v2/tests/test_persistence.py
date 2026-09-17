@@ -1,4 +1,7 @@
+from typing import Any, cast
+
 from app.strategy_lab_v2.api_resources import ApiResourceType
+from app.strategy_lab_v2.outbox_application import OutboxRelayService
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_artifact_commit import PostgresArtifactCommitAdapter
 from app.strategy_lab_v2.postgres_commands import PostgresCommandAdapter
@@ -7,6 +10,7 @@ from app.strategy_lab_v2.postgres_forward_state import PostgresForwardStateAdapt
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
+from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
 
 
 def test_persistence_bundle_shares_store_and_wires_all_initial_api_dependencies() -> None:
@@ -25,3 +29,12 @@ def test_persistence_bundle_shares_store_and_wires_all_initial_api_dependencies(
         ApiResourceType.METRIC_SET,
         ApiResourceType.FORWARD_INSTANCE,
     }
+
+    class _Redis:
+        pass
+
+    # Construction is explicit; the caller owns the concrete Redis client.
+    assert isinstance(
+        bundle.outbox_relay(RedisDispatchTransport(cast(Any, _Redis()))),
+        OutboxRelayService,
+    )

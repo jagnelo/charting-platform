@@ -16,6 +16,7 @@ from app.strategy_lab_v2.api_resources import (
 from app.strategy_lab_v2.artifact_application import LocalArtifactPublicationService
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.outbox_application import OutboxRelayService
 from app.strategy_lab_v2.postgres_acquisition import PostgresAcquisitionAdapter
 from app.strategy_lab_v2.postgres_artifact_commit import PostgresArtifactCommitAdapter
 from app.strategy_lab_v2.postgres_artifact_retention import PostgresArtifactRetentionAdapter
@@ -42,6 +43,7 @@ from app.strategy_lab_v2.postgres_snapshot_coverage import PostgresSnapshotCover
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
 from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
+from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
 
 
 def _record_document(
@@ -188,6 +190,11 @@ class PostgresStrategyLabV2Persistence:
             LocalArtifactStore(root),
             self.artifact_commits,
         )
+
+    def outbox_relay(self, transport: RedisDispatchTransport) -> OutboxRelayService:
+        """Create a Redis relay backed by this bundle's authoritative outbox."""
+
+        return OutboxRelayService(self.execution_events, transport)
 
 
 __all__ = ["PostgresStrategyLabV2Persistence"]
