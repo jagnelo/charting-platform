@@ -684,6 +684,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   payload or mapping content returns the pure conflict decision. The adapter
   never reads legacy payload bytes or claims replay parity, and migrations,
   authorization, and route wiring remain shared integration concerns.
+- `postgres_coverage.py` maps provider-supplied coverage attestations to an
+  owner-scoped additive PostgreSQL evidence registry. Series/evidence digests,
+  interval and row-count semantics, adjustment/session/feed claims, and
+  attestation fingerprints are re-authenticated on read; exact registration
+  retries replay and changed series content conflicts. Provider fetching,
+  repair, snapshot admission, migrations, and application authorization stay
+  outside this registration-neutral adapter.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

@@ -11,6 +11,22 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable coverage-attestation checkpoint
+
+`postgres_coverage.py` now maps provider-supplied coverage attestations to an
+owner-scoped additive PostgreSQL evidence registry. Series/evidence digests,
+interval, row-count, adjustment/session/feed semantics, and attestation
+fingerprints are authenticated on reads; exact registration retries replay,
+changed series content conflicts, and deterministic owner listings support the
+later snapshot-coverage admission flow. Provider fetching/repair, snapshot
+admission, shared migrations, authorization, and application wiring remain
+outside this registration-neutral adapter.
+
+The focused coverage-adapter suite passed 4 tests. The complete Strategy Lab v2
+package and combined coverage gate will be recorded after this boundary is
+committed and rerun; shared migrations, API/worker wiring, upstream
+reconciliation, and stable Nautilus execution remain open gates.
+
 ## 2026-09-17 - Durable legacy-import checkpoint
 
 `postgres_legacy.py` now maps digest-only legacy import records and their exact
