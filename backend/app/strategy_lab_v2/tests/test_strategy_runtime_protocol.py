@@ -173,6 +173,14 @@ def test_protocol_rejects_unknown_fields_and_versions() -> None:
     )
     with pytest.raises(ValueError, match="unsupported"):
         deserialize_invocation(encoded.replace("strategy-lab.strategy-runtime.v1", "old"))
+    with pytest.raises(ValueError, match="duplicate"):
+        deserialize_invocation(encoded.replace(
+            '"source":', '"source":"duplicate", "source":', 1
+        ))
+    with pytest.raises(ValueError, match="non-finite"):
+        deserialize_invocation(encoded.replace(
+            '"max_intents_per_event":100', '"max_intents_per_event":NaN', 1
+        ))
 
 
 def test_cli_reads_request_and_atomically_publishes_result(tmp_path) -> None:

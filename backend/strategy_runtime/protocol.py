@@ -40,6 +40,42 @@ from app.strategy_lab_v2.sdk import (
 WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.v1"
 
 
+class _DuplicateFieldError(ValueError):
+    """Raised when a JSON object contains the same field more than once."""
+
+
+class _NonFiniteConstantError(ValueError):
+    """Raised when a parser encounters a non-standard non-finite constant."""
+
+
+def _reject_duplicate_fields(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise _DuplicateFieldError(key)
+        result[key] = value
+    return result
+
+
+def _reject_non_finite_constant(value: str) -> Any:
+    raise _NonFiniteConstantError(value)
+
+
+def _load_json(payload: str, field_name: str) -> Any:
+    try:
+        return json.loads(
+            payload,
+            object_pairs_hook=_reject_duplicate_fields,
+            parse_constant=_reject_non_finite_constant,
+        )
+    except _DuplicateFieldError as error:
+        raise ValueError(f"{field_name} contains duplicate JSON fields") from error
+    except _NonFiniteConstantError as error:
+        raise ValueError(f"{field_name} contains a non-finite JSON constant") from error
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"{field_name} is not valid JSON") from error
+
+
 def _iso_datetime(value: datetime) -> str:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("wire datetimes must be timezone-aware")
@@ -449,10 +485,7 @@ def deserialize_invocation(payload: str) -> tuple[str, StrategySdkManifest, Stra
 
     if not isinstance(payload, str) or not payload.strip():
         raise ValueError("invocation payload must not be empty")
-    try:
-        root = json.loads(payload)
-    except json.JSONDecodeError as error:
-        raise ValueError("invocation payload is not valid JSON") from error
+    root = _load_json(payload, "invocation payload")
     item = _mapping(root, "invocation")
     if set(item) != {
         "protocol_version",
@@ -527,10 +560,7 @@ def deserialize_invocation_result(payload: str) -> Any:
 
     if not isinstance(payload, str) or not payload.strip():
         raise ValueError("result payload must not be empty")
-    try:
-        root = json.loads(payload)
-    except json.JSONDecodeError as error:
-        raise ValueError("result payload is not valid JSON") from error
+    root = _load_json(payload, "result payload")
     item = _mapping(root, "result")
     required = {
         "protocol_version",
