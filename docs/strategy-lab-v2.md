@@ -718,6 +718,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   state for an attempt while preserving history. Submission/outcome persistence,
   result publication, migrations, authorization, and route wiring remain
   separate integration concerns.
+- `postgres_result_completion.py` maps terminal result completion and the
+  shared artifact commit ledger into one additive PostgreSQL transaction.
+  Runtime/outcome/progress/publication evidence is resolved by the pure
+  completion contract before new commits and the completion receipt are
+  inserted; artifact conflicts leave both ledgers unchanged, and exact retries
+  replay the existing receipt. Artifact bytes, migrations, authorization, and
+  worker wiring remain outside this registration-neutral adapter.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

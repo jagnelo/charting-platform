@@ -11,6 +11,23 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable result-completion checkpoint
+
+`postgres_result_completion.py` now maps terminal result completion and the
+shared content-addressed artifact commit ledger to one additive PostgreSQL
+transaction. It locks and authenticates both ledgers, delegates terminal
+runtime/outcome/progress/publication and artifact-plan validation to
+`finalize_execution_result()`, then inserts all new artifact commits and the
+owner-scoped completion receipt atomically. Exact retries replay the stored
+completion; artifact conflicts or rejected terminal evidence leave both ledgers
+unchanged. Artifact bytes, migrations, authorization, and worker/application
+wiring remain outside this registration-neutral adapter.
+
+The focused result-completion-adapter suite passes 4 tests. Package/static and
+combined coverage evidence will be recorded after this boundary is committed
+and rerun; upstream reconciliation and stable Nautilus execution remain open
+gates.
+
 ## 2026-09-17 - Durable execution-summary checkpoint
 
 `postgres_execution_summary.py` now maps immutable `ExecutionSummary`
