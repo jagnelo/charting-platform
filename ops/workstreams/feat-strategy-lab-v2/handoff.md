@@ -12,6 +12,20 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Additive Strategy Lab v2 schema migration
+
+Alembic revision `ff0a1b2c3d4e_add_strategy_lab_v2_storage.py` now creates the
+complete additive schema consumed by the registration-neutral PostgreSQL v2
+adapters: aggregate/storage receipts, submissions and dispatch, execution and
+audit/outbox state, forward state and replays, runtime/outcome/progress/result
+records, search/capability/coverage/acquisition projections, artifact lineage,
+retention and commits, legacy imports, and worker profiles/reservations/leases.
+It also creates the partial unique index that enforces one active reservation
+per worker/attempt. Offline Alembic rendering, migration graph, Python compile,
+and Ruff validation are green; legacy Strategy Lab tables are untouched.
+Application startup migration execution, authentication, route registration,
+worker activation, and stable Nautilus execution remain deferred.
+
 ## 2026-09-17 - Restricted strategy invocation runner
 
 The new owned `backend/strategy_runtime/` package executes one strategy event

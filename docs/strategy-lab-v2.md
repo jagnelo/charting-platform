@@ -682,14 +682,17 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   resource documents, orders pages deterministically, and binds every cursor to
   the complete visible-set digest. Missing or foreign rows are not disclosed;
   malformed owner/resource/relationship state and snapshot drift fail closed.
-  The adapter is registration-neutral and does not create migrations, mutate
-  aggregates, or dispatch work.
+  The adapter is registration-neutral and does not execute migrations, mutate
+  aggregates, or dispatch work. The additive Alembic revision
+  `ff0a1b2c3d4e_add_strategy_lab_v2_storage.py` creates every v2 adapter table
+  and the active-worker reservation index while leaving legacy Strategy Lab
+  tables unchanged.
 - `postgres_submission.py` maps idempotent submission receipts and dispatch
   intents to an owner-scoped additive PostgreSQL transaction. Exact retries
   replay the durable receipt, a missing dispatch can be repaired from that
   receipt, changed content conflicts, and different principals remain isolated.
   It validates payload/fingerprint identity and stages no Redis message until a
-  later outbox relay; table creation and application wiring remain gated.
+  later outbox relay; application wiring and relay activation remain gated.
 - `postgres_commands.py` maps retry/cancellation commands to owner-scoped,
   transactionally locked PostgreSQL receipts. It resolves the latest injected
   outcome/progress context through the engine-neutral command state machine,
@@ -960,8 +963,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   idempotent inserts and guarded updates, and rolls back on concurrent races.
   Its read methods return authenticated canonical aggregate snapshots in
   deterministic key order for the resource bridge. It exposes the future
-  additive schema contract but never creates tables or registers models;
-  migrations remain a shared-path gate.
+  additive schema contract but never creates tables or registers models; the
+  additive migration owns table creation and application startup still owns
+  migration execution.
 - `nautilus_runner.py` is the final process handoff after the Nautilus
   execution gate. Rejected, non-Nautilus, or sandbox-mismatched plans return
   before process creation; ready plans execute only through the bounded sandbox
