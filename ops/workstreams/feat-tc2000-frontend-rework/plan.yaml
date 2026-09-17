@@ -263,26 +263,27 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_strategy_run_subset_disclosure_exact_gate_passed
+  current_phase: R6_easyscan_disclosure_exact_gate_passed
   next_action: >-
     Preserve the Strategy toggle-state and run-subset disclosure semantics,
     VirtualWatchlist membership disclosure, IndicatorPanel section keyboard
     semantics, Strategy section disclosure, Instrument Report disclosure,
     Strategy run-history disclosure, current-revision, selected-study version,
     saved-study reopen, dense-range, and ChartPanel link-menu disclosure
-    exact-gate, LayoutPicker disclosure, and Strategy run-subset disclosure
-    receipts. Continue with the
+    exact-gate, LayoutPicker disclosure, Strategy run-subset disclosure, and
+    EasyScan advanced-condition disclosure receipts. Continue with the
     next bounded TC-owned R1/R5/R6 item;
     keep provider/ETF consumer work deferred until both upstream branches reach
     staging. Do not retry origin synchronization under the existing private-
     origin safeguard without newly accepted exact-payload authorization.
   current_blocker: >-
     No active TC-owned product or validation blocker. The definitive
-    full_stack_browser gate at product tip 584cc4261 passed and branch-scoped
-    cleanup/resource accounting are clean. The focused Strategy run-subset
-    suite and full frontend checks passed before the definitive gate; no visual
-    or functional policy changed. The preceding disclosure receipts remain
-    valid, including their transient focused browser retries; none is a blocker.
+    full_stack_browser gate at product tip 3bd05aff0 passed and branch-scoped
+    cleanup/resource accounting are clean. The focused Strategy run-subset and
+    EasyScan disclosure suites and full frontend checks passed before the
+    definitive gate; no visual or functional policy changed. The preceding
+    disclosure receipts remain valid, including their transient focused browser
+    retries; none is a blocker.
     Provider-platform and ETF consumer integration remains a sequencing gate
     until both upstream branches reach staging; that does not stop independent
     TC-owned work. Origin synchronization remains a separate operational hold
@@ -476,6 +477,8 @@ historical_implementation_records_continued:
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 6df819b8a3b57c4a17ae208c6b77bf8d54254176: backend combined coverage 1,621 tests with 82.26% total coverage, frontend Vitest 1,139/1,139, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the LayoutPicker disclosure semantics slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commit 584cc4261 makes the Strategy Lab run-subset disclosure instance-safe with a Vue-generated id, explicit aria-controls/aria-expanded semantics, a labelled controlled group, and accessible checkbox names while preserving subset selection, checkbox state, run payloads, and visual layout. Focused Strategy Lab coverage passed 34/34; full frontend Vitest passed 1,139/1,139; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 584cc4261a153506dac98ae6ee2875c84b79815f: backend combined coverage 1,621 tests with 82.26% total coverage, frontend Vitest 1,139/1,139, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the Strategy run-subset disclosure semantics slice and does not close the broader workstream or upstream staging dependencies."
+  - "Product commit 3bd05aff0 makes the EasyScan advanced-condition disclosure instance-safe with a Vue-generated id while preserving the toggle, expanded region, condition controls, keyboard behavior, and visual layout. Focused EasyScan coverage passed 17/17; full frontend Vitest passed 1,139/1,139; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff --check passed. The Playwright flow now resolves the controlled region through the trigger's aria-controls relationship. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
+  - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 3bd05aff056f5bbfc11cf74fce72677d1f8b3e6c: backend combined coverage passed 1,621 tests with 82.26% total coverage, frontend Vitest passed 1,139/1,139, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium passed 170 with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the EasyScan advanced-condition disclosure semantics slice and does not close the broader workstream or upstream staging dependencies."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."

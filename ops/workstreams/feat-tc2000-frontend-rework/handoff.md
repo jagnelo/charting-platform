@@ -14251,3 +14251,34 @@ binary ran the same target. No provider-platform, ETF, visual-baseline,
 threshold, mask, skip, fallback, or acceptance policy changed. This receipt
 covers the Strategy run-subset disclosure slice and does not close the broader
 workstream or upstream staging dependencies.
+
+## 2026-09-17 — R6 EasyScan advanced-condition disclosure semantics
+
+Product commit `3bd05aff0` makes the EasyScan advanced-condition disclosure
+instance-safe with a Vue-generated id while preserving the toggle, expanded
+region, condition controls, keyboard behavior, and visual layout. Focused
+EasyScan coverage passed `17/17`; full frontend Vitest passed `1,139/1,139`;
+frontend type-check and production build passed with the existing large-chunk
+warning; TC scope validation/self-tests, workstream validation, and
+`git diff --check` passed. The Playwright flow resolves the controlled region
+through the trigger's `aria-controls` relationship. No provider-platform, ETF,
+visual-oracle, or acceptance-policy behavior changed.
+
+## 2026-09-17 — R6 EasyScan exact integration gate
+
+The definitive raw-capture
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` gate
+passed at product tip `3bd05aff056f5bbfc11cf74fce72677d1f8b3e6c`. Backend
+combined coverage passed `1,621` tests with `82.26%` total coverage, frontend
+Vitest passed `1,139/1,139`, type-check/build, Compose/provider contracts,
+branch-scoped Docker health, research-runner probes, authenticated functional
+Chromium passed `170` with `107` documented skips, and all four visual projects
+passed `104/104`. Teardown removed the assigned containers, volumes, network,
+four generated images, and test sessions; post-gate resource accounting
+reported zero retained resources. The standard `/usr/bin/make` wrapper remains
+unavailable with Xcode license status `69`; the equivalent installed
+CommandLineTools Make binary ran the same target. No provider-platform, ETF,
+visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed.
+This receipt covers the EasyScan advanced-condition disclosure semantics slice
+and does not close the broader workstream or upstream staging dependencies.
