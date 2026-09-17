@@ -705,6 +705,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   retries replay and changed handoffs conflict. Fetching, repair, snapshot
   creation, provider policy, migrations, and execution admission remain
   outside this adapter.
+- `postgres_snapshot_coverage.py` maps snapshot-level coverage verification
+  receipts to an owner-scoped additive PostgreSQL table. Per-series reports,
+  missing/unexpected digests, rejection reasons, and the complete resolution
+  fingerprint are re-authenticated on read; exact retries replay and changed
+  resolutions conflict. Provider fetch/repair, attestation lookup, snapshot
+  creation, migrations, and execution admission remain outside the adapter.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

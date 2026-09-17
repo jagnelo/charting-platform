@@ -11,6 +11,21 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable snapshot-coverage checkpoint
+
+`postgres_snapshot_coverage.py` now maps snapshot-level verified/rejected
+coverage resolutions to an owner-scoped additive PostgreSQL table. Per-series
+reports, missing/unexpected series digests, rejection reasons, and the complete
+resolution fingerprint are authenticated on reads; exact retries replay while
+changed resolutions conflict. Provider fetch/repair, attestation lookup,
+snapshot creation, execution admission, shared migrations, authorization, and
+application wiring remain outside this adapter.
+
+The focused snapshot-coverage-adapter suite passed 4 tests. Package/static and
+combined coverage evidence will be recorded after this boundary is committed
+and rerun; upstream reconciliation and stable Nautilus execution remain open
+gates.
+
 ## 2026-09-17 - Durable acquisition-receipt checkpoint
 
 `postgres_acquisition.py` now maps provider-produced acquisition receipts to an
