@@ -34,7 +34,7 @@
               <div class="definition-copy">
                 <strong>{{ definition.name }}</strong>
                 <small>
-                  v{{ definition.versions[0]?.version_number ?? 1 }}
+                  v{{ currentVersionNumber(definition) }}
                 </small>
                 <div v-if="definitionDisplayTags(definition).length" class="definition-tags">
                   <span
@@ -1715,6 +1715,12 @@ const STRATEGY_SECTION_STORAGE_KEY = 'strategyLab.sections.v1'
 const PYTHON_SIGNAL_REVISION_GUIDANCE = 'Python signal code and version lineage are immutable in Strategy Lab. Make signal changes in Study Lab and promote a new signal.'
 const initialSidebarState = loadStrategySidebarState()
 const initialSectionStates = loadStrategySectionStates()
+
+function currentVersionNumber(definition: StrategyDefinition) {
+  return definition.versions.find(version => version.is_current)?.version_number
+    ?? definition.versions[0]?.version_number
+    ?? 1
+}
 
 const strategyLab = useStrategyLabStore()
 const availableWatchlists = ref<Watchlist[]>([])

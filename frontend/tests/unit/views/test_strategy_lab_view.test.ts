@@ -661,6 +661,26 @@ describe('StrategyLabView', () => {
     expect(wrapper.find('button[aria-label="Show yearly returns"]').exists()).toBe(true)
   })
 
+  it('shows the current strategy revision in the sidebar regardless of API version order', async () => {
+    const versionedDefinition = clone(definition)
+    versionedDefinition.versions = [
+      { ...clone(definition.versions[0]), id: 7, version_number: 1, is_current: false },
+      { ...clone(definition.versions[0]), id: 8, version_number: 2, is_current: true },
+    ]
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/strategy-lab/definitions') return Promise.resolve([versionedDefinition])
+      if (path === '/strategy-lab/definitions/4') return Promise.resolve(versionedDefinition)
+      return Promise.resolve([])
+    })
+
+    const wrapper = mountView()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Momentum Pilot'))
+
+    const item = wrapper.find('.definition-item')
+    expect(item.text()).toContain('v2')
+    expect(item.text()).not.toContain('v1')
+  })
+
   it('filters and sorts the execution log by individual columns', async () => {
     const wrapper = mountView()
 
