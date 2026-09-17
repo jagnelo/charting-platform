@@ -1106,6 +1106,17 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   This keeps terminal outcome/result publication and atomic worker-capacity
   release in an explicit application callback, while preserving the existing
   two-argument completion writer for transport-only adapters.
+- `worker_terminal_adapter.py` supplies the concrete PostgreSQL callback for
+  that seam. Its typed evidence resolver binds the authenticated submission,
+  outcome/progress checkpoint, result/publication plan, and artifact plans; the
+  adapter persists runtime evidence, terminal public state, successful result
+  completion, execution summary, durable worker settlement receipt, and the
+  lease/reservation release before returning an acknowledgement digest. The
+  additive worker-settlement table makes the receipt replayable across a crash
+  between immutable settlement and the capacity compare-and-set. The shared
+  persistence bundle exposes this as `worker_terminal_writer(...)`; evidence
+  resolution remains application-owned and no transport or engine policy is
+  hidden inside it.
 - `worker_entrypoint.py` is the explicit local process boundary for that
   composition. It validates namespaced environment configuration, runs startup
   migrations before connecting Redis, builds the shared PostgreSQL persistence

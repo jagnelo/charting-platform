@@ -81,7 +81,6 @@ def test_worker_terminal_commits_public_state_and_worker_release(tmp_path: Path)
     assert replay.pool == resolved.pool
     assert replay.lease_state == resolved.lease_state
 
-
 def test_worker_terminal_rejects_without_result_or_when_settlement_fails(tmp_path: Path) -> None:
     values = _fixtures()
     execution = _execution(values, tmp_path)

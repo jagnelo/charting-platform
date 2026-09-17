@@ -110,6 +110,7 @@ class WorkerSettlementResolution:
     settlement_fingerprint: str
     record: WorkerSettlementRecord | None = None
     rejection_reason: str | None = None
+    observation: LeaseObservation | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.decision, WorkerSettlementDecision):
@@ -126,6 +127,8 @@ class WorkerSettlementResolution:
         )
         if self.record is not None and not isinstance(self.record, WorkerSettlementRecord):
             raise TypeError("record must be a WorkerSettlementRecord")
+        if self.observation is not None and not isinstance(self.observation, LeaseObservation):
+            raise TypeError("observation must be a LeaseObservation")
         if self.decision in {
             WorkerSettlementDecision.RELEASED,
             WorkerSettlementDecision.REPLAY_EXISTING,
@@ -141,6 +144,11 @@ class WorkerSettlementResolution:
             WorkerSettlementDecision.REPLAY_EXISTING,
         } and self.rejection_reason:
             raise ValueError("released resolutions cannot contain a rejection reason")
+        if self.decision in {
+            WorkerSettlementDecision.RELEASED,
+            WorkerSettlementDecision.REPLAY_EXISTING,
+        } and self.observation is None:
+            raise ValueError("released resolutions require the lease observation")
 
 
 def settle_worker_execution(
@@ -264,6 +272,7 @@ def settle_worker_execution(
             lease_state,
             settlement_fingerprint,
             existing,
+            observation=applied_observation,
         )
     if not reservation.active:
         return _reject(
@@ -282,20 +291,8 @@ def settle_worker_execution(
     if lease_status is AttemptLeaseStatus.RELEASED:
         return _reject(ledger, pool, "lease is already released without a settlement receipt", lease_state=lease_state)
 
-    release_observation = LeaseObservation(
-        observation_id=content_digest(
-            {
-                "kind": LeaseObservationKind.RELEASE,
-                "lease_id": lease_state.lease.lease_id,
-                "settlement_fingerprint": settlement_fingerprint,
-            }
-        ),
-        lease_id=lease_state.lease.lease_id,
-        worker_id=lease_state.lease.worker_id,
-        attempt_id=lease_state.lease.attempt_id,
-        sequence=lease_state.last_sequence + 1,
-        kind=LeaseObservationKind.RELEASE,
-        observed_at=released_at,
+    release_observation = _release_observation(
+        lease_state, settlement_fingerprint, released_at
     )
     lease_observation_fingerprint = release_observation.fingerprint
 
@@ -330,6 +327,31 @@ def settle_worker_execution(
         lease_resolution.state,
         settlement_fingerprint,
         record,
+        observation=release_observation,
+    )
+
+
+def _release_observation(
+    lease_state: LeaseObservationState,
+    settlement_fingerprint: str,
+    released_at: datetime,
+) -> LeaseObservation:
+    """Reconstruct the deterministic release observation for a settlement."""
+
+    return LeaseObservation(
+        observation_id=content_digest(
+            {
+                "kind": LeaseObservationKind.RELEASE,
+                "lease_id": lease_state.lease.lease_id,
+                "settlement_fingerprint": settlement_fingerprint,
+            }
+        ),
+        lease_id=lease_state.lease.lease_id,
+        worker_id=lease_state.lease.worker_id,
+        attempt_id=lease_state.lease.attempt_id,
+        sequence=lease_state.last_sequence + 1,
+        kind=LeaseObservationKind.RELEASE,
+        observed_at=released_at,
     )
 
 

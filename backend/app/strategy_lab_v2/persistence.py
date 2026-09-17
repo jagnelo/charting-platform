@@ -46,8 +46,13 @@ from app.strategy_lab_v2.postgres_search_state import PostgresSearchStateAdapter
 from app.strategy_lab_v2.postgres_snapshot_coverage import PostgresSnapshotCoverageAdapter
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
+from app.strategy_lab_v2.postgres_worker_settlement import PostgresWorkerSettlementAdapter
 from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
+from app.strategy_lab_v2.worker_terminal_adapter import (
+    PostgresWorkerTerminalAdapter,
+    WorkerTerminalEvidenceResolver,
+)
 
 
 def _record_document(
@@ -93,6 +98,7 @@ class PostgresStrategyLabV2Persistence:
     snapshot_coverage: PostgresSnapshotCoverageAdapter
     submissions: PostgresSubmissionDispatchAdapter
     worker_state: PostgresWorkerStateAdapter
+    worker_settlements: PostgresWorkerSettlementAdapter
 
     @classmethod
     def build(
@@ -237,6 +243,7 @@ class PostgresStrategyLabV2Persistence:
             snapshot_coverage=PostgresSnapshotCoverageAdapter(session_factory),
             submissions=PostgresSubmissionDispatchAdapter(session_factory, clock=clock),
             worker_state=PostgresWorkerStateAdapter(session_factory),
+            worker_settlements=PostgresWorkerSettlementAdapter(session_factory),
         )
 
     def artifact_publication(
@@ -273,6 +280,30 @@ class PostgresStrategyLabV2Persistence:
         """Create a Redis relay backed by this bundle's authoritative outbox."""
 
         return OutboxRelayService(self.execution_events, transport)
+
+    def worker_terminal_writer(
+        self,
+        evidence_resolver: WorkerTerminalEvidenceResolver,
+        *,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> PostgresWorkerTerminalAdapter:
+        """Create the terminal callback used by the dedicated worker service.
+
+        The resolver is the narrow application seam for authenticated
+        principal/submission/result evidence.  All durable v2 adapters remain
+        package-owned and share this persistence bundle.
+        """
+
+        return PostgresWorkerTerminalAdapter(
+            evidence_resolver,
+            runtime_execution=self.runtime_execution,
+            execution_state=self.execution_state,
+            execution_summaries=self.execution_summaries,
+            result_completion=self.result_completion,
+            worker_state=self.worker_state,
+            settlements=self.worker_settlements,
+            clock=clock,
+        )
 
 
 __all__ = ["PostgresStrategyLabV2Persistence"]

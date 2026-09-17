@@ -347,6 +347,16 @@ class PostgresWorkerStateAdapter:
                 await self._insert_lease(session, lease)
                 return LeaseObservationState(lease)
 
+    async def load_lease(self, lease_id: str) -> LeaseObservationState | None:
+        """Read one lease and its authenticated observation history."""
+
+        if not isinstance(lease_id, str) or not lease_id.strip():
+            raise ValueError("lease_id must not be empty")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                return await self._load_lease(session, lease_id)
+
     async def observe(
         self, *, lease_id: str, observation: LeaseObservation
     ) -> LeaseObservationResolution:
