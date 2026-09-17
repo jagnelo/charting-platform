@@ -13,7 +13,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
-from app.strategy_lab_v2.sdk import MarketEvent
+from app.strategy_lab_v2.capabilities import PreflightClass
+from app.strategy_lab_v2.contracts import DataSnapshot
+from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
 
 EVENT_TAPE_DEFINITION_VERSION = "strategy-lab.event-tape.v1"
 
@@ -190,4 +192,177 @@ class FrozenEventTape:
         return tuple(result)
 
 
-__all__ = ["EVENT_TAPE_DEFINITION_VERSION", "EventTapeBatch", "FrozenEventTape"]
+@dataclass(frozen=True, slots=True)
+class EventTapeBinding:
+    """Verified tape/snapshot/SDK identity for an execution adapter."""
+
+    event_tape_fingerprint: str
+    snapshot_fingerprint: str
+    manifest_fingerprint: str
+    dependency_event_counts: tuple[tuple[str, int], ...]
+
+    def __post_init__(self) -> None:
+        for name in (
+            "event_tape_fingerprint",
+            "snapshot_fingerprint",
+            "manifest_fingerprint",
+        ):
+            require_sha256_digest(getattr(self, name), field_name=name)
+        counts = tuple(self.dependency_event_counts)
+        if not counts:
+            raise ValueError("event-tape bindings require dependency event counts")
+        if any(
+            not isinstance(dependency_id, str)
+            or not dependency_id.strip()
+            or not isinstance(count, int)
+            or isinstance(count, bool)
+            or count <= 0
+            for dependency_id, count in counts
+        ):
+            raise ValueError("dependency event counts must contain positive keyed counts")
+        if counts != tuple(sorted(counts)) or len({item[0] for item in counts}) != len(counts):
+            raise ValueError("dependency event counts must be unique and ordered")
+        object.__setattr__(self, "dependency_event_counts", counts)
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+def bind_event_tape(
+    tape: FrozenEventTape,
+    snapshot: DataSnapshot,
+    manifest: StrategySdkManifest,
+) -> EventTapeBinding:
+    """Verify a frozen tape against snapshot semantics and SDK dependencies.
+
+    The provider adapter remains responsible for obtaining the snapshot and its
+    coverage attestation. This function only checks that the already-frozen
+    event payloads are the declared series, fields, and effective time interval
+    for one SDK manifest. Degraded preflight substitutions are honored exactly
+    as recorded by the snapshot; unsupported requirements fail closed.
+    """
+
+    if not isinstance(tape, FrozenEventTape):
+        raise TypeError("tape must be a FrozenEventTape")
+    if not isinstance(snapshot, DataSnapshot):
+        raise TypeError("snapshot must be a DataSnapshot")
+    if not isinstance(manifest, StrategySdkManifest):
+        raise TypeError("manifest must be a StrategySdkManifest")
+    if tape.snapshot_fingerprint != snapshot.fingerprint:
+        raise ValueError("event tape does not belong to the supplied snapshot")
+    if not tape.events:
+        raise ValueError("event tape cannot bind an empty event set")
+
+    decisions = {
+        decision.requirement: decision for decision in snapshot.preflight_report.decisions
+    }
+    dependency_ids = {item.dependency_id for item in manifest.data_dependencies}
+    tape_dependency_ids = {event.dependency_id for event in tape.events}
+    if tape_dependency_ids != dependency_ids:
+        missing = sorted(dependency_ids - tape_dependency_ids)
+        extra = sorted(tape_dependency_ids - dependency_ids)
+        raise ValueError(f"event-tape dependency mismatch; missing={missing}, extra={extra}")
+
+    counts: list[tuple[str, int]] = []
+    for dependency in manifest.data_dependencies:
+        decision = decisions.get(dependency.requirement)
+        if decision is None:
+            raise ValueError(
+                f"snapshot preflight has no decision for dependency {dependency.dependency_id!r}"
+            )
+        if decision.classification is PreflightClass.UNSUPPORTED:
+            raise ValueError(
+                f"dependency {dependency.dependency_id!r} uses an unsupported preflight"
+            )
+        replacements = {
+            item.field: item.substituted_value for item in decision.degradations
+        }
+        effective_granularity = replacements.get(
+            "event_granularity", dependency.requirement.event_granularity.value
+        )
+        effective_event_type = replacements.get(
+            "event_type", dependency.requirement.event_type
+        )
+        effective_timeframe = replacements.get("timeframe", dependency.requirement.timeframe)
+        effective_adjustment = replacements.get(
+            "adjustment", dependency.requirement.adjustment.value
+        )
+        effective_session = replacements.get("session", dependency.requirement.session)
+        effective_feed = replacements.get("feed", dependency.requirement.feed)
+        effective_actions = replacements.get(
+            "corporate_action_semantics",
+            dependency.requirement.corporate_action_semantics,
+        )
+        effective_start = _replacement_time(
+            replacements.get("history_start"), dependency.requirement.start
+        )
+        effective_end = _replacement_time(
+            replacements.get("history_end"), dependency.requirement.end
+        )
+        candidates = tuple(
+            item
+            for item in snapshot.series
+            if item.instrument_id == dependency.requirement.instrument_id
+            and item.event_granularity.value == effective_granularity
+            and item.event_type == effective_event_type
+            and item.timeframe == effective_timeframe
+            and item.adjustment.value == effective_adjustment
+            and item.session == effective_session
+            and item.feed == effective_feed
+            and item.corporate_action_semantics == effective_actions
+            and item.start < effective_end
+            and item.end > effective_start
+        )
+        if not candidates:
+            raise ValueError(
+                f"snapshot has no matching series for dependency {dependency.dependency_id!r}"
+            )
+        events = tuple(
+            event for event in tape.events if event.dependency_id == dependency.dependency_id
+        )
+        if not events:
+            raise ValueError(f"dependency {dependency.dependency_id!r} has no tape events")
+        allowed_fields = set(dependency.fields)
+        for event in events:
+            if event.instrument_id != dependency.requirement.instrument_id:
+                raise ValueError(
+                    f"dependency {dependency.dependency_id!r} contains an undeclared instrument"
+                )
+            if set(event.values) != allowed_fields:
+                raise ValueError(
+                    f"dependency {dependency.dependency_id!r} event fields do not match its declaration"
+                )
+            event_time = event.event_time.astimezone(UTC)
+            if not any(item.start <= event_time < item.end for item in candidates):
+                raise ValueError(
+                    f"dependency {dependency.dependency_id!r} event falls outside snapshot coverage"
+                )
+        counts.append((dependency.dependency_id, len(events)))
+
+    return EventTapeBinding(
+        event_tape_fingerprint=tape.fingerprint,
+        snapshot_fingerprint=snapshot.fingerprint,
+        manifest_fingerprint=manifest.fingerprint,
+        dependency_event_counts=tuple(sorted(counts)),
+    )
+
+
+def _replacement_time(value: str | None, fallback: datetime) -> datetime:
+    if value is None:
+        return fallback
+    try:
+        result = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError("history replacement must be an ISO-8601 timestamp") from error
+    _aware(result, "history replacement")
+    return result.astimezone(UTC)
+
+
+__all__ = [
+    "EVENT_TAPE_DEFINITION_VERSION",
+    "EventTapeBatch",
+    "EventTapeBinding",
+    "FrozenEventTape",
+    "bind_event_tape",
+]

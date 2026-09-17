@@ -5,12 +5,27 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.capabilities import (
+    CapabilityCell,
+    CapabilityRequirement,
+    preflight_capabilities,
+)
+from app.strategy_lab_v2.contracts import (
+    AdjustmentMode,
+    DataSeriesManifest,
+    DataSnapshot,
+    EventGranularity,
+    ProductClass,
+    StrategyVersion,
+)
 from app.strategy_lab_v2.event_tape import (
     EVENT_TAPE_DEFINITION_VERSION,
     EventTapeBatch,
+    EventTapeBinding,
     FrozenEventTape,
+    bind_event_tape,
 )
-from app.strategy_lab_v2.sdk import MarketEvent
+from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
 
 SNAPSHOT = content_digest("snapshot")
 BASE = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
@@ -124,3 +139,181 @@ def test_invalid_time_range_and_definition_are_rejected() -> None:
         tape.slice(BASE + timedelta(days=1), BASE)
     with pytest.raises(ValueError, match="definition version"):
         FrozenEventTape(SNAPSHOT, definition_version="event-tape.other.v1")
+
+
+def _binding_inputs() -> tuple[FrozenEventTape, DataSnapshot, StrategySdkManifest]:
+    requirement = CapabilityRequirement(
+        instrument_id="US.AAPL",
+        product_class=ProductClass.EQUITY,
+        event_granularity=EventGranularity.BAR,
+        event_type="ohlcv",
+        timeframe="1d",
+        start=BASE - timedelta(days=1),
+        end=BASE + timedelta(days=2),
+        adjustment=AdjustmentMode.SPLIT_ADJUSTED,
+        session="regular",
+        feed="consolidated",
+        execution_model="bar-close-v1",
+        account_model="cash-equity-v1",
+        corporate_action_semantics="split-adjusted-v1",
+    )
+    cell = CapabilityCell(
+        instrument_id="US.AAPL",
+        product_class=ProductClass.EQUITY,
+        event_granularities=frozenset({EventGranularity.BAR}),
+        event_types=frozenset({"ohlcv"}),
+        timeframes=frozenset({"1d"}),
+        adjustments=frozenset({AdjustmentMode.SPLIT_ADJUSTED}),
+        sessions=frozenset({"regular"}),
+        feeds=frozenset({"consolidated"}),
+        execution_models=frozenset({"bar-close-v1"}),
+        account_models=frozenset({"cash-equity-v1"}),
+        corporate_action_semantics=frozenset({"split-adjusted-v1"}),
+        history_start=BASE - timedelta(days=10),
+        history_end=BASE + timedelta(days=10),
+        evidence_digest=content_digest("capability"),
+    )
+    report = preflight_capabilities((requirement,), (cell,))
+    series = DataSeriesManifest(
+        instrument_id="US.AAPL",
+        event_type="ohlcv",
+        event_granularity=EventGranularity.BAR,
+        timeframe="1d",
+        session="regular",
+        feed="consolidated",
+        start=BASE - timedelta(days=1),
+        end=BASE + timedelta(days=2),
+        adjustment=AdjustmentMode.SPLIT_ADJUSTED,
+        corporate_action_semantics="split-adjusted-v1",
+        coverage_evidence_digest=content_digest("coverage"),
+        content_digest=content_digest("series"),
+        row_count=3,
+    )
+    snapshot = DataSnapshot("snapshot-1", "provider-snapshot-1", report, (series,), BASE)
+    manifest = StrategySdkManifest(
+        StrategyVersion("strategy-1", "v1", "2.0", content_digest("source")),
+        (StrategyDataDependency("daily-bars", requirement, ("close",)),),
+    )
+    tape = FrozenEventTape(
+        snapshot.fingerprint,
+        (
+            MarketEvent("daily-bars", "bar-1", "US.AAPL", BASE, 0, {"close": 100}),
+            MarketEvent(
+                "daily-bars",
+                "bar-2",
+                "US.AAPL",
+                BASE + timedelta(days=1),
+                1,
+                {"close": 101},
+            ),
+        ),
+    )
+    return tape, snapshot, manifest
+
+
+def test_binding_verifies_snapshot_manifest_fields_and_coverage() -> None:
+    tape, snapshot, manifest = _binding_inputs()
+    binding = bind_event_tape(tape, snapshot, manifest)
+
+    assert isinstance(binding, EventTapeBinding)
+    assert binding.event_tape_fingerprint == tape.fingerprint
+    assert binding.snapshot_fingerprint == snapshot.fingerprint
+    assert binding.manifest_fingerprint == manifest.fingerprint
+    assert binding.dependency_event_counts == (("daily-bars", 2),)
+    assert binding.fingerprint.startswith("sha256:")
+
+
+def test_binding_rejects_snapshot_drift_and_dependency_or_field_mismatch() -> None:
+    tape, snapshot, manifest = _binding_inputs()
+    with pytest.raises(ValueError, match="does not belong"):
+        bind_event_tape(FrozenEventTape(content_digest("other"), tape.events), snapshot, manifest)
+
+    with pytest.raises(ValueError, match="dependency mismatch"):
+        bind_event_tape(
+            FrozenEventTape(
+                snapshot.fingerprint,
+                tuple(
+                    MarketEvent("other", event.event_id, event.instrument_id, event.event_time, event.sequence, event.values)
+                    for event in tape.events
+                ),
+            ),
+            snapshot,
+            manifest,
+        )
+
+    bad_fields = FrozenEventTape(
+        snapshot.fingerprint,
+        (
+            MarketEvent("daily-bars", "bar-1", "US.AAPL", BASE, 0, {"open": 100}),
+            MarketEvent(
+                "daily-bars", "bar-2", "US.AAPL", BASE + timedelta(days=1), 1, {"close": 101}
+            ),
+        ),
+    )
+    with pytest.raises(ValueError, match="fields do not match"):
+        bind_event_tape(bad_fields, snapshot, manifest)
+
+
+def test_binding_rejects_instrument_or_coverage_drift() -> None:
+    tape, snapshot, manifest = _binding_inputs()
+    wrong_instrument = FrozenEventTape(
+        snapshot.fingerprint,
+        (
+            MarketEvent("daily-bars", "bar-1", "US.MSFT", BASE, 0, {"close": 100}),
+            MarketEvent(
+                "daily-bars", "bar-2", "US.MSFT", BASE + timedelta(days=1), 1, {"close": 101}
+            ),
+        ),
+    )
+    with pytest.raises(ValueError, match="undeclared instrument"):
+        bind_event_tape(wrong_instrument, snapshot, manifest)
+
+    outside = FrozenEventTape(
+        snapshot.fingerprint,
+        (
+            MarketEvent(
+                "daily-bars", "bar-1", "US.AAPL", BASE + timedelta(days=3), 0, {"close": 100}
+            ),
+        ),
+    )
+    with pytest.raises(ValueError, match="outside snapshot coverage"):
+        # The one-event tape is still scoped correctly; the coverage check is
+        # reached after the dependency set has been validated.
+        bind_event_tape(outside, snapshot, manifest)
+
+
+def test_binding_rejects_empty_tape_and_unsupported_or_missing_snapshot_decision() -> None:
+    tape, snapshot, manifest = _binding_inputs()
+    with pytest.raises(ValueError, match="empty event set"):
+        bind_event_tape(FrozenEventTape(snapshot.fingerprint), snapshot, manifest)
+
+    valid_snapshot = DataSnapshot(
+        snapshot.snapshot_id,
+        snapshot.provider_snapshot_id,
+        snapshot.preflight_report,
+        snapshot.series,
+        snapshot.created_at,
+    )
+    # A missing manifest dependency cannot be silently treated as a complete
+    # tape even when the snapshot itself is otherwise valid.
+    other_requirement = CapabilityRequirement(
+        "US.MSFT",
+        ProductClass.EQUITY,
+        EventGranularity.BAR,
+        "ohlcv",
+        "1d",
+        BASE - timedelta(days=1),
+        BASE + timedelta(days=2),
+        AdjustmentMode.SPLIT_ADJUSTED,
+        "regular",
+        "consolidated",
+        "bar-close-v1",
+        "cash-equity-v1",
+        "split-adjusted-v1",
+    )
+    other_manifest = StrategySdkManifest(
+        manifest.strategy,
+        (StrategyDataDependency("other", other_requirement, ("close",)),),
+    )
+    with pytest.raises(ValueError, match="dependency mismatch"):
+        bind_event_tape(tape, valid_snapshot, other_manifest)
