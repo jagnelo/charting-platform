@@ -5250,5 +5250,6 @@ the authoritative record for this replay; it made zero provider calls.
   current evidence.
 - Focused quota/registry coverage passed `134/134`; the complete backend unit
   gate passed `2,364/2,364` with `37` warnings and `70.82%` coverage. The
-  bounded live account-usage receipt is retained in `validation.jsonl`; no
-  secret or provider payload was persisted.
+  exact-current-source bounded live account-usage replay at `cfe08fde0` also
+  passed `1/1` with one request and 304 response bytes. The redacted receipt is
+  retained in `validation.jsonl`; no secret or provider payload was persisted.

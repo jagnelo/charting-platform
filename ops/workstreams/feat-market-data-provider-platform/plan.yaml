@@ -737,6 +737,14 @@ progress:
       registry coverage passes 134/134 and the complete backend unit gate
       passes 2,364/2,364 with 37 warnings and 70.82% coverage.
     - >-
+      2026-09-17 exact-current-source EODHD account-usage replay at
+      `cfe08fde0` passed `1/1` with one bounded `/user` request and 304
+      response bytes. The redacted receipt reconciles the native account
+      observation through the owner-local durable ledger; it does not infer a
+      reset or promote ordinary routing. All other quota, source/legal,
+      universe, target-secret, deferred-provider, and final-shadow gates stay
+      open.
+    - >-
       2026-09-17 current committed-source validation after the Bybit preflight
       diagnostic fix: the complete backend unit gate passed `2,364/2,364`
       with 37 warnings and 70.82% coverage; focused live-runner,
