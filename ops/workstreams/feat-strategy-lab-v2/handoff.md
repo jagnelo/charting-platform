@@ -73,6 +73,23 @@ coverage gate is the remaining validation step for this checkpoint; worker
 image/entrypoint, application scheduling, migrations, upstream reconciliation,
 and authoritative Nautilus execution remain deferred.
 
+## 2026-09-17 - Stateful batch runtime wire checkpoint
+
+The runtime now exposes `run_strategy_events()` as a reusable primitive that
+creates one `StrategyInvocationSession`, invokes a non-empty context sequence,
+and stops at the first typed rejection or failure. The versioned protocol adds
+strict batch request and result envelopes with typed context reconstruction,
+per-invocation fingerprints, duplicate/non-finite JSON rejection, and an
+independently verified batch fingerprint. This lets a future isolated worker
+retain strategy state over a frozen replay while preserving the existing
+single-event CLI contract.
+
+The exact Strategy Lab package gate passes 661 tests with Ruff, MyPy,
+`git diff --check`, and workstream validation green. The combined Docker-backed
+coverage gate remains the repository-level validation step for this checkpoint;
+worker image/entrypoint, application scheduling, migrations, upstream
+reconciliation, and authoritative Nautilus execution remain deferred.
+
 ## 2026-09-17 - Replay-safe wall-clock preflight hardening
 
 Static strategy validation now rejects wall-clock method references at the

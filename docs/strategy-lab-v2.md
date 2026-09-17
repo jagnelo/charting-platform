@@ -835,9 +835,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   lifetime, preserving state across monotonically advancing contexts while
   pinning seed/parameter identity and rejecting context-scope drift. Its
   explicit JSON wire protocol preserves typed values and fingerprints request
-  and result envelopes; `python -m strategy_runtime` reads a mounted request,
-  invokes one event, and atomically publishes the result with status-based exit
-  codes, without exposing strategy exception text.
+  and result envelopes. The batch protocol carries a non-empty sequence of
+  contexts and an independently fingerprinted sequence of typed results, so an
+  isolated worker can retain one strategy instance across a replay. The
+  `run_strategy_events()` primitive stops at the first typed rejection/failure;
+  `python -m strategy_runtime` retains its existing one-event mounted CLI until
+  the dedicated worker image/entrypoint is wired.
 - `engine_execution.py` binds the final Nautilus invocation gate to execution
   authorization, runtime preflight, sandbox request identity, data-snapshot
   identity, hardened sandbox argv validation, and complete conformance
