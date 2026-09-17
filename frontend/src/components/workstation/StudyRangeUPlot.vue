@@ -22,11 +22,15 @@ function xValues() { return props.timestamps.map(timestamp => Date.parse(timesta
 function data(): uPlot.AlignedData { return [xValues(), props.lower, props.upper, props.center?.length === props.lower.length ? props.center : props.lower.map(() => null)] }
 function drawBand(instance: uPlot) {
   const context = instance.ctx
+  // Reuse uPlot's already-aligned x-axis data. Rebuilding the full timestamp
+  // array inside both point loops turns a dense range render into quadratic
+  // allocation work (100k points would otherwise map 20 billion timestamps).
+  const timestamps = instance.data[0] as number[]
   context.save()
   context.fillStyle = 'rgba(119,195,238,.16)'
   context.beginPath()
-  props.upper.forEach((value, index) => { const x = instance.valToPos(xValues()[index], 'x', true); const y = instance.valToPos(value, 'y', true); if (index === 0) context.moveTo(x, y); else context.lineTo(x, y) })
-  for (let index = props.lower.length - 1; index >= 0; index -= 1) context.lineTo(instance.valToPos(xValues()[index], 'x', true), instance.valToPos(props.lower[index], 'y', true))
+  props.upper.forEach((value, index) => { const x = instance.valToPos(timestamps[index], 'x', true); const y = instance.valToPos(value, 'y', true); if (index === 0) context.moveTo(x, y); else context.lineTo(x, y) })
+  for (let index = props.lower.length - 1; index >= 0; index -= 1) context.lineTo(instance.valToPos(timestamps[index], 'x', true), instance.valToPos(props.lower[index], 'y', true))
   context.closePath()
   context.fill()
   context.restore()

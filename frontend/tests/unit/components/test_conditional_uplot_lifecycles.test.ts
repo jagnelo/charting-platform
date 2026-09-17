@@ -66,6 +66,27 @@ describe('conditional uPlot lifecycle contracts', () => {
     expect(wrapper.get('[role="status"]').text()).toContain('no aligned finite bounds')
   })
 
+  it('draws a 100k-point range band without rebuilding aligned timestamps per point', async () => {
+    const pointCount = 100_000
+    const timestamps = Array.from({ length: pointCount }, (_, index) => `2026-01-${String((index % 28) + 1).padStart(2, '0')}T00:00:00.000Z`)
+    const lower = Array.from({ length: pointCount }, (_, index) => index)
+    const upper = lower.map(value => value + 1)
+    const wrapper = mount(StudyRangeUPlot, { props: { name: 'Dense range', timestamps, lower, upper } })
+    await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1), { timeout: 5_000 })
+
+    const options = vi.mocked(uPlot).mock.calls[0]?.[0] as { plugins?: Array<{ hooks?: { draw?: Array<(instance: uPlot) => void> } }> }
+    const drawBand = options.plugins?.[0]?.hooks?.draw?.[0]
+    expect(drawBand).toBeTypeOf('function')
+    const chart = vi.mocked(uPlot).mock.results[0]?.value as uPlot
+    chart.ctx.closePath = vi.fn()
+    chart.ctx.fill = vi.fn()
+    const started = performance.now()
+    drawBand?.(chart)
+    expect(performance.now() - started).toBeLessThan(1_000)
+    expect(chart.ctx.lineTo).toHaveBeenCalledTimes(pointCount * 2 - 1)
+    wrapper.unmount()
+  }, 10_000)
+
   it('refreshes a histogram current marker without recreating its uPlot instance', async () => {
     const wrapper = mount(StudyHistogramUPlot, {
       props: { name: 'Histogram', bins: [{ start: 0, end: 1, count: 2 }], current: 0.25 },
