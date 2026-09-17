@@ -336,6 +336,7 @@ remaining_gaps:
   - Strategy-validation request metadata failures now return typed 400 errors rather than escaping as unstructured exceptions; authentication and application registration remain open.
   - Restricted strategy-runtime wire decoders and both mounted strategy/custom-metric CLIs now reject request files larger than 16 MiB before unbounded text decoding; mounted worker activation and application wiring remain open.
   - Sandbox process-start failures now use versioned exception-type evidence instead of host-specific OS error text, preserving deterministic run identities; worker activation and application wiring remain open.
+  - Forward admission now validates observation structure and cursor/disposition semantics against live state, and content-checks buffered event retries before mutation; persistence and event-stream wiring remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -379,7 +380,8 @@ progress:
     - bounded-strategy-runtime-wire-payloads
     - bounded-mounted-runtime-request-reads
     - deterministic-sandbox-start-failure-evidence
+    - forward-observation-admission-integrity
   total: 18
-  current_phase: deterministic-sandbox-start-failure-evidence-staging-ready-for-human-review
+  current_phase: forward-observation-admission-integrity-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary

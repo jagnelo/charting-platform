@@ -171,6 +171,19 @@ typed start-failure digest. The package and exact-worktree coverage gates remain
 green; worker activation, application wiring, and stable Nautilus execution
 remain deferred.
 
+## 2026-09-17 - Forward observation admission integrity
+
+Forward live admission now validates the shape of every event observation and
+recomputes its expected disposition from the persisted cursor before applying
+state. Forged accepted observations cannot skip sequence gaps, non-accepted
+observations cannot move the cursor, and missing bounds/buffering/replay flags
+are checked against their disposition. Buffered event IDs are content-bound on
+first receipt, so a changed retry conflicts instead of replacing the buffered
+event. Focused forward admission/transaction/dispatch/correction tests pass 27
+tests and the complete package gate passes 698 tests; persistence, canonical
+event-stream wiring, worker activation, and stable Nautilus execution remain
+deferred.
+
 ## 2026-09-17 - Runtime wire source-binding hardening
 
 Single and batch invocation serializers and decoders now verify that the source

@@ -69,7 +69,11 @@ out-of-order, and corrected events are classified explicitly. Corrections do
 not rewrite earlier decisions; they request a separately identified
 counterfactual replay. Gap events are buffered without advancing the contiguous
 cursor, so late missing events can be applied and the buffer reconciled in order.
-The forward state machine never represents broker order submission.
+The forward state machine never represents broker order submission. Admission
+revalidates each supplied observation against the persisted sequence cursor,
+rejecting forged accepted/gap classifications and cursor movement; buffered
+event IDs remain content-bound, so a changed retry is a conflict rather than a
+silent replacement.
 
 ## Current engine-neutral package
 
