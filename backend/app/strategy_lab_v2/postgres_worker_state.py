@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Protocol
 
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.lease_observations import (
     LeaseObservation,
     LeaseObservationDecision,
@@ -69,6 +69,43 @@ class WorkerProfileResolution:
             raise TypeError("decision must be a string")
         if not isinstance(self.pool, WorkerPoolState):
             raise TypeError("pool must be a WorkerPoolState")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+class WorkerCapacityDecision(StrEnum):
+    RELEASED = "released"
+    REPLAY_EXISTING = "replay_existing"
+    REJECT = "reject"
+
+
+@dataclass(frozen=True, slots=True)
+class WorkerCapacityResolution:
+    """Atomic release of one lease observation and its worker reservation."""
+
+    decision: WorkerCapacityDecision
+    pool: WorkerPoolState
+    lease_state: LeaseObservationState | None
+    observation: LeaseObservation
+    rejection_reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.decision, WorkerCapacityDecision):
+            raise TypeError("decision must be a WorkerCapacityDecision")
+        if not isinstance(self.pool, WorkerPoolState):
+            raise TypeError("pool must be a WorkerPoolState")
+        if self.lease_state is not None and not isinstance(
+            self.lease_state, LeaseObservationState
+        ):
+            raise TypeError("lease_state must be a LeaseObservationState or None")
+        if not isinstance(self.observation, LeaseObservation):
+            raise TypeError("observation must be a LeaseObservation")
+        if self.decision is WorkerCapacityDecision.REJECT and not self.rejection_reason:
+            raise ValueError("rejected capacity resolutions require a reason")
+        if self.decision is not WorkerCapacityDecision.REJECT and self.rejection_reason:
+            raise ValueError("successful capacity resolutions cannot contain a reason")
 
     @property
     def fingerprint(self) -> str:
@@ -353,6 +390,187 @@ class PostgresWorkerStateAdapter:
                         raise ValueError("PostgreSQL lease compare-and-set lost a race")
                 return resolution
 
+    async def release_capacity(
+        self,
+        *,
+        profile: WorkerProfile,
+        reservation_id: str,
+        lease_id: str,
+        observation: LeaseObservation,
+    ) -> WorkerCapacityResolution:
+        """Atomically apply a release observation and free its serial slot.
+
+        This is the durable boundary used by a completion/recovery adapter.
+        The release observation and reservation update share one transaction;
+        exact retries replay both states and no partial lease/capacity release
+        can become visible.  Heartbeats remain available through :meth:`observe`.
+        """
+
+        _validate_profile(profile)
+        if not isinstance(reservation_id, str) or not reservation_id.strip():
+            raise ValueError("reservation_id must not be empty")
+        require_sha256_digest(reservation_id, field_name="reservation_id")
+        if not isinstance(lease_id, str) or not lease_id.strip():
+            raise ValueError("lease_id must not be empty")
+        if not isinstance(observation, LeaseObservation):
+            raise TypeError("observation must be a LeaseObservation")
+        if observation.kind is not LeaseObservationKind.RELEASE:
+            raise ValueError("capacity release requires a release observation")
+        if observation.lease_id != lease_id:
+            raise ValueError("release observation must reference lease_id")
+        if observation.worker_id != profile.worker_id:
+            raise ValueError("release observation must reference the worker profile")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                persisted = await self._load_profile(session, profile.worker_id)
+                if persisted is None:
+                    return _capacity_reject(
+                        profile,
+                        observation,
+                        "worker profile is not registered",
+                    )
+                if persisted != profile:
+                    return _capacity_reject(
+                        persisted,
+                        observation,
+                        "PostgreSQL worker profile identity is already bound",
+                    )
+                pool = await self._load_pool(session, persisted)
+                reservation = next(
+                    (item for item in pool.reservations if item.reservation_id == reservation_id),
+                    None,
+                )
+                if reservation is None:
+                    return WorkerCapacityResolution(
+                        WorkerCapacityDecision.REJECT,
+                        pool,
+                        None,
+                        observation,
+                        "worker reservation is not persisted",
+                    )
+                if reservation.attempt_id != observation.attempt_id:
+                    return WorkerCapacityResolution(
+                        WorkerCapacityDecision.REJECT,
+                        pool,
+                        None,
+                        observation,
+                        "release observation and reservation reference different attempts",
+                    )
+                current = await self._load_lease(session, lease_id)
+                if current is None:
+                    return WorkerCapacityResolution(
+                        WorkerCapacityDecision.REJECT,
+                        pool,
+                        None,
+                        observation,
+                        "lease is not persisted",
+                    )
+                if current.lease.worker_id != profile.worker_id or current.lease.attempt_id != reservation.attempt_id:
+                    return WorkerCapacityResolution(
+                        WorkerCapacityDecision.REJECT,
+                        pool,
+                        current,
+                        observation,
+                        "lease and reservation identities do not match",
+                    )
+                if reservation.active is False:
+                    existing = next(
+                        (
+                            item
+                            for item in current.applied_observations
+                            if item.observation_id == observation.observation_id
+                        ),
+                        None,
+                    )
+                    if existing is not None and existing == observation:
+                        return WorkerCapacityResolution(
+                            WorkerCapacityDecision.REPLAY_EXISTING,
+                            pool,
+                            current,
+                            observation,
+                        )
+                    return WorkerCapacityResolution(
+                        WorkerCapacityDecision.REJECT,
+                        pool,
+                        current,
+                        observation,
+                        "worker reservation is already released",
+                    )
+                lease_resolution = apply_lease_observation(current, observation)
+                if lease_resolution.decision not in {
+                    LeaseObservationDecision.APPLY,
+                    LeaseObservationDecision.REPLAY_EXISTING,
+                }:
+                    return WorkerCapacityResolution(
+                        WorkerCapacityDecision.REJECT,
+                        pool,
+                        current,
+                        observation,
+                        lease_resolution.rejection_reason
+                        or f"lease release {lease_resolution.decision.value}",
+                    )
+                next_lease_state = lease_resolution.state
+                if lease_resolution.decision is LeaseObservationDecision.APPLY:
+                    await self._insert_observation(session, observation)
+                    next_lease = next_lease_state.lease
+                    result = await session.execute(
+                        _statement(
+                            f"""
+                            UPDATE {self._schema.lease_table}
+                            SET heartbeat_at = :heartbeat_at, expires_at = :expires_at,
+                                released_at = :released_at, lease_fingerprint = :next_fingerprint
+                            WHERE lease_id = :lease_id AND lease_fingerprint = :expected_fingerprint
+                            """
+                        ),
+                        {
+                            "heartbeat_at": _encode_datetime(next_lease.heartbeat_at),
+                            "expires_at": _encode_datetime(next_lease.expires_at),
+                            "released_at": _encode_datetime(next_lease.released_at),
+                            "next_fingerprint": _lease_fingerprint(next_lease),
+                            "lease_id": lease_id,
+                            "expected_fingerprint": _lease_fingerprint(current.lease),
+                        },
+                    )
+                    if getattr(result, "rowcount", 0) != 1:
+                        raise ValueError("PostgreSQL lease compare-and-set lost a race")
+                next_pool = release_worker_slot(
+                    pool,
+                    reservation_id=reservation_id,
+                    released_at=observation.observed_at,
+                )
+                if next_pool != pool:
+                    current_reservation = reservation
+                    updated_reservation = next(
+                        item
+                        for item in next_pool.reservations
+                        if item.reservation_id == reservation_id
+                    )
+                    result = await session.execute(
+                        _statement(
+                            f"""
+                            UPDATE {self._schema.reservation_table}
+                            SET released_at = :released_at, reservation_fingerprint = :next_fingerprint
+                            WHERE reservation_id = :reservation_id
+                              AND reservation_fingerprint = :expected_fingerprint
+                            """
+                        ),
+                        {
+                            "released_at": _encode_datetime(updated_reservation.released_at),
+                            "next_fingerprint": updated_reservation.fingerprint,
+                            "reservation_id": reservation_id,
+                            "expected_fingerprint": current_reservation.fingerprint,
+                        },
+                    )
+                    if getattr(result, "rowcount", 0) != 1:
+                        raise ValueError("PostgreSQL worker reservation compare-and-set lost a race")
+                return WorkerCapacityResolution(
+                    WorkerCapacityDecision.RELEASED,
+                    next_pool,
+                    next_lease_state,
+                    observation,
+                )
+
     async def _load_profile(
         self, session: AsyncSessionLike, worker_id: str
     ) -> WorkerProfile | None:
@@ -584,6 +802,20 @@ def _validate_profile(profile: WorkerProfile) -> None:
         raise TypeError("profile must be a WorkerProfile")
 
 
+def _capacity_reject(
+    profile: WorkerProfile,
+    observation: LeaseObservation,
+    reason: str,
+) -> WorkerCapacityResolution:
+    return WorkerCapacityResolution(
+        WorkerCapacityDecision.REJECT,
+        WorkerPoolState(profile),
+        None,
+        observation,
+        reason,
+    )
+
+
 def _lease_fingerprint(lease: ExecutionAttemptLease) -> str:
     """Return the canonical identity for a lease value (leases lack a property)."""
 
@@ -672,4 +904,6 @@ __all__ = [
     "PostgresWorkerStateSchema",
     "WorkerProfileDecision",
     "WorkerProfileResolution",
+    "WorkerCapacityDecision",
+    "WorkerCapacityResolution",
 ]

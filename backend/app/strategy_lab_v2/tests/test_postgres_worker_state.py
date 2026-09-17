@@ -16,6 +16,7 @@ from app.strategy_lab_v2.lifecycle import acquire_attempt_lease
 from app.strategy_lab_v2.postgres_worker_state import (
     PostgresWorkerStateAdapter,
     PostgresWorkerStateSchema,
+    WorkerCapacityDecision,
     WorkerProfileDecision,
 )
 from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile, WorkerReservationDecision
@@ -248,6 +249,93 @@ async def test_worker_state_adapter_persists_ordered_lease_observations() -> Non
     assert released.state.last_sequence == 2
     assert released.state.lease.released_at == release.observed_at
     assert len(session.observations) == 2
+
+
+@pytest.mark.asyncio
+async def test_worker_state_adapter_releases_lease_and_capacity_atomically() -> None:
+    session = FakeSession()
+    adapter = PostgresWorkerStateAdapter(lambda: session)
+    profile = _profile()
+    reservation_id = _reservation_id("one")
+    await adapter.ensure_profile(profile)
+    await adapter.reserve(
+        profile=profile,
+        attempt_id="attempt-1",
+        reservation_id=reservation_id,
+        acquired_at=NOW,
+    )
+    attempt = RunAttempt("attempt-1", "trial-1", 1, AttemptState.RUNNING, NOW)
+    lease = acquire_attempt_lease(
+        attempt,
+        worker_id="worker-1",
+        lease_id="lease-1",
+        now=NOW,
+        lease_duration=timedelta(minutes=5),
+    )
+    await adapter.persist_lease(lease)
+    release = _observation(
+        "release",
+        1,
+        LeaseObservationKind.RELEASE,
+        observed_at=NOW + timedelta(minutes=1),
+        expires_at=None,
+    )
+
+    resolved = await adapter.release_capacity(
+        profile=profile,
+        reservation_id=reservation_id,
+        lease_id="lease-1",
+        observation=release,
+    )
+    assert resolved.decision is WorkerCapacityDecision.RELEASED
+    assert resolved.lease_state is not None
+    assert resolved.lease_state.lease.released_at == release.observed_at
+    assert not resolved.pool.active_reservations
+
+    replay = await adapter.release_capacity(
+        profile=profile,
+        reservation_id=reservation_id,
+        lease_id="lease-1",
+        observation=release,
+    )
+    assert replay.decision is WorkerCapacityDecision.REPLAY_EXISTING
+    assert replay.pool == resolved.pool
+    assert replay.lease_state == resolved.lease_state
+    assert len(session.observations) == 1
+
+
+@pytest.mark.asyncio
+async def test_worker_state_adapter_rejects_non_release_without_mutation() -> None:
+    session = FakeSession()
+    adapter = PostgresWorkerStateAdapter(lambda: session)
+    profile = _profile()
+    reservation_id = _reservation_id("one")
+    await adapter.ensure_profile(profile)
+    await adapter.reserve(
+        profile=profile,
+        attempt_id="attempt-1",
+        reservation_id=reservation_id,
+        acquired_at=NOW,
+    )
+    attempt = RunAttempt("attempt-1", "trial-1", 1, AttemptState.RUNNING, NOW)
+    lease = acquire_attempt_lease(
+        attempt,
+        worker_id="worker-1",
+        lease_id="lease-1",
+        now=NOW,
+        lease_duration=timedelta(minutes=5),
+    )
+    await adapter.persist_lease(lease)
+    heartbeat = _observation("heartbeat", 1)
+    with pytest.raises(ValueError, match="requires a release"):
+        await adapter.release_capacity(
+            profile=profile,
+            reservation_id=reservation_id,
+            lease_id="lease-1",
+            observation=heartbeat,
+        )
+    assert not session.observations
+    assert session.reservations[reservation_id]["released_at"] is None
 
 
 @pytest.mark.asyncio
