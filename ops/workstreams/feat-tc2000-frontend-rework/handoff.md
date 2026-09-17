@@ -14152,3 +14152,36 @@ CommandLineTools Make binary ran the same target. Acceptance flexibility used:
 V25-media, or acceptance-policy behavior changed. This is a complete exact-gate
 receipt for the dense range renderer slice, not closure of the overall
 workstream.
+
+## 2026-09-17 — R6 ChartPanel symbol-link disclosure semantics
+
+Product commit `4ed3372d1` exposes the ChartPanel symbol-link trigger as an
+accessible disclosure with explicit button semantics, `aria-haspopup`,
+`aria-expanded`, `aria-controls`, and a stable labelled menu id. Menu items
+have explicit button types and Escape dismissal while preserving link
+propagation, group selection, visual layout, and data behavior.
+
+Focused ChartPanel lifecycle coverage passed `3/3`; full frontend Vitest passed
+`1,138/1,138`; frontend type-check and production build passed with the
+existing large-chunk warning; TC scope validation/self-tests, workstream
+validation, and `git diff --check` passed. No provider-platform, ETF,
+visual-oracle, or acceptance-policy behavior changed.
+
+## 2026-09-17 — R6 ChartPanel exact integration gate
+
+The definitive raw-capture
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` gate
+passed at product tip `4ed3372d159330d40a89df50bc3e46e16f117a0f`. Backend
+combined coverage passed `1,621` tests with `82.26%` total coverage, frontend
+Vitest passed `1,138/1,138`, type-check/build, Compose/provider contracts,
+branch-scoped Docker health, research-runner probes, authenticated functional
+Chromium passed `170` with `107` documented skips, and all four visual projects
+passed `104/104`. Teardown removed the assigned containers, volumes, network,
+four generated images, and test sessions; post-gate accounting reported zero
+retained resources. The standard `/usr/bin/make` wrapper remains unavailable
+with Xcode-license status `69`; the equivalent installed CommandLineTools Make
+binary ran the same target. No provider-platform, ETF, visual-baseline,
+threshold, mask, skip, fallback, or acceptance policy changed. This receipt
+covers the ChartPanel disclosure slice and does not close the broader
+workstream or upstream staging dependencies.
