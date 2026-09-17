@@ -757,6 +757,17 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 loss-prevention pagination/evidence correction passed the
+      exact-source Docker-backed backend gate: `2,766/2,766` unit and
+      PostgreSQL/Redis integration tests, `89` warnings, and `82.05%` coverage
+      at source `0e1492a45`. Tokenized catalogue and corporate-action feeds now
+      resume durable numeric pages or opaque cursors across invocations and
+      provider-instance restarts; SEC issuer-directory candidate cycles are
+      append-only; SEC IPO parsing retains every matching filing in each
+      retrieved submissions response. Focused migration/provider/service/live
+      inventory checks are green and no frontend, ETF adapter, credential, or
+      external payload was changed.
+    - >-
       2026-09-17 the deferred IBKR adapter's historical path no longer uses
       an estimated page-count ceiling. It follows every 1,000-bar response
       page until the requested range is complete, raising typed errors only

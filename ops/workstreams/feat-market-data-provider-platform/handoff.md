@@ -16,8 +16,10 @@
   response remains the bounded request unit.
 - Added migration `ce5f6a7b8c9d_add_provider_pagination_state.py`, migration
   smoke coverage, and focused regressions. Tokenized/SEC/IBKR focused tests,
-  Ruff, and diff checks are green; the Docker-backed full gate is still pending
-  for this source change.
+  Ruff, and diff checks are green. The exact-source Docker-backed full gate
+  passed `2,766/2,766` with `89` warnings and `82.05%` coverage at source
+  `0e1492a45`; Docker Server `29.7.2` and repository Postgres/Redis
+  testcontainers were active.
 
 ## 2026-09-17 IBKR history pagination loss-prevention correction
 
