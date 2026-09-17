@@ -13377,6 +13377,39 @@ integration remains deferred until their branches reach staging. This is a
 complete product slice and exact-gate receipt, not closure of the overall
 workstream.
 
+## 2026-09-17 - Instrument Report description disclosure
+
+Product commit `c4a734215` gives the Instrument Report long-description
+more/less control explicit `aria-expanded` state and a stable `aria-controls`
+relationship to its per-instance description body. The existing text,
+disclosure behavior, layout, and data contract are unchanged. Focused
+InstrumentInfoPanel coverage passed `6/6`; full frontend Vitest passed
+`1,137/1,137`; frontend type-check and production build passed with the
+existing large-chunk warning; TC scope validation/self-tests, workstream
+validation, and `git diff --check` passed. No provider-platform, ETF,
+visual-oracle, or acceptance-policy behavior changed.
+
+## 2026-09-17 - Instrument Report description exact integration gate
+
+The exact
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache`
+`/Library/Developer/CommandLineTools/usr/bin/make validate-integration` gate
+exited `0` at product tip `c4a73421523645bcfcb085834f9fb2ada83b4c51`. It
+completed the repository/workstream and locked dependency stages, migration
+compatibility, lint/format, backend unit and integration coverage (1,621
+tests; 82.26% total coverage), frontend Vitest (1,137/1,137), type-check and
+build, Compose/provider contracts, branch-scoped Docker health,
+research-runner probes, authenticated functional Chromium (170 passed, 107
+documented skips), and all four visual projects (104/104). Teardown removed
+the assigned containers, volumes, network, four generated images, and test
+sessions; post-gate resource accounting reported zero retained resources.
+The standard `/usr/bin/make` wrapper remains unavailable with Xcode-license
+status `69`; the equivalent installed CommandLineTools Make binary ran the
+same target. No provider-platform, ETF, visual-baseline, threshold, mask,
+skip, fallback, or acceptance-policy behavior changed. This is a complete
+exact-gate receipt for the Instrument Report description disclosure slice,
+not closure of the broader workstream or upstream staging dependencies.
+
 ## 2026-09-16 - Market Map readiness state announcements
 
 Product commit `5e0afa47` gives `MarketMapTool` explicit live-region semantics
