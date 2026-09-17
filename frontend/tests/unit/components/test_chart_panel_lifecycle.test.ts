@@ -112,4 +112,43 @@ describe('ChartPanel lifecycle fencing', () => {
     expect(loadAlertsSpy).toHaveBeenCalledWith(8)
     wrapper.unmount()
   })
+
+  it('exposes the symbol link menu as an accessible disclosure', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const layoutStore = useLayoutStore()
+    layoutStore.layout = '1'
+    layoutStore.panels[0].symbol = ''
+
+    const wrapper = mount(ChartPanel, {
+      props: { panelId: 'p0' },
+      global: {
+        plugins: [pinia],
+        stubs: {
+          TimeframeSelector: { template: '<div />' },
+          UPlotChart: { template: '<div />' },
+        },
+      },
+    })
+
+    const trigger = wrapper.get('.panel-link-btn')
+    expect(trigger.attributes('type')).toBe('button')
+    expect(trigger.attributes('aria-haspopup')).toBe('menu')
+    expect(trigger.attributes('aria-expanded')).toBe('false')
+    const menuId = trigger.attributes('aria-controls')
+    expect(menuId).toMatch(/^panel-link-menu-p0$/)
+    expect(wrapper.find(`#${menuId}`).exists()).toBe(false)
+
+    await trigger.trigger('click')
+    const menu = wrapper.get(`#${menuId}`)
+    expect(trigger.attributes('aria-expanded')).toBe('true')
+    expect(menu.attributes('role')).toBe('menu')
+    expect(menu.attributes('aria-label')).toBe('Symbol link group')
+    expect(menu.findAll('button[type="button"]').length).toBe(5)
+
+    await menu.trigger('keydown', { key: 'Escape' })
+    expect(trigger.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find(`#${menuId}`).exists()).toBe(false)
+    wrapper.unmount()
+  })
 })

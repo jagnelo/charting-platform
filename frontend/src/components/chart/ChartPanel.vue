@@ -66,20 +66,34 @@
       <div class="panel-link-wrap" ref="linkWrapRef">
         <button
           class="panel-link-btn"
+          type="button"
           :class="{ linked: !!linkGroup }"
           :style="{ borderColor: linkGroup ? linkColor : undefined, color: linkGroup ? linkColor : undefined }"
           :title="linkGroup ? `Symbol link group: ${linkGroup}` : 'Symbol link disabled'"
+          aria-haspopup="menu"
+          :aria-label="linkGroup ? `Symbol link group: ${linkGroup}` : 'Symbol link disabled'"
+          :aria-expanded="linkMenuOpen"
+          :aria-controls="linkMenuId"
           @click.stop="linkMenuOpen = !linkMenuOpen"
         >
           <span class="link-dot" :style="{ background: linkColor }" />
         </button>
-        <div v-if="linkMenuOpen" class="panel-link-menu" @click.stop>
-          <button class="plm-item" :class="{ active: !linkGroup }" @click="setLinkGroup(null)">
+        <div
+          v-if="linkMenuOpen"
+          :id="linkMenuId"
+          class="panel-link-menu"
+          role="menu"
+          aria-label="Symbol link group"
+          @click.stop
+          @keydown.esc.stop.prevent="linkMenuOpen = false"
+        >
+          <button type="button" class="plm-item" :class="{ active: !linkGroup }" @click="setLinkGroup(null)">
             <span class="plm-dot plm-dot--none" /> None
           </button>
           <button
             v-for="group in PANEL_LINK_GROUPS"
             :key="group.id"
+            type="button"
             class="plm-item"
             :class="{ active: linkGroup === group.id }"
             @click="setLinkGroup(group.id)"
@@ -156,6 +170,7 @@ const searchInputRef = ref<HTMLInputElement | null>(null)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 const linkMenuOpen = ref(false)
 const searchMessage = ref('')
+const linkMenuId = `panel-link-menu-${props.panelId}`
 let lifecycleGeneration = 0
 let selectionGeneration = 0
 

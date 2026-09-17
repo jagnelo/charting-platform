@@ -55,6 +55,7 @@ owned_paths:
   - frontend/src/views/StrategyLabView.vue
   - frontend/src/components/workstation/
   - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/chart/ChartPanel.vue
   - frontend/src/components/chart/InstrumentInfoPanel.vue
   - frontend/src/components/chart/IndicatorPanel.vue
   - frontend/src/components/strategy/
