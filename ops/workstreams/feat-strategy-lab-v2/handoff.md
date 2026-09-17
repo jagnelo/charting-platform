@@ -70,6 +70,15 @@ engine-neutral SDK surface. A regression test covers the allowed-module case;
 the exact package suite passes 634 tests and the Docker-backed gate passes
 2,281 tests with 83.54% coverage.
 
+## 2026-09-17 - Private import-form hardening
+
+Import validation now applies the same private/introspection policy to every
+syntax form: dotted imports, `from ... import ...`, aliases, and star imports.
+This prevents allowed-module private bindings such as `from collections import
+_sys` (or direct `sys` bindings from an allowed module) from bypassing the
+attribute checks. The exact package suite passes 635 tests; the Docker-backed
+gate passes 2,282 tests with 83.55% coverage.
+
 ## 2026-09-17 - Engine-neutral SDK boundary hardening
 
 `sdk.py` now validates public input types before dereferencing them: manifests
