@@ -3101,18 +3101,21 @@ deferred behind the existing gates.
 ## 2026-09-17 - Schedule-gated target allocation checkpoint
 
 `rebalance_allocation.py` now composes the immutable calendar schedule with
-the engine-neutral target allocator. It validates the portfolio policy and
-calendar identities, normalizes only typed strategy intents, and applies them
-through the existing all-or-nothing allocation/risk checks only when the
-exposure snapshot is at the exact scheduled UTC boundary. Events before the
-boundary return an explicit `not_due` decision. Events after it return either
-`misfired` or `skipped` according to the occurrence's declared policy; no
-later-event catch-up or implicit fill assumption is possible. Each decision is
-content-addressed and retains the allocation fingerprint chain when applied.
+the engine-neutral target allocator. It validates the portfolio policy,
+calendar, trigger, misfire-policy, and canonical occurrence identities,
+normalizes only typed strategy intents, and applies them through the existing
+all-or-nothing allocation/risk checks only when the exposure snapshot is at the
+exact scheduled UTC boundary. Events before the boundary return an explicit
+`not_due` decision. Events after it return either `misfired` or `skipped`
+according to the occurrence's declared policy; no later-event catch-up or
+implicit fill assumption is possible. Each decision is content-addressed and
+retains the allocation fingerprint chain when applied.
 
 The focused rebalance-gate suite passed 7 tests; the full package suite passed
 642 tests with Ruff, MyPy, `git diff --check`, and workstream validation green.
-The combined Docker-backed coverage gate is being rerun for this checkpoint.
+The combined Docker-backed coverage gate passed 2,289 tests with 83.57% total
+coverage (required threshold: 75%); Docker setup and cleanup completed
+successfully.
 Provider/API/database/worker/Compose integration, stable Nautilus execution,
 frontend work, promotion, and deployment remain deferred behind the existing
 ownership and release gates.
