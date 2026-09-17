@@ -691,6 +691,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `/api/v1/strategy-lab/v2` while the legacy Strategy Lab routes remain
   unchanged. Remaining resource projections, worker effects, and engine
   execution are still explicit gates.
+- `outbox_application.py` adds the application-owned relay seam on top of the
+  shared persistence bundle. `OutboxRelayService` loads the authenticated
+  PostgreSQL outbox, relays only available messages through the idempotent Redis
+  Streams transport, and compare-and-set acknowledges publication afterward.
+  Redis enqueue/replay is therefore safe across crashes, while a lost
+  acknowledgement leaves the authoritative row pending for a later retry.
+  The caller still owns relay scheduling, Redis client lifecycle, migration
+  startup, and worker activation.
 - `postgres_resources.py` supplies the read-only persistence bridge for that
   boundary. It projects authenticated-owner aggregate snapshots into immutable
   resource documents, orders pages deterministically, and binds every cursor to
@@ -724,8 +732,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   SQLAlchemy async transaction. It locks and re-authenticates existing rows,
   enforces contiguous sequence/cursor identity, persists all four linked rows
   atomically, supports exact replay and caller cursor compare-and-set, and
-  leaves Redis publication and worker effects to later adapters; migrations
-  and event-stream registration remain gated.
+  exposes authenticated complete-outbox loading plus compare-and-set
+  publication acknowledgement. Redis publication is now composed by the
+  application-owned outbox relay, while worker effects, relay scheduling,
+  migrations, and event-stream registration remain gated.
 - `postgres_execution_state.py` maps owner-scoped outcome and progress
   checkpoints to additive PostgreSQL rows. It locks both attempt records,
   preserves monotonic outcome transitions and progress update fingerprints,
@@ -985,6 +995,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   idempotency key and proposes the published outbox state only after enqueue or
   exact replay; Redis conflicts and failures preserve the pending state so a
   later relay can retry safely.
+- `outbox_application.py` provides the durable caller for that pure relay:
+  it loads the complete authenticated outbox, bounds each relay cycle, and
+  persists publication through PostgreSQL compare-and-set acknowledgement.
+  This composes Redis idempotency with authoritative database state without
+  claiming that scheduling or worker activation is complete.
 - `worker_consumer.py` provides the bounded Redis worker pump. It ensures the
   consumer group, reclaims idle deliveries before reading new entries, and
   requires an explicit handler receipt. Only a content-matched completed

@@ -12,6 +12,26 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - PostgreSQL outbox to Redis relay
+
+`postgres_event_transaction.py` now exposes an authenticated complete-outbox
+reader and compare-and-set publication acknowledgement. The new
+`outbox_application.py` composes that authoritative persistence surface with
+`RedisDispatchTransport`: each bounded relay cycle selects currently available
+messages, safely enqueues or replays them by semantic identity, and only then
+marks the PostgreSQL row published with its state fingerprint. A crash or lost
+acknowledgement leaves the row pending for idempotent retry; Redis remains
+transport-only. The shared persistence bundle exposes the relay factory.
+
+The focused outbox/event/persistence tests passed 8 tests; the branch-declared
+checks passed 725 Strategy Lab v2 tests plus the migration structural test,
+Ruff, MyPy, `git diff --check`, and workstream validation. The exact-worktree
+backend gate passed 2,373 tests with 83.80% combined coverage (required
+threshold: 75%), and branch-scoped Docker resources were cleaned afterward.
+Worker-pump scheduling, production Redis client lifecycle, migration startup,
+application activation, isolated workers, and stable Nautilus execution remain
+deferred.
+
 ## 2026-09-17 - Relational API resource projections
 
 `postgres_resources.py` now supports application-owned projection loaders in

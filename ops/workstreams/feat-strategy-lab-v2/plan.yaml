@@ -364,6 +364,7 @@ remaining_gaps:
   - Forward instance lifecycle, warm-up receipt, correction-command, and counterfactual replay-plan timestamps now normalize aware offsets to UTC before identity checks; persistence migration, event-stream wiring, and worker/application wiring remain open.
   - Asynchronous submission, admission, runtime, outcome, progress, command, authorization, and execution-summary timestamps now normalize aware offsets to UTC before identity checks; application persistence and worker wiring remain open.
   - Run-attempt and worker-lease lifecycle timestamps now normalize aware offsets to UTC before transition, capacity, and retry-lineage identity checks; application persistence and worker wiring remain open.
+  - PostgreSQL execution-event transaction persistence now exposes authenticated outbox loading and compare-and-set publication acknowledgement; `outbox_application.py` relays available messages to Redis with idempotent replay and leaves failed acknowledgements pending for retry. Worker pump, relay scheduling, Redis production client lifecycle, migration startup, and runtime activation remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -419,7 +420,8 @@ progress:
     - strategy-lab-v2-shared-postgres-persistence-bundle
     - strategy-lab-v2-forward-instance-listing
     - strategy-lab-v2-relational-api-resource-projections
+    - strategy-lab-v2-postgres-outbox-redis-relay
   total: 18
-  current_phase: strategy-lab-v2-relational-api-resource-projections-staging-ready-for-human-review
+  current_phase: strategy-lab-v2-postgres-outbox-redis-relay-staging-ready-for-human-review
   current_blocker: remaining durable API projections, worker/runtime integration, stable Nautilus release, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add remaining API projections and isolated worker/runtime integration without changing the engine-neutral boundary
