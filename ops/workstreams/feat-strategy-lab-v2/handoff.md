@@ -12,6 +12,18 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Forward-instance collection read surface
+
+`postgres_forward_state.py` now exposes `load_all(principal=...)`, returning
+every owner-scoped `ForwardInstance` in stable instance-id order. The query
+reuses the checkpoint decoder and authenticates owner, instance, instance
+fingerprint, and checkpoint fingerprint for every row before returning it, so
+future `/forward-instances` pagination cannot disclose another owner or accept
+tampered state. Focused tests cover multiple-instance ordering and owner
+isolation; the full branch and exact coverage gates are green. Resource-route
+projection, startup migration, worker scheduling, and runtime activation remain
+deferred.
+
 ## 2026-09-17 - Shared PostgreSQL persistence bundle
 
 `backend/app/strategy_lab_v2/persistence.py` now owns construction of the

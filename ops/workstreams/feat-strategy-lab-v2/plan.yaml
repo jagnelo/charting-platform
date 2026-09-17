@@ -316,8 +316,13 @@ remaining_gaps:
       publication can be created from the same graph with an explicit artifact
       root; API projections, migration startup, worker scheduling, and runtime
       activation remain open.
+  - >-
+      The forward-state adapter now exposes owner-scoped deterministic
+      `load_all` reads for the forward-instance collection projection while
+      preserving checkpoint and fingerprint authentication; resource routing,
+      migration startup, worker scheduling, and runtime activation remain open.
   - The package-owned restricted strategy invocation runner now binds source digests, repeats static preflight (including aliased wall-clock, module-introspection, and private import-form rejection), exposes only a vetted SDK/import surface, validates typed intents, and exposes a strict versioned canonical JSON request/result protocol (duplicate-field and non-finite-number rejection) plus atomic CLI output; worker image/entrypoint wiring, container activation, and application scheduling remain open.
-  - PostgreSQL forward-state persistence semantics are now implemented in a registration-neutral additive adapter with owner-scoped instance checkpoints, one-time warm-up receipts, content-addressed seen-event identities, authenticated compare-and-set transitions, and restart-safe duplicate/gap/out-of-order/correction accounting; migrations, event-stream wiring, worker execution, and application authorization remain open.
+  - PostgreSQL forward-state persistence semantics are now implemented in a registration-neutral additive adapter with owner-scoped instance checkpoints, deterministic authenticated instance listing, one-time warm-up receipts, content-addressed seen-event identities, authenticated compare-and-set transitions, and restart-safe duplicate/gap/out-of-order/correction accounting; migrations, event-stream wiring, worker execution, and application authorization remain open.
   - Atomic PostgreSQL forward event/correction staging now persists counterfactual replay plans with the admitted event checkpoint in one transaction; exact retries return the stored replay identity, while malformed or contradictory replay rows fail closed. Redis dispatch, replay execution, migrations, and application wiring remain open.
   - PostgreSQL search-state persistence now stores immutable experiment queues and candidate checkpoints with owner-scoped locks, candidate retry/terminal transitions, idempotent cancellation, and authenticated compare-and-set fingerprints; search dispatch, migrations, and application/worker wiring remain open.
   - PostgreSQL legacy-import persistence now stores owner-scoped digest-only originals and exact compatibility assessments with authenticated record fingerprints; supported and unsupported imports replay idempotently while changed content conflicts, and payload-byte access, migrations, authorization, and application wiring remain open.
@@ -406,7 +411,8 @@ progress:
     - strategy-lab-v2-application-router-wiring
     - strategy-lab-v2-local-artifact-publication-wiring
     - strategy-lab-v2-shared-postgres-persistence-bundle
+    - strategy-lab-v2-forward-instance-listing
   total: 18
-  current_phase: strategy-lab-v2-shared-postgres-persistence-bundle-staging-ready-for-human-review
+  current_phase: strategy-lab-v2-forward-instance-listing-staging-ready-for-human-review
   current_blocker: remaining durable API projections, worker/runtime integration, stable Nautilus release, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add remaining API projections and isolated worker/runtime integration without changing the engine-neutral boundary

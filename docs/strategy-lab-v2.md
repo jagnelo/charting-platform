@@ -766,8 +766,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   checkpoint. Its atomic event-transaction path persists a correction's
   counterfactual replay plan in the same transaction as the event checkpoint,
   so a correction can never be admitted without replay evidence. The adapter
-  never fetches provider data, submits broker orders, starts workers, or applies
-  migrations.
+  now also exposes authenticated deterministic instance listing for the future
+  forward-instance collection projection. It never fetches provider data,
+  submits broker orders, starts workers, or applies migrations.
 - `postgres_search_state.py` maps immutable experiment queues and candidate
   checkpoints to additive PostgreSQL tables. Candidate starts/retries,
   terminal receipts, and cancellation requests delegate to the pure search
