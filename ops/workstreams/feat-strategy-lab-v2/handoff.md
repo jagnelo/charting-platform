@@ -143,8 +143,9 @@ parsing independently of the sandbox's memory and output limits while leaving
 valid typed envelopes and the existing atomic CLI publication behavior intact.
 
 The focused runtime protocol suite passes 12 tests and the complete Strategy
-Lab v2 package passes 694 tests. Exact-worktree branch and combined coverage
-results will be recorded at the implementation tip; worker image activation,
+Lab v2 package passes 694 tests. The exact-worktree combined coverage gate
+passes 2,341 tests with 83.71% total coverage (required threshold: 75%); Docker
+services were branch-scoped and cleaned afterward. Worker image activation,
 application wiring, and stable Nautilus execution remain deferred.
 
 ## 2026-09-17 - Runtime wire source-binding hardening
