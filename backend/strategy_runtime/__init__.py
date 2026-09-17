@@ -10,6 +10,7 @@ from typing import Any
 
 from strategy_runtime.protocol import (
     BATCH_WIRE_PROTOCOL_VERSION,
+    MAX_WIRE_PAYLOAD_BYTES,
     WIRE_PROTOCOL_VERSION,
     deserialize_invocation,
     deserialize_invocation_batch,
@@ -63,6 +64,7 @@ __all__ = [
     "StrategyInvocationResult",
     "StrategyInvocationSession",
     "BATCH_WIRE_PROTOCOL_VERSION",
+    "MAX_WIRE_PAYLOAD_BYTES",
     "WIRE_PROTOCOL_VERSION",
     "deserialize_invocation_batch",
     "deserialize_invocation_batch_result",

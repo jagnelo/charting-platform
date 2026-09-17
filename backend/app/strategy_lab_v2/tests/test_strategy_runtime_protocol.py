@@ -29,6 +29,7 @@ from app.strategy_lab_v2.sdk import (
 )
 from strategy_runtime import (
     BATCH_WIRE_PROTOCOL_VERSION,
+    MAX_WIRE_PAYLOAD_BYTES,
     InvocationStatus,
     deserialize_invocation,
     deserialize_invocation_batch,
@@ -385,6 +386,19 @@ def test_protocol_rejects_unknown_fields_and_versions() -> None:
         deserialize_invocation(encoded.replace(
             '"max_intents_per_event":100', '"max_intents_per_event":NaN', 1
         ))
+
+
+def test_protocol_rejects_oversized_inbound_payload_before_json_decode() -> None:
+    source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
+    encoded = serialize_invocation(
+        source=source,
+        manifest=_manifest(source),
+        context=_context(),
+        entrypoint="strategy.main:Strategy",
+    )
+    oversized = encoded + (" " * (MAX_WIRE_PAYLOAD_BYTES - len(encoded.encode("utf-8")) + 1))
+    with pytest.raises(ValueError, match="byte limit"):
+        deserialize_invocation(oversized)
 
 
 def test_cli_reads_request_and_atomically_publishes_result(tmp_path) -> None:

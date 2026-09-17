@@ -40,6 +40,7 @@ from app.strategy_lab_v2.sdk import (
 
 WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.v1"
 BATCH_WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.batch.v1"
+MAX_WIRE_PAYLOAD_BYTES = 16 * 1024 * 1024
 
 
 class _DuplicateFieldError(ValueError):
@@ -64,6 +65,10 @@ def _reject_non_finite_constant(value: str) -> Any:
 
 
 def _load_json(payload: str, field_name: str) -> Any:
+    if not isinstance(payload, str):
+        raise TypeError(f"{field_name} must be a string")
+    if len(payload.encode("utf-8")) > MAX_WIRE_PAYLOAD_BYTES:
+        raise ValueError(f"{field_name} exceeds the {MAX_WIRE_PAYLOAD_BYTES}-byte limit")
     try:
         return json.loads(
             payload,
@@ -791,6 +796,7 @@ def deserialize_invocation_batch_result(payload: str) -> tuple[Any, ...]:
 
 __all__ = [
     "BATCH_WIRE_PROTOCOL_VERSION",
+    "MAX_WIRE_PAYLOAD_BYTES",
     "WIRE_PROTOCOL_VERSION",
     "deserialize_invocation_batch",
     "deserialize_invocation_batch_result",

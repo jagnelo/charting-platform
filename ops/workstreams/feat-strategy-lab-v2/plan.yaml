@@ -334,6 +334,7 @@ remaining_gaps:
   - REST POST routes now reparse raw JSON bodies with duplicate-field and non-finite-value rejection before strategy validation, submission idempotency, or command dispatch; application registration and authentication remain open.
   - Cursor-paginated collection responses now reject adapter snapshot drift against the incoming cursor, preserving snapshot-bound page traversal; persistence and application registration remain open.
   - Strategy-validation request metadata failures now return typed 400 errors rather than escaping as unstructured exceptions; authentication and application registration remain open.
+  - Restricted strategy-runtime wire decoders now reject inbound envelopes larger than 16 MiB before JSON parsing; mounted worker activation and application wiring remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -374,6 +375,7 @@ progress:
     - snapshot-bound-rest-pagination
     - strict-strategy-runtime-batch-chronology
     - typed-strategy-validation-request-errors
+    - bounded-strategy-runtime-wire-payloads
   total: 18
   current_phase: typed-strategy-validation-request-errors-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open

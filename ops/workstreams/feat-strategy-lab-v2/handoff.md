@@ -135,6 +135,18 @@ threshold: 75%); Docker services were branch-scoped and cleaned afterward.
 Authentication, application registration, and shared persistence remain
 deferred behind the existing gates.
 
+## 2026-09-17 - Bounded strategy-runtime wire payloads
+
+The restricted runtime protocol now rejects inbound single, batch, and result
+envelopes larger than 16 MiB before JSON decoding. This bounds mounted request
+parsing independently of the sandbox's memory and output limits while leaving
+valid typed envelopes and the existing atomic CLI publication behavior intact.
+
+The focused runtime protocol suite passes 12 tests and the complete Strategy
+Lab v2 package passes 694 tests. Exact-worktree branch and combined coverage
+results will be recorded at the implementation tip; worker image activation,
+application wiring, and stable Nautilus execution remain deferred.
+
 ## 2026-09-17 - Runtime wire source-binding hardening
 
 Single and batch invocation serializers and decoders now verify that the source
