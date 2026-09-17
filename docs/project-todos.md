@@ -368,6 +368,16 @@
 - [x] Preserve the result as an aggregate-only committed receipt; it does not
       promote routing or authorize the deferred shadow run.
 
+### 2026-09-17 — MarketData.app current trial matrix
+
+- [x] Re-run the configured Starter Trial matrix at the current source:
+      `7/7` passed with nine upstream requests and 21,135 response bytes,
+      covering account usage, daily/intraday candles, latest price,
+      expirations, option chain, historical option quotes, and the deliberate
+      no-request guard for unbounded response-priced history.
+- [x] Preserve the aggregate-only receipt; trial expiry and future paid-plan
+      limits remain explicit environment configuration.
+
 ### 2026-09-16 — Marketstack monthly-cap admission review
 
 - [x] Add explicit `MARKETSTACK_REVIEWED_MONTHLY_LIMIT`,

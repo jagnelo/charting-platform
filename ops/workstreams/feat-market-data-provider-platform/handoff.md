@@ -94,6 +94,17 @@
 - This is a safety audit, not a live acceptance claim. No provider routing or
   shadow activation was enabled by the run.
 
+## 2026-09-17 MarketData.app current trial matrix
+
+- The configured Starter Trial account passed the current-source bounded matrix
+  `7/7` with nine upstream requests and 21,135 response bytes. It covered
+  account usage, daily/intraday candles, latest price, expirations, option
+  chain, historical option quotes, and the intentional no-request guard for
+  unbounded response-priced history.
+- The redacted receipt is committed in `validation.jsonl`; the configured
+  trial expiry and quota remain environment-specific, and paid-plan changes
+  still require explicit configuration rather than inference from `/user/`.
+
 ## 2026-09-17 committed-source safety-preflight replay
 
 - At implementation source `37e616e65`, the focused Alpha Vantage, SEC EDGAR,

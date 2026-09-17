@@ -297,6 +297,13 @@ remaining_gaps:
     capability, universe, and secret-store gates; no routing or shadow
     activation was enabled.
   - >-
+    The configured MarketData.app Starter Trial matrix passed at the current
+    source with 7/7 cases, nine upstream requests, and 21,135 response bytes.
+    Account usage, daily/intraday candles, latest price, expirations, option
+    chain, historical option quotes, and the intentional unbounded-history
+    no-request guard are current-source proven; trial expiry and paid-plan
+    changes remain explicit configuration gates.
+  - >-
     Alpha Vantage's free-key 25-requests/day quota still has no
     provider-published reset boundary/timezone, but the current seed now
     declares an explicit rolling 24-hour application envelope for that exact
