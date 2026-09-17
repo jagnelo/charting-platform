@@ -26,10 +26,11 @@ malformed records stay unacknowledged for retry/poison-message policy.
 
 Focused payload/submission/worker/migration tests passed (18 tests), the full
 Strategy Lab v2 package passed 734 tests, and Ruff/MyPy were green. The exact
-backend coverage gate and branch checkpoint remain to be run for this slice.
-Worker process/runtime execution, migration startup, artifact byte/retention
-lifecycle, upstream contract reconciliation, and stable Nautilus activation
-remain deferred.
+backend gate then passed 2,383 tests with 83.74% combined coverage (required
+threshold: 75%); branch-scoped Docker resources were cleaned and no retained
+testcontainer sessions remain. Worker process/runtime execution, migration
+startup, artifact byte/retention lifecycle, upstream contract reconciliation,
+and stable Nautilus activation remain deferred.
 
 ## 2026-09-17 - Atomic submission-to-outbox staging
 
