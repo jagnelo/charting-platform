@@ -239,6 +239,44 @@ class ForwardEventObservation:
     next_cursor: ForwardCursor
     buffer_event: bool = False
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.disposition, ForwardEventDisposition):
+            raise TypeError("disposition must be a ForwardEventDisposition")
+        if not isinstance(self.stale, bool):
+            raise TypeError("stale must be a boolean")
+        for name in ("missing_sequence_start", "missing_sequence_end"):
+            value = getattr(self, name)
+            if value is not None and (
+                not isinstance(value, int) or isinstance(value, bool) or value < 0
+            ):
+                raise ValueError(f"{name} must be a non-negative integer or None")
+        missing_start = self.missing_sequence_start
+        missing_end = self.missing_sequence_end
+        if (missing_start is None) != (missing_end is None):
+            raise ValueError("missing sequence bounds must be provided together")
+        if (
+            missing_start is not None
+            and missing_end is not None
+            and missing_start > missing_end
+        ):
+            raise ValueError("missing sequence start must not exceed its end")
+        if not isinstance(self.correction_requires_counterfactual_replay, bool):
+            raise TypeError("correction replay flag must be a boolean")
+        if not isinstance(self.next_cursor, ForwardCursor):
+            raise TypeError("next_cursor must be a ForwardCursor")
+        if not isinstance(self.buffer_event, bool):
+            raise TypeError("buffer_event must be a boolean")
+        if self.disposition is ForwardEventDisposition.GAP:
+            if missing_start is None or not self.buffer_event:
+                raise ValueError("gap observations require missing bounds and buffering")
+        elif missing_start is not None or self.buffer_event:
+            raise ValueError("only gap observations may contain missing bounds or buffering")
+        if self.disposition is ForwardEventDisposition.CORRECTION:
+            if not self.correction_requires_counterfactual_replay:
+                raise ValueError("correction observations require counterfactual replay")
+        elif self.correction_requires_counterfactual_replay:
+            raise ValueError("only correction observations may require replay")
+
 
 def apply_forward_event_observation(
     instance: ForwardInstance,

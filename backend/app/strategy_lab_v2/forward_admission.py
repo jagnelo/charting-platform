@@ -11,6 +11,7 @@ from app.strategy_lab_v2.forward_state import ForwardStateCheckpoint, apply_chec
 from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
 from app.strategy_lab_v2.lifecycle import (
     CanonicalForwardEvent,
+    ForwardCursor,
     ForwardEventDisposition,
     ForwardEventObservation,
 )
@@ -156,18 +157,20 @@ def admit_forward_event(
         raise TypeError("observation must be a ForwardEventObservation")
     event_fingerprint = content_digest(event)
     existing = next((item for item in state.seen_events if item.event_id == event.event_id), None)
-    if existing is not None and event.event_id not in state.checkpoint.buffered_event_ids:
-        if existing.event_fingerprint == event_fingerprint:
+    if existing is not None:
+        if existing.event_fingerprint != event_fingerprint:
+            return ForwardAdmissionResolution(
+                ForwardAdmissionDecision.CONFLICT,
+                state,
+                event_fingerprint,
+                rejection_reason="event id is already bound to different content",
+            )
+        if event.event_id not in state.checkpoint.buffered_event_ids:
             return ForwardAdmissionResolution(
                 ForwardAdmissionDecision.REPLAY_EXISTING, state, event_fingerprint
             )
-        return ForwardAdmissionResolution(
-            ForwardAdmissionDecision.CONFLICT,
-            state,
-            event_fingerprint,
-            rejection_reason="event id is already bound to different content",
-        )
     try:
+        _validate_observation(state, event, observation)
         checkpoint = apply_checkpoint_observation(state.checkpoint, event, observation)
     except ValueError as error:
         return ForwardAdmissionResolution(
@@ -195,3 +198,59 @@ def admit_forward_event(
         ForwardEventDisposition.CORRECTION: ForwardAdmissionDecision.CORRECTION,
     }
     return ForwardAdmissionResolution(decisions[observation.disposition], next_state, event_fingerprint)
+
+
+def _validate_observation(
+    state: ForwardLiveAdmissionState,
+    event: CanonicalForwardEvent,
+    observation: ForwardEventObservation,
+) -> None:
+    """Verify caller-supplied classification against the persisted cursor."""
+
+    instance = state.checkpoint.instance
+    current_id = instance.last_event_id
+    current_sequence = instance.last_event_sequence if current_id is not None else -1
+    processed = state.checkpoint.processed_event_ids
+
+    if event.correction_of is not None:
+        expected = ForwardEventDisposition.CORRECTION
+    elif event.event_id in processed or event.event_id == current_id:
+        expected = ForwardEventDisposition.DUPLICATE
+    elif event.sequence <= current_sequence:
+        expected = ForwardEventDisposition.OUT_OF_ORDER
+    elif event.sequence > current_sequence + 1:
+        expected = ForwardEventDisposition.GAP
+    else:
+        expected = ForwardEventDisposition.ACCEPTED
+    if observation.disposition is not expected:
+        raise ValueError("forward event observation disposition does not match live cursor")
+
+    if expected is ForwardEventDisposition.GAP:
+        if (
+            observation.missing_sequence_start != current_sequence + 1
+            or observation.missing_sequence_end != event.sequence - 1
+        ):
+            raise ValueError("gap observation missing sequence bounds do not match live cursor")
+        return
+
+    if expected is ForwardEventDisposition.ACCEPTED:
+        expected_cursor = ForwardCursor(event.sequence, event.event_id, event.event_time)
+        if observation.next_cursor != expected_cursor:
+            raise ValueError("accepted observation cursor does not match the event")
+        return
+
+    cursor = observation.next_cursor
+    if current_id is None:
+        unchanged = (
+            cursor.last_sequence == -1
+            and cursor.last_event_id is None
+            and cursor.last_event_time is None
+        )
+    else:
+        unchanged = (
+            cursor.last_sequence == current_sequence
+            and cursor.last_event_id == current_id
+            and cursor.last_event_time is not None
+        )
+    if not unchanged:
+        raise ValueError("non-accepted observation must preserve the live cursor")

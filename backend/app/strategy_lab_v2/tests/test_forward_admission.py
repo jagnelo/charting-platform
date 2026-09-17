@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -16,6 +17,7 @@ from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt, resolve_for
 from app.strategy_lab_v2.lifecycle import (
     CanonicalForwardEvent,
     ForwardCursor,
+    ForwardEventDisposition,
     observe_forward_event,
 )
 
@@ -82,6 +84,38 @@ def test_changed_event_content_with_same_id_is_a_conflict() -> None:
     conflict = admit_forward_event(accepted.state, changed, observation)
     assert conflict.decision is ForwardAdmissionDecision.CONFLICT
     assert conflict.state == accepted.state
+
+
+def test_changed_buffered_event_content_is_a_conflict() -> None:
+    state = _live_state()
+    event = _event("live-2", 2)
+    gap = admit_forward_event(state, event, observe_forward_event(ForwardCursor(), event))
+    changed = replace(event, source_digest=content_digest("different-source"))
+    conflict = admit_forward_event(
+        gap.state,
+        changed,
+        observe_forward_event(ForwardCursor(), changed),
+    )
+    assert gap.decision is ForwardAdmissionDecision.GAP
+    assert conflict.decision is ForwardAdmissionDecision.CONFLICT
+    assert conflict.state == gap.state
+
+
+def test_forged_accepted_observation_cannot_skip_a_sequence_gap() -> None:
+    state = _live_state()
+    event = _event("live-2", 2)
+    forged = replace(
+        observe_forward_event(ForwardCursor(), event),
+        disposition=ForwardEventDisposition.ACCEPTED,
+        next_cursor=ForwardCursor(event.sequence, event.event_id, event.event_time),
+        missing_sequence_start=None,
+        missing_sequence_end=None,
+        buffer_event=False,
+    )
+    rejected = admit_forward_event(state, event, forged)
+    assert rejected.decision is ForwardAdmissionDecision.REJECT
+    assert "disposition" in (rejected.rejection_reason or "")
+    assert rejected.state == state
 
 
 def test_gap_is_buffered_and_late_event_can_reconcile() -> None:
