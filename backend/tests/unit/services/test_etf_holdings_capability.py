@@ -608,8 +608,12 @@ def test_follow_on_ranked_fallback_terminal_symbol_preserves_successor_evidence(
     assert result.outcome == "not_applicable"
     assert result.evidence_state == "inactive_or_successor_disposition"
     assert result.provider_identity == "alphaclone"
-    assert result.investigated_at == date(2026, 9, 2)
-    assert result.evidence_refs == ("web:alphaclone-domain-unrelated-content-2026-09-02",)
+    assert result.investigated_at == date(2026, 9, 25)
+    assert result.evidence_refs == (
+        "web:alphaclone-domain-unrelated-content-2026-09-02",
+        "web:alphaclone-series-status-inactive-2026-09-25",
+        "web:alphaclone-alfa-liquidation-2022-08-11",
+    )
 
 
 def test_follow_on_ranked_amplius_current_symbol_is_usable():
