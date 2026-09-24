@@ -161,6 +161,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current MarketData.app evidence: source
+    `272a81bca9aa58367db8bb924669b0b7a4c15c4d` passed the configured Starter
+    Trial matrix `7/7` under the durable owner scope. The matrix refreshed
+    account usage, daily/five-minute candles, latest price, option
+    expirations/chain, bounded option history, and the deliberate no-request
+    guard for unbounded response-priced history. This does not close the
+    provider roster's independent quota, legal/source, universe, secret-store,
+    deferred-provider, or shadow gates.
+  - >-
     2026-09-24 exact-HEAD full preflight: source `0fb54ef0b` stopped before
     transport with `0/0` cases and zero provider requests. The receipt
     reaffirms the current provider-specific quota/baseline, legal/use,

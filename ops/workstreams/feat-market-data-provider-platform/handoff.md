@@ -40,6 +40,12 @@
   refreshes the same provider-specific quota/baseline, legal/use,
   capability, universe, and target-secret blockers; no new provider was
   admitted by the Alpaca evidence.
+- The exact-current MarketData.app Starter Trial matrix at source
+  `272a81bca9aa58367db8bb924669b0b7a4c15c4d` passed `7/7` cases with seven
+  selected live tests and six intentionally deselected cases. This refreshed
+  account usage, daily/five-minute candles, latest price, option expirations,
+  option chain, bounded option history, and the no-request guard for
+  unbounded response-priced history under the configured durable scope.
 
 ## 2026-09-17 native-usage mapping admission hardening
 
