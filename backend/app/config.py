@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/chartingdb"
     DATABASE_URL_SYNC: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/chartingdb"
+    STRATEGY_LAB_V2_MIGRATIONS_ENABLED: bool = False
+    STRATEGY_LAB_V2_MIGRATION_TARGET: str = "head"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"

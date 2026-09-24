@@ -1162,8 +1162,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   validates a PostgreSQL URL and absolute script location, runs the configured
   target off the event loop, serializes concurrent callers, replays the exact
   result, and reduces migration exceptions to stable type-only digests. The
-  service is deliberately not invoked by module import or router construction;
-  the deployment entrypoint still owns when startup migration is required.
+  FastAPI lifespan and dedicated worker entrypoint invoke it only when their
+  namespaced migration settings enable startup migration; module import and
+  router construction remain side-effect free.
 - `postgres_worker_state.py` exposes `release_capacity()`, an atomic durable
   release for the worker lease observation and its serial reservation. The
   operation locks and authenticates both state families, compare-and-set

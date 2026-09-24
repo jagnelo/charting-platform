@@ -57,6 +57,22 @@ checks, Ruff, MyPy, diff, and workstream validation). The exact backend gate
 passes 2,453 tests at 83.68% combined coverage with 86 warnings; both cleanup
 passes retain zero testcontainer sessions, containers, images, or volumes.
 
+## 2026-09-24 - API startup migration rollout
+
+The FastAPI lifespan now invokes the existing idempotent
+`StrategyLabV2MigrationService` before provider seeding, scheduling, or API
+readiness whenever `STRATEGY_LAB_V2_MIGRATIONS_ENABLED` is enabled. It uses the
+sync PostgreSQL URL and repository Alembic path, logs only stable failure
+digests, and raises a generic startup failure before accepting work. Compose
+enables this setting by default while the documented local `.env.example`
+default remains opt-in for test/developer environments; the worker entrypoint
+continues to own its independent migration gate.
+
+Focused startup migration tests pass (2), branch validation passes all 6
+checks, and the exact backend gate passes 2,455 tests at 83.68% coverage with
+86 warnings. Both cleanup passes retain zero testcontainer sessions,
+containers, images, or volumes.
+
 ## 2026-09-17 - Concrete terminal/result persistence adapter
 
 `worker_terminal_adapter.py` now provides the application-owned terminal

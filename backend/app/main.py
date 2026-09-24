@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
@@ -42,6 +43,10 @@ from app.services.e2e_seed import seed_e2e_instruments, seed_e2e_market_data
 from app.services.provider_runtime import seed_provider_runtime
 from app.services.workstation_bootstrap import ensure_core_workstation_identities
 from app.strategy_lab_v2.application import create_registered_strategy_lab_v2_router
+from app.strategy_lab_v2.migration_startup import (
+    MigrationDecision,
+    create_strategy_lab_v2_migration_service,
+)
 
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
@@ -51,8 +56,33 @@ logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
 
 
+async def _run_strategy_lab_v2_startup_migrations() -> None:
+    """Apply the explicit v2 schema target before the API accepts work."""
+
+    if not settings.STRATEGY_LAB_V2_MIGRATIONS_ENABLED:
+        return
+    service = create_strategy_lab_v2_migration_service(
+        settings.DATABASE_URL_SYNC,
+        script_location=Path(__file__).resolve().parents[1] / "alembic",
+        target_revision=settings.STRATEGY_LAB_V2_MIGRATION_TARGET,
+    )
+    resolution = await service.upgrade()
+    if resolution.decision is MigrationDecision.FAILED:
+        logger.error(
+            "Strategy Lab v2 startup migrations failed (error_digest=%s)",
+            resolution.error_digest,
+        )
+        raise RuntimeError("Strategy Lab v2 startup migrations failed")
+    logger.info(
+        "Strategy Lab v2 startup migrations %s (target=%s)",
+        resolution.decision.value,
+        resolution.target_revision,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await _run_strategy_lab_v2_startup_migrations()
     async with AsyncSessionLocal() as db:
         await seed_provider_runtime(db)
         if settings.E2E_SEED_INSTRUMENTS:
