@@ -616,7 +616,7 @@ progress:
     - strategy-lab-v2-worker-terminal-metric-persistence
     - strategy-lab-v2-worker-terminal-manifest-persistence
     - strategy-lab-v2-typed-result-manifest-rehydration
-  total: 19
+  total: 18
   current_phase: strategy-lab-v2-typed-result-manifest-rehydration-staging-ready-for-human-review
   current_blocker: Compose activation, stable Nautilus release, upstream contract reconciliation, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add Compose activation and stable-release conformance without changing the engine-neutral boundary
