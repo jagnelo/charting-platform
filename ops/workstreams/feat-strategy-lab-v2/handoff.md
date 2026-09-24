@@ -22,9 +22,17 @@ metric-set, and snapshot identities against the persisted projection. Artifact
 reads now use that validated typed manifest, so nested tampering or contract
 drift fails closed rather than being projected through a narrow field parser.
 
-Focused lint, MyPy, and materialization tests pass (4 tests); the complete
-Strategy Lab v2 package passes 802 tests. Branch validation, exact backend
+Focused lint and MyPy checks pass; the focused materialization suite passes 5
+tests and the complete Strategy Lab v2 package passes 803 tests. Branch validation, exact backend
 coverage, cleanup, and the checkpoint push remain to be recorded below.
+
+The corrected focused suite passes 5 tests including authenticated nested-tag
+tamper rejection. Branch-declared validation passes all 6 checks (803 package
+tests, migration checks, Ruff, MyPy, diff, and workstream validation). The exact
+backend gate passes 2,452 tests at 83.68% combined coverage with 86 warnings;
+both required cleanup passes retain zero testcontainer sessions, containers,
+images, or volumes. The implementation checkpoint and canonical branch push
+follow this evidence.
 
 ## 2026-09-17 - Concrete terminal/result persistence adapter
 
