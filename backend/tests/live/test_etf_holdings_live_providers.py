@@ -12,6 +12,7 @@ from app.services.etf_holdings_adapters import (
 )
 
 LIVE_BACKED_ISSUER_ADAPTERS = {
+    "amplius",
     "818",
     "arlington",
     "21shares",
@@ -640,6 +641,7 @@ async def test_live_m_d_sass_issuer_csv_route_preserves_dated_rows():
 @pytest.mark.parametrize(
     ("adapter_key", "symbol", "issuer_product_id", "identifiers", "min_rows"),
     [
+        ("amplius", "AAAA", None, {}, 20),
         (
             "convergence",
             "CLSE",

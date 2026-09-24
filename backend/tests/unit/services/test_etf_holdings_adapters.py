@@ -15279,12 +15279,12 @@ async def test_bushido_adapter_parses_complete_current_holdings_tables(monkeypat
 
 
 @pytest.mark.asyncio
-async def test_amplius_adapter_parses_complete_table_but_preserves_future_date(monkeypatch):
+async def test_amplius_adapter_parses_complete_current_table(monkeypatch):
     adapter = get_holdings_adapter("amplius")
     assert adapter is not None
     assert type(adapter).__name__ == "AmpliusHoldingsAdapter"
-    assert "amplius" in FALLBACK_ISSUER_AUDITS
-    assert ISSUER_ADAPTER_CONFIGS["amplius"].live_tested_default_route is False
+    assert "amplius" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["amplius"].live_tested_default_route is True
     assert (
         adapter.probe(
             symbol="AAAA", name="Amplius Aggressive Asset Allocation ETF", identifiers={}
@@ -23370,6 +23370,7 @@ def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audit
         "beehive",
         "brookstone",
         "elm",
+        "amplius",
         "nestyield",
         "srh",
     }
@@ -28400,8 +28401,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 417
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 79
+    assert ledger["current_native_count"] == 418
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 78
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -28441,6 +28442,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "logiq",
         "long_pond",
         "lsv",
+        "amplius",
         "m_d_sass",
         "max",
         "mcelhenny_sheffield",

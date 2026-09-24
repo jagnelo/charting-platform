@@ -102,8 +102,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `417`
-- Audited fallback-only providers: `79`
+- Native/live-backed providers: `418`
+- Audited fallback-only providers: `78`
 
 This is the current branch-derived split after the Warren WCAP request-profile,
 Inspire ETF Engine, Fidelity named-zero-weight-row, Anydrus NDOW
@@ -389,7 +389,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `7`
-- `needs_first_party_route_discovery`: `62`
+- `needs_first_party_route_discovery`: `61`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `7`
 
@@ -2331,3 +2331,16 @@ The official AVOS page returned a complete HTML holdings table, but every row
 carried effective date `2026-09-08`, future to the observation. The route is
 reachable, yet AVOS remains unavailable until a non-future, identity-bound
 snapshot is proven.
+
+## Current audit checkpoint — Amplius AAAA native promotion — 2026-09-24
+
+The official Amplius page now returns a complete 45-row AAAA holdings table
+with a current `2026-09-24` effective date. The existing provider-specific
+parser converts the page's market-value-millions field to canonical USD,
+preserves issuer provenance and cash/fund rows, and passed the bounded live
+matrix case. AAAA is native-promoted without SEC-derived reconstruction.
+
+The current code-derived split is 496 registered / 418 native-live-backed / 78
+fallback-only providers; runtime fallback statuses are 7 issuer-access-blocked,
+61 needs-first-party-route-discovery, 3 non-executable-public-source, and 7
+non-portfolio-publisher.

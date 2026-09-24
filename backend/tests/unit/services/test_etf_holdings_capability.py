@@ -612,22 +612,22 @@ def test_follow_on_ranked_fallback_terminal_symbol_preserves_successor_evidence(
     assert result.evidence_refs == ("web:alphaclone-domain-unrelated-content-2026-09-02",)
 
 
-def test_follow_on_ranked_fallback_future_dated_symbol_remains_unavailable():
+def test_follow_on_ranked_amplius_current_symbol_is_usable():
     result = symbol_audit_for_profile(profile_with_symbol("AAAA", "amplius"))
 
     assert result.tier == 1
-    assert result.outcome == UNAVAILABLE
-    assert result.evidence_state == "future_dated_source"
+    assert result.outcome == CURRENT
+    assert result.evidence_state == "current_issuer_route"
     assert result.provider_identity == "amplius"
-    assert result.investigated_at == date(2026, 9, 7)
+    assert result.investigated_at == date(2026, 9, 24)
     assert result.evidence_refs == (
         "web:amplius-aaaa-current-holdings-page-2026-09-05",
         "live:amplius-aaaa-application-200-2026-09-05",
         "live:amplius-aaaa-future-effective-date-2026-09-05",
         "live:amplius-aaaa-application-200-2026-09-06",
         "live:amplius-aaaa-future-effective-date-2026-09-06",
-        "live:amplius-aaaa-application-200-2026-09-07",
-        "live:amplius-aaaa-future-effective-date-2026-09-07",
+        "live:amplius-aaaa-application-200-2026-09-24",
+        "live:amplius-aaaa-current-effective-date-2026-09-24",
     )
 
 
@@ -1174,7 +1174,7 @@ def test_all_symbolless_fallback_identities_remain_non_current_at_capability_bou
 
 def test_every_fallback_identity_rejects_unreviewed_synthetic_symbols():
     """A complete snapshot cannot turn an unreviewed fallback identity current."""
-    assert len(FALLBACK_ISSUER_AUDITS) == 79
+    assert len(FALLBACK_ISSUER_AUDITS) == 78
 
     for adapter_key in sorted(FALLBACK_ISSUER_AUDITS):
         profile_value = profile_with_symbol(f"SYNTHETIC_{adapter_key}", adapter_key)

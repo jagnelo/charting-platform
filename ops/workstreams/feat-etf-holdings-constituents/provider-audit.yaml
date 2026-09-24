@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 417
-current_fallback_count: 79
+current_native_count: 418
+current_fallback_count: 78
 generated_at: 2026-09-24T00:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -419,11 +419,11 @@ symbol_audit_ledger:
     - symbol: AAAA
       tier: 1
       provider_identity: amplius
-      current_outcome: unavailable
-      evidence_state: future_dated_source
-      investigated_at: 2026-09-07
-      evidence_refs: [web:amplius-aaaa-current-holdings-page-2026-09-05, live:amplius-aaaa-application-200-2026-09-05, live:amplius-aaaa-future-effective-date-2026-09-05, live:amplius-aaaa-application-200-2026-09-06, live:amplius-aaaa-future-effective-date-2026-09-06, live:amplius-aaaa-application-200-2026-09-07, live:amplius-aaaa-future-effective-date-2026-09-07]
-      next_action: "Re-test AAAA after the issuer effective date is no longer in the future; retain the provider-specific parser and add bounded live evidence before native promotion."
+      current_outcome: current
+      evidence_state: current_issuer_route
+      investigated_at: 2026-09-24
+      evidence_refs: [web:amplius-aaaa-current-holdings-page-2026-09-05, live:amplius-aaaa-application-200-2026-09-05, live:amplius-aaaa-future-effective-date-2026-09-05, live:amplius-aaaa-application-200-2026-09-06, live:amplius-aaaa-future-effective-date-2026-09-06, live:amplius-aaaa-application-200-2026-09-24, live:amplius-aaaa-current-effective-date-2026-09-24]
+      next_action: "Monitor the official AAAA holdings page and retain native status while its complete issuer table remains identity-valid, dated, and executable; add future Amplius products only after equivalent first-party evidence."
     - symbol: AMID
       tier: 1
       provider_identity: argent
@@ -2157,16 +2157,16 @@ providers:
     display_name: amplius
     queue_rank: 13
     starting_status: needs_first_party_route_discovery
-    current_status: needs_first_party_route_discovery
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-09-07
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-24
     source_access_declared: issuer_public_product_page_complete_current_holdings_table
     representative_symbols:
       - AAAA
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: 2026-09-08
+    source_freshness: current_as_of_date
     first_party_domains:
       - www.ampliusetfs.com
     candidate_routes:
@@ -2175,8 +2175,8 @@ providers:
     symbol_mapping_proven: true
     current_holdings_proven: true
     source_format: html
-    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_amplius_adapter_parses_complete_table_but_preserves_future_date
-    live_test: null
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_amplius_adapter_parses_complete_current_table
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.amplius"
@@ -2186,8 +2186,8 @@ providers:
       - "live:amplius-aaaa-future-effective-date-2026-09-05"
       - "live:amplius-aaaa-application-200-2026-09-06"
       - "live:amplius-aaaa-future-effective-date-2026-09-06"
-      - "live:amplius-aaaa-application-200-2026-09-07"
-      - "live:amplius-aaaa-future-effective-date-2026-09-07"
+      - "live:amplius-aaaa-application-200-2026-09-24"
+      - "live:amplius-aaaa-current-effective-date-2026-09-24"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2221,9 +2221,17 @@ providers:
         source: "https://www.ampliusetfs.com/"
         result: "The AAAA effective date remains 2026-09-08; retain the future-date rejection until a later bounded check proves a non-future complete artifact."
         evidence_ref: "live:amplius-aaaa-future-effective-date-2026-09-07"
-    disposition_reason: "amplius: The issuer page is executable and complete for AAAA, and a provider-specific parser is covered deterministically, but the observed effective date is 2026-09-08, future-dated relative to the 2026-09-07 check. Keep the source fallback-only and unavailable for current analysis until a non-future artifact is revalidated with bounded live evidence."
-    next_action: "amplius: Re-test AAAA after the issuer effective date is no longer in the future; retain the provider-specific parser and add bounded live evidence before native promotion."
-    implementation_sha: 566a38f7120bdd526a261da28c19a70b88b8764e
+      - date: 2026-09-24
+        source: "https://www.ampliusetfs.com/"
+        result: "The official page returned HTTP 200 with a complete AAAA holdings table containing 45 rows and a current 2026-09-24 effective date."
+        evidence_ref: "live:amplius-aaaa-application-200-2026-09-24"
+      - date: 2026-09-24
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
+        result: "The bounded opt-in live test fetched the official page, parsed the complete AAAA table, preserved issuer provenance, and passed the current effective-date boundary."
+        evidence_ref: "live:amplius-aaaa-current-effective-date-2026-09-24"
+    disposition_reason: "amplius: The issuer page exposes a complete identity-bound AAAA holdings table dated 2026-09-24. The provider-specific parser has deterministic coverage and the bounded live route now passes the freshness boundary, so the provider is native-promoted without SEC-derived reconstruction."
+    next_action: "amplius: Monitor the official AAAA holdings page and retain native status while its complete issuer table remains identity-valid, dated, and executable; add future Amplius products only after equivalent first-party evidence."
+    implementation_sha: null
     validation_refs: []
   - adapter_key: anydrus
     display_name: anydrus

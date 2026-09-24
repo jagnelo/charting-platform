@@ -16,14 +16,14 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 417 native/live-backed, 79
+- Current code-derived state: 496 registered, 418 native/live-backed, 78
   fallback-only.
 - Current fallback status split: 7 issuer-access-blocked, 63
   needs-first-party-route-discovery, 3 non-executable public source, and 7
   non-portfolio-publisher. The ledger retains dated terminal dispositions for
   every fallback key; all 140 historical records are represented exactly once.
 - `docs/etf-provider-universe.md` is reconciled from code to the current
-  496/417/79 snapshot; future updates must remain code-derived.
+  496/418/78 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - The latest complete `make validate-integration` run on the current working
@@ -5248,3 +5248,17 @@ The implementation/evidence checkpoint is committed locally as
 after that commit and GitHub again returned `Permission denied (publickey)`;
 the remote feature ref remains `52814f95`, so AC8 remote synchronization is
 still open. No alternate credential, remote, branch, or worktree was used.
+
+## Amplius AAAA native promotion — 2026-09-24
+
+The official Amplius page now returns a complete 45-row AAAA holdings table
+with a current `2026-09-24` effective date. Its existing strict parser and the
+newly enrolled bounded live-matrix case both passed, including market-value
+unit conversion, identity, provenance, and freshness handling. AAAA is now
+native-promoted without SEC-derived reconstruction.
+
+The runtime fallback set, provider-audit ledger, provider-universe document,
+plan, and session acceptance text now agree on 496 registered / 418
+native-live-backed / 78 fallback-only providers; the
+`needs_first_party_route_discovery` count is 61. PIMCO MINT/BOND and the
+provider-platform/AC10 dependency remain unchanged.

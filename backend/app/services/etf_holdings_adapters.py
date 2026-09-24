@@ -69270,6 +69270,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         source_access="issuer_public_product_page_complete_current_holdings_table",
         expected_cadence="daily",
         product_page_templates=("https://www.ampliusetfs.com/",),
+        live_tested_default_route=True,
         terms_note=(
             "Amplius/ETF Architect publishes AAAA's complete holdings table on its public fund page; "
             "the page and holdings may be subject to issuer terms."
@@ -70913,7 +70914,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "alphaclone",
         "alphamark_advisors",
         "amg_national",
-        "amplius",
         "argent",
         "arin",
         "azimut",

@@ -882,22 +882,23 @@ _register_non_tier_0_audits(
 )
 _register_non_tier_0_audits(
     ("AAAA",),
-    outcome=UNAVAILABLE,
-    evidence_state="future_dated_source",
+    outcome=CURRENT,
+    evidence_state="current_issuer_route",
     provider_identity="amplius",
-    investigated_at=date(2026, 9, 7),
+    investigated_at=date(2026, 9, 24),
     evidence_refs=(
         "web:amplius-aaaa-current-holdings-page-2026-09-05",
         "live:amplius-aaaa-application-200-2026-09-05",
         "live:amplius-aaaa-future-effective-date-2026-09-05",
         "live:amplius-aaaa-application-200-2026-09-06",
         "live:amplius-aaaa-future-effective-date-2026-09-06",
-        "live:amplius-aaaa-application-200-2026-09-07",
-        "live:amplius-aaaa-future-effective-date-2026-09-07",
+        "live:amplius-aaaa-application-200-2026-09-24",
+        "live:amplius-aaaa-current-effective-date-2026-09-24",
     ),
     next_action=(
-        "Re-test AAAA after the issuer effective date is no longer in the future; retain the "
-        "provider-specific parser and add bounded live evidence before native promotion."
+        "Monitor the official AAAA holdings page and retain native status while its complete "
+        "issuer table remains identity-valid, dated, and executable; add future Amplius products "
+        "only after equivalent first-party evidence."
     ),
 )
 _register_non_tier_0_audits(
