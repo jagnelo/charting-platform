@@ -842,12 +842,14 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="advisors_asset_management",
-    investigated_at=date(2026, 9, 7),
+    investigated_at=date(2026, 9, 25),
     evidence_refs=(
         "web:aam-etf-detail-empty-backend-response-2026-09-02",
         "web:aam-spdv-current-paginated-holdings-2026-09-05",
+        "web:aam-spdv-indexed-top-holdings-2026-09-25",
         "live:aam-spdv-application-empty-reply-2026-09-05",
         "live:aam-symbol-routes-2026-09-07-blocked-or-empty",
+        "live:aam-spdv-direct-open-403-2026-09-25",
     ),
     next_action=(
         "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote "
@@ -977,8 +979,8 @@ _register_non_tier_0_audits(
         "web:baillie-gifford-bgus-current-page-2026-09-25",
     ),
     next_action=(
-        "Locate a complete constituent export for each U.S. ETF, prove symbol mapping and "
-        "identifiers, then add a provider-specific parser and live route test."
+        "Locate and execute the complete issuer spreadsheet for each U.S. ETF, prove symbol "
+        "mapping and identifiers, then add a provider-specific parser and live route test."
     ),
 )
 _register_non_tier_0_audits(
