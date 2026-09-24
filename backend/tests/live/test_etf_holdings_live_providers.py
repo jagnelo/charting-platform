@@ -13,6 +13,7 @@ from app.services.etf_holdings_adapters import (
 
 LIVE_BACKED_ISSUER_ADAPTERS = {
     "amplius",
+    "m_d_sass",
     "818",
     "arlington",
     "21shares",
