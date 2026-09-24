@@ -873,11 +873,14 @@ _register_non_tier_0_audits(
     outcome=NOT_APPLICABLE,
     evidence_state="inactive_or_successor_disposition",
     provider_identity="alphamark_advisors",
-    investigated_at=date(2026, 9, 2),
-    evidence_refs=("web:alphamark-redirect-2026-09-02",),
+    investigated_at=date(2026, 9, 25),
+    evidence_refs=(
+        "web:alphamark-redirect-2026-09-02",
+        "web:alphamark-smcp-liquidation-notice-2024-12-06",
+    ),
     next_action=(
-        "Verify whether EP Wealth publishes a current complete SMCP successor holdings route; "
-        "promote only after a stable issuer-owned executable artifact and live parser evidence exist."
+        "Keep SMCP not applicable after its documented 2024-12-27 liquidation; reopen only "
+        "if a legitimate successor ETF publishes a complete current holdings route."
     ),
 )
 _register_non_tier_0_audits(

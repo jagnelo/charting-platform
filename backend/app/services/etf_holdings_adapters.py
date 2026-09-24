@@ -70922,10 +70922,12 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "rock_point",
         "riverfront",
     ),
+    "inactive_or_successor_disposition": (
+        "alphamark_advisors",
+    ),
     "needs_first_party_route_discovery": (
         "advisors_asset_management",
         "alphaclone",
-        "alphamark_advisors",
         "amg_national",
         "arin",
         "azimut",
@@ -71013,6 +71015,12 @@ def _fallback_audit(status: str) -> IssuerFallbackAudit:
             "or other non-publishing identity rather than an independent publisher of "
             "complete ETF portfolios.",
             "Resolve each associated fund to its actual portfolio-publishing issuer.",
+        ),
+        "inactive_or_successor_disposition": (
+            "The historical issuer identity has a documented fund liquidation or inactive "
+            "disposition; no current ETF portfolio route should be treated as available.",
+            "Keep the historical symbols not applicable unless a legitimate successor "
+            "publishes a complete current holdings route.",
         ),
         "needs_first_party_route_discovery": (
             "No verified issuer-owned complete holdings route has been identified yet.",

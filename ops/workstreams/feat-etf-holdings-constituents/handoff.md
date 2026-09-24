@@ -5303,6 +5303,14 @@ The session metadata refresh is committed locally at `717c4319b`. A final
 authorized push retry again returned `Permission denied (publickey)`; the
 remote feature ref remains `52814f95`.
 
+## AlphaMark SMCP liquidation reconciliation — 2026-09-25
+
+The issuer supplement documents SMCP's liquidation after the close of business
+on `2024-12-27`. Runtime fallback audit, symbol capability, and provider-ledger
+state now consistently classify SMCP as
+`inactive_or_successor_disposition` / not applicable. No successor route or
+current holdings source was promoted.
+
 ## AAM SPDV/BDIV/TRFM/PFLD route recheck — 2026-09-25
 
 The current indexed AAM SPDV page still exposes only a top-holdings grid and an

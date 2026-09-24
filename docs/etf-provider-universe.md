@@ -389,9 +389,10 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `7`
-- `needs_first_party_route_discovery`: `60`
+- `needs_first_party_route_discovery`: `59`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `7`
+- `inactive_or_successor_disposition`: `1`
 
 The status counts describe the current fallback set. The starting 140-provider
 snapshot is preserved in the branch-owned audit ledger. These counts are not a
@@ -2342,8 +2343,16 @@ matrix case. AAAA is native-promoted without SEC-derived reconstruction.
 
 The current code-derived split is 496 registered / 419 native-live-backed / 77
 fallback-only providers; runtime fallback statuses are 7 issuer-access-blocked,
-60 needs-first-party-route-discovery, 3 non-executable-public-source, and 7
-non-portfolio-publisher.
+59 needs-first-party-route-discovery, 3 non-executable-public-source, 7
+non-portfolio-publisher, and 1 inactive-or-successor-disposition.
+
+## Current audit checkpoint — AlphaMark SMCP liquidation reconciliation — 2026-09-25
+
+The issuer supplement documents AlphaMark's SMCP liquidation after the close of
+business on `2024-12-27`. The former AlphaMark holdings route redirects to EP
+Wealth without exposing a successor ETF portfolio artifact. SMCP is therefore
+explicitly not applicable to current analysis and remains reopenable only if a
+legitimate successor publishes complete current holdings.
 
 ## Current audit checkpoint — Argent AMID/ABIG/ALIL native promotion — 2026-09-25
 
@@ -2356,5 +2365,5 @@ without SEC-derived reconstruction.
 
 The current code-derived split is 496 registered / 419 native-live-backed / 77
 fallback-only providers; runtime fallback statuses are 7 issuer-access-blocked,
-60 needs-first-party-route-discovery, 3 non-executable-public-source, and 7
-non-portfolio-publisher.
+59 needs-first-party-route-discovery, 3 non-executable-public-source, 7
+non-portfolio-publisher, and 1 inactive-or-successor-disposition.

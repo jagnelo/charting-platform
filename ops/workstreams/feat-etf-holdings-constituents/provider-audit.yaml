@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 419
 current_fallback_count: 77
-generated_at: 2026-09-24T00:00:00Z
+generated_at: 2026-09-25T00:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -413,9 +413,9 @@ symbol_audit_ledger:
       provider_identity: alphamark_advisors
       current_outcome: not_applicable
       evidence_state: inactive_or_successor_disposition
-      investigated_at: 2026-09-02
-      evidence_refs: [web:alphamark-redirect-2026-09-02]
-      next_action: "Verify whether EP Wealth publishes a current complete SMCP successor holdings route; promote only after a stable issuer-owned executable artifact and live parser evidence exist."
+      investigated_at: 2026-09-25
+      evidence_refs: [web:alphamark-redirect-2026-09-02, web:alphamark-smcp-liquidation-notice-2024-12-06]
+      next_action: "Keep SMCP not applicable after its documented 2024-12-27 liquidation; reopen only if a legitimate successor ETF publishes a complete current holdings route."
     - symbol: AAAA
       tier: 1
       provider_identity: amplius
@@ -2082,7 +2082,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: inactive_or_successor_disposition
     disposition: inactive_or_successor_disposition
-    last_checked: 2026-09-07
+    last_checked: 2026-09-25
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - SMCP
@@ -2105,6 +2105,7 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.alphamark_advisors"
       - "runtime:ISSUER_ADAPTER_CONFIGS.alphamark_advisors"
+      - "web:alphamark-smcp-liquidation-notice-2024-12-06"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2114,8 +2115,12 @@ providers:
         source: "https://www.alphamarkadvisors.com/etf/"
         result: "The documented AlphaMark ETF holdings URL returns HTTP 301 to EP Wealth's welcome-alphamark-advisors page; no current issuer-owned holdings artifact is exposed at the redirected route."
         evidence_ref: "web:alphamark-redirect-2026-09-02"
-    disposition_reason: "alphamark_advisors: AlphaMark's documented daily holdings route now redirects to EP Wealth's successor landing page rather than a current complete portfolio artifact; the historical SMCP filing is not a current executable source."
-    next_action: "alphamark_advisors: Verify whether EP Wealth publishes a current complete SMCP successor holdings route; promote only after a stable issuer-owned executable artifact and live parser evidence exist."
+      - date: 2026-09-25
+        source: "https://www.sec.gov/Archives/edgar/data/1540305/000089418924007066/alphamarkactivelymanagedsm.htm"
+        result: "The issuer supplement documents that SMCP was to close and liquidate after the close of business on 2024-12-27. No current successor ETF holdings route was identified; the historical SMCP identity is not applicable to current analysis."
+        evidence_ref: "web:alphamark-smcp-liquidation-notice-2024-12-06"
+    disposition_reason: "alphamark_advisors: The issuer's liquidation notice documents SMCP's 2024-12-27 liquidation, and the former holdings route redirects to EP Wealth without a successor ETF artifact; SMCP is not applicable to current analysis."
+    next_action: "alphamark_advisors: Keep SMCP not applicable; reopen only if a legitimate successor ETF publishes a complete current holdings route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: amg_national

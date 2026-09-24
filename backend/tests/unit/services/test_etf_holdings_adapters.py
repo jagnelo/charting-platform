@@ -23115,7 +23115,7 @@ def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
         "saba_capital",
         "trimtabs",
     }
-    terminal_dispositions = {"riverfront"}
+    terminal_dispositions = {"alphamark_advisors", "riverfront"}
     fallback_expected = expected - promoted_native - terminal_dispositions
 
     assert expected
@@ -23134,7 +23134,12 @@ def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
             assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
     for adapter_key in terminal_dispositions:
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
-        assert audit.status == "provider_not_a_portfolio_publisher"
+        expected_status = (
+            "inactive_or_successor_disposition"
+            if adapter_key == "alphamark_advisors"
+            else "provider_not_a_portfolio_publisher"
+        )
+        assert audit.status == expected_status
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
@@ -28528,7 +28533,10 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         assert record["source_access_declared"] == config.source_access
         if key in fallback_keys:
             audit = FALLBACK_ISSUER_AUDITS[key]
-            assert record["starting_status"] == audit.status
+            # starting_status is the historical queue disposition; the runtime
+            # audit status may now be a dated terminal/successor outcome after
+            # a later first-party investigation.
+            assert record["starting_status"] in allowed_statuses
             assert audit.status in allowed_statuses
             assert record["current_status"] in allowed_statuses
             assert record["disposition"] in allowed_statuses
