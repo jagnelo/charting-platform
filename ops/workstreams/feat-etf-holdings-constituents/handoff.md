@@ -40,7 +40,7 @@ non-executable.
   non-portfolio-publisher, and 2 inactive-or-successor-disposition. The ledger retains dated terminal dispositions for
   every fallback key; all 140 historical records are represented exactly once.
 - `docs/etf-provider-universe.md` is reconciled from code to the current
-  496/418/78 snapshot; future updates must remain code-derived.
+  496/419/77 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - The latest complete `make validate-integration` run on the current working
@@ -51,10 +51,11 @@ non-executable.
   fresh-stack retry passed all four workspace-floating viewport variants. The
   mismatch was transient and did not implicate ETF holdings tests or routes.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint is `405b2947266c1f41bce46e18ed68fa5877f87412`; subsequent
-  commits `262e920b`, `05c0b17c`, `e67c9fb5`, and `a4465d2f` contain only
-  formatting and branch-owned validation/session-record updates. The provider
-  implementation remains at the reconciled 496/414/82 state described above.
+- Latest implementation checkpoint is `2502482790704c1b5d081c90a4bf419a24966926`; subsequent
+  commits through `f59017427a32d92dfc12dde97a86988e0cb73213` contain only
+  branch-owned validation, documentation, and session-record updates. The
+  provider implementation remains at the reconciled 496/419/77 state described
+  above.
   Earlier
   checkpoints include `dabe2329965c704f93e3dbb21ec50a7da418ba6c` (Hexis/NICO
   native FilePoint route and synchronized records) and the named provider
