@@ -131,13 +131,13 @@ class PostgresStrategyLabV2Persistence:
             )
 
         async def metric_set_projection(*, principal: Any) -> tuple[ResourceDocument, ...]:
-            metric_sets = await metrics.load_all(principal=principal)
+            metric_sets = await metrics.load_all_metric_sets(principal=principal)
             return tuple(
                 _record_document(
                     ApiResourceType.METRIC_SET,
-                    metric_set.metric_set_fingerprint,
+                    metric_set.metric_set_id,
                     metric_set,
-                    metric_set.record_fingerprint,
+                    metric_set.fingerprint,
                 )
                 for metric_set in metric_sets
             )

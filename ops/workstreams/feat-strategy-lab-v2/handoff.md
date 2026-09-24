@@ -26,6 +26,17 @@ tests and the complete Strategy Lab v2 package passes 805 tests. Branch,
 exact-backend, cleanup, and workstream validation evidence for this checkpoint
 must be recorded after the implementation commit.
 
+## 2026-09-25 - Typed metric-set resource projection
+
+The application persistence bundle now projects `metric-sets` API resources
+from `PostgresMetricsAdapter.load_all_metric_sets()` instead of exposing raw
+`PersistedMetricSet` summary rows. Resource IDs and revision metadata are bound
+to the typed contract identity, so every API metric-set read passes through
+canonical payload, lineage, and value-summary verification first.
+
+Focused lint and MyPy checks pass; the focused persistence/metric suite passes
+6 tests and the complete Strategy Lab v2 package passes 806 tests.
+
 ## 2026-09-24 - Typed result-manifest rehydration
 
 `postgres_result_materialization.py` now exposes owner-scoped

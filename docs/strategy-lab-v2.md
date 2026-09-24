@@ -910,7 +910,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   metric data can be read by result/API adapters. Typed reads reuse the
   allowlisted canonical decoder, require byte-for-byte canonical payloads,
   and verify persisted identity, lineage, creation-time, and value-summary
-  projections before returning a `MetricSet`.
+  projections before returning a `MetricSet`; the API persistence bundle uses
+  this typed read path for `metric-sets` resources.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.
