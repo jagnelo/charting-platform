@@ -22,6 +22,7 @@
           type="button"
           class="research-results-tool__run-select"
           :aria-label="`Run ${run.id}, ${run.status}, ${run.artifact_count ?? run.artifacts.length} artifacts`"
+          :aria-pressed="selectedRun?.id === run.id ? 'true' : 'false'"
           @click="selectedRun = run"
         >
           <strong>Run #{{ run.id }}</strong>
