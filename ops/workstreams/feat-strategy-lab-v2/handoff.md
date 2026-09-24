@@ -34,6 +34,12 @@ both required cleanup passes retain zero testcontainer sessions, containers,
 images, or volumes. The implementation checkpoint and canonical branch push
 follow this evidence.
 
+The local checkpoint is complete, but the canonical push could not be completed
+from this environment: the configured GitHub SSH key is rejected with
+`Permission denied (publickey)`, and the HTTPS retry has no available username
+credential. The local tracking ref remains at `c5583f5b8`; no remote state is
+claimed beyond that checkout-local reference.
+
 ## 2026-09-17 - Concrete terminal/result persistence adapter
 
 `worker_terminal_adapter.py` now provides the application-owned terminal
