@@ -5298,3 +5298,10 @@ authorized push of the Argent implementation and its operations receipts was
 retried and again rejected by GitHub with `Permission denied (publickey)`; the
 remote feature ref remains `52814f95`. No alternate credential, remote, branch,
 or worktree was used.
+
+## AAM SPDV/BDIV/TRFM/PFLD route recheck — 2026-09-25
+
+The current indexed AAM SPDV page still exposes only a top-holdings grid and an
+Export to Excel affordance; direct page access returned HTTP 403. No complete
+executable artifact was captured for the four representative symbols, so the
+provider remains issuer-access-blocked and no native or paid route was activated.

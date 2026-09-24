@@ -301,6 +301,7 @@ remaining_gaps:
   - "The 2026-09-24 M.D. Sass recheck fetched the official issuer CSV with 23 complete SASS rows and a current 2026-09-24 effective date. The existing strict parser and bounded opt-in live test passed; SASS is now native-promoted, the fallback population is 79, and the code-derived split is 496 registered / 417 native-live-backed / 79 fallback-only."
   - "The 2026-09-24 Amplius recheck fetched the official AAAA page with 45 complete rows and a current 2026-09-24 effective date. The existing strict parser and newly enrolled bounded live-matrix case passed; AAAA is now native-promoted, the fallback population is 78, and the code-derived split is 496 registered / 418 native-live-backed / 78 fallback-only."
   - "The 2026-09-25 Argent recheck fetched complete AMID, ABIG, and ALIL holdings tables dated 2026-09-24. A strict multi-symbol parser and three bounded live-matrix cases passed; Argent is now native-promoted, the fallback population is 77, and the code-derived split is 496 registered / 419 native-live-backed / 77 fallback-only."
+  - "The 2026-09-25 AAM SPDV route recheck found the current indexed page still exposes only top holdings plus an Export to Excel affordance, while direct access returned HTTP 403. No complete executable artifact was captured for SPDV, BDIV, TRFM, or PFLD; AAM remains issuer-access-blocked and no native or paid route was activated."
 progress:
   completed:
     - AC1
