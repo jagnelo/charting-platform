@@ -42,6 +42,19 @@ backend gate passes 2,457 tests at 83.69% coverage, both cleanup passes retain
 zero testcontainer resources, and all branch/workstream checks are recorded in
 `validation.jsonl`.
 
+## 2026-09-25 - Typed runtime-preflight rehydration
+
+`postgres_runtime_receipts.py` now exposes
+`load_preflight_contract()`, rehydrating the canonical
+`StrategyRuntimePreflight` payload through the shared allowlisted decoder.
+Reads require exact canonical bytes and verify request/profile/isolation
+fingerprints, decision, and rejection-reason projections before admission
+evidence is returned. Runtime contract modules are now part of the decoder's
+explicit allowlist; unsupported tags and reordered fields fail closed.
+
+Focused lint and MyPy checks pass; the focused runtime/materialization suite
+passes 11 tests and the complete Strategy Lab v2 package passes 807 tests.
+
 ## 2026-09-24 - Typed result-manifest rehydration
 
 `postgres_result_materialization.py` now exposes owner-scoped

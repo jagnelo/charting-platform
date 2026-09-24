@@ -18,6 +18,7 @@ from enum import StrEnum
 from typing import Any, Protocol
 
 from app.strategy_lab_v2.canonical import canonical_json, content_digest, require_sha256_digest
+from app.strategy_lab_v2.postgres_result_materialization import decode_canonical_contract
 from app.strategy_lab_v2.runtime_execution import (
     StrategyRuntimePreflight,
     StrategyRuntimeRequest,
@@ -286,6 +287,18 @@ class PostgresRuntimeReceiptAdapter:
             async with session.begin():
                 return await self._load_preflight(session, owner_id, preflight_fingerprint)
 
+    async def load_preflight_contract(
+        self, *, principal: Any, preflight_fingerprint: str
+    ) -> StrategyRuntimePreflight | None:
+        """Load one authenticated preflight as its typed runtime contract."""
+
+        record = await self.load_preflight(
+            principal=principal, preflight_fingerprint=preflight_fingerprint
+        )
+        if record is None:
+            return None
+        return _decode_authenticated_preflight(record)
+
     async def _load_request(
         self,
         session: AsyncSessionLike,
@@ -497,6 +510,26 @@ def _preflight_record(preflight: StrategyRuntimePreflight) -> PersistedRuntimePr
             }
         ),
     )
+
+
+def _decode_authenticated_preflight(record: PersistedRuntimePreflight) -> StrategyRuntimePreflight:
+    try:
+        preflight = decode_canonical_contract(record.preflight_json, StrategyRuntimePreflight)
+    except (TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL runtime preflight payload is malformed") from error
+    if preflight.fingerprint != record.preflight_fingerprint:
+        raise ValueError("PostgreSQL runtime preflight payload identity drifted")
+    if preflight.request_fingerprint != record.request_fingerprint:
+        raise ValueError("PostgreSQL runtime preflight request identity drifted")
+    if preflight.profile_fingerprint != record.profile_fingerprint:
+        raise ValueError("PostgreSQL runtime preflight profile identity drifted")
+    if preflight.isolation_report.fingerprint != record.isolation_report_fingerprint:
+        raise ValueError("PostgreSQL runtime preflight isolation identity drifted")
+    if preflight.decision.value != record.decision:
+        raise ValueError("PostgreSQL runtime preflight decision drifted")
+    if preflight.rejection_reasons != record.rejection_reasons:
+        raise ValueError("PostgreSQL runtime preflight rejection evidence drifted")
+    return preflight
 
 
 def _decode_request(row: Mapping[str, Any]) -> PersistedRuntimeRequest:

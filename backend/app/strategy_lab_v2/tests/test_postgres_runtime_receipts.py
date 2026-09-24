@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import replace
 from typing import Any
 
@@ -7,6 +9,7 @@ import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.postgres_runtime_receipts import (
+    PersistedRuntimePreflight,
     PostgresRuntimeReceiptAdapter,
     PostgresRuntimeReceiptSchema,
     RuntimeReceiptDecision,
@@ -128,6 +131,9 @@ async def test_runtime_receipt_adapter_registers_replays_and_scopes() -> None:
     assert await adapter.load_preflight(
         principal="owner-a", preflight_fingerprint=preflight.fingerprint
     ) == preflight_registered.receipt
+    assert await adapter.load_preflight_contract(
+        principal="owner-a", preflight_fingerprint=preflight.fingerprint
+    ) == preflight
 
 
 @pytest.mark.asyncio
@@ -150,6 +156,42 @@ async def test_runtime_receipt_adapter_preserves_rejected_preflight_reasons() ->
     assert stored.receipt == loaded
     assert loaded is not None
     assert "network_must_be_disabled" in loaded.rejection_reasons
+
+
+@pytest.mark.asyncio
+async def test_runtime_receipt_adapter_rejects_noncanonical_preflight_contract() -> None:
+    profile = _profile()
+    request = _request(profile)
+    preflight = preflight_strategy_runtime(request, profile)
+    session = FakeSession()
+    adapter = PostgresRuntimeReceiptAdapter(lambda: session)
+    registered = await adapter.ensure_preflight(principal="owner-a", preflight=preflight)
+    assert isinstance(registered.receipt, PersistedRuntimePreflight)
+    row = session.preflights[("owner-a", preflight.fingerprint)]
+    raw = json.loads(row["preflight_json"])
+    raw[2] = list(reversed(raw[2]))
+    payload = json.dumps(raw, separators=(",", ":"), sort_keys=True)
+    row["preflight_json"] = payload
+    row["preflight_fingerprint"] = "sha256:" + hashlib.sha256(
+        payload.encode("utf-8")
+    ).hexdigest()
+    row["record_fingerprint"] = content_digest(
+        {
+            "decision": registered.receipt.decision,
+            "isolation_report_fingerprint": registered.receipt.isolation_report_fingerprint,
+            "preflight_fingerprint": row["preflight_fingerprint"],
+            "preflight_json": payload,
+            "profile_fingerprint": registered.receipt.profile_fingerprint,
+            "rejection_reasons": registered.receipt.rejection_reasons,
+            "request_fingerprint": registered.receipt.request_fingerprint,
+        }
+    )
+    session.preflights.pop(("owner-a", preflight.fingerprint))
+    session.preflights[("owner-a", row["preflight_fingerprint"])] = row
+    with pytest.raises(ValueError, match="payload is malformed"):
+        await adapter.load_preflight_contract(
+            principal="owner-a", preflight_fingerprint=row["preflight_fingerprint"]
+        )
 
 
 @pytest.mark.asyncio

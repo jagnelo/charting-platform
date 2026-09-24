@@ -902,7 +902,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and preflight payloads are independently content-addressed, exact retries
   replay, changed content conflicts against the same attempt/request, and
   rejected preflight reasons remain inspectable without exposing secrets or
-  starting a process.
+  starting a process. Typed preflight reads reuse the allowlisted canonical
+  decoder, require canonical bytes, and verify request/profile/isolation,
+  decision, and rejection identities before returning admission evidence.
 - `postgres_metrics.py` retains immutable `MetricSet` summaries as
   owner-scoped canonical projections. Metric-set payloads and compact value
   summaries are content-addressed, one attempt cannot silently replace a

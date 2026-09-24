@@ -17,7 +17,7 @@ from datetime import UTC, date, datetime
 from enum import Enum, StrEnum
 from typing import Any, Protocol, TypeVar, cast
 
-from app.strategy_lab_v2 import capabilities, contracts, rebalance
+from app.strategy_lab_v2 import capabilities, contracts, rebalance, runtime, runtime_execution
 from app.strategy_lab_v2.canonical import canonical_json, content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import (
     ArtifactManifest,
@@ -626,7 +626,7 @@ def _decode_canonical_dataclass(value: list[Any]) -> Any:
 
 def _canonical_dataclass_registry() -> dict[str, type[Any]]:
     registry: dict[str, type[Any]] = {}
-    for module in (contracts, capabilities, rebalance):
+    for module in (contracts, capabilities, rebalance, runtime, runtime_execution):
         for candidate in vars(module).values():
             if isinstance(candidate, type) and is_dataclass(candidate):
                 registry[f"{candidate.__module__}.{candidate.__qualname__}"] = candidate
@@ -635,7 +635,7 @@ def _canonical_dataclass_registry() -> dict[str, type[Any]]:
 
 def _canonical_enum_registry() -> dict[str, type[Enum]]:
     registry: dict[str, type[Enum]] = {}
-    for module in (contracts, capabilities, rebalance):
+    for module in (contracts, capabilities, rebalance, runtime, runtime_execution):
         for candidate in vars(module).values():
             if isinstance(candidate, type) and issubclass(candidate, Enum):
                 registry[f"{candidate.__module__}.{candidate.__qualname__}"] = candidate
