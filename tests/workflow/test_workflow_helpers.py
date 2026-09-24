@@ -34,6 +34,20 @@ def test_runtime_environment_exposes_path_scoped_session_state(monkeypatch):
     assert env["WORKTREE_BUILDER"] == "builder"
 
 
+def test_runtime_supports_operator_selected_writable_state_roots(tmp_path, monkeypatch):
+    runtime = load("runtime_overrides", "scripts/worktree-runtime.py")
+    registry_root = tmp_path / "runtime"
+    quota_root = tmp_path / "quota"
+    monkeypatch.setenv("CHARTING_PLATFORM_RUNTIME_DIR", str(registry_root))
+    monkeypatch.setenv("PROVIDER_QUOTA_LEDGER_HOST_DIR", str(quota_root))
+
+    registry, lock = runtime.registry_paths()
+    assert registry == registry_root / "allocations.json"
+    assert lock == registry_root / "allocations.lock"
+    assert runtime.ensure_shared_quota_ledger_dir() == quota_root
+    assert quota_root.stat().st_mode & 0o777 == 0o700
+
+
 def test_docker_status_accounts_unique_images_volumes_and_builder(monkeypatch):
     session = load("agent_session", "scripts/agent-session.py")
     monkeypatch.setattr(session.shutil, "which", lambda command: "/usr/bin/docker")

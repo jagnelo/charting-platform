@@ -162,6 +162,29 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-24 raw-payload preservation checkpoint: the explicitly compatible
+    yfinance adapter now retains each complete DataFrame provider row in the
+    candle provenance, including JSON-safe pandas/numpy scalar conversion; the
+    regression is covered by the provider suite (264/264). This closes the
+    identified normalization loss only for that legacy adapter; provider
+    response/licensing and roster-wide live gates remain unchanged.
+  - >-
+    2026-09-24 current validation checkpoint: all backend unit tests passed
+    (2387/2387, 37 warnings) and Docker-backed integration tests passed
+    (386/386, 57 warnings) with repository coverage options disabled for the
+    split evidence. The combined `make test-backend-coverage` wrapper was also
+    run with Docker ready but the managed runner terminated it at approximately
+    72% with exit 152 before pytest reported a failure; therefore no current
+    combined coverage percentage is claimed. The previous exact-head combined
+    gate at `62534a2ee518e1ec8263bef662bb5a7737a5b581` remains the last recorded
+    2772-test/82.07% combined result.
+  - >-
+    2026-09-24 runtime portability checkpoint: `scripts/worktree-runtime.py`
+    now accepts operator-selected `CHARTING_PLATFORM_RUNTIME_DIR` and
+    `PROVIDER_QUOTA_LEDGER_HOST_DIR` roots for managed/read-only environments,
+    while retaining the owner-only default paths. Workflow tests pass 47/47;
+    this does not alter provider quotas or secret values.
+  - >-
     2026-09-25 Compose-gate portability correction: `make test-compose-contract`
     now pipes its JSON assertions through the repository's UV-managed Python,
     eliminating the environment-specific system-`python` alias failure. The

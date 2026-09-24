@@ -11,6 +11,7 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import httpx
+import pandas as pd
 import pytest
 
 from app import config as app_config
@@ -86,6 +87,35 @@ def test_yfinance_rejects_calendar_year_without_network_fallback():
         )
     with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
         provider.latest_window_start(Timeframe.Y1, 1)
+
+
+def test_yfinance_history_retains_the_complete_provider_row_payload():
+    provider = YFinanceProvider()
+    frame = pd.DataFrame(
+        [{"Open": 100.0, "High": 102.0, "Low": 99.0, "Close": 101.0, "Volume": 1234, "custom": 7}],
+        index=pd.DatetimeIndex([datetime(2026, 1, 2, tzinfo=UTC)]),
+    )
+    ticker = MagicMock()
+    ticker.history.return_value = frame
+
+    with patch("app.providers.yfinance.yf.Ticker", return_value=ticker):
+        bars = provider.fetch_ohlcv(
+            "AAPL",
+            Timeframe.D1,
+            datetime(2026, 1, 1, tzinfo=UTC),
+            datetime(2026, 1, 3, tzinfo=UTC),
+            adjusted=False,
+        )
+
+    assert len(bars) == 1
+    assert bars[0].provenance["provider_payload"] == {
+        "Open": 100.0,
+        "High": 102.0,
+        "Low": 99.0,
+        "Close": 101.0,
+        "Volume": 1234,
+        "custom": 7,
+    }
 
 
 @pytest.mark.parametrize("provider_cls", [AlpacaProvider, BinanceProvider])

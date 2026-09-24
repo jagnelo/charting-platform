@@ -1,5 +1,30 @@
 # feat/market-data-provider-platform
 
+## 2026-09-24 raw-payload and split-gate validation checkpoint
+
+- The compatibility-only yfinance history adapter previously normalized a
+  DataFrame row without retaining the original provider fields. It now stores
+  the complete row under `provenance.provider_payload`; pandas/numpy scalar
+  values are converted to JSON-safe Python values. The regression provider
+  suite passes `264/264`.
+- Runtime helpers now accept explicit operator-selected writable roots through
+  `CHARTING_PLATFORM_RUNTIME_DIR` and `PROVIDER_QUOTA_LEDGER_HOST_DIR`, while
+  preserving the normal owner-only defaults. This lets managed/read-only
+  runners execute the same session allocator without changing production
+  secret or quota behavior. Workflow tests pass `47/47`; Compose contract and
+  workstream validation also pass.
+- Split backend validation is green: unit suite `2387/2387` (37 warnings) and
+  Docker-backed integration suite `386/386` (57 warnings). A subsequent
+  combined `make test-backend-coverage` run reached roughly 72% before the
+  managed runner terminated it with exit 152; pytest reported no test failure,
+  so no current combined coverage rate is claimed. The last exact-head
+  combined result remains `62534a2ee518e1ec8263bef662bb5a7737a5b581`,
+  `2772` tests and `82.07%` line coverage.
+- This checkpoint does not close the external provider quota/terms/entitlement,
+  complete NMS/OTC and SEC materialization, target secret-store, deferred
+  provider, publication, or final 30-day shadow gates. No integration,
+  deployment, or shadow activation was performed.
+
 ## 2026-09-24 resumed validation and Alpaca reset-boundary handling
 
 - Replayed the committed full provider preflight at `62534a2ee`; it stopped

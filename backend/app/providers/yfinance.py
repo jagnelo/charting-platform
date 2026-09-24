@@ -73,6 +73,14 @@ def _jsonable(value: Any) -> Any:
             return _jsonable(value.to_dict())
         except Exception:
             return str(value)
+    # pandas/numpy scalar values are common in DataFrame rows and are not
+    # JSON-serializable even though their Python equivalents are.  Preserve
+    # the provider value rather than dropping the raw row at persistence time.
+    if hasattr(value, "item"):
+        try:
+            return _jsonable(value.item())
+        except Exception:
+            pass
     try:
         if value != value:
             return None
@@ -398,6 +406,12 @@ class YFinanceProvider:
                         "provider": self.name,
                         "provider_symbol": symbol,
                         "interval": yf_interval,
+                        # Keep the complete provider row alongside the
+                        # normalized candle.  yfinance is compatibility-only
+                        # and never part of the default routing chain, but a
+                        # caller that explicitly opts into it must not lose
+                        # fields returned by the provider at normalization.
+                        "provider_payload": _jsonable(row.to_dict()),
                     },
                 )
             )
