@@ -5113,6 +5113,24 @@ The feature branch remains clean at the exact synchronized tip recorded in
 until then, PIMCO MINT/BOND remain unavailable and SASS remains future-dated
 fallback-only.
 
+## Resumed dependency recheck — 2026-09-24
+
+The resumed session refreshed the local remote-tracking refs. The provider
+platform branch is now `73d1d1aa6ee41bd82e1f5b1bff57f422d2b610c3`, while
+`origin/staging` remains `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; the
+provider branch is still not an ancestor of staging. The provider branch's
+durable plan remains open with human closure authorization pending, and its
+`ProviderCapability` enum still has no `ETF_HOLDINGS` member. Staging likewise
+has no such member.
+
+This is not a provider-branch defect: that workstream explicitly excludes ETF
+constituent-provider adapters. The ETF branch owns the narrow
+`ETF_HOLDINGS` bridge, but only after the generic provider platform reaches
+staging. AC10 therefore remains deferred. No speculative bridge, paid route,
+direct-provider activation, protected-branch mutation, or other-worktree
+change was made. PIMCO MINT/BOND remain unavailable and M.D. Sass SASS remains
+future-dated fallback-only.
+
 ## Parnassus PRCS/PRVS route recheck — 2026-09-07
 
 The official daily-holdings pages returned HTTP 200 React application shells,
