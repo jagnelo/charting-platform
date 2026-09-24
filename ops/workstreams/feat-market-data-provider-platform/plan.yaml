@@ -161,6 +161,12 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-24 exact-HEAD full preflight: source `0fb54ef0b` stopped before
+    transport with `0/0` cases and zero provider requests. The receipt
+    reaffirms the current provider-specific quota/baseline, legal/use,
+    unresolved capability, universe, and target-secret blockers; the current
+    Alpaca observation did not widen routing for unrelated operations.
+  - >-
     2026-09-24 exact-current Alpaca evidence: source
     `8900c9bf8c056f37dcccb3adb9f0abd62d30fcd8` passed the bounded native
     account-usage case `1/1` with one request and 125 response bytes. This

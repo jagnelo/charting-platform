@@ -35,6 +35,11 @@
   account-usage case `1/1` with one request and 125 response bytes. The
   aggregate receipt is current-source evidence; the roster-wide preflight still
   blocks ordinary provider reads on the independent gates above.
+- The subsequent exact-HEAD full provider preflight at `0fb54ef0b` again
+  stopped before transport (`0/0` cases, zero provider requests). Its receipt
+  refreshes the same provider-specific quota/baseline, legal/use,
+  capability, universe, and target-secret blockers; no new provider was
+  admitted by the Alpaca evidence.
 
 ## 2026-09-17 native-usage mapping admission hardening
 
