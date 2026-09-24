@@ -2231,7 +2231,7 @@ providers:
         evidence_ref: "live:amplius-aaaa-current-effective-date-2026-09-24"
     disposition_reason: "amplius: The issuer page exposes a complete identity-bound AAAA holdings table dated 2026-09-24. The provider-specific parser has deterministic coverage and the bounded live route now passes the freshness boundary, so the provider is native-promoted without SEC-derived reconstruction."
     next_action: "amplius: Monitor the official AAAA holdings page and retain native status while its complete issuer table remains identity-valid, dated, and executable; add future Amplius products only after equivalent first-party evidence."
-    implementation_sha: null
+    implementation_sha: 2cff0ac6ea83a664e6cf49333a46fa7ee2550a19
     validation_refs: []
   - adapter_key: anydrus
     display_name: anydrus
