@@ -5262,3 +5262,10 @@ plan, and session acceptance text now agree on 496 registered / 418
 native-live-backed / 78 fallback-only providers; the
 `needs_first_party_route_discovery` count is 61. PIMCO MINT/BOND and the
 provider-platform/AC10 dependency remain unchanged.
+
+The Amplius implementation/evidence checkpoint is committed locally as
+`aa1f59243` (metadata commit following implementation `2cff0ac6e`). The
+authorized push was retried and GitHub again returned
+`Permission denied (publickey)`; the remote feature ref remains `52814f95`,
+so AC8 remote synchronization is still open. No alternate credential, remote,
+branch, or worktree was used.
