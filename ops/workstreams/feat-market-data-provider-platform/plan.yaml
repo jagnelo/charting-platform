@@ -161,6 +161,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current Dinari Sandbox canary evidence: source
+    `b66bf0b6775a0b52948ae4e9373a7dd8f10503dd` passed the isolated canary
+    `1/1` with transient owner controls and a 20-request process cap. It
+    exercised the tokenized catalogue/identity, price/quote, four history
+    windows, news, dividends, splits, and corporate-action paths. Sandbox
+    payloads were not persisted and production routing remains disabled; the
+    provider's numeric Sandbox quota and production terms are still unknown.
+  - >-
     2026-09-25 exact-current MarketData.app evidence: source
     `272a81bca9aa58367db8bb924669b0b7a4c15c4d` passed the configured Starter
     Trial matrix `7/7` under the durable owner scope. The matrix refreshed

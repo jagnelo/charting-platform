@@ -46,6 +46,13 @@
   account usage, daily/five-minute candles, latest price, option expirations,
   option chain, bounded option history, and the no-request guard for
   unbounded response-priced history under the configured durable scope.
+- The isolated Dinari Sandbox canary at source `b66bf0b6775a0b52948ae4e9373a7dd8f10503dd`
+  passed `1/1` with its transient owner authority controls and 20-request
+  process cap. The canary exercised the configured tokenized catalogue,
+  identity, price/quote, four history windows, news, dividends, splits, and
+  corporate-action paths without persisting Sandbox payloads or enabling
+  production routing. Dinari's numeric Sandbox quota and production terms
+  remain intentionally unresolved.
 
 ## 2026-09-17 native-usage mapping admission hardening
 
