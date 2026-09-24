@@ -70923,11 +70923,11 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "riverfront",
     ),
     "inactive_or_successor_disposition": (
+        "alphaclone",
         "alphamark_advisors",
     ),
     "needs_first_party_route_discovery": (
         "advisors_asset_management",
-        "alphaclone",
         "amg_national",
         "arin",
         "azimut",

@@ -303,6 +303,7 @@ remaining_gaps:
   - "The 2026-09-25 Argent recheck fetched complete AMID, ABIG, and ALIL holdings tables dated 2026-09-24. A strict multi-symbol parser and three bounded live-matrix cases passed; Argent is now native-promoted, the fallback population is 77, and the code-derived split is 496 registered / 419 native-live-backed / 77 fallback-only."
   - "The 2026-09-25 AAM SPDV route recheck found the current indexed page still exposes only top holdings plus an Export to Excel affordance, while direct access returned HTTP 403. No complete executable artifact was captured for SPDV, BDIV, TRFM, or PFLD; AAM remains issuer-access-blocked and no native or paid route was activated."
   - "The 2026-09-25 AlphaMark recheck found an issuer liquidation notice for SMCP with a 2024-12-27 liquidation date. AlphaMark is now represented by an explicit inactive_or_successor_disposition in runtime, symbol capability, and the provider ledger; no successor route or current holdings source was promoted."
+  - "The 2026-09-25 AlphaClone recheck found current SEC series records marking ALFA, ALFS, ALFD, and ALFV inactive, with ALFA's 2022-08-31 liquidation documented. AlphaClone is now represented by an explicit inactive_or_successor_disposition in runtime, symbol capability, and the provider ledger; no successor route or current holdings source was promoted."
 progress:
   completed:
     - AC1

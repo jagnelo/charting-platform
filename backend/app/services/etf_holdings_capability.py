@@ -860,12 +860,16 @@ _register_non_tier_0_audits(
     outcome=NOT_APPLICABLE,
     evidence_state="inactive_or_successor_disposition",
     provider_identity="alphaclone",
-    investigated_at=date(2026, 9, 2),
-    evidence_refs=("web:alphaclone-domain-unrelated-content-2026-09-02",),
+    investigated_at=date(2026, 9, 25),
+    evidence_refs=(
+        "web:alphaclone-domain-unrelated-content-2026-09-02",
+        "web:alphaclone-series-status-inactive-2026-09-25",
+        "web:alphaclone-alfa-liquidation-2022-08-11",
+    ),
     next_action=(
-        "Confirm liquidation or successor disposition for the historical AlphaClone symbols "
-        "through current fund records; reopen only if a legitimate successor publishes "
-        "complete holdings."
+        "Keep the historical AlphaClone symbols not applicable after the current inactive "
+        "series status and documented ALFA liquidation; reopen only if a legitimate successor "
+        "publishes complete holdings."
     ),
 )
 _register_non_tier_0_audits(

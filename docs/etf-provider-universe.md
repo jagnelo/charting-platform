@@ -389,10 +389,10 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `7`
-- `needs_first_party_route_discovery`: `59`
+- `needs_first_party_route_discovery`: `58`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `7`
-- `inactive_or_successor_disposition`: `1`
+- `inactive_or_successor_disposition`: `2`
 
 The status counts describe the current fallback set. The starting 140-provider
 snapshot is preserved in the branch-owned audit ledger. These counts are not a
@@ -2343,8 +2343,8 @@ matrix case. AAAA is native-promoted without SEC-derived reconstruction.
 
 The current code-derived split is 496 registered / 419 native-live-backed / 77
 fallback-only providers; runtime fallback statuses are 7 issuer-access-blocked,
-59 needs-first-party-route-discovery, 3 non-executable-public-source, 7
-non-portfolio-publisher, and 1 inactive-or-successor-disposition.
+58 needs-first-party-route-discovery, 3 non-executable-public-source, 7
+non-portfolio-publisher, and 2 inactive-or-successor-disposition.
 
 ## Current audit checkpoint — AlphaMark SMCP liquidation reconciliation — 2026-09-25
 
@@ -2353,6 +2353,14 @@ business on `2024-12-27`. The former AlphaMark holdings route redirects to EP
 Wealth without exposing a successor ETF portfolio artifact. SMCP is therefore
 explicitly not applicable to current analysis and remains reopenable only if a
 legitimate successor publishes complete current holdings.
+
+## Current audit checkpoint — AlphaClone inactive-series reconciliation — 2026-09-25
+
+Current SEC series records mark ALFA, ALFS, ALFD, and ALFV inactive, and the
+ALFA liquidation notice documents cessation and liquidation on `2022-08-31`.
+The historical AlphaClone domain serves unrelated content and exposes no
+successor ETF holdings artifact. These symbols are explicitly not applicable
+to current analysis.
 
 ## Current audit checkpoint — Argent AMID/ABIG/ALIL native promotion — 2026-09-25
 
@@ -2365,5 +2373,5 @@ without SEC-derived reconstruction.
 
 The current code-derived split is 496 registered / 419 native-live-backed / 77
 fallback-only providers; runtime fallback statuses are 7 issuer-access-blocked,
-59 needs-first-party-route-discovery, 3 non-executable-public-source, 7
-non-portfolio-publisher, and 1 inactive-or-successor-disposition.
+58 needs-first-party-route-discovery, 3 non-executable-public-source, 7
+non-portfolio-publisher, and 2 inactive-or-successor-disposition.

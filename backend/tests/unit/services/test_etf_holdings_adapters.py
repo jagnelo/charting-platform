@@ -23115,7 +23115,7 @@ def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
         "saba_capital",
         "trimtabs",
     }
-    terminal_dispositions = {"alphamark_advisors", "riverfront"}
+    terminal_dispositions = {"alphaclone", "alphamark_advisors", "riverfront"}
     fallback_expected = expected - promoted_native - terminal_dispositions
 
     assert expected
@@ -23136,7 +23136,7 @@ def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
         expected_status = (
             "inactive_or_successor_disposition"
-            if adapter_key == "alphamark_advisors"
+            if adapter_key in {"alphaclone", "alphamark_advisors"}
             else "provider_not_a_portfolio_publisher"
         )
         assert audit.status == expected_status

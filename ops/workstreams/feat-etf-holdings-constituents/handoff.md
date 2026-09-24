@@ -5311,6 +5311,15 @@ state now consistently classify SMCP as
 `inactive_or_successor_disposition` / not applicable. No successor route or
 current holdings source was promoted.
 
+## AlphaClone inactive-series reconciliation — 2026-09-25
+
+Current SEC series records mark ALFA, ALFS, ALFD, and ALFV inactive, while the
+ALFA liquidation notice documents cessation and liquidation on `2022-08-31`.
+Runtime fallback audit, symbol capability, and provider-ledger state now
+consistently classify all four symbols as
+`inactive_or_successor_disposition` / not applicable. No successor route or
+current holdings source was promoted.
+
 ## AAM SPDV/BDIV/TRFM/PFLD route recheck — 2026-09-25
 
 The current indexed AAM SPDV page still exposes only a top-holdings grid and an

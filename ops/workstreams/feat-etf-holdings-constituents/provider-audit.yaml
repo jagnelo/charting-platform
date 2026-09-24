@@ -381,33 +381,33 @@ symbol_audit_ledger:
       provider_identity: alphaclone
       current_outcome: not_applicable
       evidence_state: inactive_or_successor_disposition
-      investigated_at: 2026-09-02
-      evidence_refs: [web:alphaclone-domain-unrelated-content-2026-09-02]
-      next_action: "Confirm liquidation or successor disposition for the historical AlphaClone symbols through current fund records; reopen only if a legitimate successor publishes complete holdings."
+      investigated_at: 2026-09-25
+      evidence_refs: [web:alphaclone-domain-unrelated-content-2026-09-02, web:alphaclone-series-status-inactive-2026-09-25, web:alphaclone-alfa-liquidation-2022-08-11]
+      next_action: "Keep the historical AlphaClone symbols not applicable after the current inactive series status and documented ALFA liquidation; reopen only if a legitimate successor publishes complete holdings."
     - symbol: ALFS
       tier: 1
       provider_identity: alphaclone
       current_outcome: not_applicable
       evidence_state: inactive_or_successor_disposition
-      investigated_at: 2026-09-02
-      evidence_refs: [web:alphaclone-domain-unrelated-content-2026-09-02]
-      next_action: "Confirm liquidation or successor disposition for the historical AlphaClone symbols through current fund records; reopen only if a legitimate successor publishes complete holdings."
+      investigated_at: 2026-09-25
+      evidence_refs: [web:alphaclone-domain-unrelated-content-2026-09-02, web:alphaclone-series-status-inactive-2026-09-25, web:alphaclone-alfa-liquidation-2022-08-11]
+      next_action: "Keep the historical AlphaClone symbols not applicable after the current inactive series status and documented ALFA liquidation; reopen only if a legitimate successor publishes complete holdings."
     - symbol: ALFD
       tier: 1
       provider_identity: alphaclone
       current_outcome: not_applicable
       evidence_state: inactive_or_successor_disposition
-      investigated_at: 2026-09-02
-      evidence_refs: [web:alphaclone-domain-unrelated-content-2026-09-02]
-      next_action: "Confirm liquidation or successor disposition for the historical AlphaClone symbols through current fund records; reopen only if a legitimate successor publishes complete holdings."
+      investigated_at: 2026-09-25
+      evidence_refs: [web:alphaclone-domain-unrelated-content-2026-09-02, web:alphaclone-series-status-inactive-2026-09-25, web:alphaclone-alfa-liquidation-2022-08-11]
+      next_action: "Keep the historical AlphaClone symbols not applicable after the current inactive series status and documented ALFA liquidation; reopen only if a legitimate successor publishes complete holdings."
     - symbol: ALFV
       tier: 1
       provider_identity: alphaclone
       current_outcome: not_applicable
       evidence_state: inactive_or_successor_disposition
-      investigated_at: 2026-09-02
-      evidence_refs: [web:alphaclone-domain-unrelated-content-2026-09-02]
-      next_action: "Confirm liquidation or successor disposition for the historical AlphaClone symbols through current fund records; reopen only if a legitimate successor publishes complete holdings."
+      investigated_at: 2026-09-25
+      evidence_refs: [web:alphaclone-domain-unrelated-content-2026-09-02, web:alphaclone-series-status-inactive-2026-09-25, web:alphaclone-alfa-liquidation-2022-08-11]
+      next_action: "Keep the historical AlphaClone symbols not applicable after the current inactive series status and documented ALFA liquidation; reopen only if a legitimate successor publishes complete holdings."
     - symbol: SMCP
       tier: 1
       provider_identity: alphamark_advisors
@@ -2039,7 +2039,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: inactive_or_successor_disposition
     disposition: inactive_or_successor_disposition
-    last_checked: 2026-09-07
+    last_checked: 2026-09-25
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - ALFA
@@ -2063,6 +2063,8 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.alphaclone"
       - "runtime:ISSUER_ADAPTER_CONFIGS.alphaclone"
+      - "web:alphaclone-series-status-inactive-2026-09-25"
+      - "web:alphaclone-alfa-liquidation-2022-08-11"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2072,8 +2074,12 @@ providers:
         source: "https://alphaclonefunds.com/"
         result: "The first-party domain returns HTTP 200 but its current page is an unrelated generic gambling/crypto content site with no AlphaClone ETF products or holdings artifact. Historical symbols ALFA, ALFS, ALFD, and ALFV are not currently mapped to a live issuer route."
         evidence_ref: "web:alphaclone-domain-unrelated-content-2026-09-02"
-    disposition_reason: "alphaclone: The historical AlphaClone fund domain no longer presents AlphaClone ETF products or holdings and currently serves unrelated content; no current executable issuer route is available for native promotion."
-    next_action: "Confirm liquidation or successor disposition for the historical AlphaClone symbols through current fund records; reopen only if a legitimate successor publishes complete holdings."
+      - date: 2026-09-25
+        source: "https://www.edgarcompany.sec.gov/servlet/CompanyDBSearch?cik=0001540305&main_back=2&page=detailed; https://www.prnewswire.com/news-releases/exchange-traded-concepts-to-close-and-liquidate-the-alphaclone-alternative-alpha-etf-301604138.html"
+        result: "The current SEC company record marks ALFA, ALFS, ALFD, and ALFV inactive; the ALFA liquidation notice documents cessation and liquidation on 2022-08-31. No successor ETF holdings route was identified."
+        evidence_ref: "web:alphaclone-series-status-inactive-2026-09-25; web:alphaclone-alfa-liquidation-2022-08-11"
+    disposition_reason: "alphaclone: Current SEC series records mark ALFA, ALFS, ALFD, and ALFV inactive, the ALFA liquidation notice confirms cessation, and the historical domain serves unrelated content; no current executable or successor route exists."
+    next_action: "Keep the historical AlphaClone symbols not applicable; reopen only if a legitimate successor ETF publishes complete current holdings."
     implementation_sha: null
     validation_refs: []
   - adapter_key: alphamark_advisors
