@@ -5293,7 +5293,7 @@ The follow-on live-matrix registry fix is committed locally as `fcf3ec6cd`.
 The authorized push retry again returned `Permission denied (publickey)`;
 `origin/feat/etf-holdings-constituents` remains at `52814f95`.
 
-The latest local tip is `aaead8ac176ac6c995d1769d6b2a1967585c2a44`. An
+The latest local tip is `4f5a38540` (the push-boundary receipt commit). An
 authorized push of the Argent implementation and its operations receipts was
 retried and again rejected by GitHub with `Permission denied (publickey)`; the
 remote feature ref remains `52814f95`. No alternate credential, remote, branch,
