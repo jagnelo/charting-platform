@@ -26,6 +26,10 @@
 - The live receipts are current-source transport evidence only; they do not
   close the remaining provider terms/entitlement, NMS/OTC, SEC admission,
   environment secret-store, deferred-provider, or final shadow gates.
+- The checkpoint is committed locally at `c701ab9b3`. Publication through the
+  configured `github-personal` SSH alias was attempted and rejected with
+  `Permission denied (publickey)`; no credential or repository state was
+  exposed, and no alternate account was used.
 
 ## 2026-09-17 native-usage mapping admission hardening
 

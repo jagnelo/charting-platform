@@ -161,6 +161,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-24 publication note: the validated local checkpoint is committed
+    at `c701ab9b3`, but `git push origin feat/market-data-provider-platform`
+    was rejected by GitHub with `Permission denied (publickey)` through the
+    configured `github-personal` alias. No repository or secret state was
+    changed by the failed push; remote publication remains an operator SSH
+    access gate.
+  - >-
     2026-09-24 resumed current-source validation: the committed full provider
     preflight at `62534a2ee` stopped before ordinary transport (`0/0` cases,
     zero provider requests) on the existing provider-specific baseline,
