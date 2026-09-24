@@ -70866,6 +70866,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "subject to issuer terms."
         ),
     ),
+    "argent": IssuerCsvAdapterConfig(
+        adapter_key="argent",
+        source_provider="argent",
+        source_access="issuer_public_product_page_complete_current_holdings_table",
+        expected_cadence="daily",
+        product_page_templates=(
+            "https://argentetfs.com/amid/",
+            "https://argentetfs.com/abig/",
+            "https://argentetfs.com/alil/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Argent publishes complete current holdings tables on its public product pages; issuer terms govern use.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -70914,7 +70927,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "alphaclone",
         "alphamark_advisors",
         "amg_national",
-        "argent",
         "arin",
         "azimut",
         "baillie_gifford",
@@ -73721,6 +73733,59 @@ class AmpliusHoldingsAdapter(BushidoHoldingsAdapter):
         return result
 
 
+class ArgentHoldingsAdapter(BushidoHoldingsAdapter):
+    """Fetch Argent's complete current AMID/ABIG/ALIL holdings tables."""
+
+    PROVIDER_DISPLAY_NAME = "Argent"
+    SOURCE_TAG = "argent"
+    ROUTE_RESOLUTION = "argent_public_complete_current_holdings_table"
+    SNAPSHOT_PROVENANCE = "argent_native_holdings_table"
+    PRODUCT_PAGE_URLS = {
+        "AMID": "https://argentetfs.com/amid/",
+        "ABIG": "https://argentetfs.com/abig/",
+        "ALIL": "https://argentetfs.com/alil/",
+    }
+    EXPECTED_IDENTITIES = {
+        "AMID": "Argent Mid Cap ETF (AMID)",
+        "ABIG": "Argent Large Cap ETF (ABIG)",
+        "ALIL": "Argent Focused Small Cap ETF (ALIL)",
+    }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        for row in result.rows:
+            market_value_mm = _decimal(row.extra_data.get("Market Value ($mm)"))
+            if market_value_mm is not None:
+                row.market_value = market_value_mm * Decimal("1000000")
+            row.extra_data = {
+                **row.extra_data,
+                "market_value_mm": _clean(row.extra_data.get("Market Value ($mm)")),
+                "market_value_unit": "millions_usd",
+                "source": self.ROUTE_RESOLUTION,
+            }
+        if result.raw_json is not None:
+            result.raw_json["market_value_unit"] = "millions_usd"
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "route_resolution": self.ROUTE_RESOLUTION,
+            "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
+            "source_quality": "issuer_reported_holdings_table",
+        }
+        return result
+
+
 class NestYieldHoldingsAdapter(MilitiaHoldingsAdapter):
     """Fetch NestYield's complete current ETF holdings tables from official pages."""
 
@@ -75470,7 +75535,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "anydrus": AnydrusHoldingsAdapter,
         "arin": ArinReconciledFallbackHoldingsAdapter,
         "ars": ArtemisHoldingsAdapter,
-        "argent": ArgentReconciledFallbackHoldingsAdapter,
+        "argent": ArgentHoldingsAdapter,
         "avantis": AvantisHoldingsAdapter,
         "avory": AvoryHoldingsAdapter,
         "avos": AvosReconciledFallbackHoldingsAdapter,

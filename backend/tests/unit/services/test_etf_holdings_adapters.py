@@ -15336,6 +15336,45 @@ async def test_amplius_adapter_parses_complete_current_table(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_argent_adapter_parses_current_symbol_scoped_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("argent")
+    assert adapter is not None
+    assert type(adapter).__name__ == "ArgentHoldingsAdapter"
+    assert "argent" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["argent"].live_tested_default_route is True
+
+    page_url = "https://argentetfs.com/amid/"
+    page_html = """
+    <h1>Argent Mid Cap ETF (AMID)</h1><h2>Fund Holdings</h2>
+    <table>
+      <tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th><th>Price</th>
+          <th>Market Value ($mm)</th><th>% of Net Assets</th><th>EFFECTIVE_DATE</th></tr>
+      <tr><td>ADI</td><td>Analog Devices Inc</td><td>032654105</td>
+          <td>1000</td><td>385.23</td><td>0.39</td><td>5.12</td><td>09/24/2026</td></tr>
+      <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td>
+          <td>100</td><td>1.00</td><td>0.01</td><td>0.59</td><td>09/24/2026</td></tr>
+    </table>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text=page_html, content_type="text/html", url=page_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="AMID")
+
+    assert FakeAsyncClient.requested[0][0] == page_url
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ADI"
+    assert result.rows[0].market_value == Decimal("390000")
+    assert result.rows[0].weight == Decimal("0.0512")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.legal_metadata["source_provider"] == "argent"
+    assert result.legal_metadata["route_resolution"] == (
+        "argent_public_complete_current_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-24"
+
+
 async def test_capforce_adapter_parses_complete_current_holdings_tables(monkeypatch):
     adapter = get_holdings_adapter("capforce")
     assert adapter is not None
@@ -28401,8 +28440,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 418
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 78
+    assert ledger["current_native_count"] == 419
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 77
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -28443,6 +28482,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "long_pond",
         "lsv",
         "amplius",
+        "argent",
         "m_d_sass",
         "max",
         "mcelhenny_sheffield",

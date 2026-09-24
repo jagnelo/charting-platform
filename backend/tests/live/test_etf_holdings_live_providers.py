@@ -13,6 +13,7 @@ from app.services.etf_holdings_adapters import (
 
 LIVE_BACKED_ISSUER_ADAPTERS = {
     "amplius",
+    "argent",
     "m_d_sass",
     "818",
     "arlington",
@@ -643,6 +644,9 @@ async def test_live_m_d_sass_issuer_csv_route_preserves_dated_rows():
     ("adapter_key", "symbol", "issuer_product_id", "identifiers", "min_rows"),
     [
         ("amplius", "AAAA", None, {}, 20),
+        ("argent", "AMID", None, {}, 20),
+        ("argent", "ABIG", None, {}, 20),
+        ("argent", "ALIL", None, {}, 20),
         (
             "convergence",
             "CLSE",

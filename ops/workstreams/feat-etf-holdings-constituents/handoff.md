@@ -5270,6 +5270,17 @@ authorized push was retried and GitHub again returned
 so AC8 remote synchronization is still open. No alternate credential, remote,
 branch, or worktree was used.
 
+## Argent AMID/ABIG/ALIL native promotion — 2026-09-25
+
+The official Argent AMID, ABIG, and ALIL pages now expose complete holdings
+tables dated `2026-09-24`. The strict symbol-scoped parser and all three
+bounded live-matrix cases passed identity, schema, identifiers, cash-row,
+provenance, and freshness checks. Argent is native-promoted without
+SEC-derived reconstruction.
+
+The current code-derived split is 496 registered / 419 native-live-backed / 77
+fallback-only providers; the runtime discovery status count is 60.
+
 The follow-on live-matrix registry fix is committed locally as `fcf3ec6cd`.
 The authorized push retry again returned `Permission denied (publickey)`;
 `origin/feat/etf-holdings-constituents` remains at `52814f95`.

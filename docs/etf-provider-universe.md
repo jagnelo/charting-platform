@@ -102,8 +102,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `418`
-- Audited fallback-only providers: `78`
+- Native/live-backed providers: `419`
+- Audited fallback-only providers: `77`
 
 This is the current branch-derived split after the Warren WCAP request-profile,
 Inspire ETF Engine, Fidelity named-zero-weight-row, Anydrus NDOW
@@ -389,7 +389,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `7`
-- `needs_first_party_route_discovery`: `61`
+- `needs_first_party_route_discovery`: `60`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `7`
 
@@ -2340,7 +2340,21 @@ parser converts the page's market-value-millions field to canonical USD,
 preserves issuer provenance and cash/fund rows, and passed the bounded live
 matrix case. AAAA is native-promoted without SEC-derived reconstruction.
 
-The current code-derived split is 496 registered / 418 native-live-backed / 78
+The current code-derived split is 496 registered / 419 native-live-backed / 77
 fallback-only providers; runtime fallback statuses are 7 issuer-access-blocked,
-61 needs-first-party-route-discovery, 3 non-executable-public-source, and 7
+60 needs-first-party-route-discovery, 3 non-executable-public-source, and 7
+non-portfolio-publisher.
+
+## Current audit checkpoint — Argent AMID/ABIG/ALIL native promotion — 2026-09-25
+
+The official Argent AMID, ABIG, and ALIL product pages now return complete
+identity-bound holdings tables with a current `2026-09-24` effective date. The
+provider-specific parser preserves identifiers, weights, cash rows, canonical
+USD market values, and issuer provenance, and all three symbol-scoped cases
+passed the bounded opt-in live matrix. The three products are native-promoted
+without SEC-derived reconstruction.
+
+The current code-derived split is 496 registered / 419 native-live-backed / 77
+fallback-only providers; runtime fallback statuses are 7 issuer-access-blocked,
+60 needs-first-party-route-discovery, 3 non-executable-public-source, and 7
 non-portfolio-publisher.
