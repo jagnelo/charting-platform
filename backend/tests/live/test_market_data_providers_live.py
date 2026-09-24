@@ -655,11 +655,18 @@ def test_alpaca_credentialed_account_usage_snapshot():
     assert window.reset_at is not None and window.reset_at.tzinfo is not None
     # The native counter is accepted as a durable baseline only when the
     # response proves the reviewed limit, a non-negative remaining count, and
-    # a future reset epoch. The runtime uses a conservative rolling 60-second
-    # safety envelope because Alpaca does not publish a fixed calendar-minute
-    # boundary; this is not a claim about the provider's internal algorithm.
+    # a future reset epoch. Alpaca can return a reset epoch at the current
+    # boundary, so that observation is retained but must remain
+    # ``not_reconciled`` rather than being treated as a usable baseline. The
+    # runtime uses a conservative rolling 60-second safety envelope because
+    # Alpaca does not publish a fixed calendar-minute boundary; this is not a
+    # claim about the provider's internal algorithm.
     reconciliation = reconcile_native_account_usage("alpaca", usage)
-    assert [item["status"] for item in reconciliation] == ["reconciled"]
+    assert len(reconciliation) == 1
+    if window.reset_at > usage.observed_at:
+        assert reconciliation[0]["status"] == "reconciled"
+    else:
+        assert reconciliation[0]["status"] == "not_reconciled"
 
 
 def test_alpaca_credentialed_profile():

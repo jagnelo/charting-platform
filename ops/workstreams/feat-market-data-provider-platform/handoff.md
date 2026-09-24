@@ -1,5 +1,32 @@
 # feat/market-data-provider-platform
 
+## 2026-09-24 resumed validation and Alpaca reset-boundary handling
+
+- Replayed the committed full provider preflight at `62534a2ee`; it stopped
+  before ordinary transport with `0/0` cases and zero provider requests, while
+  recording the existing provider-specific baseline, quota, legal/source,
+  capability, and deployment-secret blockers.
+- Refreshed the owner-scope native account snapshots for MarketData.app,
+  EODHD, and Twelve Data (`1/1` each). The observations were recorded as
+  aggregate-only receipts; they do not promote unresolved daily/minute pools.
+- A live Alpaca usage response exposed a provider reset epoch at the current
+  boundary. The coordinator correctly kept that observation
+  `not_reconciled`; the live test now distinguishes observation-only evidence
+  from a proven future active window instead of failing or treating it as a
+  usable baseline. Focused provider/account-usage coverage passed `329/329`,
+  Ruff passed, and the bounded Alpaca account-usage case passed `1/1` with one
+  request. Ordinary routing remains fail-closed when the reset boundary is not
+  proven.
+- The Docker-backed combined backend gate then passed all `2,772` collected
+  unit/integration tests with no failing-test output and `82.07%` combined line
+  coverage. The repository Compose assertions also passed when executed with
+  the UV-managed Python interpreter; the Make target itself still assumes a
+  system `python` alias that is absent in this environment. Generated coverage
+  artifacts were removed.
+- The live receipts are current-source transport evidence only; they do not
+  close the remaining provider terms/entitlement, NMS/OTC, SEC admission,
+  environment secret-store, deferred-provider, or final shadow gates.
+
 ## 2026-09-17 native-usage mapping admission hardening
 
 - Applied the Alpaca account-usage decision consistently across runtime

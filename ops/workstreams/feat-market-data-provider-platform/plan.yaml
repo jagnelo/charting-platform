@@ -161,6 +161,19 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-24 resumed current-source validation: the committed full provider
+    preflight at `62534a2ee` stopped before ordinary transport (`0/0` cases,
+    zero provider requests) on the existing provider-specific baseline,
+    quota/reset, legal/source, capability, universe, and target-secret gates.
+    Owner-scope native account snapshots for MarketData.app, EODHD, and Twelve
+    Data each passed `1/1` and were recorded as aggregate-only receipts. A
+    current Alpaca response returned a reset epoch at the observation boundary;
+    the coordinator correctly retained it as observation-only rather than
+    inventing a durable baseline. The live test now accepts reconciliation only
+    when a future active window is proven, and otherwise requires an explicit
+    `not_reconciled` result. Focused provider/account-usage coverage passed
+    `329/329`, Ruff passed, and no routing or shadow activation was enabled.
+  - >-
     2026-09-17 final validation replay: the clean-source Docker-backed
     combined backend gate reached all 2,772 collected unit/integration tests
     with no failing-test output; its combined coverage artifact reported

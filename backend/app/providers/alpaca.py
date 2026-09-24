@@ -140,9 +140,12 @@ class AlpacaProvider:
         Alpaca does not expose a separate account-usage endpoint.  A bounded
         latest-bar request is therefore used solely as a native usage
         observation.  The response must include the provider's exact limit,
-        remaining count, and future epoch reset header; missing or malformed
-        headers fail closed.  The configured policy still decides whether the
-        observed pool may be used for ordinary routing.
+        remaining count, and a valid epoch reset header; missing or malformed
+        headers fail closed.  Alpaca may report the current boundary rather
+        than a future one. That observation remains useful for diagnostics but
+        cannot seed the durable baseline until the coordinator can prove the
+        active window. The configured policy still decides whether the observed
+        pool may be used for ordinary routing.
         """
 
         self._require_configured()
