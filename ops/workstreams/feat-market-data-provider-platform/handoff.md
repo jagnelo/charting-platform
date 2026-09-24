@@ -1,5 +1,25 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 latest-price raw-response retention checkpoint
+
+- Current-price provider calls now opt into explicit response-body capture at
+  the transport boundary. The normalized price remains the canonical field,
+  while the raw provider body (including text fallback) is persisted in the
+  latest-price snapshot provenance. If an operation performs multiple HTTP
+  requests, the complete ordered response set is retained; the historical
+  singular `provider_response` key remains for one-response compatibility.
+- Focused telemetry/market-data/persistence regressions pass `46/46`, and Ruff
+  passes for every changed implementation and test file. The earlier
+  Docker-backed integration suite pass remains `386/386`; the prior exact
+  full-unit evidence remains `2388/2388` before this persistence-only test
+  extension. A managed rerun of the full unit wrapper did not return a final
+  summary after reaching 84%, so no newer full-unit pass is claimed here.
+- This is a loss-prevention correction only. It does not close provider
+  quota/baseline, legal/use, capability, NMS/OTC/SEC universe, secret-store,
+  deferred-provider, publication, or final shadow gates. No external provider
+  requests, deployment, integration, or shadow activation were performed by
+  this checkpoint.
+
 ## 2026-09-24 raw-payload and split-gate validation checkpoint
 
 - The compatibility-only yfinance history adapter previously normalized a

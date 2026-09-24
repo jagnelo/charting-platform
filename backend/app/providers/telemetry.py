@@ -58,9 +58,11 @@ _OBSERVED_HEADERS = (
 class ProviderTransportMeasurement:
     """Transport facts observed during one provider runtime invocation."""
 
+    capture_response_payloads: bool = False
     http_requests: int = 0
     response_bytes: int = 0
     response_headers: dict[str, str] = field(default_factory=dict)
+    response_payloads: list[Any] = field(default_factory=list)
 
     def observe(
         self,
@@ -80,19 +82,29 @@ class ProviderTransportMeasurement:
         else:
             self.response_bytes += max(0, int(response_bytes))
         headers = getattr(response, "headers", None)
-        if headers is None:
-            return
-        normalized_headers = {str(key).lower(): value for key, value in headers.items()}
-        for name in _OBSERVED_HEADERS:
-            value = normalized_headers.get(name)
-            if value is not None:
-                self.response_headers[name] = str(value)
+        if headers is not None:
+            normalized_headers = {str(key).lower(): value for key, value in headers.items()}
+            for name in _OBSERVED_HEADERS:
+                value = normalized_headers.get(name)
+                if value is not None:
+                    self.response_headers[name] = str(value)
+        if self.capture_response_payloads:
+            try:
+                payload = response.json()
+            except (AttributeError, TypeError, ValueError):
+                # The latest-price persistence path is JSON-first, but a
+                # provider may legitimately return text. Keep that body too
+                # rather than silently dropping the response.
+                payload = getattr(response, "text", None)
+            if payload is not None:
+                self.response_payloads.append(payload)
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "http_requests": self.http_requests,
             "response_bytes": self.response_bytes,
             "response_headers": dict(self.response_headers),
+            "response_payloads": list(self.response_payloads),
         }
 
 
@@ -101,8 +113,10 @@ _current: ContextVar[ProviderTransportMeasurement | None] = ContextVar(
 )
 
 
-def activate() -> tuple[ProviderTransportMeasurement, Token]:
-    measurement = ProviderTransportMeasurement()
+def activate(*, capture_response_payloads: bool = False) -> tuple[ProviderTransportMeasurement, Token]:
+    measurement = ProviderTransportMeasurement(
+        capture_response_payloads=capture_response_payloads,
+    )
     return measurement, _current.set(measurement)
 
 

@@ -20,7 +20,7 @@ from app.models.provider_observation import (
 )
 from app.models.provider_runtime import ProviderCapability, ProviderHealthState, ProviderPolicy
 from app.providers.base import IdentifierRecord, InstrumentProfile, ProviderSearchResult
-from app.services import instrument_mastering, instrument_sync, market_data
+from app.services import instrument_mastering, instrument_sync, market_data, provider_observations
 from app.services.provider_runtime import ProviderExecutionResult, ResolvedProvider
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -153,6 +153,7 @@ async def test_latest_price_fetch_persists_and_then_reuses_cache(db, instrument,
             policy=resolved.policy,
             health=resolved.health,
             result=123.45,
+            response_payloads=({"symbol": "AAPL", "price": "123.45"},),
         )
 
     monkeypatch.setattr(market_data, "resolve_provider_chain", _fake_resolve)
@@ -167,6 +168,37 @@ async def test_latest_price_fetch_persists_and_then_reuses_cache(db, instrument,
     assert execute_calls == 1
     assert len(snapshots) == 1
     assert float(snapshots[0].price) == pytest.approx(123.45)
+    assert snapshots[0].payload == {
+        "price": 123.45,
+        "provider_response": {"symbol": "AAPL", "price": "123.45"},
+        "provider_responses": [{"symbol": "AAPL", "price": "123.45"}],
+    }
+
+
+@pytest.mark.asyncio
+async def test_latest_price_snapshot_preserves_all_provider_responses(db, instrument):
+    resolved = _resolved_provider(
+        db, provider_name="test-provider", capability=ProviderCapability.LATEST_PRICE
+    )
+    snapshot = await provider_observations.store_latest_price_snapshot(
+        AsyncSessionAdapter(db),
+        instrument_id=instrument.id,
+        data_source_id=resolved.data_source.id,
+        provider_symbol="AAPL",
+        price=123.45,
+        payloads=[
+            {"page": 1, "price": "123.45"},
+            {"page": 2, "price": "123.45"},
+        ],
+    )
+
+    assert snapshot.payload == {
+        "price": 123.45,
+        "provider_responses": [
+            {"page": 1, "price": "123.45"},
+            {"page": 2, "price": "123.45"},
+        ],
+    }
 
 
 @pytest.mark.asyncio

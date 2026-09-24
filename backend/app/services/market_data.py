@@ -1708,6 +1708,7 @@ async def get_current_price_async(
             ),
             response_items=lambda result: 1 if result is not None else 0,
             treat_empty_as_failure=True,
+            capture_response_payloads=True,
         )
         provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
         await store_latest_price_snapshot(
@@ -1716,6 +1717,12 @@ async def get_current_price_async(
             data_source_id=execution.data_source.id,
             provider_symbol=provider_symbol,
             price=execution.result,
+            payload=(
+                getattr(execution, "response_payloads", ())[-1]
+                if getattr(execution, "response_payloads", ())
+                else None
+            ),
+            payloads=getattr(execution, "response_payloads", ()) or None,
         )
         return execution.result
 

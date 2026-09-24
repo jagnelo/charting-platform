@@ -162,6 +162,17 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 latest-price raw-response retention correction: current-price
+    calls now explicitly capture and persist every ordered provider response
+    body (with the prior singular compatibility field retained for one
+    response), so a multi-request provider operation cannot silently lose an
+    earlier body. Focused telemetry/market-data/persistence regressions pass
+    46/46 and Ruff passes. The earlier exact full-unit evidence remains
+    2388/2388 before this persistence-only test extension; a managed rerun
+    reached 84% without returning a final summary, so no newer full-unit pass
+    is claimed. Provider contract, live-evidence, universe, secret-store,
+    deferred-provider, publication, and shadow gates remain unchanged.
+  - >-
     2026-09-24 exact-current full preflight at source
     `bec4880fd1d85de2eb2a7dc9bfe8c6a757a7dbec` stopped before transport with
     `0/0` cases and zero provider requests. It confirms the remaining

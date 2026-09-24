@@ -287,6 +287,7 @@ class ProviderExecutionResult:
     policy: ProviderPolicy
     health: ProviderHealthState
     result: Any
+    response_payloads: tuple[Any, ...] = ()
 
 
 class ProviderNoDataError(LookupError):
@@ -2202,6 +2203,7 @@ async def execute_provider_call(
     invoke: Callable[[Any, str | None], T],
     response_items: Callable[[T], int | None] | None = None,
     treat_empty_as_failure: bool = False,
+    capture_response_payloads: bool = False,
 ) -> ProviderExecutionResult:
     chain = await resolve_provider_chain(
         db,
@@ -2392,7 +2394,9 @@ async def execute_provider_call(
             raise
         started = time.perf_counter()
         try:
-            measurement, measurement_token = activate_provider_telemetry()
+            measurement, measurement_token = activate_provider_telemetry(
+                capture_response_payloads=capture_response_payloads
+            )
         except BaseException:
             settle_provider_contract(
                 reservations,
@@ -2479,6 +2483,7 @@ async def execute_provider_call(
                 policy=resolved.policy,
                 health=resolved.health,
                 result=result,
+                response_payloads=tuple(measurement.response_payloads),
             )
         except Exception as exc:
             log_row.http_requests = measurement.http_requests

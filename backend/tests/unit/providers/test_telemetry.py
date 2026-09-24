@@ -32,6 +32,26 @@ def test_observation_without_active_call_is_ignored():
     observe_response(response)
 
 
+def test_payload_capture_is_explicit_and_keeps_body_without_headers():
+    class _Response:
+        content = b'{"price": 101.25}'
+        headers = None
+        text = '{"price": 101.25}'
+
+        @staticmethod
+        def json():
+            return {"price": 101.25, "symbol": "AAPL"}
+
+    measurement, token = activate(capture_response_payloads=True)
+    try:
+        observe_response(_Response())
+    finally:
+        deactivate(token)
+
+    assert measurement.response_payloads == [{"price": 101.25, "symbol": "AAPL"}]
+    assert measurement.as_dict()["response_payloads"] == measurement.response_payloads
+
+
 def test_streaming_observation_accepts_explicit_measured_bytes_without_materializing_content():
     response = MagicMock()
     response.headers = {"record-total": "2"}

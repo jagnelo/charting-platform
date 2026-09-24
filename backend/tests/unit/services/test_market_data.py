@@ -592,6 +592,8 @@ async def test_latest_price_refresh_rechecks_cache_inside_process_gate(monkeypat
     )
     state = {"price": None}
     execute_calls = 0
+    stored_payloads: list[object] = []
+    stored_response_sets: list[object] = []
 
     async def fake_cache(_db, _instrument):
         return state["price"]
@@ -604,10 +606,13 @@ async def test_latest_price_refresh_rechecks_cache_inside_process_gate(monkeypat
             provider_name="yfinance",
             data_source=SimpleNamespace(id=1),
             result=123.45,
+            response_payloads=({"price": 123.45, "symbol": "AAPL"},),
         )
 
     async def fake_store(*_args, **_kwargs):
         state["price"] = 123.45
+        stored_payloads.append(_kwargs["payload"])
+        stored_response_sets.append(_kwargs["payloads"])
 
     monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", False)
     monkeypatch.setattr(market_data, "_fresh_latest_price_from_cache", fake_cache)
@@ -621,6 +626,8 @@ async def test_latest_price_refresh_rechecks_cache_inside_process_gate(monkeypat
 
     assert results == [123.45, 123.45]
     assert execute_calls == 1
+    assert stored_payloads == [{"price": 123.45, "symbol": "AAPL"}]
+    assert stored_response_sets == [({"price": 123.45, "symbol": "AAPL"},)]
 
 
 @pytest.mark.asyncio

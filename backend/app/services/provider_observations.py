@@ -1,5 +1,6 @@
 import hashlib
 import json
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
@@ -88,12 +89,25 @@ async def store_latest_price_snapshot(
     data_source_id: int,
     provider_symbol: str | None,
     price: float | Decimal,
+    payload: dict[str, Any] | list[Any] | str | None = None,
+    payloads: Sequence[Any] | None = None,
     observed_at: datetime | None = None,
     fetched_at: datetime | None = None,
 ) -> LatestPriceSnapshot:
     observed_at = observed_at or _now_utc()
     fetched_at = fetched_at or observed_at
     decimal_price = price if isinstance(price, Decimal) else Decimal(str(price))
+    provider_payload: dict[str, Any] = {}
+    if payloads:
+        # A provider operation may issue more than one HTTP request. Keep the
+        # complete ordered set so quota-limited responses are never silently
+        # discarded; retain the historical singular key for one response.
+        provider_payload["provider_responses"] = list(payloads)
+        if len(payloads) == 1:
+            provider_payload["provider_response"] = payloads[0]
+    elif payload is not None:
+        provider_payload["provider_response"] = payload
+
     snapshot = LatestPriceSnapshot(
         instrument_id=instrument_id,
         data_source_id=data_source_id,
@@ -101,7 +115,10 @@ async def store_latest_price_snapshot(
         observed_at=observed_at,
         fetched_at=fetched_at,
         price=decimal_price,
-        payload={"price": float(decimal_price)},
+        payload={
+            "price": float(decimal_price),
+            **provider_payload,
+        },
     )
     db.add(snapshot)
     await db.flush()
