@@ -68,6 +68,10 @@
   `otherlisted.txt` files under the explicit two-file-per-day client cap;
   complete historical reconciliation and lifecycle deactivation remain
   separate ingestion gates.
+- The canonical `make test-compose-contract` gate was made portable by using
+  the repository's UV-managed Python instead of assuming a system `python`
+  alias. The target now passes end-to-end, alongside the workflow suite
+  (`46/46`) and workstream validation (`30` records).
 
 ## 2026-09-17 native-usage mapping admission hardening
 

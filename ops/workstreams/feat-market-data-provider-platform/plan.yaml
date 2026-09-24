@@ -25,6 +25,7 @@ scope:
   - backend-only coverage, provider-admin, identity-quarantine, market-session, and shadow-report APIs; symbol compatibility aliases remain additive
   - automated shadow-mode reporting and post-deployment activation evidence, with the actual 30-day run postponed to the final separately authorized phase; no frontend or ETF constituent adapter implementation
 owned_paths:
+  - Makefile
   - .env.example
   - README.md
   - .github/workflows/provider-live.yml
@@ -160,6 +161,14 @@ execution_plan:
     - running the 30-day shadow phase before every other controllable gate is complete
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
+  - >-
+    2026-09-25 Compose-gate portability correction: `make test-compose-contract`
+    now pipes its JSON assertions through the repository's UV-managed Python,
+    eliminating the environment-specific system-`python` alias failure. The
+    target passes, workflow tests pass `46/46`, and workstream validation passes
+    all `30` records. This is workflow/runtime validation and does not close
+    provider entitlement, universe, secret-store, deferred-provider, or shadow
+    gates.
   - >-
     2026-09-25 exact-current Nasdaq evidence: source
     `ce4f229774345e93504c94f76ea41a3b8b0deb9c` passed the bounded official
