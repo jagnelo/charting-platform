@@ -2512,7 +2512,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-07
+    last_checked: 2026-09-25
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [AVOS]
     estimated_us_etf_count: null
@@ -2533,6 +2533,8 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.avos"
       - "web:avos-current-holdings-page-2026-09-04"
       - "live:avos-current-holdings-page-2026-09-04-blocked"
+      - "web:avos-current-holdings-page-2026-09-25"
+      - "live:avos-direct-route-dns-failure-2026-09-25"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2546,8 +2548,16 @@ providers:
         source: "https://avosglobalequities.com/"
         result: "The official page returned a complete HTML holdings table with effective date 2026-09-08, future-dated relative to the observation; the route is reachable but current analysis remains unavailable."
         evidence_ref: "live:avos-html-holdings-future-effective-date-2026-09-07"
-    disposition_reason: "avos: The official AVOS page exposes a complete HTML holdings table, but its effective date is future-dated relative to the 2026-09-07 observation; the freshness boundary keeps native support unavailable."
-    next_action: "avos: Re-test the official AVOS page after the effective date is no longer future-dated; promote only after parser, identity, freshness, and bounded live evidence pass."
+      - date: 2026-09-25
+        source: "Avos Global Equities official AVOS holdings page"
+        result: "The current indexed official page exposes the complete Fund Holdings table with effective date 2026-09-17. A direct backend-equivalent probe could not resolve the issuer host in this environment, and the earlier bounded request returned HTTP 403; no executable native route is retained."
+        evidence_ref: "web:avos-current-holdings-page-2026-09-25"
+      - date: 2026-09-25
+        source: "https://avosglobalequities.com/"
+        result: "The direct bounded route probe failed with DNS resolution error; this confirms local transport unavailability but does not establish a parseable application route."
+        evidence_ref: "live:avos-direct-route-dns-failure-2026-09-25"
+    disposition_reason: "avos: The official indexed page now exposes a complete current 2026-09-17 holdings table, but the executable backend-equivalent route remains blocked (earlier HTTP 403 and current direct DNS failure); native support remains unavailable."
+    next_action: "avos: Re-test the official AVOS page from an allowed network path; promote only after the current issuer table is executable and parser, identity, freshness, and bounded live evidence pass."
     implementation_sha: null
     validation_refs: []
   - adapter_key: azimut

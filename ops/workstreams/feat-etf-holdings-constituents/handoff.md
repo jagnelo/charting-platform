@@ -12,15 +12,24 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Closure authorization: pending; do not integrate or deploy until the human
   explicitly authorizes closure.
 
+## Current audit checkpoint — AVOS current table, executable route blocked — 2026-09-25
+
+The current indexed AVOS product page exposes a complete Fund Holdings table
+with an effective date of `2026-09-17`. The earlier backend-equivalent request
+returned HTTP 403, and the current direct bounded probe could not resolve the
+issuer host from this environment. AVOS remains unavailable and
+issuer-access-blocked; indexed browser evidence was recorded but not promoted
+to native support.
+
 ## Current branch state
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 418 native/live-backed, 78
+- Current code-derived state: 496 registered, 419 native/live-backed, 77
   fallback-only.
-- Current fallback status split: 7 issuer-access-blocked, 63
-  needs-first-party-route-discovery, 3 non-executable public source, and 7
-  non-portfolio-publisher. The ledger retains dated terminal dispositions for
+- Current fallback status split: 8 issuer-access-blocked, 56
+  needs-first-party-route-discovery, 3 non-executable public source, 8
+  non-portfolio-publisher, and 2 inactive-or-successor-disposition. The ledger retains dated terminal dispositions for
   every fallback key; all 140 historical records are represented exactly once.
 - `docs/etf-provider-universe.md` is reconciled from code to the current
   496/418/78 snapshot; future updates must remain code-derived.

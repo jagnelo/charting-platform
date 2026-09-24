@@ -2342,7 +2342,7 @@ preserves issuer provenance and cash/fund rows, and passed the bounded live
 matrix case. AAAA is native-promoted without SEC-derived reconstruction.
 
 The current code-derived split is 496 registered / 419 native-live-backed / 77
-fallback-only providers; runtime fallback statuses are 7 issuer-access-blocked,
+fallback-only providers; runtime fallback statuses are 8 issuer-access-blocked,
 56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.
 
@@ -2358,6 +2358,15 @@ legitimate successor publishes complete current holdings.
 
 Current SEC series records mark ALFA, ALFS, ALFD, and ALFV inactive, and the
 ALFA liquidation notice documents cessation and liquidation on `2022-08-31`.
+
+## Current audit checkpoint — AVOS current table, executable route blocked — 2026-09-25
+
+The current indexed AVOS page exposes a complete Fund Holdings table with an
+effective date of `2026-09-17`. The earlier bounded backend-equivalent request
+returned HTTP 403, and the current direct probe could not resolve the issuer
+host from this environment. AVOS therefore remains unavailable and
+issuer-access-blocked: indexed browser evidence is not treated as executable
+application support, and no native or paid substitute was activated.
 The historical AlphaClone domain serves unrelated content and exposes no
 successor ETF holdings artifact. These symbols are explicitly not applicable
 to current analysis.
