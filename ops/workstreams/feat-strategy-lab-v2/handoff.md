@@ -52,6 +52,11 @@ Focused lint/MyPy/materialization tests pass (6 tests), and the complete
 Strategy Lab v2 package passes 804 tests. Branch and exact-gate evidence for
 this follow-up is pending.
 
+Branch-declared validation passes all 6 checks (804 package tests, migration
+checks, Ruff, MyPy, diff, and workstream validation). The exact backend gate
+passes 2,453 tests at 83.68% combined coverage with 86 warnings; both cleanup
+passes retain zero testcontainer sessions, containers, images, or volumes.
+
 ## 2026-09-17 - Concrete terminal/result persistence adapter
 
 `worker_terminal_adapter.py` now provides the application-owned terminal
