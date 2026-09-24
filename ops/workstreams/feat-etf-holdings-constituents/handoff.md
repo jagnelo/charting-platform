@@ -5299,6 +5299,10 @@ retried and again rejected by GitHub with `Permission denied (publickey)`; the
 remote feature ref remains `52814f95`. No alternate credential, remote, branch,
 or worktree was used.
 
+The session metadata refresh is committed locally at `717c4319b`. A final
+authorized push retry again returned `Permission denied (publickey)`; the
+remote feature ref remains `52814f95`.
+
 ## AAM SPDV/BDIV/TRFM/PFLD route recheck — 2026-09-25
 
 The current indexed AAM SPDV page still exposes only a top-holdings grid and an
