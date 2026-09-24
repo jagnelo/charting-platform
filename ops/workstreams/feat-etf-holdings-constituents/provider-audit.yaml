@@ -2340,8 +2340,9 @@ providers:
         evidence_ref: "live:argent-opt-in-parser-2026-09-25-passed"
     disposition_reason: "argent: The official AMID, ABIG, and ALIL pages expose complete identity-bound holdings tables dated 2026-09-24. The strict multi-symbol parser has deterministic coverage and bounded live evidence, so Argent is native-promoted without SEC-derived reconstruction."
     next_action: "argent: Monitor the three official symbol-scoped holdings pages and retain native status while they remain complete, identity-valid, dated, and executable; add future Argent products only after equivalent first-party evidence."
-    implementation_sha: null
-    validation_refs: []
+    implementation_sha: 9e8d1ce470e16d490355301e0cbb7d252e35b59d
+    validation_refs:
+      - validation:2026-09-25-argent-native-promotion
   - adapter_key: arin
     display_name: arin
     queue_rank: 16
