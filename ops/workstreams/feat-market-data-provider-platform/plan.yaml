@@ -161,6 +161,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-24 exact-current Alpaca evidence: source
+    `8900c9bf8c056f37dcccb3adb9f0abd62d30fcd8` passed the bounded native
+    account-usage case `1/1` with one request and 125 response bytes. This
+    confirms the reset-boundary-safe live test at the current source; it does
+    not promote the other provider operations or close their independent
+    quota, entitlement, legal/source, universe, secret-store, or shadow gates.
+  - >-
     2026-09-24 publication note: the validated local checkpoint is committed
     at `c701ab9b3`, but `git push origin feat/market-data-provider-platform`
     was rejected by GitHub with `Permission denied (publickey)` through the

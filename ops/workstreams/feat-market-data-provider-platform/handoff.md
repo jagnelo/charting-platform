@@ -30,6 +30,11 @@
   configured `github-personal` SSH alias was attempted and rejected with
   `Permission denied (publickey)`; no credential or repository state was
   exposed, and no alternate account was used.
+- After the documentation checkpoint, the exact current source
+  `8900c9bf8c056f37dcccb3adb9f0abd62d30fcd8` passed the bounded Alpaca
+  account-usage case `1/1` with one request and 125 response bytes. The
+  aggregate receipt is current-source evidence; the roster-wide preflight still
+  blocks ordinary provider reads on the independent gates above.
 
 ## 2026-09-17 native-usage mapping admission hardening
 
