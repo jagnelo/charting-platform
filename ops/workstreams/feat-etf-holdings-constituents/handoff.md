@@ -5242,3 +5242,9 @@ plan, and session acceptance text now agree on 496 registered / 417
 native-live-backed / 79 fallback-only providers; the
 `needs_first_party_route_discovery` count is 62. PIMCO MINT/BOND and the
 provider-platform/AC10 dependency remain unchanged.
+
+The implementation/evidence checkpoint is committed locally as
+`2b787c5c26b4448a185cad64b7394942aa30a842`. The authorized push was retried
+after that commit and GitHub again returned `Permission denied (publickey)`;
+the remote feature ref remains `52814f95`, so AC8 remote synchronization is
+still open. No alternate credential, remote, branch, or worktree was used.
