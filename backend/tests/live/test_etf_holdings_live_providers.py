@@ -629,6 +629,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("m_d_sass")
 async def test_live_m_d_sass_issuer_csv_route_preserves_dated_rows():
     adapter = get_holdings_adapter("m_d_sass")
     assert adapter is not None
