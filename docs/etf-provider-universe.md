@@ -2406,6 +2406,6 @@ passed the bounded opt-in live matrix. The three products are native-promoted
 without SEC-derived reconstruction.
 
 The current code-derived split is 496 registered / 419 native-live-backed / 77
-fallback-only providers; runtime fallback statuses are 7 issuer-access-blocked,
+fallback-only providers; runtime fallback statuses are 8 issuer-access-blocked,
 56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.
