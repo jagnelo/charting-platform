@@ -493,6 +493,9 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
                 "web:pimco-fund-ui-top-ten-only-2026-09-05",
                 "live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden",
                 "live:pimco-www-top-ten-route-2026-09-05-not-found",
+                "web:pimco-etf-suite-current-2026-09-24",
+                "live:pimco-mint-fund-detail-api-2026-09-24-unauthorized",
+                "live:pimco-mint-fund-explorer-documents-2026-09-24-http-400",
             },
         ),
         (
@@ -502,6 +505,9 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
                 "web:pimco-fund-ui-top-ten-only-2026-09-05",
                 "live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden",
                 "live:pimco-www-top-ten-route-2026-09-05-not-found",
+                "web:pimco-etf-suite-current-2026-09-24",
+                "live:pimco-bond-fund-detail-api-2026-09-24-unauthorized",
+                "live:pimco-bond-fund-explorer-documents-2026-09-24-http-400",
             },
         ),
     ):
@@ -510,7 +516,7 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
         assert result.tier == 0
         assert result.outcome == UNAVAILABLE
         assert result.evidence_state == "no_complete_executable_public_artifact"
-        assert result.investigated_at == date(2026, 9, 6)
+        assert result.investigated_at == date(2026, 9, 24)
         assert evidence_refs <= set(result.evidence_refs)
         assert "requires authentication" in result.next_action
 

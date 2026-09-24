@@ -5138,6 +5138,22 @@ both the configured GitHub SSH alias and the available personal key returned
 commit must be pushed before AC8 can be represented as remotely synchronized;
 no alternate credential, remote, or branch was used.
 
+## Tier-0 PIMCO route recheck — 2026-09-24
+
+The current official PIMCO ETF suite still identifies MINT and BOND and retains
+daily-disclosure context, but its reachable catalogue/product page exposes no
+complete executable holdings basket. Anonymous fund-detail requests returned
+HTTP 401 for CUSIPs `72201R833` and `72201R775`; the tested Fund Explorer
+document routes returned HTTP 400. MINT and BOND remain unavailable with
+`no_complete_executable_public_artifact`. No QuickSheet, top-ten response,
+creation-unit basket, periodic SEC-derived record, credential, entitlement, or
+paid route was promoted.
+
+The provider-audit ledger, symbol-priority ledger, provider-universe document,
+runtime capability records, plan, and validation record now carry this dated
+evidence. This advances the free-first Tier-0 reassessment without changing the
+current outcome.
+
 ## Parnassus PRCS/PRVS route recheck — 2026-09-07
 
 The official daily-holdings pages returned HTTP 200 React application shells,

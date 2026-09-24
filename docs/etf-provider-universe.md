@@ -38,6 +38,25 @@ anonymous complete holdings export. No credential or entitlement was used;
 MINT/BOND remain `unavailable` with
 `no_complete_executable_public_artifact`.
 
+## PIMCO current ETF-suite recheck — 2026-09-24
+
+The current official PIMCO ETF suite still identifies MINT and BOND and retains
+daily-disclosure context, but the reachable page exposes catalogue/product
+material rather than a complete holdings export. Anonymous requests to the
+declared MINT and BOND fund-detail routes returned HTTP 401, and the tested
+Fund Explorer document routes returned HTTP 400. No complete executable public
+basket or entitlement was exposed. MINT/BOND therefore remain `unavailable`
+with `no_complete_executable_public_artifact`; no QuickSheet, top-ten response,
+creation-unit basket, periodic SEC-derived record, credential, or paid route
+was promoted to current support.
+
+Evidence refs:
+`web:pimco-etf-suite-current-2026-09-24`,
+`live:pimco-mint-fund-detail-api-2026-09-24-unauthorized`,
+`live:pimco-bond-fund-detail-api-2026-09-24-unauthorized`,
+`live:pimco-mint-fund-explorer-documents-2026-09-24-http-400`, and
+`live:pimco-bond-fund-explorer-documents-2026-09-24-http-400`.
+
 ## StockFit pricing boundary recheck — 2026-09-06
 
 The public StockFit pricing payload provides explicit structured pricing: the

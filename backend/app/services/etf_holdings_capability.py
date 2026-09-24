@@ -578,12 +578,13 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 9, 6),
+        investigated_at=date(2026, 9, 24),
         next_action=(
-            "Keep MINT unavailable and re-test only when PIMCO exposes a changed route; its "
-            "fund-detail API requires authentication and no complete public export is proven. Do "
-            "not treat top-ten, factsheet, or DealCharts SEC N-PORT quarterly data as a current "
-            "basket."
+            "Keep MINT unavailable: the current PIMCO ETF suite exposes catalogue/product and "
+            "daily-disclosure context but no complete executable basket, while the anonymous "
+            "fund-detail route requires authentication and remains gated. Re-test only when a complete public "
+            "or separately entitled route is exposed; do not promote QuickSheet, top-ten, "
+            "creation-basket, or SEC-derived candidates as current support."
         ),
         evidence_refs=(
             "web:pimco-mint-daily-disclosure-2026-09-05",
@@ -604,6 +605,9 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "live:pimco-fund-explorer-metadata-2026-09-06",
             "live:pimco-creation-basket-not-holdings-2026-09-06",
             "web:etf-holdings-api-contract-2026-09-06",
+            "web:pimco-etf-suite-current-2026-09-24",
+            "live:pimco-mint-fund-detail-api-2026-09-24-unauthorized",
+            "live:pimco-mint-fund-explorer-documents-2026-09-24-http-400",
         ),
     ),
     "BOND": ETFHoldingsSymbolAudit(
@@ -611,12 +615,13 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 9, 6),
+        investigated_at=date(2026, 9, 24),
         next_action=(
-            "Keep BOND unavailable and re-test only when PIMCO exposes a changed route; its "
-            "fund-detail API requires authentication and no complete public export is proven. Do "
-            "not treat top-ten, factsheet, or DealCharts SEC N-PORT quarterly data as a current "
-            "basket."
+            "Keep BOND unavailable: the current PIMCO ETF suite exposes catalogue/product and "
+            "daily-disclosure context but no complete executable basket, while the anonymous "
+            "fund-detail route requires authentication and remains gated. Re-test only when a complete public "
+            "or separately entitled route is exposed; do not promote QuickSheet, top-ten, "
+            "creation-basket, or SEC-derived candidates as current support."
         ),
         evidence_refs=(
             "web:pimco-bond-daily-disclosure-2026-09-05",
@@ -637,6 +642,9 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "live:pimco-fund-explorer-metadata-2026-09-06",
             "live:pimco-creation-basket-not-holdings-2026-09-06",
             "web:etf-holdings-api-contract-2026-09-06",
+            "web:pimco-etf-suite-current-2026-09-24",
+            "live:pimco-bond-fund-detail-api-2026-09-24-unauthorized",
+            "live:pimco-bond-fund-explorer-documents-2026-09-24-http-400",
         ),
     ),
     "GEME": ETFHoldingsSymbolAudit(

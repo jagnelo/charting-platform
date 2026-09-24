@@ -106,7 +106,7 @@
   "head": "9c2b3be8ed164dceac66d07d5c9f6dc2d0dd6924",
   "implementation_sha": "6c73145f32777455a730453d3d052d3ececb6b8c",
   "last_checkpoint": "2026-09-24T22:39:14.472247+00:00",
-  "last_human_progress_update": "2026-09-24T22:35:36.831643+00:00",
+  "last_human_progress_update": "2026-09-24T22:43:45.946644+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "f47befe0549a121235a4139c6844bb3b45963a0315467a1090afcbb4e6463e08",
@@ -130,11 +130,11 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "origin/feat/market-data-provider-platform is 73d1d1aa but is not an ancestor of origin/staging 8b885a2f; its ProviderCapability enum still lacks ETF_HOLDINGS, so AC10 cannot be reconciled. The local checkpoint c33d91b6 is not yet on the remote feature ref because GitHub rejected the available SSH credentials; AC8 remote synchronization therefore remains open. AC11 remains open for unresolved fallback evidence and AC14 remains post-integration.",
+    "current_blocker": "origin/feat/market-data-provider-platform is 73d1d1aa but is not an ancestor of origin/staging 8b885a2f; its ProviderCapability enum still lacks ETF_HOLDINGS, so AC10 cannot be reconciled. All 15 Tier-0 and 159 Tier-1 representative symbols retain explicit outcomes; PIMCO MINT/BOND remain unavailable. The local checkpoint is not yet on the remote feature ref because GitHub rejected the available SSH credentials; AC8 remote synchronization therefore remains open. AC11 remains open for unresolved fallback evidence and AC14 remains post-integration.",
     "current_phase": "provider_platform_dependency_wait",
-    "next_action": "Preserve the no-bridge boundary, retry the authorized feature push when valid GitHub credentials are available, and reconcile AC10 only after the provider branch reaches staging; then run the documented AC14 shadow gate.",
+    "next_action": "Continue branch-owned fallback evidence and validation without adding a speculative ETF_HOLDINGS bridge or activating paid/direct-provider routes. Reconcile AC10 after the provider branch reaches staging, then run the documented AC14 shadow gate.",
     "total": 14,
-    "updated_at": "2026-09-24T22:35:36.831618+00:00"
+    "updated_at": "2026-09-24T22:43:45.946611+00:00"
   },
   "remote": "52814f95bd0ef62968ba1af4018ff9ef5049d3d6",
   "remote_sha": "6c73145f32777455a730453d3d052d3ececb6b8c",
