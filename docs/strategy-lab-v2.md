@@ -890,9 +890,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   replay, changed candidates conflict, and payload/record fingerprints are
   authenticated on every read. Its strict decoder now fully rehydrates the
   typed manifest through an allowlisted contracts/capabilities/rebalance
-  registry, verifies lineage identities, and exposes deterministic artifact
-  references from the validated `output_artifacts` field; malformed nested
-  tags and contract drift fail closed. The application persistence bundle
+  registry, requires byte-for-byte canonical serialization, verifies lineage
+  identities, and exposes deterministic artifact references from the validated
+  `output_artifacts` field; reordered fields, malformed nested tags, and
+  contract drift fail closed. The application persistence bundle
   deduplicates those references into owner-scoped `/artifacts` resources with
   attempt relationships. Artifact bytes, migrations, authorization, and
   publication remain separate integration concerns.

@@ -40,6 +40,18 @@ from this environment: the configured GitHub SSH key is rejected with
 credential. The local tracking ref remains at `c5583f5b8`; no remote state is
 claimed beyond that checkout-local reference.
 
+## 2026-09-24 - Canonical result-manifest byte enforcement
+
+The typed result-manifest decoder now requires the decoded contract to
+re-serialize to the exact stored canonical bytes. Authenticated rows with
+reordered dataclass fields or unsupported nested tags are rejected before
+lineage or artifact projection, preserving content-addressed identity rather
+than merely accepting semantically equivalent JSON.
+
+Focused lint/MyPy/materialization tests pass (6 tests), and the complete
+Strategy Lab v2 package passes 804 tests. Branch and exact-gate evidence for
+this follow-up is pending.
+
 ## 2026-09-17 - Concrete terminal/result persistence adapter
 
 `worker_terminal_adapter.py` now provides the application-owned terminal

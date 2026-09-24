@@ -473,10 +473,12 @@ def _decode_result_manifest(payload: str) -> RunResultManifest:
     try:
         root = json.loads(payload)
         decoded = _decode_canonical_value(root)
+        if not isinstance(decoded, RunResultManifest):
+            raise ValueError("result manifest payload root is not a RunResultManifest")
+        if canonical_json(decoded) != payload:
+            raise ValueError("result manifest payload is not canonical")
     except (TypeError, ValueError, json.JSONDecodeError) as error:
         raise ValueError("result manifest payload is not a valid canonical manifest") from error
-    if not isinstance(decoded, RunResultManifest):
-        raise ValueError("result manifest payload root is not a RunResultManifest")
     return decoded
 
 

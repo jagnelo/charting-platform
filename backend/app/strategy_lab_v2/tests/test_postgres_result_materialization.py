@@ -180,6 +180,32 @@ async def test_result_manifest_adapter_rejects_authenticated_nested_tag_drift() 
         await adapter.load_manifest(principal="owner-a", attempt_id=manifest.attempt_id)
 
 
+@pytest.mark.asyncio
+async def test_result_manifest_adapter_rejects_authenticated_noncanonical_order() -> None:
+    manifest, _ = _inputs()
+    session = FakeSession()
+    adapter = PostgresResultMaterializationAdapter(lambda: session)
+    await adapter.ensure(principal="owner-a", manifest=manifest)
+    row = session.manifests[("owner-a", manifest.attempt_id)]
+    root = json.loads(row["manifest_json"])
+    root[2] = list(reversed(root[2]))
+    payload = json.dumps(root, separators=(",", ":"), sort_keys=True)
+    row["manifest_json"] = payload
+    row["manifest_fingerprint"] = "sha256:" + hashlib.sha256(payload.encode()).hexdigest()
+    row["record_fingerprint"] = content_digest(
+        {
+            "attempt_id": row["attempt_id"],
+            "manifest_fingerprint": row["manifest_fingerprint"],
+            "manifest_json": payload,
+            "metric_set_fingerprint": row["metric_set_fingerprint"],
+            "snapshot_fingerprint": row["snapshot_fingerprint"],
+            "trial_id": row["trial_id"],
+        }
+    )
+    with pytest.raises(ValueError, match="payload is malformed"):
+        await adapter.load_manifest(principal="owner-a", attempt_id=manifest.attempt_id)
+
+
 def test_result_materialization_schema_is_explicit_and_validated() -> None:
     schema = PostgresResultMaterializationSchema()
     assert len(schema.statements) == 1
