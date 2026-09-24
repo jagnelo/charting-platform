@@ -5131,6 +5131,13 @@ direct-provider activation, protected-branch mutation, or other-worktree
 change was made. PIMCO MINT/BOND remain unavailable and M.D. Sass SASS remains
 future-dated fallback-only.
 
+The resumed checkpoint is committed locally as `c33d91b6279b71ae87dc6bb16e82146caed55ca3`.
+The worktree is clean, but the remote feature ref remains at `52814f95` because
+both the configured GitHub SSH alias and the available personal key returned
+`Permission denied (publickey)` during the authorized push attempt. The local
+commit must be pushed before AC8 can be represented as remotely synchronized;
+no alternate credential, remote, or branch was used.
+
 ## Parnassus PRCS/PRVS route recheck — 2026-09-07
 
 The official daily-holdings pages returned HTTP 200 React application shells,
