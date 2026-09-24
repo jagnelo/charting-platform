@@ -5154,6 +5154,11 @@ runtime capability records, plan, and validation record now carry this dated
 evidence. This advances the free-first Tier-0 reassessment without changing the
 current outcome.
 
+The resulting implementation/evidence checkpoint is committed locally as
+`d611f6c2b`. A retry of the authorized feature-branch push still received
+`Permission denied (publickey)` from GitHub; the remote feature ref remains
+`52814f95`, so the local checkpoint is not yet remotely synchronized.
+
 ## Parnassus PRCS/PRVS route recheck — 2026-09-07
 
 The official daily-holdings pages returned HTTP 200 React application shells,
