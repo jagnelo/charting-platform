@@ -5169,7 +5169,7 @@ providers:
         evidence_ref: "live:m-d-sass-opt-in-parser-2026-09-24-passed"
     disposition_reason: "m_d_sass: The issuer-declared SASS CSV is complete, identity-bound, dated 2026-09-24, and executable through the strict provider-specific parser with deterministic and bounded live coverage. Promote the provider to native support without SEC-derived reconstruction."
     next_action: "m_d_sass: Monitor the official SASS holdings CSV and retain native status while the route remains complete, identity-valid, dated, and executable; add future M.D. Sass products only after equivalent first-party evidence."
-    implementation_sha: null
+    implementation_sha: 2b787c5c26b4448a185cad64b7394942aa30a842
     validation_refs:
       - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_m_d_sass_adapter_parses_complete_current_issuer_csv"
       - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_m_d_sass_issuer_csv_route_preserves_dated_rows"
