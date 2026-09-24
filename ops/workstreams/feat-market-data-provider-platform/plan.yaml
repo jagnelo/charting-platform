@@ -161,6 +161,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current keyless evidence: source
+    `ef1a928fff886490b308413a7f223c1fe80114a5` passed the Binance bounded
+    matrix `3/3` with seven requests after native weight reconciliation, and
+    passed the OpenFIGI keyless matrix `3/3` with three requests for mapping,
+    profile resolution, and usage accounting. These receipts do not establish
+    keyed OpenFIGI entitlement or close the remaining provider/legal/universe/
+    secret-store/shadow gates.
+  - >-
     2026-09-25 exact-current Dinari Sandbox canary evidence: source
     `b66bf0b6775a0b52948ae4e9373a7dd8f10503dd` passed the isolated canary
     `1/1` with transient owner controls and a 20-request process cap. It

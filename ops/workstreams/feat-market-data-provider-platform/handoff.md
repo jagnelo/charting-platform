@@ -53,6 +53,15 @@
   corporate-action paths without persisting Sandbox payloads or enabling
   production routing. Dinari's numeric Sandbox quota and production terms
   remain intentionally unresolved.
+- The exact-current keyless Binance matrix at source
+  `ef1a928fff886490b308413a7f223c1fe80114a5` passed `3/3` with seven
+  requests, covering ordinary crypto history, bounded 30-day daily history,
+  latest/current price, discovery, and native weight usage. The native usage
+  snapshot was reconciled before the metered reads.
+- The same exact-current source passed the keyless OpenFIGI matrix `3/3`
+  with three requests, covering identifier mapping, profile resolution, and
+  native usage accounting. These are current keyless evidence receipts; keyed
+  OpenFIGI mode remains unproven and no unrelated provider was promoted.
 
 ## 2026-09-17 native-usage mapping admission hardening
 
