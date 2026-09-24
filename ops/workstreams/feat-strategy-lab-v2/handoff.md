@@ -22,9 +22,11 @@ other payload tampering therefore fails closed before metric data reaches later
 result/API adapters.
 
 Focused lint and MyPy checks pass; the focused persistence suite passes 10
-tests and the complete Strategy Lab v2 package passes 805 tests. Branch,
-exact-backend, cleanup, and workstream validation evidence for this checkpoint
-must be recorded after the implementation commit.
+tests and the complete Strategy Lab v2 package passes 805 tests. The following
+typed-resource integration checkpoint then passed all six branch checks, the
+exact backend gate (2,457 tests at 83.69% coverage), two cleanup passes, and
+workstream validation. The canonical push remains blocked by the environment's
+rejected GitHub SSH key (`Permission denied (publickey)`).
 
 ## 2026-09-25 - Typed metric-set resource projection
 
@@ -35,7 +37,10 @@ to the typed contract identity, so every API metric-set read passes through
 canonical payload, lineage, and value-summary verification first.
 
 Focused lint and MyPy checks pass; the focused persistence/metric suite passes
-6 tests and the complete Strategy Lab v2 package passes 806 tests.
+6 tests and the complete Strategy Lab v2 package passes 806 tests. The exact
+backend gate passes 2,457 tests at 83.69% coverage, both cleanup passes retain
+zero testcontainer resources, and all branch/workstream checks are recorded in
+`validation.jsonl`.
 
 ## 2026-09-24 - Typed result-manifest rehydration
 
