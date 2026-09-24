@@ -62,6 +62,12 @@
   with three requests, covering identifier mapping, profile resolution, and
   native usage accounting. These are current keyless evidence receipts; keyed
   OpenFIGI mode remains unproven and no unrelated provider was promoted.
+- The bounded Nasdaq Trader directory case at source
+  `ce4f229774345e93504c94f76ea41a3b8b0deb9c` passed `1/1` with one live
+  manifest case. It exercised the official `nasdaqlisted.txt` and
+  `otherlisted.txt` files under the explicit two-file-per-day client cap;
+  complete historical reconciliation and lifecycle deactivation remain
+  separate ingestion gates.
 
 ## 2026-09-17 native-usage mapping admission hardening
 

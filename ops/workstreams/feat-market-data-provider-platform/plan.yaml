@@ -161,6 +161,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current Nasdaq evidence: source
+    `ce4f229774345e93504c94f76ea41a3b8b0deb9c` passed the bounded official
+    Trader directory case `1/1` under the explicit two-file-per-day client
+    cap. This confirms current transport/parsing evidence only; complete NMS
+    reconciliation, lifecycle deactivation, and the remaining provider/legal/
+    secret-store/shadow gates are still open.
+  - >-
     2026-09-25 exact-current keyless evidence: source
     `ef1a928fff886490b308413a7f223c1fe80114a5` passed the Binance bounded
     matrix `3/3` with seven requests after native weight reconciliation, and
