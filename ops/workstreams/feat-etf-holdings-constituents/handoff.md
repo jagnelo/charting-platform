@@ -5329,6 +5329,14 @@ Runtime fallback audit and the provider ledger now consistently classify AMG
 National as `provider_not_a_portfolio_publisher`; no native route or 13F-derived
 ETF holdings support was created.
 
+## Arin ATTR access recheck — 2026-09-25
+
+The current indexed Arin page exposes a 23-row ATTR holdings table dated
+`2026-09-16`, but direct access from the allowed browser path timed out. No
+complete executable artifact was captured, so ATTR remains
+`issuer_access_blocked`; no native promotion or third-party substitute was
+introduced.
+
 ## AAM SPDV/BDIV/TRFM/PFLD route recheck — 2026-09-25
 
 The current indexed AAM SPDV page still exposes only a top-holdings grid and an

@@ -305,6 +305,7 @@ remaining_gaps:
   - "The 2026-09-25 AlphaMark recheck found an issuer liquidation notice for SMCP with a 2024-12-27 liquidation date. AlphaMark is now represented by an explicit inactive_or_successor_disposition in runtime, symbol capability, and the provider ledger; no successor route or current holdings source was promoted."
   - "The 2026-09-25 AlphaClone recheck found current SEC series records marking ALFA, ALFS, ALFD, and ALFV inactive, with ALFA's 2022-08-31 liquidation documented. AlphaClone is now represented by an explicit inactive_or_successor_disposition in runtime, symbol capability, and the provider ledger; no successor route or current holdings source was promoted."
   - "The 2026-09-25 AMG National recheck found current first-party pages describing a bank, trust, wealth-management, retirement-plan, and portfolio-strategy business, with no independently sponsored ETF catalogue or complete ETF holdings publisher. AMG National is now represented by an explicit provider_not_a_portfolio_publisher disposition."
+  - "The 2026-09-25 Arin recheck found an indexed 23-row ATTR holdings table dated 2026-09-16, but direct access timed out from the allowed browser path. ATTR remains issuer_access_blocked; no native promotion or third-party substitute was introduced."
 progress:
   completed:
     - AC1

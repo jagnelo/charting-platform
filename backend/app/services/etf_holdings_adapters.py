@@ -70902,6 +70902,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
     "issuer_access_blocked": (
         "aegon",
         "anfield",
+        "arin",
         "guinness_atkinson",
         "manulife",
         "ridgeline",
@@ -70929,7 +70930,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
     ),
     "needs_first_party_route_discovery": (
         "advisors_asset_management",
-        "arin",
         "azimut",
         "baillie_gifford",
         "credit_suisse",

@@ -388,8 +388,8 @@ remain fallback-only; Elm is now native-promoted through the same declared route
 as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
-- `issuer_access_blocked`: `7`
-- `needs_first_party_route_discovery`: `57`
+- `issuer_access_blocked`: `8`
+- `needs_first_party_route_discovery`: `56`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `8`
 - `inactive_or_successor_disposition`: `2`
@@ -2343,7 +2343,7 @@ matrix case. AAAA is native-promoted without SEC-derived reconstruction.
 
 The current code-derived split is 496 registered / 419 native-live-backed / 77
 fallback-only providers; runtime fallback statuses are 7 issuer-access-blocked,
-57 needs-first-party-route-discovery, 3 non-executable-public-source, 8
+56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.
 
 ## Current audit checkpoint — AlphaMark SMCP liquidation reconciliation — 2026-09-25
@@ -2370,6 +2370,14 @@ sponsored ETF portfolio publisher. No ETF catalogue or complete holdings
 artifact was identified; AMG National remains a provider-level
 `provider_not_a_portfolio_publisher` disposition.
 
+## Current audit checkpoint — Arin ATTR access recheck — 2026-09-25
+
+The current indexed Arin page exposes a 23-row ATTR holdings table dated
+`2026-09-16`, but direct access from the allowed browser path timed out. No
+complete executable artifact was captured, so ATTR remains
+`issuer_access_blocked`; no native promotion or third-party substitute was
+introduced.
+
 ## Current audit checkpoint — Argent AMID/ABIG/ALIL native promotion — 2026-09-25
 
 The official Argent AMID, ABIG, and ALIL product pages now return complete
@@ -2381,5 +2389,5 @@ without SEC-derived reconstruction.
 
 The current code-derived split is 496 registered / 419 native-live-backed / 77
 fallback-only providers; runtime fallback statuses are 7 issuer-access-blocked,
-57 needs-first-party-route-discovery, 3 non-executable-public-source, 8
+56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.

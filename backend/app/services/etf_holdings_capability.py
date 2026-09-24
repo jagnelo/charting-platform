@@ -928,16 +928,19 @@ _register_non_tier_0_audits(
 _register_non_tier_0_audits(
     ("ATTR",),
     outcome=UNAVAILABLE,
-    evidence_state="future_dated_source",
+    evidence_state="issuer_route_access_blocked",
     provider_identity="arin",
-    investigated_at=date(2026, 9, 7),
+    investigated_at=date(2026, 9, 25),
     evidence_refs=(
         "web:arin-attr-holdings-cloudflare-2026-09-02",
         "live:arin-attr-html-holdings-future-effective-date-2026-09-07",
+        "web:arin-attr-current-holdings-2026-09-25",
+        "live:arin-attr-direct-open-timeout-2026-09-25",
     ),
     next_action=(
-        "Re-test the official ATTR route after the effective date is no longer future-dated; "
-        "promote only after parser, identity, freshness, and bounded live evidence pass."
+        "Re-test the official ATTR route from an allowed network path or identify an "
+        "issuer-published machine-readable export; promote only after parser, identity, "
+        "freshness, and bounded live evidence pass."
     ),
 )
 _register_non_tier_0_audits(
