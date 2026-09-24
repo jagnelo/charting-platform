@@ -5281,6 +5281,14 @@ SEC-derived reconstruction.
 The current code-derived split is 496 registered / 419 native-live-backed / 77
 fallback-only providers; the runtime discovery status count is 60.
 
+The promotion is committed locally as `9e8d1ce470e16d490355301e0cbb7d252e35b59d`,
+with the provider-audit implementation SHA and validation receipt linked by
+the follow-up operations commit. Capability coverage (90 tests), the changed
+Argent/parity adapter slice, Ruff, workstream validation, and diff-check are
+green. A later opt-in live retry encountered runner DNS failure; it is retained
+as an external evidence-bearing skip and does not replace the earlier successful
+Argent live receipt.
+
 The follow-on live-matrix registry fix is committed locally as `fcf3ec6cd`.
 The authorized push retry again returned `Permission denied (publickey)`;
 `origin/feat/etf-holdings-constituents` remains at `52814f95`.
