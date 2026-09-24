@@ -10,6 +10,22 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - Planning state: ready; the plan remains at `ready_for_human_review` and the
   session-local goal is held at its plan-ready guard.
 
+## 2026-09-24 - Typed result-manifest rehydration
+
+`postgres_result_materialization.py` now exposes owner-scoped
+`load_manifest()` and `load_all_manifests()` reads that fully rehydrate the
+authenticated canonical payload into the typed `RunResultManifest` contract.
+The decoder is allowlisted to the Strategy Lab contracts, capability, and
+rebalance modules; it validates every canonical tag, exact dataclass schema,
+enum type, and contract constructor, then verifies manifest, attempt, trial,
+metric-set, and snapshot identities against the persisted projection. Artifact
+reads now use that validated typed manifest, so nested tampering or contract
+drift fails closed rather than being projected through a narrow field parser.
+
+Focused lint, MyPy, and materialization tests pass (4 tests); the complete
+Strategy Lab v2 package passes 802 tests. Branch validation, exact backend
+coverage, cleanup, and the checkpoint push remain to be recorded below.
+
 ## 2026-09-17 - Concrete terminal/result persistence adapter
 
 `worker_terminal_adapter.py` now provides the application-owned terminal

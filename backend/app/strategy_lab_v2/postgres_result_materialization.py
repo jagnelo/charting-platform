@@ -12,15 +12,15 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
-from datetime import datetime
-from enum import StrEnum
+from dataclasses import dataclass, fields, is_dataclass
+from datetime import UTC, date, datetime
+from enum import Enum, StrEnum
 from typing import Any, Protocol
 
+from app.strategy_lab_v2 import capabilities, contracts, rebalance
 from app.strategy_lab_v2.canonical import canonical_json, content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import (
     ArtifactManifest,
-    ArtifactRetention,
     DataSnapshot,
     MetricSet,
     PortfolioComposition,
@@ -306,28 +306,44 @@ class PostgresResultMaterializationAdapter:
                     raise ValueError("PostgreSQL result manifests are not deterministically ordered")
                 return records
 
+    async def load_manifest(
+        self, *, principal: Any, attempt_id: str
+    ) -> RunResultManifest | None:
+        """Read and fully rehydrate one authenticated result manifest."""
+
+        record = await self.load(principal=principal, attempt_id=attempt_id)
+        if record is None:
+            return None
+        return _decode_authenticated_manifest(record)
+
+    async def load_all_manifests(self, *, principal: Any) -> tuple[RunResultManifest, ...]:
+        """Read and fully rehydrate all manifests in deterministic attempt order."""
+
+        records = await self.load_all(principal=principal)
+        return tuple(_decode_authenticated_manifest(record) for record in records)
+
     async def load_artifacts(
         self, *, principal: Any
     ) -> tuple[PersistedArtifactReference, ...]:
         """Read owner-scoped artifact references from authenticated manifests.
 
         Artifact metadata is immutable result provenance, so the manifest table
-        remains the source of truth.  The tagged canonical payload is parsed
-        narrowly for its ``output_artifacts`` field and every extracted value
-        is rebuilt through :class:`ArtifactManifest` validation.
+        remains the source of truth. The full typed manifest is rehydrated and
+        every artifact is returned from its validated ``output_artifacts`` field.
         """
 
         records = await self.load_all(principal=principal)
         references: list[PersistedArtifactReference] = []
         for record in records:
+            manifest = _decode_authenticated_manifest(record)
             references.extend(
                 PersistedArtifactReference(
                     artifact,
-                    record.manifest_fingerprint,
-                    record.attempt_id,
-                    record.trial_id,
+                    manifest.fingerprint,
+                    manifest.attempt_id,
+                    manifest.trial_id,
                 )
-                for artifact in _decode_output_artifacts(record.manifest_json)
+                for artifact in manifest.output_artifacts
             )
         ordered = tuple(
             sorted(
@@ -437,6 +453,182 @@ def _payload_digest(payload: str) -> str:
     return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def _decode_authenticated_manifest(record: PersistedResultManifest) -> RunResultManifest:
+    try:
+        manifest = _decode_result_manifest(record.manifest_json)
+    except (TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL result manifest payload is malformed") from error
+    if manifest.fingerprint != record.manifest_fingerprint:
+        raise ValueError("PostgreSQL result manifest payload identity drifted")
+    if manifest.attempt_id != record.attempt_id or manifest.trial_id != record.trial_id:
+        raise ValueError("PostgreSQL result manifest lineage drifted")
+    if manifest.metric_set.fingerprint != record.metric_set_fingerprint:
+        raise ValueError("PostgreSQL result manifest metric identity drifted")
+    if manifest.snapshot_fingerprint != record.snapshot_fingerprint:
+        raise ValueError("PostgreSQL result manifest snapshot identity drifted")
+    return manifest
+
+
+def _decode_result_manifest(payload: str) -> RunResultManifest:
+    try:
+        root = json.loads(payload)
+        decoded = _decode_canonical_value(root)
+    except (TypeError, ValueError, json.JSONDecodeError) as error:
+        raise ValueError("result manifest payload is not a valid canonical manifest") from error
+    if not isinstance(decoded, RunResultManifest):
+        raise ValueError("result manifest payload root is not a RunResultManifest")
+    return decoded
+
+
+def _decode_canonical_value(value: Any) -> Any:
+    if not isinstance(value, list) or not value or not isinstance(value[0], str):
+        raise ValueError("canonical value must be a tagged list")
+    tag = value[0]
+    if tag == "null":
+        if len(value) != 1:
+            raise ValueError("null canonical value is malformed")
+        return None
+    if tag in {"bool", "str"}:
+        if len(value) != 2 or (tag == "bool" and not isinstance(value[1], bool)) or (
+            tag == "str" and not isinstance(value[1], str)
+        ):
+            raise ValueError(f"{tag} canonical value is malformed")
+        return value[1]
+    if tag == "int":
+        return _decode_canonical_int(value)
+    if tag == "float":
+        if len(value) != 2 or not isinstance(value[1], str):
+            raise ValueError("float canonical value is malformed")
+        try:
+            return float.fromhex(value[1])
+        except ValueError as error:
+            raise ValueError("float canonical value is invalid") from error
+    if tag == "decimal":
+        return _decode_canonical_decimal(value)
+    if tag == "datetime":
+        return _decode_canonical_datetime(value)
+    if tag == "date":
+        if len(value) != 2 or not isinstance(value[1], str):
+            raise ValueError("date canonical value is malformed")
+        try:
+            return date.fromisoformat(value[1])
+        except ValueError as error:
+            raise ValueError("date canonical value is invalid") from error
+    if tag == "mapping":
+        if len(value) != 2 or not isinstance(value[1], list):
+            raise ValueError("mapping canonical value is malformed")
+        result: dict[str, Any] = {}
+        for item in value[1]:
+            if not isinstance(item, list) or len(item) != 2 or not isinstance(item[0], str):
+                raise ValueError("mapping canonical entry is malformed")
+            if item[0] in result:
+                raise ValueError("mapping canonical value contains duplicate keys")
+            result[item[0]] = _decode_canonical_value(item[1])
+        return result
+    if tag == "set":
+        if len(value) != 2 or not isinstance(value[1], list):
+            raise ValueError("set canonical value is malformed")
+        try:
+            return frozenset(_decode_canonical_value(item) for item in value[1])
+        except TypeError as error:
+            raise ValueError("set canonical value contains an unhashable item") from error
+    if tag in {"tuple", "list"}:
+        if len(value) != 2 or not isinstance(value[1], list):
+            raise ValueError(f"{tag} canonical value is malformed")
+        decoded = tuple(_decode_canonical_value(item) for item in value[1])
+        return decoded if tag == "tuple" else list(decoded)
+    if tag == "enum":
+        if len(value) != 3 or not isinstance(value[1], str):
+            raise ValueError("enum canonical value is malformed")
+        enum_type = _canonical_enum_registry().get(value[1])
+        if enum_type is None:
+            raise ValueError("enum canonical value uses an unsupported type")
+        return enum_type(_decode_canonical_value(value[2]))
+    if tag == "dataclass":
+        return _decode_canonical_dataclass(value)
+    raise ValueError(f"unsupported canonical tag: {tag}")
+
+
+def _decode_canonical_int(value: list[Any]) -> int:
+    if len(value) != 2 or not isinstance(value[1], str):
+        raise ValueError("int canonical value is malformed")
+    try:
+        parsed = int(value[1], 10)
+    except ValueError as error:
+        raise ValueError("int canonical value is invalid") from error
+    if str(parsed) != value[1]:
+        raise ValueError("int canonical value is not normalized")
+    return parsed
+
+
+def _decode_canonical_decimal(value: list[Any]) -> Any:
+    from decimal import Decimal
+
+    if len(value) != 2 or not isinstance(value[1], str):
+        raise ValueError("decimal canonical value is malformed")
+    parts = value[1].split(":")
+    if len(parts) != 3 or parts[0] not in {"0", "1"} or not parts[1].isdigit():
+        raise ValueError("decimal canonical value is invalid")
+    try:
+        exponent = int(parts[2], 10)
+        digits = tuple(int(item) for item in parts[1])
+        return Decimal((int(parts[0]), digits, exponent))
+    except (TypeError, ValueError, ArithmeticError) as error:
+        raise ValueError("decimal canonical value is invalid") from error
+
+
+def _decode_canonical_datetime(value: list[Any]) -> datetime:
+    if len(value) != 2 or not isinstance(value[1], str):
+        raise ValueError("datetime canonical value is malformed")
+    try:
+        parsed = datetime.fromisoformat(value[1].replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError("datetime canonical value is invalid") from error
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError("datetime canonical value must be timezone-aware")
+    return parsed.astimezone(UTC)
+
+
+def _decode_canonical_dataclass(value: list[Any]) -> Any:
+    if len(value) != 3 or not isinstance(value[1], str) or not isinstance(value[2], list):
+        raise ValueError("dataclass canonical value is malformed")
+    dataclass_type = _canonical_dataclass_registry().get(value[1])
+    if dataclass_type is None:
+        raise ValueError("dataclass canonical value uses an unsupported type")
+    decoded_fields: dict[str, Any] = {}
+    for item in value[2]:
+        if not isinstance(item, list) or len(item) != 2 or not isinstance(item[0], str):
+            raise ValueError("dataclass canonical field is malformed")
+        if item[0] in decoded_fields:
+            raise ValueError("dataclass canonical value contains duplicate fields")
+        decoded_fields[item[0]] = _decode_canonical_value(item[1])
+    expected_fields = {field.name for field in fields(dataclass_type) if not field.name.startswith("_")}
+    if set(decoded_fields) != expected_fields:
+        raise ValueError("dataclass canonical value fields do not match its schema")
+    try:
+        return dataclass_type(**decoded_fields)
+    except (TypeError, ValueError) as error:
+        raise ValueError("dataclass canonical value failed contract validation") from error
+
+
+def _canonical_dataclass_registry() -> dict[str, type[Any]]:
+    registry: dict[str, type[Any]] = {}
+    for module in (contracts, capabilities, rebalance):
+        for candidate in vars(module).values():
+            if isinstance(candidate, type) and is_dataclass(candidate):
+                registry[f"{candidate.__module__}.{candidate.__qualname__}"] = candidate
+    return registry
+
+
+def _canonical_enum_registry() -> dict[str, type[Enum]]:
+    registry: dict[str, type[Enum]] = {}
+    for module in (contracts, capabilities, rebalance):
+        for candidate in vars(module).values():
+            if isinstance(candidate, type) and issubclass(candidate, Enum):
+                registry[f"{candidate.__module__}.{candidate.__qualname__}"] = candidate
+    return registry
+
+
 def _decode_record(row: Mapping[str, Any]) -> PersistedResultManifest:
     try:
         return PersistedResultManifest(
@@ -450,128 +642,6 @@ def _decode_record(row: Mapping[str, Any]) -> PersistedResultManifest:
         )
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError("PostgreSQL result manifest row is malformed") from error
-
-
-def _decode_output_artifacts(payload: str) -> tuple[ArtifactManifest, ...]:
-    """Decode only the canonical result-manifest artifact field.
-
-    The storage adapter intentionally does not need a general object decoder;
-    this narrow parser still verifies the tagged dataclass envelope, rejects
-    duplicate or missing fields, and delegates final value validation to the
-    public immutable artifact contract.
-    """
-
-    try:
-        root = json.loads(payload)
-    except (TypeError, json.JSONDecodeError) as error:
-        raise ValueError("PostgreSQL result manifest payload is not valid JSON") from error
-    root_fields = _tagged_dataclass_fields(
-        root,
-        "app.strategy_lab_v2.contracts.RunResultManifest",
-        "result manifest",
-    )
-    output = root_fields.get("output_artifacts")
-    if not isinstance(output, list) or len(output) != 2 or output[0] != "tuple":
-        raise ValueError("result manifest output_artifacts must be a tagged tuple")
-    values = output[1]
-    if not isinstance(values, list):
-        raise ValueError("result manifest output_artifacts tuple is malformed")
-    return tuple(_decode_artifact_manifest(item) for item in values)
-
-
-def _decode_artifact_manifest(value: Any) -> ArtifactManifest:
-    fields = _tagged_dataclass_fields(
-        value,
-        "app.strategy_lab_v2.contracts.ArtifactManifest",
-        "artifact manifest",
-    )
-    try:
-        return ArtifactManifest(
-            _tagged_string(fields["content_digest"], "content_digest"),
-            _tagged_int(fields["byte_length"], "byte_length"),
-            _tagged_string(fields["media_type"], "media_type"),
-            _tagged_string(fields["schema_version"], "schema_version"),
-            _tagged_string(fields["storage_key"], "storage_key"),
-            _tagged_retention(fields["retention_class"]),
-        )
-    except (KeyError, TypeError, ValueError) as error:
-        raise ValueError("result manifest artifact payload is malformed") from error
-
-
-def _tagged_dataclass_fields(value: Any, class_name: str, label: str) -> dict[str, Any]:
-    if (
-        not isinstance(value, list)
-        or len(value) != 3
-        or value[0] != "dataclass"
-        or value[1] != class_name
-        or not isinstance(value[2], list)
-    ):
-        raise ValueError(f"{label} must be a tagged {class_name} dataclass")
-    fields: dict[str, Any] = {}
-    for item in value[2]:
-        if not isinstance(item, list) or len(item) != 2 or not isinstance(item[0], str):
-            raise ValueError(f"{label} field entry is malformed")
-        if item[0] in fields:
-            raise ValueError(f"{label} contains duplicate fields")
-        fields[item[0]] = item[1]
-    expected = {
-        "app.strategy_lab_v2.contracts.ArtifactManifest": {
-            "content_digest",
-            "byte_length",
-            "media_type",
-            "schema_version",
-            "storage_key",
-            "retention_class",
-        },
-        "app.strategy_lab_v2.contracts.RunResultManifest": {
-            "trial",
-            "attempt",
-            "strategy_packages",
-            "portfolio",
-            "snapshot",
-            "engine_name",
-            "engine_version",
-            "engine_build_digest",
-            "allocation_definition_version",
-            "dependency_catalog_digest",
-            "assumptions_digest",
-            "metric_set",
-            "output_artifacts",
-            "created_at",
-        },
-    }[class_name]
-    if set(fields) != expected:
-        raise ValueError(f"{label} fields do not match its canonical schema")
-    return fields
-
-
-def _tagged_string(value: Any, field_name: str) -> str:
-    if not isinstance(value, list) or len(value) != 2 or value[0] != "str" or not isinstance(value[1], str):
-        raise ValueError(f"{field_name} must be a tagged string")
-    return value[1]
-
-
-def _tagged_int(value: Any, field_name: str) -> int:
-    if not isinstance(value, list) or len(value) != 2 or value[0] != "int" or not isinstance(value[1], str):
-        raise ValueError(f"{field_name} must be a tagged integer")
-    try:
-        parsed = int(value[1])
-    except ValueError as error:
-        raise ValueError(f"{field_name} must contain an integer") from error
-    if str(parsed) != value[1]:
-        raise ValueError(f"{field_name} integer is not canonical")
-    return parsed
-
-
-def _tagged_retention(value: Any) -> ArtifactRetention:
-    if (
-        not isinstance(value, list)
-        or len(value) != 3
-        or value[0] != "enum"
-        or value[1] != "app.strategy_lab_v2.contracts.ArtifactRetention"
-    ):
-        raise ValueError("retention_class must be a tagged ArtifactRetention")
-    return ArtifactRetention(_tagged_string(value[2], "retention_class"))
 
 
 def _principal_id(principal: Any) -> str:

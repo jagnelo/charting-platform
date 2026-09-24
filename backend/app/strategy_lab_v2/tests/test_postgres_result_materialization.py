@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -83,8 +85,10 @@ async def test_result_manifest_adapter_registers_replays_and_scopes_payload() ->
     assert replay.decision is ResultManifestStateDecision.REPLAY_EXISTING
     loaded = await adapter.load(principal="owner-a", attempt_id=manifest.attempt_id)
     assert loaded == registered.record
+    assert await adapter.load_manifest(principal="owner-a", attempt_id=manifest.attempt_id) == manifest
     assert await adapter.load(principal="owner-b", attempt_id=manifest.attempt_id) is None
     assert await adapter.load_all(principal="owner-a") == (registered.record,)
+    assert await adapter.load_all_manifests(principal="owner-a") == (manifest,)
     artifacts = await adapter.load_artifacts(principal="owner-a")
     assert tuple(reference.artifact for reference in artifacts) == manifest.output_artifacts
     assert all(reference.manifest_fingerprint == manifest.fingerprint for reference in artifacts)
@@ -146,6 +150,34 @@ async def test_result_manifest_adapter_authenticates_tampered_rows() -> None:
     session.manifests[("owner-a", manifest.attempt_id)]["record_fingerprint"] = content_digest("tampered")
     with pytest.raises(ValueError, match="fingerprint"):
         await adapter.load(principal="owner-a", attempt_id=manifest.attempt_id)
+
+
+@pytest.mark.asyncio
+async def test_result_manifest_adapter_rejects_authenticated_nested_tag_drift() -> None:
+    manifest, _ = _inputs()
+    session = FakeSession()
+    adapter = PostgresResultMaterializationAdapter(lambda: session)
+    await adapter.ensure(principal="owner-a", manifest=manifest)
+    row = session.manifests[("owner-a", manifest.attempt_id)]
+    root = json.loads(row["manifest_json"])
+    root_fields = {item[0]: item for item in root[2]}
+    artifacts = root_fields["output_artifacts"][1]
+    artifacts[1][0][2][0][1] = ["unsupported", "tampered"]
+    payload = json.dumps(root, separators=(",", ":"), sort_keys=True)
+    row["manifest_json"] = payload
+    row["manifest_fingerprint"] = "sha256:" + hashlib.sha256(payload.encode()).hexdigest()
+    row["record_fingerprint"] = content_digest(
+        {
+            "attempt_id": row["attempt_id"],
+            "manifest_fingerprint": row["manifest_fingerprint"],
+            "manifest_json": payload,
+            "metric_set_fingerprint": row["metric_set_fingerprint"],
+            "snapshot_fingerprint": row["snapshot_fingerprint"],
+            "trial_id": row["trial_id"],
+        }
+    )
+    with pytest.raises(ValueError, match="payload is malformed"):
+        await adapter.load_manifest(principal="owner-a", attempt_id=manifest.attempt_id)
 
 
 def test_result_materialization_schema_is_explicit_and_validated() -> None:
