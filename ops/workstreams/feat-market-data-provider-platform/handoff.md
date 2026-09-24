@@ -24,6 +24,11 @@
   complete NMS/OTC and SEC materialization, target secret-store, deferred
   provider, publication, or final 30-day shadow gates. No integration,
   deployment, or shadow activation was performed.
+- The exact-current full live preflight at source `bec4880fd1d85de2eb2a7dc9bfe8c6a757a7dbec`
+  stopped before transport (`0/0`, zero provider requests) and recorded the
+  same unresolved provider-specific quota/baseline, legal/use, capability,
+  universe, and secret-store blockers. Its full structured receipt is in the
+  append-only validation ledger.
 
 ## 2026-09-24 resumed validation and Alpaca reset-boundary handling
 

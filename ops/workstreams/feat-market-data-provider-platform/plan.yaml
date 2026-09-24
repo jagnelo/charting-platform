@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-24 exact-current full preflight at source
+    `bec4880fd1d85de2eb2a7dc9bfe8c6a757a7dbec` stopped before transport with
+    `0/0` cases and zero provider requests. It confirms the remaining
+    provider-specific quota/baseline, legal/use, capability, universe,
+    secret-store, deferred-provider, and final-shadow gates without spending
+    additional quota; the complete receipt is appended to validation.jsonl.
+  - >-
     2026-09-24 raw-payload preservation checkpoint: the explicitly compatible
     yfinance adapter now retains each complete DataFrame provider row in the
     candle provenance, including JSON-safe pandas/numpy scalar conversion; the
