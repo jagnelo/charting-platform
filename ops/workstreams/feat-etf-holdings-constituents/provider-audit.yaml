@@ -2135,7 +2135,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: provider_not_a_portfolio_publisher
     disposition: provider_not_a_portfolio_publisher
-    last_checked: 2026-09-07
+    last_checked: 2026-09-25
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
@@ -2155,6 +2155,7 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.amg_national"
       - "runtime:ISSUER_ADAPTER_CONFIGS.amg_national"
+      - "web:amg-national-current-nonpublisher-2026-09-25"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2164,6 +2165,10 @@ providers:
         source: "https://www.amgnational.com/solutions/banking/"
         result: "The first-party site describes AMG National Trust as a bank and wealth-management provider; its current public services pages expose no sponsored ETF product or fund holdings route. SEC 13F records are manager holdings, not ETF portfolio constituents."
         evidence_ref: "web:amg-national-bank-not-etf-publisher-2026-09-02"
+      - date: 2026-09-25
+        source: "https://www.amgnational.com/solutions/retirement-plan-services/; https://www.amgnational.com/solutions/investment-management/; https://www.amgnational.com/about-amg/"
+        result: "Current AMG National pages describe a national bank, trust, wealth-management, retirement-plan, and portfolio-strategy business; no independently sponsored ETF catalogue or complete ETF holdings publisher was identified."
+        evidence_ref: "web:amg-national-current-nonpublisher-2026-09-25"
     disposition_reason: "amg_national: AMG National Trust is a bank and wealth-management manager rather than an independent publisher of ETF portfolios; its 13F disclosures cannot be promoted as issuer ETF holdings."
     next_action: "amg_national: Resolve any ETFDB source row to the actual ETF sponsor or adviser; do not create an AMG National native adapter from 13F or third-party portfolio data."
     implementation_sha: null

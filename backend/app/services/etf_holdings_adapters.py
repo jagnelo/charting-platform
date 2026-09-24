@@ -70914,6 +70914,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "planrock",
     ),
     "provider_not_a_portfolio_publisher": (
+        "amg_national",
         "epiris",
         "eurazeo",
         "marathon",
@@ -70928,7 +70929,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
     ),
     "needs_first_party_route_discovery": (
         "advisors_asset_management",
-        "amg_national",
         "arin",
         "azimut",
         "baillie_gifford",

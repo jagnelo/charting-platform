@@ -389,9 +389,9 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `7`
-- `needs_first_party_route_discovery`: `58`
+- `needs_first_party_route_discovery`: `57`
 - `non_executable_public_source`: `3`
-- `provider_not_a_portfolio_publisher`: `7`
+- `provider_not_a_portfolio_publisher`: `8`
 - `inactive_or_successor_disposition`: `2`
 
 The status counts describe the current fallback set. The starting 140-provider
@@ -2343,7 +2343,7 @@ matrix case. AAAA is native-promoted without SEC-derived reconstruction.
 
 The current code-derived split is 496 registered / 419 native-live-backed / 77
 fallback-only providers; runtime fallback statuses are 7 issuer-access-blocked,
-58 needs-first-party-route-discovery, 3 non-executable-public-source, 7
+57 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.
 
 ## Current audit checkpoint — AlphaMark SMCP liquidation reconciliation — 2026-09-25
@@ -2362,6 +2362,14 @@ The historical AlphaClone domain serves unrelated content and exposes no
 successor ETF holdings artifact. These symbols are explicitly not applicable
 to current analysis.
 
+## Current audit checkpoint — AMG National non-publisher reconciliation — 2026-09-25
+
+Current AMG National pages describe a national bank, trust, wealth-management,
+retirement-plan, and portfolio-strategy business, not an independently
+sponsored ETF portfolio publisher. No ETF catalogue or complete holdings
+artifact was identified; AMG National remains a provider-level
+`provider_not_a_portfolio_publisher` disposition.
+
 ## Current audit checkpoint — Argent AMID/ABIG/ALIL native promotion — 2026-09-25
 
 The official Argent AMID, ABIG, and ALIL product pages now return complete
@@ -2373,5 +2381,5 @@ without SEC-derived reconstruction.
 
 The current code-derived split is 496 registered / 419 native-live-backed / 77
 fallback-only providers; runtime fallback statuses are 7 issuer-access-blocked,
-58 needs-first-party-route-discovery, 3 non-executable-public-source, 7
+57 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.

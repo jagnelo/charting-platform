@@ -5320,6 +5320,15 @@ consistently classify all four symbols as
 `inactive_or_successor_disposition` / not applicable. No successor route or
 current holdings source was promoted.
 
+## AMG National non-publisher reconciliation — 2026-09-25
+
+Current AMG National first-party pages describe a national bank, trust,
+wealth-management, retirement-plan, and portfolio-strategy business, with no
+independently sponsored ETF catalogue or complete ETF holdings publisher.
+Runtime fallback audit and the provider ledger now consistently classify AMG
+National as `provider_not_a_portfolio_publisher`; no native route or 13F-derived
+ETF holdings support was created.
+
 ## AAM SPDV/BDIV/TRFM/PFLD route recheck — 2026-09-25
 
 The current indexed AAM SPDV page still exposes only a top-holdings grid and an
