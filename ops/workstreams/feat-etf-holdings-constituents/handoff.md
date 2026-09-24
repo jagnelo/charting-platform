@@ -5269,3 +5269,7 @@ authorized push was retried and GitHub again returned
 `Permission denied (publickey)`; the remote feature ref remains `52814f95`,
 so AC8 remote synchronization is still open. No alternate credential, remote,
 branch, or worktree was used.
+
+The follow-on live-matrix registry fix is committed locally as `fcf3ec6cd`.
+The authorized push retry again returned `Permission denied (publickey)`;
+`origin/feat/etf-holdings-constituents` remains at `52814f95`.
