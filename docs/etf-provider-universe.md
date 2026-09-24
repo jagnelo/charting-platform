@@ -2367,6 +2367,15 @@ returned HTTP 403, and the current direct probe could not resolve the issuer
 host from this environment. AVOS therefore remains unavailable and
 issuer-access-blocked: indexed browser evidence is not treated as executable
 application support, and no native or paid substitute was activated.
+
+## Current audit checkpoint — Baillie Gifford current pages remain non-executable — 2026-09-25
+
+The current first-party BGGG, BGIA, BGEG, and BGUS pages confirm the four U.S.
+ETFs and advertise daily all-holdings spreadsheets, but bounded executable page
+content remains limited to top-ten or summary tables. No complete machine-
+readable constituent universe with stable identifiers was captured, so all four
+symbols remain unavailable and non-executable; no SEC reconstruction, native
+promotion, or paid route was activated.
 The historical AlphaClone domain serves unrelated content and exposes no
 successor ETF holdings artifact. These symbols are explicitly not applicable
 to current analysis.

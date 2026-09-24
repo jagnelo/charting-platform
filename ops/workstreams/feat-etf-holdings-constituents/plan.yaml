@@ -307,6 +307,7 @@ remaining_gaps:
   - "The 2026-09-25 AMG National recheck found current first-party pages describing a bank, trust, wealth-management, retirement-plan, and portfolio-strategy business, with no independently sponsored ETF catalogue or complete ETF holdings publisher. AMG National is now represented by an explicit provider_not_a_portfolio_publisher disposition."
   - "The 2026-09-25 Arin recheck found an indexed 23-row ATTR holdings table dated 2026-09-16, but direct access timed out from the allowed browser path. ATTR remains issuer_access_blocked; no native promotion or third-party substitute was introduced."
   - "The 2026-09-25 AVOS recheck found the current indexed official page exposing a complete holdings table dated 2026-09-17, while the earlier backend-equivalent request remained HTTP 403 and the current direct probe failed DNS resolution. AVOS remains issuer_access_blocked and unavailable; indexed evidence was not promoted to native support."
+  - "The 2026-09-25 Baillie Gifford recheck confirmed current first-party BGGG/BGIA/BGEG/BGUS pages and daily all-holdings spreadsheet claims, but executable content remained top-ten or summary-only without a complete machine-readable constituent universe and stable identifiers. All four remain non-executable and unavailable; no promotion or SEC reconstruction occurred."
 progress:
   completed:
     - AC1

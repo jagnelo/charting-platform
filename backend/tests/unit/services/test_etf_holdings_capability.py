@@ -559,10 +559,14 @@ def test_ranked_fallback_non_executable_symbols_remain_unavailable():
     assert result.outcome == UNAVAILABLE
     assert result.evidence_state == "non_executable_public_source"
     assert result.provider_identity == "baillie_gifford"
-    assert result.investigated_at == date(2026, 9, 7)
+    assert result.investigated_at == date(2026, 9, 25)
     assert result.evidence_refs == (
         "web:baillie-gifford-top-ten-only-2026-09-02",
         "live:baillie-gifford-top-holdings-xlsx-2026-09-07",
+        "web:baillie-gifford-bggg-current-page-2026-09-25",
+        "web:baillie-gifford-bgia-current-page-2026-09-25",
+        "web:baillie-gifford-bgeg-current-page-2026-09-25",
+        "web:baillie-gifford-bgus-current-page-2026-09-25",
     )
 
 

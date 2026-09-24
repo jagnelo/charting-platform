@@ -21,6 +21,14 @@ issuer host from this environment. AVOS remains unavailable and
 issuer-access-blocked; indexed browser evidence was recorded but not promoted
 to native support.
 
+## Current audit checkpoint — Baillie Gifford current pages remain non-executable — 2026-09-25
+
+Current first-party BGGG, BGIA, BGEG, and BGUS pages advertise daily
+all-holdings spreadsheets, but bounded executable content remains limited to
+top-ten or summary data. No complete machine-readable constituent artifact
+with stable identifiers was captured; all four symbols remain unavailable and
+non-executable.
+
 ## Current branch state
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`

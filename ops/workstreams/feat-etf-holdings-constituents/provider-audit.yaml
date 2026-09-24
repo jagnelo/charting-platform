@@ -2627,9 +2627,9 @@ providers:
     display_name: baillie_gifford
     queue_rank: 21
     starting_status: needs_first_party_route_discovery
-    current_status: needs_first_party_route_discovery
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-09-07
+    current_status: non_executable_public_source
+    disposition: non_executable_public_source
+    last_checked: 2026-09-25
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - BGGG
@@ -2658,6 +2658,10 @@ providers:
       - "runtime:FALLBACK_ISSUER_AUDITS.baillie_gifford"
       - "runtime:ISSUER_ADAPTER_CONFIGS.baillie_gifford"
       - "live:baillie-gifford-top-holdings-xlsx-2026-09-07"
+      - "web:baillie-gifford-bggg-current-page-2026-09-25"
+      - "web:baillie-gifford-bgia-current-page-2026-09-25"
+      - "web:baillie-gifford-bgeg-current-page-2026-09-25"
+      - "web:baillie-gifford-bgus-current-page-2026-09-25"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2671,8 +2675,12 @@ providers:
         source: "https://www.bailliegifford.com/api/top-holdings?fundId={fund_id}"
         result: "All four representative routes returned HTTP 200 XLSX files dated 2026-09-04 containing exactly ten top holdings with names and weights but no complete universe, ticker, or stable identifier columns."
         evidence_ref: "live:baillie-gifford-top-holdings-xlsx-2026-09-07"
-    disposition_reason: "baillie_gifford: The issuer's public spreadsheet endpoint is executable but only supplies top-ten holdings without ticker/identifier columns, so it is not a complete holdings source for native promotion."
-    next_action: "baillie_gifford: Locate a complete constituent export for each US ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
+      - date: 2026-09-25
+        source: "Baillie Gifford official BGGG/BGIA/BGEG/BGUS product pages"
+        result: "Current first-party pages continue to advertise daily all-holdings spreadsheets, but executable page content exposes only top-ten or summary tables; no complete machine-readable artifact was captured for the four symbols."
+        evidence_ref: "web:baillie-gifford-bggg-current-page-2026-09-25"
+    disposition_reason: "baillie_gifford: The official pages advertise daily all-holdings spreadsheets, but bounded executable content remains limited to top-ten or summary data without a complete constituent universe and stable identifiers for BGGG, BGIA, BGEG, or BGUS."
+    next_action: "baillie_gifford: Locate and execute the complete issuer spreadsheet for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
     implementation_sha: null
     validation_refs: []
   - adapter_key: ballast

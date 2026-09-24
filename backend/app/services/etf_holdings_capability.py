@@ -967,10 +967,14 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="non_executable_public_source",
     provider_identity="baillie_gifford",
-    investigated_at=date(2026, 9, 7),
+    investigated_at=date(2026, 9, 25),
     evidence_refs=(
         "web:baillie-gifford-top-ten-only-2026-09-02",
         "live:baillie-gifford-top-holdings-xlsx-2026-09-07",
+        "web:baillie-gifford-bggg-current-page-2026-09-25",
+        "web:baillie-gifford-bgia-current-page-2026-09-25",
+        "web:baillie-gifford-bgeg-current-page-2026-09-25",
+        "web:baillie-gifford-bgus-current-page-2026-09-25",
     ),
     next_action=(
         "Locate a complete constituent export for each U.S. ETF, prove symbol mapping and "
