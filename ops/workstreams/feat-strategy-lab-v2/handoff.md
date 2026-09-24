@@ -10,6 +10,22 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - Planning state: ready; the plan remains at `ready_for_human_review` and the
   session-local goal is held at its plan-ready guard.
 
+## 2026-09-25 - Typed metric-set rehydration
+
+`postgres_metrics.py` now exposes owner-scoped `load_metric_set()` and
+`load_all_metric_sets()` reads that strictly rehydrate authenticated canonical
+payloads into `MetricSet` contracts through the shared allowlisted decoder.
+Reads require exact canonical bytes and verify metric-set fingerprint, ID,
+trial/attempt lineage, definition version, creation timestamp, and compact
+value-summary bytes against the persisted projection. Reordered fields or
+other payload tampering therefore fails closed before metric data reaches later
+result/API adapters.
+
+Focused lint and MyPy checks pass; the focused persistence suite passes 10
+tests and the complete Strategy Lab v2 package passes 805 tests. Branch,
+exact-backend, cleanup, and workstream validation evidence for this checkpoint
+must be recorded after the implementation commit.
+
 ## 2026-09-24 - Typed result-manifest rehydration
 
 `postgres_result_materialization.py` now exposes owner-scoped

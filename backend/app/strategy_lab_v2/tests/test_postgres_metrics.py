@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import replace
 from typing import Any
 
@@ -95,6 +97,10 @@ async def test_metric_adapter_registers_replays_and_scopes_summary() -> None:
         principal="owner-a", metric_set_fingerprint=metric_set.fingerprint
     ) == registered.record
     assert await adapter.load_all(principal="owner-a") == (registered.record,)
+    assert await adapter.load_metric_set(
+        principal="owner-a", metric_set_fingerprint=metric_set.fingerprint
+    ) == metric_set
+    assert await adapter.load_all_metric_sets(principal="owner-a") == (metric_set,)
     assert await adapter.load(
         principal="owner-b", metric_set_fingerprint=metric_set.fingerprint
     ) is None
@@ -113,6 +119,41 @@ async def test_metric_adapter_conflicts_same_attempt_and_authenticates_rows() ->
     session.metrics[("owner-a", metric_set.fingerprint)]["record_fingerprint"] = content_digest("tampered")
     with pytest.raises(ValueError, match="fingerprint"):
         await adapter.load(principal="owner-a", metric_set_fingerprint=metric_set.fingerprint)
+
+
+@pytest.mark.asyncio
+async def test_metric_adapter_rejects_noncanonical_rehydration_payload() -> None:
+    manifest, *_ = _result()
+    metric_set = manifest.metric_set
+    session = FakeSession()
+    adapter = PostgresMetricsAdapter(lambda: session)
+    registered = await adapter.ensure(principal="owner-a", metric_set=metric_set)
+    row = session.metrics[("owner-a", metric_set.fingerprint)]
+    root = json.loads(row["metric_set_json"])
+    root[2] = list(reversed(root[2]))
+    payload = json.dumps(root, separators=(",", ":"), sort_keys=True)
+    row["metric_set_json"] = payload
+    row["metric_set_fingerprint"] = "sha256:" + hashlib.sha256(
+        payload.encode("utf-8")
+    ).hexdigest()
+    row["record_fingerprint"] = content_digest(
+        {
+            "attempt_id": registered.record.attempt_id,
+            "created_at": registered.record.created_at,
+            "definition_version": registered.record.definition_version,
+            "metric_set_fingerprint": row["metric_set_fingerprint"],
+            "metric_set_id": registered.record.metric_set_id,
+            "metric_set_json": payload,
+            "trial_id": registered.record.trial_id,
+            "values_json": registered.record.values_json,
+        }
+    )
+    session.metrics.pop(("owner-a", metric_set.fingerprint))
+    session.metrics[("owner-a", row["metric_set_fingerprint"])] = row
+    with pytest.raises(ValueError, match="payload is malformed"):
+        await adapter.load_metric_set(
+            principal="owner-a", metric_set_fingerprint=row["metric_set_fingerprint"]
+        )
 
 
 def test_metrics_schema_is_explicit_and_validated() -> None:

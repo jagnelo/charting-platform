@@ -12,6 +12,7 @@ from typing import Any, Protocol
 
 from app.strategy_lab_v2.canonical import canonical_json, content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import MetricSet
+from app.strategy_lab_v2.postgres_result_materialization import decode_canonical_contract
 
 
 class AsyncSessionFactory(Protocol):
@@ -211,6 +212,24 @@ class PostgresMetricsAdapter:
                     raise ValueError("PostgreSQL metric sets are not deterministically ordered")
                 return records
 
+    async def load_metric_set(
+        self, *, principal: Any, metric_set_fingerprint: str
+    ) -> MetricSet | None:
+        """Load and strictly rehydrate one authenticated metric-set contract."""
+
+        record = await self.load(
+            principal=principal, metric_set_fingerprint=metric_set_fingerprint
+        )
+        if record is None:
+            return None
+        return _decode_authenticated_metric_set(record)
+
+    async def load_all_metric_sets(self, *, principal: Any) -> tuple[MetricSet, ...]:
+        """Load all authenticated metric-set contracts in deterministic order."""
+
+        records = await self.load_all(principal=principal)
+        return tuple(_decode_authenticated_metric_set(record) for record in records)
+
     async def _load_by_fingerprint(
         self, session: AsyncSessionLike, owner_id: str, fingerprint: str
     ) -> PersistedMetricSet | None:
@@ -321,6 +340,26 @@ def _record(metric_set: MetricSet) -> PersistedMetricSet:
             }
         ),
     )
+
+
+def _decode_authenticated_metric_set(record: PersistedMetricSet) -> MetricSet:
+    try:
+        metric_set = decode_canonical_contract(record.metric_set_json, MetricSet)
+    except (TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL metric-set payload is malformed") from error
+    if metric_set.fingerprint != record.metric_set_fingerprint:
+        raise ValueError("PostgreSQL metric-set payload identity drifted")
+    if metric_set.metric_set_id != record.metric_set_id:
+        raise ValueError("PostgreSQL metric-set identity drifted")
+    if metric_set.trial_id != record.trial_id or metric_set.attempt_id != record.attempt_id:
+        raise ValueError("PostgreSQL metric-set lineage drifted")
+    if metric_set.definition_version != record.definition_version:
+        raise ValueError("PostgreSQL metric-set definition identity drifted")
+    if metric_set.created_at != record.created_at:
+        raise ValueError("PostgreSQL metric-set creation identity drifted")
+    if canonical_json(metric_set.values) != record.values_json:
+        raise ValueError("PostgreSQL metric-set values drifted")
+    return metric_set
 
 
 def _decode(row: Mapping[str, Any]) -> PersistedMetricSet:

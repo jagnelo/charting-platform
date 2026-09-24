@@ -15,7 +15,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, fields, is_dataclass
 from datetime import UTC, date, datetime
 from enum import Enum, StrEnum
-from typing import Any, Protocol
+from typing import Any, Protocol, TypeVar, cast
 
 from app.strategy_lab_v2 import capabilities, contracts, rebalance
 from app.strategy_lab_v2.canonical import canonical_json, content_digest, require_sha256_digest
@@ -470,16 +470,27 @@ def _decode_authenticated_manifest(record: PersistedResultManifest) -> RunResult
 
 
 def _decode_result_manifest(payload: str) -> RunResultManifest:
+    return decode_canonical_contract(payload, RunResultManifest)
+
+
+_ContractT = TypeVar("_ContractT")
+
+
+def decode_canonical_contract(payload: str, expected_type: type[_ContractT]) -> _ContractT:
+    """Decode one allowlisted canonical contract and require exact bytes."""
+
     try:
         root = json.loads(payload)
         decoded = _decode_canonical_value(root)
-        if not isinstance(decoded, RunResultManifest):
-            raise ValueError("result manifest payload root is not a RunResultManifest")
+        if not isinstance(decoded, expected_type):
+            raise ValueError(
+                f"canonical payload root is not a {expected_type.__qualname__}"
+            )
         if canonical_json(decoded) != payload:
-            raise ValueError("result manifest payload is not canonical")
+            raise ValueError("canonical payload is not canonical")
     except (TypeError, ValueError, json.JSONDecodeError) as error:
-        raise ValueError("result manifest payload is not a valid canonical manifest") from error
-    return decoded
+        raise ValueError("canonical contract payload is malformed") from error
+    return cast(_ContractT, decoded)
 
 
 def _decode_canonical_value(value: Any) -> Any:
@@ -665,6 +676,7 @@ def _statement(sql: str) -> Any:
 
 
 __all__ = [
+    "decode_canonical_contract",
     "PersistedArtifactReference",
     "PersistedResultManifest",
     "PostgresResultMaterializationAdapter",

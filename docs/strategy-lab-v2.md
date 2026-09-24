@@ -907,7 +907,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   owner-scoped canonical projections. Metric-set payloads and compact value
   summaries are content-addressed, one attempt cannot silently replace a
   prior metric set, exact retries replay, and tampering is detected before
-  metric data can be read by result/API adapters.
+  metric data can be read by result/API adapters. Typed reads reuse the
+  allowlisted canonical decoder, require byte-for-byte canonical payloads,
+  and verify persisted identity, lineage, creation-time, and value-summary
+  projections before returning a `MetricSet`.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.
