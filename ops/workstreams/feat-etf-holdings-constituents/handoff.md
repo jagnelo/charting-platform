@@ -16,14 +16,14 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 416 native/live-backed, 80
+- Current code-derived state: 496 registered, 417 native/live-backed, 79
   fallback-only.
 - Current fallback status split: 7 issuer-access-blocked, 63
   needs-first-party-route-discovery, 3 non-executable public source, and 7
   non-portfolio-publisher. The ledger retains dated terminal dispositions for
   every fallback key; all 140 historical records are represented exactly once.
 - `docs/etf-provider-universe.md` is reconciled from code to the current
-  496/416/80 snapshot; future updates must remain code-derived.
+  496/417/79 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - The latest complete `make validate-integration` run on the current working
@@ -5228,3 +5228,17 @@ type-check; 17 ETF frontend tests; and production build. The protected
 staging/master-only Exhaustive Integration Gate was skipped as designed. This
 validates the timeout handling only; provider-platform staging/AC10, remaining
 fallback remediation/AC11, and post-integration AC14 remain open.
+
+## M.D. Sass SASS native promotion — 2026-09-24
+
+The official M.D. Sass issuer CSV now returns 23 complete SASS rows with an
+identity-bound `2026-09-24` effective date. The existing strict parser and the
+bounded opt-in live route test both passed, including ticker/CUSIP/weight,
+cash-row, provenance, and freshness handling. SASS is therefore native-promoted
+without SEC-derived reconstruction.
+
+The runtime fallback set, provider-audit ledger, provider-universe document,
+plan, and session acceptance text now agree on 496 registered / 417
+native-live-backed / 79 fallback-only providers; the
+`needs_first_party_route_discovery` count is 62. PIMCO MINT/BOND and the
+provider-platform/AC10 dependency remain unchanged.

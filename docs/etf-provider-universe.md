@@ -102,8 +102,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `416`
-- Audited fallback-only providers: `80`
+- Native/live-backed providers: `417`
+- Audited fallback-only providers: `79`
 
 This is the current branch-derived split after the Warren WCAP request-profile,
 Inspire ETF Engine, Fidelity named-zero-weight-row, Anydrus NDOW
@@ -176,13 +176,12 @@ because its issuer CSV omits ticker mapping. These outcomes preserve ownership
 boundaries and do not promote the existing First Eagle, McIvy, Global X, or
 Pettee routes under duplicate identities.
 
-The seventh cohort covers FFTY/BOUT (the M2 Financial adviser identity), SASS
-(M.D. Sass), SIXH/SIXL/SIXA/SIXS/SXQG (the Madison Avenue/6 Meridian
+The seventh cohort covers FFTY/BOUT (the M2 Financial adviser identity), SIXH/
+SIXL/SIXA/SIXS/SXQG (the Madison Avenue/6 Meridian
 sub-adviser identity), and MAVF (Matrix Advisors). M2 Financial and Madison
 Avenue are `not_applicable` because their products' holdings routes belong to
 the separately identified CapForce and Exchange Traded Concepts publishers;
-SASS is `unavailable` because the official page exposes placeholders rather
-than an executable current basket; and MAVF is `unavailable` because the
+and MAVF is `unavailable` because the
 otherwise complete official table is Cloudflare-blocked to the adapter
 transport. These outcomes retain publisher ownership boundaries and do not
 promote SEC or indexed content as current support.
@@ -390,7 +389,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `7`
-- `needs_first_party_route_discovery`: `63`
+- `needs_first_party_route_discovery`: `62`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `7`
 

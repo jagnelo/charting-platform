@@ -68028,6 +68028,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "FilepointMDSass.40D4.D4_ETF_Holdings.csv",
         ),
         product_page_templates=("https://www.mdsassetf.com/",),
+        live_tested_default_route=True,
         terms_note="M.D. Sass publishes SASS holdings through an issuer-declared public CSV; issuer terms govern use.",
     ),
     "rayliant": IssuerCsvAdapterConfig(
@@ -70936,7 +70937,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "horizons",
         "hoya",
         "m2_financial",
-        "m_d_sass",
         "madison_avenue",
         "matrix",
         "merchant_investment_management",

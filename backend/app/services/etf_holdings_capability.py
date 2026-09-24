@@ -1174,19 +1174,19 @@ _register_non_tier_0_audits(
 )
 _register_non_tier_0_audits(
     ("SASS",),
-    outcome=UNAVAILABLE,
-    evidence_state="future_dated_source",
+    outcome=CURRENT,
+    evidence_state="current_issuer_route",
     provider_identity="m_d_sass",
-    investigated_at=date(2026, 9, 7),
+    investigated_at=date(2026, 9, 24),
     evidence_refs=(
         "web:m-d-sass-official-page-placeholder-holdings-2026-09-03",
-        "live:m-d-sass-holdings-csv-2026-09-07-future-dated",
-        "live:m-d-sass-opt-in-parser-2026-09-07-passed",
+        "live:m-d-sass-holdings-csv-2026-09-24-current",
+        "live:m-d-sass-opt-in-parser-2026-09-24-passed",
     ),
     next_action=(
-        "Re-test the official SASS holdings CSV after its effective date is no longer future; "
-        "retain the strict issuer parser and promote only after bounded live evidence proves "
-        "a non-future complete snapshot."
+        "Monitor the official SASS holdings CSV and retain native status while the route remains "
+        "complete, identity-bound, dated, and executable; add future M.D. Sass products only "
+        "after equivalent first-party evidence."
     ),
 )
 _register_non_tier_0_audits(

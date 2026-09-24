@@ -1866,7 +1866,7 @@ async def test_akre_adapter_parses_filepoint_daily_holdings_without_inventing_lo
 
 
 @pytest.mark.asyncio
-async def test_m_d_sass_adapter_parses_complete_issuer_csv_and_preserves_future_date(monkeypatch):
+async def test_m_d_sass_adapter_parses_complete_current_issuer_csv(monkeypatch):
     adapter = get_holdings_adapter("m_d_sass")
     assert adapter is not None
     assert type(adapter).__name__ == "MDSassHoldingsAdapter"
@@ -23121,6 +23121,7 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
         "sammons_enterprises",
         "nestyield",
         "norris_perne_french",
+        "m_d_sass",
     }
     fallback_expected = expected - promoted_native
 
@@ -28399,8 +28400,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 416
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 80
+    assert ledger["current_native_count"] == 417
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 79
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -28440,6 +28441,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "logiq",
         "long_pond",
         "lsv",
+        "m_d_sass",
         "max",
         "mcelhenny_sheffield",
         "measured_risk_portfolios",

@@ -791,18 +791,18 @@ def test_seventh_ranked_fallback_m2_adviser_is_not_a_publisher():
     assert result.provider_identity == "m2_financial"
 
 
-def test_seventh_ranked_fallback_m_d_sass_future_dated_source_remains_unavailable():
+def test_seventh_ranked_m_d_sass_current_issuer_route_is_usable():
     result = symbol_audit_for_profile(profile_with_symbol("SASS", "m_d_sass"))
 
     assert result.tier == 1
-    assert result.outcome == UNAVAILABLE
-    assert result.evidence_state == "future_dated_source"
+    assert result.outcome == CURRENT
+    assert result.evidence_state == "current_issuer_route"
     assert result.provider_identity == "m_d_sass"
-    assert result.investigated_at == date(2026, 9, 7)
+    assert result.investigated_at == date(2026, 9, 24)
     assert result.evidence_refs == (
         "web:m-d-sass-official-page-placeholder-holdings-2026-09-03",
-        "live:m-d-sass-holdings-csv-2026-09-07-future-dated",
-        "live:m-d-sass-opt-in-parser-2026-09-07-passed",
+        "live:m-d-sass-holdings-csv-2026-09-24-current",
+        "live:m-d-sass-opt-in-parser-2026-09-24-passed",
     )
 
 
@@ -1174,7 +1174,7 @@ def test_all_symbolless_fallback_identities_remain_non_current_at_capability_bou
 
 def test_every_fallback_identity_rejects_unreviewed_synthetic_symbols():
     """A complete snapshot cannot turn an unreviewed fallback identity current."""
-    assert len(FALLBACK_ISSUER_AUDITS) == 80
+    assert len(FALLBACK_ISSUER_AUDITS) == 79
 
     for adapter_key in sorted(FALLBACK_ISSUER_AUDITS):
         profile_value = profile_with_symbol(f"SYNTHETIC_{adapter_key}", adapter_key)
