@@ -185,7 +185,13 @@ async def _record_quarantine(
     if existing is not None:
         existing.reason = reason
         existing.exchange_mic = exchange_mic
-        existing.candidate_payload = candidate_payload or existing.candidate_payload or {}
+        # An explicitly empty provider envelope is still evidence.  Only a
+        # missing payload may retain the previous projection.
+        existing.candidate_payload = (
+            candidate_payload
+            if candidate_payload is not None
+            else existing.candidate_payload or {}
+        )
         row = existing
     else:
         row = InstrumentIdentityQuarantine(
