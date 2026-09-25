@@ -2,6 +2,22 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Search and legacy replay identity checkpoint
+
+Legacy records/import requests and resumable search candidate/checkpoint state
+now normalize aware timestamps to UTC before preservation, monotonicity, and
+replay identity. Offset-equivalent legacy observations and search transitions
+therefore share one deterministic fingerprint. Focused regression coverage
+passed 18 tests. Ruff passed for the package, MyPy passed across 277 source
+files, 2 schema migration tests passed, diff validation passed, and workstream
+validation accepted 30 records.
+
+The branch remains `ready_for_human_review`. Stable Nautilus v2 publication,
+shared worker/database reconciliation, host activation, upstream
+provider/ETF/TC2000 integration, and deployment remain gated. The previously
+recorded restricted-runtime TestClient limitation remains open for full rerun
+evidence; direct ASGI route validation remains successful.
+
 ## 2026-09-25 - Preflight and cleanup evidence identity checkpoint
 
 Capability requirements/cells, provider coverage attestations, and artifact
