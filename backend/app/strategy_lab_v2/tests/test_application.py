@@ -11,6 +11,7 @@ from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.api_router import ApiAdapterError, ResourceMutationServiceResult
 from app.strategy_lab_v2.application import (
     PostgresStrategyLabV2Adapter,
+    SearchDispatchEvidence,
     _principal_identity,
     create_registered_strategy_lab_v2_router,
     get_strategy_lab_v2_adapter,
@@ -219,6 +220,72 @@ async def test_application_search_dispatch_fails_closed_without_host_binding() -
 
     assert raised.value.error.code is ApiErrorCode.PRECONDITION_FAILED
     assert raised.value.error.status_code == 501
+
+
+@pytest.mark.asyncio
+async def test_application_search_dispatch_evidence_resolver_uses_durable_store() -> None:
+    authorization, runtime_request, runtime_preflight, pool = _fixture()
+    dispatch = DispatchRequest(
+        "dispatch-key",
+        "attempt-1",
+        content_digest("payload"),
+        "strategy-backtest",
+        NOW,
+    )
+    observed: dict[str, Any] = {}
+
+    async def evidence(**kwargs: Any) -> SearchDispatchEvidence:
+        observed.update(kwargs)
+        return SearchDispatchEvidence(
+            authorization,
+            runtime_request,
+            runtime_preflight,
+            _reservation("application-evidence"),
+            NOW,
+        )
+
+    expected = resolve_search_dispatch(
+        new_search_execution_state(
+            content_digest("experiment-evidence"),
+            (content_digest("trial-1"),),
+            now=NOW,
+        ),
+        candidate_index=0,
+        attempt_id="attempt-1",
+        authorization=authorization,
+        runtime_request=runtime_request,
+        runtime_preflight=runtime_preflight,
+        admission_ledger=ExecutionAdmissionLedger(),
+        pool=pool,
+        reservation_id=_reservation("application-evidence"),
+        dispatch_request=dispatch,
+        prior_dispatches=(),
+        now=NOW,
+    )
+
+    class Store:
+        async def dispatch(self, **kwargs: Any) -> SearchDispatchResolution:
+            observed["store"] = kwargs
+            return expected
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._search_dispatch = None
+    adapter._search_dispatch_evidence = evidence
+    adapter._search_dispatch_store = Store()
+    resolved = await adapter.dispatch_search_candidate(
+        principal=_User(42),
+        request_id="request-1",
+        experiment_fingerprint=content_digest("experiment-evidence"),
+        candidate_index=0,
+        attempt_id="attempt-1",
+        dispatch_request=dispatch,
+        payload={},
+    )
+
+    assert resolved == expected
+    assert observed["principal"].id == "42"
+    assert observed["store"]["principal"].id == "42"
+    assert observed["store"]["reservation_id"] == _reservation("application-evidence")
 
 
 @pytest.mark.asyncio

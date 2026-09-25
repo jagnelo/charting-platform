@@ -39,6 +39,18 @@ The pure resolver also rejects a second dispatch identity for an already bound
 attempt, so a new idempotency key cannot create a duplicate queue message for
 the same candidate.
 
+## 2026-09-25 - Durable search dispatch application binding checkpoint
+
+`PostgresStrategyLabV2Adapter` now accepts a typed
+`SearchDispatchEvidence` resolver. The host supplies authenticated execution
+authorization, runtime request/preflight, reservation identity, and dispatch
+time; the application then calls the shared `PostgresSearchDispatchAdapter`
+itself, preserving one transaction for search state, worker capacity, admission,
+dispatch, and outbox. The older result-returning callback remains available
+for registration-neutral hosts, and configuring both forms is rejected as
+ambiguous. Focused application coverage passed 10 tests, including normalized
+owner propagation, durable-store delegation, and fail-closed missing binding.
+
 The shared persistence bundle now exposes this adapter while leaving runtime
 authorization, provider entitlement, and Nautilus execution as explicit host
 inputs. The additive schema declares only admission and search-dispatch tables;

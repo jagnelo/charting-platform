@@ -127,7 +127,7 @@
   "last_checkpoint": "2026-09-25T06:14:54+00:00",
   "last_human_progress_update": "2026-09-25T06:14:54+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "reconcile the additive admission/search-dispatch schema with the combined staging migration graph, then wire the host callback to the shared adapter before worker-process enablement",
+  "next_action": "reconcile the additive admission/search-dispatch schema with the combined staging migration graph, then enable the configured local worker callback only after stable Nautilus v2 conformance",
   "parent_branch": "staging",
   "plan_hash": "7968d51e80784715912ed9e4655639f3379f9e95b5c8a77873e93bd8c3949077",
   "planning_required": false,
@@ -141,9 +141,9 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "Stable Nautilus release, host capability/evidence resolvers, migration/application integration, upstream contract reconciliation, and full repository integration remain open",
-    "current_phase": "strategy-lab-v2-atomic-search-dispatch-staging-ready-for-human-review",
-      "next_action": "reconcile the additive admission/search-dispatch schema with the combined staging migration graph, then wire the host callback to the shared adapter before worker-process enablement",
+    "current_blocker": "Stable Nautilus release, deployment-specific host evidence configuration, migration/schema reconciliation, upstream contract reconciliation, and full repository integration remain open",
+    "current_phase": "strategy-lab-v2-search-dispatch-application-binding-staging-ready-for-human-review",
+      "next_action": "reconcile the additive admission/search-dispatch schema with the combined staging migration graph, then enable the configured local worker callback only after stable Nautilus v2 conformance",
     "total": 18,
       "updated_at": "2026-09-25T06:14:54+00:00"
   },

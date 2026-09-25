@@ -33,6 +33,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.execution import ExecutionAuthorization
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
     LegacyImportRequest,
@@ -45,6 +46,10 @@ from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationRequest,
     ResourceMutationResolution,
     create_resource_mutation_receipt,
+)
+from app.strategy_lab_v2.runtime_execution import (
+    StrategyRuntimePreflight,
+    StrategyRuntimeRequest,
 )
 from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution
 from app.strategy_lab_v2.search_state import SearchExecutionState, SearchStateResolution
@@ -68,6 +73,34 @@ CapabilityPreflightResolver = Callable[
     ..., Awaitable[CapabilitySummary] | CapabilitySummary
 ]
 SearchDispatchResolver = Callable[..., Awaitable[SearchDispatchResolution] | SearchDispatchResolution]
+
+
+@dataclass(frozen=True, slots=True)
+class SearchDispatchEvidence:
+    """Host-owned evidence required before durable candidate dispatch."""
+
+    authorization: ExecutionAuthorization
+    runtime_request: StrategyRuntimeRequest
+    runtime_preflight: StrategyRuntimePreflight
+    reservation_id: str
+    now: datetime
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.authorization, ExecutionAuthorization):
+            raise TypeError("authorization must be an ExecutionAuthorization")
+        if not isinstance(self.runtime_request, StrategyRuntimeRequest):
+            raise TypeError("runtime_request must be a StrategyRuntimeRequest")
+        if not isinstance(self.runtime_preflight, StrategyRuntimePreflight):
+            raise TypeError("runtime_preflight must be a StrategyRuntimePreflight")
+        if not isinstance(self.reservation_id, str) or not self.reservation_id.strip():
+            raise ValueError("reservation_id must not be empty")
+        if self.now.tzinfo is None or self.now.utcoffset() is None:
+            raise ValueError("now must be timezone-aware")
+
+
+SearchDispatchEvidenceResolver = Callable[
+    ..., Awaitable[SearchDispatchEvidence] | SearchDispatchEvidence
+]
 
 
 def _principal_identity(principal: Any) -> _PrincipalIdentity:
@@ -98,6 +131,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         capability_preflight: CapabilityPreflightResolver | None = None,
         search_dispatch: SearchDispatchResolver | None = None,
+        search_dispatch_evidence: SearchDispatchEvidenceResolver | None = None,
     ) -> None:
         if not callable(session_factory):
             raise TypeError("session_factory must be callable")
@@ -107,9 +141,14 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise TypeError("capability_preflight must be callable")
         if search_dispatch is not None and not callable(search_dispatch):
             raise TypeError("search_dispatch must be callable")
+        if search_dispatch_evidence is not None and not callable(search_dispatch_evidence):
+            raise TypeError("search_dispatch_evidence must be callable")
+        if search_dispatch is not None and search_dispatch_evidence is not None:
+            raise ValueError("search_dispatch and search_dispatch_evidence are mutually exclusive")
         self._clock = clock
         self._capability_preflight = capability_preflight
         self._search_dispatch = search_dispatch
+        self._search_dispatch_evidence = search_dispatch_evidence
         self._persistence = PostgresStrategyLabV2Persistence.build(session_factory, clock=clock)
         self._resources = self._persistence.resources
         self._capabilities = self._persistence.capability
@@ -273,7 +312,8 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise TypeError("dispatch_request must be a DispatchRequest")
         if not isinstance(payload, Mapping):
             raise TypeError("payload must be a mapping")
-        if self._search_dispatch is None:
+        search_dispatch_evidence = getattr(self, "_search_dispatch_evidence", None)
+        if self._search_dispatch is None and search_dispatch_evidence is None:
             raise ApiAdapterError(
                 ApiError(
                     ApiErrorCode.PRECONDITION_FAILED,
@@ -284,19 +324,40 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                     {"reason": "the host has not supplied atomic worker persistence"},
                 )
             )
-        resolved = self._search_dispatch(
+        callback_kwargs = {
+            "principal": owner,
+            "request_id": request_id,
+            "experiment_fingerprint": experiment_fingerprint,
+            "candidate_index": candidate_index,
+            "attempt_id": attempt_id,
+            "dispatch_request": dispatch_request,
+            "payload": payload,
+        }
+        if self._search_dispatch is not None:
+            resolved = self._search_dispatch(**callback_kwargs)
+            resolution = await resolved if inspect.isawaitable(resolved) else resolved
+            if not isinstance(resolution, SearchDispatchResolution):
+                raise TypeError("search_dispatch must return a SearchDispatchResolution")
+            return resolution
+        evidence_resolver = search_dispatch_evidence
+        if evidence_resolver is None:  # pragma: no cover - guarded above
+            raise AssertionError("search dispatch evidence resolver unexpectedly missing")
+        evidence_result = evidence_resolver(**callback_kwargs)
+        evidence = await evidence_result if inspect.isawaitable(evidence_result) else evidence_result
+        if not isinstance(evidence, SearchDispatchEvidence):
+            raise TypeError("search_dispatch_evidence must return SearchDispatchEvidence")
+        return await self._search_dispatch_store.dispatch(
             principal=owner,
-            request_id=request_id,
             experiment_fingerprint=experiment_fingerprint,
             candidate_index=candidate_index,
             attempt_id=attempt_id,
+            authorization=evidence.authorization,
+            runtime_request=evidence.runtime_request,
+            runtime_preflight=evidence.runtime_preflight,
+            reservation_id=evidence.reservation_id,
             dispatch_request=dispatch_request,
-            payload=payload,
+            now=evidence.now,
         )
-        resolution = await resolved if inspect.isawaitable(resolved) else resolved
-        if not isinstance(resolution, SearchDispatchResolution):
-            raise TypeError("search_dispatch must return a SearchDispatchResolution")
-        return resolution
 
     async def create_resource(
         self,
