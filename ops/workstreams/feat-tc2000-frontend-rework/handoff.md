@@ -14757,3 +14757,9 @@ environment mismatch requiring matching-environment verification. No snapshots,
 masks, thresholds, skips, or visual policy were changed. The host's regular
 Docker Compose path was used because its CLI lacks `buildx`; the assigned stack
 and volumes were removed cleanly afterward.
+
+The host font inventory provides a concrete environment signal: `fc-match
+'Segoe UI'` resolves to DejaVu Sans and `fc-match Arial` resolves to Nimbus
+Sans; neither requested family is installed. Because the board CSS requests
+`Segoe UI, Arial`, the screenshot mismatch must be replayed in a matching
+font/browser environment before it can be treated as a product visual defect.
