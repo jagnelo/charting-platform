@@ -23,6 +23,27 @@ failure. The next durable slice is the PostgreSQL candidate/admission/outbox
 transaction; worker process execution remains gated by stable Nautilus v2
 conformance.
 
+## 2026-09-25 - Atomic PostgreSQL search dispatch checkpoint
+
+`postgres_search_dispatch.py` now provides the durable counterpart to the
+pure search-dispatch resolver. In one SQLAlchemy transaction it locks the
+owner-scoped search state and worker profile/reservations, authenticates the
+admission and dispatch ledgers, resolves candidate start plus worker admission
+plus idempotent queue intent, and persists the candidate CAS update, worker
+reservation, admission receipt, dispatch identity, and shared execution
+outbox message together. Saturation, rejection, and conflict resolutions
+return before any write. Exact retries replay the existing admission and
+dispatch evidence without duplicating rows.
+
+The shared persistence bundle now exposes this adapter while leaving runtime
+authorization, provider entitlement, and Nautilus execution as explicit host
+inputs. The additive schema declares only admission and search-dispatch tables;
+the existing execution-outbox table remains the authoritative shared outbox.
+Focused PostgreSQL/persistence/application coverage passed 17 tests and the
+complete package passed 866 tests. Stable Nautilus v2 conformance, host
+capability/evidence resolvers, upstream provider/ETF/TC2000 reconciliation,
+and migration/application integration remain open gates.
+
 ## Human authorization
 
 - Recorded at: 2026-09-15T19:48:24.815519+00:00

@@ -42,6 +42,7 @@ from app.strategy_lab_v2.postgres_result_materialization import PostgresResultMa
 from app.strategy_lab_v2.postgres_result_publication import PostgresResultPublicationAdapter
 from app.strategy_lab_v2.postgres_runtime_execution import PostgresRuntimeExecutionAdapter
 from app.strategy_lab_v2.postgres_runtime_receipts import PostgresRuntimeReceiptAdapter
+from app.strategy_lab_v2.postgres_search_dispatch import PostgresSearchDispatchAdapter
 from app.strategy_lab_v2.postgres_search_state import PostgresSearchStateAdapter
 from app.strategy_lab_v2.postgres_snapshot_coverage import PostgresSnapshotCoverageAdapter
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
@@ -104,6 +105,7 @@ class PostgresStrategyLabV2Persistence:
     runtime_execution: PostgresRuntimeExecutionAdapter
     runtime_receipts: PostgresRuntimeReceiptAdapter
     search_state: PostgresSearchStateAdapter
+    search_dispatch: PostgresSearchDispatchAdapter
     snapshot_coverage: PostgresSnapshotCoverageAdapter
     submissions: PostgresSubmissionDispatchAdapter
     worker_state: PostgresWorkerStateAdapter
@@ -261,6 +263,8 @@ class PostgresStrategyLabV2Persistence:
                 for record in registry.records
             )
 
+        search_state = PostgresSearchStateAdapter(session_factory)
+        worker_state = PostgresWorkerStateAdapter(session_factory)
         return cls(
             aggregate_store=aggregate_store,
             resources=PostgresResourceReader(
@@ -296,10 +300,13 @@ class PostgresStrategyLabV2Persistence:
             result_publication=PostgresResultPublicationAdapter(session_factory),
             runtime_execution=PostgresRuntimeExecutionAdapter(session_factory),
             runtime_receipts=PostgresRuntimeReceiptAdapter(session_factory),
-            search_state=PostgresSearchStateAdapter(session_factory),
+            search_state=search_state,
+            search_dispatch=PostgresSearchDispatchAdapter(
+                session_factory, search_state=search_state, worker_state=worker_state
+            ),
             snapshot_coverage=PostgresSnapshotCoverageAdapter(session_factory),
             submissions=PostgresSubmissionDispatchAdapter(session_factory, clock=clock),
-            worker_state=PostgresWorkerStateAdapter(session_factory),
+            worker_state=worker_state,
             worker_settlements=PostgresWorkerSettlementAdapter(session_factory),
         )
 

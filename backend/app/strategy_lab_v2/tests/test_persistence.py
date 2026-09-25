@@ -29,6 +29,7 @@ from app.strategy_lab_v2.postgres_commands import ExecutionCommandContext, Postg
 from app.strategy_lab_v2.postgres_execution_state import PostgresExecutionStateAdapter
 from app.strategy_lab_v2.postgres_forward_state import PostgresForwardStateAdapter
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
+from app.strategy_lab_v2.postgres_search_dispatch import PostgresSearchDispatchAdapter
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
 from app.strategy_lab_v2.progress import new_progress_state
@@ -55,6 +56,7 @@ def test_persistence_bundle_shares_store_and_wires_all_initial_api_dependencies(
     assert isinstance(bundle.forward_state, PostgresForwardStateAdapter)
     assert isinstance(bundle.commands, PostgresCommandAdapter)
     assert isinstance(bundle.submissions, PostgresSubmissionDispatchAdapter)
+    assert isinstance(bundle.search_dispatch, PostgresSearchDispatchAdapter)
     assert isinstance(bundle.artifact_commits, PostgresArtifactCommitAdapter)
     assert isinstance(
         bundle.artifact_retention_service(tmp_path / "artifacts"), LocalArtifactRetentionService

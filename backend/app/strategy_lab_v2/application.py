@@ -113,6 +113,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         self._persistence = PostgresStrategyLabV2Persistence.build(session_factory, clock=clock)
         self._resources = self._persistence.resources
         self._capabilities = self._persistence.capability
+        self._search_dispatch_store = self._persistence.search_dispatch
         self._submissions = self._persistence.submissions
         self._execution_state = self._persistence.execution_state
         self._commands = self._persistence.commands

@@ -62,6 +62,7 @@ def test_application_adapter_composes_all_durable_api_adapters() -> None:
     assert isinstance(adapter._persistence, PostgresStrategyLabV2Persistence)
     assert isinstance(adapter._resources, PostgresResourceReader)
     assert isinstance(adapter._submissions, PostgresSubmissionDispatchAdapter)
+    assert adapter._search_dispatch_store is adapter._persistence.search_dispatch
     assert isinstance(adapter._execution_state, PostgresExecutionStateAdapter)
     assert isinstance(adapter._commands, PostgresCommandAdapter)
 
