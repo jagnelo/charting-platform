@@ -258,6 +258,48 @@ class PostgresSubmissionDispatchAdapter:
             async with session.begin():
                 return await self._load_payload(session, payload_digest)
 
+    async def load_submission(
+        self, *, principal: Any, attempt_id: str
+    ) -> SubmissionReceipt | None:
+        """Load the one owner-scoped submission bound to an execution attempt.
+
+        Terminal evidence resolvers use this authenticated lookup to bind a
+        process completion to durable submission state.  Multiple rows for an
+        attempt are rejected rather than selecting an arbitrary idempotency
+        record.
+        """
+
+        owner_id = _principal_id(principal)
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                result = await session.execute(
+                    _statement(
+                        f"""
+                        SELECT owner_id, idempotency_key, request_fingerprint, operation,
+                               attempt_id, payload_digest, submitted_at, accepted_at
+                        FROM {self._schema.submission_table}
+                        WHERE owner_id = :owner_id AND attempt_id = :attempt_id
+                        FOR SHARE
+                        """
+                    ),
+                    {"owner_id": owner_id, "attempt_id": attempt_id},
+                )
+                rows = list(result.mappings())
+                if not rows:
+                    return None
+                if len(rows) != 1:
+                    raise ValueError("PostgreSQL submission attempt query returned duplicate keys")
+                row = rows[0]
+                receipt = _decode_submission(row)
+                if row.get("owner_id") != owner_id or row.get("attempt_id") != attempt_id:
+                    raise ValueError("PostgreSQL submission owner/attempt identity drifted")
+                if row.get("request_fingerprint") != receipt.request.fingerprint:
+                    raise ValueError("PostgreSQL submission fingerprint does not match bytes")
+                return receipt
+
     async def _load_payload(
         self, session: AsyncSessionLike, payload_digest: str
     ) -> DispatchPayload | None:

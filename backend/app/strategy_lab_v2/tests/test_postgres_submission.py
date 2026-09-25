@@ -55,6 +55,14 @@ class FakeSession:
         sql = str(statement)
         values = dict(params or {})
         self.calls.append(sql)
+        if sql.lstrip().startswith("SELECT") and "attempt_id = :attempt_id" in sql:
+            rows = [
+                row
+                for (owner_id, _), row in self.submissions.items()
+                if owner_id == values.get("owner_id")
+                and row.get("attempt_id") == values.get("attempt_id")
+            ]
+            return FakeResult(rows)
         key = (values.get("owner_id", ""), values.get("idempotency_key", ""))
         if sql.lstrip().startswith("SELECT") and "submissions" in sql:
             row = self.submissions.get(key)
@@ -124,6 +132,10 @@ async def test_submission_adapter_stages_receipt_and_dispatch_atomically() -> No
     assert len(session.dispatches) == 1
     assert len(session.payloads) == 1
     assert len(session.outboxes) == 1
+
+    loaded = await adapter.load_submission(principal="alice", attempt_id="attempt-1")
+    assert loaded == accepted.receipt
+    assert await adapter.load_submission(principal="bob", attempt_id="attempt-1") is None
 
     calls = len(session.calls)
     replay = await adapter.submit(principal="alice", request=request, payload=payload)
