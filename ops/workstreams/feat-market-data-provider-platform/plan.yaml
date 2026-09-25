@@ -162,6 +162,23 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 append-only tokenized-asset observation correction: every
+    tokenized catalog/metadata/quote refresh now appends its original provider
+    payload to tokenized_asset_observation with provider identity and observed
+    and fetched timestamps; tokenized_asset_detail remains the mutable latest
+    projection. Migration d3f4a5b6c7d8, focused tokenized service/migration
+    coverage (34/34), complete migration coverage (15/15), Ruff, diff, and
+    Alembic-head checks pass. Provider routing, quota/legal/capability,
+    universe, secret-store, deferred-provider, publication, and final-shadow
+    gates remain open.
+  - >-
+    2026-09-25 full validation after tokenized-asset observation migration:
+    backend unit suite passed 2394/2394 with 37 warnings in 162.39 seconds;
+    Docker-backed PostgreSQL/Redis integration passed 386/386 with 57 warnings
+    in 473.35 seconds; workstream validator accepted all 30 records. External
+    provider, universe, secret-store, deferred-provider, publication, and
+    final-shadow gates remain open.
+  - >-
     2026-09-25 Docker-backed integration validation after the market-event
     observation migration: current source passed 386/386 backend integration
     tests with 57 warnings in 521.73 seconds. PostgreSQL/Redis migration and

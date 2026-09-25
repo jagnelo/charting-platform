@@ -1,5 +1,30 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 append-only tokenized-asset observation checkpoint
+
+- Tokenized catalog/metadata refreshes now retain every provider payload in the
+  immutable `tokenized_asset_observation` table. The existing
+  `tokenized_asset_detail` row remains a current-state projection; repeated
+  identical responses are retained rather than deduplicated or pruned.
+- Added migration `d3f4a5b6c7d8`, model/service persistence, and regression
+  coverage. Focused tokenized service/migration tests pass `34/34`; the complete
+  migration suite passes `15/15`; Ruff, diff, and Alembic-head checks pass.
+- This is a loss-prevention correction only. Provider quota/legal/capability,
+  NMS/OTC/SEC universe, secret-store, deferred-provider, publication, and final
+  shadow gates remain open. No external provider requests, deployment, ETF
+  adapter change, or shadow activation was performed.
+
+## 2026-09-25 tokenized-observation full validation
+
+- The complete backend unit suite passed on source `161a8d1b4`: `2394/2394`
+  tests, with `37` warnings, in `162.39s`.
+- The persistent Docker-backed PostgreSQL/Redis integration suite passed on
+  the same source: `386/386` tests, with `57` warnings, in `473.35s`.
+- Branch workstream validation accepted all `30` records. These checks validate
+  the new tokenized observation migration and runtime path; they do not close
+  provider quota/legal/capability, universe, secret-store, deferred-provider,
+  publication, or final shadow gates.
+
 ## 2026-09-25 Docker integration validation after market-event migration
 
 - The complete persistent Docker-backed backend integration suite passed on
