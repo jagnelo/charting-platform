@@ -10,6 +10,10 @@ from importlib import import_module
 from typing import Any
 
 from app.strategy_lab_v2.dispatch_payload import DispatchPayloadLoader
+from app.strategy_lab_v2.forward_worker_authorization import (
+    AuthorizedForwardEventHandler,
+    ForwardWorkerAuthorizationResolver,
+)
 from app.strategy_lab_v2.forward_worker_service import (
     ForwardEventHandler,
     ForwardEventMaterializer,
@@ -218,6 +222,33 @@ class RedisDispatchRuntime:
             payload_loader,
             materializer,
             handler,
+        )
+
+    def authorized_forward_worker_service(
+        self,
+        worker: RedisDispatchWorker,
+        *,
+        payload_loader: DispatchPayloadLoader,
+        materializer: ForwardEventMaterializer,
+        authorization_resolver: ForwardWorkerAuthorizationResolver,
+        handler: ForwardEventHandler,
+        interval_seconds: float = 1.0,
+        sleep: Callable[[float], Awaitable[None]],
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> ForwardEventWorkerService:
+        """Compose a forward worker whose handler is lease/reservation gated."""
+
+        return self.forward_worker_service(
+            worker,
+            payload_loader=payload_loader,
+            materializer=materializer,
+            handler=AuthorizedForwardEventHandler(
+                authorization_resolver,
+                handler,
+                clock=clock,
+            ),
+            interval_seconds=interval_seconds,
+            sleep=sleep,
         )
 
     async def aclose(self) -> None:

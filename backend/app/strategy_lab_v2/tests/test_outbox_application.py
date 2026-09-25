@@ -227,6 +227,17 @@ async def test_redis_runtime_composes_transport_relay_and_closes_once() -> None:
         sleep=sleep,
     )
     assert isinstance(forward_service, ForwardEventWorkerService)
+
+    authorized_forward_service = runtime.authorized_forward_worker_service(
+        forward_worker,
+        payload_loader=Loader(),
+        materializer=materialize,
+        authorization_resolver=cast(Any, lambda _entry, _item: None),
+        handler=complete,
+        sleep=sleep,
+        clock=lambda: NOW,
+    )
+    assert isinstance(authorized_forward_service, ForwardEventWorkerService)
     await runtime.aclose()
     await runtime.aclose()
     assert client.close_calls == 1
