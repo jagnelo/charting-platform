@@ -705,6 +705,12 @@ def serialize_forward_event_transaction(
         raise TypeError("resolution must be a ForwardEventTransactionResolution")
     if not isinstance(request_id, str) or not request_id.strip():
         raise ValueError("request_id must not be empty")
+    if (
+        resolution.replay_plan is not None
+        and resolution.replay_plan.instance_id
+        != resolution.state.checkpoint.instance.instance_id
+    ):
+        raise ValueError("replay plan instance does not match the transaction state")
     return _json_value(
         {
             "data": {
@@ -784,6 +790,12 @@ def serialize_forward_warmup(
         raise ValueError("request_id must not be empty")
     if resolution.receipt is None:
         raise ValueError("warm-up responses require a durable receipt")
+    if resolution.receipt.instance_id != resolution.instance.instance_id:
+        raise ValueError("warm-up receipt instance does not match the resolved instance")
+    if resolution.receipt.warmup_snapshot_fingerprint != resolution.instance.warmup_snapshot_fingerprint:
+        raise ValueError("warm-up receipt snapshot does not match the resolved instance")
+    if resolution.receipt.carry_in_mode is not resolution.instance.carry_in_mode:
+        raise ValueError("warm-up receipt carry-in mode does not match the resolved instance")
     return _json_value(
         {
             "data": {

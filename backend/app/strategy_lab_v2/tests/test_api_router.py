@@ -62,7 +62,12 @@ from app.strategy_lab_v2.forward_event_transaction import (
     ForwardEventTransactionDecision,
     ForwardEventTransactionResolution,
 )
-from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt, resolve_forward_warmup
+from app.strategy_lab_v2.forward_warmup import (
+    ForwardWarmupDecision,
+    ForwardWarmupReceipt,
+    ForwardWarmupResolution,
+    resolve_forward_warmup,
+)
 from app.strategy_lab_v2.legacy import (
     LegacyImportDecision,
     LegacyImportRecord,
@@ -188,6 +193,29 @@ def test_forward_event_transaction_serializer_preserves_state_and_resolution_ide
     assert payload["data"]["attributes"]["state"]["checkpoint"]["processed_event_ids"] == []
 
 
+def test_forward_event_transaction_serializer_rejects_cross_instance_replay_plan() -> None:
+    state = forward_state()
+    event = correction_event("live-0", 0)
+    replay_plan = CounterfactualReplayPlan(
+        replay_id=content_digest("cross-instance-replay"),
+        instance_id="forward-2",
+        correction_event_id=event.event_id,
+        original_event_id=event.event_id,
+        base_checkpoint_fingerprint=state.checkpoint.fingerprint,
+        warmup_receipt_fingerprint=state.warmup_receipt_fingerprint,
+        planned_at=NOW,
+    )
+    resolution = ForwardEventTransactionResolution(
+        ForwardEventTransactionDecision.CORRECTION_ACCEPTED,
+        state,
+        content_digest(event),
+        replay_plan,
+    )
+
+    with pytest.raises(ValueError, match="replay plan instance"):
+        serialize_forward_event_transaction(resolution, request_id="request-1")
+
+
 def test_forward_event_dispatch_parser_and_serializer_preserve_outbox_identity() -> None:
     state = forward_state()
     event = correction_event("live-0", 0)
@@ -290,6 +318,34 @@ def test_forward_warmup_parser_and_serializer_preserve_carry_in_identity() -> No
     assert payload["data"]["type"] == "forward-warmups"
     assert payload["data"]["id"] == receipt.fingerprint
     assert payload["data"]["meta"]["decision"] == "complete"
+
+
+def test_forward_warmup_serializer_rejects_cross_instance_receipt() -> None:
+    instance = ForwardInstance(
+        "forward-1",
+        content_digest("portfolio"),
+        SNAPSHOT,
+        CarryInMode.FLAT,
+        ForwardState.ACTIVE,
+        None,
+        0,
+        0,
+        NOW,
+        NOW,
+    )
+    receipt = ForwardWarmupReceipt(
+        "forward-2",
+        SNAPSHOT,
+        CarryInMode.FLAT,
+        content_digest("warmup-result"),
+        NOW,
+    )
+
+    with pytest.raises(ValueError, match="receipt instance"):
+        serialize_forward_warmup(
+            ForwardWarmupResolution(ForwardWarmupDecision.REPLAY_EXISTING, instance, receipt),
+            request_id="request-1",
+        )
 
 
 def test_forward_lifecycle_parser_and_serializer_preserve_transition_identity() -> None:
