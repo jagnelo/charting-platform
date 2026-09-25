@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -77,6 +77,7 @@ class EngineResultEvidence:
         if len(artifacts) != len(set(artifacts)):
             raise ValueError("engine result artifact digests must be unique")
         _aware(self.observed_at, "observed_at")
+        object.__setattr__(self, "observed_at", self.observed_at.astimezone(UTC))
         object.__setattr__(self, "artifact_content_digests", tuple(sorted(artifacts)))
 
     @property
@@ -191,6 +192,7 @@ def materialize_run_result(
     packages = tuple(sorted(packages, key=lambda item: item.fingerprint))
     artifacts = tuple(sorted(artifacts, key=lambda item: item.content_digest))
     _aware(created_at, "created_at")
+    created_at = created_at.astimezone(UTC)
 
     candidate_fingerprint = content_digest(
         {

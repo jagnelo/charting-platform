@@ -1295,6 +1295,7 @@ class MetricSet:
         if any(item.definition_version != self.definition_version for item in values):
             raise ValueError("metric values must match their metric-set definition version")
         _aware(self.created_at, "created_at")
+        object.__setattr__(self, "created_at", self.created_at.astimezone(UTC))
         object.__setattr__(
             self,
             "values",
@@ -1372,6 +1373,7 @@ class RunResultManifest:
         if len(artifact_digests) != len(set(artifact_digests)):
             raise ValueError("result output artifact digests must be unique")
         _aware(self.created_at, "created_at")
+        object.__setattr__(self, "created_at", self.created_at.astimezone(UTC))
         packages = tuple(sorted(packages, key=lambda item: item.strategy_fingerprint))
         artifacts = tuple(sorted(artifacts, key=lambda item: item.content_digest))
         object.__setattr__(self, "strategy_packages", packages)

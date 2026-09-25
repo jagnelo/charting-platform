@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -65,6 +65,35 @@ def test_result_materialization_builds_reproducible_manifest_and_replays() -> No
     )
     assert replay.decision is ResultMaterializationDecision.REPLAY_EXISTING
     assert replay.manifest == result
+
+
+def test_result_identity_normalizes_offset_equivalent_timestamps() -> None:
+    result, evidence = _inputs()
+    offset = timezone(timedelta(hours=1))
+    equivalent_metric_set = replace(
+        result.metric_set,
+        created_at=datetime(2024, 1, 1, 1, tzinfo=offset),
+    )
+    assert equivalent_metric_set == result.metric_set
+    equivalent_evidence = replace(
+        evidence,
+        observed_at=datetime(2024, 1, 1, 1, tzinfo=offset),
+    )
+    equivalent = materialize_run_result(
+        result.trial,
+        result.attempt,
+        result.strategy_packages,
+        result.portfolio,
+        result.snapshot,
+        equivalent_evidence,
+        result.metric_set,
+        result.output_artifacts,
+        created_at=datetime(2024, 1, 1, 1, tzinfo=offset),
+    )
+    assert equivalent.manifest == result
+    assert equivalent.manifest is not None
+    assert equivalent.manifest.created_at.tzinfo is UTC
+    assert equivalent_evidence.observed_at.tzinfo is UTC
 
 
 def test_result_materialization_rejects_provenance_drift_and_failed_attempts() -> None:
