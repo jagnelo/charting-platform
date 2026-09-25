@@ -21,11 +21,13 @@ from app.strategy_lab_v2.api_router import (
     ResourceMutationServiceResult,
     SubmissionServiceResult,
     _json_value,
+    _parse_forward_dispatch,
     _parse_forward_transaction,
     _request_id,
     _safe_header_value,
     create_strategy_lab_router,
     serialize_forward_account,
+    serialize_forward_event_dispatch,
     serialize_forward_event_transaction,
     serialize_resource,
     serialize_search_state_snapshot,
@@ -45,6 +47,7 @@ from app.strategy_lab_v2.commands import (
 )
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.forward_account import initial_forward_account_state
+from app.strategy_lab_v2.forward_event_dispatch import resolve_forward_event_dispatch
 from app.strategy_lab_v2.forward_event_transaction import (
     ForwardEventTransactionDecision,
     ForwardEventTransactionResolution,
@@ -56,7 +59,11 @@ from app.strategy_lab_v2.legacy import (
     LegacyImportReport,
     LegacyImportResolution,
 )
-from app.strategy_lab_v2.lifecycle import ForwardEventDisposition
+from app.strategy_lab_v2.lifecycle import (
+    ForwardCursor,
+    ForwardEventDisposition,
+    observe_forward_event,
+)
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
     ResourceMutationResolution,
@@ -164,6 +171,69 @@ def test_forward_event_transaction_serializer_preserves_state_and_resolution_ide
     assert payload["data"]["id"] == resolution.event_fingerprint
     assert payload["data"]["meta"]["resolution_fingerprint"] == resolution.fingerprint
     assert payload["data"]["attributes"]["state"]["checkpoint"]["processed_event_ids"] == []
+
+
+def test_forward_event_dispatch_parser_and_serializer_preserve_outbox_identity() -> None:
+    state = forward_state()
+    event = correction_event("live-0", 0)
+    observation = observe_forward_event(ForwardCursor(), event)
+    event_fingerprint = content_digest(event)
+    payload_digest = content_digest(
+        {"event_fingerprint": event_fingerprint, "replay_plan_fingerprint": None}
+    )
+    dispatch = DispatchRequest(
+        idempotency_key="forward-dispatch-1",
+        attempt_id="forward-1",
+        payload_digest=payload_digest,
+        queue_name="forward",
+        created_at=NOW,
+    )
+    body = {
+        "event": {
+            "event_id": event.event_id,
+            "sequence": event.sequence,
+            "event_time": event.event_time.isoformat(),
+            "arrived_at": event.arrived_at.isoformat(),
+            "source_digest": event.source_digest,
+        },
+        "observation": {
+            "disposition": observation.disposition.value,
+            "stale": observation.stale,
+            "missing_sequence_start": observation.missing_sequence_start,
+            "missing_sequence_end": observation.missing_sequence_end,
+            "correction_requires_counterfactual_replay": observation.correction_requires_counterfactual_replay,
+            "next_cursor": {
+                "last_sequence": observation.next_cursor.last_sequence,
+                "last_event_id": observation.next_cursor.last_event_id,
+                "last_event_time": observation.next_cursor.last_event_time.isoformat()
+                if observation.next_cursor.last_event_time is not None
+                else None,
+            },
+            "buffer_event": observation.buffer_event,
+        },
+        "dispatch": {
+            "idempotency_key": dispatch.idempotency_key,
+            "attempt_id": dispatch.attempt_id,
+            "payload_digest": dispatch.payload_digest,
+            "queue_name": dispatch.queue_name,
+            "created_at": dispatch.created_at.isoformat(),
+        },
+        "payload": {"event_fingerprint": event_fingerprint, "replay_plan_fingerprint": None},
+    }
+    parsed_event, parsed_observation, parsed_dispatch, parsed_payload, correction = _parse_forward_dispatch(
+        body, instance_id="forward-1"
+    )
+    assert parsed_event == event
+    assert parsed_observation == observation
+    assert parsed_dispatch == dispatch
+    assert parsed_payload == body["payload"]
+    assert correction is None
+    resolution = resolve_forward_event_dispatch(
+        state, parsed_event, parsed_observation, dispatch_request=parsed_dispatch
+    )
+    payload = serialize_forward_event_dispatch(resolution, request_id="request-1")
+    assert payload["data"]["type"] == "forward-event-dispatches"
+    assert payload["data"]["id"] == dispatch.fingerprint
 
 
 def _capability_document() -> ResourceDocument:

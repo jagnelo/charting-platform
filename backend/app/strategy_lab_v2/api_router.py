@@ -49,6 +49,7 @@ from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.forward_account import ForwardAccountState
 from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
 from app.strategy_lab_v2.forward_corrections import ForwardCorrectionCommand
+from app.strategy_lab_v2.forward_event_dispatch import ForwardEventDispatchResolution
 from app.strategy_lab_v2.forward_event_transaction import ForwardEventTransactionResolution
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
@@ -252,6 +253,22 @@ class ForwardEventApiAdapter(Protocol):
         observation: ForwardEventObservation,
         correction_command: ForwardCorrectionCommand | None,
     ) -> Awaitable[ForwardEventTransactionResolution] | ForwardEventTransactionResolution: ...
+
+
+class ForwardEventDispatchApiAdapter(Protocol):
+    """Application-owned atomic admission, payload, and outbox staging."""
+
+    def dispatch_forward_event(
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        event: CanonicalForwardEvent,
+        observation: ForwardEventObservation,
+        dispatch_request: DispatchRequest,
+        payload: Mapping[str, Any],
+        correction_command: ForwardCorrectionCommand | None,
+    ) -> Awaitable[ForwardEventDispatchResolution] | ForwardEventDispatchResolution: ...
 
 
 class SearchDispatchApiAdapter(Protocol):
@@ -684,6 +701,48 @@ def serialize_forward_event_transaction(
     )
 
 
+def serialize_forward_event_dispatch(
+    resolution: ForwardEventDispatchResolution, *, request_id: str
+) -> dict[str, Any]:
+    """Serialize atomic forward-event admission and worker-dispatch evidence."""
+
+    if not isinstance(resolution, ForwardEventDispatchResolution):
+        raise TypeError("resolution must be a ForwardEventDispatchResolution")
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise ValueError("request_id must not be empty")
+    return _json_value(
+        {
+            "data": {
+                "type": "forward-event-dispatches",
+                "id": (
+                    resolution.envelope.message_id
+                    if resolution.envelope is not None
+                    else resolution.event_transaction.event_fingerprint
+                ),
+                "attributes": {
+                    "decision": resolution.decision,
+                    "state": asdict(resolution.state),
+                    "event_transaction": asdict(resolution.event_transaction),
+                    "dispatch": (
+                        asdict(resolution.dispatch_resolution)
+                        if resolution.dispatch_resolution is not None
+                        else None
+                    ),
+                    "envelope": asdict(resolution.envelope)
+                    if resolution.envelope is not None
+                    else None,
+                    "rejection_reason": resolution.rejection_reason,
+                },
+                "meta": {
+                    "request_id": request_id,
+                    "state_fingerprint": resolution.state.fingerprint,
+                    "resolution_fingerprint": content_digest(resolution),
+                },
+            }
+        }
+    )
+
+
 def serialize_search_dispatch(
     resolution: SearchDispatchResolution,
     *,
@@ -904,6 +963,45 @@ def _parse_forward_transaction(
     if observation.disposition is not ForwardEventDisposition.CORRECTION and correction is not None:
         raise ValueError("correction command is only valid for correction observations")
     return event, observation, correction
+
+
+def _parse_forward_dispatch(
+    body: Any, *, instance_id: str
+) -> tuple[
+    CanonicalForwardEvent,
+    ForwardEventObservation,
+    DispatchRequest,
+    Mapping[str, Any],
+    ForwardCorrectionCommand | None,
+]:
+    if not isinstance(body, Mapping):
+        raise ValueError("forward dispatch body must be a JSON object")
+    allowed = {"event", "observation", "dispatch", "payload", "correction"}
+    if set(body) - allowed or not {"event", "observation", "dispatch", "payload"} <= set(body):
+        raise ValueError("forward dispatch body fields are invalid")
+    event, observation, correction = _parse_forward_transaction(
+        {key: body[key] for key in ("event", "observation", "correction") if key in body},
+        instance_id=instance_id,
+    )
+    dispatch_payload = body["dispatch"]
+    if not isinstance(dispatch_payload, Mapping):
+        raise ValueError("dispatch must be a JSON object")
+    required = {"idempotency_key", "attempt_id", "payload_digest", "queue_name", "created_at"}
+    if set(dispatch_payload) != required:
+        raise ValueError("dispatch fields are invalid")
+    dispatch_request = DispatchRequest(
+        idempotency_key=dispatch_payload["idempotency_key"],
+        attempt_id=dispatch_payload["attempt_id"],
+        payload_digest=dispatch_payload["payload_digest"],
+        queue_name=dispatch_payload["queue_name"],
+        created_at=_parse_forward_timestamp(dispatch_payload["created_at"], "created_at"),
+    )
+    payload = body["payload"]
+    if not isinstance(payload, Mapping):
+        raise ValueError("payload must be a JSON object")
+    if len(json.dumps(_json_value(payload), separators=(",", ":"), ensure_ascii=False).encode("utf-8")) > MAX_RESOURCE_PAYLOAD_BYTES:
+        raise ValueError("forward dispatch payload exceeds the maximum size")
+    return event, observation, dispatch_request, payload, correction
 
 
 def _error_response(error: ApiError) -> JSONResponse:
@@ -2084,6 +2182,91 @@ def create_strategy_lab_router(
                 )
             )
 
+    @router.post("/forward-instances/{instance_id}/events/dispatch", status_code=status.HTTP_202_ACCEPTED)
+    async def dispatch_forward_event(
+        instance_id: str,
+        request: Request,
+        body: Any = Body(...),
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Atomically admit, materialize, and enqueue one forward event."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            if not instance_id.strip():
+                raise ValueError("instance_id must not be empty")
+            body = await _strict_json_body(request, request_id)
+            event, observation, dispatch_request, payload, correction = _parse_forward_dispatch(
+                body, instance_id=instance_id
+            )
+            dispatch = getattr(adapter, "dispatch_forward_event", None)
+            if not callable(dispatch):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "forward dispatch adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                        details={"reason": "the host has not supplied forward dispatch persistence"},
+                    )
+                )
+            resolution = await _resolve(
+                dispatch(
+                    principal=principal,
+                    instance_id=instance_id,
+                    event=event,
+                    observation=observation,
+                    dispatch_request=dispatch_request,
+                    payload=payload,
+                    correction_command=correction,
+                )
+            )
+            if not isinstance(resolution, ForwardEventDispatchResolution):
+                raise TypeError("adapter returned an invalid forward dispatch resolution")
+            if resolution.decision.value in {"conflict", "reject"}:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.CONFLICT
+                        if resolution.decision.value == "conflict"
+                        else ApiErrorCode.PRECONDITION_FAILED,
+                        resolution.rejection_reason or "forward dispatch was rejected",
+                        request_id,
+                        status.HTTP_409_CONFLICT
+                        if resolution.decision.value == "conflict"
+                        else status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+                )
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content=serialize_forward_event_dispatch(resolution, request_id=request_id),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "forward dispatch request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 forward dispatch failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 forward dispatch failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
     @router.post("/experiments/{experiment_id}/search", status_code=status.HTTP_202_ACCEPTED)
     async def initialize_search(
         experiment_id: str,
@@ -2820,6 +3003,7 @@ __all__ = [
     "CapabilityPreflightAdapter",
     "ForwardAccountApiAdapter",
     "ForwardEventApiAdapter",
+    "ForwardEventDispatchApiAdapter",
     "ForwardStateApiAdapter",
     "SearchDispatchApiAdapter",
     "SearchStateApiAdapter",
@@ -2834,6 +3018,7 @@ __all__ = [
     "serialize_search_state_snapshot",
     "serialize_forward_state",
     "serialize_forward_account",
+    "serialize_forward_event_dispatch",
     "serialize_forward_event_transaction",
     "serialize_resource",
     "serialize_resource_identifier",
