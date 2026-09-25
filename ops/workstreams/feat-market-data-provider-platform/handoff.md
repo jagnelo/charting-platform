@@ -1,5 +1,25 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 FINRA ORF host validation correction
+
+- The ORF source validator and all branch-owned fixtures now use the
+  documented `apidownload.finratraqs.org` TRAQS host. The previous
+  `finratrags.org` spelling would have rejected valid ORF URLs. Focused
+  provider/registry/live-runner coverage passed `95/95` and Ruff passed; no
+  provider request or credential value was persisted.
+
+## 2026-09-25 exact-head validation after ORF host correction
+
+- The branch-owned backend unit gate passed `1,920/1,920` with `37` existing
+  warnings in `324.49s`, excluding only the ETF adapter file owned by
+  `feat/etf-holdings-constituents`.
+- The authoritative Docker integration gate passed `386/386` with `57`
+  warnings in `723.01s`, at source
+  `83d1225167d86b4da59a09d2b82ede3393573894`, using isolated PostgreSQL/Redis
+  testcontainers (session `c2c740f0-324c-4395-afbd-9844ac07c468`). Cleanup
+  completed without host-wide pruning. External ORF entitlement, terms, and
+  live credentials remain deliberately fail-closed.
+
 ## 2026-09-25 FINRA ORF authentication contract correction
 
 - The FINRA OTC ORF adapter now follows the documented TRAQS flow rather than

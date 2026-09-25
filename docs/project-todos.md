@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-25 — FINRA ORF host correction and full validation
+
+- [x] Correct the ORF validator and branch-owned fixtures to use the official
+      `apidownload.finratraqs.org` TRAQS host; the prior spelling was invalid
+      and would reject valid source URLs. Focused provider/registry/live-runner
+      coverage passed `95/95`; Ruff passed.
+
+- [x] Validate the exact corrected source
+      `83d1225167d86b4da59a09d2b82ede3393573894`: branch-owned unit scope
+      passed `1,920/1,920` with `37` warnings in `324.49s`, and Docker
+      PostgreSQL/Redis integration passed `386/386` with `57` warnings in
+      `723.01s` (testcontainer session
+      `c2c740f0-324c-4395-afbd-9844ac07c468`); cleanup completed without
+      host-wide pruning.
+
+- [ ] Keep ORF routing fail-closed until the separate TRAQS account
+      entitlement, source/redistribution review, operation-cost bound, and
+      bounded credentialed live matrix are available.
+
 ### 2026-09-25 — FINRA ORF authentication correction and exact-head validation
 
 - [x] Correct the FINRA OTC ORF integration to use its separate documented
