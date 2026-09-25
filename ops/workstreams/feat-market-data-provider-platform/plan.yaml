@@ -162,6 +162,17 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 SEC issuer-directory evidence retention correction at source
+    27f3cc34a: every durable SecIssuerDirectoryCandidate row now retains the
+    exact provider-adapter source payload alongside normalized admission fields,
+    and the admin report exposes that payload for audit. Migration
+    e7f8a9b0c1d2 has a downgrade guard that refuses to remove non-empty source
+    evidence. Focused SEC scan/migration tests pass 18/18; Ruff, migration
+    compatibility, Alembic single-head, diff, and workstream validation pass.
+    The full live provider matrix remains fail-closed on the previously listed
+    provider quota/legal/capability, NMS/OTC/SEC reconciliation, secret-store,
+    deferred-provider, and final-shadow gates.
+  - >-
     2026-09-25 exact-current preflight after the account-usage evidence
     correction ran on source ab0bed0e6b5050d36730245d241bb7ce3d9f1992 and
     stopped before transport with 0/0 ordinary cases and zero ordinary provider

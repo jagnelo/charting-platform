@@ -6236,3 +6236,18 @@ Commit `247718a6f` adds a requirement-by-requirement acceptance audit to
 verified by repository evidence and which remain external/provider,
 deployment-secret, universe, or final-shadow gates; it does not promote any
 provider or start the shadow run.
+## 2026-09-25 SEC issuer-directory source evidence retention
+
+- Commit `27f3cc34a` adds immutable `source_payload` evidence to every
+  `SecIssuerDirectoryCandidate` row. Normalized CIK/name/ticker/admission
+  fields remain unchanged; the exact provider-adapter row is now retained and
+  returned by the admin candidate report.
+- Migration `e7f8a9b0c1d2` is additive and refuses downgrade while non-empty
+  SEC source evidence exists. Focused scan/migration tests pass `18/18`, Ruff
+  is clean, migration compatibility passes, Alembic reports one head, and
+  workstream validation accepts all 30 records.
+- This closes an in-scope evidence-loss path only. It does not make the SEC
+  directory a complete US security master, change the staged materialization
+  policy, promote routing, or close the remaining provider quota/legal,
+  complete NMS/OTC reconciliation, external secret-store, deferred-provider,
+  publication, or final shadow gates.
