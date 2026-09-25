@@ -200,8 +200,7 @@ class SerialWorkerProcessExecutor:
             process.join(float(timeout))
             process_id = getattr(process, "pid", None)
             if process.is_alive():
-                process.terminate()
-                process.join(1.0)
+                _terminate_and_reap(process)
                 return WorkerProcessResolution(
                     request.request_fingerprint,
                     WorkerProcessDecision.TIMED_OUT,
@@ -304,8 +303,7 @@ class SerialWorkerProcessExecutor:
             deadline = asyncio.get_running_loop().time() + float(timeout)
             while process.is_alive():
                 if asyncio.get_running_loop().time() >= deadline:
-                    process.terminate()
-                    process.join(1.0)
+                    _terminate_and_reap(process)
                     return WorkerProcessResolution(
                         request.request_fingerprint,
                         WorkerProcessDecision.TIMED_OUT,
@@ -322,6 +320,20 @@ class SerialWorkerProcessExecutor:
             if receiver is not None:
                 receiver.close()
             self._run_lock.release()
+
+
+def _terminate_and_reap(process: Any) -> None:
+    """Escalate a timed-out child termination and reap its process handle."""
+
+    process.terminate()
+    process.join(1.0)
+    if process.is_alive():
+        kill = getattr(process, "kill", None)
+        if callable(kill):
+            kill()
+        else:  # pragma: no cover - old/custom process implementations
+            process.terminate()
+        process.join(1.0)
 
 
 def _resolution_from_pipe(
