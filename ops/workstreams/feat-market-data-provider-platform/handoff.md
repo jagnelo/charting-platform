@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 final exact-HEAD safety preflight
+
+- The full manifest preflight ran after the current live receipts with an
+  owner-only durable ledger and approved external network access. It stopped
+  before ordinary transport at `0/0`, making zero provider requests.
+- The redacted receipt is appended to `validation.jsonl` and enumerates the
+  remaining provider-specific baseline/byte/cost gaps, unresolved capability
+  cases, legal/use and jurisdiction controls, complete OTC/SEC/NMS
+  reconciliation, external secret-store checks, deferred providers, and the
+  separately authorized final shadow phase. This is an intentional safety stop,
+  not a failed provider integration.
+
 ## 2026-09-25 Twelve Data live validation from network-enabled execution
 
 - The bounded credentialed `twelve_data:fetch_account_usage` probe was rerun

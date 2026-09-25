@@ -2,6 +2,11 @@
 
 ### 2026-09-25 — Current provider-contract audit continuation
 
+- [x] Refresh the exact-HEAD full provider safety preflight after the current
+      live receipts. It stopped before ordinary transport at `0/0` with zero
+      provider requests and recorded the remaining fail-closed gates in the
+      provider workstream receipt.
+
 - [x] Attempt the focused credentialed Twelve Data account-usage probe with an
       isolated owner-only durable ledger. The first shell attempt failed before
       transport because DNS was unavailable; the redacted failure receipt is
