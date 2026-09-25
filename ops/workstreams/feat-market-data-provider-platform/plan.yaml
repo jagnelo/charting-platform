@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 current-source Twelve Data full-matrix attempt stopped before
+    transport with zero provider requests: the native minute pool is verified,
+    but the separate documented daily pool has no observable account baseline.
+    The live runner therefore refuses all daily-metered data operations rather
+    than inferring prior usage; the focused account-usage case remains the only
+    admitted live operation until that daily dimension is independently
+    reconciled.
+  - >-
     2026-09-25 current-source MarketData.app matrix passed `7/7` in `14.08s`
     using the owner-managed durable quota coordinator. It exercised account
     usage, latest price, intraday history, option metadata/expirations, option

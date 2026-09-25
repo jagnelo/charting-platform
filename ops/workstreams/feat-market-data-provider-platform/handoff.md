@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Twelve Data daily-pool fail-closed evidence
+
+- A current-source full Twelve Data attempt stopped before transport with zero
+  provider requests. The native `/api_usage` probe verifies the 8-credits/minute
+  pool, but the separately documented 800/day pool exposes no prior account
+  counter; the runner therefore blocks every daily-metered operation instead
+  of treating the unknown balance as zero.
+- The focused account-usage snapshot remains live-proven and persisted in the
+  owner ledger. No credentials or payloads were persisted in the repository.
+
 ## 2026-09-25 current-source MarketData.app live matrix
 
 - The bounded current-source MarketData.app matrix passed `7/7` in `14.08s`
