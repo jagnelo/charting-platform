@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -113,6 +113,7 @@ class EngineConformanceEvidence:
                 raise TypeError("release_pin must be a NautilusReleasePin")
             if self.release_pin.package_version != self.engine_version:
                 raise ValueError("release pin package version must match engine_version")
+        object.__setattr__(self, "tested_at", self.tested_at.astimezone(UTC))
         object.__setattr__(self, "passed_checks", checks)
 
     @property

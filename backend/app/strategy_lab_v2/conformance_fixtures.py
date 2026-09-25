@@ -110,6 +110,7 @@ class ConformanceExecutionResolution:
             raise TypeError("evidence must be an EngineConformanceEvidence")
         if not isinstance(self.report, EngineConformanceReport):
             raise TypeError("report must be an EngineConformanceReport")
+        require_complete_conformance_suite(self.suite)
         if self.evidence.fixture_digest != self.suite.fingerprint:
             raise ValueError("evidence must reference the executed fixture suite")
         if self.report.evidence_fingerprint != self.evidence.fingerprint:
@@ -226,6 +227,7 @@ def build_conformance_evidence(
         raise TypeError("release_channel must be an EngineReleaseChannel")
     if not isinstance(suite, ConformanceFixtureSuite):
         raise TypeError("suite must be a ConformanceFixtureSuite")
+    require_complete_conformance_suite(suite)
     if release_pin is not None and not isinstance(release_pin, NautilusReleasePin):
         raise TypeError("release_pin must be a NautilusReleasePin")
     _aware(tested_at, "tested_at")
@@ -248,7 +250,11 @@ def require_complete_conformance_suite(
 
     if not isinstance(suite, ConformanceFixtureSuite):
         raise TypeError("suite must be a ConformanceFixtureSuite")
-    missing = suite.missing_checks
+    observed: frozenset[ConformanceCheck] = frozenset(
+        item.check for item in suite.observations
+    )
+    required: frozenset[ConformanceCheck] = frozenset(ConformanceCheck.__members__.values())
+    missing = required - observed
     if missing:
         names = ", ".join(sorted(item.value for item in missing))
         raise ValueError(f"conformance fixture suite is incomplete: {names}")

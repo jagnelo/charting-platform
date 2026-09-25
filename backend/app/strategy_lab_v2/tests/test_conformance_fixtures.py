@@ -82,6 +82,15 @@ def test_incomplete_suite_fails_closed_before_evidence_creation() -> None:
     )
     with pytest.raises(ValueError, match="incomplete"):
         require_complete_conformance_suite(suite)
+    with pytest.raises(ValueError, match="incomplete"):
+        build_conformance_evidence(
+            "nautilus",
+            "2.0.0",
+            content_digest("build"),
+            EngineReleaseChannel.STABLE,
+            suite,
+            tested_at=NOW,
+        )
 
 
 def test_fixture_observation_rejects_untruthful_pass_claims() -> None:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -54,6 +54,23 @@ def test_complete_stable_conformance_is_authoritative() -> None:
     assert report.authoritative
     assert not report.missing_checks
     assert report.fingerprint.startswith("sha256:")
+
+
+def test_conformance_evidence_normalizes_offset_equivalent_test_times() -> None:
+    offset_time = datetime(2024, 1, 1, 2, tzinfo=timezone(timedelta(hours=2)))
+    normalized = _evidence()
+    equivalent = EngineConformanceEvidence(
+        "nautilus",
+        "2.0.0",
+        BUILD,
+        EngineReleaseChannel.STABLE,
+        FIXTURE,
+        frozenset(ConformanceCheck),
+        offset_time,
+        PIN,
+    )
+    assert equivalent == normalized
+    assert equivalent.tested_at.tzinfo is UTC
 
 
 def test_release_candidate_can_be_compatible_but_never_authoritative() -> None:
