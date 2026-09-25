@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exhaustive FMP preflight diagnostics
+
+- The provider live preflight now reports all FMP control gaps even when the
+  operation-byte map is missing or malformed; it no longer hides reset and
+  bandwidth evidence behind the first missing field. The current focused FMP
+  run stopped before transport at `0/0`, reporting the byte map, reviewed daily
+  reset, daily evidence, and bandwidth evidence requirements. Its redacted
+  receipt is in `validation.jsonl`.
+
 ## 2026-09-25 FMP reset-source conflict
 
 - The current official FMP API FAQ states that the Basic 250-call allowance

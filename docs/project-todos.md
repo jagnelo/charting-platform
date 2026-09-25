@@ -2,6 +2,11 @@
 
 ### 2026-09-25 — Current provider-contract audit continuation
 
+- [x] Make live preflight diagnostics exhaustive for FMP. Missing or malformed
+      byte maps no longer suppress the daily-reset and bandwidth-evidence
+      controls; the refreshed focused run stopped at `0/0` before transport
+      and recorded every unresolved FMP control in `validation.jsonl`.
+
 - [x] Reconcile the two current official FMP reset statements. The API FAQ
       publishes a 15:00 America/New_York reset, while newer official limit
       guidance says no single reset time should be promised and points to the
