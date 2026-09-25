@@ -1871,12 +1871,13 @@ def routing_safety_preflight() -> dict[str, str]:
         if provider == "fmp" and not missing:
             daily_reset = os.getenv("FMP_REVIEWED_DAILY_RESET", "").strip()
             daily_evidence = os.getenv("FMP_DAILY_QUOTA_EVIDENCE", "").strip()
-            daily_safety = _seed_safety_reset("fmp", "calls_per_day")
-            if not (daily_safety and not daily_reset and not daily_evidence):
-                if not provider_quota_reset_is_admission_safe(daily_reset):
-                    missing.append("FMP_REVIEWED_DAILY_RESET")
-                if not daily_evidence:
-                    missing.append("FMP_DAILY_QUOTA_EVIDENCE")
+            # FMP's FAQ and newer official limit guidance disagree on the
+            # daily reset. Do not treat the seeded fixture boundary as live
+            # account evidence.
+            if not provider_quota_reset_is_admission_safe(daily_reset):
+                missing.append("FMP_REVIEWED_DAILY_RESET")
+            if not daily_evidence:
+                missing.append("FMP_DAILY_QUOTA_EVIDENCE")
             bandwidth_reset = os.getenv("FMP_REVIEWED_BANDWIDTH_RESET", "").strip()
             if bandwidth_reset and not provider_quota_reset_is_admission_safe(
                 bandwidth_reset

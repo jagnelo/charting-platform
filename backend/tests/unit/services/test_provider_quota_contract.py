@@ -704,13 +704,18 @@ def test_fmp_byte_pool_uses_documented_trailing_window_and_daily_reset(monkeypat
     monkeypatch.setattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "")
     monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "")
     monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "current plan evidence")
+    blocked = provider_rate_limit_seed("fmp")
+    assert blocked["quota_contract"]["untracked_constraints"]
+
+    monkeypatch.setattr(settings, "FMP_REVIEWED_DAILY_RESET", "calendar_day_utc")
+    monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "current account evidence")
     promoted = provider_rate_limit_seed("fmp")
     contract = promoted["quota_contract"]
     assert contract["untracked_constraints"] == []
     assert contract["unknown_dimensions"] == []
     daily = next(item for item in contract["dimensions"] if item["name"] == "calls_per_day")
-    assert daily["reset"] == "15:00 America/New_York"
-    assert contract["reset"] == "15:00 America/New_York"
+    assert daily["reset"] == "calendar_day_utc"
+    assert contract["reset"] == "calendar_day_utc"
     assert promoted["_byte_reservation_bounds"] == bounds
 
     monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "")

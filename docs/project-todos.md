@@ -2,6 +2,13 @@
 
 ### 2026-09-25 — Current provider-contract audit continuation
 
+- [x] Reconcile the two current official FMP reset statements. The API FAQ
+      publishes a 15:00 America/New_York reset, while newer official limit
+      guidance says no single reset time should be promised and points to the
+      account dashboard. Keep the deterministic FAQ boundary only as fixture
+      behavior and record account-specific reset evidence as an admission
+      requirement; do not infer a reset from the conflict.
+
 - [x] Recheck current official Marketstack quota sources. Pricing/home/contact
       guidance says 100 requests/month, one FAQ paragraph says 1,000, and no
       official reset timestamp or machine-readable usage counter was found.

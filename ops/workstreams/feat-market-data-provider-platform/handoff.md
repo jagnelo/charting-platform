@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 FMP reset-source conflict
+
+- The current official FMP API FAQ states that the Basic 250-call allowance
+  resets every 24 hours at 15:00 `America/New_York` ([FAQ](https://site.financialmodelingprep.com/de/faqs?code=statements)), but newer official FMP
+  limit guidance ([limit article](https://site.financialmodelingprep.com/de/insights/platform/what-happens-when-you-hit-your-fmp-api-limit)) says no single reset time should be promised and directs operators to the account dashboard. This is a source conflict, not a reason
+  to invent a reset. The deterministic `15:00 America/New_York` contract is
+  retained for existing fixtures, while admission remains dependent on
+  reviewed account evidence before FMP is considered fully verified. The
+  trailing-30-day bandwidth pool and complete operation-byte map remain
+  required.
+
 ## 2026-09-25 Marketstack official-source recheck
 
 - Current official Marketstack pricing/home/contact guidance continues to

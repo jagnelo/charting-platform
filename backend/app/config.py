@@ -3567,8 +3567,8 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         # FMP exposes independent daily-call and bandwidth pools. The current
         # official pricing contract defines bandwidth as a trailing 30-day
         # pool, while the official FAQ defines the 250-call reset at 3 PM
-        # Eastern. An operator may override either boundary for a future plan,
-        # but a blank bandwidth override retains the documented rolling-30-day
+        # Eastern. The daily boundary now requires account-specific evidence;
+        # a blank bandwidth override retains the documented rolling-30-day
         # semantics.
         daily_reset = str(
             getattr(settings, "FMP_REVIEWED_DAILY_RESET", "") or ""
@@ -3584,29 +3584,15 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             getattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "") or ""
         ).strip()
         contract = seed.get("quota_contract")
-        daily_dimension = next(
-            (
-                item
-                for item in (contract.get("dimensions", []) if isinstance(contract, dict) else [])
-                if isinstance(item, dict) and item.get("name") == "calls_per_day"
-            ),
-            None,
-        )
-        seeded_daily_reset = (
-            str(daily_dimension.get("reset") or "").strip()
-            if isinstance(daily_dimension, dict)
-            else ""
-        )
         daily_override_valid = (
             provider_quota_reset_is_admission_safe(daily_reset) and bool(daily_evidence)
         )
-        daily_default_valid = (
-            not daily_reset
-            and not daily_evidence
-            and provider_quota_reset_is_admission_safe(seeded_daily_reset)
-        )
+        # The FAQ's 15:00 Eastern statement conflicts with newer official
+        # guidance that says no single reset time should be promised. Keep the
+        # seeded boundary for deterministic fixtures, but require explicit
+        # account evidence before promoting FMP routing.
         if not (
-            (daily_override_valid or daily_default_valid)
+            daily_override_valid
             and provider_quota_reset_is_admission_safe(bandwidth_reset)
             and bandwidth_evidence
         ):

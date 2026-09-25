@@ -162,6 +162,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 FMP reset-source conflict: the official API FAQ states that the
+    Basic 250-call allowance resets every 24 hours at 15:00
+    America/New_York, while the newer official FMP limit guidance says no
+    single reset time should be promised and directs operators to the
+    dashboard. The implementation keeps the documented FAQ boundary for
+    deterministic tests but this conflict is now an explicit admission gap;
+    a reviewed account-specific reset evidence value is required before FMP
+    routing is treated as fully verified. The independent trailing-30-day
+    500 MB bandwidth pool and complete operation-byte map remain mandatory.
+  - >-
     2026-09-25 Marketstack official-source recheck: the current pricing page,
     home page, and contact/FAQ pages continue to publish a contradictory free
     allowance (100 requests/month on pricing/home/contact guidance versus 1,000

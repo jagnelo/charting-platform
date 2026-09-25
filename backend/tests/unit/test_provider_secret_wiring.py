@@ -905,7 +905,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     statuses = routing_safety_preflight()
     assert statuses["tiingo"] == "routable"
     assert statuses["fmp"] == (
-        "non-routable: missing reviewed controls for FMP_BANDWIDTH_QUOTA_EVIDENCE"
+        "non-routable: missing reviewed controls for FMP_REVIEWED_DAILY_RESET, FMP_DAILY_QUOTA_EVIDENCE, FMP_BANDWIDTH_QUOTA_EVIDENCE"
     )
 
     monkeypatch.setenv("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "calendar_month_est")
@@ -917,7 +917,9 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
 
     monkeypatch.setenv("FMP_BANDWIDTH_QUOTA_EVIDENCE", "current plan evidence")
     statuses = routing_safety_preflight()
-    assert statuses["fmp"] == "routable"
+    assert statuses["fmp"] == (
+        "non-routable: missing reviewed controls for FMP_REVIEWED_DAILY_RESET, FMP_DAILY_QUOTA_EVIDENCE"
+    )
 
     monkeypatch.setenv("FMP_REVIEWED_DAILY_RESET", "calendar_day_utc")
     monkeypatch.setenv("FMP_REVIEWED_BANDWIDTH_RESET", "rolling_30_days")

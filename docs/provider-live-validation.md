@@ -615,11 +615,13 @@ pricing contract defines a 500 MB trailing-30-day bandwidth pool (the account
 reports 512 MB, so the implementation retains the conservative
 500,000,000-byte ceiling). FMP still requires a complete operator-reviewed
 `FMP_OPERATION_BYTE_BOUNDS` map and current bandwidth entitlement evidence.
-The daily-call reset is now modeled from the official FAQ as the exact
-15:00 `America/New_York` boundary; `FMP_REVIEWED_DAILY_RESET` and
-`FMP_DAILY_QUOTA_EVIDENCE` remain optional native-reset overrides for a future
-plan. FMP's `FMP_REVIEWED_BANDWIDTH_RESET` is also only an optional override
-for a future plan. Analyst-estimate/price-target
+The daily-call reset is modeled from the official FAQ as the deterministic
+15:00 `America/New_York` fixture boundary, but newer official FMP limit
+guidance says no single reset time should be promised and directs operators to
+the dashboard. This source conflict is an admission gap: production routing
+requires `FMP_REVIEWED_DAILY_RESET` plus `FMP_DAILY_QUOTA_EVIDENCE` for the
+account-specific reset. FMP's `FMP_REVIEWED_BANDWIDTH_RESET` remains only an
+optional override for a future plan. Analyst-estimate/price-target
 endpoints remain outside this adapter until their plan entitlements are
 separately validated.
 
