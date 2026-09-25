@@ -6633,3 +6633,20 @@ provider or start the shadow run.
   on lossless persistence and contract hardening, but routing promotion,
   deployment activation, deferred-provider admission, and the final shadow
   phase remain owner-controlled gates.
+
+## 2026-09-25 native account-usage bootstrap evidence
+
+- At exact current source `8954f59f00cef77343adbe53440bb17eeb13ddca`, bounded
+  credentialed account-usage probes passed `1/1` for MarketData.app, Twelve
+  Data, EODHD, and Binance (one request per provider). The live runner used
+  the owner-only persistent quota coordinator and appended redacted receipts;
+  no credentials or response bodies entered Git.
+- Native observations reconciled the exact pools that the contracts map:
+  MarketData.app's 10,000-credit daily trial pool and Binance's 6,000-weight
+  fixed-minute pool are admitted; Twelve Data's 8-credit minute pool is
+  admitted but its separate daily pool remains unknown; EODHD's response
+  remains observation-only because its usage date was stale and official
+  minute-limit sources conflict. The full manifest was then re-run and still
+  stopped before transport (`0/0`) on the remaining provider-specific
+  baseline, contract, legal/use, capability, source-completeness, and
+  deferred-provider gates. No generic fallback was introduced.
