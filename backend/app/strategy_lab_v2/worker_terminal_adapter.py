@@ -37,7 +37,10 @@ from app.strategy_lab_v2.postgres_worker_state import (
 )
 from app.strategy_lab_v2.progress import ExecutionProgressState, ExecutionProgressUpdate
 from app.strategy_lab_v2.result_completion import ResultCompletionDecision
-from app.strategy_lab_v2.result_publication import ResultPublicationPlan
+from app.strategy_lab_v2.result_publication import (
+    ResultPublicationDecision,
+    ResultPublicationPlan,
+)
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
 from app.strategy_lab_v2.worker_process import WorkerProcessDecision
 from app.strategy_lab_v2.worker_settlement import WorkerSettlementLedger
@@ -273,7 +276,7 @@ class PostgresWorkerTerminalAdapter:
                     entry_fingerprint,
                     f"result publication persistence failed: {type(error).__name__}",
                 )
-            if publication.plan.decision.value == "reject":
+            if publication.plan.decision is ResultPublicationDecision.REJECT:
                 return _reject(
                     entry_fingerprint,
                     "successful terminal evidence has a rejected publication plan",
