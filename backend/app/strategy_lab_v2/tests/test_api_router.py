@@ -5,6 +5,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any, cast
 
+import httpx
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -540,6 +541,24 @@ class ConflictAdapter(FakeAdapter):
         )
 
 
+class WarmupRouteAdapter(FakeAdapter):
+    async def complete_forward_warmup(self, **kwargs: Any):
+        receipt = kwargs["receipt"]
+        warming = ForwardInstance(
+            receipt.instance_id,
+            content_digest("portfolio"),
+            receipt.warmup_snapshot_fingerprint,
+            receipt.carry_in_mode,
+            ForwardState.WARMING_UP,
+            None,
+            0,
+            0,
+            NOW,
+            NOW,
+        )
+        return resolve_forward_warmup(warming, receipt)
+
+
 class ResourceConflictAdapter(FakeAdapter):
     async def create_resource(self, **kwargs: Any) -> ResourceMutationServiceResult:
         request = kwargs["request"]
@@ -604,6 +623,53 @@ def _client(adapter: Any) -> TestClient:
         prefix="/api/v1",
     )
     return TestClient(app)
+
+
+@pytest.mark.asyncio
+async def test_warmup_route_executes_through_asgi_boundary() -> None:
+    adapter = WarmupRouteAdapter()
+    async def get_adapter() -> Any:
+        return adapter
+
+    async def get_principal() -> str:
+        return "user-1"
+
+    app = FastAPI()
+    app.include_router(
+        create_strategy_lab_router(
+            adapter_dependency=get_adapter,
+            principal_dependency=get_principal,
+            request_id_factory=lambda: "request-generated",
+            clock=lambda: NOW,
+        ),
+        prefix="/api/v1",
+    )
+    receipt = ForwardWarmupReceipt(
+        "forward-1",
+        SNAPSHOT,
+        CarryInMode.FLAT,
+        content_digest("warmup-result"),
+        NOW,
+    )
+    body = {
+        "instance_id": receipt.instance_id,
+        "warmup_snapshot_fingerprint": receipt.warmup_snapshot_fingerprint,
+        "carry_in_mode": receipt.carry_in_mode.value,
+        "warmup_result_fingerprint": receipt.warmup_result_fingerprint,
+        "completed_at": receipt.completed_at.isoformat(),
+        "final_event_id": receipt.final_event_id,
+        "final_event_sequence": receipt.final_event_sequence,
+        "final_event_fingerprint": receipt.final_event_fingerprint,
+    }
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://strategy-lab.test") as client:
+        response = await client.post(
+            "/api/v1/strategy-lab/v2/forward-instances/forward-1/warmup",
+            json=body,
+        )
+    assert response.status_code == 202
+    assert response.json()["data"]["type"] == "forward-warmups"
+    assert response.json()["data"]["meta"]["decision"] == "complete"
 
 
 def test_resource_serialization_preserves_decimal_as_exact_string() -> None:
