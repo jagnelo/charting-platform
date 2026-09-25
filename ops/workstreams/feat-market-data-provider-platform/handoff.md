@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 full request-audit usage reporting checkpoint
+
+- Provider-usage summaries now read the complete append-only request-log
+  history instead of applying the legacy 30-day retention filter. The rolling
+  24-hour/7-day metrics remain unchanged, while retained totals and response
+  bytes now include older quota evidence needed for cross-session/monthly
+  reconciliation.
+- Focused provider-usage, maintenance, and provider-admin router coverage
+  passes `27/27`; Ruff and workstream validation pass. No external requests or
+  routing admission changed.
+
 ## 2026-09-25 append-only request-audit retention checkpoint
 
 - Provider request logs are now immutable quota/audit evidence alongside

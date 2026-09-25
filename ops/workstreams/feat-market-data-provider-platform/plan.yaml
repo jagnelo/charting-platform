@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 full request-audit usage reporting correction: provider-usage
+    summaries now read the complete append-only request-log history instead of
+    applying the legacy 30-day filter. Rolling 24-hour/7-day metrics are
+    unchanged; retained totals and response bytes include older quota evidence
+    for cross-session/monthly reconciliation. Focused provider-usage,
+    maintenance, and router coverage passes 27/27 with Ruff/workstream
+    validation clean. Provider routing, quota/legal/capability, universe,
+    secret-store, deferred-provider, and shadow gates remain unchanged.
+  - >-
     2026-09-25 append-only request-audit retention correction: provider
     request logs are now immutable quota/audit evidence, like latest-price,
     search, universe, profile, and identifier snapshots. The maintenance
