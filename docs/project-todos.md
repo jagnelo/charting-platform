@@ -2,6 +2,11 @@
 
 ### 2026-09-25 — Current provider-contract audit continuation
 
+- [x] Re-run the authoritative Docker-backed integration gate after the FMP
+      reset-conflict changes. `make test-int` passed `386` tests with `57`
+      warnings in `720.15s`; the isolated PostgreSQL/Redis testcontainer
+      session was cleaned without host-wide pruning.
+
 - [x] Make live preflight diagnostics exhaustive for FMP. Missing or malformed
       byte maps no longer suppress the daily-reset and bandwidth-evidence
       controls; the refreshed focused run stopped at `0/0` before transport

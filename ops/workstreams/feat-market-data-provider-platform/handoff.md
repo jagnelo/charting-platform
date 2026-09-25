@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Docker integration gate at current HEAD
+
+- The authoritative `make test-int` gate passed `386` tests with `57` warnings
+  in `720.15s` using an isolated PostgreSQL/Redis testcontainer session. The
+  session was cleaned without host-wide pruning and the branch remained clean
+  afterward. This validates the current provider-contract changes against the
+  full backend integration surface; it does not promote unresolved external
+  provider quotas, legal controls, or live-matrix evidence.
+
 ## 2026-09-25 exhaustive FMP preflight diagnostics
 
 - The provider live preflight now reports all FMP control gaps even when the
