@@ -3343,6 +3343,8 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.desjardins"
       - "web:desjardins-canadian-etf-portfolios-2026-09-02"
       - "web:desjardins-us-provider-404-2026-09-02"
+      - "web:desjardins-current-canadian-etf-lineup-2026-09-25"
+      - "web:desjardins-tsx-etf-launches-2025-08-28"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -3356,6 +3358,14 @@ providers:
         source: "https://stockanalysis.com/etf/provider/desjardins/"
         result: "The expected public U.S. ETF provider endpoint returns HTTP 404, corroborating that this identity has no active U.S. ETF provider catalogue in the target universe."
         evidence_ref: "web:desjardins-us-provider-404-2026-09-02"
+      - date: 2026-09-25
+        source: "https://www.fondsdesjardins.com/etf/"
+        result: "The current official Desjardins ETF lineup lists Canadian products such as DACU, DACL, and DAGL and identifies Desjardins Global Asset Management as portfolio manager; the page does not expose a U.S.-listed ETF publisher route for the target universe."
+        evidence_ref: "web:desjardins-current-canadian-etf-lineup-2026-09-25"
+      - date: 2026-09-25
+        source: "https://www.desjardins.com/en/news/desjardins-launche-two-new-etfs-desjardins-american-mid-cap-equity-index-etf.html"
+        result: "The current Desjardins launch notice identifies DGLM and DMID as ETFs beginning to trade on the Toronto Stock Exchange, confirming that an American-equity mandate does not imply a U.S.-listed Desjardins ETF route."
+        evidence_ref: "web:desjardins-tsx-etf-launches-2025-08-28"
     disposition_reason: "desjardins: Official Desjardins pages expose Canadian ETF portfolios and Canadian-listed funds, while the public U.S. ETF provider endpoint is 404; retain explicit fallback eligibility without treating this non-U.S. publisher as a native U.S. route."
     next_action: "desjardins: Keep fallback-only as provider_not_a_portfolio_publisher for the U.S. ETF target; reopen only if Desjardins launches a U.S.-listed ETF and publishes a complete executable first-party holdings route."
     implementation_sha: null

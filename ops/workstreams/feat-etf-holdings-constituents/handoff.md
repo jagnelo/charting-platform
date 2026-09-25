@@ -54,6 +54,14 @@ official merger notice records Credit Suisse ETF sub-funds merging into UBS
 funds effective 2024-08-26. Credit Suisse therefore remains an inactive/
 successor identity with no independent current holdings route.
 
+## Current audit checkpoint — Desjardins market boundary — 2026-09-25
+
+Desjardins currently publishes Canadian ETFs, including DACU, DACL, and DAGL;
+its recent American-equity ETF launch DGLM/DMID trades on the Toronto Stock
+Exchange. This confirms a Canadian publisher identity rather than a U.S.-listed
+ETF route, so `desjardins` remains `provider_not_a_portfolio_publisher` for the
+target universe.
+
 ## Current branch state
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
