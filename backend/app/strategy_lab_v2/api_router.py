@@ -1081,6 +1081,8 @@ def _parse_forward_dispatch(
         raise ValueError("payload must be a JSON object")
     if len(json.dumps(_json_value(payload), separators=(",", ":"), ensure_ascii=False).encode("utf-8")) > MAX_RESOURCE_PAYLOAD_BYTES:
         raise ValueError("forward dispatch payload exceeds the maximum size")
+    if content_digest(payload) != dispatch_request.payload_digest:
+        raise ValueError("dispatch payload digest does not match payload")
     return event, observation, dispatch_request, payload, correction
 
 
