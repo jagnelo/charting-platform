@@ -6376,6 +6376,7 @@ provider or start the shadow run.
   it does not promote routing or close the independent provider-contract,
   legal/use, universe, secret-store, deferred-provider, publication, or
   final-shadow gates.
+
 ## 2026-09-25 SEC issuer-directory source evidence retention
 
 - Commit `27f3cc34a` adds immutable `source_payload` evidence to every
