@@ -1,5 +1,13 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 quota-ledger diagnostic hardening
+
+- A host-mounted SQLite ledger that can be read but not written now produces a
+  safe actionable preflight diagnostic: `provider quota ledger is read-only;
+  use a writable SQLite path or PostgreSQL coordinator`. Paths and credentials
+  remain redacted. The quota-coordinator/live-runner focused suite passed
+  `86/86`, and the exact-current-head receipt is in `validation.jsonl`.
+
 ## 2026-09-25 Docker integration gate at current HEAD
 
 - The authoritative `make test-int` gate passed `386` tests with `57` warnings

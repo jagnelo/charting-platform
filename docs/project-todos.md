@@ -2,6 +2,11 @@
 
 ### 2026-09-25 — Current provider-contract audit continuation
 
+- [x] Replace the generic host-ledger failure with an actionable, redacted
+      read-only SQLite diagnostic. The quota-coordinator/live-runner focused
+      suite passed `86/86`; the current preflight receipt identifies the
+      writable-ledger/PostgreSQL requirement without exposing paths or secrets.
+
 - [x] Re-run the authoritative Docker-backed integration gate after the FMP
       reset-conflict changes. `make test-int` passed `386` tests with `57`
       warnings in `720.15s`; the isolated PostgreSQL/Redis testcontainer
