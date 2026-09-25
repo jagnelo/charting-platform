@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
@@ -69,6 +69,7 @@ class WorkerRecoveryRecord:
             raise ValueError("next_attempt_id must be non-empty when provided")
         if self.released_at.tzinfo is None or self.released_at.utcoffset() is None:
             raise ValueError("released_at must be timezone-aware")
+        object.__setattr__(self, "released_at", self.released_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:
@@ -200,6 +201,7 @@ def resolve_worker_recovery(
         raise TypeError("policy must be a RetryPolicy")
     if observed_at.tzinfo is None or observed_at.utcoffset() is None:
         raise ValueError("recovery observation time must be timezone-aware")
+    observed_at = observed_at.astimezone(UTC)
     attempts = tuple(prior_attempts)
     if not attempts or any(not isinstance(item, RunAttempt) for item in attempts):
         raise TypeError("prior_attempts must contain RunAttempt values")

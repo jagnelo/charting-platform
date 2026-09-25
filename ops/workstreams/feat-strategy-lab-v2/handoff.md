@@ -4937,6 +4937,24 @@ The branch remains `ready_for_human_review`. Stable Nautilus v2 publication,
 isolated runtime activation, shared worker/database reconciliation, upstream
 provider/ETF/TC2000 integration, and deployment remain gated.
 
+## 2026-09-25 - Recovery timestamp identity checkpoint
+
+Recovery retry plans and worker-release receipts now normalize all aware
+observation, retry, and release timestamps to UTC at their contract boundaries.
+Offset-equivalent observations therefore produce identical retry/release
+identities, and replay comparisons no longer reject equivalent instants.
+Focused recovery coverage passed 10 tests. The complete branch gate passed 880
+package tests, 2 migration tests, Ruff, MyPy across 276 files, diff validation,
+and workstream validation. The exact backend coverage gate passed 2,531 tests
+with 83.79% total coverage (required threshold: 75%) and 86 warnings; the
+referenced runtime env file was absent and `.env.dev` supplied test
+configuration. Two cleanup passes retained zero testcontainer sessions,
+containers, images, or volumes.
+
+The branch remains `ready_for_human_review`. Shared worker/database
+reconciliation, stable Nautilus v2 publication, host activation, upstream
+provider/ETF/TC2000 integration, and deployment remain gated.
+
 ## 2026-09-25 - Legacy import inspection checkpoint
 
 Preserved digest-only legacy records are now exposed through the read-only

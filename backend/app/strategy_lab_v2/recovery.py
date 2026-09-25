@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest
@@ -114,6 +114,8 @@ class RecoveryPlan:
             self.retry_at.tzinfo is None or self.retry_at.utcoffset() is None
         ):
             raise ValueError("retry_at must be timezone-aware")
+        if self.retry_at is not None:
+            object.__setattr__(self, "retry_at", self.retry_at.astimezone(UTC))
         if self.disposition is RecoveryDisposition.RETRY:
             if self.next_ordinal != self.prior_ordinal + 1 or self.retry_at is None:
                 raise ValueError("retry plans require the next ordinal and retry_at")

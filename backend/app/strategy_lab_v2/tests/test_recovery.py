@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -49,6 +49,27 @@ def test_recovery_plan_is_deterministic_and_materializes_same_trial_retry() -> N
     assert retry.trial_id == failed.trial_id
     assert retry.ordinal == 2
     assert retry.created_at == plan.retry_at
+
+
+def test_recovery_retry_identity_normalizes_offset_equivalent_observations() -> None:
+    failed = _failed_attempt()
+    utc_observed = NOW + timedelta(seconds=3)
+    offset_observed = utc_observed.astimezone(timezone(timedelta(hours=2)))
+
+    utc_plan = plan_attempt_recovery(
+        (failed,),
+        reason=RecoveryReason.WORKER_CRASH,
+        observed_at=utc_observed,
+    )
+    offset_plan = plan_attempt_recovery(
+        (failed,),
+        reason=RecoveryReason.WORKER_CRASH,
+        observed_at=offset_observed,
+    )
+
+    assert offset_plan == utc_plan
+    assert offset_plan.retry_at is not None
+    assert offset_plan.retry_at.tzinfo is UTC
 
 
 def test_recovery_backoff_caps_and_attempt_limit_is_terminal() -> None:

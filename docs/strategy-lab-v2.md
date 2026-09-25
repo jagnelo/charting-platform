@@ -438,6 +438,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   backoff is derived from the next ordinal and supplied observation time.
   Successful attempts are no-ops, cancellation is terminal by default, and
   `RecoveryPlan` is content-addressed for idempotent scheduling records.
+  Aware retry observations and plan timestamps normalize to UTC at the
+  contract boundary, so offset-equivalent instants retain one retry identity.
   `RecoveryPlan.materialize_retry_attempt()` preserves the immutable trial
   identity. Durable compare-and-set, scheduling, worker restart, and engine
   disposal remain adapter responsibilities.
@@ -628,7 +630,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   observation and returns it with the released pool; missing admission
   evidence, worker drift, invalid lease-expiry claims, and missing retry
   identities fail closed; no attempt transition, scheduling, or engine
-  invocation is performed.
+  invocation is performed. Release receipts and observed timestamps normalize
+  aware offsets to UTC before ledger identity and replay comparison.
 - `result_completion.py` composes terminal runtime, outcome, progress, result
   publication, and content-addressed artifact-commit evidence. It resolves all
   artifact plans against a working ledger but returns the original ledger on

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 from app.strategy_lab_v2.admission import (
     ExecutionAdmissionDecision,
@@ -75,6 +75,26 @@ def test_worker_crash_releases_capacity_and_materializes_same_trial_retry() -> N
     assert resolution.next_attempt.ordinal == 2
     assert resolution.released_reservation_id == _reservation("one")
     assert not resolution.pool.active_reservations
+
+
+def test_worker_recovery_release_receipt_normalizes_offset_equivalent_time() -> None:
+    running, lease, ledger, pool = _admitted()
+    failed = transition_attempt(running, AttemptState.FAILED, now=NOW + timedelta(seconds=5))
+    observed = (NOW + timedelta(seconds=6)).astimezone(timezone(timedelta(hours=-4)))
+    resolution = resolve_worker_recovery(
+        (failed,),
+        admission_ledger=ledger,
+        lease_state=LeaseObservationState(lease),
+        pool=pool,
+        ledger=WorkerRecoveryLedger(),
+        reason=RecoveryReason.WORKER_CRASH,
+        observed_at=observed,
+        next_attempt_id="attempt-2",
+    )
+
+    assert resolution.decision is WorkerRecoveryDecision.RETRY_SCHEDULED
+    assert resolution.ledger.records[0].released_at == NOW + timedelta(seconds=6)
+    assert resolution.ledger.records[0].released_at.tzinfo is UTC
 
     replay = resolve_worker_recovery(
         (failed,),
