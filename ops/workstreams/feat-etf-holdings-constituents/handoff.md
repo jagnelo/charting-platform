@@ -107,10 +107,11 @@ Playwright was still running. GitHub API rate limiting prevented retrieval of
 the failed-step log at this checkpoint; the local full matrix passes, so this
 must remain an unresolved CI observation rather than a green claim.
 
-The provider-platform remote remains `32f65fb7`, staging remains `8b885a2f`,
-and the provider branch is not an ancestor of staging. Neither ref exposes
-`ProviderCapability.ETF_HOLDINGS`; AC10 therefore remains deferred. No
-protected branch or other worktree was modified.
+The current provider-platform refs are `origin/feat/market-data-provider-platform`
+at `73d1d1aa` and the local shared branch at `ca265b0c`; neither is an ancestor
+of staging `8b885a2f`, and neither exposes `ProviderCapability.ETF_HOLDINGS`.
+AC10 therefore remains deferred. No protected branch or other worktree was
+modified.
 
 ## Complete branch-declared validation — 2026-09-08
 
