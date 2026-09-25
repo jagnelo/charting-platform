@@ -129,7 +129,7 @@
   "local_validation_profile": "full_stack_browser",
   "next_action": "reconcile shared worker/database paths and bind host event resolution to admitted canonical events only after provider authorization and stable Nautilus v2 conformance",
   "parent_branch": "staging",
-  "plan_hash": "4f3244a677435c7c4707a065b83143d4654a070eacefb00eda9e261b0c1296d2",
+  "plan_hash": "2fbd3de6d2cb0b7b08e34a0d9e1c67b9178970f2667ada945df6118975eb6208",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -142,7 +142,7 @@
       "AC-FORWARD"
     ],
     "current_blocker": "Stable Nautilus release, deployment-specific host evidence configuration, migration/schema reconciliation, upstream contract reconciliation, and full repository integration remain open",
-    "current_phase": "strategy-lab-v2-forward-event-admission-api-staging-ready-for-human-review",
+    "current_phase": "strategy-lab-v2-forward-lifecycle-api-staging-ready-for-human-review",
       "next_action": "reconcile shared worker/database paths and bind host event resolution to admitted canonical events only after provider authorization and stable Nautilus v2 conformance",
     "total": 18,
       "updated_at": "2026-09-25T13:25:00+00:00"

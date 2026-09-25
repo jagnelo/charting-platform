@@ -757,6 +757,6 @@ progress:
     - strategy-lab-v2-forward-warmup-api
     - strategy-lab-v2-forward-lifecycle-api
   total: 18
-  current_phase: strategy-lab-v2-forward-event-admission-api-staging-ready-for-human-review
+  current_phase: strategy-lab-v2-forward-lifecycle-api-staging-ready-for-human-review
   current_blocker: Stable Nautilus release, deployment-specific host evidence configuration, migration/schema reconciliation, upstream contract reconciliation, and full repository integration remain open
   next_action: reconcile shared worker/database paths and bind host event resolution to admitted canonical events only after provider authorization and stable Nautilus v2 conformance
