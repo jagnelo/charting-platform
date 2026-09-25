@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current provider preflight after availability retention
+
+- Source `b72ac9a01` was run with host access to the owner-only durable quota
+  ledger. It stopped before transport with `0/0` ordinary cases and zero
+  provider requests; the receipt is appended to `validation.jsonl`.
+- The durable ledger is available. Remaining blockers are provider-specific
+  quota/cost/baseline and reset evidence, legal/use controls, unresolved live
+  capability cases, complete NMS/OTC/SEC reconciliation, external CI/staging/
+  production secret stores, deferred Tradier/IBKR/Ondo, and the final shadow
+  phase. No generic fallback was applied.
+
 ## 2026-09-25 availability-probe response retention correction
 
 - Availability probes are real quota-consuming provider calls. Their complete

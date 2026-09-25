@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current full provider preflight at source
+    b72ac9a0112e6e6007a1547485b50dfb7636a4a6 ran with the owner-only durable
+    quota ledger accessible and stopped before transport: 0/0 ordinary cases
+    and zero provider requests. The durable ledger is available; admission
+    remains fail-closed on the provider-specific quota/cost/baseline, legal,
+    unresolved capability, universe, external secret-store, deferred-provider,
+    and final-shadow gates listed in validation.jsonl.
+  - >-
     2026-09-25 availability-probe evidence correction: provider availability
     observations now retain the complete normalized probe response in
     response_payload (with authentication-shaped fields redacted) instead of
