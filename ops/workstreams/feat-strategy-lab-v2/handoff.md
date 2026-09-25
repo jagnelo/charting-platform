@@ -59,6 +59,22 @@ The exact backend gate then passed 2,458 tests at 83.69% combined coverage
 with 86 warnings; both cleanup passes retained zero testcontainer resources.
 The branch-declared checks and workstream validator remain green.
 
+## 2026-09-25 - Opt-in worker Compose activation
+
+The root Compose stack now exposes `strategy-lab-v2-worker` under the explicit
+`strategy-lab-v2` profile, leaving the general ARQ worker unchanged. The
+profile waits for PostgreSQL/Redis health, mounts a dedicated
+`strategy_lab_artifacts` volume, runs with a read-only root, dropped
+capabilities, no-new-privileges, and bounded `/tmp`, and binds the local Docker
+socket only when the configured socket exists. Its namespaced callback factory
+is intentionally empty by default, so enabling the profile without application
+terminal/result wiring fails closed at startup rather than silently processing
+jobs with incomplete evidence.
+
+`docker compose --profile strategy-lab-v2 config --quiet` passes and the
+rendered service contains no provider credentials. Stable Nautilus release
+conformance and callback implementation remain separate gates.
+
 ## 2026-09-24 - Typed result-manifest rehydration
 
 `postgres_result_materialization.py` now exposes owner-scoped

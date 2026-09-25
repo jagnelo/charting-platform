@@ -24,6 +24,9 @@ volumes:
   research_results:
     labels:
       charting.worktree.id: ${WORKTREE_ID:-unscoped}
+  strategy_lab_artifacts:
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
 
 networks:
   charting:
@@ -208,6 +211,52 @@ services:
       PROXY_ENABLED:           "false"
     depends_on:
       backend:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [charting]
+
+  # ── Strategy Lab v2 execution worker (explicit opt-in) ────────────────────
+  # This process is intentionally separate from the general ARQ worker. It
+  # requires an application-owned callback factory and the local Docker daemon
+  # because sandbox plans launch separately pinned, network-disabled runtime
+  # containers. It is never started by the default stack profile.
+  strategy-lab-v2-worker:
+    profiles: ["strategy-lab-v2"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      labels:
+        charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    restart: unless-stopped
+    command: python -m app.strategy_lab_v2.worker_entrypoint
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - "no-new-privileges:true"
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=64m"]
+    environment:
+      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      STRATEGY_LAB_V2_REDIS_URL: redis://redis:6379/0
+      STRATEGY_LAB_V2_ARTIFACT_ROOT: /strategy-lab-artifacts
+      STRATEGY_LAB_V2_CALLBACK_FACTORY: ${STRATEGY_LAB_V2_CALLBACK_FACTORY:-}
+      STRATEGY_LAB_V2_MIGRATIONS_ENABLED: ${STRATEGY_LAB_V2_MIGRATIONS_ENABLED:-true}
+      STRATEGY_LAB_V2_MIGRATION_TARGET: ${STRATEGY_LAB_V2_MIGRATION_TARGET:-head}
+      STRATEGY_LAB_V2_QUEUE: ${STRATEGY_LAB_V2_QUEUE:-backtest}
+      STRATEGY_LAB_V2_GROUP: ${STRATEGY_LAB_V2_GROUP:-strategy-lab-v2}
+      STRATEGY_LAB_V2_PROCESS_TIMEOUT_SECONDS: ${STRATEGY_LAB_V2_PROCESS_TIMEOUT_SECONDS:-300}
+      STRATEGY_LAB_V2_DOCKER_BINARY: ${STRATEGY_LAB_V2_DOCKER_BINARY:-docker}
+    volumes:
+      - strategy_lab_artifacts:/strategy-lab-artifacts
+      - type: bind
+        source: ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}
+        target: /var/run/docker.sock
+        bind:
+          create_host_path: false
+    depends_on:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
