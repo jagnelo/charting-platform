@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 FINRA ORF credential-scoped directory cache
+
+- The ORF directory cache now includes the TRAQS username and a one-way
+  refresh-token digest in addition to source identity. Credential rotation
+  cannot reuse a prior authenticated directory snapshot; raw refresh tokens
+  are not retained. Focused FINRA coverage passed `43/43` with Ruff clean.
+
+## 2026-09-25 exact-head validation after ORF directory-cache hardening
+
+- The branch-owned backend unit gate passed `1,925/1,925` with `37` warnings
+  in `314.40s` at source `60653704d5643e18dd30a393f81422e9c42aa1df`.
+- The authoritative Docker integration gate passed `386/386` with `57`
+  warnings in `709.56s`, using isolated PostgreSQL/Redis testcontainers
+  (session `6d65e7e7-f2e8-42e7-982a-f8f2a192d8ca`). Cleanup completed without
+  host-wide pruning. FINRA ORF entitlement, terms, completeness,
+  operation-cost, and credentialed live evidence remain fail-closed.
+
 ## 2026-09-25 FINRA OTC source-scoped directory cache
 
 - The in-memory OTC directory cache now includes the configured source kind,
