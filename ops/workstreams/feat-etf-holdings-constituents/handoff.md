@@ -70,6 +70,13 @@ endpoint has been captured. Discipline Funds remains
 `non_executable_public_source`; rendered browser evidence is not promoted as a
 native route.
 
+## Current audit checkpoint — DVx/VistaShares identity boundary — 2026-09-25
+
+Current VistaShares material identifies VistaShares as the ETF issuer and DVx
+Ventures as a related founder/venture identity. ETF holdings ownership remains
+under the separately tracked `vistashares` provider; `dvx_ventures` stays
+`provider_not_a_portfolio_publisher` with no duplicate route.
+
 ## Current branch state
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`

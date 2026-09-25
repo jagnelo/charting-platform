@@ -3458,6 +3458,7 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.dvx_ventures"
       - "web:dvx-venture-studio-not-etf-publisher-2026-09-02"
       - "web:vistashares-issuer-and-dvx-relationship-2026-09-02"
+      - "web:vistashares-current-issuer-and-dvx-relationship-2026-09-25"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -3471,7 +3472,11 @@ providers:
         source: "https://www.vistashares.com/about-us/ and https://www.vistashares.com/vistashares-adds-three-new-supercycle-etfs-focused-on-space-defense-and-robotics/"
         result: "The related first-party VistaShares site identifies VistaShares as the ETF issuer, lists its ETF products, and describes Jon McNeill as a DVx Ventures co-founder/investment contributor; it does not identify DVx Ventures as the portfolio publisher."
         evidence_ref: "web:vistashares-issuer-and-dvx-relationship-2026-09-02"
-    disposition_reason: "dvx_ventures: DVx Ventures is a venture/company-creation platform and contributor related to VistaShares, not the issuer-owned publisher of the VistaShares ETF portfolios. The ETF product and holdings ownership belongs under the separately tracked vistashares identity; no duplicate DVx native route should be created from a venture-platform or manager relationship."
+      - date: 2026-09-25
+        source: "https://www.vistashares.com/vistashares-surpasses-2-billion-in-assets/; https://www.vistashares.com/team-members/"
+        result: "Current VistaShares first-party material identifies VistaShares as the ETF issuer and describes Jon McNeill as a co-founder of DVx Ventures; the relationship remains a founder/ownership connection, not a DVx portfolio-publisher route."
+        evidence_ref: "web:vistashares-current-issuer-and-dvx-relationship-2026-09-25"
+    disposition_reason: "dvx_ventures: Current VistaShares material continues to identify VistaShares as the ETF issuer while describing DVx Ventures as a related founder/venture identity, not the issuer-owned publisher of ETF portfolios. Holdings ownership belongs under the separately tracked vistashares identity; no duplicate DVx native route should be created from the venture relationship."
     next_action: "dvx_ventures: Keep fallback-only as provider_not_a_portfolio_publisher and resolve any source row to the actual VistaShares ETF sponsor identity; reopen only if DVx Ventures itself launches a U.S.-listed ETF and publishes a complete executable first-party holdings route."
     implementation_sha: null
     validation_refs: []
