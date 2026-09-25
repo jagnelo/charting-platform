@@ -156,6 +156,10 @@ fetch observation timestamp, so a later provider revision of an existing bar
 creates a new raw observation instead of overwriting the earlier response.
 Canonical bars remain projections and may be refreshed independently.
 
+General market events follow the same projection/evidence split. The canonical
+`market_event` row remains keyed by provider event identity for reconciliation,
+while each fetched provider payload is appended to `market_event_observation`.
+
 The mapping is enforced consistently by normal application routing, the direct
 live-probe planner, and the manifest preflight. Missing, duplicated, or
 non-existent `reconciled_dimensions` entries fail closed before transport;

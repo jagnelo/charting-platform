@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 append-only market-event observation correction: general market
+    events now retain every fetched provider payload in the immutable
+    market_event_observation table, while market_event remains the latest
+    reconciliation projection. Migration d2e3f4a5b6c7, focused event-family
+    coverage (71/71), and the complete migration suite (14/14) pass with Ruff
+    and diff checks clean. Provider routing, quota/legal/capability, universe,
+    secret-store, deferred-provider, and shadow gates remain open.
+  - >-
     2026-09-25 exact-current full provider preflight at source
     2d4987df0b91f0b5110c8effb11b10ac7f8adf10 stopped before transport with
     0/0 cases and zero provider requests. The append-only corrections did not

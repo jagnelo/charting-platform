@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 append-only market-event observation checkpoint
+
+- General provider market events now have an immutable `market_event_observation`
+  history table. The canonical `market_event` row remains the latest
+  reconciliation projection, while every fetched payload is appended as an
+  observation so provider revisions cannot erase prior evidence.
+- Migration `d2e3f4a5b6c7` and focused event/prelisting/reconciliation/EDGAR/
+  tokenized coverage pass `71/71`; the complete migration suite passes `14/14`;
+  Ruff and diff checks pass.
+
 ## 2026-09-25 exact-current preflight refresh
 
 - Source `2d4987df0` ran the full provider preflight and stopped before
