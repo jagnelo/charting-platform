@@ -28,6 +28,19 @@
   MarketData.app response-priced option-history admission, or close any legal,
   byte-cost, universe, deployment-secret, or deferred-provider gate.
 
+## 2026-09-25 Dinari Sandbox canary at current source
+
+- The explicitly capped, non-persisting Dinari Sandbox canary passed `1/1` at
+  source `fa6d7e8401123cab1bf47c8555bcb4d2d7e1931d` with 14 provider requests
+  and 125,169 response bytes. It covered tokenized asset discovery/metadata,
+  price/quote, historical prices, news, dividends, splits, and corporate
+  actions. The complete redacted receipt is in `validation.jsonl`.
+- Authorization metadata and the 20-request hard cap were supplied only as
+  ephemeral process environment for this run. No credentials or sandbox
+  payloads entered Git or canonical application tables. Dinari remains
+  production-non-routable because its Sandbox quota/reset and commercial/data-
+  use terms are still unpublished.
+
 ## 2026-09-25 Docker integration gate at current tip
 
 - Docker-backed PostgreSQL/Redis integration validation was rerun at the

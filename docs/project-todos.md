@@ -19,6 +19,12 @@
       totals are durable in the provider workstream.
 - [ ] Keep EODHD fail-closed until its contradictory published minute limits,
       active account entitlement, and current daily baseline are reconciled.
+- [x] Run the explicitly capped Dinari Sandbox canary with ephemeral
+      authorization controls. It passed `1/1` with 14 requests and 125,169
+      response bytes; the redacted receipt is durable and sandbox payloads were
+      not persisted into canonical data.
+- [ ] Keep Dinari production routing disabled until its Sandbox quota/reset and
+      commercial/redistribution terms are provider-authoritatively reviewed.
 
 - [x] Refresh the exact-current full provider safety preflight at source
       `fcb047f68531a34dc9719be48d751cc1f88e401d`; it stopped before transport

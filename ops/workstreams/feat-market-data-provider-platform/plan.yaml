@@ -184,6 +184,12 @@ remaining_gaps:
     resolve EODHD's contradictory account entitlement or any other provider's
     legal, byte-cost, capability, universe, secret-store, or deferred gates.
   - >-
+    2026-09-25 the explicitly capped, non-persisting Dinari Sandbox canary
+    passed `1/1` at source `fa6d7e8401123cab1bf47c8555bcb4d2d7e1931d` with 14
+    requests and 125,169 response bytes. Credentials and authorization were
+    process-only; Dinari remains production-non-routable because Sandbox
+    quota/reset and commercial/redistribution terms remain unpublished.
+  - >-
     2026-09-25 Twelve Data reset-source reconciliation: official credits
     documentation confirms the Basic 800-credit daily pool resets at
     00:00 UTC, and the seed records `calendar_day_utc` from that source. The
