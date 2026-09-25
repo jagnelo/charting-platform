@@ -190,9 +190,28 @@ class DedicatedStrategyWorkerService:
             heartbeat_task = asyncio.create_task(
                 self._heartbeat_loop(request.lease_state, heartbeat_failure)
             )
+        execution_task = asyncio.create_task(self._process_executor.run_async(request))
         try:
             try:
-                result = await self._process_executor.run_async(request)
+                if heartbeat_task is None:
+                    result = await execution_task
+                else:
+                    done, _ = await asyncio.wait(
+                        (execution_task, heartbeat_task),
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
+                    if heartbeat_task in done and heartbeat_failure:
+                        execution_task.cancel()
+                        try:
+                            await execution_task
+                        except asyncio.CancelledError:
+                            pass
+                        return WorkerHandleResult(
+                            entry.fingerprint,
+                            WorkerHandleDecision.RETRY,
+                            rejection_reason=heartbeat_failure[0],
+                        )
+                    result = await execution_task
             except Exception as error:  # pragma: no cover - process adapter boundary
                 return WorkerHandleResult(
                     entry.fingerprint,

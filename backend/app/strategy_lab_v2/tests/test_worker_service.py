@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import time
 from pathlib import Path
 from typing import Any, cast
@@ -262,6 +263,67 @@ async def test_service_leaves_entry_pending_when_heartbeat_is_rejected(tmp_path:
 
     assert result.decision is WorkerHandleDecision.RETRY
     assert result.rejection_reason == "worker lease heartbeat rejected: reject"
+
+
+async def test_service_cancels_execution_when_heartbeat_fails(tmp_path: Path) -> None:
+    service, payload, entry = _service(tmp_path)
+    initial_request = _request(tmp_path)
+
+    class CancellationAwareExecutor(SerialWorkerProcessExecutor):
+        def __init__(self) -> None:
+            super().__init__(timeout_seconds=1)
+            self.cancelled = False
+
+        async def run_async(
+            self,
+            request: WorkerExecutionRequest,
+            *,
+            timeout_seconds: float | None = None,
+            poll_interval_seconds: float = 0.005,
+        ) -> WorkerProcessResolution:
+            del request, timeout_seconds, poll_interval_seconds
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.cancelled = True
+                raise
+            raise AssertionError("execution should be cancelled after heartbeat failure")
+
+    executor = CancellationAwareExecutor()
+
+    async def materializer(
+        _entry: RedisStreamEntry, _payload: DispatchPayload
+    ) -> WorkerExecutionRequest:
+        return initial_request
+
+    async def heartbeat(_observation):
+        return LeaseObservationResolution(
+            LeaseObservationDecision.REJECT,
+            initial_request.lease_state,
+            1,
+            rejection_reason="lease expired",
+        )
+
+    async def completion(*_args: Any) -> WorkerHandleResult:
+        raise AssertionError("completion must not run after heartbeat failure")
+
+    service = DedicatedStrategyWorkerService(
+        service.scheduler,
+        _Loader(payload),
+        materializer,
+        completion,
+        process_executor=executor,
+        heartbeat_writer=heartbeat,
+        heartbeat_interval_seconds=0.001,
+        heartbeat_extension_seconds=0.1,
+        heartbeat_sleep=asyncio.sleep,
+        clock=lambda: NOW,
+    )
+    result = await service.handle(entry, payload)
+
+    assert result.decision is WorkerHandleDecision.RETRY
+    assert result.rejection_reason == "worker lease heartbeat rejected: reject"
+    assert executor.cancelled
 
 
 async def test_service_can_delegate_terminal_context_before_acknowledgement(
