@@ -2,6 +2,16 @@
 
 ### 2026-09-25 — Current provider-contract audit continuation
 
+- [x] Attempt the focused credentialed Twelve Data account-usage probe with an
+      isolated owner-only durable ledger. The run failed before any provider
+      HTTP request because this shell could not resolve the provider host
+      (`Temporary failure in name resolution`); no live pass is claimed and the
+      redacted failure receipt is retained in the provider workstream.
+- [ ] Re-run the focused Twelve Data live probe from a network-enabled host,
+      then reconcile its durable daily baseline before admitting daily-metered
+      routing. The exact provider reset boundary is already documented as
+      00:00 UTC.
+
 - [x] Refresh the exact-current full provider safety preflight at source
       `fcb047f68531a34dc9719be48d751cc1f88e401d`; it stopped before transport
       with `0/0` cases and zero provider requests.

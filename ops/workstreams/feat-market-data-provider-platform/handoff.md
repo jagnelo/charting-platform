@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Twelve Data live-validation environment result
+
+- The credentialed `twelve_data:fetch_account_usage` probe was attempted with
+  the configured local-development key, an owner-only durable ledger, and an
+  isolated usage scope. The provider client reached its transport boundary but
+  the execution environment could not resolve the provider host
+  (`[Errno -3] Temporary failure in name resolution`), so the run recorded
+  `0` provider HTTP requests and no response payload or rate-limit headers.
+- This is an environment/network failure, not a passing integration result and
+  not evidence that the key or adapter is valid. No credential, payload, or
+  provider response was written to Git. Re-run the same focused probe from a
+  network-enabled host before claiming live Twelve Data evidence; the provider
+  remains fail-closed until its durable daily baseline is also reconciled.
+- The full exact-current safety preflight likewise stopped before transport on
+  provider-specific baseline, entitlement, legal, and capability gates. The
+  failed receipts are retained in `validation.jsonl` as redacted evidence.
+
 ## 2026-09-25 Twelve Data daily-reset source reconciliation
 
 - Official Twelve Data credits documentation confirms that the Basic 800-credit
