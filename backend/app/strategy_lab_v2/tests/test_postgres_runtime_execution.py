@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -168,7 +169,11 @@ async def test_runtime_adapter_applies_exact_updates_and_retains_history() -> No
 @pytest.mark.asyncio
 async def test_runtime_adapter_materializes_sandbox_result_atomically_and_replays() -> None:
     state, plan = _fixtures()
-    result = _result(plan, SandboxRunStatus.SUCCEEDED)
+    result = replace(
+        _result(plan, SandboxRunStatus.SUCCEEDED),
+        result_digest=content_digest("mounted-result"),
+        result_bytes=14,
+    )
     session = FakeSession()
     adapter = PostgresRuntimeExecutionAdapter(lambda: session)
     await adapter.initialize(principal="owner-a", state=state)
@@ -179,6 +184,8 @@ async def test_runtime_adapter_materializes_sandbox_result_atomically_and_replay
     assert materialized.state is not None
     assert materialized.state.phase is RuntimeExecutionPhase.SUCCEEDED
     assert materialized.state.sequence == 2
+    assert materialized.state.output_digest == content_digest("mounted-result")
+    assert materialized.state.output_bytes == 14
     assert len(session.updates) == 2
     replay = await adapter.materialize_sandbox_result(
         principal="owner-a", sandbox_plan=plan, sandbox_result=result, observed_at=NOW

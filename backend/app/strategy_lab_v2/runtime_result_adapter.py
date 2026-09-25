@@ -88,8 +88,8 @@ def materialize_sandbox_result(
         same_success = (
             state.phase is RuntimeExecutionPhase.SUCCEEDED
             and sandbox_result.status is SandboxRunStatus.SUCCEEDED
-            and state.output_digest == sandbox_result.stdout_digest
-            and state.output_bytes == sandbox_result.stdout_bytes
+            and state.output_digest == sandbox_result.terminal_output_digest
+            and state.output_bytes == sandbox_result.terminal_output_bytes
         )
         same_failure = (
             state.phase is RuntimeExecutionPhase.FAILED
@@ -129,8 +129,8 @@ def materialize_sandbox_result(
             running.state.sequence + 1,
             RuntimeExecutionPhase.SUCCEEDED,
             observed_at,
-            sandbox_result.stdout_digest,
-            sandbox_result.stdout_bytes,
+            sandbox_result.terminal_output_digest,
+            sandbox_result.terminal_output_bytes,
         )
         decision = RuntimeResultDecision.SUCCEEDED
     else:

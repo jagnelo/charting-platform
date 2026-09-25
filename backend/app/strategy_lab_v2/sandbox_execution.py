@@ -97,6 +97,18 @@ class SandboxRunResult:
         return self.stdout_bytes + self.stderr_bytes
 
     @property
+    def terminal_output_digest(self) -> str:
+        """Return the result-file identity, falling back to bounded stdout."""
+
+        return self.result_digest or self.stdout_digest
+
+    @property
+    def terminal_output_bytes(self) -> int:
+        """Return result-file bytes, falling back to bounded stdout bytes."""
+
+        return self.result_bytes if self.result_bytes is not None else self.stdout_bytes
+
+    @property
     def fingerprint(self) -> str:
         return content_digest(self)
 

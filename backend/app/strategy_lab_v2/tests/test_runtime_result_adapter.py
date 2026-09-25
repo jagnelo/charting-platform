@@ -88,6 +88,25 @@ def test_success_materializes_running_then_terminal_runtime_state() -> None:
     assert result.state.output_bytes == 6
 
 
+def test_success_prefers_mounted_result_identity_over_stdout() -> None:
+    state, plan = _fixtures()
+    sandbox_result = SandboxRunResult(
+        plan.fingerprint,
+        plan.request_fingerprint,
+        SandboxRunStatus.SUCCEEDED,
+        0,
+        content_digest("stdout"),
+        content_digest("stderr"),
+        6,
+        0,
+        result_digest=content_digest("mounted-result"),
+        result_bytes=14,
+    )
+    resolved = materialize_sandbox_result(state, plan, sandbox_result, observed_at=NOW)
+    assert resolved.state.output_digest == content_digest("mounted-result")
+    assert resolved.state.output_bytes == 14
+
+
 def test_failed_sandbox_status_materializes_typed_runtime_failure() -> None:
     state, plan = _fixtures()
     result = materialize_sandbox_result(

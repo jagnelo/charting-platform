@@ -541,8 +541,8 @@ def _materialization_updates(
             state.sequence + 2,
             RuntimeExecutionPhase.SUCCEEDED,
             observed_at,
-            result.stdout_digest,
-            result.stdout_bytes,
+            result.terminal_output_digest,
+            result.terminal_output_bytes,
         )
     else:
         from app.strategy_lab_v2.canonical import content_digest
