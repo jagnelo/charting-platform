@@ -5658,3 +5658,12 @@ the resolved forward instance. These checks keep host adapter output fail
 closed at the API boundary rather than trusting a malformed resolution. The
 focused forward/API suite passes 32 tests; Ruff, MyPy (293 source files), and
 whitespace validation remain green.
+
+## 2026-09-25 - Forward dispatch projection hardening
+
+Dispatch responses now verify that their nested event transaction carries the
+same state fingerprint as the outer dispatch resolution and that any nested
+counterfactual replay plan belongs to that state's forward instance. This
+prevents a malformed host resolution from publishing mixed-instance dispatch
+evidence. The focused forward/API suite passes 33 tests; Ruff, MyPy (293
+source files), and whitespace validation remain green.
