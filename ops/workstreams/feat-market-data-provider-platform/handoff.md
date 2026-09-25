@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current safety preflight
+
+- The exact current branch source stopped the full live matrix before
+  transport (`0/0`, zero provider requests) against the owner-managed
+  coordinator. Remaining blockers are provider-specific account baselines or
+  byte/cost contracts, legal/use controls, FINRA async result bounds, complete
+  OTC/SEC reconciliation, deployment secret stores, and user-deferred
+  providers. No generic rate limit or zero usage was inferred.
+- The Nasdaq local two-request daily safety ceiling is exhausted for the
+  current window because the current NMS snapshot was already validated; no
+  further Nasdaq request is permitted until its next reset window.
+
 ## 2026-09-25 current-source Binance crypto matrix
 
 - The bounded Binance keyless matrix passed `3/3` (historical OHLCV, bounded

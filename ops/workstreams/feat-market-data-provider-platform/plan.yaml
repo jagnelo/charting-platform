@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current-source safety preflight stopped before network at
+    `0/0` with zero provider requests. The owner-managed coordinator now
+    reports the remaining provider-specific account baselines/contracts,
+    legal/use controls, FINRA async byte admission, complete OTC/SEC gates,
+    and deferred-provider cases; the Nasdaq local two-request daily ceiling is
+    also exhausted for the current window after the validated NMS snapshot.
+    No unknown limit was inferred and no retry storm was started.
+  - >-
     2026-09-25 current-source Binance keyless crypto matrix passed `3/3`
     (historical OHLCV, bounded daily history, and native request-weight usage).
     The redacted receipt is in `validation.jsonl`; no credentials or payloads
