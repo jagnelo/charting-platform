@@ -8,7 +8,8 @@
   response; canonical bars remain refreshable projections.
 - Added migration `d1e2f3a4b5c6`; its downgrade refuses to proceed if duplicate
   observations would be destroyed. Migration, market-data, and tokenized
-  historical-price coverage passes `59/59`; Ruff and diff checks pass.
+  historical-price coverage passes `59/59`; the complete migration suite
+  passes `13/13`; Ruff and diff checks pass.
 
 ## 2026-09-25 full request-audit usage reporting checkpoint
 
