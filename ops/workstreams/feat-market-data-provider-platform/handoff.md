@@ -6440,6 +6440,16 @@ provider or start the shadow run.
   complete-universe, secret-store, deferred-provider, publication, and final
   shadow gates remain separate and fail-closed.
 
+## 2026-09-25 current-source unit validation after universe retention
+
+- Exact source `b55ae54f1` passed the branch-owned backend unit scope
+  (`1,907/1,907`) in 157.62 seconds with 37 existing warnings. The ETF
+  holdings adapter file remains excluded under the parallel branch ownership
+  boundary; no ETF source was modified.
+- This confirms the new lifecycle snapshot model, migration imports, and
+  universe service behavior alongside the existing provider-platform unit
+  coverage.
+
 ## 2026-09-25 SEC issuer-directory source evidence retention
 
 - Commit `27f3cc34a` adds immutable `source_payload` evidence to every
