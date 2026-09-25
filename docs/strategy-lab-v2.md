@@ -600,15 +600,17 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   legacy definitions and results. Adapter-supplied mapping assessments are
   retained with the original record; unsupported imports remain inspectable,
   supported imports expose a converted identity, exact retries replay, and
-  changed payload or mapping content conflicts. Reports permanently reject any
-  replay-equivalence claim.
+  changed payload or mapping content conflicts. Record and request timestamps
+  normalize to UTC before preservation and replay identity. Reports permanently
+  reject any replay-equivalence claim.
 - `search_state.py` defines an immutable candidate-level search checkpoint.
   Candidates retain their scientific trial fingerprint while infrastructure
   attempts can start, fail, and retry. Active-attempt conflicts, terminal
   result conflicts, cancellation requests, and monotonic timestamps fail
   closed; exact starts, terminal receipts, and cancellation retries replay.
   Cancellation blocks new work but still requires explicit terminal receipts,
-  and the module exposes no ranking or profitability verdict.
+  and candidate/checkpoint timestamps normalize to UTC before monotonicity and
+  replay identity. The module exposes no ranking or profitability verdict.
 - `coverage.py` verifies a provider-supplied coverage attestation against every
   frozen `DataSeriesManifest` dimension: evidence and series digests, interval,
   row count, instrument/event semantics, session/feed, adjustment and

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -41,6 +41,7 @@ class LegacyRecord:
         _nonempty(self.source_version, "source_version")
         require_sha256_digest(self.payload_digest, field_name="payload_digest")
         _aware(self.observed_at, "observed_at")
+        object.__setattr__(self, "observed_at", self.observed_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:
@@ -69,6 +70,7 @@ class LegacyImportRequest:
         _aware(self.requested_at, "requested_at")
         if not isinstance(self.preserve_original, bool):
             raise TypeError("preserve_original must be a bool")
+        object.__setattr__(self, "requested_at", self.requested_at.astimezone(UTC))
 
     @property
     def original(self) -> LegacyRecord:

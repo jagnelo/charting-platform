@@ -12,6 +12,8 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capabilities import CapabilityCell, CapabilityRequirement
 from app.strategy_lab_v2.contracts import AdjustmentMode, EventGranularity, ProductClass
 from app.strategy_lab_v2.coverage import CoverageAttestation
+from app.strategy_lab_v2.legacy import LegacyImportRequest, LegacyRecord, LegacyRecordKind
+from app.strategy_lab_v2.search_state import new_search_execution_state
 
 UTC_PLUS_TWO = timezone(timedelta(hours=2))
 START = datetime(2024, 1, 1, tzinfo=UTC)
@@ -133,3 +135,39 @@ def test_artifact_cleanup_evidence_normalizes_record_and_observation_times() -> 
     assert record.modified_at == START
     assert resolution.observed_at == END
     assert resolution.fingerprint == equivalent.fingerprint
+
+
+def test_legacy_and_search_state_timestamps_normalize_before_replay_identity() -> None:
+    local_observed = datetime(2024, 1, 1, 2, tzinfo=UTC_PLUS_TWO)
+    legacy_record = LegacyRecord(
+        "legacy-1",
+        LegacyRecordKind.RESULT,
+        "legacy-v1",
+        content_digest("legacy-payload"),
+        local_observed,
+    )
+    legacy_request = LegacyImportRequest(
+        content_digest("legacy-request"),
+        "legacy-1",
+        LegacyRecordKind.RESULT,
+        "legacy-v1",
+        content_digest("legacy-payload"),
+        local_observed,
+    )
+    experiment = content_digest("experiment")
+    trial = content_digest("trial")
+    search = new_search_execution_state(experiment, (trial,), now=local_observed)
+    equivalent_search = new_search_execution_state(experiment, (trial,), now=START)
+
+    assert legacy_record.observed_at == START
+    assert legacy_request.requested_at == START
+    assert legacy_record.fingerprint == LegacyRecord(
+        "legacy-1",
+        LegacyRecordKind.RESULT,
+        "legacy-v1",
+        content_digest("legacy-payload"),
+        START,
+    ).fingerprint
+    assert search.updated_at == START
+    assert search.candidates[0].updated_at == START
+    assert search.fingerprint == equivalent_search.fingerprint

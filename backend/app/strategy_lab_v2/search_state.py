@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -69,6 +69,7 @@ class SearchCandidateState:
                 raise ValueError("failed or cancelled candidates require an attempt and no result")
         if self.updated_at is not None:
             _aware(self.updated_at, "updated_at")
+            object.__setattr__(self, "updated_at", self.updated_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:
@@ -107,6 +108,7 @@ class SearchExecutionState:
             raise ValueError("uncancelled searches cannot contain a cancellation request identity")
         if self.updated_at is not None:
             _aware(self.updated_at, "updated_at")
+            object.__setattr__(self, "updated_at", self.updated_at.astimezone(UTC))
 
     @property
     def pending_candidate_indices(self) -> tuple[int, ...]:
