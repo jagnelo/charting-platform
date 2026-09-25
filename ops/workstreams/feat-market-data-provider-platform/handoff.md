@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 append-only raw OHLCV observation checkpoint
+
+- Raw `MarketBarObservation` rows now include `observed_at` in their conflict
+  key. A later provider revision of an existing candle therefore creates a new
+  immutable raw observation instead of overwriting the earlier provider
+  response; canonical bars remain refreshable projections.
+- Added migration `d1e2f3a4b5c6`; its downgrade refuses to proceed if duplicate
+  observations would be destroyed. Migration, market-data, and tokenized
+  historical-price coverage passes `59/59`; Ruff and diff checks pass.
+
 ## 2026-09-25 full request-audit usage reporting checkpoint
 
 - Provider-usage summaries now read the complete append-only request-log

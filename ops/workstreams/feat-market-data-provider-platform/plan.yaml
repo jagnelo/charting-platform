@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 append-only raw OHLCV observation correction: MarketBarObservation
+    now includes observed_at in its conflict key, so revised provider candles
+    create new immutable raw observations instead of overwriting earlier
+    responses; canonical bars remain refreshable projections. Migration
+    d1e2f3a4b5c6 has a data-preserving downgrade guard. Migration,
+    market-data, and tokenized-history coverage passes 59/59 with Ruff/diff
+    clean. Provider routing, quota/legal/capability, universe, secret-store,
+    deferred-provider, and shadow gates remain unchanged.
+  - >-
     2026-09-25 full request-audit usage reporting correction: provider-usage
     summaries now read the complete append-only request-log history instead of
     applying the legacy 30-day filter. Rolling 24-hour/7-day metrics are
