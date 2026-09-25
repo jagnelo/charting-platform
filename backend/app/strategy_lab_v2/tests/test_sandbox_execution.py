@@ -14,7 +14,9 @@ from app.strategy_lab_v2.sandbox_execution import (
 )
 
 
-def _plan(*, timeout: int = 2, output_limit: int = 64) -> SandboxCommandPlan:
+def _plan(
+    *, timeout: int = 2, output_limit: int = 64, output_path: str = "/tmp/strategy-output"
+) -> SandboxCommandPlan:
     return SandboxCommandPlan(
         content_digest("request"),
         content_digest("profile"),
@@ -35,7 +37,7 @@ def _plan(*, timeout: int = 2, output_limit: int = 64) -> SandboxCommandPlan:
             "--pids-limit=256",
             "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864",
             "--mount=type=bind,src=/tmp/strategy-input,dst=/inputs/bundle,readonly",
-            "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result,rw",
+            f"--mount=type=bind,src={output_path},dst=/outputs/result,rw",
             "--env=STRATEGY_ATTEMPT_ID=attempt-1",
             f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
             f"runtime@{content_digest('image')}",
@@ -63,7 +65,32 @@ def test_success_captures_bounded_output_without_inheriting_secrets(tmp_path) ->
     assert result.stderr_bytes == 0
     assert result.output_bytes == 2
     assert result.error_digest is None
+    assert result.result_digest is None
+    assert result.result_bytes is None
     assert result.stdout_digest == f"sha256:{hashlib.sha256(b'ok').hexdigest()}"
+
+
+def test_success_hashes_the_bounded_mounted_result_file(tmp_path) -> None:
+    output_path = tmp_path / "result.bin"
+    output_path.write_bytes(b"typed-result")
+    binary = _fake_binary(tmp_path, "printf 'ok'")
+    result = run_sandbox_command(
+        _plan(output_path=os.fspath(output_path)), docker_binary=binary
+    )
+    assert result.result_digest == f"sha256:{hashlib.sha256(b'typed-result').hexdigest()}"
+    assert result.result_bytes == len(b"typed-result")
+
+
+def test_result_file_over_limit_is_not_reported_as_valid_evidence(tmp_path) -> None:
+    output_path = tmp_path / "result.bin"
+    output_path.write_bytes(b"0123456789")
+    binary = _fake_binary(tmp_path, "printf 'ok'")
+    result = run_sandbox_command(
+        _plan(output_path=os.fspath(output_path), output_limit=8), docker_binary=binary
+    )
+    assert result.status is SandboxRunStatus.SUCCEEDED
+    assert result.result_digest is None
+    assert result.result_bytes is None
 
 
 def test_nonzero_exit_is_failed_and_start_error_is_typed(tmp_path) -> None:

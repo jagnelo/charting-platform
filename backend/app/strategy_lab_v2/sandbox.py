@@ -150,12 +150,30 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
         raise ValueError("sandbox command arguments must be non-empty and control-free")
 
 
+def sandbox_output_path(plan: SandboxCommandPlan) -> Path:
+    """Return the host path bound to the sandbox result mount.
+
+    The executor uses this only after re-validating the complete command plan.
+    Keeping mount parsing here avoids a second, potentially divergent parser at
+    the process boundary.
+    """
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    return Path(_mount_source(plan.argv[16], "/outputs/result", "rw"))
+
+
 def _require_positive_option(value: str, label: str) -> None:
     if not value.isdecimal() or int(value) <= 0:
         raise ValueError(f"sandbox {label} must be a positive integer")
 
 
 def _validate_mount(value: str, destination: str, mode: str) -> None:
+    _mount_source(value, destination, mode)
+
+
+def _mount_source(value: str, destination: str, mode: str) -> str:
     prefix = "--mount=type=bind,src="
     suffix = f",dst={destination},{mode}"
     if not value.startswith(prefix) or not value.endswith(suffix):
@@ -163,6 +181,7 @@ def _validate_mount(value: str, destination: str, mode: str) -> None:
     source = value[len(prefix) : -len(suffix)]
     if not source.startswith("/") or "," in source or not source.strip():
         raise ValueError("sandbox command mount sources must be absolute and comma-free")
+    return source
 
 
 def build_sandbox_command(

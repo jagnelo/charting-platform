@@ -20,7 +20,11 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
-from app.strategy_lab_v2.sandbox import SandboxCommandPlan, validate_sandbox_command_plan
+from app.strategy_lab_v2.sandbox import (
+    SandboxCommandPlan,
+    sandbox_output_path,
+    validate_sandbox_command_plan,
+)
 
 
 class SandboxRunStatus(StrEnum):
@@ -47,6 +51,8 @@ class SandboxRunResult:
     stdout_bytes: int
     stderr_bytes: int
     error_digest: str | None = None
+    result_digest: str | None = None
+    result_bytes: int | None = None
 
     def __post_init__(self) -> None:
         require_sha256_digest(self.plan_fingerprint, field_name="plan_fingerprint")
@@ -65,6 +71,16 @@ class SandboxRunResult:
                 raise ValueError(f"{name} must be a non-negative integer")
         if self.error_digest is not None:
             require_sha256_digest(self.error_digest, field_name="error_digest")
+        if self.result_digest is not None:
+            require_sha256_digest(self.result_digest, field_name="result_digest")
+        if self.result_bytes is not None and (
+            not isinstance(self.result_bytes, int)
+            or isinstance(self.result_bytes, bool)
+            or self.result_bytes < 0
+        ):
+            raise ValueError("result_bytes must be a non-negative integer or None")
+        if (self.result_digest is None) != (self.result_bytes is None):
+            raise ValueError("result digest and byte count must be provided together")
         if self.status is SandboxRunStatus.SUCCEEDED and self.exit_code != 0:
             raise ValueError("successful sandbox runs require exit_code 0")
         if self.status is SandboxRunStatus.FAILED and self.exit_code in {None, 0}:
@@ -176,7 +192,17 @@ def run_sandbox_command(
         error_digest = content_digest("sandbox output limit exceeded")
     if status is None:
         status = SandboxRunStatus.SUCCEEDED if exit_code == 0 else SandboxRunStatus.FAILED
-    return _result(plan, status, exit_code, stdout, stderr, error_digest=error_digest)
+    result_digest, result_bytes = _capture_result_file(plan, status)
+    return _result(
+        plan,
+        status,
+        exit_code,
+        stdout,
+        stderr,
+        error_digest=error_digest,
+        result_digest=result_digest,
+        result_bytes=result_bytes,
+    )
 
 
 def _result(
@@ -187,6 +213,8 @@ def _result(
     stderr: bytes | bytearray,
     *,
     error_digest: str | None = None,
+    result_digest: str | None = None,
+    result_bytes: int | None = None,
 ) -> SandboxRunResult:
     return SandboxRunResult(
         plan_fingerprint=plan.fingerprint,
@@ -198,7 +226,42 @@ def _result(
         stdout_bytes=len(stdout),
         stderr_bytes=len(stderr),
         error_digest=error_digest,
+        result_digest=result_digest,
+        result_bytes=result_bytes,
     )
+
+
+def _capture_result_file(
+    plan: SandboxCommandPlan,
+    status: SandboxRunStatus,
+) -> tuple[str | None, int | None]:
+    """Hash a successful mounted result without loading it into memory.
+
+    The application-owned publication adapter still owns reading and publishing
+    bytes.  This bounded evidence lets it verify that the file it publishes is
+    the exact file produced by the sandbox process.
+    """
+
+    if status is not SandboxRunStatus.SUCCEEDED:
+        return None, None
+    path = sandbox_output_path(plan)
+    try:
+        if path.is_symlink() or not path.is_file():
+            return None, None
+        size = path.stat().st_size
+        if size > plan.output_limit_bytes:
+            return None, None
+        digest = hashlib.sha256()
+        observed = 0
+        with path.open("rb") as stream:
+            while chunk := stream.read(65536):
+                observed += len(chunk)
+                if observed > plan.output_limit_bytes:
+                    return None, None
+                digest.update(chunk)
+        return f"sha256:{digest.hexdigest()}", observed
+    except (OSError, ValueError):
+        return None, None
 
 
 def _raw_digest(payload: bytes) -> str:
