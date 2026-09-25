@@ -106,6 +106,8 @@ class ForwardEventDispatchRecord:
         require_sha256_digest(self.event_fingerprint, field_name="event_fingerprint")
         if not isinstance(self.request, DispatchRequest):
             raise TypeError("request must be a DispatchRequest")
+        if self.request.attempt_id != self.instance_id:
+            raise ValueError("forward dispatch request must reference its instance")
         if self.replay_plan_fingerprint is not None:
             require_sha256_digest(
                 self.replay_plan_fingerprint, field_name="replay_plan_fingerprint"
@@ -220,6 +222,36 @@ class PostgresForwardEventDispatchAdapter:
                 )
                 return resolution
 
+    async def load_by_request_fingerprint(
+        self, request_fingerprint: str
+    ) -> ForwardEventDispatchRecord | None:
+        """Resolve one authenticated forward dispatch from Redis identity."""
+
+        require_sha256_digest(request_fingerprint, field_name="request_fingerprint")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                result = await session.execute(
+                    _statement(
+                        f"""
+                        SELECT owner_id, instance_id, event_fingerprint, idempotency_key,
+                               request_fingerprint, attempt_id, payload_digest, queue_name,
+                               created_at, replay_plan_fingerprint, dispatch_fingerprint
+                        FROM {self._schema.dispatch_table}
+                        WHERE request_fingerprint = :request_fingerprint
+                        ORDER BY owner_id ASC, instance_id ASC
+                        FOR SHARE
+                        """
+                    ),
+                    {"request_fingerprint": request_fingerprint},
+                )
+                rows = list(result.mappings())
+                if len(rows) > 1:
+                    raise ValueError("PostgreSQL forward dispatch identity is ambiguous")
+                if not rows:
+                    return None
+                return _decode_dispatch_record(rows[0])
+
     async def _persist_state(
         self,
         session: AsyncSessionLike,
@@ -270,23 +302,7 @@ class PostgresForwardEventDispatchAdapter:
         )
         records: list[ForwardEventDispatchRecord] = []
         for row in result.mappings():
-            request = DispatchRequest(
-                row["idempotency_key"],
-                row["attempt_id"],
-                row["payload_digest"],
-                row["queue_name"],
-                _decode_datetime(row["created_at"]),
-            )
-            record = ForwardEventDispatchRecord(
-                row["owner_id"],
-                row["instance_id"],
-                row["event_fingerprint"],
-                request,
-                row.get("replay_plan_fingerprint"),
-            )
-            if row.get("dispatch_fingerprint") != request.fingerprint:
-                raise ValueError("forward dispatch fingerprint does not match bytes")
-            records.append(record)
+            records.append(_decode_dispatch_record(row))
         return tuple(sorted(records, key=lambda item: item.request.fingerprint))
 
     async def _load_payload(
@@ -451,6 +467,31 @@ def _decode_datetime(value: Any) -> datetime:
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise ValueError("created_at must be timezone-aware")
     return parsed
+
+
+def _decode_dispatch_record(row: Mapping[str, Any]) -> ForwardEventDispatchRecord:
+    try:
+        request = DispatchRequest(
+            row["idempotency_key"],
+            row["attempt_id"],
+            row["payload_digest"],
+            row["queue_name"],
+            _decode_datetime(row["created_at"]),
+        )
+        record = ForwardEventDispatchRecord(
+            row["owner_id"],
+            row["instance_id"],
+            row["event_fingerprint"],
+            request,
+            row.get("replay_plan_fingerprint"),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL forward dispatch row is malformed") from error
+    if row.get("request_fingerprint") != request.fingerprint:
+        raise ValueError("forward dispatch request fingerprint does not match bytes")
+    if row.get("dispatch_fingerprint") != request.fingerprint:
+        raise ValueError("forward dispatch fingerprint does not match bytes")
+    return record
 
 
 __all__ = [

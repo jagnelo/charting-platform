@@ -41,12 +41,19 @@ class DispatchSession(FakeSession):
         values = dict(params or {})
         normalized = sql.lstrip()
         if "FROM strategy_lab_v2_forward_event_dispatches" in sql:
-            rows = [
-                row
-                for (owner, _), row in self.dispatches.items()
-                if owner == values["owner_id"]
-                and row["instance_id"] == values["instance_id"]
-            ]
+            if "request_fingerprint" in values:
+                rows = [
+                    row
+                    for row in self.dispatches.values()
+                    if row["request_fingerprint"] == values["request_fingerprint"]
+                ]
+            else:
+                rows = [
+                    row
+                    for (owner, _), row in self.dispatches.items()
+                    if owner == values["owner_id"]
+                    and row["instance_id"] == values["instance_id"]
+                ]
             return FakeResult(sorted(rows, key=lambda row: row["request_fingerprint"]))
         if "FROM strategy_lab_v2_dispatch_payloads" in sql:
             row = self.payloads.get(values["payload_digest"])
@@ -123,6 +130,9 @@ async def test_forward_dispatch_persists_payload_dispatch_and_outbox_then_replay
     assert len(session.payloads) == 1
     assert len(session.dispatches) == 1
     assert len(session.outboxes) == 1
+    loaded = await adapter.load_by_request_fingerprint(request.fingerprint)
+    assert loaded is not None
+    assert loaded.request == request
 
     replay = await adapter.dispatch(
         principal="owner-1",

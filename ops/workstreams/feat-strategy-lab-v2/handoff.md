@@ -2,6 +2,22 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Authenticated forward worker handoff checkpoint
+
+`PostgresForwardEventDispatchAdapter` now exposes an authenticated
+`load_by_request_fingerprint` lookup for Redis consumers. The new
+`forward_worker_handoff.py` materializer binds a stream entry to that durable
+owner/instance/request identity, verifies queue and payload digests, and
+returns a typed `ForwardEventWorkItem` containing the event and optional
+counterfactual replay fingerprints. Canonical event acquisition remains an
+explicit host-owned event-stream seam; no provider or engine is selected by
+the transport payload.
+
+Focused forward worker-handoff, dispatch, and persistence coverage passed 10
+tests. Ruff and MyPy remain green across 281 source files. Event-stream
+registration, worker authorization/capacity activation, and stable Nautilus
+execution remain gated.
+
 ## 2026-09-25 - Forward-event dispatch persistence checkpoint
 
 Added `PostgresForwardEventDispatchAdapter`, which reuses the authenticated

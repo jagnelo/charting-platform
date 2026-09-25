@@ -678,6 +678,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   dispatches include the replay-plan identity. Queue idempotency conflicts and
   payload drift return the original forward checkpoint, preventing a worker
   message from being published for state that was not atomically admitted.
+- `forward_worker_handoff.py` authenticates a Redis forward-event delivery
+  against the owner-scoped PostgreSQL dispatch identity and canonical payload
+  digest before returning a typed `ForwardEventWorkItem`. The work item carries
+  only event/replay fingerprints; a host-owned canonical event-stream adapter
+  must resolve the event bytes, so transport data cannot select a provider,
+  engine, or broker action.
 - `execution_event_transaction.py` links each canonical execution-event append
   to its audit-journal entry and transactional-outbox message. Event sequence
   gaps, audit gaps, identity mismatches, and outbox conflicts return every
