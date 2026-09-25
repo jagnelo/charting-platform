@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current preflight after SEC source evidence retention
+
+- Source `def5ee1fb` ran the full provider manifest preflight and stopped before
+  transport: `0/0` ordinary cases and zero provider requests. The receipt is
+  appended to `validation.jsonl`.
+- SEC candidate source-payload retention did not widen routing. Provider
+  quota/cost/baseline, legal/use, unresolved capability, complete NMS/OTC/SEC
+  reconciliation, external secret-store, deferred-provider, publication, and
+  final shadow gates remain fail-closed.
+
 ## 2026-09-25 exact-current preflight after account-usage evidence correction
 
 - Source `ab0bed0e6b5050d36730245d241bb7ce3d9f1992` ran the full manifest

@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current full provider preflight at source
+    def5ee1fbeff8cd1b39379221c1e6ba6ec592034 stopped before transport with
+    0/0 ordinary cases and zero provider requests. The SEC source-payload
+    correction did not widen routing. The receipt is appended to
+    validation.jsonl; provider-specific quota/cost/baseline, legal/use,
+    unresolved capability, complete NMS/OTC/SEC reconciliation, external
+    secret stores, deferred Tradier/IBKR/Ondo, and final shadow gates remain
+    fail-closed.
+  - >-
     2026-09-25 SEC issuer-directory evidence retention correction at source
     27f3cc34a: every durable SecIssuerDirectoryCandidate row now retains the
     exact provider-adapter source payload alongside normalized admission fields,
