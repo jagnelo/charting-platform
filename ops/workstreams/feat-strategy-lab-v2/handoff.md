@@ -4711,3 +4711,27 @@ The branch remains `ready_for_human_review`. Host application resolver
 configuration, explicit multi-artifact mapping, stable Nautilus release
 conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
 integration remain deferred behind their existing gates.
+
+## 2026-09-25 - Injectable worker failure policy checkpoint
+
+The package-owned worker evidence resolver now accepts an optional host
+`runtime_error_factory` through both the resolver callback and
+`PostgresStrategyLabV2Persistence.worker_terminal_evidence_resolver()`. This
+keeps retryability and typed failure classification application-owned while
+retaining the deterministic digest-only `ApiError` fallback when no policy is
+provided. The factory is invoked only for failed runtime evidence that lacks a
+durable projected error; authenticated lookup and artifact mapping remain
+separate seams.
+
+The focused resolver/persistence set passed 13 tests. The exact branch
+validation passed 843 package tests, 2 migration tests, Ruff, MyPy across 272
+files, diff validation, and workstream validation. The Docker-backed combined
+coverage gate passed 2,494 tests with 83.75% total coverage (required
+threshold: 75%); the referenced runtime env file was absent in this checkout
+and `.env.dev` supplied test configuration. Two cleanup passes retained zero
+testcontainer sessions, containers, images, or volumes.
+
+The branch remains `ready_for_human_review`. Host application resolver
+configuration, explicit multi-artifact mapping, stable Nautilus release
+conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
+integration remain deferred behind their existing gates.
