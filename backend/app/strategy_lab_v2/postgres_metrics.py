@@ -60,6 +60,7 @@ class PersistedMetricSet:
         _aware(self.created_at, "created_at")
         if self.metric_set_fingerprint != _payload_digest(self.metric_set_json):
             raise ValueError("metric-set fingerprint does not match canonical payload")
+        object.__setattr__(self, "created_at", self.created_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:

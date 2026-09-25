@@ -75,6 +75,7 @@ class PersistedRuntimeRequest:
         _nonempty(self.request_json, "request_json")
         if self.request_fingerprint != _payload_digest(self.request_json):
             raise ValueError("runtime request fingerprint does not match canonical payload")
+        object.__setattr__(self, "submitted_at", self.submitted_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:

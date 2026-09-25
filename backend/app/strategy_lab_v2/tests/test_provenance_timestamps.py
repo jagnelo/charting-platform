@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime, timedelta, timezone
 
 from app.strategy_lab_v2.artifact_store import (
@@ -13,6 +14,8 @@ from app.strategy_lab_v2.capabilities import CapabilityCell, CapabilityRequireme
 from app.strategy_lab_v2.contracts import AdjustmentMode, EventGranularity, ProductClass
 from app.strategy_lab_v2.coverage import CoverageAttestation
 from app.strategy_lab_v2.legacy import LegacyImportRequest, LegacyRecord, LegacyRecordKind
+from app.strategy_lab_v2.postgres_metrics import PersistedMetricSet
+from app.strategy_lab_v2.postgres_runtime_receipts import PersistedRuntimeRequest
 from app.strategy_lab_v2.search_state import new_search_execution_state
 
 UTC_PLUS_TWO = timezone(timedelta(hours=2))
@@ -171,3 +174,38 @@ def test_legacy_and_search_state_timestamps_normalize_before_replay_identity() -
     assert search.updated_at == START
     assert search.candidates[0].updated_at == START
     assert search.fingerprint == equivalent_search.fingerprint
+
+
+def test_persisted_metric_and_runtime_request_records_normalize_replay_times() -> None:
+    local_time = datetime(2024, 1, 1, 2, tzinfo=UTC_PLUS_TWO)
+    metric_payload = '{"metric_set":"fixture"}'
+    metric_payload_digest = "sha256:" + hashlib.sha256(metric_payload.encode()).hexdigest()
+    metric = PersistedMetricSet(
+        metric_payload_digest,
+        "metric-set-1",
+        content_digest("trial-1"),
+        "attempt-1",
+        "strategy-lab.metrics.v1",
+        "[]",
+        local_time,
+        metric_payload,
+        content_digest("metric-record"),
+    )
+    runtime_payload = '{"request":"fixture"}'
+    runtime_payload_digest = "sha256:" + hashlib.sha256(runtime_payload.encode()).hexdigest()
+    runtime = PersistedRuntimeRequest(
+        runtime_payload_digest,
+        content_digest("request-id"),
+        "attempt-1",
+        content_digest("package"),
+        content_digest("source"),
+        content_digest("inputs"),
+        content_digest("profile"),
+        "strategy.main:run",
+        local_time,
+        runtime_payload,
+        content_digest("runtime-record"),
+    )
+
+    assert metric.created_at == START
+    assert runtime.submitted_at == START

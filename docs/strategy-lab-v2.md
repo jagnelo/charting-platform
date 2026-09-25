@@ -941,6 +941,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   starting a process. Typed preflight reads reuse the allowlisted canonical
   decoder, require canonical bytes, and verify request/profile/isolation,
   decision, and rejection identities before returning admission evidence.
+  Persisted request submission timestamps normalize to UTC before their durable
+  record fingerprints are calculated.
 - `postgres_metrics.py` retains immutable `MetricSet` summaries as
   owner-scoped canonical projections. Metric-set payloads and compact value
   summaries are content-addressed, one attempt cannot silently replace a
@@ -948,8 +950,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   metric data can be read by result/API adapters. Typed reads reuse the
   allowlisted canonical decoder, require byte-for-byte canonical payloads,
   and verify persisted identity, lineage, creation-time, and value-summary
-  projections before returning a `MetricSet`; the API persistence bundle uses
-  this typed read path for `metric-sets` resources.
+  projections before returning a `MetricSet`; persisted creation timestamps
+  normalize to UTC before record fingerprints are calculated. The API
+  persistence bundle uses this typed read path for `metric-sets` resources.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.
