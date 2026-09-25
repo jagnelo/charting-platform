@@ -482,6 +482,7 @@ class AlpacaProvider:
                     identifier_type="ALPACA_ASSET_ID",
                     identifier_value=asset_id,
                     source=self.name,
+                    raw_payload=dict(payload),
                 )
             ]
             if asset_id

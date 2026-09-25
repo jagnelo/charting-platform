@@ -418,6 +418,7 @@ class MassiveProvider:
                         identifier_value=value,
                         is_primary=identifier_type == "COMPOSITE_FIGI",
                         source=self.name,
+                        raw_payload=dict(row),
                     )
                 )
 

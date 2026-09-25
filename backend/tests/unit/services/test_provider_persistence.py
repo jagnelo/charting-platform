@@ -60,6 +60,32 @@ async def test_profile_classification_system_is_retained_in_detail_provenance(
 
 
 @pytest.mark.asyncio
+async def test_identifier_snapshot_retains_provider_rows_without_changing_projection(db, instrument):
+    data_source = DataSource(name="openfigi", is_active=True)
+    db.add(data_source)
+    db.flush()
+    snapshot = await provider_observations.store_identifier_snapshot(
+        AsyncSessionAdapter(db),
+        instrument_id=instrument.id,
+        data_source_id=data_source.id,
+        provider_symbol="AAPL",
+        identifiers=[
+            IdentifierRecord(
+                identifier_type="FIGI",
+                identifier_value="BBG000B9XRY4",
+                is_primary=True,
+                source="openfigi",
+                extra_data={"exchange_code": "US"},
+                raw_payload={"figi": "BBG000B9XRY4", "securityType": "Common Stock"},
+            )
+        ],
+    )
+
+    assert snapshot.payload["identifiers"][0]["identifier_value"] == "BBG000B9XRY4"
+    assert snapshot.payload["identifiers"][0]["raw_payload"]["securityType"] == "Common Stock"
+
+
+@pytest.mark.asyncio
 async def test_profile_cik_is_attached_to_issuer_not_security_identity(db, instrument, monkeypatch):
     profile = InstrumentProfile(
         provider="edgar",

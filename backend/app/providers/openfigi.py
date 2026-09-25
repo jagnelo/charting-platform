@@ -278,6 +278,7 @@ class OpenFigiProvider:
                         "security_type": mapping_row.get("securityType"),
                         "market_sector": mapping_row.get("marketSector"),
                     },
+                    raw_payload=dict(mapping_row),
                 )
             )
         if figi:
@@ -292,6 +293,7 @@ class OpenFigiProvider:
                         "name": mapping_row.get("name"),
                         "share_class_figi": share_class_figi,
                     },
+                    raw_payload=dict(mapping_row),
                 )
             )
         if share_class_figi:
@@ -301,6 +303,7 @@ class OpenFigiProvider:
                     identifier_value=str(share_class_figi),
                     source=self.name,
                     extra_data={"kind": "share_class_figi"},
+                    raw_payload=dict(mapping_row),
                 )
             )
         if original_identifier_type and original_identifier_value:
@@ -309,6 +312,7 @@ class OpenFigiProvider:
                     identifier_type=original_identifier_type.upper(),
                     identifier_value=str(original_identifier_value).strip().upper(),
                     source=self.name,
+                    raw_payload=dict(mapping_row),
                 )
             )
         if include_ticker_identity and ticker:
@@ -318,6 +322,7 @@ class OpenFigiProvider:
                     identifier_value=f"ticker:{str(ticker).strip().upper()}",
                     source=self.name,
                     extra_data={"exchange_code": exch_code},
+                    raw_payload=dict(mapping_row),
                 )
             )
         return identifiers

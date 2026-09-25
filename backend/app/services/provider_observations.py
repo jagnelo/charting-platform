@@ -39,17 +39,19 @@ async def store_identifier_snapshot(
     fetched_at = fetched_at or observed_at
     payload = {
         "provider_symbol": provider_symbol,
-        "identifiers": [
-            {
-                "identifier_type": item.identifier_type,
-                "identifier_value": item.identifier_value,
-                "is_primary": item.is_primary,
-                "source": item.source,
-                "extra_data": item.extra_data,
-            }
-            for item in identifiers
-        ],
+        "identifiers": [],
     }
+    for item in identifiers:
+        serialized = {
+            "identifier_type": item.identifier_type,
+            "identifier_value": item.identifier_value,
+            "is_primary": item.is_primary,
+            "source": item.source,
+            "extra_data": item.extra_data,
+        }
+        if item.raw_payload is not None:
+            serialized["raw_payload"] = item.raw_payload
+        payload["identifiers"].append(serialized)
     snapshot_hash = _payload_hash(payload)
     snapshot = InstrumentIdentifierSnapshot(
         instrument_id=instrument_id,

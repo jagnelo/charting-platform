@@ -16,6 +16,11 @@ class IdentifierRecord:
     is_primary: bool = False
     source: str | None = None
     extra_data: dict[str, Any] | None = None
+    # Complete provider row used to derive this identifier. This keeps
+    # provider-specific venue/status/identifier evidence available in the
+    # append-only identifier snapshot instead of discarding it during
+    # normalization.
+    raw_payload: dict[str, Any] | None = None
 
 
 @dataclass(slots=True)
