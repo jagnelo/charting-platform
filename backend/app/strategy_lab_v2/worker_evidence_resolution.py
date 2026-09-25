@@ -11,8 +11,12 @@ from __future__ import annotations
 import inspect
 from collections.abc import Awaitable, Callable, Sequence
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 
+from app.strategy_lab_v2.artifact_application import (
+    ArtifactPublicationDecision,
+    ArtifactPublicationResolution,
+)
 from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.outcomes import OutcomeStatus
@@ -34,6 +38,17 @@ class EvidenceLookup(Protocol):
     def __call__(
         self, *, request_fingerprint: str, attempt_id: str
     ) -> WorkerTerminalEvidenceLookup | None | Awaitable[WorkerTerminalEvidenceLookup | None]: ...
+
+
+class SandboxArtifactPublisher(Protocol):
+    async def publish_sandbox_result(
+        self,
+        manifest: Any,
+        sandbox_plan: Any,
+        sandbox_result: Any,
+        *,
+        committed_at: datetime,
+    ) -> ArtifactPublicationResolution: ...
 
 
 def build_worker_terminal_evidence(
@@ -171,9 +186,68 @@ def create_worker_terminal_evidence_resolver(
     return resolve
 
 
+def create_sandbox_artifact_plan_resolver(
+    publisher: SandboxArtifactPublisher,
+) -> Callable[
+    [WorkerCompletionContext, WorkerTerminalEvidenceLookup],
+    Awaitable[tuple[ArtifactPublicationPlan, ...]],
+]:
+    """Map one mounted sandbox result to its verified publication plan.
+
+    The current sandbox contract exposes one mounted ``/outputs/result`` file.
+    Manifests with multiple output artifacts are rejected here so callers must
+    supply an explicit multi-file mapping rather than accidentally publishing
+    one file for several identities.
+    """
+
+    if not callable(getattr(publisher, "publish_sandbox_result", None)):
+        raise TypeError("publisher must provide publish_sandbox_result")
+
+    async def resolve(
+        context: WorkerCompletionContext,
+        lookup: WorkerTerminalEvidenceLookup,
+    ) -> tuple[ArtifactPublicationPlan, ...]:
+        if not isinstance(context, WorkerCompletionContext):
+            raise TypeError("context must be a WorkerCompletionContext")
+        if not isinstance(lookup, WorkerTerminalEvidenceLookup):
+            raise TypeError("lookup must be a WorkerTerminalEvidenceLookup")
+        manifest = lookup.inputs.manifest
+        if manifest is None:
+            return ()
+        if len(manifest.output_artifacts) != 1:
+            raise ValueError(
+                "sandbox artifact resolver requires exactly one result output artifact"
+            )
+        process_execution = context.process.execution
+        if process_execution is None or process_execution.nautilus_result is None:
+            raise ValueError("sandbox artifact resolver requires Nautilus evidence")
+        sandbox_result = process_execution.nautilus_result.sandbox_result
+        if sandbox_result is None:
+            raise ValueError("sandbox artifact resolver requires sandbox evidence")
+        publication = await publisher.publish_sandbox_result(
+            manifest,
+            context.request.sandbox_plan,
+            sandbox_result,
+            committed_at=context.observed_at,
+        )
+        if not isinstance(publication, ArtifactPublicationResolution):
+            raise TypeError("publisher returned an invalid artifact publication resolution")
+        if publication.decision is ArtifactPublicationDecision.REJECT:
+            raise ValueError(
+                publication.rejection_reason or "sandbox artifact publication was rejected"
+            )
+        if publication.artifact_plan is None:
+            raise ValueError("sandbox artifact publication omitted its verified plan")
+        return (publication.artifact_plan,)
+
+    return resolve
+
+
 __all__ = [
     "ArtifactPlanResolver",
     "EvidenceLookup",
+    "SandboxArtifactPublisher",
     "build_worker_terminal_evidence",
+    "create_sandbox_artifact_plan_resolver",
     "create_worker_terminal_evidence_resolver",
 ]

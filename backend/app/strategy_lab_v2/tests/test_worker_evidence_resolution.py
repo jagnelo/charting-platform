@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
+from app.strategy_lab_v2.artifact_application import (
+    ArtifactPublicationDecision,
+    ArtifactPublicationResolution,
+)
+from app.strategy_lab_v2.artifact_commit import ArtifactCommitLedger, finalize_artifact_commit
 from app.strategy_lab_v2.artifact_publication import plan_artifact_publication
+from app.strategy_lab_v2.artifact_store import ArtifactStoreDecision, ArtifactStoreResolution
 from app.strategy_lab_v2.artifacts import verify_artifact_payload
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
@@ -24,6 +31,7 @@ from app.strategy_lab_v2.worker_evidence import (
 )
 from app.strategy_lab_v2.worker_evidence_resolution import (
     build_worker_terminal_evidence,
+    create_sandbox_artifact_plan_resolver,
     create_worker_terminal_evidence_resolver,
 )
 from app.strategy_lab_v2.worker_process import SerialWorkerProcessExecutor
@@ -89,6 +97,38 @@ def _artifact_plan(lookup: WorkerTerminalEvidenceLookup):
     )
 
 
+class _Publisher:
+    def __init__(self, resolution: ArtifactPublicationResolution) -> None:
+        self.resolution = resolution
+        self.calls: list[tuple[object, object, object, datetime]] = []
+
+    async def publish_sandbox_result(
+        self, manifest, sandbox_plan, sandbox_result, *, committed_at: datetime
+    ) -> ArtifactPublicationResolution:
+        self.calls.append((manifest, sandbox_plan, sandbox_result, committed_at))
+        return self.resolution
+
+
+def _publication_resolution(lookup: WorkerTerminalEvidenceLookup) -> ArtifactPublicationResolution:
+    assert lookup.inputs.manifest is not None
+    artifact = lookup.inputs.manifest.output_artifacts[0]
+    integrity = verify_artifact_payload(artifact, b"result")
+    plan = plan_artifact_publication(artifact, integrity)
+    commit = finalize_artifact_commit(ArtifactCommitLedger(), plan, committed_at=NOW)
+    assert commit.record is not None
+    return ArtifactPublicationResolution(
+        ArtifactPublicationDecision.COMMITTED,
+        ArtifactStoreResolution(
+            ArtifactStoreDecision.WRITTEN,
+            artifact.storage_key,
+            artifact.byte_length,
+            integrity,
+        ),
+        commit,
+        artifact_plan=plan,
+    )
+
+
 def test_builder_assembles_successful_typed_evidence(tmp_path: Path) -> None:
     context, lookup = _context_and_lookup(tmp_path)
     evidence = build_worker_terminal_evidence(
@@ -138,3 +178,40 @@ async def test_factory_loads_lookup_and_resolves_artifact_plans(tmp_path: Path) 
 
     assert calls == [(context.request.request_fingerprint, "attempt-1")]
     assert evidence.artifact_plans == (_artifact_plan(lookup),)
+
+
+@pytest.mark.asyncio
+async def test_sandbox_artifact_resolver_returns_published_verified_plan(tmp_path: Path) -> None:
+    context, lookup = _context_and_lookup(tmp_path)
+    publication = _publication_resolution(lookup)
+    publisher = _Publisher(publication)
+    resolver = create_sandbox_artifact_plan_resolver(publisher)
+
+    plans = await resolver(context, lookup)
+
+    assert plans == (publication.artifact_plan,)
+    assert publisher.calls == [
+        (
+            lookup.inputs.manifest,
+            context.request.sandbox_plan,
+            context.process.execution.nautilus_result.sandbox_result,  # type: ignore[union-attr]
+            NOW,
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_sandbox_artifact_resolver_rejects_multi_artifact_manifest(tmp_path: Path) -> None:
+    context, lookup = _context_and_lookup(tmp_path)
+    assert lookup.inputs.manifest is not None
+    artifact = lookup.inputs.manifest.output_artifacts[0]
+    second = replace(artifact, content_digest=content_digest("second-artifact"), storage_key=content_digest("second-artifact"))
+    manifest = replace(lookup.inputs.manifest, output_artifacts=(artifact, second))
+    multi = WorkerTerminalEvidenceLookup(
+        lookup.binding,
+        replace(lookup.inputs, manifest=manifest),
+    )
+    resolver = create_sandbox_artifact_plan_resolver(_Publisher(_publication_resolution(lookup)))
+
+    with pytest.raises(ValueError, match="exactly one"):
+        await resolver(context, multi)
