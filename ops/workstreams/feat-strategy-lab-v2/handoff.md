@@ -5616,3 +5616,6 @@ The branch remains `ready_for_human_review`. Host application resolver
 configuration, explicit multi-artifact mapping, stable Nautilus release
 conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
 integration remain deferred behind their existing gates.
+## 2026-09-25 - Forward-event admission API checkpoint
+
+The versioned Strategy Lab API now exposes `POST /forward-instances/{instance_id}/events` as a strict, application-owned admission boundary. The route reparses raw JSON with duplicate/non-finite rejection, reconstructs canonical forward events, cursors, observations, and optional correction commands, then delegates atomic event/counterfactual-replay persistence to the application adapter. Responses retain the authenticated state and replay-plan fingerprints, and missing host persistence fails closed. API JSON conversion now serializes checkpoint sets deterministically. Focused parser/serializer and forward-state regression validation passed (21 tests); Ruff, MyPy (293 source files), and whitespace validation passed. This remains a host/provider event-ingestion seam; it does not activate provider acquisition or Nautilus execution.
