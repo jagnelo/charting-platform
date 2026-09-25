@@ -11,6 +11,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from hashlib import sha256
 from typing import Any
 
 import httpx
@@ -30,7 +31,7 @@ from app.providers.telemetry import observe_response
 logger = logging.getLogger(__name__)
 
 _token_cache: tuple[str, datetime] | None = None
-_orf_token_cache: tuple[str, datetime] | None = None
+_orf_token_cache: tuple[str, datetime, str, str] | None = None
 
 
 @dataclass(slots=True)
@@ -464,7 +465,13 @@ def _orf_access_token(refresh_token: str, username: str) -> str:
 
     global _orf_token_cache
     now = datetime.now(UTC)
-    if _orf_token_cache and _orf_token_cache[1] > now:
+    refresh_token_digest = sha256(refresh_token.encode("utf-8")).hexdigest()
+    if (
+        _orf_token_cache
+        and _orf_token_cache[1] > now
+        and _orf_token_cache[2] == username
+        and _orf_token_cache[3] == refresh_token_digest
+    ):
         return _orf_token_cache[0]
     token_url = str(getattr(settings, "FINRA_ORF_TOKEN_URL", "") or "").strip()
     if not token_url:
@@ -508,7 +515,12 @@ def _orf_access_token(refresh_token: str, username: str) -> str:
     except (TypeError, ValueError):
         expires_in = 3600
     cache_seconds = min(3300, max(60, expires_in - 60))
-    _orf_token_cache = (token, now + timedelta(seconds=cache_seconds))
+    _orf_token_cache = (
+        token,
+        now + timedelta(seconds=cache_seconds),
+        username,
+        refresh_token_digest,
+    )
     return token
 
 
