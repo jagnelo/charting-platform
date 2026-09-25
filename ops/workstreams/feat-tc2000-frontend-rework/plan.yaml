@@ -266,21 +266,22 @@ progress:
   total: 9
   current_phase: R6_research_results_selection_state_accessibility_validation_recorded
   next_action: >-
-    Preserve the b0e23a97a Research Results aria-pressed receipt and the
-    serial frontend/full backend/browser evidence. Keep the two unrelated
-    browser regressions visible for human review, then continue with the next
-    bounded TC-owned R1/R5/R6 item only after confirming no provider/ETF overlap;
-    keep consumer integration deferred until both upstream branches reach
-    staging. Do not retry origin synchronization under the existing private-
-    origin safeguard without newly accepted exact-payload authorization.
+    Preserve the 0b1e3abcf chart-control and promoted-column receipt and the
+    refreshed serial frontend/full browser evidence. Keep provider/ETF consumer
+    integration deferred until both upstream branches reach staging, then
+    reconcile shared paths and rerun the exact-tip gate. Do not retry origin
+    synchronization under the existing private-origin safeguard without newly
+    accepted exact-payload authorization.
   current_blocker: >-
-    The TC-owned Research Results change is validated, but the host's parallel
-    frontend timing guard and two unrelated browser scenarios prevent claiming
-    a clean standard exact gate for this checkpoint. Provider-platform and ETF
-    consumer integration remains a sequencing gate until both upstream branches
-    reach staging; shared-path reconciliation and the final post-staging exact
-    gate remain pending. Origin synchronization remains a separate operational
-    hold under the recorded private-origin safeguard.
+    The two reproducible TC-owned browser regressions are fixed and validated;
+    the full Chromium run had four transient ERR_NETWORK_CHANGED failures that
+    all passed on focused retry. The parallel frontend timing guard remains
+    host-sensitive on the unrelated 100k-point uPlot benchmark, while serial
+    coverage passes 1,150/1,150. Provider-platform and ETF consumer integration
+    remains a sequencing gate until both upstream branches reach staging;
+    shared-path reconciliation and the final post-staging exact gate remain
+    pending. Origin synchronization remains a separate operational hold under
+    the recorded private-origin safeguard.
 historical_implementation_records:
   - "Product commit 797b29339 exposes aria-pressed state for Strategy Lab run-mode, position-evolution value-mode, and return-period toggle groups while preserving labels, active styling, state changes, run payloads, result projections, and visual layout. Focused Strategy Lab coverage passed 34/34; full frontend Vitest passed 1,136/1,136; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 797b29339f62cae9079bfa3766e4074762382e6b: backend combined coverage 1,621 tests with 82.26% total coverage, frontend Vitest 1,136/1,136, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the Strategy toggle-state semantics slice and does not close the broader workstream or upstream staging dependencies."
@@ -315,6 +316,7 @@ historical_implementation_records:
   - "Product commit 07bafee7 exposes the existing unavailable-popout recovery message as an assertive alert/live region for assistive technology. Focused workstation/pop-out tests passed 28/28; frontend type-check/diff checks passed. The exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed."
   - "Product commit 4daf9b95 makes the concise workstation footer recovery message a polite, atomic status announcement for assistive technology. Focused workstation/pop-out tests passed 27/27 with role=status, aria-live=polite, and aria-atomic=true asserted; frontend type-check/diff checks passed. The exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed."
 historical_implementation_records_continued:
+  - "Product commit 0b1e3abcf reserves separate chart top-row slots for comparisons, the plot library, and templates so comparison chips remain pointer-accessible at normal widths, and makes detached workstation watchlists read their canonical workspace configuration so newly promoted Boolean columns render immediately. Focused Chart Plot Library and VirtualWatchlistTool coverage passed 109/109; serial full frontend coverage passed 1,150/1,150 across 124 files at 84.78% statements; frontend type-check and production build passed; the full seeded Chromium suite passed 163/173 with four transient ERR_NETWORK_CHANGED cases, and focused retries passed those four plus the repaired F9c-template-comparison and F8u-boolean flows (6/6). Branch-scoped Docker teardown removed all containers, volumes, network, generated images, and sessions. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 7057262ee exposes explicit aria-pressed state for breadth drilldown controls: family-role constituent selectors, generic breadth Pass/Fail filters, moving-average above/below controls, 52-week/new-high-low and trend drilldowns, and the active drilldown header. The authenticated F8s-breadth-family-ratio flow now verifies selected/unselected state and uses keyboard activation for the dense overlay control; focused and full frontend checks passed, with no provider-platform, ETF, visual-oracle, or acceptance-policy changes."
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 7057262eeb10933ce5947426e8e7fa87e4edacee: backend combined coverage passed 1,621 unit and 408 integration tests at 82.26% total coverage; frontend Vitest passed 1,151/1,151; type-check/build, Compose/provider contracts, branch-scoped Docker health, and research-runner probes passed; authenticated functional Chromium passed 170 with 107 documented skips; and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable because of host Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the breadth-drilldown state semantics slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commit 83bcb722 adds a visually hidden accessible description to hydrated workstation pop-outs clarifying that monitor placement and native window controls are browser/OS managed. Focused pop-out tests passed 27/27, frontend type-check/diff checks passed, and the unchanged exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed."

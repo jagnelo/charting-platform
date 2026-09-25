@@ -14704,3 +14704,24 @@ visual-baseline, threshold, mask, skip, fallback, or acceptance policy
 changed. This receipt covers the Workstation shell-menu disclosure-id
 semantics slice and does not close the broader workstream or upstream staging
 dependencies.
+
+## 2026-09-25 — R6 chart interaction and promoted-column checkpoint
+
+Product commit `0b1e3abcf` fixes two TC-owned browser regressions without
+changing provider/ETF ownership or any browser oracle. Chart comparison controls
+now reserve a separate top-row slot from the plot-library and template controls,
+so comparison chips remain pointer-accessible. Detached Golden Layout watchlists
+read the canonical workspace configuration for visible column keys and Boolean
+condition definitions, so a chart-promoted Boolean column appears immediately.
+
+Focused Chart Plot Library and VirtualWatchlistTool coverage passed `109/109`.
+Serial full frontend coverage passed `1,150/1,150` across `124` files at
+`84.78%` statement coverage; type-check and production build passed. The full
+seeded Chromium run completed `163` passed, `4` transient
+`ERR_NETWORK_CHANGED` failures, and `6` documented skips; focused retries
+passed those four transient cases plus F9c-template-comparison and F8u-boolean
+(`6/6`). Branch-scoped Docker teardown removed all assigned resources.
+
+The host-parallel uPlot timing guard remains separately host-sensitive. Provider
+platform/ETF consumer integration remains deferred until both branches reach
+staging; shared-path reconciliation and the final exact-tip gate remain open.

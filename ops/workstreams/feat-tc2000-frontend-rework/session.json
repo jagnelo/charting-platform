@@ -110,14 +110,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b0e23a97aa77e9d49b6059dab3094decaf2f443e",
-  "implementation_sha": "b0e23a97aa77e9d49b6059dab3094decaf2f443e",
+  "head": "0b1e3abcf",
+  "implementation_sha": "0b1e3abcf",
   "interrupted": false,
-  "last_checkpoint": "2026-09-25T01:03:43+01:00",
-  "last_human_progress_update": "2026-09-25T01:03:43+01:00",
+  "last_checkpoint": "2026-09-25T01:35:00+01:00",
+  "last_human_progress_update": "2026-09-25T01:35:00+01:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Keep the two unrelated browser regressions visible for human review; defer provider/ETF consumer integration until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
-  "plan_hash": "4a83bf4b8977c18269645256eb4aa47065aea3572a47bc075a962813b68cfb47",
+  "next_action": "Keep the host-sensitive uPlot timing note and transient browser retry evidence visible; defer provider/ETF consumer integration until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
+  "plan_hash": "5d30f382a1d17e5408a18c58ae6997e70c2f9a4b00a7adae571c970a03dddd14",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -130,9 +130,9 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "The TC-owned Research Results change is validated, but the host's parallel frontend timing guard and two unrelated browser scenarios prevent claiming a clean standard exact gate for this checkpoint. Provider-platform and ETF consumer integration remains a sequencing gate until both upstream branches reach staging; shared-path reconciliation and the final post-staging exact gate remain pending. Origin synchronization remains a separate operational hold under the recorded private-origin safeguard.",
-    "current_phase": "R6_research_results_selection_state_accessibility_validation_recorded",
-    "next_action": "Keep the two unrelated browser regressions visible for human review; continue only with bounded TC-owned R1/R5/R6 work that does not overlap provider/ETF ownership, and defer consumer integration until both upstream branches reach staging.",
+    "current_blocker": "The two reproducible TC-owned browser regressions are fixed and validated; the full Chromium run had four transient ERR_NETWORK_CHANGED failures that all passed on focused retry. The parallel frontend timing guard remains host-sensitive on the unrelated 100k-point uPlot benchmark, while serial coverage passes 1,150/1,150. Provider-platform and ETF consumer integration remains a sequencing gate until both upstream branches reach staging; shared-path reconciliation and the final post-staging exact gate remain pending. Origin synchronization remains a separate operational hold under the recorded private-origin safeguard.",
+    "current_phase": "R6_chart_controls_and_promoted_boolean_column_validation_recorded",
+    "next_action": "Keep the host-sensitive uPlot timing note and transient browser retry evidence visible; defer provider/ETF consumer integration until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
     "total": 9,
     "updated_at": "2026-09-25T01:03:43+01:00"
   },
