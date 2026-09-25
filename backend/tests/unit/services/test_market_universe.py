@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -12,6 +12,7 @@ from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import (
     Issuer,
     MarketUniverseLifecycleObservation,
+    MarketUniverseLifecycleObservationSnapshot,
     MarketUniverseReconciliationRun,
 )
 from app.services.exchange_catalog import ensure_exchange, upsert_instrument_listing
@@ -45,6 +46,52 @@ def _make_authoritative_nasdaq_run(
     db.add(run)
     db.flush()
     return run
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_observation_retains_each_provider_payload(db, instrument):
+    source = DataSource(name="fixture-lifecycle-history", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    observed_at = datetime(2026, 9, 3, 21, tzinfo=UTC)
+    run = _make_authoritative_nasdaq_run(db, source, observed_at=observed_at)
+    session = AsyncSessionAdapter(db)
+
+    await _upsert_observation(
+        session,
+        data_source_id=source.id,
+        run_id=run.id,
+        symbol=instrument.symbol,
+        exchange_mic="XNAS",
+        quote_type="EQUITY",
+        instrument_id=instrument.id,
+        listing_id=None,
+        payload={"symbol": instrument.symbol, "status": "active"},
+        observed_at=observed_at,
+    )
+    second_at = observed_at + timedelta(days=1)
+    await _upsert_observation(
+        session,
+        data_source_id=source.id,
+        run_id=run.id,
+        symbol=instrument.symbol,
+        exchange_mic="XNAS",
+        quote_type="EQUITY",
+        instrument_id=instrument.id,
+        listing_id=None,
+        payload={"symbol": instrument.symbol, "status": "halted"},
+        observed_at=second_at,
+    )
+
+    current = db.query(MarketUniverseLifecycleObservation).one()
+    snapshots = (
+        db.query(MarketUniverseLifecycleObservationSnapshot)
+        .order_by(MarketUniverseLifecycleObservationSnapshot.observed_at)
+        .all()
+    )
+    assert current.payload["status"] == "halted"
+    assert [snapshot.payload["status"] for snapshot in snapshots] == ["active", "halted"]
+    assert len(snapshots) == 2
 
 
 @pytest.mark.asyncio

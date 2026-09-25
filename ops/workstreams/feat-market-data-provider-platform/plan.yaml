@@ -162,6 +162,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 lossless universe-lifecycle correction: mutable current
+    lifecycle rows now have an append-only
+    `market_universe_lifecycle_observation_snapshot` table retaining every
+    provider identity/state/payload observation, including repeated payloads;
+    migration `e9f1a2b3c4d5` refuses downgrade while evidence exists. Focused
+    universe/migration coverage passes 37/37, the complete migration suite
+    passes 22/22, and Alembic has one head. Provider quota/legal/capability,
+    complete NMS/OTC/SEC reconciliation, secret-store, deferred-provider,
+    publication, and final-shadow gates remain open.
+  - >-
     2026-09-25 unit-harness correction: the branch-owned backend unit scope,
     excluding the ETF holdings adapter file owned by
     `feat/etf-holdings-constituents`, passed 1905/1905 with 37 existing

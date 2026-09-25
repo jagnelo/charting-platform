@@ -507,6 +507,57 @@ class MarketUniverseLifecycleObservation(Base, TimestampMixin):
     )
 
 
+class MarketUniverseLifecycleObservationSnapshot(Base, TimestampMixin):
+    """Immutable provider payload/state captured for one universe observation."""
+
+    __tablename__ = "market_universe_lifecycle_observation_snapshot"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    run_id: Mapped[int | None] = mapped_column(
+        BIGINT_ID,
+        ForeignKey("market_universe_reconciliation_run.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    instrument_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    listing_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("instrument_listing.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    provider_symbol: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    exchange_mic: Mapped[str | None] = mapped_column(String(10), nullable=True, index=True)
+    quote_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    present: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    lifecycle_status: Mapped[str] = mapped_column(String(24), nullable=False, index=True)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_missing_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    consecutive_seen: Mapped[int] = mapped_column(Integer, nullable=False)
+    consecutive_missing: Mapped[int] = mapped_column(Integer, nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    __table_args__ = (
+        Index(
+            "ix_market_universe_lifecycle_snapshot_source_symbol_observed",
+            "data_source_id",
+            "provider_symbol",
+            "observed_at",
+        ),
+        Index(
+            "ix_market_universe_lifecycle_snapshot_run_quote_type",
+            "run_id",
+            "quote_type",
+        ),
+    )
+
+
 class MarketEvent(Base, TimestampMixin):
     """Provider-normalized market event, including issuer and venue events."""
 

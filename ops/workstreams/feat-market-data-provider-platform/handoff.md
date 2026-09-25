@@ -6416,6 +6416,20 @@ provider or start the shadow run.
   legal/use, unresolved capability, complete NMS/OTC/SEC, external secret-store,
   deferred-provider, publication, and final-shadow gates remain open.
 
+## 2026-09-25 universe lifecycle observation retention
+
+- The mutable `market_universe_lifecycle_observation` row remains the current
+  lifecycle projection, but each provider observation now also appends its
+  complete identity/state/payload envelope to
+  `market_universe_lifecycle_observation_snapshot`. Repeated observations are
+  intentionally allowed; no provider payload is replaced or discarded.
+- Additive migration `e9f1a2b3c4d5` refuses downgrade while snapshot evidence
+  exists. The focused universe and migration suites pass `37/37`, the full
+  migration suite passes `22/22`, and Alembic reports exactly one head.
+- This closes the generic universe-payload loss path. Complete NMS/OTC/SEC
+  reconciliation, provider quota/legal/capability, external secret-store,
+  deferred-provider, publication, and final-shadow gates remain open.
+
 ## 2026-09-25 SEC issuer-directory source evidence retention
 
 - Commit `27f3cc34a` adds immutable `source_payload` evidence to every

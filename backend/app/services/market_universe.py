@@ -1,14 +1,16 @@
 """US universe reconciliation and conservative listing lifecycle maintenance.
 
-Discovery providers are observations, not authoritative truth.  This service
-keeps every page in the existing snapshot tables, records the latest per-symbol
-state, and requires repeated complete absences before a listing is marked
-inactive.  A transient provider outage therefore cannot delist the universe.
+Discovery providers are observations, not authoritative truth. This service
+keeps every page in the existing snapshot tables, retains each lifecycle
+observation payload immutably, records the latest per-symbol state, and
+requires repeated complete absences before a listing is marked inactive. A
+transient provider outage therefore cannot delist the universe.
 """
 
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -30,6 +32,7 @@ from app.models.market_data_foundation import (
     Issuer,
     MarketEvent,
     MarketUniverseLifecycleObservation,
+    MarketUniverseLifecycleObservationSnapshot,
     MarketUniverseReconciliationRun,
 )
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -497,6 +500,27 @@ async def _upsert_observation(
         )
         db.add(row)
         await db.flush()
+        db.add(
+            MarketUniverseLifecycleObservationSnapshot(
+                data_source_id=row.data_source_id,
+                run_id=row.run_id,
+                instrument_id=row.instrument_id,
+                listing_id=row.listing_id,
+                provider_symbol=row.provider_symbol,
+                exchange_mic=row.exchange_mic,
+                quote_type=row.quote_type,
+                observed_at=row.observed_at,
+                present=row.present,
+                lifecycle_status=row.lifecycle_status,
+                first_seen_at=row.first_seen_at,
+                last_seen_at=row.last_seen_at,
+                last_missing_at=row.last_missing_at,
+                consecutive_seen=row.consecutive_seen,
+                consecutive_missing=row.consecutive_missing,
+                payload=deepcopy(row.payload),
+            )
+        )
+        await db.flush()
         return row
     was_present = bool(row.present)
     row.run_id = run_id
@@ -517,6 +541,27 @@ async def _upsert_observation(
         row.lifecycle_status = (
             "missing" if row.consecutive_missing >= _MISSING_CONFIRMATIONS else "missing_pending"
         )
+    await db.flush()
+    db.add(
+        MarketUniverseLifecycleObservationSnapshot(
+            data_source_id=row.data_source_id,
+            run_id=row.run_id,
+            instrument_id=row.instrument_id,
+            listing_id=row.listing_id,
+            provider_symbol=row.provider_symbol,
+            exchange_mic=row.exchange_mic,
+            quote_type=row.quote_type,
+            observed_at=row.observed_at,
+            present=row.present,
+            lifecycle_status=row.lifecycle_status,
+            first_seen_at=row.first_seen_at,
+            last_seen_at=row.last_seen_at,
+            last_missing_at=row.last_missing_at,
+            consecutive_seen=row.consecutive_seen,
+            consecutive_missing=row.consecutive_missing,
+            payload=deepcopy(row.payload),
+        )
+    )
     await db.flush()
     return row
 
