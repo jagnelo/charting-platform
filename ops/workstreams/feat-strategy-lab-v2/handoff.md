@@ -110,6 +110,12 @@ Malformed module/attribute targets are rejected before callback construction;
 the focused callback/handoff suite covers missing, malformed, and valid
 resolver configuration.
 
+`PostgresSubmissionDispatchAdapter.load_submission()` now provides the
+owner-scoped, authenticated attempt lookup that an application evidence
+resolver needs to bind terminal context to a durable `SubmissionReceipt`.
+Missing attempts return no record; duplicate attempt bindings and row identity
+drift fail closed.
+
 ## 2026-09-24 - Typed result-manifest rehydration
 
 `postgres_result_materialization.py` now exposes owner-scoped
