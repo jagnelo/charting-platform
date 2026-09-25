@@ -14,7 +14,7 @@ from app.strategy_lab_v2.artifact_application import (
 from app.strategy_lab_v2.artifact_commit import ArtifactCommitLedger, finalize_artifact_commit
 from app.strategy_lab_v2.artifact_publication import plan_artifact_publication
 from app.strategy_lab_v2.artifact_store import ArtifactStoreDecision, ArtifactStoreResolution
-from app.strategy_lab_v2.artifacts import verify_artifact_payload
+from app.strategy_lab_v2.artifacts import artifact_content_digest, verify_artifact_payload
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.outcomes import ExecutionOutcome, OutcomeStatus
@@ -108,9 +108,13 @@ def _failed_lookup(lookup: WorkerTerminalEvidenceLookup) -> WorkerTerminalEviden
 def _artifact_plan(lookup: WorkerTerminalEvidenceLookup):
     assert lookup.inputs.manifest is not None
     artifact = lookup.inputs.manifest.output_artifacts[0]
+    return _artifact_plan_for(artifact, b"result")
+
+
+def _artifact_plan_for(artifact, payload: bytes):
     return plan_artifact_publication(
         artifact,
-        verify_artifact_payload(artifact, b"result"),
+        verify_artifact_payload(artifact, payload),
     )
 
 
@@ -191,6 +195,46 @@ def test_builder_rejects_plan_for_an_unknown_result_artifact(tmp_path: Path) -> 
 
     with pytest.raises(ValueError, match="unknown result artifact"):
         build_worker_terminal_evidence(context, lookup, artifact_plans=(unknown,))
+
+
+def test_builder_accepts_complete_multi_artifact_host_mapping(tmp_path: Path) -> None:
+    context, lookup = _context_and_lookup(tmp_path)
+    assert lookup.inputs.manifest is not None
+    assert lookup.inputs.execution is not None
+    assert lookup.inputs.publications
+    first = lookup.inputs.manifest.output_artifacts[0]
+    second_digest = artifact_content_digest(b"second")
+    second = replace(
+        first,
+        content_digest=second_digest,
+        storage_key=second_digest,
+        byte_length=len(b"second"),
+    )
+    manifest = replace(lookup.inputs.manifest, output_artifacts=(first, second))
+    publication = replace(
+        lookup.inputs.publications[0],
+        result_fingerprint=manifest.fingerprint,
+        reproduction_fingerprint=manifest.reproduction_fingerprint,
+    )
+    multi = WorkerTerminalEvidenceLookup(
+        lookup.binding,
+        replace(lookup.inputs, manifest=manifest, publications=(publication,)),
+    )
+
+    evidence = build_worker_terminal_evidence(
+        context,
+        multi,
+        artifact_plans=(
+            _artifact_plan_for(first, b"result"),
+            _artifact_plan_for(second, b"second"),
+        ),
+    )
+
+    assert evidence.result == manifest
+    assert {plan.manifest_fingerprint for plan in evidence.artifact_plans} == {
+        content_digest(first),
+        content_digest(second),
+    }
 
 
 def test_builder_maps_failed_runtime_to_typed_digest_only_error(tmp_path: Path) -> None:
