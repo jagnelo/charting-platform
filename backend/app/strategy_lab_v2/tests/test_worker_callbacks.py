@@ -42,6 +42,23 @@ async def test_callback_factory_requires_application_evidence_resolver(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "spec",
+    (
+        "not-a-module-spec",
+        "app.strategy_lab_v2.tests.test_worker_callbacks:no_such_factory",
+    ),
+)
+async def test_callback_factory_rejects_malformed_or_missing_resolver_target(
+    monkeypatch: pytest.MonkeyPatch,
+    spec: str,
+) -> None:
+    monkeypatch.setenv("STRATEGY_LAB_V2_EVIDENCE_RESOLVER", spec)
+    with pytest.raises((ValueError, TypeError, AttributeError)):
+        await create(_Persistence(), Path("/tmp/artifacts"))
+
+
+@pytest.mark.asyncio
 async def test_callback_factory_composes_typed_materializer_and_terminal_writer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
