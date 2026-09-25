@@ -4712,6 +4712,30 @@ configuration, explicit multi-artifact mapping, stable Nautilus release
 conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
 integration remain deferred behind their existing gates.
 
+## 2026-09-25 - Capability-summary API projection checkpoint
+
+Persisted capability summaries are now exposed as the read-only
+`capability-summaries` resource in the registration-neutral v2 API. The shared
+PostgreSQL persistence bundle projects authenticated summaries with stable
+fingerprint identities and preserves data/execution gaps, degradations,
+ranking eligibility, executability, and authoritative-publication eligibility.
+No provider entitlement or engine registration is inferred by this projection;
+preflight calculation remains owned by its existing adapters.
+
+The focused API/resource/persistence suite passed 35 tests and the full package
+suite passed 851 tests. Exact branch validation passed 851 package tests, 2
+migration tests, Ruff, MyPy across 272 files, diff validation, and workstream
+validation. The Docker-backed combined coverage gate passed 2,502 tests with
+83.77% total coverage (required threshold: 75%) and 86 warnings; the referenced
+runtime env file was absent in this checkout and `.env.dev` supplied test
+configuration. Two cleanup passes retained zero testcontainer sessions,
+containers, images, or volumes.
+
+The branch remains `ready_for_human_review`. Host application resolver
+configuration, explicit multi-artifact mapping, stable Nautilus release
+conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
+integration remain deferred behind their existing gates.
+
 ## 2026-09-25 - Legacy import API checkpoint
 
 The registration-neutral Strategy Lab v2 router now exposes strict
