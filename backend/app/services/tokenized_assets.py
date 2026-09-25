@@ -18,7 +18,7 @@ from app.models.market_data_foundation import AdjustmentBasis, Issuer, ProviderP
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_runtime import ProviderCapability
-from app.models.tokenized_asset import TokenizedAssetDetail
+from app.models.tokenized_asset import TokenizedAssetDetail, TokenizedAssetObservation
 from app.providers.base import TokenizedAssetRecord
 from app.providers.errors import (
     ProviderNotConfiguredError,
@@ -526,6 +526,23 @@ async def upsert_tokenized_asset(
         ),
     }
     detail.description = record.raw_payload.get("description") if record.raw_payload else None
+
+    # Keep the provider response immutable even though the detail row above is
+    # intentionally a latest-state projection.  Every invocation is retained,
+    # including an identical response, because the observation itself is
+    # evidence of a quota-consuming fetch and must remain replayable.
+    observed_at = record.observed_at or datetime.now(UTC)
+    db.add(
+        TokenizedAssetObservation(
+            instrument_id=instrument.id,
+            provider_asset_id=record.asset_id,
+            provider_name=record.provider,
+            token_symbol=record.symbol,
+            observed_at=observed_at,
+            fetched_at=datetime.now(UTC),
+            payload=source_payload if source_payload is not None else (record.raw_payload or {}),
+        )
+    )
 
     await register_provider_symbol(
         db,

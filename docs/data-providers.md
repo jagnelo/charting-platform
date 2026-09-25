@@ -160,6 +160,13 @@ General market events follow the same projection/evidence split. The canonical
 `market_event` row remains keyed by provider event identity for reconciliation,
 while each fetched provider payload is appended to `market_event_observation`.
 
+Tokenized-asset metadata follows the same rule. `tokenized_asset_detail` is
+the mutable latest-state projection used by identity and quote workflows, while
+each catalog, metadata, or quote refresh appends its original provider payload
+to `tokenized_asset_observation` with provider asset identity and both provider
+observation and local fetch timestamps. Repeated identical responses are kept;
+they are quota/audit evidence and are never deduplicated or pruned.
+
 The mapping is enforced consistently by normal application routing, the direct
 live-probe planner, and the manifest preflight. Missing, duplicated, or
 non-existent `reconciled_dimensions` entries fail closed before transport;

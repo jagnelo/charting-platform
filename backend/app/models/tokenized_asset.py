@@ -1,8 +1,20 @@
 """Canonical metadata for tokenized securities and their chain deployments."""
 
+from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import BIGINT, JSON, Boolean, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import (
+    BIGINT,
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -54,3 +66,36 @@ class TokenizedAssetDetail(Base, TimestampMixin):
     )
     underlying_instrument: Mapped["Instrument | None"] = relationship(foreign_keys=[underlying_instrument_id])
     underlying_issuer: Mapped["Issuer | None"] = relationship(foreign_keys=[underlying_issuer_id])
+
+
+class TokenizedAssetObservation(Base, TimestampMixin):
+    """Immutable provider response retained beside the mutable token projection.
+
+    ``TokenizedAssetDetail`` is deliberately a current-state projection.  This
+    table retains every catalog/metadata response that produced or refreshed
+    that projection, including repeated identical responses, so quota-limited
+    provider evidence can be replayed without querying the provider again.
+    """
+
+    __tablename__ = "tokenized_asset_observation"
+    __table_args__ = (
+        Index(
+            "ix_tokenized_asset_observation_provider_asset_observed",
+            "provider_name",
+            "provider_asset_id",
+            "observed_at",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    instrument_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    provider_asset_id: Mapped[str] = mapped_column(String(160), nullable=False, index=True)
+    provider_name: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    token_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    instrument: Mapped["Instrument"] = relationship()

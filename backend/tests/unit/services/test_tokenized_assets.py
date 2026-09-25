@@ -22,7 +22,7 @@ from app.models.provider_observation import (
     MarketBarObservation,
 )
 from app.models.provider_runtime import ProviderCapability
-from app.models.tokenized_asset import TokenizedAssetDetail
+from app.models.tokenized_asset import TokenizedAssetDetail, TokenizedAssetObservation
 from app.providers.base import TokenizedAssetRecord
 from app.providers.errors import ProviderNotConfiguredError
 from app.services import tokenized_assets
@@ -77,6 +77,7 @@ async def test_upsert_keeps_token_distinct_and_links_unambiguous_underlying(db, 
     token = await upsert_tokenized_asset(AsyncSessionAdapter(db), record)
     assert token.id != instrument.id
     assert token.domain_key == "tokenized:xstocks:" + token.domain_key.rsplit(":", 1)[1]
+    await upsert_tokenized_asset(AsyncSessionAdapter(db), record)
 
     detail = db.execute(
         select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == token.id)
@@ -87,9 +88,20 @@ async def test_upsert_keeps_token_distinct_and_links_unambiguous_underlying(db, 
     assert detail.deployments[0]["address"] == "So111"
 
     snapshot = db.execute(
-        select(LatestPriceSnapshot).where(LatestPriceSnapshot.instrument_id == token.id)
-    ).scalar_one()
+        select(LatestPriceSnapshot)
+        .where(LatestPriceSnapshot.instrument_id == token.id)
+        .order_by(LatestPriceSnapshot.id)
+    ).scalars().first()
+    assert snapshot is not None
     assert snapshot.price == Decimal("100.25")
+    observations = db.execute(
+        select(TokenizedAssetObservation)
+        .where(TokenizedAssetObservation.instrument_id == token.id)
+        .order_by(TokenizedAssetObservation.id)
+    ).scalars().all()
+    assert len(observations) == 2
+    assert observations[0].payload == {"id": "x:AAPL"}
+    assert observations[1].payload == {"id": "x:AAPL"}
 
 
 @pytest.mark.asyncio
