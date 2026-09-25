@@ -172,6 +172,10 @@ def build_worker_terminal_evidence(
         error = factory(context, process_execution.runtime_result.state)
         if not isinstance(error, ApiError):
             raise TypeError("runtime_error_factory must return an ApiError")
+        if error.request_id != context.request.request_fingerprint:
+            raise ValueError(
+                "runtime_error_factory returned an error for a different request"
+            )
     if runtime_phase is RuntimeExecutionPhase.CANCELLED and error is not None:
         raise ValueError("cancelled worker evidence cannot carry an error")
     if runtime_phase not in {

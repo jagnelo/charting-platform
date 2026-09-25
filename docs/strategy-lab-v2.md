@@ -1190,6 +1190,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   persistence composition also accepts an optional host runtime-error factory
   when retryability or typed classification must follow application policy;
   the digest-only fallback remains deterministic when no factory is supplied.
+  Any injected error must retain the worker request fingerprint as its request
+  identity, so host classification cannot detach terminal evidence from the
+  immutable execution request.
   Successful terminal evidence also requires exactly one verified publication
   plan for every output artifact in the result manifest; incomplete or
   substituted plan sets fail before terminal persistence.

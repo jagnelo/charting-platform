@@ -282,6 +282,26 @@ def test_builder_uses_host_runtime_error_factory(tmp_path: Path) -> None:
     assert evidence.error.retryable is False
 
 
+def test_builder_rejects_host_runtime_error_for_a_different_request(tmp_path: Path) -> None:
+    context, accepted_lookup = _context_and_lookup(tmp_path, body="exit 7")
+    lookup = _failed_lookup(accepted_lookup)
+
+    def factory(_received_context, _runtime_state):
+        return ApiError(
+            ApiErrorCode.INTERNAL_ERROR,
+            "misbound worker failure",
+            "different-request",
+            500,
+        )
+
+    with pytest.raises(ValueError, match="different request"):
+        build_worker_terminal_evidence(
+            context,
+            lookup,
+            runtime_error_factory=factory,
+        )
+
+
 def test_default_worker_failure_error_rejects_non_failed_runtime(tmp_path: Path) -> None:
     context, _ = _context_and_lookup(tmp_path)
     assert context.process.execution is not None
