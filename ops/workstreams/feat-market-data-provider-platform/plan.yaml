@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current full provider preflight at source
+    2d4987df0b91f0b5110c8effb11b10ac7f8adf10 stopped before transport with
+    0/0 cases and zero provider requests. The append-only corrections did not
+    widen routing. Provider quota/byte baselines, legal/use authority,
+    unresolved capability evidence, complete NMS/OTC/SEC reconciliation,
+    external secret stores, deferred Tradier/IBKR/Ondo, and final shadow gates
+    remain open; the structured receipt is appended to validation.jsonl.
+  - >-
     2026-09-25 Docker-backed integration validation: the current source passed
     the complete backend integration suite, 386/386 tests with 57 warnings in
     573.15 seconds. This confirms the new raw-bar migration/persistence path

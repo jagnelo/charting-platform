@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current preflight refresh
+
+- Source `2d4987df0` ran the full provider preflight and stopped before
+  transport with `0/0` cases and zero provider requests. It confirms the
+  append-only corrections did not widen routing unsafely.
+- Remaining blockers are unchanged and explicit: unresolved provider quota or
+  byte baselines, legal/use authority, capability evidence, complete
+  NMS/OTC/SEC universe reconciliation, external secret stores, deferred
+  Tradier/IBKR/Ondo, and the final shadow phase. The structured receipt is in
+  `validation.jsonl`.
+
 ## 2026-09-25 Docker integration validation checkpoint
 
 - The direct persistent Docker-backed backend integration run completed on the
