@@ -75,6 +75,27 @@ containers, images, or volumes. Host artifact source mapping, stable Nautilus
 release conformance, upstream contract reconciliation, and full application
 integration remain open gates.
 
+## 2026-09-25 - Single-output sandbox artifact mapper checkpoint
+
+`create_sandbox_artifact_plan_resolver()` now composes the worker process
+evidence with `LocalArtifactPublicationService.publish_sandbox_result()` for
+the current one-file `/outputs/result` contract. It returns the exact verified
+publication plan retained by the service, so terminal completion can bind its
+artifact commit to the bytes observed by the sandbox. Manifests containing
+multiple output artifacts fail closed and require an explicit host mapping
+callback; failed/cancelled runs produce no artifact plans.
+
+Focused resolver/artifact tests passed 5 tests; the complete Strategy Lab v2
+package passed 838 tests. Branch-declared validation passed all six checks
+(838 package tests, 2 migration tests, Ruff, MyPy across 272 files, diff, and
+workstream validation). The exact backend gate passed 2,489 tests at 83.74%
+coverage with 86 warnings; the referenced runtime env file was absent in this
+checkout and `.env.dev` supplied test configuration. Compose profile validation
+passed, and both required cleanup passes retained zero testcontainer sessions,
+containers, images, or volumes. Multi-artifact host mapping, stable Nautilus
+release conformance, upstream contract reconciliation, and full application
+integration remain open gates.
+
 ## 2026-09-25 - Mounted result evidence checkpoint
 
 `sandbox.py` now exposes the validated host source for the hardened
