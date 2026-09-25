@@ -5631,3 +5631,6 @@ The versioned Strategy Lab API now exposes `POST /forward-instances/{instance_id
 ## 2026-09-25 - Forward API ASGI route evidence
 
 The warm-up endpoint now has executable ASGI-level coverage using an in-process HTTP transport, proving request parsing, dependency injection, application delegation, typed serialization, and the 202 response at the registered route. The focused forward/API suite now passes 25 tests; Ruff, MyPy (293 source files), and whitespace validation remain green.
+## 2026-09-25 - Forward dispatch/lifecycle ASGI evidence
+
+ASGI-level route coverage now exercises the atomic forward dispatch/outbox and lifecycle compare-and-set endpoints in addition to warm-up. The focused forward/API suite passes 27 tests, proving the registered HTTP boundaries delegate typed requests through the application seams and return typed 202 responses. Ruff, MyPy (293 source files), and whitespace validation remain green.
