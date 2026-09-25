@@ -2,6 +2,23 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Forward shadow-account worker settlement checkpoint
+
+Added `ForwardAccountWorkerHandler`, a composable host-worker boundary for
+durable shadow-account settlement. The host resolver produces immutable account
+effects for an authenticated `ForwardEventWorkItem`; the handler verifies the
+instance and canonical event fingerprints before applying them through the
+owner-scoped account store. Redis is acknowledged only after an `APPLIED` or
+exact `REPLAY_EXISTING` account resolution. Missing initialization and
+out-of-order effects remain retryable, while identity conflicts and malformed
+effects remain pending as fail-closed rejections.
+
+The focused account-worker, forward-worker, ledger, and PostgreSQL account
+suite passed 13 tests. Ruff and MyPy remain green across 289 source files;
+whitespace validation is clean. Provider event resolution, worker
+capacity/authorization, and stable Nautilus execution remain explicit host
+gates.
+
 ## 2026-09-25 - Forward shadow-account persistence checkpoint
 
 Added `PostgresForwardAccountAdapter` and the additive
