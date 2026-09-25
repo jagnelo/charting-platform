@@ -6536,3 +6536,24 @@ provider or start the shadow run.
   active quota baseline, response-byte bound, legal/use authority, source
   completeness, or deferred-provider admission is unresolved. No ETF adapter
   or frontend path was touched.
+
+## 2026-09-25 lossless search-result payload retention
+
+- Search adapters previously reduced provider rows to symbol/name/exchange/type
+  before persistence. `ProviderSearchResult.raw_payload` now carries each
+  complete decoded provider row through the adapter contract, and
+  `InstrumentSearchSnapshot.payload.results[*].raw_payload` retains it for
+  later identity, venue, lifecycle, and reconciliation work.
+- Covered adapters include Alpha Vantage, Massive, CoinGecko, SEC EDGAR,
+  Tiingo, Twelve Data, Tradier, Finnhub, FMP, IBKR, and the legacy yfinance
+  compatibility adapter. Availability evidence keeps its historical shape
+  when no raw row exists, while non-empty provider evidence is preserved.
+- Focused persistence/availability coverage passes `30/30`; provider/search
+  adapter coverage passes `401/401`; Ruff and diff checks are clean.
+- Exact source `b1cc0c89d82939cc54dc5eeb520fd570e6755373` passes the
+  branch-owned unit gate `1,910/1,910` (37 existing warnings) and Docker
+  PostgreSQL/Redis integration `386/386` (57 warnings). The parallel ETF
+  adapter file remains excluded and untouched.
+- This closes another in-scope response-loss path. Provider-specific live,
+  legal/use, complete-universe, external secret-store, deferred-provider,
+  publication, and final-shadow gates remain open and fail-closed.
