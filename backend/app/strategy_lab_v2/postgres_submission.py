@@ -351,6 +351,65 @@ class PostgresSubmissionDispatchAdapter:
                     raise ValueError("PostgreSQL worker request fingerprint identity drifted")
                 return WorkerSubmissionBinding(owner_id, receipt)
 
+    async def load_dispatch_binding(
+        self, *, request_fingerprint: str, attempt_id: str
+    ) -> WorkerSubmissionBinding | None:
+        """Resolve a worker dispatch identity to its accepted submission.
+
+        Redis carries the fingerprint of ``DispatchRequest`` while terminal
+        evidence is owned by the corresponding ``SubmissionReceipt``.  The
+        join is owner- and idempotency-scoped so the transport identity cannot
+        be converted into a principal by selecting an arbitrary submission.
+        """
+
+        require_sha256_digest(request_fingerprint, field_name="request_fingerprint")
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                result = await session.execute(
+                    _statement(
+                        f"""
+                        SELECT s.owner_id, s.idempotency_key, s.request_fingerprint,
+                               s.operation, s.attempt_id, s.payload_digest,
+                               s.submitted_at, s.accepted_at,
+                               d.request_fingerprint AS dispatch_request_fingerprint,
+                               d.attempt_id AS dispatch_attempt_id
+                        FROM {self._schema.submission_table} AS s
+                        INNER JOIN {self._schema.dispatch_table} AS d
+                          ON d.owner_id = s.owner_id
+                         AND d.idempotency_key = s.idempotency_key
+                        WHERE d.request_fingerprint = :request_fingerprint
+                          AND d.attempt_id = :attempt_id
+                        FOR SHARE
+                        """
+                    ),
+                    {
+                        "request_fingerprint": request_fingerprint,
+                        "attempt_id": attempt_id,
+                    },
+                )
+                rows = list(result.mappings())
+                if not rows:
+                    return None
+                if len(rows) != 1:
+                    raise ValueError("PostgreSQL worker dispatch binding is ambiguous")
+                row = rows[0]
+                owner_id = row.get("owner_id")
+                if not isinstance(owner_id, str) or not owner_id.strip():
+                    raise ValueError("PostgreSQL worker dispatch owner is malformed")
+                receipt = _decode_submission(row)
+                if row.get("request_fingerprint") != receipt.request.fingerprint:
+                    raise ValueError("PostgreSQL worker submission fingerprint does not match bytes")
+                if row.get("attempt_id") != attempt_id:
+                    raise ValueError("PostgreSQL worker submission attempt identity drifted")
+                if row.get("dispatch_request_fingerprint") != request_fingerprint:
+                    raise ValueError("PostgreSQL worker dispatch fingerprint identity drifted")
+                if row.get("dispatch_attempt_id") != attempt_id:
+                    raise ValueError("PostgreSQL worker dispatch attempt identity drifted")
+                return WorkerSubmissionBinding(owner_id, receipt)
+
     async def _load_payload(
         self, session: AsyncSessionLike, payload_digest: str
     ) -> DispatchPayload | None:

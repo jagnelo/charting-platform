@@ -124,10 +124,10 @@
   "goal_unavailable_reason": null,
   "head": "c8feb7f12d05756c2032b899073c465c5f9ebc25",
   "implementation_sha": "c8feb7f12d05756c2032b899073c465c5f9ebc25",
-  "last_checkpoint": "2026-09-25T06:51:56+00:00",
-  "last_human_progress_update": "2026-09-25T06:51:56+00:00",
+  "last_checkpoint": "2026-09-25T07:07:46+00:00",
+  "last_human_progress_update": "2026-09-25T07:07:46+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "reconcile the gated worker entrypoint and host callback configuration, then enable the authenticated search callback only after stable Nautilus v2 conformance",
+  "next_action": "reconcile terminal callback registration and shared worker/database paths, then enable dispatch-identity settlement only after stable Nautilus v2 conformance",
   "parent_branch": "staging",
   "plan_hash": "7968d51e80784715912ed9e4655639f3379f9e95b5c8a77873e93bd8c3949077",
   "planning_required": false,
@@ -142,10 +142,10 @@
       "AC-FORWARD"
     ],
     "current_blocker": "Stable Nautilus release, deployment-specific host evidence configuration, migration/schema reconciliation, upstream contract reconciliation, and full repository integration remain open",
-    "current_phase": "strategy-lab-v2-authenticated-search-worker-materializer-staging-ready-for-human-review",
-      "next_action": "reconcile the gated worker entrypoint and host callback configuration, then enable the authenticated search callback only after stable Nautilus v2 conformance",
+    "current_phase": "strategy-lab-v2-dispatch-identity-terminal-evidence-staging-ready-for-human-review",
+      "next_action": "reconcile terminal callback registration and shared worker/database paths, then enable dispatch-identity settlement only after stable Nautilus v2 conformance",
     "total": 18,
-      "updated_at": "2026-09-25T06:51:56+00:00"
+      "updated_at": "2026-09-25T07:07:46+00:00"
   },
   "remote": "c5583f5b8f650f3c86ea842c117de4cdc74f3895",
   "remote_sha": "c5583f5b8f650f3c86ea842c117de4cdc74f3895",

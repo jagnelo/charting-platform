@@ -1215,6 +1215,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   queue is never treated as search-backed implicitly.
   The fallback completion writer can only return a retry, so terminal evidence
   cannot be acknowledged through the legacy path.
+- Terminal evidence lookup is keyed by the Redis dispatch fingerprint carried
+  on `WorkerCompletionContext.entry`; the decoded worker-request fingerprint
+  remains separate execution evidence. Submission-backed dispatches join their
+  durable dispatch and submission rows with owner/idempotency authentication,
+  while search-dispatch records project into the same typed receipt contract
+  for terminal settlement without inventing a duplicate submission row.
 - The root Compose stack now contains an explicit, opt-in
   `strategy-lab-v2-worker` profile. It is separate from the general ARQ worker,
   starts only after PostgreSQL/Redis health, writes to the named

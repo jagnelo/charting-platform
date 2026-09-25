@@ -55,6 +55,23 @@ class FakeSession:
         sql = str(statement)
         values = dict(params or {})
         self.calls.append(sql)
+        if "INNER JOIN strategy_lab_v2_submission_dispatches" in sql:
+            rows = []
+            for (owner_id, idempotency_key), dispatch in self.dispatches.items():
+                if (
+                    dispatch.get("request_fingerprint")
+                    != values.get("request_fingerprint")
+                    or dispatch.get("attempt_id") != values.get("attempt_id")
+                ):
+                    continue
+                submission = self.submissions.get((owner_id, idempotency_key))
+                if submission is None:
+                    continue
+                row = dict(submission)
+                row["dispatch_request_fingerprint"] = dispatch["request_fingerprint"]
+                row["dispatch_attempt_id"] = dispatch["attempt_id"]
+                rows.append(row)
+            return FakeResult(rows)
         if sql.lstrip().startswith("SELECT") and "request_fingerprint = :request_fingerprint" in sql:
             rows = [
                 row
@@ -152,7 +169,24 @@ async def test_submission_adapter_stages_receipt_and_dispatch_atomically() -> No
     assert binding.owner_id == "alice"
     assert binding.receipt == accepted.receipt
 
+    dispatch_fingerprint = session.dispatches[("alice", request.idempotency_key)][
+        "request_fingerprint"
+    ]
+    dispatch_binding = await adapter.load_dispatch_binding(
+        request_fingerprint=dispatch_fingerprint,
+        attempt_id="attempt-1",
+    )
+    assert dispatch_binding == binding
+
     await adapter.submit(principal="bob", request=request, payload=payload)
+    bob_dispatch_fingerprint = session.dispatches[("bob", request.idempotency_key)][
+        "request_fingerprint"
+    ]
+    with pytest.raises(ValueError, match="ambiguous"):
+        await adapter.load_dispatch_binding(
+            request_fingerprint=bob_dispatch_fingerprint,
+            attempt_id="attempt-1",
+        )
     with pytest.raises(ValueError, match="ambiguous"):
         await adapter.load_submission_binding(
             request_fingerprint=request.fingerprint, attempt_id="attempt-1"

@@ -259,7 +259,7 @@ def create_worker_terminal_evidence_resolver(
             raise TypeError("context must be a WorkerCompletionContext")
         attempt_id = context.request.admission.attempt_id
         loaded = lookup_loader(
-            request_fingerprint=context.request.request_fingerprint,
+            request_fingerprint=context.entry.request_fingerprint,
             attempt_id=attempt_id,
         )
         lookup = await loaded if inspect.isawaitable(loaded) else loaded

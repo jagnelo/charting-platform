@@ -14,6 +14,7 @@ from app.strategy_lab_v2.capability_summary import (
     CapabilitySummary,
     CapabilitySummaryDecision,
 )
+from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
     LegacyImportRecord,
@@ -29,7 +30,10 @@ from app.strategy_lab_v2.postgres_commands import ExecutionCommandContext, Postg
 from app.strategy_lab_v2.postgres_execution_state import PostgresExecutionStateAdapter
 from app.strategy_lab_v2.postgres_forward_state import PostgresForwardStateAdapter
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
-from app.strategy_lab_v2.postgres_search_dispatch import PostgresSearchDispatchAdapter
+from app.strategy_lab_v2.postgres_search_dispatch import (
+    PostgresSearchDispatchAdapter,
+    SearchDispatchRecord,
+)
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
 from app.strategy_lab_v2.progress import new_progress_state
@@ -220,21 +224,91 @@ async def test_persistence_bundle_loads_terminal_evidence_inputs() -> None:
         ("publication", "owner-a", "attempt-1"),
     ]
 
-    async def load_submission_binding(
+    async def load_dispatch_binding(
         *, request_fingerprint: str, attempt_id: str
     ) -> WorkerSubmissionBinding:
-        assert request_fingerprint == request.fingerprint
+        assert request_fingerprint == content_digest("dispatch-request")
         assert attempt_id == manifest.attempt_id
         return WorkerSubmissionBinding("owner-a", receipt)
 
-    bundle.submissions.load_submission_binding = load_submission_binding  # type: ignore[method-assign]
+    bundle.submissions.load_dispatch_binding = load_dispatch_binding  # type: ignore[method-assign]
     lookup = await bundle.load_worker_terminal_evidence_for_request(
-        request_fingerprint=request.fingerprint,
+        request_fingerprint=content_digest("dispatch-request"),
         attempt_id=manifest.attempt_id,
     )
     assert lookup is not None
     assert lookup.owner_id == "owner-a"
     assert lookup.inputs == inputs
+
+
+@pytest.mark.asyncio
+async def test_persistence_bundle_resolves_search_dispatch_terminal_identity() -> None:
+    bundle = PostgresStrategyLabV2Persistence.build(lambda: object())
+    manifest, *_ = _result()
+    execution = ExecutionCommandContext(
+        new_execution_outcome(
+            content_digest("synthetic-submission"),
+            manifest.attempt_id,
+            accepted_at=NOW,
+        ),
+        new_progress_state(manifest.attempt_id, total_units=1, now=NOW),
+    )
+    dispatch_request = DispatchRequest(
+        "search-dispatch-key",
+        manifest.attempt_id,
+        content_digest("search-payload"),
+        "strategy-backtest",
+        NOW,
+    )
+    record = SearchDispatchRecord(
+        "owner-search",
+        content_digest("search-experiment"),
+        3,
+        dispatch_request,
+    )
+
+    async def no_submission_binding(**_kwargs: Any) -> None:
+        return None
+
+    async def load_dispatch(request_fingerprint: str) -> SearchDispatchRecord | None:
+        assert request_fingerprint == dispatch_request.fingerprint
+        return record
+
+    async def unexpected_submission(**_kwargs: Any) -> None:
+        raise AssertionError("search dispatch lookup should supply the synthetic receipt")
+
+    async def read_context(*, principal: Any, attempt_id: str) -> ExecutionCommandContext:
+        assert principal == "owner-search"
+        assert attempt_id == manifest.attempt_id
+        return execution
+
+    async def load_manifest(*, principal: Any, attempt_id: str) -> Any:
+        assert principal == "owner-search"
+        assert attempt_id == manifest.attempt_id
+        return manifest
+
+    async def load_for_attempt(*, principal: Any, attempt_id: str) -> tuple[Any, ...]:
+        assert principal == "owner-search"
+        assert attempt_id == manifest.attempt_id
+        return ()
+
+    bundle.submissions.load_dispatch_binding = no_submission_binding  # type: ignore[method-assign]
+    bundle.search_dispatch.load_by_request_fingerprint = load_dispatch  # type: ignore[method-assign]
+    bundle.submissions.load_submission = unexpected_submission  # type: ignore[method-assign]
+    bundle.execution_state.read_context = read_context  # type: ignore[method-assign]
+    bundle.result_materialization.load_manifest = load_manifest  # type: ignore[method-assign]
+    bundle.result_publication.load_for_attempt = load_for_attempt  # type: ignore[method-assign]
+
+    lookup = await bundle.load_worker_terminal_evidence_for_request(
+        request_fingerprint=dispatch_request.fingerprint,
+        attempt_id=manifest.attempt_id,
+    )
+
+    assert lookup is not None
+    assert lookup.owner_id == "owner-search"
+    assert lookup.inputs.submission is not None
+    assert lookup.inputs.submission.request.operation.startswith("search:sha256:")
+    assert lookup.inputs.submission.request.attempt_id == manifest.attempt_id
 
 
 def test_persistence_bundle_composes_terminal_evidence_resolver() -> None:

@@ -329,7 +329,7 @@ async def test_factory_loads_lookup_and_resolves_artifact_plans(tmp_path: Path) 
     resolver = create_worker_terminal_evidence_resolver(load, artifacts)
     evidence = await resolver(context)
 
-    assert calls == [(context.request.request_fingerprint, "attempt-1")]
+    assert calls == [(context.entry.request_fingerprint, "attempt-1")]
     assert evidence.artifact_plans == (_artifact_plan(lookup),)
 
 
@@ -347,7 +347,7 @@ async def test_factory_forwards_host_runtime_error_factory(tmp_path: Path) -> No
         )
 
     async def load(*, request_fingerprint: str, attempt_id: str):
-        assert request_fingerprint == context.request.request_fingerprint
+        assert request_fingerprint == context.entry.request_fingerprint
         assert attempt_id == context.request.admission.attempt_id
         return lookup
 

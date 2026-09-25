@@ -4858,6 +4858,30 @@ actual dedicated worker entrypoint still requires host configuration,
 migration/schema reconciliation, stable Nautilus release conformance,
 upstream provider/ETF/TC2000 reconciliation, and full shared-path integration.
 
+## 2026-09-25 - Dispatch-identity terminal evidence checkpoint
+
+Worker terminal evidence now resolves the Redis `DispatchRequest` fingerprint
+from `WorkerCompletionContext.entry`, rather than incorrectly using the
+separately content-addressed `WorkerExecutionRequest` fingerprint. The
+submission adapter joins dispatch and submission rows by owner/idempotency key,
+authenticates both identities, and rejects ambiguous or drifted bindings.
+
+Search-dispatch workers now have a durable fallback: the authenticated search
+dispatch record is projected into the existing typed submission receipt
+contract, preserving owner, attempt, payload, queue, and candidate identity
+without inventing a principal or requiring a duplicate submission row. Focused
+coverage passed 25 tests, and the complete branch gate passed 875 package
+tests, 2 migration tests, Ruff, MyPy across 276 files, diff validation, and
+workstream validation. The exact backend coverage gate passed 2,526 tests with
+83.78% total coverage (required threshold: 75%) and 86 warnings; the referenced
+runtime env file was absent in this checkout and `.env.dev` supplied test
+configuration. Two cleanup passes retained zero testcontainer sessions,
+containers, images, or volumes.
+
+The branch remains `ready_for_human_review`. Dedicated worker activation,
+shared migration/application reconciliation, stable Nautilus v2 conformance,
+and upstream provider/ETF/TC2000 integration remain gated.
+
 ## 2026-09-25 - Legacy import inspection checkpoint
 
 Preserved digest-only legacy records are now exposed through the read-only

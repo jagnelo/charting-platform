@@ -50,7 +50,9 @@ from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAd
 from app.strategy_lab_v2.postgres_worker_settlement import PostgresWorkerSettlementAdapter
 from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
+from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
 from app.strategy_lab_v2.worker_evidence import (
+    WorkerSubmissionBinding,
     WorkerTerminalEvidenceInputs,
     WorkerTerminalEvidenceLookup,
 )
@@ -372,7 +374,11 @@ class PostgresStrategyLabV2Persistence:
         )
 
     async def load_worker_terminal_evidence_inputs(
-        self, *, principal: Any, attempt_id: str
+        self,
+        *,
+        principal: Any,
+        attempt_id: str,
+        submission: SubmissionReceipt | None = None,
     ) -> WorkerTerminalEvidenceInputs:
         """Load authenticated durable inputs for an application resolver.
 
@@ -382,9 +388,12 @@ class PostgresStrategyLabV2Persistence:
         retry and keep the immutable attempt binding from its worker context.
         """
 
-        submission = await self.submissions.load_submission(
-            principal=principal, attempt_id=attempt_id
-        )
+        if submission is None:
+            submission = await self.submissions.load_submission(
+                principal=principal, attempt_id=attempt_id
+            )
+        elif not isinstance(submission, SubmissionReceipt):
+            raise TypeError("submission must be a SubmissionReceipt or None")
         execution = await self.execution_state.read_context(
             principal=principal, attempt_id=attempt_id
         )
@@ -405,17 +414,46 @@ class PostgresStrategyLabV2Persistence:
     async def load_worker_terminal_evidence_for_request(
         self, *, request_fingerprint: str, attempt_id: str
     ) -> WorkerTerminalEvidenceLookup | None:
-        """Resolve owner identity, then load its authenticated evidence inputs."""
+        """Resolve a Redis dispatch identity and load authenticated evidence.
 
-        binding = await self.submissions.load_submission_binding(
+        Submission-backed queues join their dispatch row to the accepted
+        submission receipt. Search-dispatch queues have no submission row, so
+        their immutable dispatch record is projected into the same typed
+        receipt contract without inventing an owner or relaxing the attempt
+        binding.
+        """
+
+        binding = await self.submissions.load_dispatch_binding(
             request_fingerprint=request_fingerprint,
             attempt_id=attempt_id,
         )
+        synthetic_submission: SubmissionReceipt | None = None
         if binding is None:
-            return None
+            dispatch = await self.search_dispatch.load_by_request_fingerprint(
+                request_fingerprint
+            )
+            if dispatch is None:
+                return None
+            if dispatch.request.attempt_id != attempt_id:
+                raise ValueError("search dispatch attempt identity drifted")
+            synthetic_request = SubmissionRequest(
+                idempotency_key=dispatch.request.idempotency_key,
+                operation=(
+                    f"search:{dispatch.experiment_fingerprint}:{dispatch.candidate_index}"
+                ),
+                attempt_id=dispatch.request.attempt_id,
+                payload_digest=dispatch.request.payload_digest,
+                submitted_at=dispatch.request.created_at,
+            )
+            synthetic_submission = SubmissionReceipt(
+                synthetic_request,
+                dispatch.request.created_at,
+            )
+            binding = WorkerSubmissionBinding(dispatch.owner_id, synthetic_submission)
         inputs = await self.load_worker_terminal_evidence_inputs(
             principal=binding.owner_id,
             attempt_id=attempt_id,
+            submission=synthetic_submission,
         )
         return WorkerTerminalEvidenceLookup(binding, inputs)
 
