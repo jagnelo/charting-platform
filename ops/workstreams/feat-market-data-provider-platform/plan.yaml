@@ -162,6 +162,20 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 Twelve Data credentialed live validation was attempted with an
+    owner-only durable ledger but this shell failed DNS resolution before any
+    provider HTTP request (`Temporary failure in name resolution`). No live
+    pass or response evidence is claimed; rerun from a network-enabled host,
+    then reconcile the durable daily baseline before ordinary daily-metered
+    routing.
+  - >-
+    2026-09-25 Coinbase's official Exchange REST contract is now explicit:
+    public endpoints use a 10-requests/second/IP lazy-fill token bucket with a
+    15-request burst and continuous refill. The implementation already models
+    this exact rolling contract. Coinbase remains non-routable solely on the
+    separate written market-data-use authority gate, not because its technical
+    rate limit is unknown.
+  - >-
     2026-09-25 Twelve Data reset-source reconciliation: official credits
     documentation confirms the Basic 800-credit daily pool resets at
     00:00 UTC, and the seed records `calendar_day_utc` from that source. The
