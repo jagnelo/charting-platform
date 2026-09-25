@@ -162,6 +162,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Exact-current full safety preflight at source
+    `936cdab7264fcf3dad8420ec995161ba52386a3e` ran with the durable quota
+    coordinator available and stopped before transport (`0/0` ordinary cases,
+    zero provider requests). The receipt records the remaining provider
+    account-baseline/byte/cost/reset contracts, unresolved capability cases,
+    legal/use/jurisdiction controls, Dinari Sandbox quota/rights, FINRA OTC
+    source controls, complete NMS/OTC/SEC reconciliation, external secret
+    stores, deferred providers, publication, and final-shadow gates. No
+    generic rate-limit fallback was introduced.
+  - >-
     At committed source `741cfa4308dbe988cfcebcdcaa7fa428a50a8acc`, the bounded
     Alpaca matrix passed `7/7` with eight requests and 6,537,679 response
     bytes, MarketData.app passed `7/7` with nine requests and 21,155 bytes

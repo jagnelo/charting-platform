@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current full safety preflight
+
+- Source `936cdab7264fcf3dad8420ec995161ba52386a3e` ran the full manifest
+  preflight with owner access to the durable quota coordinator and correctly
+  stopped before transport: `0/0` ordinary cases and zero provider requests.
+- The remaining blockers are now explicitly captured in the receipt: unknown
+  provider/account baselines or incomplete byte/cost contracts (including
+  Alpha Vantage, Bybit xStocks, Coinbase, CoinGecko, EDGAR, EODHD, Finnhub,
+  FINRA, FMP, FRED, Gate/ Kraken tokenized surfaces, MarketStack, Massive,
+  Robinhood tokens, Tiingo, Twelve Data, and xStocks); unresolved capability
+  coverage; missing legal/use or jurisdiction authority for Coinbase, Massive,
+  FRED, Bybit, and xStocks; Dinari's unpublished Sandbox quota/rights;
+  incomplete FINRA OTC/source controls; and the owner-controlled universe,
+  external secret-store, deferred-provider, publication, and final-shadow
+  gates. No generic rate-limit fallback was introduced.
+
 ## 2026-09-25 current-source bounded live matrix refresh
 
 - At committed source `741cfa4308dbe988cfcebcdcaa7fa428a50a8acc`, the
