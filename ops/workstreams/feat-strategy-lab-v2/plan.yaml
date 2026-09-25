@@ -651,6 +651,6 @@ progress:
     - strategy-lab-v2-search-dispatch-application-binding
     - strategy-lab-v2-search-dispatch-worker-lookup
   total: 18
-  current_phase: strategy-lab-v2-preflight-evidence-identity-staging-ready-for-human-review
+  current_phase: strategy-lab-v2-search-legacy-replay-identity-staging-ready-for-human-review
   current_blocker: Stable Nautilus release, deployment-specific host evidence configuration, migration/schema reconciliation, upstream contract reconciliation, and full repository integration remain open
   next_action: reconcile shared worker/database paths, then enable dispatch-identity settlement only after stable Nautilus v2 conformance
