@@ -578,7 +578,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 9, 24),
+        investigated_at=date(2026, 9, 25),
         next_action=(
             "Keep MINT unavailable: the current PIMCO ETF suite exposes catalogue/product and "
             "daily-disclosure context but no complete executable basket, while the anonymous "
@@ -611,6 +611,8 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:pimco-current-mint-product-2026-09-25",
             "web:stockanalysis-mint-preview-finnhub-gated-2026-09-25",
             "web:marketxls-mint-paid-full-export-2026-09-25",
+            "web:pimco-etf-suite-current-2026-09-25",
+            "web:pimco-mint-product-page-no-holdings-2026-09-25",
         ),
     ),
     "BOND": ETFHoldingsSymbolAudit(
@@ -618,7 +620,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 9, 24),
+        investigated_at=date(2026, 9, 25),
         next_action=(
             "Keep BOND unavailable: the current PIMCO ETF suite exposes catalogue/product and "
             "daily-disclosure context but no complete executable basket, while the anonymous "
@@ -651,6 +653,8 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:pimco-current-bond-product-2026-09-25",
             "web:stockanalysis-bond-preview-finnhub-gated-2026-09-25",
             "web:marketxls-bond-paid-full-export-2026-09-25",
+            "web:pimco-etf-suite-current-2026-09-25",
+            "web:pimco-bond-product-page-no-holdings-2026-09-25",
         ),
     ),
     "GEME": ETFHoldingsSymbolAudit(

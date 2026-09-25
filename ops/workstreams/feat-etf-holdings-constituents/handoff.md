@@ -5446,3 +5446,17 @@ branch-owned deterministic and default-live validation remains green at the
 latest local checkpoint; the next executable integration action is to
 reconcile the bridge only after the provider-platform capability contract is
 present in staging.
+
+## PIMCO MINT/BOND current product-page recheck — 2026-09-25
+
+The current official PIMCO ETF suite and the symbol-specific BOND and MINT
+product pages were reachable and confirmed current product identity, NAV/market
+metadata, and assets-under-management context. They did not expose a complete
+machine-readable holdings table or executable full-constituent download in the
+public response. The symbols therefore remain `unavailable` with
+`no_complete_executable_public_artifact`; no top-ten view, creation-unit basket,
+stale third-party preview, SEC reconstruction, or paid export was promoted.
+
+Evidence refs: `web:pimco-etf-suite-current-2026-09-25`,
+`web:pimco-mint-product-page-no-holdings-2026-09-25`,
+`web:pimco-bond-product-page-no-holdings-2026-09-25`.
