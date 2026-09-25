@@ -1,8 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Massive market-event durable cursor continuation
+
+- At source `80ff8384e`, market-event refresh persists Massive's opaque
+  continuation in `ProviderPaginationState`, scoped by provider and requested
+  date window. Restarted workers resume the exact unresolved page instead of
+  re-reading page one; completed windows reset only after every page is stored.
+- Each page remains an independently quota/health-accounted provider call.
+  Earlier pages remain canonical when a later page fails, while repeated or
+  malformed cursors fail closed and retain a typed retry state. No event page
+  is intentionally discarded.
+- Focused tests passed `17/17`; branch-owned units passed `1,930/1,930`;
+  Docker PostgreSQL/Redis integration passed `386/386` in `756.25s` with 57
+  warnings. The exact-current safety preflight then stopped before transport
+  (`0/0`, zero provider requests) because unresolved provider contracts and
+  usage/legal controls remain fail-closed.
+
 ## 2026-09-25 exact-current safety preflight after cursor fix
 
-- At source `10bf4bf6fb857f9b15c81f7d6803bd28aeb88f9b`, the complete live
+- At source `80ff8384e`, the complete live
   preflight stopped before transport (`0/0`, zero provider requests) using the
   owner-managed durable quota coordinator. It recorded the remaining
   provider-specific baselines/contracts, legal/use controls, FINRA async-byte

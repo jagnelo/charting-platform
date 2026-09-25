@@ -6,10 +6,15 @@
       pages are now followed through every validated cursor, with each page
       passing through the normal quota/health runtime and every normalized
       event retained.
+- [x] Persist the opaque continuation in `ProviderPaginationState` keyed by
+      provider and date window. A retry resumes the exact unresolved cursor
+      after a process or worker restart; a completed window is the only state
+      that resets for a fresh snapshot.
 - [x] If a later page fails (for example because the provider quota is
       exhausted), earlier successful pages are still persisted and the typed
-      page failure is retained for the next scheduled run. Repeated or
-      malformed cursors fail closed rather than silently truncating the feed.
+      page failure plus the current retry cursor are retained for the next
+      scheduled run. Repeated or malformed cursors fail closed rather than
+      silently truncating the feed.
 - [x] Regression coverage verifies complete two-page traversal and partial
       retention; the branch-owned unit gate passed `1,930/1,930`, Docker
       PostgreSQL/Redis integration passed `386/386`, and Ruff/diff checks are

@@ -165,10 +165,11 @@ remaining_gaps:
     2026-09-25 branch-local losslessness fix: Massive cursor-paginated IPO
     market events are now fully traversed through the normal quota/health
     runtime, with every page retained and partial earlier pages persisted when
-    a later page fails. Focused coverage passed 17/17; the exact-head
-    branch-owned unit gate passed 1,930/1,930 and Docker integration passed
-    386/386. Live Massive event transport remains terms-gated and therefore
-    was not called.
+    a later page fails. The opaque continuation is now persisted in
+    `ProviderPaginationState` and resumed after restart rather than re-reading
+    page one. Focused coverage passed 17/17; the exact-head branch-owned unit
+    gate passed 1,930/1,930 and Docker integration passed 386/386. Live
+    Massive event transport remains terms-gated and therefore was not called.
   - >-
     2026-09-25 exact-current-source safety preflight stopped before network at
     `0/0` with zero provider requests. The owner-managed coordinator now
