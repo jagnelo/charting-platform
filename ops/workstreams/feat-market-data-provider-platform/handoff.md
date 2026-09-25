@@ -6365,6 +6365,17 @@ provider or start the shadow run.
 - The remaining provider-specific quota/cost/reset, legal/use, capability,
   complete NMS/OTC/SEC, external secret-store, deferred-provider, publication,
   and final-shadow gates are unchanged and remain fail-closed.
+
+## 2026-09-25 exact-current Docker integration validation
+
+- The changed branch at source `249262dc3f7b664308a5f4b7e34711ee52ce366e`
+  passed `make test-int`: `386/386` PostgreSQL/Redis-backed integration tests,
+  57 warnings, in 719.84 seconds. Testcontainers were cleaned up without a
+  host-wide Docker prune.
+- This is backend integration evidence for the corrected provider quota path;
+  it does not promote routing or close the independent provider-contract,
+  legal/use, universe, secret-store, deferred-provider, publication, or
+  final-shadow gates.
 ## 2026-09-25 SEC issuer-directory source evidence retention
 
 - Commit `27f3cc34a` adds immutable `source_payload` evidence to every

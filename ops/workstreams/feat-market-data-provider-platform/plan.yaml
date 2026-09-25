@@ -4531,4 +4531,13 @@ progress:
       admission failure without adding a generic fallback; all other provider,
       legal/use, universe, secret-store, deferred-provider, publication, and
       final-shadow gates remain open.
+    - >-
+      Exact committed-source backend integration validation at
+      `249262dc3f7b664308a5f4b7e34711ee52ce366e` passed `386/386` Docker-backed
+      PostgreSQL/Redis tests in 719.84 seconds with 57 warnings; the test
+      containers were cleaned up without a host-wide prune. This validates the
+      Alpaca quota-reconciliation change against the backend integration gate;
+      full unit rerun remains inconclusive at the pre-existing calendar-router
+      hang, and provider/live/legal/universe/secret-store/deferred/shadow gates
+      remain separately tracked.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.
