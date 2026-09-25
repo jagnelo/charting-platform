@@ -251,6 +251,9 @@ async def _fetch_cursor_paginated_market_events(
             next_cursor = page.get("next_cursor")
             complete = page.get("complete") is True or not next_url
         else:
+            state.status = "failed"
+            state.last_failure_at = datetime.now(UTC)
+            state.last_error = "provider returned malformed market-event page"
             failures.append(
                 {
                     "operation": "fetch_market_events",
@@ -279,6 +282,19 @@ async def _fetch_cursor_paginated_market_events(
         records.extend(page_events)
         state.last_page_count = len(page_events)
         if complete:
+            if next_url is not None or next_cursor is not None:
+                state.status = "failed"
+                state.last_failure_at = datetime.now(UTC)
+                state.last_error = "provider marked a page complete with continuation"
+                failures.append(
+                    {
+                        "operation": "fetch_market_events",
+                        "error_type": "ValueError",
+                        "error": "provider marked a page complete with continuation",
+                        "page_cursor": page_cursor or "<initial>",
+                    }
+                )
+                break
             state.cursor = None
             state.status = "complete"
             state.cursor_history = []

@@ -209,6 +209,56 @@ async def test_refresh_market_events_retains_pages_before_cursor_failure(
 
 
 @pytest.mark.asyncio
+async def test_refresh_market_events_resumes_cursor_after_restart(db, monkeypatch):
+    calls: list[str | None] = []
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        cursor = kwargs["invoke"]
+        # The service binds the requested cursor into the invocation closure;
+        # the first run is forced to stop after page one, then the second run
+        # must begin directly at the persisted continuation.
+        page_cursor = getattr(cursor, "__defaults__", (None,))[-1]
+        calls.append(page_cursor)
+        if len(calls) == 1:
+            result = {
+                "events": [_record(event_key="massive:ipo:restart:first", payload={})],
+                "next_url": "https://api.massive.com/vX/reference/ipos?cursor=resume",
+                "next_cursor": "resume",
+                "complete": False,
+            }
+        elif len(calls) == 2:
+            raise RuntimeError("simulated worker interruption")
+        elif page_cursor == "resume":
+            result = {
+                "events": [_record(event_key="massive:ipo:restart:second", payload={})],
+                "next_url": None,
+                "next_cursor": None,
+                "complete": True,
+            }
+        else:
+            raise AssertionError(f"unexpected restart cursor: {page_cursor!r}")
+        return SimpleNamespace(provider_name="massive", result=result)
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    first = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+    assert first["failures"] == 1
+
+    # Expire the identity map before the retry so the continuation is read
+    # from durable state rather than an in-memory ORM object.
+    db.expire_all()
+    second = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+    assert second["failures"] == 0
+    assert calls == [None, "resume", "resume"]
+    assert {
+        row.event_key for row in db.execute(select(MarketEvent)).scalars().all()
+    } == {"massive:ipo:restart:first", "massive:ipo:restart:second"}
+
+
+@pytest.mark.asyncio
 async def test_refresh_market_events_leaves_ambiguous_symbol_unlinked(
     db, instrument, instrument_type, monkeypatch
 ):
