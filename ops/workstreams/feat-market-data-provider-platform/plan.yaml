@@ -4540,4 +4540,14 @@ progress:
       full unit rerun remains inconclusive at the pre-existing calendar-router
       hang, and provider/live/legal/universe/secret-store/deferred/shadow gates
       remain separately tracked.
+    - >-
+      2026-09-25 unit-harness diagnosis: the full backend unit command collected
+      `2406` tests and remains inconclusive at the calendar-router boundary.
+      The hang reproduces in a minimal FastAPI/Starlette `TestClient` and in
+      AnyIO's blocking portal outside application code; a temporary dependency
+      pin experiment did not provide a reliable fix and was reverted. No
+      production code or test assertions were weakened. The Docker-backed
+      integration gate and focused provider/quota gates remain the reliable
+      green evidence; a compatible unit-test environment is still required for
+      the full unit gate.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.
