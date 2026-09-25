@@ -642,6 +642,7 @@ class YFinanceProvider:
                     identifier_value=str(value),
                     is_primary=True,
                     source=self.name,
+                    raw_payload={"symbol": symbol, "isin": str(value)},
                 )
             )
         return identifiers

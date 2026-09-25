@@ -433,6 +433,7 @@ async def test_identifier_fetch_persists_snapshot_and_identifier(db, instrument,
                     identifier_value="US0378331005",
                     is_primary=True,
                     source="openfigi",
+                    raw_payload={"figi": "BBG000B9XRY4", "securityType": "Common Stock"},
                 )
             ],
         )
@@ -446,6 +447,7 @@ async def test_identifier_fetch_persists_snapshot_and_identifier(db, instrument,
     assert changed is True
     assert identifier.identifier_value == "US0378331005"
     assert snapshot.provider_symbol == "AAPL"
+    assert snapshot.payload["identifiers"][0]["raw_payload"]["securityType"] == "Common Stock"
 
 
 @pytest.mark.asyncio

@@ -836,6 +836,7 @@ async def _reconcile_rows(
                     identifier_value=identifier_value,
                     is_primary=index == 0,
                     source=provider_name,
+                    raw_payload=dict(quote),
                 ),
             )
         if security_identifiers and not instrument.domain_key:

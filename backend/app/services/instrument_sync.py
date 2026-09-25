@@ -771,6 +771,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                                 identifier_value=identifier_value,
                                 is_primary=index == 0,
                                 source=page_provider_name,
+                                raw_payload=dict(q),
                             ),
                         )
                     if stable_values and not inst.domain_key:

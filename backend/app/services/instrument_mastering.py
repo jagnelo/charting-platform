@@ -246,6 +246,7 @@ async def reconcile_instrument_profile(
                     is_primary=bool(item.get("is_primary")),
                     source=item.get("source"),
                     extra_data=item.get("extra_data"),
+                    raw_payload=item.get("raw_payload"),
                 )
             )
         for item in snapshot.payload.get("listings") or []:
