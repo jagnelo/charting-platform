@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 current-source MarketData.app live matrix
+
+- The bounded current-source MarketData.app matrix passed `7/7` in `14.08s`
+  against the owner-managed durable quota coordinator. It covered the
+  authenticated account snapshot, latest price, intraday history, option
+  surface/expirations, option quote history, and the response-priced history
+  fail-closed guard (no unbounded request was sent).
+- The receipt is appended to `validation.jsonl`; no credentials or provider
+  payloads were persisted. The remaining full-matrix blockers are unchanged:
+  unresolved provider-specific contracts/legal controls, complete OTC/SEC
+  reconciliation, deployment secret stores, and the deferred providers.
+
 ## 2026-09-25 owner-ledger live refresh at current source
 
 - Using the owner-managed durable quota coordinator (no secrets or payloads

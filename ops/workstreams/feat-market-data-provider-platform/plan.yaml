@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 current-source MarketData.app matrix passed `7/7` in `14.08s`
+    using the owner-managed durable quota coordinator. It exercised account
+    usage, latest price, intraday history, option metadata/expirations, option
+    quote history, and the response-priced history guard without issuing an
+    unbounded request. The redacted receipt is in `validation.jsonl`; no
+    credentials or payloads were persisted.
+  - >-
     2026-09-25 current-source owner-ledger refresh: MarketData.app, Twelve Data,
     and EODHD native account-usage cases each passed `1/1`; Alpaca's complete
     seven-case credentialed matrix passed `7/7` (history, intraday, latest,
