@@ -1506,6 +1506,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-25 FINRA ORF host correction: the validator and branch-owned
+      fixtures now use the documented `apidownload.finratraqs.org` TRAQS host;
+      the prior `finratrags.org` spelling would reject valid source URLs.
+      Focused coverage passed 95/95; the exact-source branch unit gate passed
+      1,920/1,920 and Docker integration passed 386/386 at source
+      `83d1225167d86b4da59a09d2b82ede3393573894`. Separate ORF entitlement,
+      terms, operation-cost, and credentialed live evidence remain required.
+    - >-
       2026-09-25 Twelve Data reset-source reconciliation: official credits
       documentation confirms the Basic 800-credit daily pool resets at
       00:00 UTC, and the seed now attributes `calendar_day_utc` to that
