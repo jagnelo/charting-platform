@@ -1148,6 +1148,18 @@ def test_terminal_non_publisher_identity_is_not_applicable_at_symbol_boundary():
     assert result.evidence_state == "identity_level_terminal_disposition"
 
 
+def test_blocked_and_non_executable_fallback_identities_are_explicitly_unavailable():
+    blocked = symbol_audit_for_profile(profile_with_symbol("SYNTHETIC_AEGON", "aegon"))
+    non_executable = symbol_audit_for_profile(
+        profile_with_symbol("SYNTHETIC_EPWA", "epwa")
+    )
+
+    assert blocked.outcome == UNAVAILABLE
+    assert blocked.evidence_state == "identity_level_access_blocked"
+    assert non_executable.outcome == UNAVAILABLE
+    assert non_executable.evidence_state == "identity_level_non_executable"
+
+
 def test_all_symbolless_fallback_identities_remain_non_current_at_capability_boundary():
     """Provider-only dispositions must not become current through a snapshot."""
     ledger_path = (

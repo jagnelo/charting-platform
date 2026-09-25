@@ -1741,6 +1741,12 @@ def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:
         }:
             outcome = NOT_APPLICABLE
             evidence_state = "identity_level_terminal_disposition"
+        elif fallback.status == "issuer_access_blocked":
+            outcome = UNAVAILABLE
+            evidence_state = "identity_level_access_blocked"
+        elif fallback.status == "non_executable_public_source":
+            outcome = UNAVAILABLE
+            evidence_state = "identity_level_non_executable"
         else:
             outcome = UNKNOWN
             evidence_state = "identity_level_only"

@@ -126,9 +126,10 @@ action. Remaining fallback identities are intentionally surfaced as
 `identity_level_only`/`unknown` until a symbol-scoped artifact or a terminal
 product disposition is proven; provider-level registration is never treated as
 symbol-level current support. Non-portfolio-publisher or inactive/successor
-identities can be explicitly `not_applicable`, while blocked or incomplete
-routes remain unavailable or unknown until a bounded canary supplies fresh
-evidence.
+identities can be explicitly `not_applicable`. Identities already classified as
+issuer-access-blocked or non-executable public sources are explicitly
+`unavailable` at this boundary, while unresolved route discovery remains
+`unknown` until a bounded canary supplies fresh evidence.
 
 The ranked fallback cohorts now have explicit symbol-level records in the
 branch ledger under `symbol_audit_ledger`. The first cohort covers TALV/TABD
