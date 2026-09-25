@@ -358,6 +358,14 @@ remaining_gaps:
       forward settlement separate from the generic backtest/runtime worker.
       Host-supplied authenticated handoff, account settlement, worker
       reservation, and engine callbacks remain explicit activation seams.
+  - >-
+      `AuthorizedForwardEventHandler` now validates a host-loaded `FORWARD`
+      reservation and execution lease against the dispatch instance, worker
+      identity, active reservation state, and current lease time before
+      delegating. Expired leases remain retryable; released, wrong-kind, and
+      cross-instance evidence fails closed. The Redis runtime exposes an
+      explicit authorized-forward-worker factory; durable reservation loading
+      remains application-owned.
   - Atomic PostgreSQL forward event/correction staging now persists counterfactual replay plans with the admitted event checkpoint in one transaction; exact retries return the stored replay identity, while malformed or contradictory replay rows fail closed. `PostgresForwardEventDispatchAdapter` now stages authenticated event payload bytes, forward dispatch identities, and the shared outbox over that checkpoint transaction, with owner/event/request uniqueness and typed second-dispatch conflicts. The authenticated forward handoff and bounded `ForwardEventWorkerService` bind Redis acknowledgement to a host-owned durable receipt. Worker authorization/capacity binding, event-stream activation, and stable Nautilus execution remain open.
   - PostgreSQL search-state persistence now stores immutable experiment queues and candidate checkpoints with owner-scoped locks, candidate retry/terminal transitions, idempotent cancellation, and authenticated compare-and-set fingerprints. The application adapter now exposes owner-normalized checkpoint reads, candidate start/retry, and terminal-record methods; the versioned API exposes a read-only checkpoint projection, and the atomic search-dispatch adapter composes those locks with worker reservations, admission receipts, canonical durable payload bytes, dispatch identities, and the shared outbox. The canonical migration now creates the admission and dispatch tables; forward-event stream registration, worker activation, and provider event acquisition remain open.
   - PostgreSQL legacy-import persistence now stores owner-scoped digest-only originals and exact compatibility assessments with authenticated record fingerprints; supported and unsupported imports replay idempotently while changed content conflicts, and payload-byte access, migrations, authorization, and application wiring remain open.
@@ -688,7 +696,8 @@ progress:
     - strategy-lab-v2-forward-shadow-account-worker-settlement
     - strategy-lab-v2-forward-account-api-read-projection
     - strategy-lab-v2-dedicated-forward-worker-runtime-composition
+    - strategy-lab-v2-forward-worker-reservation-lease-authorization
   total: 18
-  current_phase: strategy-lab-v2-dedicated-forward-worker-runtime-composition-staging-ready-for-human-review
+  current_phase: strategy-lab-v2-forward-worker-reservation-lease-authorization-staging-ready-for-human-review
   current_blocker: Stable Nautilus release, deployment-specific host evidence configuration, migration/schema reconciliation, upstream contract reconciliation, and full repository integration remain open
   next_action: reconcile shared worker/database paths and bind host event resolution to admitted canonical events only after provider authorization and stable Nautilus v2 conformance

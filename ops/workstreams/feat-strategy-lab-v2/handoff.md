@@ -2,6 +2,19 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Forward-worker reservation/lease authorization checkpoint
+
+Added the pure `AuthorizedForwardEventHandler` gate and the
+`RedisDispatchRuntime.authorized_forward_worker_service()` factory. A forward
+work item now requires a host-loaded `WorkerReservation` of kind `FORWARD` and
+an `ExecutionAttemptLease` bound to the same worker and instance. Released,
+wrong-kind, cross-instance, or expired evidence cannot reach account/engine
+handling; expired leases remain retryable for recovery. Persistence remains
+responsible for loading the reservation and lease records.
+
+The focused authorization and Redis runtime suites passed 11 tests. Ruff and
+MyPy remain green across 291 source files; whitespace validation is clean.
+
 ## 2026-09-25 - Dedicated forward-worker runtime composition checkpoint
 
 `RedisDispatchRuntime` now exposes an explicit `forward_worker_service()`
