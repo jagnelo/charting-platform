@@ -47,6 +47,13 @@ current ingestion. The parent `azimut` identity remains
 `provider_not_a_portfolio_publisher`; no parent-level or SEC-derived route is
 promoted.
 
+## Current audit checkpoint — Credit Suisse successor boundary — 2026-09-25
+
+UBS still states that Credit Suisse funds are being migrated to UBS, and the
+official merger notice records Credit Suisse ETF sub-funds merging into UBS
+funds effective 2024-08-26. Credit Suisse therefore remains an inactive/
+successor identity with no independent current holdings route.
+
 ## Current branch state
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`

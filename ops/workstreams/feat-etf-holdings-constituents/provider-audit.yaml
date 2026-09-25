@@ -3237,6 +3237,8 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.credit_suisse"
       - "web:ubs-credit-suisse-acquisition-2023-09-02"
       - "web:ubs-credit-suisse-funds-migration-2026-09-02"
+      - "web:ubs-credit-suisse-funds-migration-2026-09-25"
+      - "web:credit-suisse-etf-ubs-merger-notice-2024-08-26"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -3250,6 +3252,14 @@ providers:
         source: "https://www.ubs.com/li/en/assetmanagement/funds.html"
         result: "UBS's current fund page states that Credit Suisse funds are being migrated to UBS; no active Credit Suisse-branded U.S. ETF holdings publisher route is exposed."
         evidence_ref: "web:ubs-credit-suisse-funds-migration-2026-09-02"
+      - date: 2026-09-25
+        source: "https://www.ubs.com/li/en/assetmanagement/funds.html"
+        result: "The current UBS fund page still states that Credit Suisse funds are being migrated to UBS and directs users to UBS funds and UBS ETFs; the former Credit Suisse identity remains a successor boundary rather than an independent current holdings publisher."
+        evidence_ref: "web:ubs-credit-suisse-funds-migration-2026-09-25"
+      - date: 2026-09-25
+        source: "UBS official Credit Suisse Index Fund merger notice"
+        result: "The official merger notice records Credit Suisse Index Fund ETF sub-funds merging into UBS (Irl) ETFs Plc effective 2024-08-26, with the former funds delisted and dissolved; this is successor evidence, not a current Credit Suisse route."
+        evidence_ref: "web:credit-suisse-etf-ubs-merger-notice-2024-08-26"
     disposition_reason: "credit_suisse: The former issuer identity was acquired by UBS and its funds are being migrated to UBS; no current independent Credit Suisse U.S. ETF holdings route is available for native promotion."
     next_action: "credit_suisse: Keep fallback-only as an inactive/successor identity; reopen only if a current U.S. ETF is demonstrably re-established under Credit Suisse with a complete executable first-party holdings route."
     implementation_sha: null
