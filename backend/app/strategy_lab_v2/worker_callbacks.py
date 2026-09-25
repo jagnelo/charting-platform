@@ -9,10 +9,13 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any, cast
 
+from app.strategy_lab_v2.persistence import SearchDispatchBindingResolver
+from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.search_worker_handoff import (
     create_authenticated_search_dispatch_materializer,
 )
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
+from app.strategy_lab_v2.worker_evidence import WorkerSubmissionBinding
 from app.strategy_lab_v2.worker_evidence_resolution import (
     create_sandbox_artifact_plan_resolver,
 )
@@ -20,12 +23,15 @@ from app.strategy_lab_v2.worker_handoff import materialize_worker_handoff
 from app.strategy_lab_v2.worker_service import WorkerServiceCallbacks, WorkerTerminalWriter
 from app.strategy_lab_v2.worker_terminal_adapter import WorkerTerminalEvidenceResolver
 
-EvidenceResolverFactory = Callable[
-    [Any, Path], WorkerTerminalEvidenceResolver | Awaitable[WorkerTerminalEvidenceResolver]
-]
+EvidenceResolverFactory = Callable[..., WorkerTerminalEvidenceResolver | Awaitable[WorkerTerminalEvidenceResolver]]
 
 
-async def create(persistence: Any, artifact_root: Path) -> WorkerServiceCallbacks:
+async def create(
+    persistence: Any,
+    artifact_root: Path,
+    *,
+    search_dispatch_binding_resolver: SearchDispatchBindingResolver | None = None,
+) -> WorkerServiceCallbacks:
     """Build typed handoff/terminal callbacks for one worker process."""
 
     if not callable(getattr(persistence, "worker_terminal_writer", None)):
@@ -35,7 +41,12 @@ async def create(persistence: Any, artifact_root: Path) -> WorkerServiceCallback
     resolver_factory = _load_resolver_factory(
         os.environ.get("STRATEGY_LAB_V2_EVIDENCE_RESOLVER")
     )
-    resolver = resolver_factory(persistence, artifact_root)
+    resolver = _invoke_evidence_resolver_factory(
+        resolver_factory,
+        persistence,
+        artifact_root,
+        search_dispatch_binding_resolver=search_dispatch_binding_resolver,
+    )
     if inspect.isawaitable(resolver):
         resolver = await resolver
     if not callable(resolver):
@@ -65,13 +76,18 @@ async def create_search_dispatch(
     worker entrypoint.
     """
 
-    callbacks = await create(persistence, artifact_root)
     dispatch_store = getattr(persistence, "search_dispatch", None)
     queue_name = os.environ.get("STRATEGY_LAB_V2_QUEUE")
     if dispatch_store is None:
         raise TypeError("persistence must expose search_dispatch")
     if queue_name is None or not queue_name.strip():
         raise ValueError("STRATEGY_LAB_V2_QUEUE must be configured for search dispatch workers")
+    binding_resolver = create_default_search_dispatch_binding_resolver(persistence)
+    callbacks = await create(
+        persistence,
+        artifact_root,
+        search_dispatch_binding_resolver=binding_resolver,
+    )
     materializer = create_authenticated_search_dispatch_materializer(
         dispatch_store,
         queue_name=queue_name,
@@ -85,7 +101,10 @@ async def create_search_dispatch(
 
 
 def default_evidence_resolver_factory(
-    persistence: Any, artifact_root: Path
+    persistence: Any,
+    artifact_root: Path,
+    *,
+    search_dispatch_binding_resolver: SearchDispatchBindingResolver | None = None,
 ) -> WorkerTerminalEvidenceResolver:
     """Compose the package-owned single-output evidence path.
 
@@ -105,10 +124,40 @@ def default_evidence_resolver_factory(
         raise TypeError("persistence must expose worker_terminal_evidence_resolver()")
     publisher = artifact_publication(artifact_root)
     artifact_plan_resolver = create_sandbox_artifact_plan_resolver(publisher)
-    resolver = evidence_resolver(artifact_plan_resolver)
+    if search_dispatch_binding_resolver is None:
+        resolver = evidence_resolver(artifact_plan_resolver)
+    else:
+        resolver = evidence_resolver(
+            artifact_plan_resolver,
+            search_dispatch_binding_resolver=search_dispatch_binding_resolver,
+        )
     if not callable(resolver):
         raise TypeError("persistence returned an invalid terminal evidence resolver")
     return cast(WorkerTerminalEvidenceResolver, resolver)
+
+
+def create_default_search_dispatch_binding_resolver(
+    persistence: Any,
+) -> SearchDispatchBindingResolver:
+    """Bind search dispatches to the authoritative persisted submission."""
+
+    submissions = getattr(persistence, "submissions", None)
+    loader = getattr(submissions, "load_submission", None)
+    if not callable(loader):
+        raise TypeError("persistence.submissions must expose load_submission()")
+
+    async def resolve(dispatch: SearchDispatchRecord) -> WorkerSubmissionBinding | None:
+        if not isinstance(dispatch, SearchDispatchRecord):
+            raise TypeError("dispatch must be a SearchDispatchRecord")
+        receipt = await loader(
+            principal=dispatch.owner_id,
+            attempt_id=dispatch.request.attempt_id,
+        )
+        if receipt is None:
+            return None
+        return WorkerSubmissionBinding(dispatch.owner_id, receipt)
+
+    return resolve
 
 
 async def _terminal_only_completion(entry: Any, _process: Any) -> WorkerHandleResult:
@@ -137,9 +186,41 @@ def _load_resolver_factory(spec: str | None) -> EvidenceResolverFactory:
     return cast(EvidenceResolverFactory, factory)
 
 
+def _invoke_evidence_resolver_factory(
+    factory: EvidenceResolverFactory,
+    persistence: Any,
+    artifact_root: Path,
+    *,
+    search_dispatch_binding_resolver: SearchDispatchBindingResolver | None,
+) -> WorkerTerminalEvidenceResolver | Awaitable[WorkerTerminalEvidenceResolver]:
+    if search_dispatch_binding_resolver is None:
+        return factory(persistence, artifact_root)
+    try:
+        parameters = inspect.signature(factory).parameters.values()
+    except (TypeError, ValueError) as error:
+        raise TypeError(
+            "search evidence resolver factory must expose the binding callback parameter"
+        ) from error
+    accepts_binding = any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        or parameter.name == "search_dispatch_binding_resolver"
+        for parameter in parameters
+    )
+    if not accepts_binding:
+        raise TypeError(
+            "search evidence resolver factory must accept search_dispatch_binding_resolver"
+        )
+    return factory(
+        persistence,
+        artifact_root,
+        search_dispatch_binding_resolver=search_dispatch_binding_resolver,
+    )
+
+
 __all__ = [
     "EvidenceResolverFactory",
     "create",
     "create_search_dispatch",
+    "create_default_search_dispatch_binding_resolver",
     "default_evidence_resolver_factory",
 ]

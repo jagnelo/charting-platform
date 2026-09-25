@@ -1189,6 +1189,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `PostgresWorkerTerminalAdapter`. It loads an evidence resolver from
   `STRATEGY_LAB_V2_EVIDENCE_RESOLVER` using explicit `module:attribute`
   syntax; missing or malformed configuration fails before Redis is opened.
+  Search-dispatch workers additionally pass an explicit binding callback into
+  that factory; the package-owned composition resolves the dispatch owner and
+  attempt through the authoritative submission adapter and returns no terminal
+  evidence when that receipt is missing. Ordinary submission-backed workers
+  retain the two-argument factory contract.
   `default_evidence_resolver_factory` is available for local deployments that
   want the package-owned authenticated lookup plus single-output artifact
   mapper, while a host may still provide a stricter/custom multi-artifact

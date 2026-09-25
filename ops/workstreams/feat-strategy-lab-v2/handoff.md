@@ -4898,6 +4898,27 @@ this correction; the branch stays `ready_for_human_review` pending host
 callback registration, shared-path reconciliation, stable Nautilus v2
 conformance, and upstream provider/ETF/TC2000 integration.
 
+## 2026-09-25 - Search terminal binding callback registration
+
+The dedicated search callback factory now carries the authoritative terminal
+binding seam all the way through application composition. It resolves a
+`SearchDispatchRecord` owner/attempt via the persisted submission adapter and
+passes that callback to the configured evidence resolver factory. A search
+resolver that does not accept the explicit callback is rejected; ordinary
+submission-backed workers retain their existing two-argument factory path.
+Missing submissions return `None`, preserving the persistence layer's
+fail-closed terminal retry behavior and keeping `ExecutionOutcome.submission_id`
+authoritative. Focused callback coverage passed 9 tests; the complete branch
+gate passed 876 package tests, 2 migration tests, Ruff, MyPy across 276 files,
+diff validation, and workstream validation. The exact backend coverage gate
+passed 2,527 tests with 83.78% total coverage and 86 warnings; the referenced
+runtime env file was absent and `.env.dev` supplied test configuration. Two
+cleanup passes retained zero testcontainer resources.
+
+The branch remains `ready_for_human_review`. Host callback activation, shared
+migration/application reconciliation, stable Nautilus v2 conformance, and
+upstream provider/ETF/TC2000 integration remain gated.
+
 ## 2026-09-25 - Legacy import inspection checkpoint
 
 Preserved digest-only legacy records are now exposed through the read-only

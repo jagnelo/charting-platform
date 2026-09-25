@@ -1,17 +1,27 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.search_worker_handoff import AuthenticatedSearchDispatchMaterializer
+from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
 from app.strategy_lab_v2.worker_callbacks import (
     create,
+    create_default_search_dispatch_binding_resolver,
     create_search_dispatch,
     default_evidence_resolver_factory,
 )
+from app.strategy_lab_v2.worker_evidence import WorkerSubmissionBinding
 from app.strategy_lab_v2.worker_handoff import materialize_worker_handoff
+
+NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 
 
 def resolver_factory(persistence: Any, artifact_root: Path):
@@ -22,6 +32,18 @@ def resolver_factory(persistence: Any, artifact_root: Path):
         return None
 
     return resolve
+
+
+def search_resolver_factory(
+    persistence: Any,
+    artifact_root: Path,
+    *,
+    search_dispatch_binding_resolver: Any,
+):
+    assert persistence is not None
+    assert artifact_root == Path("/tmp/artifacts")
+    assert callable(search_dispatch_binding_resolver)
+    return resolver_factory(persistence, artifact_root)
 
 
 class _Persistence:
@@ -41,13 +63,17 @@ class _ComposedPersistence:
     def __init__(self) -> None:
         self.root: Path | None = None
         self.plan_resolver: Any = None
+        self.binding_resolver: Any = None
 
     def artifact_publication(self, root: Path) -> object:
         self.root = root
         return _Publisher()
 
-    def worker_terminal_evidence_resolver(self, resolver: Any) -> Any:
+    def worker_terminal_evidence_resolver(
+        self, resolver: Any, *, search_dispatch_binding_resolver: Any = None
+    ) -> Any:
         self.plan_resolver = resolver
+        self.binding_resolver = search_dispatch_binding_resolver
         return resolver
 
 
@@ -57,6 +83,11 @@ class _SearchDispatchPersistence(_Persistence):
             return None
 
     search_dispatch = _Store()
+
+    class submissions:
+        @staticmethod
+        async def load_submission(**_kwargs: Any) -> None:
+            return None
 
 
 class _Publisher:
@@ -112,7 +143,7 @@ async def test_search_callback_factory_binds_authenticated_dispatch_materializer
 ) -> None:
     monkeypatch.setenv(
         "STRATEGY_LAB_V2_EVIDENCE_RESOLVER",
-        "app.strategy_lab_v2.tests.test_worker_callbacks:resolver_factory",
+        "app.strategy_lab_v2.tests.test_worker_callbacks:search_resolver_factory",
     )
     monkeypatch.setenv("STRATEGY_LAB_V2_QUEUE", "strategy-backtest")
     callbacks = await create_search_dispatch(
@@ -143,3 +174,61 @@ def test_default_evidence_resolver_factory_composes_persistence_and_artifacts() 
     assert callable(resolver)
     assert persistence.root == Path("/tmp/artifacts")
     assert callable(persistence.plan_resolver)
+
+
+def test_default_evidence_resolver_factory_propagates_search_binding() -> None:
+    persistence = _ComposedPersistence()
+
+    async def binding(_dispatch: SearchDispatchRecord) -> None:
+        return None
+
+    resolver = default_evidence_resolver_factory(
+        persistence,
+        Path("/tmp/artifacts"),
+        search_dispatch_binding_resolver=binding,
+    )
+
+    assert callable(resolver)
+    assert persistence.binding_resolver is binding
+
+
+@pytest.mark.asyncio
+async def test_default_search_binding_resolver_loads_authoritative_submission() -> None:
+    request = SubmissionRequest(
+        "search-key",
+        "search",
+        "attempt-1",
+        content_digest("search-payload"),
+        NOW,
+    )
+    receipt = SubmissionReceipt(request, NOW)
+    calls: list[tuple[Any, str]] = []
+
+    class Persistence:
+        class submissions:
+            @staticmethod
+            async def load_submission(*, principal: Any, attempt_id: str) -> SubmissionReceipt:
+                calls.append((principal, attempt_id))
+                return receipt
+
+    resolver = create_default_search_dispatch_binding_resolver(Persistence())
+    dispatch = SearchDispatchRecord(
+        "owner-a",
+        content_digest("search-experiment"),
+        0,
+        DispatchRequest(
+            "dispatch-key",
+            "attempt-1",
+            content_digest("search-payload"),
+            "strategy-backtest",
+            NOW,
+        ),
+    )
+    binding = await cast(
+        Callable[[SearchDispatchRecord], Awaitable[WorkerSubmissionBinding | None]], resolver
+    )(dispatch)
+
+    assert binding is not None
+    assert binding.owner_id == "owner-a"
+    assert binding.receipt == receipt
+    assert calls == [("owner-a", "attempt-1")]
