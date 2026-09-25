@@ -6394,6 +6394,28 @@ provider or start the shadow run.
   legal/use, universe, secret-store, deferred-provider, publication, or
   final-shadow gates.
 
+## 2026-09-25 unit-harness executor correction
+
+- The unit fixture now uses an async HTTPX ASGI client instead of Starlette's
+  blocking `TestClient`, provides an async database dependency override, and
+  runs the synchronous SQLite quota-ledger calls inline for unit tests only.
+  This avoids the sandbox's unreliable AnyIO worker-thread wakeup without
+  changing production code; Docker integration tests continue to exercise the
+  production executor path.
+- The complete unit scope owned by this branch, excluding the ETF holdings
+  adapter file owned by `feat/etf-holdings-constituents`, passed `1,905/1,905`
+  with 37 existing warnings in 150.34 seconds. The instrument-event service
+  suite specifically passed `8/8`; all non-ETF service tests passed `1,004/1,004`.
+- The ETF adapter timeout fallback remains outside this branch's ownership: its
+  isolated `test_regan_adapter_falls_back_to_requests_after_async_timeouts`
+  still exceeds a 25-second bounded run because that test itself exercises
+  `asyncio.to_thread`. No ETF source or test was modified here. The branch's
+  Docker integration gate remains green (`386/386`).
+- This closes the previously misdescribed calendar-router/TestClient unit
+  blocker for this branch's owned scope. Provider-specific quota/cost/baseline,
+  legal/use, unresolved capability, complete NMS/OTC/SEC, external secret-store,
+  deferred-provider, publication, and final-shadow gates remain open.
+
 ## 2026-09-25 SEC issuer-directory source evidence retention
 
 - Commit `27f3cc34a` adds immutable `source_payload` evidence to every

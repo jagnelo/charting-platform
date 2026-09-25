@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
+import httpx
 import pytest
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -198,17 +199,71 @@ class AsyncSessionAdapter:
         return getattr(self._session, item)
 
 
+@pytest.fixture(autouse=True)
+def inline_provider_runtime_executor(monkeypatch):
+    """Keep provider-runtime unit calls deterministic in this sandbox.
+
+    The production runtime deliberately invokes synchronous adapters through
+    the event loop's default executor.  The unit environment's worker-thread
+    wakeup is unreliable, so execute those already-isolated calls inline;
+    Docker integration tests retain the production executor path.
+    """
+    from app.services import provider_quota_coordinator, provider_runtime
+
+    real_asyncio = provider_runtime.asyncio
+
+    class _InlineLoop:
+        async def run_in_executor(self, _executor, func, *args):
+            return func(*args)
+
+    class _ProviderRuntimeAsyncio:
+        def __getattr__(self, item):
+            return getattr(real_asyncio, item)
+
+        @staticmethod
+        def get_event_loop():
+            return _InlineLoop()
+
+    monkeypatch.setattr(provider_runtime, "asyncio", _ProviderRuntimeAsyncio())
+
+    class _InlineCoordinatorAsyncio:
+        def __getattr__(self, item):
+            return getattr(real_asyncio, item)
+
+        @staticmethod
+        async def to_thread(func, /, *args, **kwargs):
+            return func(*args, **kwargs)
+
+    monkeypatch.setattr(
+        provider_quota_coordinator, "asyncio", _InlineCoordinatorAsyncio()
+    )
+
+
 @pytest.fixture()
 def app(db, monkeypatch):
     from app.config import settings
     from app.database import get_auth_session_factory, get_db, get_stream_session_factory
     from app.main import app as _app
+    from app.routers import market_data_admin
 
     monkeypatch.setattr(settings, "REDIS_URL", "redis://localhost:6379/0")
 
+    class _InlineAsyncio:
+        gather = staticmethod(asyncio.gather)
+
+        @staticmethod
+        async def to_thread(func, /, *args, **kwargs):
+            return func(*args, **kwargs)
+
+    # The unit app uses a synchronous SQLite quota ledger.  Run those tiny
+    # coordinator calls inline so the sandbox's worker-thread shutdown issue
+    # cannot mask the endpoint assertions; integration tests retain the real
+    # asyncio.to_thread behavior.
+    monkeypatch.setattr(market_data_admin, "asyncio", _InlineAsyncio)
+
     async_db = AsyncSessionAdapter(db)
 
-    def _override():
+    async def _override():
         yield async_db
 
     _app.dependency_overrides[get_db] = _override
@@ -218,13 +273,41 @@ def app(db, monkeypatch):
     _app.dependency_overrides.clear()
 
 
+class _SyncASGIClient:
+    """Synchronous request facade that avoids Starlette's thread portal."""
+
+    def __init__(self, app):
+        self._app = app
+
+    def request(self, method: str, url: str, **kwargs):
+        async def _send():
+            transport = httpx.ASGITransport(app=self._app)
+            async with httpx.AsyncClient(
+                transport=transport, base_url="http://testserver"
+            ) as client:
+                return await client.request(method, url, **kwargs)
+
+        return asyncio.run(_send())
+
+    def get(self, url: str, **kwargs):
+        return self.request("GET", url, **kwargs)
+
+    def post(self, url: str, **kwargs):
+        return self.request("POST", url, **kwargs)
+
+    def put(self, url: str, **kwargs):
+        return self.request("PUT", url, **kwargs)
+
+    def patch(self, url: str, **kwargs):
+        return self.request("PATCH", url, **kwargs)
+
+    def delete(self, url: str, **kwargs):
+        return self.request("DELETE", url, **kwargs)
+
+
 @pytest.fixture()
-def client(app) -> TestClient:
-    test_client = TestClient(app, raise_server_exceptions=True)
-    try:
-        yield test_client
-    finally:
-        test_client.close()
+def client(app) -> _SyncASGIClient:
+    return _SyncASGIClient(app)
 
 
 @pytest.fixture()

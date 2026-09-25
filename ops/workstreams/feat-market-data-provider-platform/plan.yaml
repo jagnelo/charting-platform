@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 unit-harness correction: the branch-owned backend unit scope,
+    excluding the ETF holdings adapter file owned by
+    `feat/etf-holdings-constituents`, passed 1905/1905 with 37 existing
+    warnings in 150.34 seconds. The fixture uses an HTTPX ASGI client and
+    inline unit-only synchronous SQLite quota calls because this environment's
+    Starlette/AnyIO worker-thread wakeup is unreliable; production code and
+    the Docker executor path are unchanged. The isolated ETF adapter fallback
+    test remains outside this branch and exceeded a bounded 25-second run.
+  - >-
     Exact committed-source validation at acc0d4bb8a4e26598a1737d8bf9bfbcca362124a6:
     availability/migration focused tests pass 15/15, Docker-backed PostgreSQL/
     Redis integration passes 386/386 with 57 warnings, and migration
