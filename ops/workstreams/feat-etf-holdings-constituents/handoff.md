@@ -174,7 +174,7 @@ the failed-step log at this checkpoint; the local full matrix passes, so this
 must remain an unresolved CI observation rather than a green claim.
 
 The current provider-platform refs are `origin/feat/market-data-provider-platform`
-at `73d1d1aa` and the local shared branch at `ca265b0c`; neither is an ancestor
+at `73d1d1aa` and the local shared branch at `2b3cd127`; neither is an ancestor
 of staging `8b885a2f`, and neither exposes `ProviderCapability.ETF_HOLDINGS`.
 AC10 therefore remains deferred. No protected branch or other worktree was
 modified.
