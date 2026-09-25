@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Current-source keyless matrices passed for OpenFIGI (`3/3`, three requests,
+    88,407 bytes at `3a893b91fb51bc31d7dd3bbb3bf6cf73194155c1`) and Binance
+    (`3/3`, seven requests, 17,652,701 bytes at
+    `171bb6f7f2688bf8c58d7e773954596eb6d861db`). Mapping/profile/account usage
+    and crypto history/latest/discovery/weight paths are transport-proven;
+    OpenFIGI keyed-mode limits remain unproven because no key is configured.
+    These receipts do not close the other provider contract, legal, capability,
+    universe, secret-store, deferred-provider, publication, or shadow gates.
+  - >-
     The current official EODHD API-limits page documents 1,000 HTTP
     requests/minute with a per-minute reset, but the Free Starter card still
     says 20 requests/minute and the configured key's bounded `/user` response

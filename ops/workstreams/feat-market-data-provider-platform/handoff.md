@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 current-source OpenFIGI and Binance matrices
+
+- OpenFIGI's keyless matrix passed `3/3` at source
+  `3a893b91fb51bc31d7dd3bbb3bf6cf73194155c1` with three requests and `88,407`
+  response bytes, including mapping, profile resolution, and native usage.
+  Keyed-mode evidence remains intentionally absent because no key is
+  configured.
+- Binance's keyless matrix passed `3/3` at source
+  `171bb6f7f2688bf8c58d7e773954596eb6d861db` with seven requests and
+  `17,652,701` response bytes, covering public history, bounded daily history,
+  latest price, discovery, and native weight usage. Both receipts are
+  redacted aggregate evidence; no credentials or payloads entered Git.
+
 ## 2026-09-25 EODHD limits audit and OpenFIGI matrix
 
 - The current official EODHD API-limits page documents 1,000 HTTP requests per
