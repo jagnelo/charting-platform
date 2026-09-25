@@ -340,8 +340,8 @@ remaining_gaps:
   - PostgreSQL shadow-account persistence now stores authenticated owner/instance state snapshots with deterministic canonical payloads, exact initialization replay, and typed load/apply outcomes. The application persistence bundle exposes initialize/load/apply account methods, and the additive migration creates the account table; event-stream admission, worker authorization/capacity binding, provider authorization, and Nautilus execution remain open.
   - >-
       `ForwardAccountWorkerHandler` now binds host-produced account effects to
-      the authenticated Redis forward work item, persists them through the
-      owner-scoped account adapter, and returns a completed receipt only for
+      the canonical stream event and authenticated Redis forward work item,
+      persists them through the owner-scoped account adapter, and returns a completed receipt only for
       durable apply/replay outcomes. Missing accounts and out-of-order effects
       remain retryable; identity conflicts and malformed effects fail closed.
       Provider event resolution, worker capacity authorization, and Nautilus
