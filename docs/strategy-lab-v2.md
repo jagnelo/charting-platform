@@ -831,7 +831,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   never reads legacy payload bytes or claims replay parity. The registration-
   neutral router now exposes `POST /legacy/imports` with strict idempotency,
   digest-only fields, and a typed compatibility report; the application
-  adapter delegates it to the owner-scoped PostgreSQL registry. Migrations and
+  adapter delegates it to the owner-scoped PostgreSQL registry. Preserved
+  records are also projected through the read-only `legacy-imports` resource,
+  still without payload bytes or replay-equivalence claims. Migrations and
   authentication remain shared integration concerns.
 - `postgres_coverage.py` maps provider-supplied coverage attestations to an
   owner-scoped additive PostgreSQL evidence registry. Series/evidence digests,

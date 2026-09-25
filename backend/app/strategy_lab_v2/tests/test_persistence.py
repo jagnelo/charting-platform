@@ -14,6 +14,13 @@ from app.strategy_lab_v2.capability_summary import (
     CapabilitySummary,
     CapabilitySummaryDecision,
 )
+from app.strategy_lab_v2.legacy import (
+    LegacyCompatibilityAssessment,
+    LegacyImportRecord,
+    LegacyImportRegistry,
+    LegacyRecord,
+    LegacyRecordKind,
+)
 from app.strategy_lab_v2.outbox_application import OutboxRelayService
 from app.strategy_lab_v2.outcomes import new_execution_outcome
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
@@ -61,6 +68,7 @@ def test_persistence_bundle_shares_store_and_wires_all_initial_api_dependencies(
         ApiResourceType.FORWARD_INSTANCE,
         ApiResourceType.ARTIFACT,
         ApiResourceType.CAPABILITY_SUMMARY,
+        ApiResourceType.LEGACY_IMPORT,
     }
 
     class _Redis:
@@ -122,6 +130,38 @@ async def test_capability_summary_projection_uses_authenticated_summary_reads() 
     assert documents[0].attributes["decision"] == CapabilitySummaryDecision.RIGOROUS
     assert documents[0].attributes["ranking_eligible"] is True
     assert documents[0].meta["report_fingerprint"] == summary.report_fingerprint
+
+
+@pytest.mark.asyncio
+async def test_legacy_import_projection_preserves_digest_only_records() -> None:
+    bundle = PostgresStrategyLabV2Persistence.build(lambda: object())
+    original = LegacyRecord(
+        "legacy-definition-1",
+        LegacyRecordKind.DEFINITION,
+        "strategy-lab-v1",
+        content_digest("legacy-payload"),
+        NOW,
+    )
+    assessment = LegacyCompatibilityAssessment(
+        "mapping-v1",
+        True,
+        content_digest("conversion"),
+        ("converted without replay equivalence",),
+    )
+    record = LegacyImportRecord(original, content_digest("legacy-request"), assessment)
+
+    async def load_registry(*, principal: Any) -> LegacyImportRegistry:
+        assert principal == "owner-a"
+        return LegacyImportRegistry((record,))
+
+    bundle.legacy_imports.load_registry = load_registry  # type: ignore[method-assign]
+    projection = bundle.resources._projections[ApiResourceType.LEGACY_IMPORT]
+    documents = await cast(Any, projection)(principal="owner-a")
+
+    assert len(documents) == 1
+    assert documents[0].id == original.legacy_id
+    assert documents[0].attributes["original"]["payload_digest"] == original.payload_digest
+    assert documents[0].meta["replay_equivalent"] is False
 
 
 @pytest.mark.asyncio

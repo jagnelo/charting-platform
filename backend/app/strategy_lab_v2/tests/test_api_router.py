@@ -95,6 +95,30 @@ def _capability_document() -> ResourceDocument:
     )
 
 
+def _legacy_import_document() -> ResourceDocument:
+    return ResourceDocument(
+        ResourceIdentifier(
+            ApiResourceType.LEGACY_IMPORT,
+            "legacy-definition-1",
+            revision_digest=content_digest("legacy-record"),
+        ),
+        attributes={
+            "original": {
+                "legacy_id": "legacy-definition-1",
+                "kind": "definition",
+                "source_version": "strategy-lab-v1",
+                "payload_digest": content_digest("legacy-payload"),
+            },
+            "assessment": {
+                "supported": True,
+                "conversion_fingerprint": content_digest("conversion"),
+                "notes": ("converted",),
+            },
+        },
+        meta={"replay_equivalent": False},
+    )
+
+
 class FakeAdapter:
     def __init__(self) -> None:
         self.submissions: list[tuple[str, str, dict[str, Any]]] = []
@@ -107,6 +131,8 @@ class FakeAdapter:
         document = (
             _capability_document()
             if kwargs["resource_type"] is ApiResourceType.CAPABILITY_SUMMARY
+            else _legacy_import_document()
+            if kwargs["resource_type"] is ApiResourceType.LEGACY_IMPORT
             else self.document
         )
         return ResourceCollection(
@@ -121,6 +147,8 @@ class FakeAdapter:
         document = (
             _capability_document()
             if kwargs["resource_type"] is ApiResourceType.CAPABILITY_SUMMARY
+            else _legacy_import_document()
+            if kwargs["resource_type"] is ApiResourceType.LEGACY_IMPORT
             else self.document
         )
         if kwargs["resource_id"] == document.id:
@@ -327,6 +355,16 @@ def test_router_lists_capability_summary_projection_as_read_only_resource() -> N
         assert data["type"] == "capability-summaries"
         assert data["attributes"]["decision"] == "rigorous"
         assert data["attributes"]["can_publish_authoritative_results"] is True
+
+
+def test_router_lists_preserved_legacy_imports_without_payload_bytes() -> None:
+    with _client(FakeAdapter()) as client:
+        response = client.get("/api/v1/strategy-lab/v2/legacy-imports")
+        assert response.status_code == 200
+        data = response.json()["data"][0]
+        assert data["type"] == "legacy-imports"
+        assert data["attributes"]["original"]["legacy_id"] == "legacy-definition-1"
+        assert data["meta"]["replay_equivalent"] is False
 
 
 def test_router_rejects_invalid_cursor_and_unknown_resource_with_typed_errors() -> None:

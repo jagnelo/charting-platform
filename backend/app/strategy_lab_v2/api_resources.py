@@ -34,6 +34,7 @@ class ApiResourceType(StrEnum):
     ARTIFACT = "artifacts"
     FORWARD_INSTANCE = "forward-instances"
     CAPABILITY_SUMMARY = "capability-summaries"
+    LEGACY_IMPORT = "legacy-imports"
 
 
 @dataclass(frozen=True, slots=True)

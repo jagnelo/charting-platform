@@ -127,6 +127,7 @@ class PostgresStrategyLabV2Persistence:
         result_materialization = PostgresResultMaterializationAdapter(session_factory)
         metrics = PostgresMetricsAdapter(session_factory)
         capability = PostgresCapabilityAdapter(session_factory)
+        legacy_imports = PostgresLegacyImportAdapter(session_factory)
 
         async def attempt_projection(*, principal: Any) -> tuple[ResourceDocument, ...]:
             summaries = await execution_summaries.load_all(principal=principal)
@@ -238,6 +239,28 @@ class PostgresStrategyLabV2Persistence:
                 for summary in summaries
             )
 
+        async def legacy_import_projection(
+            *, principal: Any
+        ) -> tuple[ResourceDocument, ...]:
+            registry = await legacy_imports.load_registry(principal=principal)
+            return tuple(
+                ResourceDocument(
+                    ResourceIdentifier(
+                        ApiResourceType.LEGACY_IMPORT,
+                        record.original.legacy_id,
+                        revision_digest=record.fingerprint,
+                    ),
+                    attributes=asdict(record),
+                    meta={
+                        "projection": "postgres",
+                        "record_fingerprint": record.fingerprint,
+                        "request_fingerprint": record.request_fingerprint,
+                        "replay_equivalent": False,
+                    },
+                )
+                for record in registry.records
+            )
+
         return cls(
             aggregate_store=aggregate_store,
             resources=PostgresResourceReader(
@@ -248,6 +271,7 @@ class PostgresStrategyLabV2Persistence:
                     ApiResourceType.FORWARD_INSTANCE: forward_instance_projection,
                     ApiResourceType.ARTIFACT: artifact_projection,
                     ApiResourceType.CAPABILITY_SUMMARY: capability_summary_projection,
+                    ApiResourceType.LEGACY_IMPORT: legacy_import_projection,
                 },
             ),
             acquisition=PostgresAcquisitionAdapter(session_factory),
@@ -264,7 +288,7 @@ class PostgresStrategyLabV2Persistence:
             execution_state=execution_state,
             execution_summaries=execution_summaries,
             forward_state=forward_state,
-            legacy_imports=PostgresLegacyImportAdapter(session_factory),
+            legacy_imports=legacy_imports,
             lineage=PostgresLineageAdapter(session_factory),
             metrics=metrics,
             result_completion=PostgresResultCompletionAdapter(session_factory),
