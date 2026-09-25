@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 append-only observation retention checkpoint
+
+- Provider observation snapshots are now immutable retention evidence. The
+  maintenance path no longer deletes latest-price, search, universe, profile,
+  or identifier snapshots, even when legacy snapshot-retention settings are
+  positive; only operational request logs remain prunable.
+- Maintenance/router regressions pass `10/10`, Ruff passes, and the workstream
+  validator accepts all `30` records. This closes a destructive local data-loss
+  path and does not change provider routing, quota, legal, or entitlement
+  gates.
+
 ## 2026-09-25 native account-usage refresh
 
 - Exact-current account-usage-only probes passed for EODHD, Twelve Data, and
