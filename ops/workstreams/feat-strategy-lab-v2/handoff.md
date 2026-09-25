@@ -32,6 +32,27 @@ passes retained zero testcontainer sessions, containers, images, or volumes.
 The application-owned evidence resolver, stable Nautilus release, upstream
 contract reconciliation, and full application integration remain open gates.
 
+## 2026-09-25 - Mounted result identity materialization checkpoint
+
+Successful runtime materialization now uses the validated mounted result-file
+digest and byte length as terminal output evidence whenever that file was
+captured by the sandbox. Legacy plans without a mounted result continue to use
+their bounded stdout evidence. Both the pure runtime adapter and the
+owner-scoped PostgreSQL runtime adapter apply the same selection, so retries,
+compare-and-set state, and persisted update receipts cannot silently switch
+between logs and the produced result artifact.
+
+Focused runtime/sandbox/persistence tests passed 20 tests; the complete
+Strategy Lab v2 package passed 824 tests. Branch-declared validation passed
+all six checks across 824 package tests, migrations, Ruff, MyPy across 270
+files, diff, and workstream validation. The exact backend gate passed 2,475
+tests at 83.73% coverage with 86 warnings; the referenced runtime env file was
+absent in this checkout and `.env.dev` supplied test configuration. Both
+required cleanup passes retained zero testcontainer sessions, containers,
+images, or volumes. Host application evidence resolution, stable Nautilus
+release conformance, upstream contract reconciliation, and full application
+integration remain open gates.
+
 ## 2026-09-25 - Typed metric-set rehydration
 
 `postgres_metrics.py` now exposes owner-scoped `load_metric_set()` and
