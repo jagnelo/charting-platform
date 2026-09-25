@@ -36,6 +36,7 @@ from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResol
 from app.strategy_lab_v2.contracts import ArtifactManifest, ForwardInstance, ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.execution import ExecutionAuthorization
+from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
 from app.strategy_lab_v2.forward_corrections import ForwardCorrectionCommand
 from app.strategy_lab_v2.forward_event_transaction import ForwardEventTransactionResolution
 from app.strategy_lab_v2.forward_warmup import (
@@ -388,6 +389,18 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             result_fingerprint=result_fingerprint,
         )
 
+    async def load_search_state(
+        self, *, principal: Any, experiment_fingerprint: str
+    ) -> SearchExecutionState | None:
+        """Read one authenticated resumable search checkpoint."""
+
+        if not isinstance(experiment_fingerprint, str) or not experiment_fingerprint.strip():
+            raise ValueError("experiment_fingerprint must not be empty")
+        return await self._persistence.search_state.load(
+            principal=_principal_identity(principal),
+            experiment_fingerprint=experiment_fingerprint,
+        )
+
     async def dispatch_search_candidate(
         self,
         *,
@@ -727,6 +740,28 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise TypeError("instance must be a ForwardInstance")
         return await self._persistence.forward_state.ensure_instance(
             principal=_principal_identity(principal), instance=instance
+        )
+
+    async def load_forward_instance(
+        self, *, principal: Any, instance_id: str
+    ) -> ForwardInstance | None:
+        """Read one authenticated forward-instance definition."""
+
+        if not isinstance(instance_id, str) or not instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        return await self._persistence.forward_state.load_instance(
+            principal=_principal_identity(principal), instance_id=instance_id
+        )
+
+    async def load_forward_state(
+        self, *, principal: Any, instance_id: str
+    ) -> ForwardLiveAdmissionState | None:
+        """Read one restart-safe live admission checkpoint with event identities."""
+
+        if not isinstance(instance_id, str) or not instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        return await self._persistence.forward_state.load_state(
+            principal=_principal_identity(principal), instance_id=instance_id
         )
 
     async def transition_forward_instance(

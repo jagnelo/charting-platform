@@ -157,6 +157,51 @@ async def test_application_search_candidate_lifecycle_is_owner_scoped_and_utc_no
     assert observed["terminal"]["phase"] is SearchCandidatePhase.SUCCEEDED
 
 
+@pytest.mark.asyncio
+async def test_application_search_and_forward_reads_are_owner_scoped() -> None:
+    experiment = content_digest("search-experiment")
+    instance = _instance()
+    observed: dict[str, Any] = {}
+    search_state = new_search_execution_state(
+        experiment,
+        (content_digest("trial"),),
+    )
+    forward_instance = instance
+    forward_state = SimpleNamespace(checkpoint=SimpleNamespace(instance=instance))
+
+    class SearchStore:
+        async def load(self, **kwargs: Any) -> Any:
+            observed["search"] = kwargs
+            return search_state
+
+    class ForwardStore:
+        async def load_instance(self, **kwargs: Any) -> Any:
+            observed["instance"] = kwargs
+            return forward_instance
+
+        async def load_state(self, **kwargs: Any) -> Any:
+            observed["state"] = kwargs
+            return forward_state
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._persistence = SimpleNamespace(search_state=SearchStore(), forward_state=ForwardStore())
+
+    assert await adapter.load_search_state(
+        principal=_User(42), experiment_fingerprint=experiment
+    ) == search_state
+    assert await adapter.load_forward_instance(
+        principal=_User(42), instance_id=instance.instance_id
+    ) == forward_instance
+    assert await adapter.load_forward_state(
+        principal=_User(42), instance_id=instance.instance_id
+    ) == forward_state
+
+    assert observed["search"]["principal"].id == "42"
+    assert observed["search"]["experiment_fingerprint"] == experiment
+    assert observed["instance"]["principal"].id == "42"
+    assert observed["state"]["principal"].id == "42"
+
+
 def test_application_adapter_composes_all_durable_api_adapters() -> None:
     adapter = PostgresStrategyLabV2Adapter(lambda: object())
 

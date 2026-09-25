@@ -25,6 +25,7 @@ from app.strategy_lab_v2.api_router import (
     _safe_header_value,
     create_strategy_lab_router,
     serialize_resource,
+    serialize_search_state_snapshot,
 )
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import (
@@ -84,6 +85,17 @@ def _document(resource_id: str = "trial-1") -> ResourceDocument:
         },
         meta={"source": "test"},
     )
+
+
+def test_read_only_state_serializers_preserve_typed_identity() -> None:
+    state = new_search_execution_state(
+        content_digest("experiment"), (content_digest("trial"),)
+    )
+    payload = serialize_search_state_snapshot(state, request_id="request-1")
+    assert payload["data"]["type"] == "search-experiments"
+    assert payload["data"]["id"] == state.experiment_fingerprint
+    assert payload["data"]["meta"]["decision"] == "read"
+    assert payload["data"]["meta"]["state_fingerprint"] == state.fingerprint
 
 
 def _capability_document() -> ResourceDocument:

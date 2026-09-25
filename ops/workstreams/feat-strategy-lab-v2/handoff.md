@@ -2,6 +2,22 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Search and forward state read API checkpoint
+
+The application adapter now exposes authenticated reads for resumable search
+checkpoints and restart-safe forward admission state, preserving owner
+normalization and the persistence adapters' integrity checks. The versioned
+router adds read-only `GET /experiments/{experiment_id}/search` and
+`GET /forward-instances/{instance_id}/state` projections with typed 404/501
+failure paths and stable state fingerprints. These reads do not mutate queues,
+start workers, or infer provider/engine state.
+
+Focused application coverage passed 15 tests and the read-only serializer
+coverage passed 1 test. Ruff passed for the package and MyPy passed across 277
+source files. The broader API TestClient rerun remains unavailable because the
+restricted runtime hangs during Starlette context startup; stable Nautilus,
+worker activation, provider reconciliation, and deployment remain gated.
+
 ## 2026-09-25 - Dedicated worker outbox scheduler checkpoint
 
 `RedisDispatchRuntime` now exposes an `outbox_scheduler(...)` factory, and the

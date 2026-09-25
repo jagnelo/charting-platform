@@ -46,6 +46,7 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandResolution,
 )
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
     LegacyImportDecision,
@@ -205,6 +206,21 @@ class SearchStateApiAdapter(Protocol):
         cancellation_request_id: str,
         now: datetime,
     ) -> Awaitable[SearchStateResolution] | SearchStateResolution: ...
+
+    def load_search_state(
+        self,
+        *,
+        principal: Any,
+        experiment_fingerprint: str,
+    ) -> Awaitable[SearchExecutionState | None] | SearchExecutionState | None: ...
+
+
+class ForwardStateApiAdapter(Protocol):
+    """Application-owned reads for restart-safe forward execution state."""
+
+    def load_forward_state(
+        self, *, principal: Any, instance_id: str
+    ) -> Awaitable[ForwardLiveAdmissionState | None] | ForwardLiveAdmissionState | None: ...
 
 
 class SearchDispatchApiAdapter(Protocol):
@@ -508,6 +524,57 @@ def serialize_search_state(
                     "request_id": request_id,
                     "decision": resolution.decision,
                     "state_fingerprint": state.fingerprint,
+                },
+            }
+        }
+    )
+
+
+def serialize_search_state_snapshot(
+    state: SearchExecutionState, *, request_id: str
+) -> dict[str, Any]:
+    """Serialize a read-only search checkpoint without inventing a mutation."""
+
+    if not isinstance(state, SearchExecutionState):
+        raise TypeError("state must be a SearchExecutionState")
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise ValueError("request_id must not be empty")
+    return _json_value(
+        {
+            "data": {
+                "type": "search-experiments",
+                "id": state.experiment_fingerprint,
+                "attributes": asdict(state),
+                "meta": {
+                    "request_id": request_id,
+                    "decision": "read",
+                    "state_fingerprint": state.fingerprint,
+                },
+            }
+        }
+    )
+
+
+def serialize_forward_state(
+    state: ForwardLiveAdmissionState, *, request_id: str
+) -> dict[str, Any]:
+    """Serialize one restart-safe forward admission checkpoint."""
+
+    if not isinstance(state, ForwardLiveAdmissionState):
+        raise TypeError("state must be a ForwardLiveAdmissionState")
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise ValueError("request_id must not be empty")
+    instance = state.checkpoint.instance
+    return _json_value(
+        {
+            "data": {
+                "type": "forward-states",
+                "id": instance.instance_id,
+                "attributes": asdict(state),
+                "meta": {
+                    "request_id": request_id,
+                    "state_fingerprint": state.fingerprint,
+                    "instance_fingerprint": content_digest(instance),
                 },
             }
         }
@@ -1494,6 +1561,135 @@ def create_strategy_lab_router(
                 )
             )
 
+    @router.get("/experiments/{experiment_id}/search")
+    async def get_search_state(
+        experiment_id: str,
+        request: Request,
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Read the authenticated resumable search checkpoint."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            require_sha256_digest(experiment_id, field_name="experiment_fingerprint")
+            load = getattr(adapter, "load_search_state", None)
+            if not callable(load):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "search state adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                        details={"reason": "the host has not supplied search persistence"},
+                    )
+                )
+            state = await _resolve(
+                load(principal=principal, experiment_fingerprint=experiment_id)
+            )
+            if state is None:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.NOT_FOUND,
+                        "search experiment was not found",
+                        request_id,
+                        status.HTTP_404_NOT_FOUND,
+                    )
+                )
+            response = JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=serialize_search_state_snapshot(state, request_id=request_id),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "search state request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 search state read failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 search state read failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
+    @router.get("/forward-instances/{instance_id}/state")
+    async def get_forward_state(
+        instance_id: str,
+        request: Request,
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Read one authenticated restart-safe forward admission checkpoint."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            if not instance_id.strip():
+                raise ValueError("instance_id must not be empty")
+            load = getattr(adapter, "load_forward_state", None)
+            if not callable(load):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "forward state adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                        details={"reason": "the host has not supplied forward persistence"},
+                    )
+                )
+            state = await _resolve(load(principal=principal, instance_id=instance_id))
+            if state is None:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.NOT_FOUND,
+                        "forward instance state was not found",
+                        request_id,
+                        status.HTTP_404_NOT_FOUND,
+                    )
+                )
+            response = JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=serialize_forward_state(state, request_id=request_id),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "forward state request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 forward state read failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 forward state read failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
     @router.post("/experiments/{experiment_id}/search", status_code=status.HTTP_202_ACCEPTED)
     async def initialize_search(
         experiment_id: str,
@@ -2228,6 +2424,7 @@ __all__ = [
     "MAX_PAGE_SIZE",
     "ApiAdapterError",
     "CapabilityPreflightAdapter",
+    "ForwardStateApiAdapter",
     "SearchDispatchApiAdapter",
     "SearchStateApiAdapter",
     "StrategyLabApiAdapter",
@@ -2238,6 +2435,8 @@ __all__ = [
     "serialize_capability_summary",
     "serialize_search_dispatch",
     "serialize_search_state",
+    "serialize_search_state_snapshot",
+    "serialize_forward_state",
     "serialize_resource",
     "serialize_resource_identifier",
     "serialize_submission",
