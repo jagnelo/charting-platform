@@ -87,6 +87,17 @@ def test_worker_process_reaps_a_timed_out_child(tmp_path: Path) -> None:
     assert result.error_digest == content_digest("strategy lab worker process timed out")
 
 
+@pytest.mark.asyncio
+async def test_worker_process_async_reaps_a_timed_out_child(tmp_path: Path) -> None:
+    result = await SerialWorkerProcessExecutor(timeout_seconds=0.2).run_async(
+        _request(tmp_path, body="sleep 5")
+    )
+
+    assert result.decision is WorkerProcessDecision.TIMED_OUT
+    assert result.execution is None
+    assert result.error_digest == content_digest("strategy lab worker process timed out")
+
+
 def test_worker_process_rejects_concurrent_use_and_invalid_inputs(tmp_path: Path) -> None:
     request = _request(tmp_path)
     with pytest.raises(ValueError, match="timeout_seconds"):
