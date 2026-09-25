@@ -24,6 +24,7 @@ from app.strategy_lab_v2.api_router import (
     _request_id,
     _safe_header_value,
     create_strategy_lab_router,
+    serialize_forward_account,
     serialize_resource,
     serialize_search_state_snapshot,
 )
@@ -41,6 +42,7 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandResolution,
 )
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.forward_account import initial_forward_account_state
 from app.strategy_lab_v2.legacy import (
     LegacyImportDecision,
     LegacyImportRecord,
@@ -95,6 +97,17 @@ def test_read_only_state_serializers_preserve_typed_identity() -> None:
     assert payload["data"]["type"] == "search-experiments"
     assert payload["data"]["id"] == state.experiment_fingerprint
     assert payload["data"]["meta"]["decision"] == "read"
+    assert payload["data"]["meta"]["state_fingerprint"] == state.fingerprint
+
+
+def test_forward_account_serializer_preserves_authenticated_snapshot_identity() -> None:
+    state = initial_forward_account_state(
+        "forward-1", base_currency="USD", initial_cash={"USD": Decimal("1000")}
+    )
+    payload = serialize_forward_account(state, request_id="request-1")
+    assert payload["data"]["type"] == "forward-accounts"
+    assert payload["data"]["id"] == "forward-1"
+    assert payload["data"]["attributes"]["cash"][0]["amount"] == "1000"
     assert payload["data"]["meta"]["state_fingerprint"] == state.fingerprint
 
 

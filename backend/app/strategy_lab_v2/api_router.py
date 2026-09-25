@@ -46,6 +46,7 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandResolution,
 )
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.forward_account import ForwardAccountState
 from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
@@ -221,6 +222,14 @@ class ForwardStateApiAdapter(Protocol):
     def load_forward_state(
         self, *, principal: Any, instance_id: str
     ) -> Awaitable[ForwardLiveAdmissionState | None] | ForwardLiveAdmissionState | None: ...
+
+
+class ForwardAccountApiAdapter(Protocol):
+    """Application-owned reads for durable broker-free shadow-account state."""
+
+    def load_forward_account(
+        self, *, principal: Any, instance_id: str
+    ) -> Awaitable[ForwardAccountState | None] | ForwardAccountState | None: ...
 
 
 class SearchDispatchApiAdapter(Protocol):
@@ -575,6 +584,31 @@ def serialize_forward_state(
                     "request_id": request_id,
                     "state_fingerprint": state.fingerprint,
                     "instance_fingerprint": content_digest(instance),
+                },
+            }
+        }
+    )
+
+
+def serialize_forward_account(
+    state: ForwardAccountState, *, request_id: str
+) -> dict[str, Any]:
+    """Serialize one authenticated broker-free shadow-account snapshot."""
+
+    if not isinstance(state, ForwardAccountState):
+        raise TypeError("state must be a ForwardAccountState")
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise ValueError("request_id must not be empty")
+    return _json_value(
+        {
+            "data": {
+                "type": "forward-accounts",
+                "id": state.instance_id,
+                "attributes": asdict(state),
+                "meta": {
+                    "request_id": request_id,
+                    "state_fingerprint": state.fingerprint,
+                    "last_event_fingerprint": state.last_event_fingerprint,
                 },
             }
         }
@@ -1690,6 +1724,70 @@ def create_strategy_lab_router(
                 )
             )
 
+    @router.get("/forward-instances/{instance_id}/account")
+    async def get_forward_account(
+        instance_id: str,
+        request: Request,
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Read one authenticated durable broker-free shadow-account snapshot."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            if not instance_id.strip():
+                raise ValueError("instance_id must not be empty")
+            load = getattr(adapter, "load_forward_account", None)
+            if not callable(load):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "forward account adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                        details={"reason": "the host has not supplied forward account persistence"},
+                    )
+                )
+            state = await _resolve(load(principal=principal, instance_id=instance_id))
+            if state is None:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.NOT_FOUND,
+                        "forward account was not found",
+                        request_id,
+                        status.HTTP_404_NOT_FOUND,
+                    )
+                )
+            response = JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=serialize_forward_account(state, request_id=request_id),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "forward account request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 forward account read failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 forward account read failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
     @router.post("/experiments/{experiment_id}/search", status_code=status.HTTP_202_ACCEPTED)
     async def initialize_search(
         experiment_id: str,
@@ -2424,6 +2522,7 @@ __all__ = [
     "MAX_PAGE_SIZE",
     "ApiAdapterError",
     "CapabilityPreflightAdapter",
+    "ForwardAccountApiAdapter",
     "ForwardStateApiAdapter",
     "SearchDispatchApiAdapter",
     "SearchStateApiAdapter",
@@ -2437,6 +2536,7 @@ __all__ = [
     "serialize_search_state",
     "serialize_search_state_snapshot",
     "serialize_forward_state",
+    "serialize_forward_account",
     "serialize_resource",
     "serialize_resource_identifier",
     "serialize_submission",
