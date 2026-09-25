@@ -1204,6 +1204,15 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   Successful terminal evidence also requires exactly one verified publication
   plan for every output artifact in the result manifest; incomplete or
   substituted plan sets fail before terminal persistence.
+- `search_worker_handoff.py` adds the explicit search-queue worker binding. It
+  resolves each Redis request fingerprint through the durable PostgreSQL
+  dispatch record before decoding the immutable worker handoff, verifies
+  request/attempt/payload/queue identity and every orchestration component
+  fingerprint, and fails closed on missing or conflicting evidence.
+  `worker_callbacks.create_search_dispatch()` exposes this materializer as an
+  explicit callback-factory choice using the worker's `STRATEGY_LAB_V2_QUEUE`
+  setting; the ordinary submission-backed factory remains unchanged so a
+  queue is never treated as search-backed implicitly.
   The fallback completion writer can only return a retry, so terminal evidence
   cannot be acknowledged through the legacy path.
 - The root Compose stack now contains an explicit, opt-in
