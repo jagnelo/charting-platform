@@ -479,8 +479,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `lineage.py` defines immutable artifact-manifest lineage edges and
   owner-scoped indexes. Semantic keys exclude recording timestamps for
   idempotency, exact edges replay, changed metadata conflicts, and entries are
-  deterministically ordered. Storage adapters must still enforce manifest
-  existence, foreign-key constraints, and atomic persistence.
+  deterministically ordered. Aware creation timestamps normalize to UTC before
+  lineage identity and replay comparison. Storage adapters must still enforce
+  manifest existence, foreign-key constraints, and atomic persistence.
 - `runtime.py` defines fail-closed isolation preflight for future strategy
   workers. A profile requires a pinned runtime image, exact vetted dependency
   digests, disabled network, read-only root, dropped capabilities, disabled
@@ -512,8 +513,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `artifact_retention.py` defines immutable owner-scoped retention pins and
   manifest-bound retention state. Pin adds and releases are idempotent; pinned
   classes fail closed without an active pin, while tiered/ephemeral eligibility
-  is evaluated only at an explicit timestamp. The contract never deletes,
-  moves, or rewrites artifact bytes.
+  is evaluated only at an explicit timestamp. Aware creation, expiry, release,
+  and observation timestamps normalize to UTC before retention identity and
+  replay comparison. The contract never deletes, moves, or rewrites artifact
+  bytes.
 - `lease_observations.py` defines ordered heartbeat/release envelopes and a
   restart-safe lease observation state. Exact retries replay, changed content
   conflicts, gaps/stale sequences remain visible, and expired or released
@@ -535,8 +538,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `artifact_commit.py` defines an immutable commit ledger for verified
   publication plans. Create-if-absent finalization records one content key,
   exact retries replay it, storage-key collisions conflict, and
-  reuse-existing plans fail closed until a committed record is observed. No
-  bytes are written or deleted by this contract.
+  reuse-existing plans fail closed until a committed record is observed.
+  Aware commit timestamps normalize to UTC before publication identity and
+  replay comparison. No bytes are written or deleted by this contract.
 - `execution_summary.py` projects submission, outcome, progress, and result
   publication into one immutable API read model. It enforces identity and
   terminal-phase consistency, requires authoritative publication for success,
