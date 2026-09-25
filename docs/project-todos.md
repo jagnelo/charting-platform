@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-25 — EODHD/FMP full-catalogue reuse
+
+- [x] Reuse each provider's full US discovery catalogue across successive
+      reconciliation pages for five minutes, scoped by provider and a one-way
+      credential digest. EODHD and FMP do not expose offset-aware catalogue
+      endpoints; this avoids repeated quota-consuming snapshots while retaining
+      every returned row and returning defensive copies to callers.
+
+- [x] Focused optional-provider coverage passed `109/109`; Ruff passed. The
+      exact-source branch unit gate passed `1,928/1,928`, and Docker integration
+      passed `386/386` with isolated PostgreSQL/Redis testcontainers. This is
+      a quota-preserving cache only; it does not close provider admission or
+      complete-universe gates.
+
 ### 2026-09-25 — EDGAR baseline preflight
 
 - [x] Retry the bounded keyless EDGAR matrix with the supplied descriptive

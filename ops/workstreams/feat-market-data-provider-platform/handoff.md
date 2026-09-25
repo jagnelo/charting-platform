@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 EODHD/FMP full-catalogue reuse
+
+- EODHD and FMP discovery now reuse the same full US catalogue for successive
+  reconciliation pages within a five-minute TTL. Cache entries are scoped by
+  provider and one-way credential digest; raw credentials are never retained,
+  callers receive copies, and every fetched row remains available to the
+  reconciliation pager.
+
+## 2026-09-25 exact-head validation after discovery-cache hardening
+
+- Focused optional-provider coverage passed `109/109`; Ruff passed.
+- The branch-owned backend unit gate passed `1,928/1,928` with `37` warnings
+  in `315.64s` at source `6d7461df4e65ce5c7195e6c77bcc4eed415da52f`.
+- The authoritative Docker integration gate passed `386/386` with `57`
+  warnings in `709.43s`, using isolated PostgreSQL/Redis testcontainers
+  (session `4e2b03dc-eb5d-4184-bc9f-1e5dfc6793be`). Cleanup completed without
+  host-wide pruning. External provider admission, legal/use, complete-universe,
+  secret-store, deferred-provider, and final-shadow gates remain fail-closed.
+
 ## 2026-09-25 EDGAR baseline preflight
 
 - The bounded keyless EDGAR matrix was retried with a valid descriptive

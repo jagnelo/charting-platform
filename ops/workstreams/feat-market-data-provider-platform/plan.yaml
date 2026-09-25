@@ -1506,6 +1506,15 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-25 EODHD/FMP full-catalogue reuse: successive reconciliation
+      pages now reuse a five-minute, provider- and one-way-credential-digest
+      scoped full catalogue instead of repeating non-paginated upstream
+      requests. Returned rows are copied, raw credentials are not retained,
+      and no catalogue rows are discarded. Focused optional-provider coverage
+      passed 109/109; exact-source unit validation passed 1,928/1,928 and
+      Docker integration passed 386/386 at source
+      `6d7461df4e65ce5c7195e6c77bcc4eed415da52f`.
+    - >-
       2026-09-25 EDGAR baseline preflight: the bounded keyless matrix was
       retried with a valid descriptive contact and a private writable temporary
       quota ledger. It stopped before transport at 0/0 because SEC
