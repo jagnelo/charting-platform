@@ -2,6 +2,19 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Account-settling forward-worker pipeline checkpoint
+
+Added `RedisDispatchRuntime.account_settling_forward_worker_service()`, an
+explicit composition factory for the complete forward handoff lifecycle. It
+nests the reservation/lease authorization gate, canonical-event-bound account
+settlement, and atomic capacity release so a host cannot accidentally wire a
+worker that acknowledges after only one of those stages. Event/engine
+resolution and durable adapters remain host-supplied.
+
+The focused account-worker, capacity-settlement, and Redis runtime composition
+suite passed 11 tests. Ruff and MyPy remain green across 293 source files;
+whitespace validation is clean.
+
 ## 2026-09-25 - Forward-worker capacity settlement checkpoint
 
 Added `ForwardWorkerCapacityReleaseHandler` and the
