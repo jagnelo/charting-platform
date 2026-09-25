@@ -34,6 +34,13 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandReceipt,
     ExecutionCommandResolution,
 )
+from app.strategy_lab_v2.legacy import (
+    LegacyImportDecision,
+    LegacyImportRecord,
+    LegacyImportRegistry,
+    LegacyImportReport,
+    LegacyImportResolution,
+)
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
     ResourceMutationResolution,
@@ -69,6 +76,7 @@ class FakeAdapter:
         self.submissions: list[tuple[str, str, dict[str, Any]]] = []
         self.commands: list[tuple[str, str]] = []
         self.mutations: list[tuple[str, str, str]] = []
+        self.legacy_imports: list[str] = []
         self.document = _document()
 
     async def list_resources(self, **kwargs: Any) -> ResourceCollection:
@@ -128,6 +136,23 @@ class FakeAdapter:
             command_fingerprint=command.fingerprint,
             receipt=receipt,
         )
+
+    async def import_legacy(self, **kwargs: Any) -> LegacyImportResolution:
+        request = kwargs["request"]
+        assessment = kwargs["assessment"]
+        self.legacy_imports.append(request.legacy_id)
+        original = request.original
+        report = LegacyImportReport(
+            LegacyImportDecision.ACCEPT,
+            original,
+            assessment.supported,
+            assessment.conversion_fingerprint,
+            assessment.notes,
+        )
+        registry = LegacyImportRegistry(
+            (LegacyImportRecord(original, request.fingerprint, assessment),)
+        )
+        return LegacyImportResolution(LegacyImportDecision.ACCEPT, registry, report)
 
 
 class ConflictAdapter(FakeAdapter):
@@ -459,6 +484,70 @@ def test_resource_creation_exposes_typed_idempotency_conflict() -> None:
         )
         assert response.status_code == 409
         assert response.json()["errors"][0]["code"] == "idempotency_conflict"
+
+
+def test_legacy_import_returns_explicit_compatibility_report() -> None:
+    adapter = FakeAdapter()
+    payload_digest = content_digest({"legacy": "payload"})
+    conversion = content_digest({"conversion": "v1-to-v2"})
+    with _client(adapter) as client:
+        response = client.post(
+            "/api/v1/strategy-lab/v2/legacy/imports",
+            headers={"Idempotency-Key": "legacy-key", "X-Request-ID": "legacy-request"},
+            json={
+                "legacy_id": "legacy-definition-1",
+                "kind": "definition",
+                "source_version": "strategy-lab-v1",
+                "payload_digest": payload_digest,
+                "mapping_version": "mapping-v1",
+                "supported": True,
+                "conversion_fingerprint": conversion,
+                "notes": ["converted without replay-equivalence"],
+            },
+        )
+
+        assert response.status_code == 202
+        assert response.headers["x-request-id"] == "legacy-request"
+        data = response.json()["data"]
+        assert data["type"] == "legacy-imports"
+        assert data["id"] == "legacy-definition-1"
+        assert data["attributes"]["decision"] == "accept"
+        assert data["attributes"]["replay_equivalent"] is False
+        assert data["attributes"]["conversion_fingerprint"] == conversion
+        assert data["meta"]["request_id"] == "legacy-request"
+        assert adapter.legacy_imports == ["legacy-definition-1"]
+
+
+def test_legacy_import_requires_idempotency_and_rejects_invalid_assessment() -> None:
+    with _client(FakeAdapter()) as client:
+        missing_key = client.post(
+            "/api/v1/strategy-lab/v2/legacy/imports",
+            json={
+                "legacy_id": "legacy-result-1",
+                "kind": "result",
+                "source_version": "strategy-lab-v1",
+                "payload_digest": content_digest("payload"),
+                "mapping_version": "mapping-v1",
+                "supported": False,
+            },
+        )
+        assert missing_key.status_code == 400
+        assert missing_key.json()["errors"][0]["code"] == "validation_error"
+
+        invalid = client.post(
+            "/api/v1/strategy-lab/v2/legacy/imports",
+            headers={"Idempotency-Key": "legacy-key"},
+            json={
+                "legacy_id": "legacy-result-1",
+                "kind": "result",
+                "source_version": "strategy-lab-v1",
+                "payload_digest": content_digest("payload"),
+                "mapping_version": "mapping-v1",
+                "supported": True,
+            },
+        )
+        assert invalid.status_code == 422
+        assert invalid.json()["errors"][0]["code"] == "validation_error"
 
 
 def test_command_route_constructs_typed_intent_and_returns_accepted_receipt() -> None:

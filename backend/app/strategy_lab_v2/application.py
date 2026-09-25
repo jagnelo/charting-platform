@@ -28,6 +28,11 @@ from app.strategy_lab_v2.api_router import (
 )
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
+from app.strategy_lab_v2.legacy import (
+    LegacyCompatibilityAssessment,
+    LegacyImportRequest,
+    LegacyImportResolution,
+)
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
 from app.strategy_lab_v2.resource_mutations import (
@@ -351,6 +356,24 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             request_id=request_id,
             idempotency_key=idempotency_key,
             command=command,
+        )
+
+    async def import_legacy(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        request: LegacyImportRequest,
+        assessment: LegacyCompatibilityAssessment,
+    ) -> LegacyImportResolution:
+        """Preserve and assess one owner-scoped legacy record."""
+
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        return await self._persistence.legacy_imports.import_record(
+            principal=_principal_identity(principal),
+            request=request,
+            assessment=assessment,
         )
 
 

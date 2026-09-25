@@ -44,6 +44,13 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandKind,
     ExecutionCommandResolution,
 )
+from app.strategy_lab_v2.legacy import (
+    LegacyCompatibilityAssessment,
+    LegacyImportDecision,
+    LegacyImportRequest,
+    LegacyImportResolution,
+    LegacyRecordKind,
+)
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
     ResourceMutationReceipt,
@@ -133,6 +140,15 @@ class StrategyLabApiAdapter(Protocol):
         idempotency_key: str,
         command: ExecutionCommand,
     ) -> Awaitable[ExecutionCommandResolution] | ExecutionCommandResolution: ...
+
+    def import_legacy(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        request: LegacyImportRequest,
+        assessment: LegacyCompatibilityAssessment,
+    ) -> Awaitable[LegacyImportResolution] | LegacyImportResolution: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -333,6 +349,44 @@ def serialize_command(resolution: ExecutionCommandResolution) -> dict[str, Any]:
             "meta": {"decision": resolution.decision.value},
         }
     })
+
+
+def serialize_legacy_import(
+    resolution: LegacyImportResolution, *, request_id: str
+) -> dict[str, Any]:
+    """Serialize a preserved legacy record and its compatibility report."""
+
+    if not isinstance(resolution, LegacyImportResolution):
+        raise TypeError("resolution must be a LegacyImportResolution")
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise ValueError("request_id must not be empty")
+    report = resolution.report
+    original = report.original
+    return _json_value(
+        {
+            "data": {
+                "type": "legacy-imports",
+                "id": original.legacy_id,
+                "attributes": {
+                    "legacy_id": original.legacy_id,
+                    "kind": original.kind,
+                    "source_version": original.source_version,
+                    "payload_digest": original.payload_digest,
+                    "observed_at": original.observed_at,
+                    "decision": resolution.decision,
+                    "supported": report.supported,
+                    "conversion_fingerprint": report.conversion_fingerprint,
+                    "compatibility_notes": report.compatibility_notes,
+                    "replay_equivalent": report.replay_equivalent,
+                },
+                "meta": {
+                    "request_id": request_id,
+                    "report_fingerprint": report.fingerprint,
+                    "registry_fingerprint": resolution.registry.fingerprint,
+                },
+            }
+        }
+    )
 
 
 def _request_id(request: Request, factory: Callable[[], str]) -> str:
@@ -775,6 +829,115 @@ def _parse_command(
         ) from error
 
 
+def _parse_legacy_import(
+    body: Mapping[str, Any],
+    *,
+    idempotency_key: str | None,
+    request_id: str,
+    now: datetime,
+) -> tuple[LegacyImportRequest, LegacyCompatibilityAssessment]:
+    """Parse a strict digest-only legacy import request."""
+
+    if idempotency_key is None or not idempotency_key.strip():
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "Idempotency-Key header is required",
+                request_id,
+                status.HTTP_400_BAD_REQUEST,
+            )
+        )
+    try:
+        key = _safe_header_value(idempotency_key, "Idempotency-Key", 256)
+    except (TypeError, ValueError) as error:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "Idempotency-Key must be non-empty, at most 256 characters, and control-free",
+                request_id,
+                status.HTTP_400_BAD_REQUEST,
+            )
+        ) from error
+    required = {
+        "legacy_id",
+        "kind",
+        "source_version",
+        "payload_digest",
+        "mapping_version",
+        "supported",
+    }
+    optional = {"conversion_fingerprint", "notes", "preserve_original"}
+    if not isinstance(body, Mapping) or not required.issubset(body) or set(body) - required - optional:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "legacy import body contains missing or unknown fields",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                details={"required_fields": sorted(required)},
+            )
+        )
+    notes = body.get("notes", ())
+    if not isinstance(notes, Sequence) or isinstance(notes, str | bytes):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "legacy import notes must be an array of strings",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    if any(not isinstance(note, str) or not note.strip() for note in notes):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "legacy import notes must contain non-empty strings",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    preserve_original = body.get("preserve_original", True)
+    if not isinstance(preserve_original, bool):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "preserve_original must be a boolean",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    request_fingerprint = content_digest(
+        {"request_id": request_id, "idempotency_key": key, "body": body}
+    )
+    try:
+        import_request = LegacyImportRequest(
+            request_id=request_fingerprint,
+            legacy_id=body["legacy_id"],
+            kind=LegacyRecordKind(body["kind"]),
+            source_version=body["source_version"],
+            payload_digest=body["payload_digest"],
+            requested_at=now,
+            preserve_original=preserve_original,
+        )
+        assessment = LegacyCompatibilityAssessment(
+            mapping_version=body["mapping_version"],
+            supported=body["supported"],
+            conversion_fingerprint=body.get("conversion_fingerprint"),
+            notes=tuple(notes),
+        )
+    except (TypeError, ValueError) as error:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "legacy import fields are invalid",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                details={"reason": str(error)},
+            )
+        ) from error
+    return import_request, assessment
+
+
 def create_strategy_lab_router(
     *,
     adapter_dependency: Callable[..., Any],
@@ -980,6 +1143,84 @@ def create_strategy_lab_router(
                 _api_error(
                     ApiErrorCode.INTERNAL_ERROR,
                     "Strategy Lab v2 resource read failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
+    @router.post("/legacy/imports", status_code=status.HTTP_202_ACCEPTED)
+    async def import_legacy(
+        request: Request,
+        body: Any = Body(...),
+        idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Preserve one legacy record and return an explicit compatibility report."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            body = await _strict_json_body(request, request_id)
+            import_request, assessment = _parse_legacy_import(
+                body,
+                idempotency_key=idempotency_key,
+                request_id=request_id,
+                now=clock(),
+            )
+            resolution = await _resolve(
+                adapter.import_legacy(
+                    principal=principal,
+                    request_id=request_id,
+                    request=import_request,
+                    assessment=assessment,
+                )
+            )
+            if not isinstance(resolution, LegacyImportResolution):
+                raise TypeError("adapter returned an invalid legacy import resolution")
+            if resolution.decision is LegacyImportDecision.CONFLICT:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.CONFLICT,
+                        resolution.rejection_reason
+                        or "legacy id is already bound to different import content",
+                        request_id,
+                        status.HTTP_409_CONFLICT,
+                    )
+                )
+            if resolution.decision is LegacyImportDecision.REJECT:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        resolution.rejection_reason or "legacy import was rejected",
+                        request_id,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+                )
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content=serialize_legacy_import(resolution, request_id=request_id),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "legacy import request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 legacy import failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 legacy import failed",
                     locals().get("request_id", "unknown"),
                     status.HTTP_500_INTERNAL_SERVER_ERROR,
                     retryable=True,
