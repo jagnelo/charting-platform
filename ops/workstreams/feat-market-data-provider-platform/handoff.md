@@ -1,5 +1,11 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 current-source Binance crypto matrix
+
+- The bounded Binance keyless matrix passed `3/3` (historical OHLCV, bounded
+  daily history, and native request-weight usage). The redacted receipt is in
+  `validation.jsonl`; no credentials or payloads were persisted.
+
 ## 2026-09-25 current-source OpenFIGI identity matrix
 
 - The keyless OpenFIGI mapping/profile/account-usage matrix passed `3/3`.

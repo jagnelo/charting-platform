@@ -162,6 +162,11 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 current-source Binance keyless crypto matrix passed `3/3`
+    (historical OHLCV, bounded daily history, and native request-weight usage).
+    The redacted receipt is in `validation.jsonl`; no credentials or payloads
+    were persisted.
+  - >-
     2026-09-25 current-source OpenFIGI keyless identity matrix passed `3/3`
     (mapping, profile, and native account-usage paths). This refreshes
     transport evidence for canonical identifier exchange; keyed-plan limits
