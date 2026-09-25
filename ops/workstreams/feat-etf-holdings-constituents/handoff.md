@@ -5460,3 +5460,17 @@ stale third-party preview, SEC reconstruction, or paid export was promoted.
 Evidence refs: `web:pimco-etf-suite-current-2026-09-25`,
 `web:pimco-mint-product-page-no-holdings-2026-09-25`,
 `web:pimco-bond-product-page-no-holdings-2026-09-25`.
+
+## WisdomTree DXJ/NTSX current-page and canary recheck — 2026-09-25
+
+Current official WisdomTree pages for DXJ and NTSX expose current product
+metadata and top-ten holdings summaries dated `2026-09-23`, with a separate
+“View all holdings” control. The bounded live DXJ canary did not complete within
+the 15-second probe window in this environment (`timeout` status 124), so the
+page response is not treated as proof of a complete executable holdings route.
+The prior successful symbol-scoped canary evidence remains the basis for the
+existing current audit; no new native promotion or silent downgrade was made.
+
+Evidence refs: `web:wisdomtree-dxj-product-page-2026-09-25-current-top-ten`,
+`web:wisdomtree-ntsx-product-page-2026-09-25-current-top-ten`,
+`live:wisdomtree-dxj-canary-2026-09-25-bounded-timeout`.
