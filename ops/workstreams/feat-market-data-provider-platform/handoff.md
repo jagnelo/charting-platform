@@ -6615,8 +6615,21 @@ provider or start the shadow run.
   snapshot-to-`IdentifierRecord` rehydration now carries `raw_payload` forward
   instead of dropping it. This closes the remaining normalization/rehydration
   loss path without changing identity selection or ETF adapter ownership.
-- Exact source `b647fc5d7e8f2da5c6f4e34262b71531f7c7e7aa` passed the full
+- Exact source `b647fc5d73469e9ce00e67ff6e8d810585a3646d` passed the full
   branch-owned unit gate `1,911/1,911` (37 warnings) and Docker integration
   `386/386` (57 warnings). Focused provider/persistence coverage passed
   `292/292`, Ruff and diff checks were clean, and current-source Alpaca/OpenFIGI
   live receipts remain green from the preceding implementation commit.
+
+## 2026-09-25 exact-current full safety preflight
+
+- The full provider manifest was evaluated at exact current source
+  `e1517dbfdb69e66cd54a9bcc0525568b08a305c2`. It stopped before transport with
+  `0/0` cases and zero provider requests. The receipt enumerates every
+  remaining provider-specific quota/baseline, legal/use, byte, capability,
+  source-completeness, and deferred-provider blocker; no generic fallback or
+  unreviewed request was attempted.
+- This is the intended fail-closed state. The branch can continue independently
+  on lossless persistence and contract hardening, but routing promotion,
+  deployment activation, deferred-provider admission, and the final shadow
+  phase remain owner-controlled gates.
