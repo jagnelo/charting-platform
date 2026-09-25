@@ -721,7 +721,7 @@ def test_fmp_byte_pool_uses_documented_trailing_window_and_daily_reset(monkeypat
     monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "")
     blocked = provider_rate_limit_seed("fmp")["quota_contract"]
     assert blocked["untracked_constraints"]
-    assert blocked["unknown_dimensions"] == []
+    assert blocked["unknown_dimensions"] == ["daily_reset_source_conflict"]
 
     monkeypatch.setattr(settings, "FMP_REVIEWED_DAILY_RESET", "calendar_day_utc")
     monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "current account evidence")
@@ -2988,7 +2988,7 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert tiingo["untracked_constraints"][0]["limit"] == 1_000_000_000
     assert fmp["dimensions"][0]["limit"] == 250
     assert fmp["dimensions"][0]["reset"] == "15:00 America/New_York"
-    assert fmp["unknown_dimensions"] == []
+    assert fmp["unknown_dimensions"] == ["daily_reset_source_conflict"]
     assert fmp["untracked_constraints"][0]["limit"] == 500_000_000
     assert fmp["untracked_constraints"][0]["window_seconds"] == 2_592_000
     assert (

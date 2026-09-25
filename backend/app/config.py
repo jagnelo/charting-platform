@@ -1107,6 +1107,20 @@ class Settings(BaseSettings):
                     }
                 ],
                 "reset": "15:00 America/New_York",
+                "source_conflicts": [
+                    {
+                        "source": (
+                            "FMP official limit guidance: "
+                            "https://site.financialmodelingprep.com/de/insights/"
+                            "platform/what-happens-when-you-hit-your-fmp-api-limit"
+                        ),
+                        "claim": "no single daily reset time should be promised",
+                        "conflicts_with": (
+                            "FMP official FAQ: "
+                            "https://site.financialmodelingprep.com/de/faqs?code=statements"
+                        ),
+                    }
+                ],
                 "untracked_constraints": [
                     {
                         "name": "bandwidth_bytes_per_30_days",
@@ -1127,7 +1141,7 @@ class Settings(BaseSettings):
                         "limit_basis": "decimal_bytes_conservative_for_published_MB",
                     }
                 ],
-                "unknown_dimensions": [],
+                "unknown_dimensions": ["daily_reset_source_conflict"],
             },
             "quota_scope": "api_key",
             "quota_source": (
@@ -3628,15 +3642,13 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         ):
             dimensions.append(dict(byte_constraint))
         contract["dimensions"] = dimensions
-        contract["reset"] = daily_reset if daily_override_valid else seeded_daily_reset
+        contract["reset"] = daily_reset
+        contract["unknown_dimensions"] = []
         for dimension in dimensions:
             if not isinstance(dimension, dict):
                 continue
             if dimension.get("name") == "calls_per_day":
-                if daily_override_valid:
-                    dimension["reset"] = daily_reset
-                elif seeded_daily_reset:
-                    dimension["reset"] = seeded_daily_reset
+                dimension["reset"] = daily_reset
             elif dimension.get("name") == byte_constraint.get("name"):
                 dimension["reset"] = bandwidth_reset
         contract["dimension_costs_required"] = True
