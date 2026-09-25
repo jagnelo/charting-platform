@@ -5686,3 +5686,12 @@ The repository-authoritative Docker-backed combined backend coverage gate also
 passes at the exact implementation tip: 2,600 tests, 83.76% total coverage
 (required threshold 75%), and 86 warnings. Integration containers were cleaned
 up after the run; no containers, images, or volumes were retained.
+
+## 2026-09-25 - Worker timeout escalation checkpoint
+
+Both synchronous and asynchronous dedicated-worker execution now escalate a
+timed-out child from `terminate()` to `kill()` when necessary, then reap the
+process handle before returning typed timeout evidence. This closes the last
+local orphan-process path in the serial Nautilus worker boundary. The full
+Strategy Lab package suite passes 949 tests, and the exact-tip Docker-backed
+combined gate passes 2,600 tests with 83.76% coverage (threshold 75%).
