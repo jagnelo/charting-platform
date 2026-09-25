@@ -4712,6 +4712,30 @@ configuration, explicit multi-artifact mapping, stable Nautilus release
 conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
 integration remain deferred behind their existing gates.
 
+## 2026-09-25 - Exact artifact-plan coverage checkpoint
+
+Successful `WorkerTerminalEvidence` now validates publication plans against the
+complete `RunResultManifest.output_artifacts` set before terminal persistence.
+Every output artifact must have exactly one plan with matching manifest
+fingerprint, content digest, storage key, byte length, and retention class;
+unknown, duplicate, substituted, or missing plans fail closed. The host still
+owns mapping mounted files to plans, and the existing single-output mapper
+continues to reject multi-artifact manifests unless an explicit host mapper is
+provided.
+
+The focused resolver suite passed 11 tests. The exact branch validation passed
+845 package tests, 2 migration tests, Ruff, MyPy across 272 files, diff
+validation, and workstream validation. The Docker-backed combined coverage
+gate passed 2,496 tests with 83.76% total coverage (required threshold: 75%);
+the referenced runtime env file was absent in this checkout and `.env.dev`
+supplied test configuration. Two cleanup passes retained zero testcontainer
+sessions, containers, images, or volumes.
+
+The branch remains `ready_for_human_review`. Host application resolver
+configuration, explicit multi-artifact mapping, stable Nautilus release
+conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
+integration remain deferred behind their existing gates.
+
 ## 2026-09-25 - Injectable worker failure policy checkpoint
 
 The package-owned worker evidence resolver now accepts an optional host
