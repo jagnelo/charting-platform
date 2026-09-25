@@ -77,6 +77,15 @@ Ventures as a related founder/venture identity. ETF holdings ownership remains
 under the separately tracked `vistashares` provider; `dvx_ventures` stays
 `provider_not_a_portfolio_publisher` with no duplicate route.
 
+## Current audit checkpoint — PIMCO MINT/BOND free-first recheck — 2026-09-25
+
+Current PIMCO product pages confirm MINT and BOND remain active U.S.-listed ETFs,
+but do not expose a complete executable holdings artifact in the public page.
+StockAnalysis exposes only 25-row Finnhub previews and gates the full lists;
+MarketXLS advertises complete exports behind paid FundXLS access shown as
+$99/month. Both Tier-0 symbols remain unavailable; no paid, SEC-derived, or
+third-party preview route was promoted.
+
 ## Current branch state
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
