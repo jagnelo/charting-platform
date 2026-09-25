@@ -193,6 +193,15 @@ Canonical bars remain projections and may be refreshed independently. A retry
 with the same observation timestamp is also ignored at the raw-evidence
 boundary rather than overwriting the retained payload.
 
+Universe and identity review queues follow the same projection/evidence split.
+The mutable lifecycle and reconciliation/quarantine rows remain current review
+projections, while every provider lifecycle envelope, reconciliation ambiguity,
+unresolved-universe candidate, and identity-quarantine candidate is appended to
+its corresponding observation table. Repeated evidence therefore remains
+available even when the same queue item is observed again with changed payload,
+reason, venue, or candidate identifiers; queue deduplication never discards the
+provider response that caused the review state.
+
 General market events follow the same projection/evidence split. The canonical
 `market_event` row remains keyed by provider event identity for reconciliation,
 while each fetched provider payload is appended to `market_event_observation`.
