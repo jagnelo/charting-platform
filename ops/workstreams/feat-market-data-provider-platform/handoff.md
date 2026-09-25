@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current preflight after quota-ledger retention correction
+
+- Source `dff117af3` ran the full provider manifest preflight and stopped before
+  transport: `0/0` ordinary cases and zero provider requests. The receipt is
+  appended to `validation.jsonl`.
+- Historical quota-evidence retention did not widen routing. Provider
+  quota/cost/baseline, legal/use, unresolved capability, complete NMS/OTC/SEC
+  reconciliation, external secret-store, deferred-provider, publication, and
+  final shadow gates remain fail-closed.
+
 ## 2026-09-25 quota-evidence retention correction
 
 - Quota-coordinator maintenance no longer deletes old settled or uncertain

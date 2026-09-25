@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current full provider preflight at source
+    dff117af30a2bbca9b729f45e0045e4714803aeb stopped before transport with
+    0/0 ordinary cases and zero provider requests. Preserving historical quota
+    ledger rows did not widen routing. The receipt is appended to
+    validation.jsonl; all previously listed provider-specific quota/legal,
+    unresolved capability, universe, secret-store, deferred-provider, and
+    final-shadow gates remain fail-closed.
+  - >-
     2026-09-25 quota-evidence retention correction: quota coordinator
     maintenance no longer deletes historical settled/uncertain windows,
     reservations, or identity claims. The legacy
