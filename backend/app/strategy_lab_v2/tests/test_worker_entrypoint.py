@@ -235,3 +235,64 @@ async def test_runtime_composition_receives_worker_limits_and_process_executor()
     assert calls["service"][1]["interval_seconds"] == 2
     assert calls["service"][1]["process_executor"] is not None
     assert calls["closed"] is True
+
+
+@pytest.mark.asyncio
+async def test_worker_lifecycle_runs_and_cancels_transactional_outbox_scheduler() -> None:
+    calls: dict[str, Any] = {}
+    stop_event = asyncio.Event()
+
+    class Scheduler:
+        async def run(self, event: asyncio.Event) -> None:
+            calls["relay_started"] = True
+            while not event.is_set():
+                await asyncio.sleep(0)
+
+    class Runtime:
+        def worker(self, **_kwargs: Any) -> object:
+            return object()
+
+        def outbox_scheduler(self, persistence: Any, **kwargs: Any) -> Scheduler:
+            calls["relay_persistence"] = persistence
+            calls["relay_options"] = kwargs
+            return Scheduler()
+
+        def worker_service(self, _worker: object, **_kwargs: Any) -> Any:
+            class Service:
+                async def run(self, event: asyncio.Event, *, max_cycles: int | None = None):
+                    await asyncio.sleep(0)
+                    event.set()
+                    return ()
+
+            return Service()
+
+        async def aclose(self) -> None:
+            calls["closed"] = True
+
+    class Persistence:
+        submissions = object()
+        execution_events = object()
+
+    async def runtime_factory(*_args: Any, **_kwargs: Any) -> Runtime:
+        return Runtime()
+
+    result = await run_strategy_lab_v2_worker(
+        _config(interval_seconds=2, batch_size=3),
+        callback_factory=lambda *_args: (lambda *_a: None, lambda *_a: None),  # type: ignore[arg-type]
+        migration_service=_Migration(MigrationDecision.APPLIED),  # type: ignore[arg-type]
+        session_factory=lambda: object(),
+        persistence_factory=lambda _factory: Persistence(),  # type: ignore[arg-type,return-value]
+        runtime_factory=runtime_factory,
+        signal_installer=lambda _event: lambda: None,
+        stop_event=stop_event,
+    )
+
+    assert result.decision is WorkerEntrypointDecision.STOPPED
+    assert calls["relay_started"] is True
+    assert calls["relay_persistence"] is Persistence.execution_events
+    assert calls["relay_options"] == {
+        "interval_seconds": 2,
+        "limit": 3,
+        "sleep": asyncio.sleep,
+    }
+    assert calls["closed"] is True

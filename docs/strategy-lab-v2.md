@@ -1122,9 +1122,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   persists publication through PostgreSQL compare-and-set acknowledgement.
   `OutboxRelayScheduler` adds bounded periodic execution with explicit
   cancellation and injectable time controls. This composes Redis idempotency
-  with authoritative database state; `redis_application.py` now owns concrete
-  client construction/closure and transport composition without claiming that
-  worker activation is complete.
+  with authoritative database state; `redis_application.py` owns concrete
+  client construction/closure, transport composition, and the scheduler
+  factory used by the dedicated worker lifecycle.
 - `worker_consumer.py` provides the bounded Redis worker pump. It ensures the
   consumer group, reclaims idle deliveries before reading new entries, and
   requires an explicit handler receipt. Only a content-matched completed
@@ -1236,7 +1236,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   bundle and callback factory, installs SIGINT/SIGTERM cancellation, and closes
   Redis in `finally`. It never runs as an import side effect and does not add
   engine, lease-heartbeat, or result-authority policy; those remain injected
-  worker adapters. Invoke it locally with
+  worker adapters. It starts the bounded transactional-outbox scheduler beside
+  the Redis worker pump when the shared persistence/runtime surfaces are
+  available, and cancels both deterministically at shutdown. Invoke it locally with
   `python -m app.strategy_lab_v2.worker_entrypoint` once a callback factory is
   configured.
 - `worker_handoff.py` defines the versioned

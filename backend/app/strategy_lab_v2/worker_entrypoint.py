@@ -16,6 +16,7 @@ import os
 import signal
 import socket
 from collections.abc import Awaitable, Callable, Mapping
+from contextlib import suppress
 from dataclasses import dataclass
 from enum import StrEnum
 from importlib import import_module
@@ -400,9 +401,26 @@ async def run_strategy_lab_v2_worker(
         cleanup = (signal_installer or install_worker_signal_handlers)(event)
         if not callable(cleanup):
             raise TypeError("signal installer must return a cleanup callable")
+        relay_task: asyncio.Task[None] | None = None
+        outbox_scheduler_factory = getattr(runtime, "outbox_scheduler", None)
+        outbox_persistence = getattr(persistence, "execution_events", None)
+        if callable(outbox_scheduler_factory) and outbox_persistence is not None:
+            scheduler = outbox_scheduler_factory(
+                outbox_persistence,
+                interval_seconds=config.interval_seconds,
+                limit=min(config.batch_size, 100),
+                sleep=sleep,
+            )
+            if not callable(getattr(scheduler, "run", None)):
+                raise TypeError("runtime.outbox_scheduler() must return a scheduler")
+            relay_task = asyncio.create_task(scheduler.run(event))
         try:
             cycles = await service.run(event, max_cycles=max_cycles)
         finally:
+            if relay_task is not None:
+                relay_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await relay_task
             cleanup()
     finally:
         await runtime.aclose()

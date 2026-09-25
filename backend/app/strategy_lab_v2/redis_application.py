@@ -10,7 +10,11 @@ from importlib import import_module
 from typing import Any
 
 from app.strategy_lab_v2.dispatch_payload import DispatchPayloadLoader
-from app.strategy_lab_v2.outbox_application import OutboxPersistence, OutboxRelayService
+from app.strategy_lab_v2.outbox_application import (
+    OutboxPersistence,
+    OutboxRelayScheduler,
+    OutboxRelayService,
+)
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
 from app.strategy_lab_v2.worker_consumer import (
     RedisDispatchWorker,
@@ -86,6 +90,25 @@ class RedisDispatchRuntime:
         """Build an outbox relay over the shared Redis transport."""
 
         return OutboxRelayService(persistence, self._transport)
+
+    def outbox_scheduler(
+        self,
+        persistence: OutboxPersistence,
+        *,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        interval_seconds: float = 1.0,
+        limit: int = 100,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    ) -> OutboxRelayScheduler:
+        """Build a bounded scheduler for the shared transactional outbox."""
+
+        return OutboxRelayScheduler(
+            self.outbox_relay(persistence),
+            clock=clock,
+            interval_seconds=interval_seconds,
+            limit=limit,
+            sleep=sleep,
+        )
 
     def worker(
         self,

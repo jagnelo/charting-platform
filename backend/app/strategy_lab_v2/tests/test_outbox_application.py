@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
@@ -178,6 +179,12 @@ async def test_redis_runtime_composes_transport_relay_and_closes_once() -> None:
     )
 
     assert isinstance(relay, OutboxRelayService)
+    outbox_scheduler = runtime.outbox_scheduler(
+        MemoryOutbox(OutboxState()),
+        clock=lambda: NOW,
+        sleep=lambda _seconds: asyncio.sleep(0),
+    )
+    assert isinstance(outbox_scheduler, OutboxRelayScheduler)
     assert worker._queue_name == "backtest"
 
     async def sleep(_: float) -> None:

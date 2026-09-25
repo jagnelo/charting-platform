@@ -2,6 +2,19 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Dedicated worker outbox scheduler checkpoint
+
+`RedisDispatchRuntime` now exposes an `outbox_scheduler(...)` factory, and the
+dedicated worker entrypoint starts that bounded transactional-outbox scheduler
+beside the Redis worker pump whenever the runtime and persistence surfaces are
+available. The relay task is cancelled and awaited before worker shutdown, so
+Redis publication acknowledgements remain retry-safe without leaking a task.
+Runtime doubles without an outbox surface continue to work for isolated tests.
+
+Focused outbox/runtime and worker-entrypoint coverage passed 12 tests. Ruff
+passed for the package and MyPy passed across 277 source files. Full production
+Redis, migration, stable Nautilus, and deployment activation remain gated.
+
 ## 2026-09-25 - Explicit multi-artifact publication mapping checkpoint
 
 The sandbox evidence resolver retains its safe single-file default and now
