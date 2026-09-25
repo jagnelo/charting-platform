@@ -19,6 +19,11 @@
   Tiingo counters were introduced. The new provider-specific EODHD reset fix
   remains covered by the preceding checkpoint.
 
+- The same no-transport preflight was replayed at exact HEAD
+  `fcb047f68531a34dc9719be48d751cc1f88e401d` after the documentation-only
+  commit; it again stopped at `0/0` with zero provider requests. The receipt
+  in `validation.jsonl` is therefore anchored to the branch tip.
+
 ## 2026-09-25 EODHD minute-native reset reconciliation
 
 - `EODHDProvider.fetch_account_usage` now preserves the provider-documented

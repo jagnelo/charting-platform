@@ -163,7 +163,7 @@ execution_plan:
 remaining_gaps:
   - >-
     Exact-current full safety preflight at source
-    `e6f63d080f5dae1679a7301e5d0a18108a0a7ab9` stopped before transport with
+    `fcb047f68531a34dc9719be48d751cc1f88e401d` stopped before transport with
     `0/0` ordinary cases and zero provider requests. It refreshed the complete
     provider-specific blocker inventory after the EODHD reset fix. A bounded
     Tiingo usage-page check confirmed that the documented account-usage URL

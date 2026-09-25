@@ -3,7 +3,7 @@
 ### 2026-09-25 — Current provider-contract audit continuation
 
 - [x] Refresh the exact-current full provider safety preflight at source
-      `e6f63d080f5dae1679a7301e5d0a18108a0a7ab9`; it stopped before transport
+      `fcb047f68531a34dc9719be48d751cc1f88e401d`; it stopped before transport
       with `0/0` cases and zero provider requests.
 - [x] Audit Tiingo's documented account-usage route. The API URL redirects to
       a web account page rather than a machine-readable counter endpoint, so
