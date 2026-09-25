@@ -141,11 +141,11 @@ class AlpacaProvider:
         latest-bar request is therefore used solely as a native usage
         observation.  The response must include the provider's exact limit,
         remaining count, and a valid epoch reset header; missing or malformed
-        headers fail closed.  Alpaca may report the current boundary rather
-        than a future one. That observation remains useful for diagnostics but
-        cannot seed the durable baseline until the coordinator can prove the
-        active window. The configured policy still decides whether the observed
-        pool may be used for ordinary routing.
+        headers fail closed.  The native reset is integer-second evidence and
+        may equal or slightly precede the client observation when transport
+        crosses that boundary.  The reviewed Alpaca rolling contract admits
+        only its bounded skew; the configured policy still decides whether the
+        observed pool may be used for ordinary routing.
         """
 
         self._require_configured()
@@ -154,8 +154,8 @@ class AlpacaProvider:
         # Capture the observation instant before transport. Alpaca's native
         # reset header is retained as an observation even when it denotes the
         # current/previous window boundary rather than a future timestamp;
-        # the quota coordinator will only reconcile a future boundary and will
-        # keep ordinary routing fail-closed otherwise.
+        # the quota coordinator applies the reviewed Alpaca skew allowance and
+        # keeps ordinary routing fail-closed for anything older.
         observed_at = datetime.now(UTC)
         try:
             response = httpx.get(url, params=params, headers=self._headers(), timeout=30)

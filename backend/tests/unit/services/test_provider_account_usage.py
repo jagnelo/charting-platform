@@ -53,6 +53,79 @@ def test_binance_native_weight_snapshot_is_an_exact_baseline_candidate():
     )
 
 
+def test_alpaca_native_snapshot_accepts_documented_second_precision_skew():
+    observed_at = datetime(2026, 9, 25, 3, 30, 29, 900_000, tzinfo=UTC)
+    execution = SimpleNamespace(
+        provider_name="alpaca",
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "market_data_requests_per_minute",
+                        "limit": 200,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "account",
+                        "quota_group": "account",
+                        "native_reset_skew_seconds": 2,
+                    }
+                ],
+                "reset": "rolling",
+            }
+        ),
+    )
+    candidate = provider_account_usage._native_baseline_candidate(
+        execution,
+        ProviderAccountUsageDimension(
+            name="market_data_requests_per_minute",
+            unit="requests",
+            limit=200,
+            remaining=199,
+            consumed=1,
+            reset_at=datetime(2026, 9, 25, 3, 30, 29, tzinfo=UTC),
+        ),
+        observed_at,
+    )
+    assert candidate is not None
+    assert candidate[:3] == ("market_data_requests_per_minute", "account_usage", 1)
+
+
+def test_alpaca_native_snapshot_rejects_reset_stale_beyond_reviewed_skew():
+    observed_at = datetime(2026, 9, 25, 3, 30, 29, 900_000, tzinfo=UTC)
+    execution = SimpleNamespace(
+        provider_name="alpaca",
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "market_data_requests_per_minute",
+                        "limit": 200,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "account",
+                        "quota_group": "account",
+                        "native_reset_skew_seconds": 2,
+                    }
+                ],
+                "reset": "rolling",
+            }
+        ),
+    )
+    candidate = provider_account_usage._native_baseline_candidate(
+        execution,
+        ProviderAccountUsageDimension(
+            name="market_data_requests_per_minute",
+            unit="requests",
+            limit=200,
+            remaining=199,
+            consumed=1,
+            reset_at=datetime(2026, 9, 25, 3, 30, 26, tzinfo=UTC),
+        ),
+        observed_at,
+    )
+    assert candidate is None
+
+
 @pytest.mark.asyncio
 async def test_refresh_persists_provider_native_counters_and_stops_after_first_provider(
     db, monkeypatch

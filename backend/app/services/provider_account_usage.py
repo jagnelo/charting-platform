@@ -190,8 +190,26 @@ def _native_baseline_candidate(
     if dimension.limit != limit or dimension.reset_at is None:
         return None
     reset_at = dimension.reset_at
-    if observed_at.tzinfo is None or reset_at.tzinfo is None or reset_at <= observed_at:
+    if observed_at.tzinfo is None or reset_at.tzinfo is None:
         return None
+    if reset_at <= observed_at:
+        # Alpaca's documented reset header is an integer Unix timestamp.  A
+        # response that straddles that second can therefore arrive with a
+        # reset value a fraction of a second behind the client-side
+        # observation instant.  The reviewed Alpaca contract explicitly
+        # permits this bounded timestamp-precision skew while its rolling
+        # safety envelope anchors the snapshot at ``observed_at``.  No other
+        # provider receives this exception, and a stale response beyond the
+        # provider-specific bound remains unadmitted.
+        skew_limit = policy_dimension.get("native_reset_skew_seconds")
+        if (
+            provider_name != "alpaca"
+            or isinstance(skew_limit, bool)
+            or not isinstance(skew_limit, (int, float))
+            or skew_limit < 0
+            or (observed_at - reset_at).total_seconds() > float(skew_limit)
+        ):
+            return None
     consumed = dimension.consumed
     if consumed is None and dimension.remaining is not None:
         consumed = limit - dimension.remaining

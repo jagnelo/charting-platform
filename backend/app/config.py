@@ -294,6 +294,12 @@ class Settings(BaseSettings):
                         "unit": "requests",
                         "scope": "account",
                         "quota_group": "account",
+                        # Alpaca returns reset as integer Unix seconds. A
+                        # response can cross that second while transport is
+                        # in flight; accept at most two seconds of that
+                        # provider-specific precision/transport skew when
+                        # seeding the rolling safety baseline.
+                        "native_reset_skew_seconds": 2,
                         "source": "https://docs.alpaca.markets/us/v1.1/docs/about-market-data-api",
                     },
                     {
