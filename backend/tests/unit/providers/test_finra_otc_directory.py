@@ -63,6 +63,42 @@ def test_finra_otc_directory_parses_status_and_preserves_source(monkeypatch):
     get.assert_called_once()
 
 
+def test_finra_otc_directory_cache_is_scoped_to_configured_source(monkeypatch):
+    first_url = "https://example.test/otc-first.txt"
+    second_url = "https://example.test/otc-second.txt"
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "")
+    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", first_url)
+    first_response = Mock(
+        text=(
+            "Issue_Sym_id|Issue_Type_Cd|Issue_Short_Nm|Status|Mkt_Cat|OATS_Rptbl_Fl|Unit_of_Trade\n"
+            "AAA|Common Stock|Alpha Corp|Active|u|Y|100\n"
+        )
+    )
+    second_response = Mock(
+        text=(
+            "Issue_Sym_id|Issue_Type_Cd|Issue_Short_Nm|Status|Mkt_Cat|OATS_Rptbl_Fl|Unit_of_Trade\n"
+            "BBB|Common Stock|Beta Corp|Active|u|Y|100\n"
+        )
+    )
+    first_response.raise_for_status.return_value = None
+    second_response.raise_for_status.return_value = None
+    with (
+        patch.object(directory, "_cache", None),
+        patch(
+            "app.providers.finra_otc_directory.httpx.get",
+            side_effect=[first_response, second_response],
+        ) as get,
+    ):
+        first_page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+        monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", second_url)
+        second_page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+
+    assert first_page["quotes"][0]["symbol"] == "AAA"
+    assert second_page["quotes"][0]["symbol"] == "BBB"
+    assert second_page["source_files"] == [second_url]
+    assert get.call_count == 2
+
+
 def test_finra_otc_directory_parses_official_otc_markets_security_master(monkeypatch):
     monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "https://example.test/otc.txt")
     response = Mock()

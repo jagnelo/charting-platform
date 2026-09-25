@@ -29,7 +29,7 @@ from app.providers.telemetry import observe_response
 _PAGE_SIZE = 1000
 _DAPI_PAGE_SIZE = 5000
 _CACHE_TTL_SECONDS = 900
-_cache: tuple[float, list[dict[str, Any]]] | None = None
+_cache: tuple[float, list[dict[str, Any]], tuple[str, str, str | None]] | None = None
 _OTC_MARKETS_STATUS_VALUES = {"A", "S", "H", "I", "R"}
 _ORF_SOURCE_KIND = "finra_orf_security_master"
 _ORF_ACTIVE_STATUSES = {"A", "ACTIVE"}
@@ -115,10 +115,11 @@ def _validate_orf_source_url(url: str, *, expected_file: str) -> None:
 def _directory_rows() -> list[dict[str, Any]]:
     global _cache
     now = time.monotonic()
-    if _cache and now - _cache[0] < _CACHE_TTL_SECONDS:
-        return list(_cache[1])
     url, inactive_url = FINRAOTCDirectoryProvider._source_urls()
     source_kind = str(getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or "").strip().lower()
+    cache_key = (source_kind, url, inactive_url)
+    if _cache and now - _cache[0] < _CACHE_TTL_SECONDS and _cache[2] == cache_key:
+        return list(_cache[1])
     if source_kind == _ORF_SOURCE_KIND:
         rows = _fetch_orf_rows(url, inactive_url)
     elif _is_dapi_source(url):
@@ -145,7 +146,7 @@ def _directory_rows() -> list[dict[str, Any]]:
             ) from exc
     if not rows:
         raise ProviderResponseError("finra_otc_directory", "directory returned no valid rows")
-    _cache = (now, rows)
+    _cache = (now, rows, cache_key)
     return list(rows)
 
 
