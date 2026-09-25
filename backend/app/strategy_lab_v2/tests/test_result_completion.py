@@ -4,7 +4,9 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 from app.strategy_lab_v2.artifact_commit import ArtifactCommitLedger
+from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
 from app.strategy_lab_v2.outcomes import OutcomeStatus
 from app.strategy_lab_v2.progress import ProgressPhase
 from app.strategy_lab_v2.result_completion import (
@@ -72,6 +74,18 @@ def _fixture():
     return submission, outcome, progress, _runtime_success(), _publication(outcome.result_digest or "")
 
 
+def _artifact_manifest(payload: bytes) -> ArtifactManifest:
+    digest = artifact_content_digest(payload)
+    return ArtifactManifest(
+        content_digest=digest,
+        byte_length=len(payload),
+        media_type="application/octet-stream",
+        schema_version="v1",
+        storage_key=digest,
+        retention_class=ArtifactRetention.PINNED_RESULT,
+    )
+
+
 def test_successful_completion_commits_all_artifacts_and_is_idempotent() -> None:
     submission, outcome, progress, runtime, publication = _fixture()
     plans = (artifact_plan(b"one"), artifact_plan(b"two"))
@@ -105,6 +119,42 @@ def test_successful_completion_commits_all_artifacts_and_is_idempotent() -> None
     assert replay.decision is ResultCompletionDecision.REPLAY_EXISTING
     assert replay.record == first.record
     assert replay.artifact_commit_ledger == first.artifact_commit_ledger
+
+
+def test_completion_can_bind_plans_to_exact_result_artifacts() -> None:
+    submission, outcome, progress, runtime, publication = _fixture()
+    manifest = _artifact_manifest(b"one")
+    resolution = finalize_execution_result(
+        ResultCompletionLedger(),
+        ArtifactCommitLedger(),
+        submission=submission,
+        runtime_state=runtime,
+        outcome=outcome,
+        progress=progress,
+        publication=publication,
+        artifact_plans=(artifact_plan(b"one"),),
+        result_artifacts=(manifest,),
+        completed_at=NOW + timedelta(seconds=3),
+    )
+    assert resolution.decision is ResultCompletionDecision.COMPLETE
+
+
+def test_completion_rejects_artifact_plan_drift_from_result_manifest() -> None:
+    submission, outcome, progress, runtime, publication = _fixture()
+    resolution = finalize_execution_result(
+        ResultCompletionLedger(),
+        ArtifactCommitLedger(),
+        submission=submission,
+        runtime_state=runtime,
+        outcome=outcome,
+        progress=progress,
+        publication=publication,
+        artifact_plans=(artifact_plan(b"two"),),
+        result_artifacts=(_artifact_manifest(b"one"),),
+        completed_at=NOW + timedelta(seconds=3),
+    )
+    assert resolution.decision is ResultCompletionDecision.REJECT
+    assert resolution.rejection_reason == "artifact plans do not match result manifest outputs"
 
 
 def test_any_artifact_conflict_rolls_back_the_entire_commit_ledger() -> None:

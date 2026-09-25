@@ -14,6 +14,7 @@ from app.strategy_lab_v2.artifact_commit import (
 )
 from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.contracts import ArtifactManifest
 from app.strategy_lab_v2.execution_summary import build_execution_summary
 from app.strategy_lab_v2.outcomes import ExecutionOutcome, OutcomeStatus
 from app.strategy_lab_v2.progress import ExecutionProgressState, ProgressPhase
@@ -152,6 +153,7 @@ def finalize_execution_result(
     publication: ResultPublicationPlan,
     artifact_plans: Sequence[ArtifactPublicationPlan],
     completed_at: datetime,
+    result_artifacts: Sequence[ArtifactManifest] | None = None,
 ) -> ResultCompletionResolution:
     """Finalize terminal evidence and all artifacts as one adapter transaction.
 
@@ -179,6 +181,38 @@ def finalize_execution_result(
     plans = tuple(artifact_plans)
     if any(not isinstance(item, ArtifactPublicationPlan) for item in plans):
         raise TypeError("artifact_plans must contain ArtifactPublicationPlan values")
+    if result_artifacts is not None:
+        if not isinstance(result_artifacts, Sequence):
+            raise TypeError("result_artifacts must be a sequence when provided")
+        artifacts = tuple(result_artifacts)
+        if any(not isinstance(item, ArtifactManifest) for item in artifacts):
+            raise TypeError("result_artifacts must contain ArtifactManifest values")
+        expected = {
+            (
+                content_digest(item),
+                item.content_digest,
+                item.storage_key,
+                item.byte_length,
+                item.retention_class,
+            )
+            for item in artifacts
+        }
+        actual = {
+            (
+                item.manifest_fingerprint,
+                item.content_digest,
+                item.storage_key,
+                item.byte_length,
+                item.retention_class,
+            )
+            for item in plans
+        }
+        if len(expected) != len(artifacts) or len(actual) != len(plans) or actual != expected:
+            return _reject(
+                completion_ledger,
+                artifact_commit_ledger,
+                "artifact plans do not match result manifest outputs",
+            )
     if completed_at.tzinfo is None or completed_at.utcoffset() is None:
         raise ValueError("completed_at must be timezone-aware")
 

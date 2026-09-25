@@ -26,6 +26,7 @@ from app.strategy_lab_v2.artifact_commit import (
     ArtifactCommitRecord,
 )
 from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
+from app.strategy_lab_v2.contracts import ArtifactManifest
 from app.strategy_lab_v2.outcomes import ExecutionOutcome
 from app.strategy_lab_v2.progress import ExecutionProgressState
 from app.strategy_lab_v2.result_completion import (
@@ -134,6 +135,7 @@ class PostgresResultCompletionAdapter:
         publication: ResultPublicationPlan,
         artifact_plans: Sequence[ArtifactPublicationPlan],
         completed_at: datetime,
+        result_artifacts: Sequence[ArtifactManifest] | None = None,
     ) -> ResultCompletionResolution:
         """Resolve and persist one terminal completion in a single transaction."""
 
@@ -153,6 +155,7 @@ class PostgresResultCompletionAdapter:
                     publication=publication,
                     artifact_plans=artifact_plans,
                     completed_at=completed_at,
+                    result_artifacts=result_artifacts,
                 )
                 if resolution.decision is ResultCompletionDecision.COMPLETE:
                     if resolution.record is None:  # pragma: no cover - pure guard

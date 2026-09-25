@@ -277,6 +277,7 @@ class PostgresWorkerTerminalAdapter:
                     publication=evidence.publication,
                     artifact_plans=evidence.artifact_plans,
                     completed_at=context.observed_at,
+                    result_artifacts=evidence.result.output_artifacts,
                 )
             except Exception as error:  # pragma: no cover - persistence boundary
                 return _retry(entry_fingerprint, f"result completion persistence failed: {type(error).__name__}")
