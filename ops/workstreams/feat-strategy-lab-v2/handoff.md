@@ -4712,6 +4712,31 @@ configuration, explicit multi-artifact mapping, stable Nautilus release
 conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
 integration remain deferred behind their existing gates.
 
+## 2026-09-25 - Legacy import API checkpoint
+
+The registration-neutral Strategy Lab v2 router now exposes strict
+`POST /legacy/imports` handling. Requests require an idempotency key, preserve
+only digest-backed legacy metadata, validate mapping/support evidence, and
+return a typed compatibility report that permanently carries
+`replay_equivalent: false`. Conflicting legacy identities return a typed
+conflict rather than overwriting prior evidence. The application adapter now
+delegates the route to the existing owner-scoped PostgreSQL legacy registry;
+legacy payload bytes remain outside this boundary.
+
+The focused API/legacy/application suite passed 34 tests and the full package
+suite passed 849 tests. Exact branch validation passed 849 package tests, 2
+migration tests, Ruff, MyPy across 272 files, diff validation, and workstream
+validation. The Docker-backed combined coverage gate passed 2,500 tests with
+83.76% total coverage (required threshold: 75%) and 86 warnings; the referenced
+runtime env file was absent in this checkout and `.env.dev` supplied test
+configuration. Two cleanup passes retained zero testcontainer sessions,
+containers, images, or volumes.
+
+The branch remains `ready_for_human_review`. Host application resolver
+configuration, explicit multi-artifact mapping, stable Nautilus release
+conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
+integration remain deferred behind their existing gates.
+
 ## 2026-09-25 - Request-bound host failure evidence checkpoint
 
 Injected host runtime-error classification is now bound to the immutable worker
