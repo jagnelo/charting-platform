@@ -15421,6 +15421,43 @@ async def test_vistashares_adapter_parses_declared_complete_holdings_csv(monkeyp
     assert result.raw_json["declared_holdings_count"] == 2
 
 
+@pytest.mark.asyncio
+async def test_vistashares_adapter_rejects_incomplete_and_cross_account_csv(monkeypatch):
+    adapter = get_holdings_adapter("vistashares")
+    assert adapter is not None
+    page_url = "https://www.vistashares.com/etf/qusa/"
+    csv_url = "https://www.vistashares.com/csv/top-holdings/?etf=QUSA"
+    page_template = """
+    <h1>VistaShares QUSA ETF (QUSA)</h1>
+    <table><tr><td>Number of Holdings</td><td>{count}</td></tr></table>
+    <form method="GET" action="https://www.vistashares.com/csv/top-holdings">
+      <input type="hidden" name="etf" value="QUSA">
+    </form>
+    """
+    csv_template = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+09/24/2026,{account},MSFT,594918104,Microsoft Corp,100,500.00,50000,0.6000,8333333,100000,1,
+"""
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_template.format(count=2), content_type="text/html", url=page_url
+        ),
+        FakeResponse(text=csv_template.format(account="QUSA"), url=csv_url),
+    ]
+    with pytest.raises(ValueError, match="returned 1 rows; the product page declares 2"):
+        await adapter.fetch_latest(symbol="QUSA")
+
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_template.format(count=1), content_type="text/html", url=page_url
+        ),
+        FakeResponse(text=csv_template.format(account="AIS"), url=csv_url),
+    ]
+    with pytest.raises(ValueError, match="contained account AIS"):
+        await adapter.fetch_latest(symbol="QUSA")
+
+
 async def test_capforce_adapter_parses_complete_current_holdings_tables(monkeypatch):
     adapter = get_holdings_adapter("capforce")
     assert adapter is not None
