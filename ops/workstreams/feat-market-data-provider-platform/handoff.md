@@ -6430,6 +6430,16 @@ provider or start the shadow run.
   reconciliation, provider quota/legal/capability, external secret-store,
   deferred-provider, publication, and final-shadow gates remain open.
 
+## 2026-09-25 universe retention Docker integration validation
+
+- Exact source `b55ae54f1` passed `make test-int`: `386/386` PostgreSQL/Redis
+  integration tests in 715.57 seconds with 57 existing warnings. Testcontainers
+  were cleaned up without a host-wide Docker prune.
+- This validates the new universe lifecycle snapshot migration and persistence
+  path in the backend integration environment. Provider live, legal/use,
+  complete-universe, secret-store, deferred-provider, publication, and final
+  shadow gates remain separate and fail-closed.
+
 ## 2026-09-25 SEC issuer-directory source evidence retention
 
 - Commit `27f3cc34a` adds immutable `source_payload` evidence to every

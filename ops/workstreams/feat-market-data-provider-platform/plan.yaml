@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Exact source `b55ae54f1` passed `make test-int`: 386/386 Docker-backed
+    PostgreSQL/Redis integration tests in 715.57 seconds with 57 existing
+    warnings; testcontainers were cleaned without a host-wide prune. This
+    validates the append-only universe lifecycle migration and persistence
+    path, but does not close provider live/legal, complete-universe,
+    secret-store, deferred-provider, publication, or final-shadow gates.
+  - >-
     2026-09-25 lossless universe-lifecycle correction: mutable current
     lifecycle rows now have an append-only
     `market_universe_lifecycle_observation_snapshot` table retaining every
