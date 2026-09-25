@@ -24,7 +24,10 @@ from app.strategy_lab_v2.artifact_commit import (
     ArtifactCommitLedger,
     ArtifactCommitResolution,
 )
-from app.strategy_lab_v2.artifact_publication import plan_artifact_publication
+from app.strategy_lab_v2.artifact_publication import (
+    ArtifactPublicationPlan,
+    plan_artifact_publication,
+)
 from app.strategy_lab_v2.artifact_retention import ArtifactRetentionResolution
 from app.strategy_lab_v2.artifact_store import (
     ArtifactByteResolution,
@@ -76,6 +79,7 @@ class ArtifactPublicationResolution:
     storage: ArtifactStoreResolution
     commit: ArtifactCommitResolution | None = None
     rejection_reason: str | None = None
+    artifact_plan: ArtifactPublicationPlan | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.decision, ArtifactPublicationDecision):
@@ -84,13 +88,19 @@ class ArtifactPublicationResolution:
             raise TypeError("storage must be an ArtifactStoreResolution")
         if self.commit is not None and not isinstance(self.commit, ArtifactCommitResolution):
             raise TypeError("commit must be an ArtifactCommitResolution")
+        if self.artifact_plan is not None and not isinstance(
+            self.artifact_plan, ArtifactPublicationPlan
+        ):
+            raise TypeError("artifact_plan must be an ArtifactPublicationPlan")
         if self.decision is ArtifactPublicationDecision.REJECT:
             if not self.rejection_reason:
                 raise ValueError("rejected publications require a reason")
+            if self.artifact_plan is not None:
+                raise ValueError("rejected publications cannot contain an artifact plan")
         elif self.rejection_reason:
             raise ValueError("successful publications cannot contain a rejection reason")
-        elif self.commit is None or self.commit.record is None:
-            raise ValueError("successful publications require commit evidence")
+        elif self.commit is None or self.commit.record is None or self.artifact_plan is None:
+            raise ValueError("successful publications require commit and plan evidence")
 
     @property
     def fingerprint(self) -> str:
@@ -229,12 +239,14 @@ class LocalArtifactPublicationService:
                 ArtifactPublicationDecision.COMMITTED,
                 storage,
                 commit,
+                artifact_plan=plan,
             )
         if commit.decision is ArtifactCommitDecision.REPLAY_EXISTING:
             return ArtifactPublicationResolution(
                 ArtifactPublicationDecision.REPLAY_EXISTING,
                 storage,
                 commit,
+                artifact_plan=plan,
             )
         return ArtifactPublicationResolution(
             ArtifactPublicationDecision.REJECT,

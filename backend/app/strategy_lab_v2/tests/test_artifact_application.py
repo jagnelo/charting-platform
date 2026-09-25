@@ -88,6 +88,8 @@ async def test_publish_coordinates_bytes_and_commit_then_replays(tmp_path) -> No
     assert committed.storage.decision is ArtifactStoreDecision.WRITTEN
     assert committed.commit is not None
     assert committed.commit.decision is ArtifactCommitDecision.COMMIT
+    assert committed.artifact_plan is not None
+    assert committed.artifact_plan.content_digest == _manifest(payload).content_digest
 
     replay = await service.publish(
         _manifest(payload), payload, committed_at=NOW + timedelta(days=1)
@@ -115,6 +117,8 @@ async def test_publish_file_coordinates_streamed_bytes_and_commit(tmp_path) -> N
     assert published.storage.decision is ArtifactStoreDecision.WRITTEN
     assert published.commit is not None
     assert published.commit.decision is ArtifactCommitDecision.COMMIT
+    assert published.artifact_plan is not None
+    assert published.artifact_plan.byte_length == len(payload)
 
 
 async def test_publish_sandbox_result_binds_plan_evidence_and_manifest(tmp_path) -> None:
@@ -144,6 +148,8 @@ async def test_publish_sandbox_result_binds_plan_evidence_and_manifest(tmp_path)
 
     assert published.decision is ArtifactPublicationDecision.COMMITTED
     assert published.storage.decision is ArtifactStoreDecision.WRITTEN
+    assert published.artifact_plan is not None
+    assert published.artifact_plan.content_digest == artifact_content_digest(payload)
 
 
 async def test_publish_sandbox_result_rejects_manifest_identity_drift(tmp_path) -> None:
