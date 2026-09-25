@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 append-only fundamentals/short-interest validation
+
+- Fundamental facts and short-interest refreshes now retain every provider
+  response in immutable `fundamental_fact_observation` and
+  `short_interest_provider_observation` tables. Existing natural-key rows
+  remain compatibility projections, so later revisions no longer disappear.
+- Migration `d4e5f6a7b8c9` and focused persistence coverage pass; the complete
+  migration suite passes `16/16`. On source `772f316c1`, the full backend unit
+  suite passes `2397/2397` with `37` warnings in `167.69s`, and the persistent
+  Docker-backed integration suite passes `386/386` with `57` warnings in
+  `461.92s`.
+- No external provider request, deployment, ETF adapter change, or shadow
+  activation occurred. Provider quota/legal/capability, universe,
+  secret-store, deferred-provider, publication, and final shadow gates remain
+  open.
+
 ## 2026-09-25 append-only tokenized-asset observation checkpoint
 
 - Tokenized catalog/metadata refreshes now retain every provider payload in the

@@ -162,6 +162,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 append-only fundamentals/short-interest correction and full
+    validation: every provider response now appends immutable evidence in
+    fundamental_fact_observation or short_interest_provider_observation while
+    compatibility projections remain available. Migration d4e5f6a7b8c9 and
+    focused persistence tests pass; full unit suite 2397/2397 with 37 warnings
+    in 167.69 seconds and Docker-backed integration 386/386 with 57 warnings
+    in 461.92 seconds pass on source 772f316c1. External provider, universe,
+    secret-store, deferred-provider, publication, and final-shadow gates remain
+    open.
+  - >-
     2026-09-25 append-only tokenized-asset observation correction: every
     tokenized catalog/metadata/quote refresh now appends its original provider
     payload to tokenized_asset_observation with provider identity and observed
