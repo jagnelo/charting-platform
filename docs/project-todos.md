@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-25 — EDGAR baseline preflight
+
+- [x] Retry the bounded keyless EDGAR matrix with the supplied descriptive
+      contact and a private writable quota ledger. It stopped before transport
+      at `0/0` because SEC account-wide/IP usage is not observable; no request
+      was made and no baseline was fabricated.
+
+- [ ] Keep EDGAR fail-closed until an authoritative current baseline or an
+      explicitly reviewed shared-IP coordination boundary is available.
+
 ### 2026-09-25 — Alpaca credential-scoped asset cache
 
 - [x] Scope the authenticated Alpaca asset cache to the trading host, key ID,

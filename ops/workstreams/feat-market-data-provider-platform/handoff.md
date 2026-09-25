@@ -1,5 +1,12 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 EDGAR baseline preflight
+
+- The bounded keyless EDGAR matrix was retried with a valid descriptive
+  contact and a private writable temporary quota ledger. It stopped at `0/0`
+  before transport because SEC publishes no account-wide/IP usage baseline;
+  no request was made and no zero baseline was inferred.
+
 ## 2026-09-25 Alpaca credential-scoped asset cache
 
 - The authenticated Alpaca `/assets` cache now includes the configured

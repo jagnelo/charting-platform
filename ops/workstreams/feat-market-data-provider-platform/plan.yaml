@@ -1506,6 +1506,12 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-25 EDGAR baseline preflight: the bounded keyless matrix was
+      retried with a valid descriptive contact and a private writable temporary
+      quota ledger. It stopped before transport at 0/0 because SEC
+      account-wide/IP usage is not observable; no request was made and no
+      baseline was fabricated.
+    - >-
       2026-09-25 Alpaca credential-scoped asset cache: the authenticated
       `/assets` cache now keys entries by trading host, key ID, and a one-way
       secret digest, preventing account-specific universe reuse after host or
