@@ -1967,7 +1967,7 @@
 - The FINRA OTC adapter now supports the documented ORF complete-source pair:
   `EQUITYMASTERAC` (active issues) and `EQUITYMASTERIN` (inactive issues).
   ORF mode is selected explicitly with `FINRA_OTC_SOURCE_KIND=finra_orf_security_master`;
-  it requires both HTTPS URLs on FINRA's `apidownload.finratrags.org` host with
+  it requires both HTTPS URLs on FINRA's `apidownload.finratraqs.org` host with
   the exact `action=DOWNLOAD`, `facility=ORF`, and expected file query values.
 - The adapter authenticates through the shared FINRA OAuth token cache, fetches
   both pipe-delimited files, validates required identifiers/statuses, preserves

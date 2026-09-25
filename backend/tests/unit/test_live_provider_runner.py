@@ -1125,7 +1125,7 @@ def test_staged_candidate_detects_credentialed_database_urls_without_local_value
 def test_staged_secret_scan_allows_non_secret_provider_endpoint_urls_and_local_examples():
     runner = _runner_module()
     assert runner.staged_secret_findings(
-        "+FINRA_OTC_SYMBOL_DIRECTORY_URL=https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF\n"
+        "+FINRA_OTC_SYMBOL_DIRECTORY_URL=https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF\n"
         "+IBKR_READ_ONLY_URL=https://gateway.example.test\n"
     ) == []
     example_dsn = "postgresql+asyncpg://" + (

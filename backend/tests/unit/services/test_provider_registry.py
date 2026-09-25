@@ -212,7 +212,7 @@ class TestProviderRegistry:
         monkeypatch.setattr(
             settings,
             "FINRA_OTC_SYMBOL_DIRECTORY_URL",
-            "https://apidownload.finratrags.org/active",
+            "https://apidownload.finratraqs.org/active",
         )
         monkeypatch.setattr(settings, "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL", "")
         monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "")
@@ -235,7 +235,7 @@ class TestProviderRegistry:
         monkeypatch.setattr(
             settings,
             "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
-            "https://apidownload.finratrags.org/inactive",
+            "https://apidownload.finratraqs.org/inactive",
         )
         monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
         monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")

@@ -92,12 +92,12 @@ def test_finra_otc_directory_fetches_documented_orf_active_and_inactive_masters(
     monkeypatch.setattr(
         settings,
         "FINRA_OTC_SYMBOL_DIRECTORY_URL",
-        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
     )
     monkeypatch.setattr(
         settings,
         "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
-        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
     )
     monkeypatch.setattr(settings, "FINRA_ORF_USERNAME", "traqs-user")
     monkeypatch.setattr(settings, "FINRA_ORF_REFRESH_TOKEN", "refresh-token")
@@ -122,8 +122,8 @@ def test_finra_otc_directory_fetches_documented_orf_active_and_inactive_masters(
     assert page["quotes"][1]["status"] == "inactive"
     assert page["quotes"][1]["symbol_suffix"] == "P"
     assert page["source_files"] == [
-        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
-        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
     ]
     assert all(call.kwargs["headers"]["Authorization"] == "Bearer token" for call in post.call_args_list)
     assert all(call.kwargs["data"] == {"username": "traqs-user"} for call in post.call_args_list)
@@ -134,12 +134,12 @@ def test_finra_otc_directory_orf_requires_traqs_refresh_credentials(monkeypatch)
     monkeypatch.setattr(
         settings,
         "FINRA_OTC_SYMBOL_DIRECTORY_URL",
-        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
     )
     monkeypatch.setattr(
         settings,
         "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
-        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
     )
     monkeypatch.setattr(settings, "FINRA_ORF_USERNAME", "")
     monkeypatch.setattr(settings, "FINRA_ORF_REFRESH_TOKEN", "")
@@ -152,7 +152,7 @@ def test_finra_otc_directory_orf_requires_inactive_master(monkeypatch):
     monkeypatch.setattr(
         settings,
         "FINRA_OTC_SYMBOL_DIRECTORY_URL",
-        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
     )
     monkeypatch.setattr(settings, "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL", "")
     with pytest.raises(ProviderNotConfiguredError, match="INACTIVE"):

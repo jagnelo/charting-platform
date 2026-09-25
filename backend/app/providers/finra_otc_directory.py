@@ -94,9 +94,9 @@ class FINRAOTCDirectoryProvider:
 def _validate_orf_source_url(url: str, *, expected_file: str) -> None:
     parsed = urlsplit(url)
     query = parse_qs(parsed.query)
-    if parsed.scheme.lower() != "https" or parsed.netloc.lower() != "apidownload.finratrags.org":
+    if parsed.scheme.lower() != "https" or parsed.netloc.lower() != "apidownload.finratraqs.org":
         raise ProviderNotConfiguredError(
-            "finra_otc_directory ORF source must use FINRA's apidownload.finratrags.org HTTPS host"
+            "finra_otc_directory ORF source must use FINRA's apidownload.finratraqs.org HTTPS host"
         )
     if str(query.get("action", [""])[0]).upper() != "DOWNLOAD":
         raise ProviderNotConfiguredError("finra_otc_directory ORF source requires action=DOWNLOAD")
