@@ -4712,6 +4712,28 @@ configuration, explicit multi-artifact mapping, stable Nautilus release
 conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
 integration remain deferred behind their existing gates.
 
+## 2026-09-25 - Legacy import inspection checkpoint
+
+Preserved digest-only legacy records are now exposed through the read-only
+`legacy-imports` API resource in addition to `POST /legacy/imports`. The shared
+PostgreSQL persistence bundle loads and authenticates the owner-scoped registry,
+projects stable record fingerprints, and explicitly retains
+`replay_equivalent: false`; payload bytes are never returned.
+
+The focused API/persistence suite passed 26 tests and the full package suite
+passed 853 tests. Exact branch validation passed 853 package tests, 2 migration
+tests, Ruff, MyPy across 272 files, diff validation, and workstream validation.
+The Docker-backed combined coverage gate passed 2,504 tests with 83.78% total
+coverage (required threshold: 75%) and 86 warnings; the referenced runtime env
+file was absent in this checkout and `.env.dev` supplied test configuration.
+Two cleanup passes retained zero testcontainer sessions, containers, images, or
+volumes.
+
+The branch remains `ready_for_human_review`. Host application resolver
+configuration, explicit multi-artifact mapping, stable Nautilus release
+conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
+integration remain deferred behind their existing gates.
+
 ## 2026-09-25 - Capability-summary API projection checkpoint
 
 Persisted capability summaries are now exposed as the read-only
