@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Twelve Data live validation from network-enabled execution
+
+- The bounded credentialed `twelve_data:fetch_account_usage` probe was rerun
+  with the owner-only durable ledger and approved external network access. It
+  passed `1/1` at source `eeea8cc667de905a5fd635b695713e33f5872f66`, with one
+  provider request and 131 response bytes.
+- The provider-native response exposed `api-credits-used=1`,
+  `api-credits-left=7`, and `api-credits-request=1` for the minute pool. The
+  redacted receipt is in `validation.jsonl`; no credential or response payload
+  entered Git. This is live transport/account-usage evidence, not permission
+  to infer the separate 800-credit daily baseline.
+- The earlier DNS-blocked attempt remains historical environment evidence; it
+  is superseded for live validation by this successful network-enabled run.
+
 ## 2026-09-25 Docker integration gate at current tip
 
 - Docker-backed PostgreSQL/Redis integration validation was rerun at the

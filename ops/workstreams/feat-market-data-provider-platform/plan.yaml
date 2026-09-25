@@ -162,12 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
-    2026-09-25 Twelve Data credentialed live validation was attempted with an
-    owner-only durable ledger but this shell failed DNS resolution before any
-    provider HTTP request (`Temporary failure in name resolution`). No live
-    pass or response evidence is claimed; rerun from a network-enabled host,
-    then reconcile the durable daily baseline before ordinary daily-metered
-    routing.
+    2026-09-25 Twelve Data credentialed live validation passed `1/1` from a
+    network-enabled execution at source `eeea8cc667de905a5fd635b695713e33f5872f66`,
+    with one request and 131 response bytes. Native minute headers reported
+    `api-credits-used=1`, `api-credits-left=7`, and `api-credits-request=1`;
+    the durable daily baseline remains unknown because the provider does not
+    expose prior daily consumption in this account-usage response. Ordinary
+    daily-metered routing therefore remains fail-closed.
   - >-
     2026-09-25 Coinbase's official Exchange REST contract is now explicit:
     public endpoints use a 10-requests/second/IP lazy-fill token bucket with a
