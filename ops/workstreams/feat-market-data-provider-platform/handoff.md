@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 owner-ledger live refresh at current source
+
+- Using the owner-managed durable quota coordinator (no secrets or payloads
+  persisted), the current-source focused account-usage cases passed for
+  MarketData.app, Twelve Data, and EODHD (`1/1` each).
+- The current-source Alpaca credentialed matrix passed `7/7` in `5.84s`:
+  historical and intraday OHLCV, latest price, native account usage, equity
+  and crypto profiles, and assets/corporate actions. The assets/corporate
+  action path made two requests and all cursor/persistence assertions passed.
+- These receipts are appended to `validation.jsonl`; the durable coordinator
+  remains outside Git. This evidence does not promote providers whose exact
+  terms, byte/cost contracts, legal controls, complete universe source, or
+  deployment secret stores remain unresolved.
+
 ## 2026-09-25 Twelve Data account-usage evidence refresh
 
 - A network-enabled account-usage-only run passed `1/1` at source

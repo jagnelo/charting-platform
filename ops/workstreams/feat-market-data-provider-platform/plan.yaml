@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 current-source owner-ledger refresh: MarketData.app, Twelve Data,
+    and EODHD native account-usage cases each passed `1/1`; Alpaca's complete
+    seven-case credentialed matrix passed `7/7` (history, intraday, latest,
+    account usage, equity/crypto profiles, assets, and corporate actions).
+    Redacted receipts are appended to `validation.jsonl` and usage was settled
+    in the owner-managed durable coordinator. This closes no unresolved legal,
+    byte/cost, complete-universe, external-secret-store, deferred-provider, or
+    final-shadow gate; routing remains fail-closed for those dimensions.
+  - >-
     2026-09-25 Twelve Data account-usage refresh: the configured key's native
     `/api_usage` case passed 1/1 with one measured request and 131 response
     bytes. The response exposed an exact 8-credits/minute pool with 7
