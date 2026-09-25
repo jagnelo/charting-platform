@@ -5430,3 +5430,19 @@ The current indexed AAM SPDV page still exposes only a top-holdings grid and an
 Export to Excel affordance; direct page access returned HTTP 403. No complete
 executable artifact was captured for the four representative symbols, so the
 provider remains issuer-access-blocked and no native or paid route was activated.
+
+## Provider-platform dependency recheck — 2026-09-25
+
+The local `feat/market-data-provider-platform` ref advanced to `fa40d5a6`,
+while its cached remote ref remains `73d1d1aa`. Neither ref is an ancestor of
+staging `8b885a2f`, and inspection of the local provider-platform
+`ProviderCapability` enum confirms that `ETF_HOLDINGS` is still absent. The
+staging enum likewise has no `ETF_HOLDINGS` member. AC10 therefore remains
+deferred: this ETF branch must not add a speculative bridge or duplicate the
+shared entitlement, quota, budget, health, or shadow-observation governance.
+
+No provider-platform, staging, remote, or other worktree was modified. The
+branch-owned deterministic and default-live validation remains green at the
+latest local checkpoint; the next executable integration action is to
+reconcile the bridge only after the provider-platform capability contract is
+present in staging.
