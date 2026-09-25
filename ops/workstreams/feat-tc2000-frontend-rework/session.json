@@ -110,14 +110,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "0b1e3abcf",
-  "implementation_sha": "0b1e3abcf",
+  "head": "8db6c9ac6",
+  "implementation_sha": "8db6c9ac6",
   "interrupted": false,
-  "last_checkpoint": "2026-09-25T01:35:00+01:00",
-  "last_human_progress_update": "2026-09-25T01:35:00+01:00",
+  "last_checkpoint": "2026-09-25T01:48:13+01:00",
+  "last_human_progress_update": "2026-09-25T01:48:13+01:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Keep the host-sensitive uPlot timing note and transient browser retry evidence visible; defer provider/ETF consumer integration until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
-  "plan_hash": "5d30f382a1d17e5408a18c58ae6997e70c2f9a4b00a7adae571c970a03dddd14",
+  "plan_hash": "ba86756af45b87ecf59cac8252dee5212c5da7fe17795771a4acd0185183c2e6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -130,11 +130,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "The two reproducible TC-owned browser regressions are fixed and validated; the full Chromium run had four transient ERR_NETWORK_CHANGED failures that all passed on focused retry. The parallel frontend timing guard remains host-sensitive on the unrelated 100k-point uPlot benchmark, while serial coverage passes 1,150/1,150. Provider-platform and ETF consumer integration remains a sequencing gate until both upstream branches reach staging; shared-path reconciliation and the final post-staging exact gate remain pending. Origin synchronization remains a separate operational hold under the recorded private-origin safeguard.",
-    "current_phase": "R6_chart_controls_and_promoted_boolean_column_validation_recorded",
-    "next_action": "Keep the host-sensitive uPlot timing note and transient browser retry evidence visible; defer provider/ETF consumer integration until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
+    "current_blocker": "The two reproducible TC-owned browser regressions are fixed and validated in 8db6c9ac6, and the baseline-preserving chart layering retains the original plot geometry. A fresh seeded protected visual check still reports approximately 45,932 differing pixels; no snapshots, masks, thresholds, skips, or visual policy changed, so visual-baseline/environment verification remains open. The parallel frontend timing guard remains host-sensitive on the unrelated 100k-point uPlot benchmark while serial coverage passes 1,150/1,150. Provider-platform and ETF consumer integration remains a sequencing gate until both upstream branches reach staging; shared-path reconciliation and the final post-staging exact gate remain pending. Origin synchronization remains a separate operational hold under the recorded private-origin safeguard.",
+    "current_phase": "R6_chart_control_layering_and_visual_checkpoint_recorded",
+    "next_action": "Verify the protected visual mismatch against the expected seeded baseline without changing snapshots or visual policy; keep provider/ETF consumer integration deferred until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
     "total": 9,
-    "updated_at": "2026-09-25T01:03:43+01:00"
+    "updated_at": "2026-09-25T01:48:13+01:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

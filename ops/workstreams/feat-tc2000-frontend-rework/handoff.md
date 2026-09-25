@@ -14725,3 +14725,22 @@ passed those four transient cases plus F9c-template-comparison and F8u-boolean
 The host-parallel uPlot timing guard remains separately host-sensitive. Provider
 platform/ETF consumer integration remains deferred until both branches reach
 staging; shared-path reconciliation and the final exact-tip gate remain open.
+
+## 2026-09-25 — R6 chart layering correction and visual checkpoint
+
+Product commit `8db6c9ac6` keeps the original chart plot/template geometry while
+placing comparison controls in a pointer-safe top-row layer. Only the comparison
+input and action buttons accept pointer events, so the chart plot trigger remains
+available without allowing the plot control to intercept comparison-chip clicks.
+The detached-watchlist canonical workspace-configuration read remains in place,
+so promoted Boolean columns are immediately visible in the detached header.
+
+The rebuilt seeded stack passed the two repaired browser flows: F9c-template-
+comparison and F8u-boolean (`2/2`). A protected `visual-1080p-100` baseline
+attempt still reported approximately `45,932` differing pixels; the visual suite
+was stopped after `17` failures in its first project. No snapshots, masks,
+thresholds, skips, or visual acceptance policy were changed. Treat this as an
+open visual-baseline/environment verification gate, not as a passing visual
+receipt. Docker teardown was clean. Provider-platform and ETF work remain outside
+this branch until their changes reach staging, after which shared paths and the
+exact-tip gate must be reconciled.
