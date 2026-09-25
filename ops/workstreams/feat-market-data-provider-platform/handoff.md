@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current preflight after raw OHLCV immutability correction
+
+- Source `70b313a93` ran the full provider manifest preflight and stopped before
+  transport: `0/0` ordinary cases and zero provider requests. The receipt is
+  appended to `validation.jsonl`.
+- Raw OHLCV immutability did not widen routing. Provider quota/cost/baseline,
+  legal/use, unresolved capability, complete NMS/OTC/SEC reconciliation,
+  external secret-store, deferred-provider, publication, and final shadow
+  gates remain fail-closed.
+
 ## 2026-09-25 raw OHLCV immutability correction
 
 - `MarketBarObservation` persistence now uses conflict-do-nothing. A repeated

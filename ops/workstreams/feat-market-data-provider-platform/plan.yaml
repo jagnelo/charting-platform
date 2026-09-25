@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current full provider preflight at source
+    70b313a93cbb6b4e64c803a395904041950869e1 stopped before transport with
+    0/0 ordinary cases and zero provider requests. Raw OHLCV immutability did
+    not widen routing. The receipt is appended to validation.jsonl; provider
+    quota/legal, unresolved capability, universe, secret-store,
+    deferred-provider, and final-shadow gates remain fail-closed.
+  - >-
     2026-09-25 raw OHLCV immutability correction: MarketBarObservation now uses
     conflict-do-nothing, so a retry with the same observation timestamp cannot
     overwrite an already retained provider payload. Canonical OHLCV projections
