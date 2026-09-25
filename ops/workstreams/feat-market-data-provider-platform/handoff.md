@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current preflight refresh
+
+- Source `33499e60d` ran the full provider preflight and stopped before
+  transport with `0/0` cases and zero provider requests. The receipt confirms
+  the new continuation work did not regress routing safety.
+- The remaining blockers are unchanged and explicit: provider-specific quota
+  baselines/byte pools, legal/use authority, unresolved capability cases,
+  complete NMS/OTC/SEC universe evidence, external secret-store verification,
+  deferred Tradier/IBKR/Ondo, and the final shadow phase.
+
 ## 2026-09-25 event-reconciliation continuation checkpoint
 
 - Market-event consensus reconciliation and future-listing materialization no

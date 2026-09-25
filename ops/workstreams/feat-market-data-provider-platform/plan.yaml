@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current full provider preflight at source
+    `33499e60dccce63d9c9396b0989138c8047efbd3` stopped before transport with
+    `0/0` cases and zero provider requests. It confirms the continuation
+    changes preserve fail-closed routing; provider-specific quota/baseline,
+    legal/use, capability, universe, secret-store, deferred-provider, and
+    final-shadow gates remain open. The structured receipt is appended to the
+    validation ledger.
+  - >-
     2026-09-25 event-reconciliation continuation correction: bounded
     market-event consensus and future-listing materialization jobs now persist
     a date-window-scoped event-ID cursor in `ProviderPaginationState` and
