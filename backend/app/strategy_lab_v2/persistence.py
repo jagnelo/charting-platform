@@ -53,6 +53,10 @@ from app.strategy_lab_v2.worker_evidence import (
     WorkerTerminalEvidenceInputs,
     WorkerTerminalEvidenceLookup,
 )
+from app.strategy_lab_v2.worker_evidence_resolution import (
+    ArtifactPlanResolver,
+    create_worker_terminal_evidence_resolver,
+)
 from app.strategy_lab_v2.worker_terminal_adapter import (
     PostgresWorkerTerminalAdapter,
     WorkerTerminalEvidenceResolver,
@@ -358,6 +362,22 @@ class PostgresStrategyLabV2Persistence:
             attempt_id=attempt_id,
         )
         return WorkerTerminalEvidenceLookup(binding, inputs)
+
+    def worker_terminal_evidence_resolver(
+        self, artifact_plan_resolver: ArtifactPlanResolver
+    ) -> WorkerTerminalEvidenceResolver:
+        """Compose authenticated lookup with explicit artifact mapping.
+
+        The bundle owns principal/attempt lookup and the caller owns mapping
+        mounted result files to artifact publication plans. Keeping that
+        mapping explicit prevents a worker from guessing paths or elevating a
+        transport identity into an authenticated principal.
+        """
+
+        return create_worker_terminal_evidence_resolver(
+            self.load_worker_terminal_evidence_for_request,
+            artifact_plan_resolver,
+        )
 
 
 __all__ = ["PostgresStrategyLabV2Persistence"]

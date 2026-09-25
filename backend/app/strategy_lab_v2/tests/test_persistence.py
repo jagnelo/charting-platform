@@ -157,3 +157,13 @@ async def test_persistence_bundle_loads_terminal_evidence_inputs() -> None:
     assert lookup is not None
     assert lookup.owner_id == "owner-a"
     assert lookup.inputs == inputs
+
+
+def test_persistence_bundle_composes_terminal_evidence_resolver() -> None:
+    bundle = PostgresStrategyLabV2Persistence.build(lambda: object())
+
+    async def artifacts(_context: Any, _lookup: Any) -> tuple[Any, ...]:
+        return ()
+
+    resolver = bundle.worker_terminal_evidence_resolver(artifacts)
+    assert callable(resolver)

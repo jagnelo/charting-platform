@@ -1,0 +1,140 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from pathlib import Path
+
+import pytest
+
+from app.strategy_lab_v2.artifact_publication import plan_artifact_publication
+from app.strategy_lab_v2.artifacts import verify_artifact_payload
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.dispatch_payload import DispatchPayload
+from app.strategy_lab_v2.outcomes import ExecutionOutcome, OutcomeStatus
+from app.strategy_lab_v2.postgres_commands import ExecutionCommandContext
+from app.strategy_lab_v2.progress import ExecutionProgressState, ProgressPhase
+from app.strategy_lab_v2.result_publication import plan_result_publication
+from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
+from app.strategy_lab_v2.tests.test_result_publication import _result
+from app.strategy_lab_v2.tests.test_worker_process import _request
+from app.strategy_lab_v2.tests.test_worker_service import _entry
+from app.strategy_lab_v2.worker_evidence import (
+    WorkerSubmissionBinding,
+    WorkerTerminalEvidenceInputs,
+    WorkerTerminalEvidenceLookup,
+)
+from app.strategy_lab_v2.worker_evidence_resolution import (
+    build_worker_terminal_evidence,
+    create_worker_terminal_evidence_resolver,
+)
+from app.strategy_lab_v2.worker_process import SerialWorkerProcessExecutor
+from app.strategy_lab_v2.worker_service import WorkerCompletionContext
+
+NOW = datetime(2024, 1, 1, tzinfo=UTC)
+
+
+def _context_and_lookup(tmp_path: Path) -> tuple[WorkerCompletionContext, WorkerTerminalEvidenceLookup]:
+    request = _request(tmp_path)
+    process = SerialWorkerProcessExecutor(timeout_seconds=10).run(request)
+    context = WorkerCompletionContext(
+        _entry(DispatchPayload.from_mapping({"attempt_id": request.admission.attempt_id})),
+        request,
+        process,
+        NOW,
+    )
+    result, evidence, conformance, runtime, integrity = _result()
+    publication = plan_result_publication(result, evidence, conformance, runtime, integrity)
+    submission_request = SubmissionRequest(
+        "worker-evidence-key",
+        "backtest",
+        request.admission.attempt_id,
+        content_digest("worker-evidence-payload"),
+        NOW,
+    )
+    receipt = SubmissionReceipt(submission_request, NOW)
+    outcome = ExecutionOutcome(
+        receipt.submission_id,
+        request.admission.attempt_id,
+        1,
+        OutcomeStatus.ACCEPTED,
+        NOW,
+    )
+    progress = ExecutionProgressState(
+        request.admission.attempt_id,
+        1,
+        ProgressPhase.RUNNING,
+        0,
+        1,
+        False,
+        NOW,
+    )
+    lookup = WorkerTerminalEvidenceLookup(
+        WorkerSubmissionBinding("owner-a", receipt),
+        WorkerTerminalEvidenceInputs(
+            request.admission.attempt_id,
+            receipt,
+            ExecutionCommandContext(outcome, progress),
+            result,
+            (publication,),
+        ),
+    )
+    return context, lookup
+
+
+def _artifact_plan(lookup: WorkerTerminalEvidenceLookup):
+    assert lookup.inputs.manifest is not None
+    artifact = lookup.inputs.manifest.output_artifacts[0]
+    return plan_artifact_publication(
+        artifact,
+        verify_artifact_payload(artifact, b"result"),
+    )
+
+
+def test_builder_assembles_successful_typed_evidence(tmp_path: Path) -> None:
+    context, lookup = _context_and_lookup(tmp_path)
+    evidence = build_worker_terminal_evidence(
+        context,
+        lookup,
+        artifact_plans=(_artifact_plan(lookup),),
+    )
+
+    assert evidence.principal == "owner-a"
+    assert evidence.submission == lookup.inputs.submission
+    assert evidence.result == lookup.inputs.manifest
+    assert evidence.publication == lookup.inputs.publications[0]
+    assert len(evidence.artifact_plans) == 1
+
+
+def test_builder_requires_one_accepted_publication(tmp_path: Path) -> None:
+    context, lookup = _context_and_lookup(tmp_path)
+    missing = WorkerTerminalEvidenceLookup(
+        lookup.binding,
+        WorkerTerminalEvidenceInputs(
+            lookup.inputs.attempt_id,
+            lookup.inputs.submission,
+            lookup.inputs.execution,
+            lookup.inputs.manifest,
+            (),
+        ),
+    )
+    with pytest.raises(ValueError, match="one accepted publication"):
+        build_worker_terminal_evidence(context, missing)
+
+
+@pytest.mark.asyncio
+async def test_factory_loads_lookup_and_resolves_artifact_plans(tmp_path: Path) -> None:
+    context, lookup = _context_and_lookup(tmp_path)
+    calls: list[tuple[str, str]] = []
+
+    async def load(*, request_fingerprint: str, attempt_id: str):
+        calls.append((request_fingerprint, attempt_id))
+        return lookup
+
+    async def artifacts(_context: WorkerCompletionContext, received_lookup):
+        assert received_lookup is lookup
+        return (_artifact_plan(lookup),)
+
+    resolver = create_worker_terminal_evidence_resolver(load, artifacts)
+    evidence = await resolver(context)
+
+    assert calls == [(context.request.request_fingerprint, "attempt-1")]
+    assert evidence.artifact_plans == (_artifact_plan(lookup),)
