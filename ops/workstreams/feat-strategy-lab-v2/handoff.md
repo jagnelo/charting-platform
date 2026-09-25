@@ -2,6 +2,26 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Forward shadow-account persistence checkpoint
+
+Added `PostgresForwardAccountAdapter` and the additive
+`strategy_lab_v2_forward_accounts` table. Account state is stored as
+owner-authenticated canonical JSON with a deterministic state fingerprint and
+instance-bound primary key. Initialization is idempotent for exact retries and
+rejects changed state; loads and event applications preserve typed replay,
+conflict, out-of-order, and rejection outcomes from the engine-neutral ledger.
+The shared persistence bundle and application adapter now expose
+initialize/load/apply account methods, and canonical rehydration accepts the
+forward-account event/state contracts without bypassing field validation.
+
+Focused forward-account, worker/handoff/dispatch/application/persistence
+coverage passed 29 tests, and the migration suite passed 2 tests. Ruff and
+MyPy remain green across 287 source files; whitespace validation is clean. A
+package-wide collection was started but did not complete in the restricted
+test environment, so this checkpoint relies on the focused suite and static
+validation. Event-stream/provider authorization, worker capacity binding, and
+stable Nautilus execution remain gated.
+
 ## 2026-09-25 - Forward shadow-account ledger checkpoint
 
 Added the engine-neutral `forward_account.py` contract for broker-free shadow
