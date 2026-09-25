@@ -21,6 +21,10 @@
   automated persistent storage is still absent; a technical rate limit is not
   treated as permission to use or redistribute the data.
 
+- The provider quota-contract regression file was rerun after this audit:
+  `backend/tests/unit/services/test_provider_quota_contract.py` collected and
+  passed `113/113` tests. Worktree validation and `git diff --check` are green.
+
 ## 2026-09-25 Twelve Data live-validation environment result
 
 - The credentialed `twelve_data:fetch_account_usage` probe was attempted with
