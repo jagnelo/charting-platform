@@ -1,5 +1,23 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current identity-envelope correction and validation
+
+- Commit `89d54d45e802410bbe08dad977928c0738c65bd2` closes the analogous
+  identity-quarantine loss path: an explicit empty provider candidate payload
+  now replaces the mutable projection and is retained in the append-only
+  observation, while only a missing payload can reuse the prior projection.
+  Focused identity/event/options/tokenized regression coverage passes `17/17`.
+- The branch-owned backend unit gate passes `1914/1914` tests with `37`
+  warnings in `327.77s`, excluding only the ETF adapter file owned by the
+  parallel branch. Docker-backed PostgreSQL/Redis integration passes `386/386`
+  with `57` warnings in `723.18s`; containers were cleaned without a
+  host-wide prune. Ruff, diff, and workstream validation pass.
+- Exact-current provider preflight at this source again stops before transport:
+  `0/0` cases and zero provider requests. Its redacted `incomplete_preflight`
+  receipt is appended to `validation.jsonl`; all unresolved provider-specific
+  baseline/contract/rights/capability, complete-universe, secret-store,
+  deferred-provider, publication, and final-shadow gates remain fail-closed.
+
 ## 2026-09-25 exact-current lossless-envelope correction and validation
 
 - Commit `2ce1523494ef6222eb07fee00745131e0d4d8a27` closes another silent-loss

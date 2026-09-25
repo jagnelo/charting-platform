@@ -162,6 +162,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Exact-current source `89d54d45e802410bbe08dad977928c0738c65bd2` also
+    preserves explicitly empty identity-quarantine candidate envelopes in the
+    mutable projection and append-only observation. Focused coverage passes
+    17/17; the full branch-owned unit gate passes 1914/1914 (37 warnings,
+    327.77s); Docker PostgreSQL/Redis integration passes 386/386 (57 warnings,
+    723.18s); Ruff/diff/workstream checks pass; and the exact-current provider
+    preflight remains 0/0 with zero network requests before transport.
+    Provider contract/baseline/legal/capability, universe, secret-store,
+    deferred-provider, publication, and final-shadow gates remain open.
+  - >-
     Exact-current source `2ce1523494ef6222eb07fee00745131e0d4d8a27` now
     retains explicitly empty successful provider envelopes instead of dropping
     them or substituting another payload: instrument-event pages, option quote
