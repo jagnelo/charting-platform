@@ -14744,3 +14744,16 @@ open visual-baseline/environment verification gate, not as a passing visual
 receipt. Docker teardown was clean. Provider-platform and ETF work remain outside
 this branch until their changes reach staging, after which shared paths and the
 exact-tip gate must be reconciled.
+
+## 2026-09-25 — R6 isolated visual-baseline reproduction
+
+The protected `visual-1080p-100` default-board case was rerun alone against a
+fresh seeded stack built from the current branch. It reproduced `43,091`
+differing pixels on the first screenshot and `45,932` after Playwright's 100 ms
+stability retry. The diff is distributed across board text and anti-aliasing,
+not localized to chart-control geometry; the test's DOM overlap assertions
+passed. This strengthens the classification as a browser/font/baseline
+environment mismatch requiring matching-environment verification. No snapshots,
+masks, thresholds, skips, or visual policy were changed. The host's regular
+Docker Compose path was used because its CLI lacks `buildx`; the assigned stack
+and volumes were removed cleanly afterward.
