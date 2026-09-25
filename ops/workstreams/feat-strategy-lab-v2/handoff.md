@@ -4712,6 +4712,27 @@ configuration, explicit multi-artifact mapping, stable Nautilus release
 conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
 integration remain deferred behind their existing gates.
 
+## 2026-09-25 - Complete multi-artifact mapping coverage checkpoint
+
+The resolver coverage now includes a positive two-artifact host mapping in
+addition to the fail-closed cases. A complete host-supplied plan set is
+accepted only when both output artifact identities, byte digests, lengths, and
+retention classes match the immutable result manifest; the package still does
+not guess mounted paths or publish bytes on the host's behalf.
+
+The focused resolver suite passed 12 tests. The exact branch validation passed
+846 package tests, 2 migration tests, Ruff, MyPy across 272 files, diff
+validation, and workstream validation. The Docker-backed combined coverage
+gate passed 2,497 tests with 83.76% total coverage (required threshold: 75%);
+the referenced runtime env file was absent in this checkout and `.env.dev`
+supplied test configuration. Two cleanup passes retained zero testcontainer
+sessions, containers, images, or volumes.
+
+The branch remains `ready_for_human_review`. Host application resolver
+configuration, explicit multi-artifact mapping, stable Nautilus release
+conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
+integration remain deferred behind their existing gates.
+
 ## 2026-09-25 - Exact artifact-plan coverage checkpoint
 
 Successful `WorkerTerminalEvidence` now validates publication plans against the
