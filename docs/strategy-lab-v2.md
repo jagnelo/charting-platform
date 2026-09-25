@@ -1282,7 +1282,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   immutable `RunResultManifest`. Trial, attempt, metric, snapshot, package, and
   output-artifact identities must agree; exact retries replay an existing
   manifest and changed content conflicts. Package and artifact evidence is
-  canonicalized before comparison. The manifest remains unpublished until
+  canonicalized before comparison. Engine observation, metric-set creation,
+  and manifest creation timestamps normalize to UTC before fingerprinting, so
+  equivalent instants replay identically. The manifest remains unpublished until
   artifact-integrity and authoritative publication gates succeed.
 - `execution_terminal.py` projects terminal runtime evidence into the public
   outcome and progress streams as one storage-neutral decision. Successful

@@ -2,6 +2,24 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Result identity checkpoint
+
+Engine result evidence, metric-set creation, and run-result manifest creation
+timestamps now normalize aware offsets to UTC before content fingerprinting.
+Offset-equivalent engine observations and manifest creation times therefore
+retain one reproducible result identity and replay path. Focused result/core
+coverage passed 25 tests. The complete branch gate passed 887 package tests,
+2 migration tests, Ruff, MyPy across 276 files, diff validation, and workstream
+validation. The exact backend coverage gate passed 2,538 tests with 83.81%
+total coverage (required threshold: 75%) and 86 warnings; the referenced
+runtime env file was absent and `.env.dev` supplied test configuration. Two
+cleanup passes retained zero testcontainer sessions, containers, images, or
+volumes.
+
+The branch remains `ready_for_human_review`. Stable Nautilus v2 publication,
+shared worker/database reconciliation, host activation, upstream
+provider/ETF/TC2000 integration, and deployment remain gated.
+
 ## 2026-09-25 - Dispatch and acquisition identity checkpoint
 
 Dispatch requests and provider acquisition requests/receipts now normalize
