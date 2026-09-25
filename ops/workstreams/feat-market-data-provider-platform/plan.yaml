@@ -162,6 +162,12 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 Docker-backed integration validation: the current source passed
+    the complete backend integration suite, 386/386 tests with 57 warnings in
+    573.15 seconds. This confirms the new raw-bar migration/persistence path
+    against PostgreSQL/Redis; provider routing, quota/legal/capability,
+    universe, secret-store, deferred-provider, and shadow gates remain open.
+  - >-
     2026-09-25 append-only raw OHLCV observation correction: MarketBarObservation
     now includes observed_at in its conflict key, so revised provider candles
     create new immutable raw observations instead of overwriting earlier

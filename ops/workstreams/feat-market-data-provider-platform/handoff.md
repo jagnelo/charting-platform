@@ -1,5 +1,13 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Docker integration validation checkpoint
+
+- The direct persistent Docker-backed backend integration run completed on the
+  current source: `386/386` tests passed, with `57` warnings, in `573.15s`.
+- This validates the append-only raw-bar migration and persistence behavior
+  against the PostgreSQL/Redis integration stack. No frontend, ETF adapter,
+  external provider, deployment, or shadow operation was performed.
+
 ## 2026-09-25 append-only raw OHLCV observation checkpoint
 
 - Raw `MarketBarObservation` rows now include `observed_at` in their conflict
