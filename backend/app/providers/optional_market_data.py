@@ -2477,6 +2477,14 @@ class EODHDProvider(_RESTProvider):
                     limit=minute_limit,
                     remaining=minute_remaining,
                     consumed=minute_limit - minute_remaining,
+                    # EODHD documents this pool as resetting every minute.
+                    # Keep the native daily counter's stale-date handling
+                    # independent; this boundary is only for the minute
+                    # header dimension and never promotes a plan/limit.
+                    reset_at=(
+                        datetime.now(UTC).replace(second=0, microsecond=0)
+                        + timedelta(minutes=1)
+                    ),
                 )
             )
 

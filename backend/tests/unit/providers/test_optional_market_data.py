@@ -680,7 +680,8 @@ def test_eodhd_fetches_documented_daily_usage_and_current_reset_boundary():
     assert dimensions["calls_per_day"].reset_at > usage.observed_at
     assert dimensions["requests_per_minute"].limit == 20
     assert dimensions["requests_per_minute"].consumed == 1
-    assert dimensions["requests_per_minute"].reset_at is None
+    assert dimensions["requests_per_minute"].reset_at is not None
+    assert dimensions["requests_per_minute"].reset_at > usage.observed_at
     assert get.call_args.args[0] == "https://eodhd.com/api/user"
     assert get.call_args.kwargs["params"] == {"api_token": "demo"}
 

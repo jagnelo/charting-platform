@@ -25,33 +25,50 @@ from app.services.provider_runtime import execute_provider_call, resolve_provide
 # dimension.  Keep this allow-list provider-specific; a generic
 # ``limit - remaining`` conversion would be unsafe for providers whose
 # counters use different windows, units, or endpoint pools.
-_NATIVE_BASELINE_DIMENSIONS: dict[str, tuple[str, str]] = {
-    "marketdata_app": ("credits_per_day", ProviderCapability.ACCOUNT_USAGE.value),
+_NATIVE_BASELINE_DIMENSIONS: dict[str, dict[str, str]] = {
+    "marketdata_app": {
+        "credits_per_day": ProviderCapability.ACCOUNT_USAGE.value,
+    },
     # EODHD's documented /user endpoint reports the current daily-call
     # counter and the account's daily limit.  Its midnight-GMT boundary is
     # accepted only when the response identifies the current UTC usage date;
     # minute-rate observations remain observation-only while the provider's
     # official sources disagree on the exact plan limit.
-    "eodhd": ("calls_per_day", ProviderCapability.ACCOUNT_USAGE.value),
+    "eodhd": {
+        "calls_per_day": ProviderCapability.ACCOUNT_USAGE.value,
+        # EODHD's current API-limits documentation states that the minute
+        # request pool resets every minute. The adapter derives the next
+        # minute boundary from the observation timestamp; admission still
+        # requires the operator-reviewed active account limit/evidence.
+        "requests_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
+    },
     # Twelve Data's /api_usage response exposes the current minute pool via
     # provider-native used/left headers.  Reconcile only that exact reviewed
     # dimension; the separate daily pool remains an observation until Twelve
     # Data publishes a stable daily counter shape.
-    "twelve_data": ("credits_per_minute", ProviderCapability.ACCOUNT_USAGE.value),
+    "twelve_data": {
+        "credits_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
+    },
     # Binance's public /api/v3/time response exposes the cumulative request
     # weight for the current fixed one-minute window.  The adapter supplies
     # the exact next-minute reset boundary and the reviewed 6,000-weight cap.
-    "binance": ("request_weight_per_minute", ProviderCapability.ACCOUNT_USAGE.value),
+    "binance": {
+        "request_weight_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
+    },
     # OpenFIGI exposes the exact active mapping dimension in its native
     # headers. The dimension is anonymous 25/minute or keyed 25/6-seconds,
     # selected by provider_rate_limit_seed at runtime.
-    "openfigi": ("mapping_requests_per_minute", ProviderCapability.ACCOUNT_USAGE.value),
+    "openfigi": {
+        "mapping_requests_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
+    },
     # Alpaca's native market-data headers expose the active 200-request pool
     # and the next quota-change epoch. The reviewed contract uses a rolling
     # 60-second safety envelope because Alpaca does not publish a fixed
     # calendar-minute boundary; the native snapshot is therefore required to
     # establish the current durable baseline before metered reads.
-    "alpaca": ("market_data_requests_per_minute", ProviderCapability.ACCOUNT_USAGE.value),
+    "alpaca": {
+        "market_data_requests_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
+    },
 }
 
 
@@ -160,11 +177,24 @@ def _native_baseline_candidate(
     """
 
     provider_name = str(getattr(execution, "provider_name", "") or "").strip()
-    configured = _NATIVE_BASELINE_DIMENSIONS.get(provider_name)
+    configured_dimensions = _NATIVE_BASELINE_DIMENSIONS.get(provider_name)
     policy = getattr(execution, "policy", None)
-    if configured is None or policy is None:
+    if configured_dimensions is None or policy is None:
         return None
-    dimension_name, capability = configured
+    dimension_name = str(getattr(dimension, "name", "") or "").strip()
+    capability = configured_dimensions.get(dimension_name)
+    if capability is None:
+        # Preserve the historical anonymous OpenFIGI alias: the provider's
+        # keyed contract names the active dimension per six seconds, while
+        # the usage adapter exposes the same native mapping counter under its
+        # stable minute label for compatibility.
+        if (
+            provider_name == "openfigi"
+            and dimension_name == "mapping_requests_per_6_seconds"
+        ):
+            capability = configured_dimensions.get("mapping_requests_per_minute")
+        else:
+            return None
     contract = getattr(policy, "quota_contract", None)
     if not isinstance(contract, dict):
         return None
@@ -176,6 +206,7 @@ def _native_baseline_candidate(
             item.get("name") == dimension_name
             or (
                 provider_name == "openfigi"
+                and dimension_name == "mapping_requests_per_minute"
                 and item.get("name") == "mapping_requests_per_6_seconds"
             )
         )

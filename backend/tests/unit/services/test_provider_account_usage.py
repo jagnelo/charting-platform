@@ -53,6 +53,43 @@ def test_binance_native_weight_snapshot_is_an_exact_baseline_candidate():
     )
 
 
+def test_eodhd_native_minute_headers_are_an_exact_candidate_when_reviewed():
+    observed_at = datetime(2026, 9, 25, 3, 30, 29, tzinfo=UTC)
+    execution = SimpleNamespace(
+        provider_name="eodhd",
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "requests_per_minute",
+                        "limit": 1200,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "quota_group": "api_key",
+                        "reset": "fixed_minute",
+                    }
+                ],
+                "reset": "per_dimension",
+            }
+        ),
+    )
+    candidate = provider_account_usage._native_baseline_candidate(
+        execution,
+        ProviderAccountUsageDimension(
+            name="requests_per_minute",
+            unit="requests",
+            limit=1200,
+            remaining=1199,
+            consumed=1,
+            reset_at=datetime(2026, 9, 25, 3, 31, tzinfo=UTC),
+        ),
+        observed_at,
+    )
+    assert candidate is not None
+    assert candidate[:3] == ("requests_per_minute", "account_usage", 1)
+
+
 def test_alpaca_native_snapshot_accepts_documented_second_precision_skew():
     observed_at = datetime(2026, 9, 25, 3, 30, 29, 900_000, tzinfo=UTC)
     execution = SimpleNamespace(
