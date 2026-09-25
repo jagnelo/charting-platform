@@ -48,12 +48,20 @@ from app.strategy_lab_v2.commands import (
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.forward_account import ForwardAccountState
 from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
+from app.strategy_lab_v2.forward_corrections import ForwardCorrectionCommand
+from app.strategy_lab_v2.forward_event_transaction import ForwardEventTransactionResolution
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
     LegacyImportDecision,
     LegacyImportRequest,
     LegacyImportResolution,
     LegacyRecordKind,
+)
+from app.strategy_lab_v2.lifecycle import (
+    CanonicalForwardEvent,
+    ForwardCursor,
+    ForwardEventDisposition,
+    ForwardEventObservation,
 )
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
@@ -232,6 +240,20 @@ class ForwardAccountApiAdapter(Protocol):
     ) -> Awaitable[ForwardAccountState | None] | ForwardAccountState | None: ...
 
 
+class ForwardEventApiAdapter(Protocol):
+    """Application-owned durable admission for one canonical forward event."""
+
+    def transact_forward_event(
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        event: CanonicalForwardEvent,
+        observation: ForwardEventObservation,
+        correction_command: ForwardCorrectionCommand | None,
+    ) -> Awaitable[ForwardEventTransactionResolution] | ForwardEventTransactionResolution: ...
+
+
 class SearchDispatchApiAdapter(Protocol):
     """Application-owned atomic search candidate dispatch boundary."""
 
@@ -307,6 +329,18 @@ def _json_value(value: Any) -> Any:
 
     if isinstance(value, Mapping):
         return {str(key): _json_value(value[key]) for key in sorted(value)}
+    if isinstance(value, set | frozenset):
+        # Dataclass ``asdict`` preserves set-like fields (for example the
+        # forward checkpoint's processed/buffered event identities).  JSON has
+        # no set type, so publish a deterministic sequence rather than failing
+        # at the API boundary or relying on process-dependent set iteration.
+        normalized = [_json_value(item) for item in value]
+        return sorted(
+            normalized,
+            key=lambda item: json.dumps(
+                item, ensure_ascii=False, allow_nan=False, separators=(",", ":"), sort_keys=True
+            ),
+        )
     if isinstance(value, tuple | list):
         return [_json_value(item) for item in value]
     if isinstance(value, Enum):
@@ -615,6 +649,41 @@ def serialize_forward_account(
     )
 
 
+def serialize_forward_event_transaction(
+    resolution: ForwardEventTransactionResolution, *, request_id: str
+) -> dict[str, Any]:
+    """Serialize durable forward-event admission and optional replay evidence."""
+
+    if not isinstance(resolution, ForwardEventTransactionResolution):
+        raise TypeError("resolution must be a ForwardEventTransactionResolution")
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise ValueError("request_id must not be empty")
+    return _json_value(
+        {
+            "data": {
+                "type": "forward-event-transactions",
+                "id": resolution.event_fingerprint,
+                "attributes": {
+                    "decision": resolution.decision,
+                    "event_fingerprint": resolution.event_fingerprint,
+                    "state": asdict(resolution.state),
+                    "replay_plan": (
+                        asdict(resolution.replay_plan)
+                        if resolution.replay_plan is not None
+                        else None
+                    ),
+                    "rejection_reason": resolution.rejection_reason,
+                },
+                "meta": {
+                    "request_id": request_id,
+                    "state_fingerprint": resolution.state.fingerprint,
+                    "resolution_fingerprint": resolution.fingerprint,
+                },
+            }
+        }
+    )
+
+
 def serialize_search_dispatch(
     resolution: SearchDispatchResolution,
     *,
@@ -691,6 +760,150 @@ def _safe_header_value(value: str | None, field_name: str, max_length: int) -> s
     if any(ord(character) < 0x20 or ord(character) == 0x7F for character in normalized):
         raise ValueError(f"{field_name} must not contain control characters")
     return normalized
+
+
+def _parse_forward_timestamp(value: Any, field_name: str) -> datetime:
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be an ISO-8601 timestamp")
+    try:
+        timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError(f"{field_name} must be an ISO-8601 timestamp") from error
+    if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+        raise ValueError(f"{field_name} must be timezone-aware")
+    return timestamp
+
+
+def _parse_forward_cursor(payload: Any) -> ForwardCursor:
+    if not isinstance(payload, Mapping):
+        raise ValueError("next_cursor must be a JSON object")
+    required = {"last_sequence", "last_event_id", "last_event_time"}
+    if set(payload) != required:
+        raise ValueError("next_cursor fields are invalid")
+    sequence = payload["last_sequence"]
+    if not isinstance(sequence, int) or isinstance(sequence, bool):
+        raise ValueError("next_cursor.last_sequence must be an integer")
+    event_id = payload["last_event_id"]
+    if event_id is not None and not isinstance(event_id, str):
+        raise ValueError("next_cursor.last_event_id must be a string or null")
+    event_time = payload["last_event_time"]
+    parsed_time = (
+        None if event_time is None else _parse_forward_timestamp(event_time, "last_event_time")
+    )
+    return ForwardCursor(sequence, event_id, parsed_time)
+
+
+def _parse_forward_event(payload: Any) -> CanonicalForwardEvent:
+    if not isinstance(payload, Mapping):
+        raise ValueError("event must be a JSON object")
+    required = {"event_id", "sequence", "event_time", "arrived_at", "source_digest"}
+    allowed = required | {"correction_of"}
+    if set(payload) - allowed or not required <= set(payload):
+        raise ValueError("event fields are invalid")
+    sequence = payload["sequence"]
+    if not isinstance(sequence, int) or isinstance(sequence, bool):
+        raise ValueError("event.sequence must be an integer")
+    for field_name in ("event_id", "source_digest"):
+        if not isinstance(payload[field_name], str):
+            raise ValueError(f"event.{field_name} must be a string")
+    correction_of = payload.get("correction_of")
+    if correction_of is not None and not isinstance(correction_of, str):
+        raise ValueError("event.correction_of must be a string or null")
+    return CanonicalForwardEvent(
+        event_id=payload["event_id"],
+        sequence=sequence,
+        event_time=_parse_forward_timestamp(payload["event_time"], "event_time"),
+        arrived_at=_parse_forward_timestamp(payload["arrived_at"], "arrived_at"),
+        source_digest=payload["source_digest"],
+        correction_of=correction_of,
+    )
+
+
+def _parse_forward_observation(payload: Any) -> ForwardEventObservation:
+    if not isinstance(payload, Mapping):
+        raise ValueError("observation must be a JSON object")
+    required = {
+        "disposition",
+        "stale",
+        "missing_sequence_start",
+        "missing_sequence_end",
+        "correction_requires_counterfactual_replay",
+        "next_cursor",
+    }
+    allowed = required | {"buffer_event"}
+    if set(payload) - allowed or not required <= set(payload):
+        raise ValueError("observation fields are invalid")
+    stale = payload["stale"]
+    replay = payload["correction_requires_counterfactual_replay"]
+    if not isinstance(stale, bool) or not isinstance(replay, bool):
+        raise ValueError("observation boolean fields are invalid")
+    buffer_event = payload.get("buffer_event", False)
+    if not isinstance(buffer_event, bool):
+        raise ValueError("observation.buffer_event must be a boolean")
+    for field_name in ("missing_sequence_start", "missing_sequence_end"):
+        value = payload[field_name]
+        if value is not None and (not isinstance(value, int) or isinstance(value, bool)):
+            raise ValueError(f"observation.{field_name} must be an integer or null")
+    return ForwardEventObservation(
+        disposition=ForwardEventDisposition(payload["disposition"]),
+        stale=stale,
+        missing_sequence_start=payload["missing_sequence_start"],
+        missing_sequence_end=payload["missing_sequence_end"],
+        correction_requires_counterfactual_replay=replay,
+        next_cursor=_parse_forward_cursor(payload["next_cursor"]),
+        buffer_event=buffer_event,
+    )
+
+
+def _parse_forward_correction(
+    payload: Any, *, instance_id: str
+) -> ForwardCorrectionCommand:
+    if not isinstance(payload, Mapping):
+        raise ValueError("correction must be a JSON object")
+    required = {
+        "command_id",
+        "instance_id",
+        "correction_event_id",
+        "original_event_id",
+        "base_checkpoint_fingerprint",
+        "requested_at",
+        "reason",
+    }
+    if set(payload) != required:
+        raise ValueError("correction fields are invalid")
+    if payload["instance_id"] != instance_id:
+        raise ValueError("correction instance_id does not match the route")
+    return ForwardCorrectionCommand(
+        command_id=payload["command_id"],
+        instance_id=instance_id,
+        correction_event_id=payload["correction_event_id"],
+        original_event_id=payload["original_event_id"],
+        base_checkpoint_fingerprint=payload["base_checkpoint_fingerprint"],
+        requested_at=_parse_forward_timestamp(payload["requested_at"], "requested_at"),
+        reason=payload["reason"],
+    )
+
+
+def _parse_forward_transaction(
+    body: Any, *, instance_id: str
+) -> tuple[CanonicalForwardEvent, ForwardEventObservation, ForwardCorrectionCommand | None]:
+    if not isinstance(body, Mapping):
+        raise ValueError("forward event body must be a JSON object")
+    if set(body) not in ({"event", "observation"}, {"event", "observation", "correction"}):
+        raise ValueError("forward event body fields are invalid")
+    event = _parse_forward_event(body["event"])
+    observation = _parse_forward_observation(body["observation"])
+    correction_payload = body.get("correction")
+    correction = (
+        None
+        if correction_payload is None
+        else _parse_forward_correction(correction_payload, instance_id=instance_id)
+    )
+    if observation.disposition is ForwardEventDisposition.CORRECTION and correction is None:
+        raise ValueError("correction observations require a correction command")
+    if observation.disposition is not ForwardEventDisposition.CORRECTION and correction is not None:
+        raise ValueError("correction command is only valid for correction observations")
+    return event, observation, correction
 
 
 def _error_response(error: ApiError) -> JSONResponse:
@@ -1724,6 +1937,89 @@ def create_strategy_lab_router(
                 )
             )
 
+    @router.post("/forward-instances/{instance_id}/events", status_code=status.HTTP_202_ACCEPTED)
+    async def transact_forward_event(
+        instance_id: str,
+        request: Request,
+        body: Any = Body(...),
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Admit one canonical event and persist correction replay evidence atomically."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            if not instance_id.strip():
+                raise ValueError("instance_id must not be empty")
+            body = await _strict_json_body(request, request_id)
+            event, observation, correction = _parse_forward_transaction(
+                body, instance_id=instance_id
+            )
+            transact = getattr(adapter, "transact_forward_event", None)
+            if not callable(transact):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "forward event adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                        details={"reason": "the host has not supplied forward event persistence"},
+                    )
+                )
+            resolution = await _resolve(
+                transact(
+                    principal=principal,
+                    instance_id=instance_id,
+                    event=event,
+                    observation=observation,
+                    correction_command=correction,
+                )
+            )
+            if not isinstance(resolution, ForwardEventTransactionResolution):
+                raise TypeError("adapter returned an invalid forward event resolution")
+            if resolution.decision.value in {"conflict", "reject"}:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.CONFLICT
+                        if resolution.decision.value == "conflict"
+                        else ApiErrorCode.PRECONDITION_FAILED,
+                        resolution.rejection_reason or "forward event was rejected",
+                        request_id,
+                        status.HTTP_409_CONFLICT
+                        if resolution.decision.value == "conflict"
+                        else status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+                )
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content=serialize_forward_event_transaction(resolution, request_id=request_id),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "forward event request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 forward event transaction failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 forward event transaction failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
     @router.get("/forward-instances/{instance_id}/account")
     async def get_forward_account(
         instance_id: str,
@@ -2523,6 +2819,7 @@ __all__ = [
     "ApiAdapterError",
     "CapabilityPreflightAdapter",
     "ForwardAccountApiAdapter",
+    "ForwardEventApiAdapter",
     "ForwardStateApiAdapter",
     "SearchDispatchApiAdapter",
     "SearchStateApiAdapter",
@@ -2537,6 +2834,7 @@ __all__ = [
     "serialize_search_state_snapshot",
     "serialize_forward_state",
     "serialize_forward_account",
+    "serialize_forward_event_transaction",
     "serialize_resource",
     "serialize_resource_identifier",
     "serialize_submission",

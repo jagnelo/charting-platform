@@ -21,10 +21,12 @@ from app.strategy_lab_v2.api_router import (
     ResourceMutationServiceResult,
     SubmissionServiceResult,
     _json_value,
+    _parse_forward_transaction,
     _request_id,
     _safe_header_value,
     create_strategy_lab_router,
     serialize_forward_account,
+    serialize_forward_event_transaction,
     serialize_resource,
     serialize_search_state_snapshot,
 )
@@ -43,6 +45,10 @@ from app.strategy_lab_v2.commands import (
 )
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.forward_account import initial_forward_account_state
+from app.strategy_lab_v2.forward_event_transaction import (
+    ForwardEventTransactionDecision,
+    ForwardEventTransactionResolution,
+)
 from app.strategy_lab_v2.legacy import (
     LegacyImportDecision,
     LegacyImportRecord,
@@ -50,6 +56,7 @@ from app.strategy_lab_v2.legacy import (
     LegacyImportReport,
     LegacyImportResolution,
 )
+from app.strategy_lab_v2.lifecycle import ForwardEventDisposition
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
     ResourceMutationResolution,
@@ -69,6 +76,8 @@ from app.strategy_lab_v2.submissions import (
     create_submission_receipt,
 )
 from app.strategy_lab_v2.tests.test_admission import _fixture, _reservation
+from app.strategy_lab_v2.tests.test_forward_corrections import _event as correction_event
+from app.strategy_lab_v2.tests.test_forward_corrections import _state as forward_state
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 SNAPSHOT = content_digest({"snapshot": "one"})
@@ -109,6 +118,52 @@ def test_forward_account_serializer_preserves_authenticated_snapshot_identity() 
     assert payload["data"]["id"] == "forward-1"
     assert payload["data"]["attributes"]["cash"][0]["amount"] == "1000"
     assert payload["data"]["meta"]["state_fingerprint"] == state.fingerprint
+
+
+def test_json_value_serializes_set_like_checkpoint_fields_deterministically() -> None:
+    assert _json_value(frozenset({"event-b", "event-a"})) == ["event-a", "event-b"]
+
+
+def test_forward_event_transaction_parser_requires_correction_evidence() -> None:
+    event = correction_event("live-0", 0)
+    body = {
+        "event": {
+            "event_id": event.event_id,
+            "sequence": event.sequence,
+            "event_time": event.event_time.isoformat(),
+            "arrived_at": event.arrived_at.isoformat(),
+            "source_digest": event.source_digest,
+        },
+        "observation": {
+            "disposition": ForwardEventDisposition.CORRECTION.value,
+            "stale": True,
+            "missing_sequence_start": None,
+            "missing_sequence_end": None,
+            "correction_requires_counterfactual_replay": True,
+            "next_cursor": {
+                "last_sequence": -1,
+                "last_event_id": None,
+                "last_event_time": None,
+            },
+        },
+    }
+    with pytest.raises(ValueError, match="correction observations require"):
+        _parse_forward_transaction(body, instance_id="forward-1")
+
+
+def test_forward_event_transaction_serializer_preserves_state_and_resolution_identity() -> None:
+    state = forward_state()
+    event = correction_event("live-0", 0)
+    resolution = ForwardEventTransactionResolution(
+        ForwardEventTransactionDecision.ACCEPTED,
+        state,
+        content_digest(event),
+    )
+    payload = serialize_forward_event_transaction(resolution, request_id="request-1")
+    assert payload["data"]["type"] == "forward-event-transactions"
+    assert payload["data"]["id"] == resolution.event_fingerprint
+    assert payload["data"]["meta"]["resolution_fingerprint"] == resolution.fingerprint
+    assert payload["data"]["attributes"]["state"]["checkpoint"]["processed_event_ids"] == []
 
 
 def _capability_document() -> ResourceDocument:
