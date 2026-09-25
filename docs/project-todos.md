@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-25 — FINRA ORF authentication correction and exact-head validation
+
+- [x] Correct the FINRA OTC ORF integration to use its separate documented
+      TRAQS refresh-token/username flow and authenticated `POST` file requests;
+      FINRA Gateway client credentials remain restricted to the Query API.
+      Focused provider/live-runner/secret-wiring/lint/compile checks passed
+      `112/112`; no secrets were persisted.
+
+- [x] Re-run the authoritative Docker integration gate at the corrected source
+      `bb42631453c1080b81ae2bebfc5190acec56f641`: `386` tests passed with `57`
+      warnings in `726.24s` using isolated PostgreSQL/Redis testcontainers
+      (session `ee99d026-d67d-4f9a-a125-a9563390969c`); cleanup completed
+      without host-wide pruning.
+
+- [ ] Keep ORF routing fail-closed until a TRAQS ORF username and refresh token
+      entitlement are configured and the bounded live ORF matrix is run; the
+      existing FINRA Gateway credentials do not satisfy this requirement.
+
 ### 2026-09-25 — Current provider-contract audit continuation
 
 - [x] Re-run the exact-head branch-owned backend unit gate, excluding only the

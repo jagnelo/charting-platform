@@ -1,5 +1,27 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 FINRA ORF authentication contract correction
+
+- The FINRA OTC ORF adapter now follows the documented TRAQS flow rather than
+  incorrectly reusing FINRA Gateway client credentials: it exchanges the
+  separately configured ORF refresh token and username at the TRAQS refresh
+  endpoint, caches the short-lived access token, and submits each file request
+  as the documented authenticated `POST` with the TRAQS username form field.
+  Gateway credentials remain isolated for the FINRA Query API. The focused
+  provider, live-runner, secret-wiring, lint, and compile checks passed
+  `112/112`; no credential values were persisted.
+
+## 2026-09-25 exact-head Docker integration gate after ORF correction
+
+- The authoritative `make test-int` gate passed `386` tests with `57`
+  warnings in `726.24s` at source `bb42631453c1080b81ae2bebfc5190acec56f641`.
+  It used isolated PostgreSQL/Redis testcontainers (session
+  `ee99d026-d67d-4f9a-a125-a9563390969c`); cleanup removed the branch-owned
+  containers without host-wide pruning. This validates the provider-auth and
+  runtime wiring change against the backend integration surface; it does not
+  by itself satisfy external account-entitlement, legal, universe, or live
+  provider evidence gates.
+
 ## 2026-09-25 exact-head branch-owned unit gate
 
 - The branch-owned backend unit command passed `1,917` tests with `37`
