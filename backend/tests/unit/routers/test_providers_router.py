@@ -358,7 +358,8 @@ class TestProvidersRouter:
 
         prune = client.post("/api/v1/providers/maintenance/prune", headers=auth_headers)
         assert prune.status_code == 200
-        assert prune.json()["deleted"]["latest_price_snapshot"] >= 1
+        assert prune.json()["deleted"]["latest_price_snapshot"] == 0
+        assert db.get(LatestPriceSnapshot, old_snapshot.id) is not None
 
     def test_stale_datasets_and_health_reset(self, client, auth_headers, db, instrument):
         data_source = DataSource(name="yfinance", is_active=True)

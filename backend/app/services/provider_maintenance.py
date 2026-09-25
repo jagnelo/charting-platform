@@ -31,6 +31,7 @@ class _RetentionTarget:
     model: Any
     ts_attr: str
     retention_days: int
+    immutable_observation: bool = False
 
 
 def _targets() -> list[_RetentionTarget]:
@@ -45,31 +46,36 @@ def _targets() -> list[_RetentionTarget]:
             "latest_price_snapshot",
             LatestPriceSnapshot,
             "observed_at",
-            settings.LATEST_PRICE_SNAPSHOT_RETENTION_DAYS,
+            0,
+            immutable_observation=True,
         ),
         _RetentionTarget(
             "instrument_search_snapshot",
             InstrumentSearchSnapshot,
             "observed_at",
-            settings.INSTRUMENT_SEARCH_SNAPSHOT_RETENTION_DAYS,
+            0,
+            immutable_observation=True,
         ),
         _RetentionTarget(
             "universe_discovery_snapshot",
             UniverseDiscoverySnapshot,
             "observed_at",
-            settings.UNIVERSE_DISCOVERY_SNAPSHOT_RETENTION_DAYS,
+            0,
+            immutable_observation=True,
         ),
         _RetentionTarget(
             "instrument_profile_snapshot",
             InstrumentProfileSnapshot,
             "observed_at",
-            settings.INSTRUMENT_PROFILE_SNAPSHOT_RETENTION_DAYS,
+            0,
+            immutable_observation=True,
         ),
         _RetentionTarget(
             "instrument_identifier_snapshot",
             InstrumentIdentifierSnapshot,
             "observed_at",
-            settings.INSTRUMENT_IDENTIFIER_SNAPSHOT_RETENTION_DAYS,
+            0,
+            immutable_observation=True,
         ),
     ]
 
@@ -136,9 +142,21 @@ async def list_stale_dataset_states(
 
 
 async def prune_provider_observations(db: AsyncSession) -> dict[str, int]:
+    """Prune operational logs without deleting provider observations.
+
+    Provider snapshots are append-only evidence: they contain data obtained
+    from quota-limited external services and must remain available for future
+    reconciliation, audit, and replay.  Their historical retention settings
+    remain exposed for compatibility/diagnostics but cannot authorize
+    destructive deletion.  Only the operational request log is prunable.
+    """
+
     deleted: dict[str, int] = {}
     now = _now_utc()
     for target in _targets():
+        if target.immutable_observation:
+            deleted[target.name] = 0
+            continue
         if target.retention_days <= 0:
             deleted[target.name] = 0
             continue

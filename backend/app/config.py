@@ -2425,11 +2425,15 @@ class Settings(BaseSettings):
     # added to each adapter's documented transport timeout and is not an API
     # rate/cooldown assumption.
     PROVIDER_QUOTA_CONCURRENCY_LEASE_GRACE_SECONDS: int = 10
-    LATEST_PRICE_SNAPSHOT_RETENTION_DAYS: int = 30
-    INSTRUMENT_SEARCH_SNAPSHOT_RETENTION_DAYS: int = 14
-    UNIVERSE_DISCOVERY_SNAPSHOT_RETENTION_DAYS: int = 30
-    INSTRUMENT_PROFILE_SNAPSHOT_RETENTION_DAYS: int = 365
-    INSTRUMENT_IDENTIFIER_SNAPSHOT_RETENTION_DAYS: int = 3650
+    # Provider observations are append-only evidence and are never pruned.
+    # These legacy settings remain readable for configuration compatibility,
+    # but provider_maintenance deliberately ignores them for destructive
+    # deletion; only operational request logs may be retention-pruned.
+    LATEST_PRICE_SNAPSHOT_RETENTION_DAYS: int = 0
+    INSTRUMENT_SEARCH_SNAPSHOT_RETENTION_DAYS: int = 0
+    UNIVERSE_DISCOVERY_SNAPSHOT_RETENTION_DAYS: int = 0
+    INSTRUMENT_PROFILE_SNAPSHOT_RETENTION_DAYS: int = 0
+    INSTRUMENT_IDENTIFIER_SNAPSHOT_RETENTION_DAYS: int = 0
     PROVIDER_SUPPORT_SUPPORTED_TTL_SECONDS: int = 2592000
     PROVIDER_SUPPORT_UNSUPPORTED_TTL_SECONDS: int = 604800
     RFR_INSTRUMENT_SYMBOL: str = "^IRX"

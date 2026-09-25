@@ -23,7 +23,9 @@ from tests.unit.conftest import AsyncSessionAdapter
 
 
 @pytest.mark.asyncio
-async def test_summarize_and_prune_provider_observations(db, instrument, monkeypatch):
+async def test_summarize_and_prune_provider_observations_keeps_provider_evidence(
+    db, instrument, monkeypatch
+):
     async_db = AsyncSessionAdapter(db)
     data_source = DataSource(name="yfinance", is_active=True)
     db.add(data_source)
@@ -61,8 +63,8 @@ async def test_summarize_and_prune_provider_observations(db, instrument, monkeyp
     deleted = await prune_provider_observations(async_db)
 
     remaining = db.execute(select(LatestPriceSnapshot)).scalars().all()
-    assert deleted["latest_price_snapshot"] == 1
-    assert remaining == []
+    assert deleted["latest_price_snapshot"] == 0
+    assert len(remaining) == 1
 
 
 @pytest.mark.asyncio

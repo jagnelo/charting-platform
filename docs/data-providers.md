@@ -144,6 +144,13 @@ second pool an implicit zero baseline. For example, Twelve Data's daily
 `credits_per_day` pool remains non-routable after `/api_usage` until an exact
 daily baseline is independently established.
 
+Provider observation snapshots are append-only evidence. The maintenance
+endpoint may prune operational request logs according to
+`PROVIDER_REQUEST_LOG_RETENTION_DAYS`, but it never deletes latest-price,
+search, universe, profile, or identifier snapshots, regardless of legacy
+snapshot-retention settings. This preserves every quota-consuming provider
+response for audit, replay, and future reconciliation.
+
 The mapping is enforced consistently by normal application routing, the direct
 live-probe planner, and the manifest preflight. Missing, duplicated, or
 non-existent `reconciled_dimensions` entries fail closed before transport;
