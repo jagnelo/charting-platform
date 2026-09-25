@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from app.strategy_lab_v2.api_contracts import ApiErrorCode
 from app.strategy_lab_v2.artifact_application import (
     ArtifactPublicationDecision,
     ArtifactPublicationResolution,
@@ -33,6 +34,7 @@ from app.strategy_lab_v2.worker_evidence_resolution import (
     build_worker_terminal_evidence,
     create_sandbox_artifact_plan_resolver,
     create_worker_terminal_evidence_resolver,
+    default_worker_failure_error,
 )
 from app.strategy_lab_v2.worker_process import SerialWorkerProcessExecutor
 from app.strategy_lab_v2.worker_service import WorkerCompletionContext
@@ -40,8 +42,10 @@ from app.strategy_lab_v2.worker_service import WorkerCompletionContext
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
 
-def _context_and_lookup(tmp_path: Path) -> tuple[WorkerCompletionContext, WorkerTerminalEvidenceLookup]:
-    request = _request(tmp_path)
+def _context_and_lookup(
+    tmp_path: Path, *, body: str = "printf 'ok'"
+) -> tuple[WorkerCompletionContext, WorkerTerminalEvidenceLookup]:
+    request = _request(tmp_path, body=body)
     process = SerialWorkerProcessExecutor(timeout_seconds=10).run(request)
     context = WorkerCompletionContext(
         _entry(DispatchPayload.from_mapping({"attempt_id": request.admission.attempt_id})),
@@ -86,6 +90,19 @@ def _context_and_lookup(tmp_path: Path) -> tuple[WorkerCompletionContext, Worker
         ),
     )
     return context, lookup
+
+
+def _failed_lookup(lookup: WorkerTerminalEvidenceLookup) -> WorkerTerminalEvidenceLookup:
+    assert lookup.inputs.execution is not None
+    return WorkerTerminalEvidenceLookup(
+        lookup.binding,
+        replace(
+            lookup.inputs,
+            execution=lookup.inputs.execution,
+            manifest=None,
+            publications=(),
+        ),
+    )
 
 
 def _artifact_plan(lookup: WorkerTerminalEvidenceLookup):
@@ -158,6 +175,34 @@ def test_builder_requires_one_accepted_publication(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="one accepted publication"):
         build_worker_terminal_evidence(context, missing)
+
+
+def test_builder_maps_failed_runtime_to_typed_digest_only_error(tmp_path: Path) -> None:
+    context, accepted_lookup = _context_and_lookup(tmp_path, body="exit 7")
+    lookup = _failed_lookup(accepted_lookup)
+
+    evidence = build_worker_terminal_evidence(context, lookup)
+
+    assert evidence.result is None
+    assert evidence.publication is None
+    assert evidence.error is not None
+    assert evidence.error.code is ApiErrorCode.INTERNAL_ERROR
+    assert evidence.error.message == "strategy worker execution failed"
+    assert evidence.error.request_id == context.request.request_fingerprint
+    assert evidence.error.details == {
+        "error_digest": context.process.execution.runtime_result.state.error_digest  # type: ignore[union-attr]
+    }
+
+
+def test_default_worker_failure_error_rejects_non_failed_runtime(tmp_path: Path) -> None:
+    context, _ = _context_and_lookup(tmp_path)
+    assert context.process.execution is not None
+    assert context.process.execution.runtime_result is not None
+    with pytest.raises(ValueError, match="failed runtime state"):
+        default_worker_failure_error(
+            context,
+            context.process.execution.runtime_result.state,
+        )
 
 
 @pytest.mark.asyncio

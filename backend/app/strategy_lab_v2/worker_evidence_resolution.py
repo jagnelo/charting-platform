@@ -13,6 +13,7 @@ from collections.abc import Awaitable, Callable, Sequence
 from datetime import datetime
 from typing import Any, Protocol
 
+from app.strategy_lab_v2.api_contracts import ApiError, ApiErrorCode
 from app.strategy_lab_v2.artifact_application import (
     ArtifactPublicationDecision,
     ArtifactPublicationResolution,
@@ -21,7 +22,7 @@ from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.outcomes import OutcomeStatus
 from app.strategy_lab_v2.result_publication import ResultPublicationDecision
-from app.strategy_lab_v2.runtime_execution import RuntimeExecutionPhase
+from app.strategy_lab_v2.runtime_execution import RuntimeExecutionPhase, RuntimeExecutionState
 from app.strategy_lab_v2.worker_evidence import WorkerTerminalEvidenceLookup
 from app.strategy_lab_v2.worker_process import WorkerProcessDecision
 from app.strategy_lab_v2.worker_service import WorkerCompletionContext
@@ -49,6 +50,38 @@ class SandboxArtifactPublisher(Protocol):
         *,
         committed_at: datetime,
     ) -> ArtifactPublicationResolution: ...
+
+
+def default_worker_failure_error(
+    context: WorkerCompletionContext,
+    runtime_state: RuntimeExecutionState,
+) -> ApiError:
+    """Map a failed runtime receipt to a stable, non-leaking API error.
+
+    The worker process persists only a content digest for sandbox failure
+    details.  The package therefore exposes that digest as typed diagnostic
+    metadata and never reconstructs exception text or paths at the terminal
+    boundary.  An application may still supply a richer authenticated error
+    in ``ExecutionCommandContext``; this helper is only the deterministic
+    fallback when the durable outcome has not yet been projected.
+    """
+
+    if not isinstance(context, WorkerCompletionContext):
+        raise TypeError("context must be a WorkerCompletionContext")
+    if not isinstance(runtime_state, RuntimeExecutionState):
+        raise TypeError("runtime_state must be a RuntimeExecutionState")
+    if runtime_state.phase is not RuntimeExecutionPhase.FAILED:
+        raise ValueError("default worker failure errors require a failed runtime state")
+    if runtime_state.error_digest is None:
+        raise ValueError("failed runtime state is missing its error digest")
+    return ApiError(
+        ApiErrorCode.INTERNAL_ERROR,
+        "strategy worker execution failed",
+        context.request.request_fingerprint,
+        500,
+        True,
+        {"error_digest": runtime_state.error_digest},
+    )
 
 
 def build_worker_terminal_evidence(
@@ -128,7 +161,7 @@ def build_worker_terminal_evidence(
         raise ValueError("non-successful worker evidence cannot carry result evidence")
     error = execution.outcome.error
     if runtime_phase is RuntimeExecutionPhase.FAILED and error is None:
-        raise ValueError("failed worker evidence is missing an error")
+        error = default_worker_failure_error(context, process_execution.runtime_result.state)
     if runtime_phase is RuntimeExecutionPhase.CANCELLED and error is not None:
         raise ValueError("cancelled worker evidence cannot carry an error")
     if runtime_phase not in {
@@ -250,4 +283,5 @@ __all__ = [
     "build_worker_terminal_evidence",
     "create_sandbox_artifact_plan_resolver",
     "create_worker_terminal_evidence_resolver",
+    "default_worker_failure_error",
 ]
