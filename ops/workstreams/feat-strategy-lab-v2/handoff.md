@@ -5628,3 +5628,6 @@ The versioned Strategy Lab API now exposes `POST /forward-instances/{instance_id
 ## 2026-09-25 - Forward lifecycle API checkpoint
 
 The versioned Strategy Lab API now exposes `POST /forward-instances/{instance_id}/lifecycle`, strictly parses a target state and timezone-aware transition timestamp, delegates owner-scoped compare-and-set persistence, and serializes applied/replay/conflict evidence. This completes the API-side lifecycle seam around the already durable forward-state adapter; provider event acquisition, worker activation, and Nautilus execution remain gated. Six focused forward API/parser/serializer tests pass in the current slice; Ruff, MyPy (293 source files), and whitespace validation pass.
+## 2026-09-25 - Forward API ASGI route evidence
+
+The warm-up endpoint now has executable ASGI-level coverage using an in-process HTTP transport, proving request parsing, dependency injection, application delegation, typed serialization, and the 202 response at the registered route. The focused forward/API suite now passes 25 tests; Ruff, MyPy (293 source files), and whitespace validation remain green.
