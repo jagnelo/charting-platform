@@ -123,7 +123,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   capability preflight, frozen `DataSnapshot`, and verified snapshot-coverage
   resolution. Identity drift, stale receipts, unsupported preflight, and
   incomplete coverage reject the handoff deterministically; provider fetching,
-  repair, and persistence remain adapter responsibilities.
+  repair, and persistence remain adapter responsibilities. Request and receipt
+  timestamps normalize to UTC before acquisition identity and temporal checks.
 - `execution_data_admission.py` is the final pure data gate before a Nautilus
   plan is consumed. It requires the verified acquisition handoff to match the
   scientific trial, frozen snapshot, and ready engine plan, so a worker cannot
@@ -139,7 +140,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `dispatch.py` defines immutable queue requests/envelopes and pure idempotency
   resolution. A repeated key with the same attempt/payload/queue replays the
   existing request; a reused key with different content is an explicit
-  conflict. Redis/outbox publication still requires an atomic adapter.
+  conflict. Dispatch creation timestamps normalize to UTC so offset-equivalent
+  queue requests retain one message identity. Redis/outbox publication still
+  requires an atomic adapter.
 - `progress.py` defines ordered worker progress, cancellation intents, and
   resumable progress state. Updates cannot reorder, change the total, move
   backward, or mutate terminal states; cancellation is idempotent and must end

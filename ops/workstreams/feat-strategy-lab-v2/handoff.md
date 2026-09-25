@@ -2,6 +2,23 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Dispatch and acquisition identity checkpoint
+
+Dispatch requests and provider acquisition requests/receipts now normalize
+aware creation, request, and acquisition timestamps to UTC at their contract
+boundaries. Offset-equivalent queue and data handoffs therefore preserve one
+content identity and replay path. Focused dispatch/acquisition coverage passed
+17 tests. The complete branch gate passed 886 package tests, 2 migration tests,
+Ruff, MyPy across 276 files, diff validation, and workstream validation. The
+exact backend coverage gate passed 2,537 tests with 83.80% total coverage
+(required threshold: 75%) and 86 warnings; the referenced runtime env file was
+absent and `.env.dev` supplied test configuration. Two cleanup passes retained
+zero testcontainer sessions, containers, images, or volumes.
+
+The branch remains `ready_for_human_review`. Stable Nautilus v2 publication,
+shared worker/database reconciliation, host activation, upstream
+provider/ETF/TC2000 integration, and deployment remain gated.
+
 ## 2026-09-25 - Worker lifecycle timestamp checkpoint
 
 Worker reservations, lease observations, and settlement receipts now normalize
