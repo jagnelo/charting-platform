@@ -2371,13 +2371,19 @@ class Settings(BaseSettings):
     FINRA_CLIENT_ID: str = ""
     FINRA_CLIENT_SECRET: str = ""
     FINRA_TOKEN_URL: str = "https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token"
+    # ORF security-master files use the separate TRAQS refresh-token flow;
+    # Gateway client credentials above are not valid for this file API.
+    FINRA_ORF_USERNAME: str = ""
+    FINRA_ORF_REFRESH_TOKEN: str = ""
+    FINRA_ORF_TOKEN_URL: str = "https://apidownload.finratraqs.org/refresh"
     FINRA_API_BASE_URL: str = "https://api.finra.org"
     FINRA_SHORT_INTEREST_URL: str = ""
     FINRA_OTC_DAILY_LIST_URL: str = ""
     # ``legacy_candidate`` preserves the historical DAPI/pipe-delimited
     # adapter for explicitly reviewed sources. ``finra_orf_security_master``
     # selects FINRA's currently documented ORF file-download pair and requires
-    # both active and inactive snapshots plus the FINRA OAuth credentials.
+    # both active and inactive snapshots plus the separate TRAQS refresh-token
+    # credentials above (not the FINRA Gateway client credentials).
     # The source remains fail-closed until the ORF Web Access Agreement, MFA,
     # terms, completeness, and redistribution reviews are recorded below.
     FINRA_OTC_SOURCE_KIND: str = "legacy_candidate"

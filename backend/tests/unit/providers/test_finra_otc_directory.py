@@ -99,8 +99,8 @@ def test_finra_otc_directory_fetches_documented_orf_active_and_inactive_masters(
         "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
         "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
     )
-    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
-    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
+    monkeypatch.setattr(settings, "FINRA_ORF_USERNAME", "traqs-user")
+    monkeypatch.setattr(settings, "FINRA_ORF_REFRESH_TOKEN", "refresh-token")
     active = Mock(text=_ORF_SECURITY_MASTER, status_code=200)
     active.headers = {}
     active.raise_for_status.return_value = None
@@ -109,11 +109,11 @@ def test_finra_otc_directory_fetches_documented_orf_active_and_inactive_masters(
     inactive.raise_for_status.return_value = None
     with (
         patch.object(directory, "_cache", None),
-        patch("app.providers.finra_otc_directory._access_token", return_value="token"),
+        patch("app.providers.finra_otc_directory._orf_access_token", return_value="token"),
         patch(
-            "app.providers.finra_otc_directory.httpx.get",
+            "app.providers.finra_otc_directory.httpx.post",
             side_effect=[active, inactive],
-        ) as get,
+        ) as post,
     ):
         page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
     assert page["total"] == 2
@@ -125,7 +125,26 @@ def test_finra_otc_directory_fetches_documented_orf_active_and_inactive_masters(
         "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
         "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
     ]
-    assert all(call.kwargs["headers"]["Authorization"] == "Bearer token" for call in get.call_args_list)
+    assert all(call.kwargs["headers"]["Authorization"] == "Bearer token" for call in post.call_args_list)
+    assert all(call.kwargs["data"] == {"username": "traqs-user"} for call in post.call_args_list)
+
+
+def test_finra_otc_directory_orf_requires_traqs_refresh_credentials(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_orf_security_master")
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+    )
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
+    )
+    monkeypatch.setattr(settings, "FINRA_ORF_USERNAME", "")
+    monkeypatch.setattr(settings, "FINRA_ORF_REFRESH_TOKEN", "")
+    with pytest.raises(ProviderNotConfiguredError, match="FINRA_ORF_USERNAME"):
+        FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
 
 
 def test_finra_otc_directory_orf_requires_inactive_master(monkeypatch):

@@ -30,6 +30,7 @@ from app.providers.telemetry import observe_response
 logger = logging.getLogger(__name__)
 
 _token_cache: tuple[str, datetime] | None = None
+_orf_token_cache: tuple[str, datetime] | None = None
 
 
 @dataclass(slots=True)
@@ -449,6 +450,65 @@ def _access_token(client_id: str, client_secret: str) -> str:
     # minute before a shorter provider expiry and never reuse a stale grant.
     cache_seconds = min(1800, max(60, expires_in - 60))
     _token_cache = (token, now + timedelta(seconds=cache_seconds))
+    return token
+
+
+def _orf_access_token(refresh_token: str, username: str) -> str:
+    """Exchange a TRAQS ORF refresh token for a one-hour file token.
+
+    The ORF file-download API is a separate FINRA product from the Gateway
+    Query API. Its documented refresh endpoint accepts the assigned TRAQS
+    username and refresh token, so Gateway client credentials must never be
+    substituted here.
+    """
+
+    global _orf_token_cache
+    now = datetime.now(UTC)
+    if _orf_token_cache and _orf_token_cache[1] > now:
+        return _orf_token_cache[0]
+    token_url = str(getattr(settings, "FINRA_ORF_TOKEN_URL", "") or "").strip()
+    if not token_url:
+        raise ProviderNotConfiguredError(
+            "finra ORF requires FINRA_ORF_TOKEN_URL"
+        )
+    try:
+        response = httpx.post(
+            token_url,
+            data={"refreshtoken": refresh_token, "username": username},
+            headers={"Accept": "application/json"},
+            timeout=30,
+        )
+    except httpx.RequestError as exc:
+        raise ProviderResponseError("finra_otc_directory", f"transport failure: {exc}") from exc
+    observe_response(response)
+    _raise_for_http_status(response)
+    try:
+        body = response.json()
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError(
+            "finra_otc_directory", "FINRA ORF token response returned invalid JSON"
+        ) from exc
+    raise_for_provider_error_envelope(
+        "finra_otc_directory",
+        body,
+        response.status_code,
+        headers=provider_response_headers(response),
+    )
+    if not isinstance(body, dict):
+        raise ProviderResponseError(
+            "finra_otc_directory", "FINRA ORF token response returned an invalid object"
+        )
+    token = str(body.get("access_token") or "").strip()
+    if not token:
+        raise ProviderResponseError(
+            "finra_otc_directory", "FINRA ORF token response did not contain access_token"
+        )
+    try:
+        expires_in = int(body.get("expires_in") or 3600)
+    except (TypeError, ValueError):
+        expires_in = 3600
+    cache_seconds = min(3300, max(60, expires_in - 60))
+    _orf_token_cache = (token, now + timedelta(seconds=cache_seconds))
     return token
 
 

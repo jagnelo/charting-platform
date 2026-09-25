@@ -23,7 +23,7 @@ from app.providers.errors import (
     provider_response_headers,
     provider_retry_at_from_headers,
 )
-from app.providers.finra import _access_token
+from app.providers.finra import _orf_access_token
 from app.providers.telemetry import observe_response
 
 _PAGE_SIZE = 1000
@@ -152,13 +152,14 @@ def _fetch_orf_rows(active_url: str, inactive_url: str | None) -> list[dict[str,
         raise ProviderNotConfiguredError(
             "finra_otc_directory ORF mode requires an inactive security-master URL"
         )
-    client_id = str(getattr(settings, "FINRA_CLIENT_ID", "") or "").strip()
-    client_secret = str(getattr(settings, "FINRA_CLIENT_SECRET", "") or "").strip()
-    if not client_id or not client_secret:
+    username = str(getattr(settings, "FINRA_ORF_USERNAME", "") or "").strip()
+    refresh_token = str(getattr(settings, "FINRA_ORF_REFRESH_TOKEN", "") or "").strip()
+    if not username or not refresh_token:
         raise ProviderNotConfiguredError(
-            "finra_otc_directory ORF mode requires FINRA_CLIENT_ID and FINRA_CLIENT_SECRET"
+            "finra_otc_directory ORF mode requires FINRA_ORF_USERNAME and "
+            "FINRA_ORF_REFRESH_TOKEN"
         )
-    token = _access_token(client_id, client_secret)
+    token = _orf_access_token(refresh_token, username)
     headers = {
         "Authorization": f"Bearer {token}",
         "User-Agent": settings.NASDAQ_USER_AGENT,
@@ -168,7 +169,15 @@ def _fetch_orf_rows(active_url: str, inactive_url: str | None) -> list[dict[str,
     seen_keys: set[tuple[str, str]] = set()
     for url, expected_active in ((active_url, True), (inactive_url, False)):
         try:
-            response = httpx.get(url, headers=headers, timeout=120)
+            # The documented ORF file API is a POST endpoint. The assigned
+            # TRAQS username is sent in the form body; the access token comes
+            # from the separate refresh-token exchange above.
+            response = httpx.post(
+                url,
+                data={"username": username},
+                headers=headers,
+                timeout=120,
+            )
         except httpx.RequestError as exc:
             raise ProviderResponseError("finra_otc_directory", f"transport failure: {exc}") from exc
         observe_response(response)

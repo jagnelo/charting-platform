@@ -66,6 +66,19 @@ CREDENTIALS = {
     "ondo_global_markets": ("ONDO_GLOBAL_MARKETS_API_KEY",),
 }
 
+
+def provider_required_credentials(provider: str) -> tuple[str, ...]:
+    """Return credentials required by the selected provider/source variant."""
+
+    names = list(CREDENTIALS.get(provider, ()))
+    if (
+        provider == "finra_otc_directory"
+        and str(os.getenv("FINRA_OTC_SOURCE_KIND", "") or "").strip().lower()
+        == "finra_orf_security_master"
+    ):
+        names.extend(("FINRA_ORF_USERNAME", "FINRA_ORF_REFRESH_TOKEN"))
+    return tuple(dict.fromkeys(names))
+
 # Keep the live acceptance surface explicit.  This is intentionally a
 # provider-to-test-function manifest rather than a broad "module was imported"
 # check: adding a provider to the registry must also add at least one bounded
@@ -3132,8 +3145,8 @@ def main() -> int:
         required["keyless/config"] = KEYLESS
     required.update(
         {
-            provider: names
-            for provider, names in CREDENTIALS.items()
+            provider: provider_required_credentials(provider)
+            for provider in CREDENTIALS
             if (not selected_providers and provider not in deferred_providers)
             or provider in selected_providers
         }

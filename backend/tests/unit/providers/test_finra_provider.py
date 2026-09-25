@@ -10,6 +10,25 @@ from app.providers.errors import ProviderRateLimitError, ProviderResponseError
 from app.providers.finra import FINRAProvider
 
 
+def test_finra_orf_access_token_uses_traqs_refresh_flow(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_ORF_TOKEN_URL", "https://example.test/refresh")
+    response = Mock(status_code=200)
+    response.headers = {}
+    response.json.return_value = {"access_token": "orf-token", "expires_in": 3600}
+    response.raise_for_status.return_value = None
+    with (
+        patch.object(finra, "_orf_token_cache", None),
+        patch("app.providers.finra.httpx.post", return_value=response) as post,
+    ):
+        assert finra._orf_access_token("refresh-token", "traqs-user") == "orf-token"
+    post.assert_called_once_with(
+        "https://example.test/refresh",
+        data={"refreshtoken": "refresh-token", "username": "traqs-user"},
+        headers={"Accept": "application/json"},
+        timeout=30,
+    )
+
+
 def test_finra_parser_keeps_publication_and_raw_provenance(monkeypatch):
     monkeypatch.setattr(settings, "FINRA_SHORT_INTEREST_URL", "https://example.test/short")
     monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")

@@ -457,7 +457,9 @@ GitHub uses the separate manually dispatched
 `provider-live-master` environment for master runs, with same-named
 environment secrets and with `EDGAR_USER_AGENT` and (only after source confirmation)
 `FINRA_OTC_SOURCE_KIND`, `FINRA_OTC_SYMBOL_DIRECTORY_URL`, and (for the documented ORF pair)
-`FINRA_OTC_INACTIVE_SECURITY_MASTER_URL` environment variables. Put the reviewed non-secret safety settings
+`FINRA_OTC_INACTIVE_SECURITY_MASTER_URL` environment variables. ORF additionally requires the
+separate TRAQS credentials `FINRA_ORF_USERNAME` and `FINRA_ORF_REFRESH_TOKEN`; do not reuse
+the FINRA Gateway client ID/secret for this file API. Put the reviewed non-secret safety settings
 `ALPACA_REVIEWED_RESET`, `ALPACA_QUOTA_EVIDENCE`, `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` (compatibility/fairness setting only), `EDGAR_REVIEWED_RESET`, `EDGAR_QUOTA_EVIDENCE`, `MASSIVE_MARKET_DATA_USE_AUTHORIZED`,
 `MASSIVE_REVIEWED_RESET`, `MASSIVE_QUOTA_EVIDENCE`,
 `MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE`, `MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE`,

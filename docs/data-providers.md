@@ -1468,12 +1468,15 @@ duplicate symbol/suffix keys, and requires both snapshots before returning a
 complete universe. The Daily List remains a lifecycle delta and is not a
 replacement for the two complete masters.
 
-ORF is not a free/public endpoint: FINRA states that an [ORF Web Access
-Agreement](https://www.finra.org/filing-reporting/orf/technical-notices/reminder-otc-trade-reporting-facility-orf-migration)
-is required, and production reference-data files require product entitlement
-and [MFA](https://www.finra.org/filing-reporting/technical-notices/finra-api-reference-data-mfa-production-access-20241209).
-The supplied FINRA OAuth pair is therefore not treated as proof that this
-specific product entitlement exists. Set `FINRA_OTC_SOURCE_KIND=finra_orf_security_master`,
+ORF is not a free/public endpoint: FINRA's [ORF file specification](https://www.finra.org/sites/default/files/2024-08/Equity_API_File_Downloads_ORF.pdf)
+requires a TRAQS/OKTA user with MFA and product authorization. The file API
+uses a separate TRAQS refresh-token flow (`POST /refresh`, then bearer-
+authenticated `POST DownloadHandler.ashx` requests carrying the assigned
+TRAQS username), not the FINRA Gateway client-credentials flow used by
+short-interest/query datasets. Configure `FINRA_ORF_USERNAME`,
+`FINRA_ORF_REFRESH_TOKEN`, and the optional `FINRA_ORF_TOKEN_URL`; the supplied
+FINRA Gateway OAuth pair is not a substitute and is not treated as proof that
+this specific product entitlement exists. Set `FINRA_OTC_SOURCE_KIND=finra_orf_security_master`,
 configure both `FINRA_OTC_SYMBOL_DIRECTORY_URL` and
 `FINRA_OTC_INACTIVE_SECURITY_MASTER_URL`, and keep routing disabled until the
 agreement, MFA, terms, completeness, polling, and redistribution reviews are
@@ -1577,11 +1580,16 @@ OPENFIGI_API_KEY=your_openfigi_key
 FINRA_CLIENT_ID=
 FINRA_CLIENT_SECRET=
 FINRA_TOKEN_URL=https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token
+# ORF uses the separate TRAQS refresh-token flow, not the Gateway credentials above.
+FINRA_ORF_USERNAME=
+FINRA_ORF_REFRESH_TOKEN=
+FINRA_ORF_TOKEN_URL=https://apidownload.finratraqs.org/refresh
 FINRA_API_BASE_URL=https://api.finra.org
 FINRA_SHORT_INTEREST_URL=
 FINRA_OTC_DAILY_LIST_URL=
 # Leave empty unless current FINRA docs or written confirmation establish this source.
 FINRA_OTC_SYMBOL_DIRECTORY_URL=
+FINRA_OTC_INACTIVE_SECURITY_MASTER_URL=
 FINRA_OTC_OPERATION_COSTS={}
 FINRA_OTC_SOURCE_REVIEWED=false
 FINRA_OTC_SOURCE_EVIDENCE=

@@ -195,6 +195,9 @@ services:
       FINRA_CLIENT_ID:          ${FINRA_CLIENT_ID:-}
       FINRA_CLIENT_SECRET:      ${FINRA_CLIENT_SECRET:-}
       FINRA_TOKEN_URL:          ${FINRA_TOKEN_URL:-https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token}
+      FINRA_ORF_USERNAME:       ${FINRA_ORF_USERNAME:-}
+      FINRA_ORF_REFRESH_TOKEN:  ${FINRA_ORF_REFRESH_TOKEN:-}
+      FINRA_ORF_TOKEN_URL:      ${FINRA_ORF_TOKEN_URL:-https://apidownload.finratraqs.org/refresh}
       FINRA_API_BASE_URL:       ${FINRA_API_BASE_URL:-https://api.finra.org}
       FINRA_SHORT_INTEREST_URL: ${FINRA_SHORT_INTEREST_URL:-}
       FINRA_OTC_DAILY_LIST_URL: ${FINRA_OTC_DAILY_LIST_URL:-}
@@ -455,6 +458,9 @@ services:
       FINRA_CLIENT_ID:          ${FINRA_CLIENT_ID:-}
       FINRA_CLIENT_SECRET:      ${FINRA_CLIENT_SECRET:-}
       FINRA_TOKEN_URL:          ${FINRA_TOKEN_URL:-https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token}
+      FINRA_ORF_USERNAME:       ${FINRA_ORF_USERNAME:-}
+      FINRA_ORF_REFRESH_TOKEN:  ${FINRA_ORF_REFRESH_TOKEN:-}
+      FINRA_ORF_TOKEN_URL:      ${FINRA_ORF_TOKEN_URL:-https://apidownload.finratraqs.org/refresh}
       FINRA_API_BASE_URL:       ${FINRA_API_BASE_URL:-https://api.finra.org}
       FINRA_SHORT_INTEREST_URL: ${FINRA_SHORT_INTEREST_URL:-}
       FINRA_OTC_DAILY_LIST_URL: ${FINRA_OTC_DAILY_LIST_URL:-}

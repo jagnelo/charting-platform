@@ -56,6 +56,21 @@ def test_only_plan_approved_live_deferrals_are_excluded_from_full_matrix():
     assert any("test_openfigi_keyless_mapping" in argument for argument in arguments)
 
 
+def test_orf_source_requires_traqs_credentials_separately_from_gateway(monkeypatch):
+    runner = _runner_module()
+    monkeypatch.setenv("FINRA_OTC_SOURCE_KIND", "finra_orf_security_master")
+    assert runner.provider_required_credentials("finra_otc_directory") == (
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "FINRA_ORF_USERNAME",
+        "FINRA_ORF_REFRESH_TOKEN",
+    )
+
+    monkeypatch.setenv("FINRA_OTC_SOURCE_KIND", "legacy_candidate")
+    assert runner.provider_required_credentials("finra_otc_directory") == (
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+    )
+
+
 def test_dinari_sandbox_canary_controls_require_explicit_operator_budget(monkeypatch):
     runner = _runner_module()
     for name in (
