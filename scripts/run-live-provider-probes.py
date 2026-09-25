@@ -1845,7 +1845,7 @@ def routing_safety_preflight() -> dict[str, str]:
             or isinstance(parsed[operation], bool)
             or parsed[operation] <= 0
         ]
-        if provider == "tiingo" and not missing:
+        if provider == "tiingo":
             unique_reset = os.getenv("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "").strip()
             hourly_reset = os.getenv("TIINGO_REVIEWED_HOURLY_RESET", "").strip()
             unique_evidence = os.getenv("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "").strip()
@@ -1868,7 +1868,7 @@ def routing_safety_preflight() -> dict[str, str]:
                     missing.append("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE")
                 if not hourly_evidence:
                     missing.append("TIINGO_HOURLY_QUOTA_EVIDENCE")
-        if provider == "fmp" and not missing:
+        if provider == "fmp":
             daily_reset = os.getenv("FMP_REVIEWED_DAILY_RESET", "").strip()
             daily_evidence = os.getenv("FMP_DAILY_QUOTA_EVIDENCE", "").strip()
             # FMP's FAQ and newer official limit guidance disagree on the
