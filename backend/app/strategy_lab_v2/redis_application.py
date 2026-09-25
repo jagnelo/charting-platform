@@ -10,6 +10,11 @@ from importlib import import_module
 from typing import Any
 
 from app.strategy_lab_v2.dispatch_payload import DispatchPayloadLoader
+from app.strategy_lab_v2.forward_worker_service import (
+    ForwardEventHandler,
+    ForwardEventMaterializer,
+    ForwardEventWorkerService,
+)
 from app.strategy_lab_v2.outbox_application import (
     OutboxPersistence,
     OutboxRelayScheduler,
@@ -183,6 +188,36 @@ class RedisDispatchRuntime:
             clock=clock,
             heartbeat_sleep=heartbeat_sleep,
             terminal_writer=terminal_writer,
+        )
+
+    def forward_worker_service(
+        self,
+        worker: RedisDispatchWorker,
+        *,
+        payload_loader: DispatchPayloadLoader,
+        materializer: ForwardEventMaterializer,
+        handler: ForwardEventHandler,
+        interval_seconds: float = 1.0,
+        sleep: Callable[[float], Awaitable[None]],
+    ) -> ForwardEventWorkerService:
+        """Compose the isolated forward-event worker over a dedicated queue.
+
+        Forward settlement intentionally has a separate service type from the
+        backtest/runtime worker.  The host must supply authenticated handoff
+        materialization and account/engine handling; this factory only binds
+        the bounded Redis scheduler and payload loader.
+        """
+
+        scheduler = self.worker_scheduler(
+            worker,
+            interval_seconds=interval_seconds,
+            sleep=sleep,
+        )
+        return ForwardEventWorkerService(
+            scheduler,
+            payload_loader,
+            materializer,
+            handler,
         )
 
     async def aclose(self) -> None:

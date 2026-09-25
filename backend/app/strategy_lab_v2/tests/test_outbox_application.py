@@ -7,6 +7,7 @@ from typing import Any, cast
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.forward_worker_service import ForwardEventWorkerService
 from app.strategy_lab_v2.outbox import (
     OutboxAcknowledgeDecision,
     OutboxAcknowledgeResolution,
@@ -187,6 +188,12 @@ async def test_redis_runtime_composes_transport_relay_and_closes_once() -> None:
     assert isinstance(outbox_scheduler, OutboxRelayScheduler)
     assert worker._queue_name == "backtest"
 
+    forward_worker = runtime.worker(
+        queue_name="forward-events",
+        group_name="forward-workers",
+        consumer_name="forward-1",
+    )
+
     async def sleep(_: float) -> None:
         return None
 
@@ -211,6 +218,15 @@ async def test_redis_runtime_composes_transport_relay_and_closes_once() -> None:
         sleep=sleep,
     )
     assert isinstance(service, DedicatedStrategyWorkerService)
+
+    forward_service = runtime.forward_worker_service(
+        forward_worker,
+        payload_loader=Loader(),
+        materializer=materialize,
+        handler=complete,
+        sleep=sleep,
+    )
+    assert isinstance(forward_service, ForwardEventWorkerService)
     await runtime.aclose()
     await runtime.aclose()
     assert client.close_calls == 1
