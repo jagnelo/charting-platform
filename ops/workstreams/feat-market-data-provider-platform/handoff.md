@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current provider preflight after observation corrections
+
+- Source `c2fb160c3f49fe69cafac824d2cee454f3debeaa` ran the full provider live
+  matrix preflight and stopped before transport: `0/0` cases and zero ordinary
+  provider requests. The receipt is appended to `validation.jsonl`.
+- Routing remains fail-closed for the same explicit provider-specific quota or
+  byte baselines, legal/use authority, unresolved capability cases, NMS/OTC/SEC
+  universe evidence, external secret stores, deferred Tradier/IBKR/Ondo, and
+  final shadow phase. The append-only observation corrections did not widen
+  admission unsafely.
+
 ## 2026-09-25 append-only option-quote validation
 
 - Option-chain and historical quote ingestion now appends every provider quote

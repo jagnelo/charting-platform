@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current provider preflight after the append-only
+    observation corrections: source c2fb160c3f49fe69cafac824d2cee454f3debeaa
+    stopped before transport with 0/0 cases and zero ordinary provider
+    requests. Provider-specific quota/byte baselines, legal/use authority,
+    unresolved capability evidence, complete NMS/OTC/SEC reconciliation,
+    external secret stores, deferred Tradier/IBKR/Ondo, and final shadow gates
+    remain open; receipt is appended to validation.jsonl.
+  - >-
     2026-09-25 append-only option-quote correction and full validation: every
     option-chain and historical quote payload now appends immutable evidence in
     option_quote_observation while OptionQuotePoint remains the normalized
