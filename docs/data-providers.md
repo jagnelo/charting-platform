@@ -693,7 +693,8 @@ status, event type, instrument, or issuer. Reconciliation is quota/fairness
 bounded but uses durable event-ID continuation state keyed by the requested
 date window, so a later invocation resumes after the last processed row rather
 than restarting at row zero and starving later observations. The same durable
-continuation protects opt-in future-listing materialization; every persisted
+continuation protects opt-in future-listing materialization and promotion; an
+ambiguous early candidate cannot starve later candidates. Every persisted
 event is eventually considered, while the raw provider row remains immutable.
 Future IPO/IPO-pipeline observations
 can additionally be materialized by the opt-in

@@ -8,9 +8,12 @@
   event-ID cursor, recording the next continuation and completing the cycle
   only after the final persisted row is processed. Raw provider observations
   remain immutable and are never removed by the bounded work budget.
-- Event reconciliation/prelisting tests pass `14/14`; Ruff passes on the
-  changed implementation and tests. The new regressions prove a three-row
-  dataset is processed as 2+1 across successive invocations.
+- Prelisting promotion now has its own durable candidate-ID continuation, so an
+  ambiguous early candidate cannot starve later candidates. Event
+  reconciliation/materialization/promotion tests pass `15/15` across the
+  focused modules; Ruff passes on the changed implementation and tests. The
+  regressions prove three-row event batches process as 2+1 and a later
+  resolvable candidate is reached after an earlier unresolved one.
 - This closes a local starvation/data-exclusion defect only. Provider
   quota/legal/capability gates, NMS/OTC/SEC reconciliation, secret stores,
   deferred providers, publication, and the final shadow run remain open.

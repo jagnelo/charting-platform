@@ -478,14 +478,45 @@ async def promote_prelisting_candidates(
 
     if not isinstance(max_candidates, int) or isinstance(max_candidates, bool) or not 1 <= max_candidates <= 10_000:
         raise ValueError("max_candidates must be between 1 and 10000")
-    rows = (
+    scan_key = "market-event-prelisting-promotion"
+    state = (
         await db.execute(
-            select(MarketEventPrelistingCandidate)
-            .where(MarketEventPrelistingCandidate.status == "pending")
-            .order_by(MarketEventPrelistingCandidate.expected_listing_date, MarketEventPrelistingCandidate.id)
-            .limit(max_candidates)
+            select(ProviderPaginationState)
+            .where(ProviderPaginationState.state_key == scan_key)
+            .with_for_update()
         )
-    ).scalars().all()
+    ).scalar_one_or_none()
+    if state is None:
+        state = ProviderPaginationState(
+            state_key=scan_key,
+            provider="internal",
+            capability="market_event_prelisting",
+            operation="promote_prelisting_candidates",
+            page_size=max_candidates,
+            metadata_payload={"algorithm": "prelisting_promotion_v1"},
+        )
+        db.add(state)
+        await db.flush()
+
+    cursor_id: int | None = None
+    if state.cursor is not None:
+        try:
+            cursor_id = int(state.cursor)
+        except (TypeError, ValueError):
+            state.last_error = "invalid persisted prelisting promotion cursor"
+            state.status = "failed"
+            raise ValueError("invalid persisted prelisting promotion cursor")
+
+    query = (
+        select(MarketEventPrelistingCandidate)
+        .where(MarketEventPrelistingCandidate.status == "pending")
+        .order_by(MarketEventPrelistingCandidate.id)
+    )
+    if cursor_id is not None:
+        query = query.where(MarketEventPrelistingCandidate.id > cursor_id)
+    rows = (await db.execute(query.limit(max_candidates + 1))).scalars().all()
+    truncated = len(rows) > max_candidates
+    rows = rows[:max_candidates]
     promoted = 0
     ambiguous = 0
     for candidate in rows:
@@ -546,10 +577,29 @@ async def promote_prelisting_candidates(
             if event.issuer_id is None:
                 event.issuer_id = candidate.issuer_id
         promoted += 1
+    now = datetime.now(UTC)
+    state.page_number += 1
+    state.pages_fetched += 1
+    state.page_size = max_candidates
+    state.last_page_count = len(rows)
+    state.last_success_at = now
+    state.last_error = None
+    state.status = "partial" if truncated else "complete"
+    state.cursor = str(rows[-1].id) if truncated and rows else None
+    state.metadata_payload = {
+        **(state.metadata_payload or {}),
+        "last_candidate_ids": [candidate.id for candidate in rows],
+        "candidates_considered": len(rows),
+        "truncated": truncated,
+    }
     await db.flush()
     return {
-        "status": "complete",
+        "status": state.status,
         "candidates_considered": len(rows),
         "promoted": promoted,
         "ambiguous": ambiguous,
+        "truncated": truncated,
+        "cursor": state.cursor,
+        "cycle_complete": state.cursor is None,
+        "scan_key": scan_key,
     }

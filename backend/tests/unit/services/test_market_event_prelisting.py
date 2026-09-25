@@ -256,6 +256,60 @@ async def test_promotion_requires_unique_stable_identifier_and_updates_event(db,
 
 
 @pytest.mark.asyncio
+async def test_promotion_continues_after_ambiguous_bounded_candidate(db, instrument):
+    first = MarketEventPrelistingCandidate(
+        candidate_key="event:ambiguous-first",
+        proposed_symbol="FIRST",
+        proposed_name="First Future",
+        status="pending",
+        stable_identifiers={},
+        provider_sources=["edgar"],
+        first_seen_at=datetime(2026, 9, 1, tzinfo=UTC),
+        last_seen_at=datetime(2026, 9, 2, tzinfo=UTC),
+        provenance={},
+    )
+    second = MarketEventPrelistingCandidate(
+        candidate_key="event:resolvable-second",
+        proposed_symbol="SECOND",
+        proposed_name="Second Future",
+        status="pending",
+        stable_identifiers={"figi": "BBG000000002"},
+        provider_sources=["edgar"],
+        first_seen_at=datetime(2026, 9, 1, tzinfo=UTC),
+        last_seen_at=datetime(2026, 9, 2, tzinfo=UTC),
+        provenance={},
+    )
+    db.add_all(
+        [
+            first,
+            second,
+            InstrumentIdentifier(
+                instrument_id=instrument.id,
+                identifier_type=InstrumentIdentifierType.FIGI,
+                identifier_value="BBG000000002",
+                is_active=True,
+            ),
+        ]
+    )
+    db.flush()
+
+    first_result = await promote_prelisting_candidates(
+        AsyncSessionAdapter(db), max_candidates=1
+    )
+    second_result = await promote_prelisting_candidates(
+        AsyncSessionAdapter(db), max_candidates=1
+    )
+
+    assert first_result["status"] == "partial"
+    assert first_result["ambiguous"] == 0
+    assert second_result["status"] == "complete"
+    assert second_result["promoted"] == 1
+    assert second.status == "listed"
+    assert second.instrument_id == instrument.id
+    assert first.status == "pending"
+
+
+@pytest.mark.asyncio
 async def test_promotion_does_not_use_ticker_only_or_ambiguous_venue_matches(db, instrument_type):
     source = DataSource(name="venue-provider-a", base_url="https://example.test/a")
     second_source = DataSource(name="venue-provider-b", base_url="https://example.test/b")
