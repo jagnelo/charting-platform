@@ -303,7 +303,7 @@ class SerialWorkerProcessExecutor:
             deadline = asyncio.get_running_loop().time() + float(timeout)
             while process.is_alive():
                 if asyncio.get_running_loop().time() >= deadline:
-                    _terminate_and_reap(process)
+                    await _terminate_and_reap_async(process)
                     return WorkerProcessResolution(
                         request.request_fingerprint,
                         WorkerProcessDecision.TIMED_OUT,
@@ -334,6 +334,32 @@ def _terminate_and_reap(process: Any) -> None:
         else:  # pragma: no cover - old/custom process implementations
             process.terminate()
         process.join(1.0)
+
+
+async def _terminate_and_reap_async(process: Any) -> None:
+    """Escalate and reap without blocking the worker event loop."""
+
+    process.terminate()
+    await _join_until_reaped(process, timeout_seconds=1.0)
+    if process.is_alive():
+        kill = getattr(process, "kill", None)
+        if callable(kill):
+            kill()
+        else:  # pragma: no cover - old/custom process implementations
+            process.terminate()
+        await _join_until_reaped(process, timeout_seconds=1.0)
+
+
+async def _join_until_reaped(process: Any, *, timeout_seconds: float) -> None:
+    """Poll a process join while yielding to heartbeat and cancellation tasks."""
+
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout_seconds
+    while process.is_alive() and loop.time() < deadline:
+        process.join(0)
+        if process.is_alive():
+            await asyncio.sleep(0.005)
+    process.join(0)
 
 
 def _resolution_from_pipe(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -96,6 +97,72 @@ async def test_worker_process_async_reaps_a_timed_out_child(tmp_path: Path) -> N
     assert result.decision is WorkerProcessDecision.TIMED_OUT
     assert result.execution is None
     assert result.error_digest == content_digest("strategy lab worker process timed out")
+
+
+@pytest.mark.asyncio
+async def test_worker_process_async_timeout_cleanup_yields_to_event_loop(
+    tmp_path: Path,
+) -> None:
+    class PipeEnd:
+        def close(self) -> None:
+            return None
+
+    class StubbornProcess:
+        pid = 42
+
+        def __init__(self) -> None:
+            self.terminated = False
+            self.killed = False
+            self._alive = True
+
+        def start(self) -> None:
+            return None
+
+        def is_alive(self) -> bool:
+            return self._alive
+
+        def join(self, _timeout: float | None = None) -> None:
+            return None
+
+        def terminate(self) -> None:
+            self.terminated = True
+
+        def kill(self) -> None:
+            self.killed = True
+            self._alive = False
+
+    process = StubbornProcess()
+
+    def process_factory(**_kwargs: object) -> StubbornProcess:
+        return process
+
+    def pipe_factory(_duplex: bool) -> tuple[PipeEnd, PipeEnd]:
+        return PipeEnd(), PipeEnd()
+
+    ticks = 0
+
+    async def ticker() -> None:
+        nonlocal ticks
+        while True:
+            ticks += 1
+            await asyncio.sleep(0.001)
+
+    ticker_task = asyncio.create_task(ticker())
+    try:
+        result = await SerialWorkerProcessExecutor(
+            timeout_seconds=0.001,
+            process_factory=process_factory,
+            pipe_factory=pipe_factory,
+        ).run_async(_request(tmp_path), poll_interval_seconds=0.001)
+    finally:
+        ticker_task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await ticker_task
+
+    assert result.decision is WorkerProcessDecision.TIMED_OUT
+    assert process.terminated
+    assert process.killed
+    assert ticks > 10
 
 
 def test_worker_process_rejects_concurrent_use_and_invalid_inputs(tmp_path: Path) -> None:
