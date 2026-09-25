@@ -9,11 +9,15 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.forward_account import ForwardAccountEvent, initial_forward_account_state
-from app.strategy_lab_v2.forward_account_worker import ForwardAccountWorkerHandler
+from app.strategy_lab_v2.forward_account_worker import (
+    ForwardAccountEventBinding,
+    ForwardAccountWorkerHandler,
+)
 from app.strategy_lab_v2.forward_worker_handoff import (
     ForwardEventDispatchPayload,
     ForwardEventWorkItem,
 )
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.postgres_forward_account import (
     ForwardAccountStateDecision,
     ForwardAccountStateResolution,
@@ -36,8 +40,13 @@ class Store:
         return self.resolution
 
 
-def _work() -> tuple[RedisStreamEntry, ForwardEventWorkItem]:
-    event_fingerprint = content_digest("canonical-event")
+def _canonical_event() -> CanonicalForwardEvent:
+    return CanonicalForwardEvent("event-1", 0, NOW, NOW, content_digest("source"))
+
+
+def _work() -> tuple[RedisStreamEntry, ForwardEventWorkItem, CanonicalForwardEvent]:
+    canonical_event = _canonical_event()
+    event_fingerprint = content_digest(canonical_event)
     payload = DispatchPayload.from_mapping(
         {"event_fingerprint": event_fingerprint, "replay_plan_fingerprint": None}
     )
@@ -51,23 +60,32 @@ def _work() -> tuple[RedisStreamEntry, ForwardEventWorkItem]:
         request.payload_digest,
         request.fingerprint,
     )
-    return entry, ForwardEventWorkItem(record, ForwardEventDispatchPayload(event_fingerprint))
+    return (
+        entry,
+        ForwardEventWorkItem(record, ForwardEventDispatchPayload(event_fingerprint)),
+        canonical_event,
+    )
 
 
-def _event(work_item: ForwardEventWorkItem, *, event_fingerprint: str | None = None) -> ForwardAccountEvent:
+def _event(
+    work_item: ForwardEventWorkItem,
+    canonical_event: CanonicalForwardEvent,
+    *,
+    event_fingerprint: str | None = None,
+) -> ForwardAccountEvent:
     return ForwardAccountEvent(
         work_item.dispatch.instance_id,
-        "event-1",
-        event_fingerprint or work_item.payload.event_fingerprint,
-        0,
-        NOW,
+        canonical_event.event_id,
+        event_fingerprint or content_digest(canonical_event),
+        canonical_event.sequence,
+        canonical_event.event_time,
     )
 
 
 @pytest.mark.asyncio
 async def test_account_worker_settles_before_returning_complete_receipt() -> None:
-    entry, work_item = _work()
-    event = _event(work_item)
+    entry, work_item, canonical_event = _work()
+    event = _event(work_item, canonical_event)
     state = initial_forward_account_state("forward-1", base_currency="USD")
     store = Store(
         ForwardAccountStateResolution(
@@ -79,7 +97,7 @@ async def test_account_worker_settles_before_returning_complete_receipt() -> Non
     handler = ForwardAccountWorkerHandler(
         store,
         principal="owner-1",
-        event_resolver=lambda _entry, _item: event,
+        event_resolver=lambda _entry, _item: ForwardAccountEventBinding(canonical_event, event),
     )
 
     result = await handler(entry, work_item)
@@ -91,7 +109,8 @@ async def test_account_worker_settles_before_returning_complete_receipt() -> Non
 
 @pytest.mark.asyncio
 async def test_account_worker_rejects_event_identity_drift_without_store_write() -> None:
-    entry, work_item = _work()
+    entry, work_item, _canonical_event_value = _work()
+    other_event = CanonicalForwardEvent("event-2", 1, NOW, NOW, content_digest("other-source"))
     state = initial_forward_account_state("forward-1", base_currency="USD")
     store = Store(
         ForwardAccountStateResolution(
@@ -103,20 +122,22 @@ async def test_account_worker_rejects_event_identity_drift_without_store_write()
     handler = ForwardAccountWorkerHandler(
         store,
         principal="owner-1",
-        event_resolver=lambda _entry, item: _event(item, event_fingerprint=content_digest("other")),
+        event_resolver=lambda _entry, item: ForwardAccountEventBinding(
+            other_event, _event(item, other_event)
+        ),
     )
 
     result = await handler(entry, work_item)
 
     assert result.decision is WorkerHandleDecision.REJECT
-    assert result.rejection_reason == "forward account event fingerprint does not match dispatch"
+    assert result.rejection_reason == "forward account canonical fingerprint does not match dispatch"
     assert store.events == []
 
 
 @pytest.mark.asyncio
 async def test_account_worker_retries_missing_or_out_of_order_account_state() -> None:
-    entry, work_item = _work()
-    event = _event(work_item)
+    entry, work_item, canonical_event = _work()
+    event = _event(work_item, canonical_event)
     state = initial_forward_account_state("forward-1", base_currency="USD")
     store = Store(
         ForwardAccountStateResolution(
@@ -129,7 +150,7 @@ async def test_account_worker_retries_missing_or_out_of_order_account_state() ->
     handler = ForwardAccountWorkerHandler(
         store,
         principal="owner-1",
-        event_resolver=lambda _entry, _item: event,
+        event_resolver=lambda _entry, _item: ForwardAccountEventBinding(canonical_event, event),
     )
 
     result = await handler(entry, work_item)

@@ -11,11 +11,13 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import Any, Protocol
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.forward_account import ForwardAccountEvent
 from app.strategy_lab_v2.forward_worker_handoff import ForwardEventWorkItem
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.postgres_forward_account import (
     ForwardAccountStateDecision,
     ForwardAccountStateResolution,
@@ -32,9 +34,35 @@ class ForwardAccountStore(Protocol):
     ) -> ForwardAccountStateResolution: ...
 
 
+@dataclass(frozen=True, slots=True)
+class ForwardAccountEventBinding:
+    """Bind engine-produced account effects to the canonical stream event."""
+
+    canonical_event: CanonicalForwardEvent
+    account_event: ForwardAccountEvent
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.canonical_event, CanonicalForwardEvent):
+            raise TypeError("canonical_event must be a CanonicalForwardEvent")
+        if not isinstance(self.account_event, ForwardAccountEvent):
+            raise TypeError("account_event must be a ForwardAccountEvent")
+        if content_digest(self.canonical_event) != self.account_event.event_fingerprint:
+            raise ValueError("account event fingerprint does not match canonical event")
+        if self.account_event.event_id != self.canonical_event.event_id:
+            raise ValueError("account event id does not match canonical event")
+        if self.account_event.sequence != self.canonical_event.sequence:
+            raise ValueError("account event sequence does not match canonical event")
+        if self.account_event.event_time != self.canonical_event.event_time:
+            raise ValueError("account event time does not match canonical event")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
 ForwardAccountEventResolver = Callable[
     [RedisStreamEntry, ForwardEventWorkItem],
-    Awaitable[ForwardAccountEvent] | ForwardAccountEvent,
+    Awaitable[ForwardAccountEventBinding] | ForwardAccountEventBinding,
 ]
 
 
@@ -72,13 +100,16 @@ class ForwardAccountWorkerHandler:
         if not isinstance(work_item, ForwardEventWorkItem):
             raise TypeError("work_item must be a ForwardEventWorkItem")
         resolved = self._event_resolver(entry, work_item)
-        event = await resolved if inspect.isawaitable(resolved) else resolved
-        if not isinstance(event, ForwardAccountEvent):
-            return _reject(entry, "forward account resolver returned an invalid event")
+        binding = await resolved if inspect.isawaitable(resolved) else resolved
+        if not isinstance(binding, ForwardAccountEventBinding):
+            return _reject(entry, "forward account resolver returned an invalid binding")
+        event = binding.account_event
         if event.instance_id != work_item.dispatch.instance_id:
             return _reject(entry, "forward account event instance identity does not match dispatch")
-        if event.event_fingerprint != work_item.payload.event_fingerprint:
-            return _reject(entry, "forward account event fingerprint does not match dispatch")
+        if binding.canonical_event.event_id != event.event_id:
+            return _reject(entry, "forward account canonical identity does not match event")
+        if content_digest(binding.canonical_event) != work_item.payload.event_fingerprint:
+            return _reject(entry, "forward account canonical fingerprint does not match dispatch")
         resolution = await self._account_store.apply(principal=self._principal, event=event)
         if not isinstance(resolution, ForwardAccountStateResolution):
             return _reject(entry, "forward account store returned an invalid resolution")
@@ -125,6 +156,7 @@ def _reject(entry: RedisStreamEntry, reason: str) -> WorkerHandleResult:
 
 
 __all__ = [
+    "ForwardAccountEventBinding",
     "ForwardAccountEventResolver",
     "ForwardAccountStore",
     "ForwardAccountWorkerHandler",
