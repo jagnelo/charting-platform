@@ -22,6 +22,7 @@ from app.strategy_lab_v2.api_router import (
     SubmissionServiceResult,
     _json_value,
     _parse_forward_dispatch,
+    _parse_forward_lifecycle,
     _parse_forward_transaction,
     _request_id,
     _safe_header_value,
@@ -29,6 +30,7 @@ from app.strategy_lab_v2.api_router import (
     serialize_forward_account,
     serialize_forward_event_dispatch,
     serialize_forward_event_transaction,
+    serialize_forward_lifecycle,
     serialize_forward_warmup,
     serialize_resource,
     serialize_search_state_snapshot,
@@ -66,6 +68,10 @@ from app.strategy_lab_v2.lifecycle import (
     ForwardCursor,
     ForwardEventDisposition,
     observe_forward_event,
+)
+from app.strategy_lab_v2.postgres_forward_state import (
+    ForwardStateMutationDecision,
+    ForwardStateMutationResolution,
 )
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
@@ -278,6 +284,23 @@ def test_forward_warmup_parser_and_serializer_preserve_carry_in_identity() -> No
     assert payload["data"]["type"] == "forward-warmups"
     assert payload["data"]["id"] == receipt.fingerprint
     assert payload["data"]["meta"]["decision"] == "complete"
+
+
+def test_forward_lifecycle_parser_and_serializer_preserve_transition_identity() -> None:
+    instance = forward_state().checkpoint.instance
+    target, now = _parse_forward_lifecycle(
+        {"target": instance.state.value, "now": NOW.isoformat()}
+    )
+    assert target is instance.state
+    assert now == NOW
+    resolution = ForwardStateMutationResolution(
+        ForwardStateMutationDecision.APPLIED,
+        instance,
+    )
+    payload = serialize_forward_lifecycle(resolution, request_id="request-1")
+    assert payload["data"]["type"] == "forward-lifecycle-transitions"
+    assert payload["data"]["attributes"]["decision"] == "applied"
+    assert payload["data"]["attributes"]["instance"]["instance_id"] == instance.instance_id
 
 
 def _capability_document() -> ResourceDocument:

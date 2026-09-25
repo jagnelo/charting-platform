@@ -45,7 +45,7 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandKind,
     ExecutionCommandResolution,
 )
-from app.strategy_lab_v2.contracts import CarryInMode
+from app.strategy_lab_v2.contracts import CarryInMode, ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.forward_account import ForwardAccountState
 from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
@@ -66,6 +66,7 @@ from app.strategy_lab_v2.lifecycle import (
     ForwardEventDisposition,
     ForwardEventObservation,
 )
+from app.strategy_lab_v2.postgres_forward_state import ForwardStateMutationResolution
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
     ResourceMutationReceipt,
@@ -279,6 +280,14 @@ class ForwardWarmupApiAdapter(Protocol):
     def complete_forward_warmup(
         self, *, principal: Any, receipt: ForwardWarmupReceipt
     ) -> Awaitable[ForwardWarmupResolution] | ForwardWarmupResolution: ...
+
+
+class ForwardLifecycleApiAdapter(Protocol):
+    """Application-owned forward-instance lifecycle transition boundary."""
+
+    def transition_forward_instance(
+        self, *, principal: Any, instance_id: str, target: ForwardState, now: datetime
+    ) -> Awaitable[ForwardStateMutationResolution] | ForwardStateMutationResolution: ...
 
 
 class SearchDispatchApiAdapter(Protocol):
@@ -785,6 +794,35 @@ def serialize_forward_warmup(
     )
 
 
+def serialize_forward_lifecycle(
+    resolution: ForwardStateMutationResolution, *, request_id: str
+) -> dict[str, Any]:
+    """Serialize one forward-instance lifecycle transition or replay."""
+
+    if not isinstance(resolution, ForwardStateMutationResolution):
+        raise TypeError("resolution must be a ForwardStateMutationResolution")
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise ValueError("request_id must not be empty")
+    return _json_value(
+        {
+            "data": {
+                "type": "forward-lifecycle-transitions",
+                "id": content_digest(resolution.instance)
+                if resolution.instance is not None
+                else content_digest(resolution),
+                "attributes": {
+                    "decision": resolution.decision,
+                    "instance": asdict(resolution.instance)
+                    if resolution.instance is not None
+                    else None,
+                    "rejection_reason": resolution.rejection_reason,
+                },
+                "meta": {"request_id": request_id},
+            }
+        }
+    )
+
+
 def serialize_search_dispatch(
     resolution: SearchDispatchResolution,
     *,
@@ -1083,6 +1121,12 @@ def _parse_forward_warmup(payload: Any, *, instance_id: str) -> ForwardWarmupRec
         final_event_sequence=sequence,
         final_event_fingerprint=payload["final_event_fingerprint"],
     )
+
+
+def _parse_forward_lifecycle(payload: Any) -> tuple[ForwardState, datetime]:
+    if not isinstance(payload, Mapping) or set(payload) != {"target", "now"}:
+        raise ValueError("lifecycle body must contain target and now only")
+    return ForwardState(payload["target"]), _parse_forward_timestamp(payload["now"], "now")
 
 
 def _error_response(error: ApiError) -> JSONResponse:
@@ -2425,6 +2469,87 @@ def create_strategy_lab_router(
                 )
             )
 
+    @router.post("/forward-instances/{instance_id}/lifecycle", status_code=status.HTTP_202_ACCEPTED)
+    async def transition_forward_instance(
+        instance_id: str,
+        request: Request,
+        body: Any = Body(...),
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Apply an owner-scoped forward lifecycle transition."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            if not instance_id.strip():
+                raise ValueError("instance_id must not be empty")
+            target, now = _parse_forward_lifecycle(
+                await _strict_json_body(request, request_id)
+            )
+            transition = getattr(adapter, "transition_forward_instance", None)
+            if not callable(transition):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "forward lifecycle adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                        details={"reason": "the host has not supplied lifecycle persistence"},
+                    )
+                )
+            resolution = await _resolve(
+                transition(
+                    principal=principal,
+                    instance_id=instance_id,
+                    target=target,
+                    now=now,
+                )
+            )
+            if not isinstance(resolution, ForwardStateMutationResolution):
+                raise TypeError("adapter returned an invalid forward lifecycle resolution")
+            if resolution.instance is None:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.NOT_FOUND
+                        if resolution.decision.value == "not_found"
+                        else ApiErrorCode.CONFLICT,
+                        resolution.rejection_reason or "forward lifecycle transition was rejected",
+                        request_id,
+                        status.HTTP_404_NOT_FOUND
+                        if resolution.decision.value == "not_found"
+                        else status.HTTP_409_CONFLICT,
+                    )
+                )
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content=serialize_forward_lifecycle(resolution, request_id=request_id),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "forward lifecycle request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 forward lifecycle transition failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 forward lifecycle transition failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
     @router.post("/experiments/{experiment_id}/search", status_code=status.HTTP_202_ACCEPTED)
     async def initialize_search(
         experiment_id: str,
@@ -3162,6 +3287,7 @@ __all__ = [
     "ForwardAccountApiAdapter",
     "ForwardEventApiAdapter",
     "ForwardEventDispatchApiAdapter",
+    "ForwardLifecycleApiAdapter",
     "ForwardWarmupApiAdapter",
     "ForwardStateApiAdapter",
     "SearchDispatchApiAdapter",
@@ -3179,6 +3305,7 @@ __all__ = [
     "serialize_forward_account",
     "serialize_forward_event_dispatch",
     "serialize_forward_event_transaction",
+    "serialize_forward_lifecycle",
     "serialize_forward_warmup",
     "serialize_resource",
     "serialize_resource_identifier",
