@@ -2,6 +2,19 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Forward-worker capacity settlement checkpoint
+
+Added `ForwardWorkerCapacityReleaseHandler` and the
+`RedisDispatchRuntime.settling_forward_worker_service()` factory. A forward
+handler must first return a durable completion receipt; only then is a release
+observation validated against the authorized worker/lease and passed to the
+existing atomic PostgreSQL `release_capacity` boundary. Released and exact
+replay outcomes permit acknowledgement; rejected release evidence remains
+retryable, preventing capacity loss or premature Redis acknowledgement.
+
+The focused capacity-settlement and Redis runtime suite passed 8 tests. Ruff
+and MyPy remain green across 293 source files; whitespace validation is clean.
+
 ## 2026-09-25 - Atomic forward-worker authorization load checkpoint
 
 `PostgresWorkerStateAdapter.load_forward_authorization()` now loads the
