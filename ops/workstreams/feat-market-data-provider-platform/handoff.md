@@ -6557,3 +6557,15 @@ provider or start the shadow run.
 - This closes another in-scope response-loss path. Provider-specific live,
   legal/use, complete-universe, external secret-store, deferred-provider,
   publication, and final-shadow gates remain open and fail-closed.
+
+## 2026-09-25 current-source Twelve Data live admission check
+
+- The current-source Twelve Data matrix was attempted after the search adapter
+  change. It stopped before transport (`0/0` requests) because the durable
+  account snapshot reconciles only the provider-native `credits_per_minute`
+  pool; the separately published `credits_per_day` pool has no stable native
+  counter in the response. The runner therefore correctly refuses to spend a
+  daily pool whose external baseline is unknown.
+- This is recorded as an incomplete preflight at source
+  `c9bbdc015ec2e25c7d383eb7b3b8e42a7506b54b`; it is not presented as live
+  coverage. No request was sent and no provider state was changed.
