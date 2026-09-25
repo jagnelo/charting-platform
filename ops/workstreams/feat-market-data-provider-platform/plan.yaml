@@ -1506,6 +1506,13 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-25 FINRA OTC source-scoped directory cache: the in-memory cache
+      now keys entries by source kind, active URL, and inactive URL, preventing
+      stale rows from a prior configured source from being served during the
+      TTL. Focused coverage passed 114/114; exact-source unit validation passed
+      1,924/1,924 and Docker integration passed 386/386 at source
+      `12147907b26fe1d7940e03c6b18189e2f9715fd3`.
+    - >-
       2026-09-25 FINRA Gateway credential-scoped token cache: the in-memory
       OAuth cache now keys entries by client ID and a one-way client-secret
       digest, preventing stale-token reuse after credential rotation without

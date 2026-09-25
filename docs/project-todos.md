@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-25 — FINRA OTC source-scoped directory cache
+
+- [x] Scope the in-memory OTC directory cache to the configured source kind,
+      active URL, and inactive URL so source changes cannot reuse rows from a
+      previous source during the TTL. Focused provider/registry/live-runner
+      coverage passed `114/114`; Ruff passed.
+
+- [x] Validate exact source
+      `12147907b26fe1d7940e03c6b18189e2f9715fd3`: branch-owned unit scope
+      passed `1,924/1,924` with `37` warnings in `312.96s`; Docker integration
+      passed `386/386` with `57` warnings in `709.09s` (testcontainer session
+      `93bfba88-70c7-468f-b45e-7fc3dcc8f45f`); cleanup completed without
+      host-wide pruning.
+
 ### 2026-09-25 — FINRA Gateway credential-scoped token cache
 
 - [x] Scope the in-memory FINRA Gateway OAuth cache to the client ID and a

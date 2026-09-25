@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 FINRA OTC source-scoped directory cache
+
+- The in-memory OTC directory cache now includes the configured source kind,
+  active URL, and inactive URL in its cache key. Runtime source changes can no
+  longer serve rows from a prior source during the TTL. Focused
+  provider/registry/live-runner coverage passed `114/114` with Ruff clean.
+
+## 2026-09-25 exact-head validation after OTC cache hardening
+
+- The branch-owned backend unit gate passed `1,924/1,924` with `37` warnings
+  in `312.96s` at source `12147907b26fe1d7940e03c6b18189e2f9715fd3`.
+- The authoritative Docker integration gate passed `386/386` with `57`
+  warnings in `709.09s`, using isolated PostgreSQL/Redis testcontainers
+  (session `93bfba88-70c7-468f-b45e-7fc3dcc8f45f`). Cleanup completed without
+  host-wide pruning. FINRA OTC source entitlement, terms, completeness,
+  operation-cost, and credentialed live evidence remain fail-closed.
+
 ## 2026-09-25 FINRA Gateway credential-scoped token cache
 
 - The in-memory FINRA Gateway OAuth cache is now scoped by client ID and a
