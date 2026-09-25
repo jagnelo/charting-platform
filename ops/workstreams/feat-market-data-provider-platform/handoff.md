@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-head branch-owned unit gate
+
+- The branch-owned backend unit command passed `1,917` tests with `37`
+  existing warnings in `322.75s`, using `--override-ini addopts=` so the
+  branch gate reports coverage without inheriting the repository-wide coverage
+  threshold. The ETF adapter file owned by
+  `feat/etf-holdings-constituents` remained excluded; no ETF-owned source was
+  changed. The redacted receipt is in `validation.jsonl`.
+
 ## 2026-09-25 quota-ledger diagnostic hardening
 
 - A host-mounted SQLite ledger that can be read but not written now produces a

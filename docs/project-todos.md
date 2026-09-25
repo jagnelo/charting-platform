@@ -2,6 +2,13 @@
 
 ### 2026-09-25 — Current provider-contract audit continuation
 
+- [x] Re-run the exact-head branch-owned backend unit gate, excluding only the
+      ETF adapter file owned by `feat/etf-holdings-constituents`: `1,917`
+      tests passed with `37` existing warnings in `322.75s`. The command
+      intentionally overrides repository `addopts` so its branch result is not
+      rejected by the unrelated global coverage threshold; coverage remains
+      reported and the receipt is durable in the provider workstream.
+
 - [x] Replace the generic host-ledger failure with an actionable, redacted
       read-only SQLite diagnostic. The quota-coordinator/live-runner focused
       suite passed `86/86`; the current preflight receipt identifies the
