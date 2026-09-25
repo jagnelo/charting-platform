@@ -6606,3 +6606,17 @@ provider or start the shadow run.
   FINRA byte/source controls, Massive/Coinbase/xStocks/Bybit use authority,
   Dinari sandbox quota, Marketstack account/discovery controls, and Tiingo/FMP
   byte bounds. This is intentional safety behavior, not an unrecorded default.
+
+## 2026-09-25 normalized identifier-source retention correction
+
+- Generic universe ingestion and instrument synchronization now attach the
+  complete provider quote row to every normalized identifier. The yfinance
+  compatibility adapter retains the exact symbol/ISIN value it queried, and
+  snapshot-to-`IdentifierRecord` rehydration now carries `raw_payload` forward
+  instead of dropping it. This closes the remaining normalization/rehydration
+  loss path without changing identity selection or ETF adapter ownership.
+- Exact source `b647fc5d7e8f2da5c6f4e34262b71531f7c7e7aa` passed the full
+  branch-owned unit gate `1,911/1,911` (37 warnings) and Docker integration
+  `386/386` (57 warnings). Focused provider/persistence coverage passed
+  `292/292`, Ruff and diff checks were clean, and current-source Alpaca/OpenFIGI
+  live receipts remain green from the preceding implementation commit.

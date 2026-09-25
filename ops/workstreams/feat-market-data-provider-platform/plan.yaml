@@ -4627,4 +4627,13 @@ progress:
       No ETF/frontend paths changed. Remaining provider quota/legal/source,
       complete-universe, target-secret, deferred-provider, publication, and
       final-shadow gates remain fail-closed.
+    - >-
+      2026-09-25 normalized identifier-source correction: generic universe and
+      instrument-sync ingestion now retain the complete provider quote row for
+      each normalized identifier; yfinance preserves its queried symbol/ISIN
+      value; and identifier snapshot rehydration keeps `raw_payload`. Exact
+      source `b647fc5d73469e9ce00e67ff6e8d810585a3646d` passed unit `1,911/1,911`
+      and Docker integration `386/386`. No identity-selection behavior or ETF
+      adapter ownership changed; unresolved provider and owner-controlled gates
+      remain fail-closed.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.
