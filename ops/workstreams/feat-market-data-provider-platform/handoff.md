@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current preflight after Massive terms audit
+
+- Source `e003da2349ddbf919f3953573c3ac4bf30cfdc7e` ran the full provider
+  manifest preflight and stopped before transport: `0/0` cases and zero
+  provider requests. The redacted `incomplete_preflight` receipt is appended
+  to `validation.jsonl`.
+- Massive remains explicitly non-routable for market-data operations because
+  its current terms limit the free service to personal, non-business use and
+  prohibit building an end-user application absent written consent. The
+  implementation does not infer that authority from possession of an API key.
+
 ## 2026-09-25 Alpaca native usage refresh
 
 - The focused credentialed Alpaca account-usage probe passed `1/1` at source

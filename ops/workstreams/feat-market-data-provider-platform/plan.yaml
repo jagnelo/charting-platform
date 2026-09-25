@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Exact-current source `e003da2349ddbf919f3953573c3ac4bf30cfdc7e` ran the
+    full provider manifest preflight and stopped before transport at 0/0 with
+    zero provider requests. Massive's current published terms were rechecked:
+    the free service is personal/non-business and prohibits end-user
+    applications absent written consent, so its API key cannot be treated as
+    legal authorization. The complete redacted receipt is in validation.jsonl;
+    all provider-contract/baseline/legal/capability, universe, secret-store,
+    deferred-provider, publication, and final-shadow gates remain open.
+  - >-
     A bounded Alpaca native account-usage refresh passed 1/1 at source
     `26ce20ed97829c31b5eb8ae03425165f8b4fa21e` with exactly one request; the
     redacted receipt and durable owner-local usage evidence are recorded.
