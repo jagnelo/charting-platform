@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current full provider preflight
+
+- Source `fc860dc1adcd8c0b25d8dc7cebc6c674e0f95ccc` ran the full manifest
+  preflight and stopped before transport: `0/0` ordinary cases and zero
+  ordinary provider requests. The structured `incomplete_preflight` receipt
+  is appended to `validation.jsonl`.
+- The preflight continues to fail closed on explicit provider-specific quota or
+  byte baselines, legal/use authority, unresolved capability evidence,
+  complete NMS/OTC/SEC universe reconciliation, external secret stores, and
+  deferred Tradier/IBKR/Ondo. It does not claim any skipped provider as live
+  validated and does not apply a generic rate-limit fallback.
+
 ## 2026-09-25 current-source backend validation
 
 - The complete backend unit gate passed on source
