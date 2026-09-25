@@ -464,12 +464,12 @@ async def _record_bar_observations(
         return
     observed_at = observed_at or datetime.now(UTC)
     await db.execute(
-        pg_insert(MarketBarObservation).on_conflict_do_update(
-            # Use the column conflict target instead of the constraint name so
-            # the persistence boundary remains executable on both PostgreSQL
-            # and the SQLite-backed unit/integration fixtures.  The target is
-            # the declared unique scope for observations and is equivalent to
-            # ``uq_market_bar_observation`` on PostgreSQL.
+        # Use the column conflict target instead of the constraint name so the
+        # persistence boundary remains executable on both PostgreSQL and the
+        # SQLite-backed unit/integration fixtures.  Raw observations are
+        # immutable evidence: a retry with the same observation timestamp must
+        # never overwrite the provider payload already retained.
+        pg_insert(MarketBarObservation).on_conflict_do_nothing(
             index_elements=[
                 "instrument_id",
                 "data_source_id",
@@ -478,23 +478,7 @@ async def _record_bar_observations(
                 "is_adjusted",
                 "scope_key",
                 "observed_at",
-            ],
-            set_={
-                "provider_symbol": pg_insert(MarketBarObservation).excluded.provider_symbol,
-                "market_series_id": pg_insert(MarketBarObservation).excluded.market_series_id,
-                "session": pg_insert(MarketBarObservation).excluded.session,
-                "scope_key": pg_insert(MarketBarObservation).excluded.scope_key,
-                "observed_at": pg_insert(MarketBarObservation).excluded.observed_at,
-                "open": pg_insert(MarketBarObservation).excluded.open,
-                "high": pg_insert(MarketBarObservation).excluded.high,
-                "low": pg_insert(MarketBarObservation).excluded.low,
-                "close": pg_insert(MarketBarObservation).excluded.close,
-                "volume": pg_insert(MarketBarObservation).excluded.volume,
-                "vwap": pg_insert(MarketBarObservation).excluded.vwap,
-                "adjustment_basis": pg_insert(MarketBarObservation).excluded.adjustment_basis,
-                "adjustment_version": pg_insert(MarketBarObservation).excluded.adjustment_version,
-                "source_payload": pg_insert(MarketBarObservation).excluded.source_payload,
-            },
+            ]
         ),
         [
             {

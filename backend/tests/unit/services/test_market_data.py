@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
+from sqlalchemy.dialects import postgresql
 
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.services import market_data
@@ -140,6 +141,27 @@ async def test_observation_insert_mapping_preserves_series_adjustment_and_payloa
             "source_payload": {"provider": "alpaca", "provider_payload": {"t": "2026-01-02"}},
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_bar_observation_insert_is_append_only_for_same_observation_timestamp():
+    class _Db:
+        def __init__(self):
+            self.statement = None
+
+        async def execute(self, statement, _parameters):
+            self.statement = statement
+
+    db = _Db()
+    await market_data._record_bar_observations(
+        db,
+        [_semantic_bar()],
+        data_source_id=7,
+        provider_symbol="AAPL",
+        observed_at=datetime(2026, 1, 3, tzinfo=UTC),
+    )
+
+    assert "DO NOTHING" in str(db.statement.compile(dialect=postgresql.dialect()))
     assert _is_recoverable_provider_gap(RuntimeError("unexpected programming failure")) is False
 
 

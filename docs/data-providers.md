@@ -172,7 +172,9 @@ to remove non-empty evidence rather than silently discarding it.
 Raw OHLCV observations follow the same rule: the conflict key includes the
 fetch observation timestamp, so a later provider revision of an existing bar
 creates a new raw observation instead of overwriting the earlier response.
-Canonical bars remain projections and may be refreshed independently.
+Canonical bars remain projections and may be refreshed independently. A retry
+with the same observation timestamp is also ignored at the raw-evidence
+boundary rather than overwriting the retained payload.
 
 General market events follow the same projection/evidence split. The canonical
 `market_event` row remains keyed by provider event identity for reconciliation,

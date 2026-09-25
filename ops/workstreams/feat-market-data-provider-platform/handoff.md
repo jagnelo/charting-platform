@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 raw OHLCV immutability correction
+
+- `MarketBarObservation` persistence now uses conflict-do-nothing. A repeated
+  fetch with the same observation timestamp cannot overwrite raw provider
+  values or payload; later observations remain distinct, while canonical bars
+  continue to refresh as projections.
+- Market-data service tests pass `26/26` and Ruff/diff checks pass. No provider
+  routing or frontend/ETF behavior changed.
+
 ## 2026-09-25 exact-current preflight after quota-ledger retention correction
 
 - Source `dff117af3` ran the full provider manifest preflight and stopped before
