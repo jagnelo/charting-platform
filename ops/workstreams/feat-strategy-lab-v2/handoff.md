@@ -5648,3 +5648,13 @@ not match the route resource being projected. This closes a local resource
 binding gap while preserving deterministic replay ordering and immutable plan
 identity. The focused forward/API suite passes 30 tests, with Ruff, MyPy (293
 source files), and whitespace validation green.
+
+## 2026-09-25 - Forward projection identity hardening
+
+Forward event-transaction serialization now rejects counterfactual replay plans
+bound to a different instance than the projected checkpoint. Warm-up projection
+also rejects receipts whose instance, snapshot, or carry-in mode differs from
+the resolved forward instance. These checks keep host adapter output fail
+closed at the API boundary rather than trusting a malformed resolution. The
+focused forward/API suite passes 32 tests; Ruff, MyPy (293 source files), and
+whitespace validation remain green.
