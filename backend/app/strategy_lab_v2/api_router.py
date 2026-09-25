@@ -746,6 +746,11 @@ def serialize_forward_event_dispatch(
         raise TypeError("resolution must be a ForwardEventDispatchResolution")
     if not isinstance(request_id, str) or not request_id.strip():
         raise ValueError("request_id must not be empty")
+    if resolution.event_transaction.state.fingerprint != resolution.state.fingerprint:
+        raise ValueError("event transaction state does not match the dispatch state")
+    replay_plan = resolution.event_transaction.replay_plan
+    if replay_plan is not None and replay_plan.instance_id != resolution.state.checkpoint.instance.instance_id:
+        raise ValueError("replay plan instance does not match the dispatch state")
     return _json_value(
         {
             "data": {

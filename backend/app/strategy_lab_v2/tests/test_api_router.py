@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from types import SimpleNamespace
@@ -277,6 +278,43 @@ def test_forward_event_dispatch_parser_and_serializer_preserve_outbox_identity()
     payload = serialize_forward_event_dispatch(resolution, request_id="request-1")
     assert payload["data"]["type"] == "forward-event-dispatches"
     assert payload["data"]["id"] == dispatch.fingerprint
+
+
+def test_forward_event_dispatch_serializer_rejects_nested_state_mismatch() -> None:
+    state = forward_state()
+    event = correction_event("live-0", 0)
+    observation = observe_forward_event(ForwardCursor(), event)
+    dispatch_request = DispatchRequest(
+        idempotency_key="forward-dispatch-mismatch",
+        attempt_id="forward-1",
+        payload_digest=content_digest(
+            {"event_fingerprint": content_digest(event), "replay_plan_fingerprint": None}
+        ),
+        queue_name="forward",
+        created_at=NOW,
+    )
+    resolution = resolve_forward_event_dispatch(
+        state,
+        event,
+        observation,
+        dispatch_request=dispatch_request,
+    )
+    mismatched_transaction = ForwardEventTransactionResolution(
+        resolution.event_transaction.decision,
+        replace(state, warmup_receipt_fingerprint=content_digest("different-warmup")),
+        resolution.event_transaction.event_fingerprint,
+        resolution.event_transaction.replay_plan,
+    )
+    mismatched = ForwardEventDispatchResolution(
+        resolution.decision,
+        state,
+        mismatched_transaction,
+        resolution.dispatch_resolution,
+        resolution.envelope,
+    )
+
+    with pytest.raises(ValueError, match="transaction state"):
+        serialize_forward_event_dispatch(mismatched, request_id="request-1")
 
 
 def test_forward_warmup_parser_and_serializer_preserve_carry_in_identity() -> None:
