@@ -1427,59 +1427,59 @@ symbol_audit_ledger:
     - symbol: RTOO
       tier: 1
       provider_identity: vistashares
-      current_outcome: unavailable
-      evidence_state: non_executable_public_source
-      investigated_at: 2026-09-04
-      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
-      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-25
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-25", "live:vistashares-product-page-declared-complete-holdings-csv-2026-09-25"]
+      next_action: "Keep current only while the complete symbol-scoped VistaShares CSV remains identity-verified and within the freshness deadline; re-audit on route or schema drift."
     - symbol: AIS
       tier: 1
       provider_identity: vistashares
-      current_outcome: unavailable
-      evidence_state: non_executable_public_source
-      investigated_at: 2026-09-04
-      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
-      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-25
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-25", "live:vistashares-product-page-declared-complete-holdings-csv-2026-09-25"]
+      next_action: "Keep current only while the complete symbol-scoped VistaShares CSV remains identity-verified and within the freshness deadline; re-audit on route or schema drift."
     - symbol: AMMO
       tier: 1
       provider_identity: vistashares
-      current_outcome: unavailable
-      evidence_state: non_executable_public_source
-      investigated_at: 2026-09-04
-      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
-      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-25
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-25", "live:vistashares-product-page-declared-complete-holdings-csv-2026-09-25"]
+      next_action: "Keep current only while the complete symbol-scoped VistaShares CSV remains identity-verified and within the freshness deadline; re-audit on route or schema drift."
     - symbol: QUSA
       tier: 1
       provider_identity: vistashares
-      current_outcome: unavailable
-      evidence_state: non_executable_public_source
-      investigated_at: 2026-09-04
-      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
-      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-25
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-25", "live:vistashares-product-page-declared-complete-holdings-csv-2026-09-25"]
+      next_action: "Keep current only while the complete symbol-scoped VistaShares CSV remains identity-verified and within the freshness deadline; re-audit on route or schema drift."
     - symbol: OMAH
       tier: 1
       provider_identity: vistashares
-      current_outcome: unavailable
-      evidence_state: non_executable_public_source
-      investigated_at: 2026-09-04
-      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
-      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-25
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-25", "live:vistashares-product-page-declared-complete-holdings-csv-2026-09-25"]
+      next_action: "Keep current only while the complete symbol-scoped VistaShares CSV remains identity-verified and within the freshness deadline; re-audit on route or schema drift."
     - symbol: ACKY
       tier: 1
       provider_identity: vistashares
-      current_outcome: unavailable
-      evidence_state: non_executable_public_source
-      investigated_at: 2026-09-04
-      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
-      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-25
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-25", "live:vistashares-product-page-declared-complete-holdings-csv-2026-09-25"]
+      next_action: "Keep current only while the complete symbol-scoped VistaShares CSV remains identity-verified and within the freshness deadline; re-audit on route or schema drift."
     - symbol: DRKY
       tier: 1
       provider_identity: vistashares
-      current_outcome: unavailable
-      evidence_state: non_executable_public_source
-      investigated_at: 2026-09-04
-      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
-      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-25
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-25", "live:vistashares-product-page-declared-complete-holdings-csv-2026-09-25"]
+      next_action: "Keep current only while the complete symbol-scoped VistaShares CSV remains identity-verified and within the freshness deadline; re-audit on route or schema drift."
     - symbol: MCRT
       tier: 1
       provider_identity: wellesley_asset_management

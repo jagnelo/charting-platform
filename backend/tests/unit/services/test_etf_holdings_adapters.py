@@ -2757,6 +2757,15 @@ async def test_regan_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
     adapter = get_holdings_adapter("regan")
     assert adapter is not None
 
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+
     requests_seen = []
 
     def fake_requests_get(url, **kwargs):
@@ -3900,7 +3909,11 @@ async def test_hwcap_adapter_follows_official_monthly_holdings_pdf_and_keeps_cas
             )
         return FakeResponse(content=b"mock-pdf", content_type="application/pdf", url=holdings_url)
 
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
     monkeypatch.setattr(
         type(adapter),
         "_extract_pdf_text",
@@ -10609,9 +10622,13 @@ async def test_etf_architect_adapter_retries_transient_requests_gateway_error(mo
     async def skip_delay(_seconds):
         return None
 
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     result = await adapter.fetch_latest(symbol="QVAL", identifiers={})
 
@@ -11489,7 +11506,11 @@ async def test_day_hagan_declared_airtable_adapter_parses_holdings(monkeypatch, 
             url=url,
         )
 
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     result = await adapter.fetch_latest(symbol="SSUS", identifiers={})
 
@@ -11572,7 +11593,11 @@ async def test_estate_counselors_adapter_verifies_brinsmere_filepoint_holdings(m
             return FakeResponse(text=raw_csv, content_type="text/csv", url=url)
         raise AssertionError(f"unexpected URL {url}")
 
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     result = await adapter.fetch_latest(symbol="TBFC", identifiers={})
 
@@ -11668,7 +11693,11 @@ async def test_corient_adapter_verifies_fundx_csv_viewer_holdings(monkeypatch):
             return FakeResponse(text=json.dumps(payload), content_type="application/json", url=url)
         raise AssertionError(f"unexpected URL {url}")
 
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     result = await adapter.fetch_latest(symbol="XCOR", identifiers={})
 
@@ -12712,6 +12741,15 @@ async def test_zacks_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
     adapter = get_holdings_adapter("zacks")
     assert adapter is not None
 
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+
     requests_seen = []
 
     def fake_requests_get(url, **kwargs):
@@ -12748,6 +12786,15 @@ async def test_zacks_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
 async def test_zacks_adapter_falls_back_to_requests_after_remote_disconnect(monkeypatch):
     adapter = get_holdings_adapter("zacks")
     assert adapter is not None
+
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     requests_seen = []
 
@@ -12786,6 +12833,15 @@ async def test_zacks_adapter_retries_requests_fallback_timeout(monkeypatch):
     adapter = get_holdings_adapter("zacks")
     assert adapter is not None
 
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+
     requests_seen = []
 
     def fake_requests_get(url, **kwargs):
@@ -12823,6 +12879,15 @@ async def test_zacks_adapter_retries_requests_fallback_connection_error(monkeypa
     adapter = get_holdings_adapter("zacks")
     assert adapter is not None
 
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+
     requests_seen = []
 
     def fake_requests_get(url, **kwargs):
@@ -12859,6 +12924,15 @@ async def test_zacks_adapter_retries_requests_fallback_connection_error(monkeypa
 async def test_zacks_adapter_reports_backend_disconnect_after_retry_exhaustion(monkeypatch):
     adapter = get_holdings_adapter("zacks")
     assert adapter is not None
+
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     requests_seen = []
 
@@ -13284,6 +13358,15 @@ async def test_donoghue_forlines_requests_fallback_retries_transient_read_timeou
 ):
     adapter = get_holdings_adapter("donoghue_forlines")
     assert adapter is not None
+
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     page_html = """
     <html>
@@ -13967,9 +14050,13 @@ async def test_focus_financial_longview_retries_requests_timeout(monkeypatch):
     async def skip_delay(_seconds):
         return None
 
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     result = await adapter.fetch_latest(symbol="EBI")
 
@@ -19057,7 +19144,11 @@ async def test_absolute_investment_advisers_adapter_uses_newest_complete_abeq_st
     def fake_extract(raw_pdf):
         return portfolio if b"0326" in raw_pdf else older_portfolio
 
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
     monkeypatch.setattr(type(adapter), "_extract_pdf_text", staticmethod(fake_extract))
 
     result = await adapter.fetch_latest(symbol="ABEQ")
@@ -19118,7 +19209,11 @@ async def test_stf_adapter_uses_newest_complete_issuer_linked_schedule(monkeypat
     def fake_extract(raw_pdf):
         return newest_schedule if b"2026/03" in raw_pdf else older_schedule
 
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
     monkeypatch.setattr(type(adapter), "_extract_pdf_text", staticmethod(fake_extract))
 
     result = await adapter.fetch_latest(symbol="TUG")
@@ -23238,6 +23333,7 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
     promoted_native = {
         "guggenheim",
         "bancreek",
+        "argent",
         "falconx",
         "framework_digital_advisors",
         "freedom",
@@ -23250,7 +23346,8 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
         "norris_perne_french",
         "m_d_sass",
     }
-    fallback_expected = expected - promoted_native
+    terminal_dispositions = {"amg_national"}
+    fallback_expected = expected - promoted_native - terminal_dispositions
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -23267,6 +23364,12 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
             assert type(adapter).__name__ == "MDSassHoldingsAdapter"
         else:
             assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    for adapter_key in terminal_dispositions:
+        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
+        assert audit.status == "provider_not_a_portfolio_publisher"
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
     for adapter_key in promoted_native:
         assert ISSUER_ADAPTER_CONFIGS[adapter_key].live_tested_default_route is True
         adapter = get_holdings_adapter(adapter_key)
@@ -23356,6 +23459,7 @@ def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited()
         "range",
         "sapient",
         "strategas",
+        "vistashares",
     }
     fallback_expected = expected - promoted_native
 
@@ -23695,6 +23799,9 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         "anydrus",
     }
 
+    terminal_dispositions = {"arin"}
+    expected -= terminal_dispositions
+
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
     assert expected.isdisjoint(set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS))
@@ -23712,6 +23819,12 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
     for adapter_key in expected:
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
         assert audit.status == "needs_first_party_route_discovery"
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    for adapter_key in terminal_dispositions:
+        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
+        assert audit.status == "issuer_access_blocked"
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
@@ -23775,7 +23888,14 @@ def test_us_etf_promoter_universe_status_tracks_broad_market_target():
 
 def test_every_registered_adapter_can_probe_ready_with_sec_identifiers():
     for adapter_key, config in ISSUER_ADAPTER_CONFIGS.items():
-        if adapter_key in {"milliman", "m_d_sass", "nestyield", "river1", "trimtabs"}:
+        if adapter_key in {
+            "milliman",
+            "m_d_sass",
+            "nestyield",
+            "river1",
+            "trimtabs",
+            "vistashares",
+        }:
             # Milliman is intentionally symbol-scoped to its two verified
             # product pages and must not claim a route for an arbitrary symbol.
             continue
@@ -27044,9 +27164,17 @@ async def test_main_management_adapter_uses_its_scoped_secondary_transport_after
             raise requests.exceptions.ReadTimeout("publisher stalled")
         return FakeResponse(text=csv_payload, content_type="text/csv", url=url)
 
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
     TimeoutClient.requested = []
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", TimeoutClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fallback_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     result = await adapter.fetch_latest(symbol="BUYW")
 
@@ -28341,6 +28469,11 @@ async def test_wisdomtree_cloudflare_challenge_retries_official_route_with_curl_
         return curl_queue.pop(0)
 
     monkeypatch.setattr(adapter, "_curl_get", fake_curl)
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     result = await adapter.fetch_latest(symbol="DXJ")
 

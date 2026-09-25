@@ -764,7 +764,7 @@ async def ensure_lightweight_etf_instrument(
         ],
         raw_payload={"source": ETF_HOLDINGS_INTERNAL_PROVIDER},
     )
-    instrument = await ingest_provider_profile(db, profile)
+    instrument = await ingest_provider_profile(db, profile, allow_external_identifier=False)
     instrument.instrument_type_id = instrument_type_id
     return instrument
 

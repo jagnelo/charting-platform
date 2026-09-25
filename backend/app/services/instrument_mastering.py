@@ -331,12 +331,23 @@ async def ingest_provider_profile(
     profile: InstrumentProfile,
     *,
     instrument: Instrument | None = None,
+    allow_external_identifier: bool = True,
 ) -> Instrument:
-    instrument = await apply_profile_to_instrument(db, profile, instrument=instrument)
+    instrument = await apply_profile_to_instrument(
+        db,
+        profile,
+        instrument=instrument,
+        allow_external_identifier=allow_external_identifier,
+    )
     await store_profile_snapshot(db, instrument, profile)
     merged_profile = await reconcile_instrument_profile(db, instrument)
     if merged_profile is not None:
-        instrument = await apply_profile_to_instrument(db, merged_profile, instrument=instrument)
+        instrument = await apply_profile_to_instrument(
+            db,
+            merged_profile,
+            instrument=instrument,
+            allow_external_identifier=allow_external_identifier,
+        )
     return instrument
 
 
@@ -714,6 +725,7 @@ async def apply_profile_to_instrument(
     profile: InstrumentProfile,
     *,
     instrument: Instrument | None = None,
+    allow_external_identifier: bool = True,
 ) -> Instrument:
     quote_type = (profile.quote_type or "EQUITY").upper()
     asset_class_name, type_name = TYPE_MAP.get(quote_type, ("Equity", "Stock"))
@@ -809,7 +821,8 @@ async def apply_profile_to_instrument(
         await register_identifier(db, instrument, profile.provider, identifier)
 
     await ensure_internal_identifier(db, instrument)
-    await ensure_external_identifier(db, instrument)
+    if allow_external_identifier:
+        await ensure_external_identifier(db, instrument)
     await upsert_instrument_stats(
         db,
         instrument,
