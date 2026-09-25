@@ -10,6 +10,9 @@ from pathlib import Path
 from typing import Any, cast
 
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
+from app.strategy_lab_v2.worker_evidence_resolution import (
+    create_sandbox_artifact_plan_resolver,
+)
 from app.strategy_lab_v2.worker_handoff import materialize_worker_handoff
 from app.strategy_lab_v2.worker_service import WorkerServiceCallbacks, WorkerTerminalWriter
 from app.strategy_lab_v2.worker_terminal_adapter import WorkerTerminalEvidenceResolver
@@ -46,6 +49,33 @@ async def create(persistence: Any, artifact_root: Path) -> WorkerServiceCallback
     )
 
 
+def default_evidence_resolver_factory(
+    persistence: Any, artifact_root: Path
+) -> WorkerTerminalEvidenceResolver:
+    """Compose the package-owned single-output evidence path.
+
+    The callback remains opt-in through ``STRATEGY_LAB_V2_EVIDENCE_RESOLVER``;
+    this factory only supplies the explicit composition once the host chooses
+    it. Authentication/attempt lookup stays in the persistence bundle and
+    artifact source policy stays in the sandbox mapper.
+    """
+
+    if not isinstance(artifact_root, Path):
+        raise TypeError("artifact_root must be a Path")
+    artifact_publication = getattr(persistence, "artifact_publication", None)
+    evidence_resolver = getattr(persistence, "worker_terminal_evidence_resolver", None)
+    if not callable(artifact_publication):
+        raise TypeError("persistence must expose artifact_publication()")
+    if not callable(evidence_resolver):
+        raise TypeError("persistence must expose worker_terminal_evidence_resolver()")
+    publisher = artifact_publication(artifact_root)
+    artifact_plan_resolver = create_sandbox_artifact_plan_resolver(publisher)
+    resolver = evidence_resolver(artifact_plan_resolver)
+    if not callable(resolver):
+        raise TypeError("persistence returned an invalid terminal evidence resolver")
+    return cast(WorkerTerminalEvidenceResolver, resolver)
+
+
 async def _terminal_only_completion(entry: Any, _process: Any) -> WorkerHandleResult:
     """Guard the legacy writer path; terminal_writer must own completion."""
 
@@ -72,4 +102,8 @@ def _load_resolver_factory(spec: str | None) -> EvidenceResolverFactory:
     return cast(EvidenceResolverFactory, factory)
 
 
-__all__ = ["EvidenceResolverFactory", "create"]
+__all__ = [
+    "EvidenceResolverFactory",
+    "create",
+    "default_evidence_resolver_factory",
+]

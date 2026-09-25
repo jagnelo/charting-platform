@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from app.strategy_lab_v2.worker_callbacks import create
+from app.strategy_lab_v2.worker_callbacks import create, default_evidence_resolver_factory
 from app.strategy_lab_v2.worker_handoff import materialize_worker_handoff
 
 
@@ -30,6 +30,25 @@ class _Persistence:
             return None
 
         return terminal
+
+
+class _ComposedPersistence:
+    def __init__(self) -> None:
+        self.root: Path | None = None
+        self.plan_resolver: Any = None
+
+    def artifact_publication(self, root: Path) -> object:
+        self.root = root
+        return _Publisher()
+
+    def worker_terminal_evidence_resolver(self, resolver: Any) -> Any:
+        self.plan_resolver = resolver
+        return resolver
+
+
+class _Publisher:
+    async def publish_sandbox_result(self, *_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("test publisher should not be invoked during composition")
 
 
 @pytest.mark.asyncio
@@ -72,3 +91,12 @@ async def test_callback_factory_composes_typed_materializer_and_terminal_writer(
     assert callbacks.materializer is materialize_worker_handoff
     assert callbacks.terminal_writer is not None
     assert persistence.resolver is not None
+
+
+def test_default_evidence_resolver_factory_composes_persistence_and_artifacts() -> None:
+    persistence = _ComposedPersistence()
+    resolver = default_evidence_resolver_factory(persistence, Path("/tmp/artifacts"))
+
+    assert callable(resolver)
+    assert persistence.root == Path("/tmp/artifacts")
+    assert callable(persistence.plan_resolver)
