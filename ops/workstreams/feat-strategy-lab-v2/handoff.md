@@ -55,6 +55,10 @@ explicit allowlist; unsupported tags and reordered fields fail closed.
 Focused lint and MyPy checks pass; the focused runtime/materialization suite
 passes 11 tests and the complete Strategy Lab v2 package passes 807 tests.
 
+The exact backend gate then passed 2,458 tests at 83.69% combined coverage
+with 86 warnings; both cleanup passes retained zero testcontainer resources.
+The branch-declared checks and workstream validator remain green.
+
 ## 2026-09-24 - Typed result-manifest rehydration
 
 `postgres_result_materialization.py` now exposes owner-scoped
