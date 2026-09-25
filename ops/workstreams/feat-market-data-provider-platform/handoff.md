@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 FINRA Gateway credential-scoped token cache
+
+- The in-memory FINRA Gateway OAuth cache is now scoped by client ID and a
+  one-way client-secret digest. Credential rotation cannot reuse a token issued
+  for a prior client pair, and raw secrets are not retained. Focused FINRA
+  coverage passed `41/41` with Ruff clean.
+
+## 2026-09-25 exact-head validation after Gateway cache hardening
+
+- The branch-owned backend unit gate passed `1,923/1,923` with `37` warnings
+  in `328.24s` at source `f76966ce4329ad181b75557feb39024266c648f8`.
+- The authoritative Docker integration gate passed `386/386` with `57`
+  warnings in `729.32s`, using isolated PostgreSQL/Redis testcontainers
+  (session `89b74bd8-70c8-4249-95e8-df7db0f8570c`). Cleanup completed without
+  host-wide pruning. External FINRA entitlement, terms, operation-cost, and
+  credentialed live evidence remain fail-closed.
+
 ## 2026-09-25 FINRA ORF credential-scoped token cache
 
 - The in-memory ORF access-token cache is now scoped by the configured TRAQS

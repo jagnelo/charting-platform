@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-25 — FINRA Gateway credential-scoped token cache
+
+- [x] Scope the in-memory FINRA Gateway OAuth cache to the client ID and a
+      one-way client-secret digest, preventing credential-rotation reuse while
+      retaining no raw secret. Focused FINRA coverage passed `41/41`; Ruff
+      passed.
+
+- [x] Validate exact source
+      `f76966ce4329ad181b75557feb39024266c648f8`: branch-owned unit scope
+      passed `1,923/1,923` with `37` warnings in `328.24s`; Docker integration
+      passed `386/386` with `57` warnings in `729.32s` (testcontainer session
+      `89b74bd8-70c8-4249-95e8-df7db0f8570c`); cleanup completed without
+      host-wide pruning.
+
 ### 2026-09-25 — FINRA ORF credential-scoped token cache
 
 - [x] Scope the in-memory ORF access-token cache to the TRAQS username and a
