@@ -2,6 +2,15 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Shadow-account compare-and-set hardening
+
+Account state updates now include the previously loaded state fingerprint in
+their SQL compare-and-set predicate. A concurrent or stale writer therefore
+fails closed even though normal reads already lock the account row; exact
+replays continue to return the persisted state without a second mutation.
+Focused PostgreSQL account and worker-binding coverage passed 6 tests, with
+Ruff, MyPy, and whitespace validation still green.
+
 ## 2026-09-25 - Forward shadow-account worker settlement checkpoint
 
 Added `ForwardAccountWorkerHandler`, a composable host-worker boundary for
