@@ -162,6 +162,22 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 lossless reconciliation-issue correction at source
+    2fd3a732809c7fd3e51dd44436da98ba6941f7f1: the deduplicated mutable
+    InstrumentReconciliationIssue queue remains the current review projection,
+    while every repeated provider ambiguity/quarantine envelope is now appended
+    to InstrumentReconciliationIssueObservation. Migration e9f2a3b4c5d6
+    refuses downgrade while evidence exists. Focused service/migration tests
+    pass 40/40 including repeated quarantine evidence; branch-owned unit
+    validation passes 1908/1908 and Docker integration passes 386/386.
+    Provider-contract, live/legal, complete NMS/OTC/SEC, secret-store,
+    deferred-provider, publication, and final-shadow gates remain open.
+  - >-
+    The unfiltered unit command was intentionally not accepted as a branch
+    gate: it stalls in the parallel branch's ETF holdings adapter fallback
+    test. This branch does not modify that owned file; the authoritative
+    branch-owned command excludes only that file and completed successfully.
+  - >-
     Exact source `b55ae54f1` passed the branch-owned backend unit scope
     1907/1907 in 157.62 seconds with 37 existing warnings. The ETF holdings
     adapter file remains excluded under the parallel branch ownership boundary;

@@ -6465,3 +6465,25 @@ provider or start the shadow run.
   policy, promote routing, or close the remaining provider quota/legal,
   complete NMS/OTC reconciliation, external secret-store, deferred-provider,
   publication, or final shadow gates.
+
+## 2026-09-25 reconciliation issue evidence retention
+
+- The deduplicated `InstrumentReconciliationIssue` row remains the current
+  review projection, but repeated ambiguity and universe-quarantine evidence is
+  now retained in append-only `InstrumentReconciliationIssueObservation` rows.
+  Each observation keeps the source, provider symbol, issue fingerprint,
+  timestamp, candidates, and complete payload; no repeated provider envelope is
+  overwritten or discarded.
+- Additive migration `e9f2a3b4c5d6` refuses downgrade while evidence exists.
+  Focused service/migration coverage passes `40/40`, including a repeated
+  quarantine regression; Ruff and diff checks are clean.
+- Exact current source `2fd3a732809c7fd3e51dd44436da98ba6941f7f1` passes the
+  branch-owned unit scope `1,908/1,908` (37 existing warnings, 321.10s) with
+  only the parallel ETF adapter file excluded, and `make test-int` passes
+  `386/386` in 713.99s (57 warnings). Testcontainers were cleaned without a
+  host-wide prune.
+- The unfiltered unit command is not accepted as this branch's gate because it
+  stalls in the parallel ETF adapter fallback test. No ETF source or test was
+  changed here. Provider quota/legal/capability, complete NMS/OTC/SEC,
+  external secret-store, deferred-provider, publication, and final-shadow
+  gates remain open and fail-closed.
