@@ -169,6 +169,11 @@ remaining_gaps:
     complete NMS/OTC/SEC reconciliation, external secret stores, deferred
     providers, and final shadow-phase gates.
   - >-
+    2026-09-25 the current-source Nasdaq Trader NMS directory probe passed
+    `1/1` with exactly two official-file requests and 892,447 response bytes;
+    full-directory pagination/completeness passed. This does not close the
+    separate complete OTC security-master and lifecycle gate.
+  - >-
     2026-09-25 Twelve Data credentialed live validation passed `1/1` from a
     network-enabled execution at source `eeea8cc667de905a5fd635b695713e33f5872f66`,
     with one request and 131 response bytes. Native minute headers reported

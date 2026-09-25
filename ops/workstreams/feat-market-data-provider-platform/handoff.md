@@ -12,6 +12,17 @@
   separately authorized final shadow phase. This is an intentional safety stop,
   not a failed provider integration.
 
+## 2026-09-25 Nasdaq Trader NMS directory refresh
+
+- The bounded current-source Nasdaq Trader directory probe passed `1/1` at
+  source `c48ab93b5f050940b77a0bd42dd47e63a3713e4a`. It fetched the official
+  `nasdaqlisted.txt` and `otherlisted.txt` files with exactly two requests and
+  892,447 response bytes, and the full-directory pagination/completeness case
+  passed.
+- The adapter's two-file/calendar-day safety policy was respected. The
+  receipt is redacted and durable in `validation.jsonl`; this proves the NMS
+  source transport and parser at this source, not complete OTC coverage.
+
 ## 2026-09-25 Twelve Data live validation from network-enabled execution
 
 - The bounded credentialed `twelve_data:fetch_account_usage` probe was rerun

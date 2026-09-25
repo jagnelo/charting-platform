@@ -6,6 +6,10 @@
       live receipts. It stopped before ordinary transport at `0/0` with zero
       provider requests and recorded the remaining fail-closed gates in the
       provider workstream receipt.
+- [x] Refresh the current Nasdaq Trader NMS directory at the exact source.
+      The full-directory pagination/completeness case passed `1/1` with the
+      two official files, two requests, and 892,447 response bytes. OTC
+      completeness remains a separate FINRA/OTC source gate.
 
 - [x] Attempt the focused credentialed Twelve Data account-usage probe with an
       isolated owner-only durable ledger. The first shell attempt failed before
