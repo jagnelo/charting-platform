@@ -120,10 +120,10 @@ symbols are now native-promoted and covered by deterministic plus opt-in live te
   fresh-stack retry passed all four workspace-floating viewport variants. The
   mismatch was transient and did not implicate ETF holdings tests or routes.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint is `d3572435dce1bd3f131d65cb215124bd12f40f48`; the
-  subsequent `3413e3b73` commit refreshes the durable session checkpoint. The
-  provider implementation remains at the reconciled 496/419/77 state described
-  above.
+- Latest implementation checkpoint is `d13c02b4c5004670ab670e869d673c21ad397e9e`
+  (VistaShares native route); the subsequent `aa9a1950d` commit refreshes the
+  durable session checkpoint. The provider implementation is now at the
+  reconciled 496/420/76 state described above.
   Earlier
   checkpoints include `dabe2329965c704f93e3dbb21ec50a7da418ba6c` (Hexis/NICO
   native FilePoint route and synchronized records) and the named provider
