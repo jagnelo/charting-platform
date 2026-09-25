@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 current-source Dinari Sandbox canary
+
+- The replacement Dinari Sandbox credentials passed the explicitly capped,
+  non-persisting canary (`1/1`, `10.33s`, maximum 20 requests). The canary
+  path kept Sandbox payloads out of canonical, usage, alert, and analytics
+  tables. No secret or payload was persisted in Git.
+- This is transport/isolation evidence only. Dinari production remains
+  non-routable until a numeric Sandbox quota/reset and commercial or
+  redistribution terms are reviewed.
+
 ## 2026-09-25 Twelve Data daily-pool fail-closed evidence
 
 - A current-source full Twelve Data attempt stopped before transport with zero

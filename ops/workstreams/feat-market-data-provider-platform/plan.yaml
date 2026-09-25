@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 current-source Dinari Sandbox canary passed `1/1` in `10.33s`
+    with the replacement sandbox credentials, under an explicit 20-request
+    cap and the non-persisting canary path. Sandbox payloads were not written
+    to canonical data, quota, alert, or analytics tables. Dinari production
+    routing remains disabled because its Sandbox quota/reset and commercial or
+    redistribution terms are not published.
+  - >-
     2026-09-25 current-source Twelve Data full-matrix attempt stopped before
     transport with zero provider requests: the native minute pool is verified,
     but the separate documented daily pool has no observable account baseline.
