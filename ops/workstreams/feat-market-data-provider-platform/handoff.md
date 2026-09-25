@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Twelve Data daily-reset source reconciliation
+
+- Official Twelve Data credits documentation confirms that the Basic 800-credit
+  daily pool resets at midnight UTC. The seed now attributes the exact
+  `calendar_day_utc` boundary to that source; this is a reset-semantics fix,
+  not a usage-baseline claim.
+- `/api_usage` still exposes only `api-credits-used`/`api-credits-left` for the
+  minute pool. The implementation therefore does not synthesize daily usage
+  from minute headers, and the durable prior daily baseline remains required
+  before ordinary routing. No provider request was made for this correction.
+- A focused regression now asserts the official daily-reset source alongside
+  the existing dimension contract. The broader branch validation remains the
+  authoritative checkpoint below.
+
 ## 2026-09-25 FMP exact daily-reset reconciliation
 
 - The official [FMP FAQ](https://site.financialmodelingprep.com/de/faqs?code=statements)

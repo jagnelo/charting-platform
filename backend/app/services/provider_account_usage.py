@@ -43,9 +43,10 @@ _NATIVE_BASELINE_DIMENSIONS: dict[str, dict[str, str]] = {
         "requests_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
     },
     # Twelve Data's /api_usage response exposes the current minute pool via
-    # provider-native used/left headers.  Reconcile only that exact reviewed
-    # dimension; the separate daily pool remains an observation until Twelve
-    # Data publishes a stable daily counter shape.
+    # provider-native used/left headers. Reconcile only that exact reviewed
+    # dimension. The official credits documentation gives the daily pool an
+    # exact UTC-midnight reset, but no daily consumed counter is exposed, so
+    # the durable daily baseline remains required before ordinary reads.
     "twelve_data": {
         "credits_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
     },

@@ -333,6 +333,16 @@
       review Massive's free-plan use/redistribution terms before promoting
       ordinary routing or corporate-action history.
 
+### 2026-09-25 — Twelve Data daily reset source reconciliation
+
+- [x] Record the official credits documentation's exact Basic daily reset at
+      00:00 UTC as `calendar_day_utc` in the provider seed and documentation.
+- [x] Preserve fail-closed behavior for the separate prior daily-usage
+      baseline: `/api_usage` exposes minute counters only, so no daily usage is
+      inferred or copied from the minute headers.
+- [ ] Establish a durable current daily baseline from an authoritative
+      provider/account source before enabling ordinary daily-metered reads.
+
 ### 2026-09-25 — FMP exact daily reset reconciliation
 
 - [x] Replace the former provider-defined/rolling safety treatment for the

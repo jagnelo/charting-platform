@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 Twelve Data reset-source reconciliation: official credits
+    documentation confirms the Basic 800-credit daily pool resets at
+    00:00 UTC, and the seed records `calendar_day_utc` from that source. The
+    `/api_usage` endpoint still exposes only the minute used/left counters, so
+    the prior daily account baseline remains unknown and continues to block
+    ordinary daily-metered reads; no daily usage is fabricated.
+  - >-
     2026-09-25 FMP reset reconciliation: the official FAQ now documents the
     Basic/Free 250-call allowance as resetting every 24 hours at 3 PM Eastern.
     The seed and quota-window resolver use the exact
@@ -787,8 +794,9 @@ remaining_gaps:
     its endpoint can reconcile. The live preflight no longer lets a provider
     with a partial usage snapshot bypass an unrelated unknown pool. Twelve
     Data's `/api_usage` still reconciles only `credits_per_minute`; its
-    documented `credits_per_day` baseline remains visible and blocks ordinary
-    reads until independently established. A bootstrap declaration without an
+    documented `credits_per_day` reset is now exact (`calendar_day_utc`), but
+    the prior daily account baseline remains visible and blocks ordinary reads
+    until independently established. A bootstrap declaration without an
     explicit mapping is also fail-closed rather than authorizing every unknown
     pool. A focused run confirmed the provider-specific blocker before network
     access; no doomed data request was sent.

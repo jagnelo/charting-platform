@@ -2261,6 +2261,9 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
         "calendar_day_utc",
         "rolling",
     ]
+    assert twelve["dimensions"][1]["source"] == (
+        "https://support.twelvedata.com/en/articles/5615854-credits"
+    )
     assert twelve["account_usage_bootstrap"]["reconciled_dimensions"] == [
         "credits_per_minute"
     ]

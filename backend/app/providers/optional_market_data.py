@@ -1212,10 +1212,12 @@ class TwelveDataProvider(_RESTProvider):
         Twelve Data documents ``/api_usage`` as the real-time plan/usage
         surface and guarantees ``api-credits-used``/``api-credits-left``
         headers on API responses. Those headers describe the current minute
-        pool; the endpoint itself costs one API credit. Daily Basic-plan
-        usage is not synthesized here because the public contract does not
-        expose a stable response shape for that separate pool. The native
-        minute observation is still retained with its exact reset boundary.
+        pool; the endpoint itself costs one API credit. The official credits
+        documentation defines the separate Basic daily pool's reset at
+        midnight UTC, but this endpoint does not expose a prior daily
+        consumption counter. Daily usage is therefore not synthesized here;
+        the minute observation is still retained with its exact reset
+        boundary, and daily routing remains baseline-gated.
         """
 
         payload, headers = self._get_with_headers("api_usage")

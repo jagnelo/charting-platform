@@ -929,7 +929,11 @@ class Settings(BaseSettings):
                         "unit": "credits",
                         "scope": "api_key",
                         "quota_group": "api_key",
-                        "source": "https://twelvedata.com/pricing",
+                        "source": "https://support.twelvedata.com/en/articles/5615854-credits",
+                        # The official credits documentation states that the
+                        # Basic daily quota resets at 00:00 UTC. This exact
+                        # boundary is known even though /api_usage does not
+                        # expose the prior daily-consumption counter.
                         "reset": "calendar_day_utc",
                     },
                     {
@@ -956,7 +960,10 @@ class Settings(BaseSettings):
             },
             "tokens_per_minute": 8,
             "quota_scope": "api_key",
-            "quota_source": "Twelve Data Basic pricing/credits documentation",
+            "quota_source": (
+                "Twelve Data Basic pricing and credits documentation: "
+                "https://support.twelvedata.com/en/articles/5615854-credits"
+            ),
         },
         "finnhub": {
             "quota_contract": {

@@ -1300,17 +1300,20 @@ Universe discovery is explicitly page- and asset-type-scoped; a missing or
 contradictory provider count is an error, not permission to infer completion.
 
 Twelve Data documents two distinct Basic-plan credit pools: 8 credits per
-fixed minute and 800 credits per UTC calendar day. Endpoint weights are
+fixed minute and 800 credits per UTC calendar day. Its official [credits
+documentation](https://support.twelvedata.com/en/articles/5615854-credits)
+states that the daily Basic quota resets at 00:00 UTC. Endpoint weights are
 provider-specific and must remain in the checked-in usage profile; the runtime
 does not substitute one request for an unknown endpoint weight. The optional
 native `fetch_account_usage` operation calls the documented `/api_usage`
 endpoint (itself charged one credit), records the returned plan, and persists
 the exact `api-credits-used`/`api-credits-left` minute pool as a named
 `credits_per_minute` observation with the next fixed-minute reset. The public
-contract does not provide a stable daily-counter response shape, so the adapter
-does not fabricate a `credits_per_day` observation from the minute headers.
-Native observations are telemetry until an exact provider-specific baseline
-mapping is reviewed; they never widen routing automatically. See the official
+`/api_usage` response does not provide a prior daily-consumption counter, so
+the adapter does not fabricate a `credits_per_day` observation from minute
+headers. The daily reset is known; the durable daily baseline is not. Native
+observations are telemetry until an exact provider-specific baseline mapping is
+reviewed; they never widen routing automatically. See the official
 [usage-control](https://support.twelvedata.com/en/articles/5713553-control-over-api-usage)
 and [credits](https://support.twelvedata.com/en/articles/5615854-credits)
 documentation.
