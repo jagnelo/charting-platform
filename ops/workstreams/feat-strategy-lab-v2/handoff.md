@@ -445,19 +445,6 @@ runtime env file was absent and `.env.dev` supplied test configuration. Two
 cleanup passes retained zero testcontainer sessions, containers, images, or
 volumes.
 
-## 2026-09-25 - Cooperative async timeout cleanup
-
-Async timed-out worker cleanup now performs terminate/kill escalation with
-cooperative zero-time joins and event-loop yields. A stubborn child therefore
-cannot block lease-heartbeat scheduling while the parent waits for cleanup.
-The focused worker suite passes 13 tests, including a fake stubborn-process
-regression that proves kill escalation and event-loop progress.
-
-The repository-authoritative Docker-backed combined gate passes at this exact
-implementation tip: 2,602 tests, 83.77% total coverage (required threshold
-75%), and 86 warnings. Cleanup removed the test containers, images, and
-volumes.
-
 The branch remains `ready_for_human_review`. Stable Nautilus v2 publication,
 shared worker/database reconciliation, host activation, upstream
 provider/ETF/TC2000 integration, and deployment remain gated.
@@ -5719,5 +5706,26 @@ package suite passes 950 tests; focused worker coverage passes 12 tests.
 
 The repository-authoritative Docker-backed combined gate also passes at the
 current exact tip: 2,601 tests, 83.76% total coverage (required threshold
+75%), and 86 warnings. Cleanup removed the test containers, images, and
+volumes.
+
+## 2026-09-25 - Cooperative async timeout cleanup
+
+Async timed-out worker cleanup now performs terminate/kill escalation with
+cooperative zero-time joins and event-loop yields. A stubborn child therefore
+cannot block lease-heartbeat scheduling while the parent waits for cleanup.
+The focused worker suite passes 13 tests, including a fake stubborn-process
+regression that proves kill escalation and event-loop progress.
+
+## 2026-09-25 - Cancellation-safe async worker cleanup
+
+Cancelling an in-flight asynchronous worker handoff now terminates and reaps
+the spawned child before propagating cancellation, preventing orphaned
+simulation processes during worker shutdown or lease cancellation. The focused
+worker suite passes 14 tests and the complete Strategy Lab v2 package suite
+passes 952 tests.
+
+The repository-authoritative Docker-backed combined gate passes at this exact
+implementation tip: 2,603 tests, 83.78% total coverage (required threshold
 75%), and 86 warnings. Cleanup removed the test containers, images, and
 volumes.
