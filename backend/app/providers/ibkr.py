@@ -297,6 +297,7 @@ class IBKRProvider:
                     name=name,
                     exchange=str(row.get("listingExchange") or row.get("exchange") or "").strip(),
                     instrument_type=str(row.get("assetClass") or "").strip(),
+                    raw_payload=dict(row),
                 )
             )
         return results

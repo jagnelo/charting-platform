@@ -53,6 +53,11 @@ class ProviderSearchResult:
     name: str
     exchange: str = ""
     instrument_type: str = ""
+    # Preserve the complete provider row alongside the normalized search
+    # projection. Search results frequently carry identifiers, venue/status
+    # flags, and provider-specific metadata that must remain available for
+    # later identity reconciliation instead of being silently discarded.
+    raw_payload: dict[str, Any] | None = None
 
 
 @dataclass(slots=True)

@@ -119,17 +119,20 @@ async def store_search_snapshot(
 ) -> InstrumentSearchSnapshot:
     observed_at = observed_at or _now_utc()
     fetched_at = fetched_at or observed_at
+    serialized_results = []
+    for item in results:
+        serialized = {
+            "symbol": item.symbol,
+            "name": item.name,
+            "exchange": item.exchange,
+            "instrument_type": item.instrument_type,
+        }
+        if item.raw_payload is not None:
+            serialized["raw_payload"] = item.raw_payload
+        serialized_results.append(serialized)
     payload = {
         "query": query,
-        "results": [
-            {
-                "symbol": item.symbol,
-                "name": item.name,
-                "exchange": item.exchange,
-                "instrument_type": item.instrument_type,
-            }
-            for item in results
-        ],
+        "results": serialized_results,
     }
     result_hash = _payload_hash(payload)
     snapshot = InstrumentSearchSnapshot(

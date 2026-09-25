@@ -274,6 +274,7 @@ class YFinanceProvider:
                     name=q.get("longname") or q.get("shortname", ""),
                     exchange=q.get("exchange", ""),
                     instrument_type=q.get("quoteType", ""),
+                    raw_payload=dict(q),
                 )
                 for q in quotes
                 if q.get("symbol")

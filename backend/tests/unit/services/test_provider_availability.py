@@ -174,6 +174,14 @@ def test_response_payload_retains_typed_fields_and_redacts_only_auth_material():
         "api_key": "<redacted>",
         "next_page_token": "continuation-is-data",
     }
+    retained = response_payload(
+        ProviderSearchResult(
+            symbol="AAPL",
+            name="Apple",
+            raw_payload={"figi": "BBG000B9XRY4", "status": "ACTIVE"},
+        )
+    )
+    assert retained["raw_payload"] == {"figi": "BBG000B9XRY4", "status": "ACTIVE"}
 
 
 def test_availability_error_message_redacts_credentials_and_is_bounded():

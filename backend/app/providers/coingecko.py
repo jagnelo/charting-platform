@@ -117,6 +117,7 @@ class CoinGeckoProvider:
                     name=name,
                     exchange="CoinGecko",
                     instrument_type="CRYPTOCURRENCY",
+                    raw_payload=dict(coin),
                 )
             )
         return results

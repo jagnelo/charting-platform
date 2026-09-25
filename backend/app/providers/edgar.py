@@ -107,6 +107,7 @@ class EdgarProvider:
                 symbol=ticker,
                 name=str(entry.get("title") or ticker),
                 instrument_type="EQUITY",
+                raw_payload=dict(entry),
             )
             for ticker, entry in _ticker_map.items()
             if not entry.get("identity_ambiguity")

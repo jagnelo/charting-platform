@@ -239,7 +239,13 @@ def response_payload(value: Any) -> Any:
     if isinstance(value, enum.Enum):
         return response_payload(value.value)
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
-        return response_payload(dataclasses.asdict(value))
+        data = dataclasses.asdict(value)
+        # ``raw_payload`` is an additive evidence field on normalized provider
+        # rows. Preserve the historical typed-response shape when an adapter
+        # has no raw row to retain, while keeping non-empty provider evidence.
+        if data.get("raw_payload") is None:
+            data.pop("raw_payload", None)
+        return response_payload(data)
     if isinstance(value, dict):
         return {
             str(key): "<redacted>" if _sensitive_response_key(key) else response_payload(item)

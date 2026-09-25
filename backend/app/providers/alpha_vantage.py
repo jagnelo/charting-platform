@@ -156,6 +156,7 @@ class AlphaVantageProvider:
                 name=str(row.get("2. name") or ""),
                 exchange=str(row.get("4. region") or ""),
                 instrument_type=str(row.get("3. type") or "EQUITY").upper(),
+                raw_payload=dict(row),
             )
             for row in matches[:limit]
         ]

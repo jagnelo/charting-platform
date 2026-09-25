@@ -220,7 +220,11 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
         if provider_name == "yfinance":
             results = [
                 ProviderSearchResult(
-                    symbol="NVDA", name="NVIDIA", exchange="NASDAQ", instrument_type="Stock"
+                    symbol="NVDA",
+                    name="NVIDIA",
+                    exchange="NASDAQ",
+                    instrument_type="Stock",
+                    raw_payload={"symbol": "NVDA", "quoteType": "EQUITY", "assetId": "y-1"},
                 )
             ]
             resolved = yfinance
@@ -231,6 +235,7 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
                     name="NVIDIA Tokenized",
                     exchange="CoinGecko",
                     instrument_type="CRYPTOCURRENCY",
+                    raw_payload={"id": "nvidia-token", "symbol": "nvda", "name": "NVIDIA Tokenized"},
                 )
             ]
             resolved = coingecko
@@ -272,6 +277,8 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
     )
     assert len(snapshots) == 2
     assert {snapshot.query for snapshot in snapshots} == {"nvda"}
+    assert snapshots[0].payload["results"][0]["raw_payload"]
+    assert {snapshot.payload["results"][0]["raw_payload"].get("assetId") or snapshot.payload["results"][0]["raw_payload"].get("id") for snapshot in snapshots} == {"y-1", "nvidia-token"}
 
 
 @pytest.mark.asyncio

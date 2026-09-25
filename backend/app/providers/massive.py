@@ -852,6 +852,7 @@ class MassiveProvider:
             name=str(row.get("name") or symbol),
             exchange=str(row.get("primary_exchange") or row.get("exchange") or ""),
             instrument_type=str(row.get("type") or "EQUITY").upper(),
+            raw_payload=dict(row),
         )
 
 

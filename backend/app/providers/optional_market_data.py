@@ -1142,6 +1142,7 @@ class TiingoProvider(_RESTProvider):
                     name=str(row.get("name") or ticker),
                     exchange=str(row.get("exchangeCode") or ""),
                     instrument_type="EQUITY",
+                    raw_payload=dict(row),
                 )
             )
         return results[:limit]
@@ -1346,6 +1347,7 @@ class TwelveDataProvider(_RESTProvider):
                     name=str(row.get("instrument_name") or symbol),
                     exchange=str(row.get("exchange") or ""),
                     instrument_type=str(row.get("instrument_type") or "EQUITY").upper(),
+                    raw_payload=dict(row),
                 )
             )
         return results[:limit]
@@ -1535,6 +1537,7 @@ class TradierProvider(_RESTProvider):
                     name=str(row.get("description") or symbol),
                     exchange=str(row.get("exchange") or ""),
                     instrument_type=str(row.get("type") or "EQUITY").upper(),
+                    raw_payload=dict(row),
                 )
             )
         return results[:limit]
@@ -2117,6 +2120,7 @@ class FinnhubProvider(_RESTProvider):
                     name=str(row.get("description") or symbol),
                     exchange=str(row.get("mic") or ""),
                     instrument_type=str(row.get("type") or "EQUITY").upper(),
+                    raw_payload=dict(row),
                 )
             )
         return results[:limit]
