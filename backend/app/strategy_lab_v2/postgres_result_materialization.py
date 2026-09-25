@@ -24,11 +24,13 @@ from app.strategy_lab_v2 import (
     engine_execution,
     execution,
     execution_orchestration,
+    forward_account,
     lease_observations,
     rebalance,
     runtime,
     runtime_execution,
     sandbox,
+    sdk,
     worker_process,
     workers,
 )
@@ -629,11 +631,17 @@ def _decode_canonical_dataclass(value: list[Any]) -> Any:
         if item[0] in decoded_fields:
             raise ValueError("dataclass canonical value contains duplicate fields")
         decoded_fields[item[0]] = _decode_canonical_value(item[1])
-    expected_fields = {field.name for field in fields(dataclass_type) if not field.name.startswith("_")}
+    dataclass_fields = tuple(field for field in fields(dataclass_type) if not field.name.startswith("_"))
+    expected_fields = {field.name for field in dataclass_fields}
     if set(decoded_fields) != expected_fields:
         raise ValueError("dataclass canonical value fields do not match its schema")
     try:
-        return dataclass_type(**decoded_fields)
+        constructor_values = {
+            field.name: decoded_fields[field.name]
+            for field in dataclass_fields
+            if field.init
+        }
+        return dataclass_type(**constructor_values)
     except (TypeError, ValueError) as error:
         raise ValueError("dataclass canonical value failed contract validation") from error
 
@@ -647,11 +655,13 @@ def _canonical_dataclass_registry() -> dict[str, type[Any]]:
         engine_execution,
         execution,
         execution_orchestration,
+        forward_account,
         lease_observations,
         rebalance,
         runtime,
         runtime_execution,
         sandbox,
+        sdk,
         worker_process,
         workers,
     ):
@@ -675,6 +685,7 @@ def _canonical_enum_registry() -> dict[str, type[Enum]]:
         runtime,
         runtime_execution,
         sandbox,
+        sdk,
         worker_process,
         workers,
     ):

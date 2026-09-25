@@ -42,6 +42,7 @@ def _event(
     fills: tuple[ShadowFill, ...] | None = None,
 ) -> ForwardAccountEvent:
     return ForwardAccountEvent(
+        "forward-1",
         event_id,
         content_digest({"canonical": event_id}),
         sequence,
@@ -94,6 +95,7 @@ def test_forward_account_rejects_unknown_or_overfilled_orders() -> None:
         NOW,
     )
     unknown_event = ForwardAccountEvent(
+        "forward-1",
         "event-1",
         content_digest("event-1"),
         0,

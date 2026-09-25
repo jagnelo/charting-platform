@@ -36,6 +36,10 @@ from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResol
 from app.strategy_lab_v2.contracts import ArtifactManifest, ForwardInstance, ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.execution import ExecutionAuthorization
+from app.strategy_lab_v2.forward_account import (
+    ForwardAccountEvent,
+    ForwardAccountState,
+)
 from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
 from app.strategy_lab_v2.forward_corrections import ForwardCorrectionCommand
 from app.strategy_lab_v2.forward_event_dispatch import ForwardEventDispatchResolution
@@ -52,6 +56,7 @@ from app.strategy_lab_v2.legacy import (
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent, ForwardEventObservation
 from app.strategy_lab_v2.outcomes import ExecutionOutcome
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
+from app.strategy_lab_v2.postgres_forward_account import ForwardAccountStateResolution
 from app.strategy_lab_v2.postgres_forward_state import (
     ForwardInstanceResolution,
     ForwardStateMutationResolution,
@@ -864,6 +869,39 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             dispatch_request=dispatch_request,
             payload=payload,
             correction_command=correction_command,
+        )
+
+    async def initialize_forward_account(
+        self, *, principal: Any, state: ForwardAccountState
+    ) -> ForwardAccountStateResolution:
+        """Register or replay one owner-scoped broker-free shadow account."""
+
+        if not isinstance(state, ForwardAccountState):
+            raise TypeError("state must be a ForwardAccountState")
+        return await self._persistence.forward_account.initialize(
+            principal=_principal_identity(principal), state=state
+        )
+
+    async def load_forward_account(
+        self, *, principal: Any, instance_id: str
+    ) -> ForwardAccountState | None:
+        """Read one authenticated forward shadow account."""
+
+        if not isinstance(instance_id, str) or not instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        return await self._persistence.forward_account.load(
+            principal=_principal_identity(principal), instance_id=instance_id
+        )
+
+    async def apply_forward_account_event(
+        self, *, principal: Any, event: ForwardAccountEvent
+    ) -> ForwardAccountStateResolution:
+        """Persist one idempotent engine-produced forward account observation."""
+
+        if not isinstance(event, ForwardAccountEvent):
+            raise TypeError("event must be a ForwardAccountEvent")
+        return await self._persistence.forward_account.apply(
+            principal=_principal_identity(principal), event=event
         )
 
     async def publish_and_complete_result(

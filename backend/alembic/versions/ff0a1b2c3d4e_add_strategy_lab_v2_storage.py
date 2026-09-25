@@ -393,6 +393,18 @@ _DDL: tuple[tuple[str, str], ...] = (
         """
     ),
     (
+        "strategy_lab_v2_forward_accounts",
+        """
+        CREATE TABLE strategy_lab_v2_forward_accounts (
+            owner_id TEXT NOT NULL,
+            instance_id TEXT NOT NULL,
+            state_json TEXT NOT NULL,
+            state_fingerprint TEXT NOT NULL,
+            PRIMARY KEY (owner_id, instance_id)
+        )
+        """
+    ),
+    (
         "strategy_lab_v2_legacy_imports",
         """
         CREATE TABLE strategy_lab_v2_legacy_imports (

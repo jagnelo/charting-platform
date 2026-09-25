@@ -119,6 +119,7 @@ class ShadowFill:
 class ForwardAccountEvent:
     """Immutable account effects produced while processing one canonical event."""
 
+    instance_id: str
     event_id: str
     event_fingerprint: str
     sequence: int
@@ -128,6 +129,7 @@ class ForwardAccountEvent:
     cash_deltas: Mapping[str, Decimal] = MappingProxyType({})
 
     def __post_init__(self) -> None:
+        _nonempty(self.instance_id, "instance_id")
         _nonempty(self.event_id, "event_id")
         require_sha256_digest(self.event_fingerprint, field_name="event_fingerprint")
         if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 0:
@@ -315,6 +317,13 @@ def apply_forward_account_event(
         raise TypeError("state must be a ForwardAccountState")
     if not isinstance(event, ForwardAccountEvent):
         raise TypeError("event must be a ForwardAccountEvent")
+    if event.instance_id != state.instance_id:
+        return _reject(
+            state,
+            event,
+            ForwardAccountDecision.REJECT,
+            "account event references a different forward instance",
+        )
     existing = next((item for item in state.applied_events if item.event_id == event.event_id), None)
     if existing is not None:
         if (
