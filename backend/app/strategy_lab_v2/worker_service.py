@@ -3,8 +3,10 @@
 This module is the seam a future Compose worker entrypoint can call.  It keeps
 Redis polling and acknowledgement in :mod:`worker_consumer`, materializes a
 durable payload into a typed handoff, and delegates the actual Nautilus work to
-the fresh-process executor.  Completion persistence is injected so a Redis
-acknowledgement is impossible until authoritative state has been committed.
+the fresh-process executor. The async executor starts the spawn child on this
+worker's event-loop thread and polls cooperatively so lease heartbeats remain
+schedulable. Completion persistence is injected so a Redis acknowledgement is
+impossible until authoritative state has been committed.
 """
 
 from __future__ import annotations

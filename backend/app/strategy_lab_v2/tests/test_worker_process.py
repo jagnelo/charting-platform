@@ -46,6 +46,36 @@ def _fake_binary(tmp_path: Path, body: str) -> str:
     return os.fspath(path)
 
 
+class _PipeEnd:
+    def close(self) -> None:
+        return None
+
+
+class _StubbornProcess:
+    pid = 42
+
+    def __init__(self) -> None:
+        self.terminated = False
+        self.killed = False
+        self._alive = True
+
+    def start(self) -> None:
+        return None
+
+    def is_alive(self) -> bool:
+        return self._alive
+
+    def join(self, _timeout: float | None = None) -> None:
+        return None
+
+    def terminate(self) -> None:
+        self.terminated = True
+
+    def kill(self) -> None:
+        self.killed = True
+        self._alive = False
+
+
 def test_worker_process_runs_one_handoff_in_a_spawned_child(tmp_path: Path) -> None:
     request = _request(tmp_path)
     result = SerialWorkerProcessExecutor(timeout_seconds=10).run(request)
@@ -103,41 +133,13 @@ async def test_worker_process_async_reaps_a_timed_out_child(tmp_path: Path) -> N
 async def test_worker_process_async_timeout_cleanup_yields_to_event_loop(
     tmp_path: Path,
 ) -> None:
-    class PipeEnd:
-        def close(self) -> None:
-            return None
+    process = _StubbornProcess()
 
-    class StubbornProcess:
-        pid = 42
-
-        def __init__(self) -> None:
-            self.terminated = False
-            self.killed = False
-            self._alive = True
-
-        def start(self) -> None:
-            return None
-
-        def is_alive(self) -> bool:
-            return self._alive
-
-        def join(self, _timeout: float | None = None) -> None:
-            return None
-
-        def terminate(self) -> None:
-            self.terminated = True
-
-        def kill(self) -> None:
-            self.killed = True
-            self._alive = False
-
-    process = StubbornProcess()
-
-    def process_factory(**_kwargs: object) -> StubbornProcess:
+    def process_factory(**_kwargs: object) -> _StubbornProcess:
         return process
 
-    def pipe_factory(_duplex: bool) -> tuple[PipeEnd, PipeEnd]:
-        return PipeEnd(), PipeEnd()
+    def pipe_factory(_duplex: bool) -> tuple[_PipeEnd, _PipeEnd]:
+        return _PipeEnd(), _PipeEnd()
 
     ticks = 0
 
@@ -163,6 +165,32 @@ async def test_worker_process_async_timeout_cleanup_yields_to_event_loop(
     assert process.terminated
     assert process.killed
     assert ticks > 10
+
+
+@pytest.mark.asyncio
+async def test_worker_process_async_cancellation_reaps_child(tmp_path: Path) -> None:
+    process = _StubbornProcess()
+
+    def process_factory(**_kwargs: object) -> _StubbornProcess:
+        return process
+
+    def pipe_factory(_duplex: bool) -> tuple[_PipeEnd, _PipeEnd]:
+        return _PipeEnd(), _PipeEnd()
+
+    task = asyncio.create_task(
+        SerialWorkerProcessExecutor(
+            timeout_seconds=10,
+            process_factory=process_factory,
+            pipe_factory=pipe_factory,
+        ).run_async(_request(tmp_path), poll_interval_seconds=0.001)
+    )
+    await asyncio.sleep(0.01)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert process.terminated
+    assert process.killed
 
 
 def test_worker_process_rejects_concurrent_use_and_invalid_inputs(tmp_path: Path) -> None:

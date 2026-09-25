@@ -301,16 +301,20 @@ class SerialWorkerProcessExecutor:
             sender.close()
             sender = None
             deadline = asyncio.get_running_loop().time() + float(timeout)
-            while process.is_alive():
-                if asyncio.get_running_loop().time() >= deadline:
-                    await _terminate_and_reap_async(process)
-                    return WorkerProcessResolution(
-                        request.request_fingerprint,
-                        WorkerProcessDecision.TIMED_OUT,
-                        process_id=getattr(process, "pid", None),
-                        error_digest=content_digest("strategy lab worker process timed out"),
-                    )
-                await asyncio.sleep(float(poll_interval_seconds))
+            try:
+                while process.is_alive():
+                    if asyncio.get_running_loop().time() >= deadline:
+                        await _terminate_and_reap_async(process)
+                        return WorkerProcessResolution(
+                            request.request_fingerprint,
+                            WorkerProcessDecision.TIMED_OUT,
+                            process_id=getattr(process, "pid", None),
+                            error_digest=content_digest("strategy lab worker process timed out"),
+                        )
+                    await asyncio.sleep(float(poll_interval_seconds))
+            except asyncio.CancelledError:
+                await _terminate_and_reap_async(process)
+                raise
             process.join()
             process_id = getattr(process, "pid", None)
             return _resolution_from_pipe(request.request_fingerprint, receiver, process_id)
