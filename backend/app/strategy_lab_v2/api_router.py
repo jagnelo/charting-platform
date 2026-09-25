@@ -45,12 +45,14 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandKind,
     ExecutionCommandResolution,
 )
+from app.strategy_lab_v2.contracts import CarryInMode
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.forward_account import ForwardAccountState
 from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
 from app.strategy_lab_v2.forward_corrections import ForwardCorrectionCommand
 from app.strategy_lab_v2.forward_event_dispatch import ForwardEventDispatchResolution
 from app.strategy_lab_v2.forward_event_transaction import ForwardEventTransactionResolution
+from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt, ForwardWarmupResolution
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
     LegacyImportDecision,
@@ -269,6 +271,14 @@ class ForwardEventDispatchApiAdapter(Protocol):
         payload: Mapping[str, Any],
         correction_command: ForwardCorrectionCommand | None,
     ) -> Awaitable[ForwardEventDispatchResolution] | ForwardEventDispatchResolution: ...
+
+
+class ForwardWarmupApiAdapter(Protocol):
+    """Application-owned one-time historical warm-up handoff."""
+
+    def complete_forward_warmup(
+        self, *, principal: Any, receipt: ForwardWarmupReceipt
+    ) -> Awaitable[ForwardWarmupResolution] | ForwardWarmupResolution: ...
 
 
 class SearchDispatchApiAdapter(Protocol):
@@ -743,6 +753,38 @@ def serialize_forward_event_dispatch(
     )
 
 
+def serialize_forward_warmup(
+    resolution: ForwardWarmupResolution, *, request_id: str
+) -> dict[str, Any]:
+    """Serialize one durable forward warm-up completion or replay."""
+
+    if not isinstance(resolution, ForwardWarmupResolution):
+        raise TypeError("resolution must be a ForwardWarmupResolution")
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise ValueError("request_id must not be empty")
+    if resolution.receipt is None:
+        raise ValueError("warm-up responses require a durable receipt")
+    return _json_value(
+        {
+            "data": {
+                "type": "forward-warmups",
+                "id": resolution.receipt.fingerprint,
+                "attributes": {
+                    "instance": asdict(resolution.instance),
+                    "receipt": asdict(resolution.receipt),
+                    "rejection_reason": resolution.rejection_reason,
+                },
+                "meta": {
+                    "request_id": request_id,
+                    "decision": resolution.decision,
+                    "instance_fingerprint": content_digest(resolution.instance),
+                    "receipt_fingerprint": resolution.receipt.fingerprint,
+                },
+            }
+        }
+    )
+
+
 def serialize_search_dispatch(
     resolution: SearchDispatchResolution,
     *,
@@ -1002,6 +1044,45 @@ def _parse_forward_dispatch(
     if len(json.dumps(_json_value(payload), separators=(",", ":"), ensure_ascii=False).encode("utf-8")) > MAX_RESOURCE_PAYLOAD_BYTES:
         raise ValueError("forward dispatch payload exceeds the maximum size")
     return event, observation, dispatch_request, payload, correction
+
+
+def _parse_forward_warmup(payload: Any, *, instance_id: str) -> ForwardWarmupReceipt:
+    if not isinstance(payload, Mapping):
+        raise ValueError("warm-up body must be a JSON object")
+    required = {
+        "instance_id",
+        "warmup_snapshot_fingerprint",
+        "carry_in_mode",
+        "warmup_result_fingerprint",
+        "completed_at",
+        "final_event_id",
+        "final_event_sequence",
+        "final_event_fingerprint",
+    }
+    if set(payload) != required:
+        raise ValueError("warm-up fields are invalid")
+    if payload["instance_id"] != instance_id:
+        raise ValueError("warm-up instance_id does not match the route")
+    sequence = payload["final_event_sequence"]
+    if not isinstance(sequence, int) or isinstance(sequence, bool):
+        raise ValueError("final_event_sequence must be an integer")
+    for field_name in (
+        "final_event_id",
+        "final_event_fingerprint",
+    ):
+        value = payload[field_name]
+        if value is not None and not isinstance(value, str):
+            raise ValueError(f"{field_name} must be a string or null")
+    return ForwardWarmupReceipt(
+        instance_id=instance_id,
+        warmup_snapshot_fingerprint=payload["warmup_snapshot_fingerprint"],
+        carry_in_mode=CarryInMode(payload["carry_in_mode"]),
+        warmup_result_fingerprint=payload["warmup_result_fingerprint"],
+        completed_at=_parse_forward_timestamp(payload["completed_at"], "completed_at"),
+        final_event_id=payload["final_event_id"],
+        final_event_sequence=sequence,
+        final_event_fingerprint=payload["final_event_fingerprint"],
+    )
 
 
 def _error_response(error: ApiError) -> JSONResponse:
@@ -2267,6 +2348,83 @@ def create_strategy_lab_router(
                 )
             )
 
+    @router.post("/forward-instances/{instance_id}/warmup", status_code=status.HTTP_202_ACCEPTED)
+    async def complete_forward_warmup(
+        instance_id: str,
+        request: Request,
+        body: Any = Body(...),
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Persist the one-time historical warm-up handoff for a forward instance."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            if not instance_id.strip():
+                raise ValueError("instance_id must not be empty")
+            receipt = _parse_forward_warmup(
+                await _strict_json_body(request, request_id), instance_id=instance_id
+            )
+            complete = getattr(adapter, "complete_forward_warmup", None)
+            if not callable(complete):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "forward warm-up adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                        details={"reason": "the host has not supplied warm-up persistence"},
+                    )
+                )
+            resolution = await _resolve(complete(principal=principal, receipt=receipt))
+            if not isinstance(resolution, ForwardWarmupResolution):
+                raise TypeError("adapter returned an invalid forward warm-up resolution")
+            if resolution.receipt is None:
+                code = (
+                    ApiErrorCode.CONFLICT
+                    if resolution.decision.value == "conflict"
+                    else ApiErrorCode.PRECONDITION_FAILED
+                )
+                return _error_response(
+                    _api_error(
+                        code,
+                        resolution.rejection_reason or "forward warm-up was rejected",
+                        request_id,
+                        status.HTTP_409_CONFLICT
+                        if code is ApiErrorCode.CONFLICT
+                        else status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+                )
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content=serialize_forward_warmup(resolution, request_id=request_id),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "forward warm-up request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 forward warm-up failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 forward warm-up failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
     @router.post("/experiments/{experiment_id}/search", status_code=status.HTTP_202_ACCEPTED)
     async def initialize_search(
         experiment_id: str,
@@ -3004,6 +3162,7 @@ __all__ = [
     "ForwardAccountApiAdapter",
     "ForwardEventApiAdapter",
     "ForwardEventDispatchApiAdapter",
+    "ForwardWarmupApiAdapter",
     "ForwardStateApiAdapter",
     "SearchDispatchApiAdapter",
     "SearchStateApiAdapter",
@@ -3020,6 +3179,7 @@ __all__ = [
     "serialize_forward_account",
     "serialize_forward_event_dispatch",
     "serialize_forward_event_transaction",
+    "serialize_forward_warmup",
     "serialize_resource",
     "serialize_resource_identifier",
     "serialize_submission",

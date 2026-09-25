@@ -29,6 +29,7 @@ from app.strategy_lab_v2.api_router import (
     serialize_forward_account,
     serialize_forward_event_dispatch,
     serialize_forward_event_transaction,
+    serialize_forward_warmup,
     serialize_resource,
     serialize_search_state_snapshot,
 )
@@ -45,6 +46,7 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandReceipt,
     ExecutionCommandResolution,
 )
+from app.strategy_lab_v2.contracts import CarryInMode, ForwardInstance, ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.forward_account import initial_forward_account_state
 from app.strategy_lab_v2.forward_event_dispatch import resolve_forward_event_dispatch
@@ -52,6 +54,7 @@ from app.strategy_lab_v2.forward_event_transaction import (
     ForwardEventTransactionDecision,
     ForwardEventTransactionResolution,
 )
+from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt, resolve_forward_warmup
 from app.strategy_lab_v2.legacy import (
     LegacyImportDecision,
     LegacyImportRecord,
@@ -234,6 +237,47 @@ def test_forward_event_dispatch_parser_and_serializer_preserve_outbox_identity()
     payload = serialize_forward_event_dispatch(resolution, request_id="request-1")
     assert payload["data"]["type"] == "forward-event-dispatches"
     assert payload["data"]["id"] == dispatch.fingerprint
+
+
+def test_forward_warmup_parser_and_serializer_preserve_carry_in_identity() -> None:
+    warming = ForwardInstance(
+        "forward-1",
+        content_digest("portfolio"),
+        SNAPSHOT,
+        CarryInMode.FLAT,
+        ForwardState.WARMING_UP,
+        None,
+        0,
+        0,
+        NOW,
+        NOW,
+    )
+    receipt = ForwardWarmupReceipt(
+        "forward-1",
+        SNAPSHOT,
+        CarryInMode.FLAT,
+        content_digest("warmup-result"),
+        NOW,
+    )
+    body = {
+        "instance_id": receipt.instance_id,
+        "warmup_snapshot_fingerprint": receipt.warmup_snapshot_fingerprint,
+        "carry_in_mode": receipt.carry_in_mode.value,
+        "warmup_result_fingerprint": receipt.warmup_result_fingerprint,
+        "completed_at": receipt.completed_at.isoformat(),
+        "final_event_id": receipt.final_event_id,
+        "final_event_sequence": receipt.final_event_sequence,
+        "final_event_fingerprint": receipt.final_event_fingerprint,
+    }
+    from app.strategy_lab_v2.api_router import _parse_forward_warmup
+
+    parsed = _parse_forward_warmup(body, instance_id="forward-1")
+    assert parsed == receipt
+    resolution = resolve_forward_warmup(warming, parsed)
+    payload = serialize_forward_warmup(resolution, request_id="request-1")
+    assert payload["data"]["type"] == "forward-warmups"
+    assert payload["data"]["id"] == receipt.fingerprint
+    assert payload["data"]["meta"]["decision"] == "complete"
 
 
 def _capability_document() -> ResourceDocument:
