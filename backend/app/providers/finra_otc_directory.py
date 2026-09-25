@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import io
 import time
+from hashlib import sha256
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
@@ -29,7 +30,7 @@ from app.providers.telemetry import observe_response
 _PAGE_SIZE = 1000
 _DAPI_PAGE_SIZE = 5000
 _CACHE_TTL_SECONDS = 900
-_cache: tuple[float, list[dict[str, Any]], tuple[str, str, str | None]] | None = None
+_cache: tuple[float, list[dict[str, Any]], tuple[str, str, str | None, str, str]] | None = None
 _OTC_MARKETS_STATUS_VALUES = {"A", "S", "H", "I", "R"}
 _ORF_SOURCE_KIND = "finra_orf_security_master"
 _ORF_ACTIVE_STATUSES = {"A", "ACTIVE"}
@@ -117,7 +118,14 @@ def _directory_rows() -> list[dict[str, Any]]:
     now = time.monotonic()
     url, inactive_url = FINRAOTCDirectoryProvider._source_urls()
     source_kind = str(getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or "").strip().lower()
-    cache_key = (source_kind, url, inactive_url)
+    username = str(getattr(settings, "FINRA_ORF_USERNAME", "") or "").strip()
+    refresh_token = str(getattr(settings, "FINRA_ORF_REFRESH_TOKEN", "") or "").strip()
+    refresh_token_digest = (
+        sha256(refresh_token.encode("utf-8")).hexdigest()
+        if source_kind == _ORF_SOURCE_KIND and refresh_token
+        else ""
+    )
+    cache_key = (source_kind, url, inactive_url, username, refresh_token_digest)
     if _cache and now - _cache[0] < _CACHE_TTL_SECONDS and _cache[2] == cache_key:
         return list(_cache[1])
     if source_kind == _ORF_SOURCE_KIND:

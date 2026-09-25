@@ -99,6 +99,45 @@ def test_finra_otc_directory_cache_is_scoped_to_configured_source(monkeypatch):
     assert get.call_count == 2
 
 
+def test_finra_otc_directory_orf_cache_is_scoped_to_credentials(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_orf_security_master")
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+    )
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
+    )
+    monkeypatch.setattr(settings, "FINRA_ORF_USERNAME", "traqs-user")
+    monkeypatch.setattr(settings, "FINRA_ORF_REFRESH_TOKEN", "first-refresh-token")
+    first_active = Mock(text=_ORF_SECURITY_MASTER, status_code=200, headers={})
+    first_inactive = Mock(text=_ORF_INACTIVE_SECURITY_MASTER, status_code=200, headers={})
+    second_active = Mock(text=_ORF_SECURITY_MASTER.replace("AAA", "CCC"), status_code=200, headers={})
+    second_inactive = Mock(
+        text=_ORF_INACTIVE_SECURITY_MASTER.replace("BBB", "DDD"),
+        status_code=200,
+        headers={},
+    )
+    with (
+        patch.object(directory, "_cache", None),
+        patch("app.providers.finra_otc_directory._orf_access_token", return_value="token"),
+        patch(
+            "app.providers.finra_otc_directory.httpx.post",
+            side_effect=[first_active, first_inactive, second_active, second_inactive],
+        ) as post,
+    ):
+        first_page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+        monkeypatch.setattr(settings, "FINRA_ORF_REFRESH_TOKEN", "second-refresh-token")
+        second_page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+
+    assert first_page["quotes"][0]["symbol"] == "AAA"
+    assert second_page["quotes"][0]["symbol"] == "CCC"
+    assert post.call_count == 4
+
+
 def test_finra_otc_directory_parses_official_otc_markets_security_master(monkeypatch):
     monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "https://example.test/otc.txt")
     response = Mock()
