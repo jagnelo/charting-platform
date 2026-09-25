@@ -90,6 +90,15 @@ Focused handoff/process checks pass (7 tests); the complete Strategy Lab v2
 package passes 810 tests. Terminal/result evidence resolution remains an
 application-owned callback gate.
 
+## 2026-09-25 - Resolver-configured worker callbacks
+
+`worker_callbacks.py` now composes `materialize_worker_handoff()` with the
+durable `PostgresWorkerTerminalAdapter`. The opt-in worker loads an explicit
+`STRATEGY_LAB_V2_EVIDENCE_RESOLVER` module/attribute factory and fails before
+opening Redis when it is missing, malformed, or does not return a callable
+resolver. A legacy completion path is retained only as a typed retry guard;
+terminal evidence cannot be acknowledged without the durable terminal writer.
+
 ## 2026-09-24 - Typed result-manifest rehydration
 
 `postgres_result_materialization.py` now exposes owner-scoped

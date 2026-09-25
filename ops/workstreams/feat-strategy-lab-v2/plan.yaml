@@ -466,6 +466,13 @@ remaining_gaps:
       async materializer compatible with the dedicated worker callback seam;
       terminal/result evidence resolution remains application-owned.
   - >-
+      `worker_callbacks.py` now composes the typed handoff materializer with
+      `PostgresWorkerTerminalAdapter` through a namespaced
+      `STRATEGY_LAB_V2_EVIDENCE_RESOLVER` module/attribute factory. Missing or
+      malformed resolver configuration fails before Redis opens, and the
+      legacy completion path can only return a retry; application evidence
+      resolution remains explicit rather than inferred from transport payloads.
+  - >-
       `worker_service.py` now optionally emits ordered, content-addressed lease
       heartbeats during each serial process handoff and fails closed on an
       unexpected sequence/state or durable observation rejection. The local
@@ -637,6 +644,6 @@ progress:
     - strategy-lab-v2-typed-runtime-preflight-rehydration
     - strategy-lab-v2-api-startup-migration-rollout
   total: 18
-  current_phase: strategy-lab-v2-typed-worker-dispatch-handoff-staging-ready-for-human-review
+  current_phase: strategy-lab-v2-resolver-configured-worker-callbacks-staging-ready-for-human-review
   current_blocker: Application-owned terminal/result callback wiring, stable Nautilus release, upstream contract reconciliation, and full repository integration remain open
   next_action: implement the application-owned terminal/result callback over the typed worker handoff, then reconcile upstream contracts and add stable-release conformance without changing the engine-neutral boundary

@@ -1171,6 +1171,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   allowlist, verifies the request and payload identities, and exposes
   `materialize_worker_handoff()` for the worker callback seam. It does not
   resolve terminal/result evidence or acknowledge Redis entries.
+- `worker_callbacks.py` composes that materializer with the durable
+  `PostgresWorkerTerminalAdapter`. It loads an application-owned evidence
+  resolver from `STRATEGY_LAB_V2_EVIDENCE_RESOLVER` using explicit
+  `module:attribute` syntax; missing or malformed configuration fails before
+  Redis is opened. The fallback completion writer can only return a retry, so
+  terminal evidence cannot be acknowledged through the legacy path.
 - The root Compose stack now contains an explicit, opt-in
   `strategy-lab-v2-worker` profile. It is separate from the general ARQ worker,
   starts only after PostgreSQL/Redis health, writes to the named
