@@ -54,6 +54,27 @@ containers, images, or volumes. Host artifact mapping, stable Nautilus release
 conformance, upstream contract reconciliation, and full application
 integration remain open gates.
 
+## 2026-09-25 - Artifact publication plan handoff checkpoint
+
+`ArtifactPublicationResolution` now retains the exact verified
+`ArtifactPublicationPlan` used for storage and commit finalization. Successful
+create and replay resolutions therefore expose the same manifest/content/
+retention/action identity that terminal completion must receive, while
+rejections cannot carry a plan. This removes a reconstruction gap for the
+explicit host artifact-mapping callback and keeps publication policy bound to
+the verified bytes that were actually written.
+
+Focused artifact-application tests passed 9 tests; the complete Strategy Lab
+v2 package passed 836 tests. Branch-declared validation passed all six checks
+(836 package tests, 2 migration tests, Ruff, MyPy across 272 files, diff, and
+workstream validation). The exact backend gate passed 2,487 tests at 83.73%
+coverage with 86 warnings; the referenced runtime env file was absent in this
+checkout and `.env.dev` supplied test configuration. Compose profile validation
+passed, and both required cleanup passes retained zero testcontainer sessions,
+containers, images, or volumes. Host artifact source mapping, stable Nautilus
+release conformance, upstream contract reconciliation, and full application
+integration remain open gates.
+
 ## 2026-09-25 - Mounted result evidence checkpoint
 
 `sandbox.py` now exposes the validated host source for the hardened
