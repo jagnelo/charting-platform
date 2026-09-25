@@ -1314,62 +1314,27 @@ def _find_active_identity(connection, spec: dict[str, Any], digest: str, now: da
 
 
 def _prune_old_ledger_rows(connection, now: datetime) -> None:
-    """Bound history while preserving one full longest quota window."""
+    """Record maintenance without deleting quota/audit evidence.
+
+    Quota windows and reservations are cross-session evidence of provider
+    allowance consumption.  They may be operationally inactive, but deleting
+    them would make later provider-account reconciliation impossible and would
+    violate the platform's append-only evidence policy.  Keep the historical
+    retention setting and maintenance marker for compatibility/diagnostics;
+    cleanup is intentionally a no-op until an archival mechanism can preserve
+    the complete rows losslessly.
+    """
 
     configured_days = getattr(settings, "PROVIDER_QUOTA_LEDGER_RETENTION_DAYS", 180)
     if isinstance(configured_days, bool) or not isinstance(configured_days, int) or configured_days < 1:
         raise ProviderQuotaCoordinatorError(
             "provider quota ledger retention must be a positive integer"
         )
-    from app.config import settings as app_settings
-
-    longest_window = max(
-        (
-            int(dimension.get("window_seconds") or 0)
-            for seed in (app_settings.PROVIDER_RATE_LIMIT_SEEDS or {}).values()
-            if isinstance(seed, dict)
-            for dimension in (seed.get("quota_contract", {}).get("dimensions", []) or [])
-            if isinstance(dimension, dict)
-        ),
-        default=0,
-    )
-    days = max(configured_days, (longest_window + 86399) // 86400 + 1)
     last_run = connection.execute(
         select(_maintenance.c.last_run_at).where(_maintenance.c.key == "retention-v1")
     ).scalar_one_or_none()
     if last_run is not None and last_run.date() >= now.date():
         return
-
-    cutoff = now - timedelta(days=days)
-    stale = connection.execute(
-        select(_windows).where(_windows.c.window_started_at < cutoff)
-    ).mappings().all()
-    for window in stale:
-        predicates = [
-            _reservations.c.account_scope == window["account_scope"],
-            _reservations.c.quota_group == window["quota_group"],
-            _reservations.c.dimension == window["dimension"],
-            _reservations.c.window_started_at == window["window_started_at"],
-            _reservations.c.window_seconds == window["window_seconds"],
-        ]
-        active = connection.execute(
-            select(_reservations.c.id)
-            .where(*predicates, _reservations.c.state.in_(["pending", "uncertain"]))
-            .limit(1)
-        ).first()
-        if active is not None:
-            continue
-        connection.execute(
-            _identities.delete().where(
-                _identities.c.account_scope == window["account_scope"],
-                _identities.c.quota_group == window["quota_group"],
-                _identities.c.dimension == window["dimension"],
-                _identities.c.window_started_at == window["window_started_at"],
-                _identities.c.window_seconds == window["window_seconds"],
-            )
-        )
-        connection.execute(_reservations.delete().where(*predicates))
-        connection.execute(_windows.delete().where(_windows.c.id == window["id"]))
 
     _insert_ignore(
         connection,

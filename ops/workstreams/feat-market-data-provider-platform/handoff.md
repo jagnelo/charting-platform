@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 quota-evidence retention correction
+
+- Quota-coordinator maintenance no longer deletes old settled or uncertain
+  windows, reservations, or identity claims. The historical retention setting
+  remains compatibility/diagnostic metadata; cleanup is a no-op until a
+  lossless archive exists.
+- Coordinator tests pass `38/38`, Ruff and diff checks pass. Active quota
+  enforcement is unchanged; this only prevents cross-session usage evidence
+  from being discarded.
+
 ## 2026-09-25 exact-current preflight after SEC source evidence retention
 
 - Source `def5ee1fb` ran the full provider manifest preflight and stopped before

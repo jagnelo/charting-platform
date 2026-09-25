@@ -1550,7 +1550,7 @@ def test_not_sent_reservation_releases_monthly_symbol_claim(tmp_path, monkeypatc
     ) is not None
 
 
-def test_retention_prunes_only_old_settled_windows(tmp_path, monkeypatch):
+def test_retention_never_deletes_historical_quota_evidence(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_RETENTION_DAYS", 30)
     policy = _policy(_dimension(limit=10))
@@ -1576,7 +1576,12 @@ def test_retention_prunes_only_old_settled_windows(tmp_path, monkeypatch):
 
     assert _reserve(policy, {"requests_per_minute": 1}, now=current)
     windows = provider_quota_coordinator_summary(provider_name="fixture", now=current)["windows"]
-    assert len(windows) == 2
+    assert len(windows) == 3
+    settled_window = next(
+        row for row in windows if row["window_started_at"].startswith("2026-01-01T12:00:00")
+    )
+    assert settled_window["reserved_units"] == 0
+    assert settled_window["consumed_units"] == 1
     uncertain_window = next(row for row in windows if row["uncertain_reservations"])
     assert uncertain_window["uncertain_reservations"] == 1
     assert uncertain_window["window_started_at"].startswith("2026-01-01T12:01:00")

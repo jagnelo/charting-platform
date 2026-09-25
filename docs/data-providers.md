@@ -156,6 +156,13 @@ and snapshot-retention settings. Request logs are quota and audit evidence, not
 disposable operational cache. This preserves every quota-consuming provider
 response and usage fact for audit, replay, and future reconciliation.
 
+The durable quota coordinator follows the same rule: historical quota windows,
+reservations, and identity claims are never deleted by maintenance, even after
+their active enforcement window has elapsed. `PROVIDER_QUOTA_LEDGER_RETENTION_DAYS`
+remains a compatibility/diagnostic setting, but cleanup is intentionally a
+no-op until a lossless archival path exists. This keeps cross-session usage
+evidence available for provider-account reconciliation.
+
 Provider-native account-usage observations now retain both the decoded raw
 provider body and the allow-listed capacity headers alongside each normalized
 dimension. This preserves provider-specific fields such as usage dates, plan

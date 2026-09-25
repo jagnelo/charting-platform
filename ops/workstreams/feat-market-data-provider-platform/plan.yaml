@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 quota-evidence retention correction: quota coordinator
+    maintenance no longer deletes historical settled/uncertain windows,
+    reservations, or identity claims. The legacy
+    PROVIDER_QUOTA_LEDGER_RETENTION_DAYS setting remains diagnostic until a
+    lossless archival path exists. The coordinator suite passes 38/38 and
+    Ruff/diff checks pass. This preserves cross-session quota evidence without
+    changing active-window admission or introducing any generic limit.
+  - >-
     2026-09-25 exact-current full provider preflight at source
     def5ee1fbeff8cd1b39379221c1e6ba6ec592034 stopped before transport with
     0/0 ordinary cases and zero provider requests. The SEC source-payload
