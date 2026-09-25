@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 Marketstack official-source recheck: the current pricing page,
+    home page, and contact/FAQ pages continue to publish a contradictory free
+    allowance (100 requests/month on pricing/home/contact guidance versus 1,000
+    in one FAQ paragraph). The official pages expose no reset timestamp and no
+    machine-readable account-usage endpoint that can reconcile this key's prior
+    consumption. The lower 100-request ceiling remains audit metadata and
+    routing stays fail-closed until the account plan and reset are
+    provider-authoritatively established.
+  - >-
     2026-09-25 final exact-HEAD full safety preflight stopped before ordinary
     transport at `0/0` with zero provider requests after the current live
     receipts. The redacted receipt enumerates the remaining provider-specific

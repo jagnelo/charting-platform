@@ -2,6 +2,12 @@
 
 ### 2026-09-25 — Current provider-contract audit continuation
 
+- [x] Recheck current official Marketstack quota sources. Pricing/home/contact
+      guidance says 100 requests/month, one FAQ paragraph says 1,000, and no
+      official reset timestamp or machine-readable usage counter was found.
+      Preserve the lower audit ceiling and fail-closed routing; do not infer a
+      reset boundary.
+
 - [x] Refresh the exact-HEAD full provider safety preflight after the current
       live receipts. It stopped before ordinary transport at `0/0` with zero
       provider requests and recorded the remaining fail-closed gates in the

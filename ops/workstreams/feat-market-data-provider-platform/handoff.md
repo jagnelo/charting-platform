@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Marketstack official-source recheck
+
+- Current official Marketstack pricing/home/contact guidance continues to
+  publish a 100-request/month Free plan, while one FAQ paragraph still says
+  1,000 requests/month. The official pages do not publish a reset timestamp or
+  machine-readable account-usage counter.
+- The implementation therefore keeps the conservative 100-request audit seed,
+  requires explicit reviewed limit/reset/evidence controls, and does not infer
+  a calendar or billing-cycle reset. No Marketstack request was made during
+  this documentation-only recheck.
+
 ## 2026-09-25 provider secret-wiring regression
 
 - The backend secret-wiring suite passed `26/26` after the current workflow and
