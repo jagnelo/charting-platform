@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -59,6 +59,20 @@ def test_heartbeat_advances_lease_and_exact_retry_replays() -> None:
     replay = apply_lease_observation(applied.state, heartbeat)
     assert replay.decision is LeaseObservationDecision.REPLAY_EXISTING
     assert replay.state == applied.state
+
+
+def test_lease_observation_normalizes_offset_equivalent_times() -> None:
+    offset_time = datetime(2024, 1, 1, 1, 1, tzinfo=timezone(timedelta(hours=1)))
+    observation = _observation(
+        "offset",
+        1,
+        observed_at=offset_time,
+        expires_at=offset_time + timedelta(minutes=5),
+    )
+    assert observation.observed_at == NOW + timedelta(minutes=1)
+    assert observation.observed_at.tzinfo is UTC
+    assert observation.expires_at is not None
+    assert observation.expires_at.tzinfo is UTC
 
 
 def test_observation_id_conflict_does_not_mutate_state() -> None:

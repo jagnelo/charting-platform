@@ -10,7 +10,7 @@ compare-and-set with the pool state.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.admission import ExecutionAdmission
@@ -65,6 +65,7 @@ class WorkerSettlementRecord:
             _nonempty(getattr(self, name), name)
         if self.released_at.tzinfo is None or self.released_at.utcoffset() is None:
             raise ValueError("released_at must be timezone-aware")
+        object.__setattr__(self, "released_at", self.released_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:
@@ -181,6 +182,7 @@ def settle_worker_execution(
         raise TypeError("lease_state must be a LeaseObservationState")
     if released_at.tzinfo is None or released_at.utcoffset() is None:
         raise ValueError("released_at must be timezone-aware")
+    released_at = released_at.astimezone(UTC)
 
     plan = execution.orchestration_plan
     if plan.admission_fingerprint != admission.fingerprint:

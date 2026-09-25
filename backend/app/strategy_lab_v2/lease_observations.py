@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -55,6 +55,9 @@ class LeaseObservation:
             raise ValueError("heartbeat observations require expires_at")
         if self.kind is LeaseObservationKind.RELEASE and self.expires_at is not None:
             raise ValueError("release observations cannot contain expires_at")
+        object.__setattr__(self, "observed_at", self.observed_at.astimezone(UTC))
+        if self.expires_at is not None:
+            object.__setattr__(self, "expires_at", self.expires_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:

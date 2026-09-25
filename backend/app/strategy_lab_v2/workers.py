@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -73,8 +73,12 @@ class WorkerReservation:
             value = getattr(self, name)
             if value is not None and (value.tzinfo is None or value.utcoffset() is None):
                 raise ValueError(f"reservation {name} must be timezone-aware")
-        if self.released_at is not None and self.released_at < self.acquired_at:
+        acquired_at = self.acquired_at.astimezone(UTC)
+        released_at = self.released_at.astimezone(UTC) if self.released_at is not None else None
+        if released_at is not None and released_at < acquired_at:
             raise ValueError("reservation release cannot precede acquisition")
+        object.__setattr__(self, "acquired_at", acquired_at)
+        object.__setattr__(self, "released_at", released_at)
 
     @property
     def active(self) -> bool:
@@ -171,6 +175,7 @@ def reserve_worker_slot(
     require_sha256_digest(reservation_id, field_name="reservation_id")
     if acquired_at.tzinfo is None or acquired_at.utcoffset() is None:
         raise ValueError("reservation acquired_at must be timezone-aware")
+    acquired_at = acquired_at.astimezone(UTC)
     if not pool.profile.isolation_required:
         return WorkerReservationResolution(
             WorkerReservationDecision.REJECT, pool, rejection_reason="worker isolation is required"
@@ -226,6 +231,7 @@ def release_worker_slot(
     require_sha256_digest(reservation_id, field_name="reservation_id")
     if released_at.tzinfo is None or released_at.utcoffset() is None:
         raise ValueError("reservation released_at must be timezone-aware")
+    released_at = released_at.astimezone(UTC)
     for index, reservation in enumerate(pool.reservations):
         if reservation.reservation_id == reservation_id:
             if not reservation.active:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 from app.strategy_lab_v2.admission import ExecutionAdmission
@@ -118,6 +118,24 @@ def test_settlement_releases_serial_slot_and_exact_retry_replays(tmp_path: Path)
     assert inconsistent.rejection_reason == (
         "settlement receipt exists but worker reservation is still active"
     )
+
+
+def test_settlement_normalizes_offset_equivalent_release_time(tmp_path: Path) -> None:
+    values = _fixtures()
+    pool, admission = _admitted_pool(values)
+    execution = _execution(values, tmp_path)
+    offset_release = datetime(2024, 1, 1, 2, 0, 2, tzinfo=timezone(timedelta(hours=2)))
+    settled = settle_worker_execution(
+        WorkerSettlementLedger(),
+        pool,
+        admission,
+        execution,
+        lease_state=_lease(admission),
+        released_at=offset_release,
+    )
+    assert settled.record is not None
+    assert settled.record.released_at == NOW + timedelta(seconds=2)
+    assert settled.record.released_at.tzinfo is UTC
 
 
 def test_settlement_conflicts_on_changed_release_evidence(tmp_path: Path) -> None:

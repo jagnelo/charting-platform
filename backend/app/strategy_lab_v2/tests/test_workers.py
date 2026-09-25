@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -47,6 +47,19 @@ def test_worker_pool_reserves_one_serial_slot_and_replays_same_attempt() -> None
     )
     assert replay.decision is WorkerReservationDecision.REPLAY_EXISTING
     assert replay.reservation == accepted.reservation
+
+
+def test_worker_reservation_normalizes_offset_equivalent_times() -> None:
+    offset_time = datetime(2024, 1, 1, 2, tzinfo=timezone(timedelta(hours=2)))
+    accepted = reserve_worker_slot(
+        _pool(),
+        attempt_id="attempt-1",
+        reservation_id=_reservation_id("offset"),
+        acquired_at=offset_time,
+    )
+    assert accepted.reservation is not None
+    assert accepted.reservation.acquired_at == NOW
+    assert accepted.reservation.acquired_at.tzinfo is UTC
 
 
 def test_worker_pool_reports_saturation_and_reopens_after_release() -> None:
