@@ -32,6 +32,7 @@ from app.strategy_lab_v2.api_router import (
     serialize_forward_event_dispatch,
     serialize_forward_event_transaction,
     serialize_forward_lifecycle,
+    serialize_forward_replays,
     serialize_forward_warmup,
     serialize_resource,
     serialize_search_state_snapshot,
@@ -52,6 +53,7 @@ from app.strategy_lab_v2.commands import (
 from app.strategy_lab_v2.contracts import CarryInMode, ForwardInstance, ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.forward_account import initial_forward_account_state
+from app.strategy_lab_v2.forward_corrections import CounterfactualReplayPlan
 from app.strategy_lab_v2.forward_event_dispatch import (
     ForwardEventDispatchResolution,
     resolve_forward_event_dispatch,
@@ -586,6 +588,21 @@ class ForwardRouteAdapter(WarmupRouteAdapter):
         )
 
 
+class ReplayRouteAdapter(ForwardRouteAdapter):
+    async def load_forward_replays(self, **kwargs: Any) -> tuple[CounterfactualReplayPlan, ...]:
+        return (
+            CounterfactualReplayPlan(
+                replay_id=content_digest("replay-1"),
+                instance_id=kwargs["instance_id"],
+                correction_event_id="correction-1",
+                original_event_id="live-0",
+                base_checkpoint_fingerprint=forward_state().checkpoint.fingerprint,
+                warmup_receipt_fingerprint=forward_state().warmup_receipt_fingerprint,
+                planned_at=NOW,
+            ),
+        )
+
+
 class ResourceConflictAdapter(FakeAdapter):
     async def create_resource(self, **kwargs: Any) -> ResourceMutationServiceResult:
         request = kwargs["request"]
@@ -776,6 +793,35 @@ async def test_lifecycle_route_executes_compare_and_set_boundary() -> None:
     assert response.status_code == 202
     assert response.json()["data"]["type"] == "forward-lifecycle-transitions"
     assert response.json()["data"]["attributes"]["decision"] == "applied"
+
+
+def test_forward_replay_serializer_preserves_deterministic_plan_identity() -> None:
+    replay_plan = CounterfactualReplayPlan(
+        replay_id=content_digest("replay-serializer"),
+        instance_id="forward-1",
+        correction_event_id="correction-1",
+        original_event_id="live-0",
+        base_checkpoint_fingerprint=forward_state().checkpoint.fingerprint,
+        warmup_receipt_fingerprint=forward_state().warmup_receipt_fingerprint,
+        planned_at=NOW,
+    )
+    payload = serialize_forward_replays((replay_plan,), instance_id="forward-1", request_id="request-1")
+    assert payload["data"][0]["type"] == "forward-replays"
+    assert payload["data"][0]["id"] == replay_plan.replay_id
+    assert payload["meta"]["count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_replay_route_exposes_additive_counterfactual_plans() -> None:
+    app = _asgi_app(ReplayRouteAdapter())
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://strategy-lab.test") as client:
+        response = await client.get(
+            "/api/v1/strategy-lab/v2/forward-instances/forward-1/replays"
+        )
+    assert response.status_code == 200
+    assert response.json()["data"][0]["type"] == "forward-replays"
+    assert response.json()["meta"]["count"] == 1
 
 
 def test_resource_serialization_preserves_decimal_as_exact_string() -> None:

@@ -41,7 +41,10 @@ from app.strategy_lab_v2.forward_account import (
     ForwardAccountState,
 )
 from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
-from app.strategy_lab_v2.forward_corrections import ForwardCorrectionCommand
+from app.strategy_lab_v2.forward_corrections import (
+    CounterfactualReplayPlan,
+    ForwardCorrectionCommand,
+)
 from app.strategy_lab_v2.forward_event_dispatch import ForwardEventDispatchResolution
 from app.strategy_lab_v2.forward_event_transaction import ForwardEventTransactionResolution
 from app.strategy_lab_v2.forward_warmup import (
@@ -770,6 +773,17 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         if not isinstance(instance_id, str) or not instance_id.strip():
             raise ValueError("instance_id must not be empty")
         return await self._persistence.forward_state.load_state(
+            principal=_principal_identity(principal), instance_id=instance_id
+        )
+
+    async def load_forward_replays(
+        self, *, principal: Any, instance_id: str
+    ) -> tuple[CounterfactualReplayPlan, ...] | None:
+        """Read authenticated counterfactual replay plans for one instance."""
+
+        if not isinstance(instance_id, str) or not instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        return await self._persistence.forward_state.load_replays(
             principal=_principal_identity(principal), instance_id=instance_id
         )
 

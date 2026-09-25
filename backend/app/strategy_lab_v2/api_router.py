@@ -49,7 +49,10 @@ from app.strategy_lab_v2.contracts import CarryInMode, ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.forward_account import ForwardAccountState
 from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
-from app.strategy_lab_v2.forward_corrections import ForwardCorrectionCommand
+from app.strategy_lab_v2.forward_corrections import (
+    CounterfactualReplayPlan,
+    ForwardCorrectionCommand,
+)
 from app.strategy_lab_v2.forward_event_dispatch import ForwardEventDispatchResolution
 from app.strategy_lab_v2.forward_event_transaction import ForwardEventTransactionResolution
 from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt, ForwardWarmupResolution
@@ -288,6 +291,14 @@ class ForwardLifecycleApiAdapter(Protocol):
     def transition_forward_instance(
         self, *, principal: Any, instance_id: str, target: ForwardState, now: datetime
     ) -> Awaitable[ForwardStateMutationResolution] | ForwardStateMutationResolution: ...
+
+
+class ForwardReplayApiAdapter(Protocol):
+    """Application-owned read bridge for additive counterfactual replay plans."""
+
+    def load_forward_replays(
+        self, *, principal: Any, instance_id: str
+    ) -> Awaitable[tuple[CounterfactualReplayPlan, ...] | None] | tuple[CounterfactualReplayPlan, ...] | None: ...
 
 
 class SearchDispatchApiAdapter(Protocol):
@@ -819,6 +830,42 @@ def serialize_forward_lifecycle(
                 },
                 "meta": {"request_id": request_id},
             }
+        }
+    )
+
+
+def serialize_forward_replays(
+    replays: tuple[CounterfactualReplayPlan, ...], *, instance_id: str, request_id: str
+) -> dict[str, Any]:
+    """Serialize deterministic additive counterfactual replay plans."""
+
+    if not isinstance(replays, tuple) or any(
+        not isinstance(replay, CounterfactualReplayPlan) for replay in replays
+    ):
+        raise TypeError("replays must contain CounterfactualReplayPlan values")
+    if not isinstance(instance_id, str) or not instance_id.strip():
+        raise ValueError("instance_id must not be empty")
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise ValueError("request_id must not be empty")
+    ordered = tuple(sorted(replays, key=lambda replay: replay.replay_id))
+    if ordered != replays:
+        raise ValueError("replays must be deterministically ordered")
+    return _json_value(
+        {
+            "data": [
+                {
+                    "type": "forward-replays",
+                    "id": replay.replay_id,
+                    "attributes": asdict(replay),
+                    "meta": {"replay_fingerprint": replay.fingerprint},
+                }
+                for replay in ordered
+            ],
+            "meta": {
+                "request_id": request_id,
+                "instance_id": instance_id,
+                "count": len(ordered),
+            },
         }
     )
 
@@ -2245,6 +2292,74 @@ def create_strategy_lab_router(
                 )
             )
 
+    @router.get("/forward-instances/{instance_id}/replays")
+    async def get_forward_replays(
+        instance_id: str,
+        request: Request,
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Read additive counterfactual replay plans without changing live state."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            if not instance_id.strip():
+                raise ValueError("instance_id must not be empty")
+            load = getattr(adapter, "load_forward_replays", None)
+            if not callable(load):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "forward replay adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                        details={"reason": "the host has not supplied forward replay persistence"},
+                    )
+                )
+            replays = await _resolve(load(principal=principal, instance_id=instance_id))
+            if replays is None:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.NOT_FOUND,
+                        "forward instance was not found",
+                        request_id,
+                        status.HTTP_404_NOT_FOUND,
+                    )
+                )
+            if not isinstance(replays, tuple):
+                raise TypeError("adapter returned invalid forward replay records")
+            response = JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=serialize_forward_replays(
+                    replays, instance_id=instance_id, request_id=request_id
+                ),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "forward replay request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 forward replay read failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 forward replay read failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
     @router.get("/forward-instances/{instance_id}/account")
     async def get_forward_account(
         instance_id: str,
@@ -3290,6 +3405,7 @@ __all__ = [
     "ForwardEventApiAdapter",
     "ForwardEventDispatchApiAdapter",
     "ForwardLifecycleApiAdapter",
+    "ForwardReplayApiAdapter",
     "ForwardWarmupApiAdapter",
     "ForwardStateApiAdapter",
     "SearchDispatchApiAdapter",
@@ -3308,6 +3424,7 @@ __all__ = [
     "serialize_forward_event_dispatch",
     "serialize_forward_event_transaction",
     "serialize_forward_lifecycle",
+    "serialize_forward_replays",
     "serialize_forward_warmup",
     "serialize_resource",
     "serialize_resource_identifier",
