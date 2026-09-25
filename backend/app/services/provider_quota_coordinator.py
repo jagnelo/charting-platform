@@ -2643,7 +2643,24 @@ def ensure_provider_quota_coordinator(*, require_persistent_coordinator: bool = 
             connection.execute(select(func.count()).select_from(_windows)).scalar_one()
     except ProviderQuotaCoordinatorError:
         raise
-    except (OSError, SQLAlchemyError, ValueError, TypeError):
+    except SQLAlchemyError as exc:
+        # Preserve a safe, actionable deployment diagnostic for the common
+        # local-ledger failure without exposing the configured filesystem path
+        # or any database credentials. This is especially useful when a host
+        # bind mount is readable but not writable by the backend process.
+        detail = str(exc).lower()
+        if "readonly database" in detail or "read-only database" in detail:
+            raise ProviderQuotaCoordinatorError(
+                "provider quota ledger is read-only; use a writable SQLite path or PostgreSQL coordinator"
+            ) from None
+        if "permission denied" in detail or "not authorized" in detail:
+            raise ProviderQuotaCoordinatorError(
+                "provider quota ledger write permission is unavailable; use a writable SQLite path or PostgreSQL coordinator"
+            ) from None
+        raise ProviderQuotaCoordinatorError(
+            "provider quota coordinator is unavailable; live provider calls are blocked"
+        ) from None
+    except (OSError, ValueError, TypeError):
         raise ProviderQuotaCoordinatorError(
             "provider quota coordinator is unavailable; live provider calls are blocked"
         ) from None

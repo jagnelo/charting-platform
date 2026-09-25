@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from multiprocessing import get_context
 from types import SimpleNamespace
 
 import pytest
+from sqlalchemy.exc import OperationalError
 
 from app.config import settings
 from app.services.provider_quota_coordinator import (
@@ -1023,6 +1025,25 @@ def test_coordinator_health_probe_commits_write_and_lock_round_trip(tmp_path, mo
             "WHERE key = 'health-probe-v1'"
         ).scalar_one_or_none()
     assert value is not None
+
+
+def test_coordinator_health_probe_explains_read_only_sqlite_failure(monkeypatch):
+    @contextmanager
+    def readonly_transaction(_engine):
+        raise OperationalError(
+            "INSERT INTO provider_quota_ledger_maintenance",
+            {},
+            Exception("attempt to write a readonly database"),
+        )
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(
+        "app.services.provider_quota_coordinator._write_transaction",
+        readonly_transaction,
+    )
+
+    with pytest.raises(ProviderQuotaCoordinatorError, match="ledger is read-only"):
+        ensure_provider_quota_coordinator()
 
 
 def test_settled_live_receipt_is_idempotent_and_does_not_double_count(tmp_path, monkeypatch):
