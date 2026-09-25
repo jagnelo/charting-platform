@@ -2,6 +2,22 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Forward shadow-account ledger checkpoint
+
+Added the engine-neutral `forward_account.py` contract for broker-free shadow
+state: immutable accepted orders, authoritative fills, multi-currency cash
+balances, positions, and append-only applied-event identities. The pure
+transition applies fills deterministically, preserves weighted average prices,
+rejects unknown or overfilled orders, rejects out-of-order events, and replays
+exact content without rewriting prior decisions. It performs no broker,
+provider, persistence, or Nautilus I/O; a PostgreSQL account-state adapter is
+the next persistence seam.
+
+Focused forward account plus worker/handoff/dispatch/application/persistence
+coverage passed 39 tests. Ruff and MyPy remain green across 285 source files.
+Account-state persistence, event-stream activation, worker authorization, and
+stable Nautilus execution remain gated.
+
 ## 2026-09-25 - Forward worker service checkpoint
 
 Added `ForwardEventWorkerService`, a bounded Redis scheduler composition for

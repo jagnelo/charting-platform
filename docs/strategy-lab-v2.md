@@ -689,6 +689,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   or host event handling fails and acknowledges only an entry-bound durable
   receipt; reservation, event acquisition, and Nautilus process execution stay
   outside this transport service.
+- `forward_account.py` defines the engine-neutral shadow-account ledger used by
+  a future forward handler: accepted orders, engine fills, multi-currency cash,
+  positions, and applied-event identities are immutable and replay-safe. Fill
+  application is deterministic and broker-free; durable account storage and
+  engine/provider integration remain adapter-owned gates.
 - `execution_event_transaction.py` links each canonical execution-event append
   to its audit-journal entry and transactional-outbox message. Event sequence
   gaps, audit gaps, identity mismatches, and outbox conflicts return every
