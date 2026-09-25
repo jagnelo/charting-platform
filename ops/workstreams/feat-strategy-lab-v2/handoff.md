@@ -2,6 +2,27 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Search candidate dispatch API boundary checkpoint
+
+The versioned API now exposes `POST /experiments/{experiment_id}/search/dispatch`.
+It strictly validates the candidate index, attempt identity, content-addressed
+payload, queue name, timestamp, and `Idempotency-Key`, then delegates the full
+candidate/admission/dispatch decision to an application-owned callback. The
+response serializes the candidate state, admission ledger, worker-pool
+evidence, and deterministic dispatch envelope. Saturation, conflicts, and
+rejections map to typed retryable or fail-closed API errors.
+
+`PostgresStrategyLabV2Adapter` accepts the same optional callback and normalizes
+the authenticated owner before delegation. No partial mutation is attempted
+when the binding is absent; the route returns a typed 501 precondition failure.
+The callback remains deliberately host-owned because authorization, runtime
+preflight, worker reservation, PostgreSQL CAS, and outbox staging must be one
+transaction. Focused API/application coverage passed 34 tests, including
+successful evidence serialization, strict-body rejection, and missing-binding
+failure. The next durable slice is the PostgreSQL candidate/admission/outbox
+transaction; worker process execution remains gated by stable Nautilus v2
+conformance.
+
 ## Human authorization
 
 - Recorded at: 2026-09-15T19:48:24.815519+00:00

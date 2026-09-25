@@ -646,7 +646,8 @@ progress:
     - strategy-lab-v2-capability-preflight-api
     - strategy-lab-v2-capability-preflight-application-binding
     - strategy-lab-v2-durable-search-lifecycle-api
+    - strategy-lab-v2-search-candidate-dispatch-api-boundary
   total: 18
-  current_phase: strategy-lab-v2-search-api-lifecycle-staging-ready-for-human-review
-  current_blocker: The host still must supply the capability-preflight calculation and evidence resolvers; search worker dispatch, stable Nautilus release, upstream contract reconciliation, and full repository integration remain open
-  next_action: wire search candidate dispatch/worker execution behind the durable queue, then supply the provider/engine-owned capability calculation and evidence resolver without changing the engine-neutral boundary
+  current_phase: strategy-lab-v2-search-dispatch-api-staging-ready-for-human-review
+  current_blocker: The host still must supply the atomic search dispatch resolver, capability-preflight calculation, and evidence resolvers; stable Nautilus release, upstream contract reconciliation, and full repository integration remain open
+  next_action: bind the new search dispatch callback to one PostgreSQL candidate/admission/outbox transaction, then supply the provider/engine-owned capability calculation and evidence resolver without changing the engine-neutral boundary

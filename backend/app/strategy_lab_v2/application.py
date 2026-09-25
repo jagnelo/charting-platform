@@ -32,6 +32,7 @@ from app.strategy_lab_v2.api_router import (
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
+from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
     LegacyImportRequest,
@@ -45,6 +46,7 @@ from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationResolution,
     create_resource_mutation_receipt,
 )
+from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution
 from app.strategy_lab_v2.search_state import SearchExecutionState, SearchStateResolution
 from app.strategy_lab_v2.storage import (
     AggregateKey,
@@ -65,6 +67,7 @@ class _PrincipalIdentity:
 CapabilityPreflightResolver = Callable[
     ..., Awaitable[CapabilitySummary] | CapabilitySummary
 ]
+SearchDispatchResolver = Callable[..., Awaitable[SearchDispatchResolution] | SearchDispatchResolution]
 
 
 def _principal_identity(principal: Any) -> _PrincipalIdentity:
@@ -94,6 +97,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         *,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         capability_preflight: CapabilityPreflightResolver | None = None,
+        search_dispatch: SearchDispatchResolver | None = None,
     ) -> None:
         if not callable(session_factory):
             raise TypeError("session_factory must be callable")
@@ -101,8 +105,11 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise TypeError("clock must be callable")
         if capability_preflight is not None and not callable(capability_preflight):
             raise TypeError("capability_preflight must be callable")
+        if search_dispatch is not None and not callable(search_dispatch):
+            raise TypeError("search_dispatch must be callable")
         self._clock = clock
         self._capability_preflight = capability_preflight
+        self._search_dispatch = search_dispatch
         self._persistence = PostgresStrategyLabV2Persistence.build(session_factory, clock=clock)
         self._resources = self._persistence.resources
         self._capabilities = self._persistence.capability
@@ -232,6 +239,63 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             request_id=cancellation_request_id,
             now=now,
         )
+
+    async def dispatch_search_candidate(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        experiment_fingerprint: str,
+        candidate_index: int,
+        attempt_id: str,
+        dispatch_request: DispatchRequest,
+        payload: Mapping[str, Any],
+    ) -> SearchDispatchResolution:
+        """Delegate atomic candidate/admission/dispatch staging to the host.
+
+        Constructing authorization, runtime preflight, and worker admission
+        requires the application/provider boundary. The package therefore
+        accepts one typed host resolver and fails closed until it is supplied;
+        no partial search-state or worker mutation is attempted here.
+        """
+
+        owner = _principal_identity(principal)
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        if not isinstance(experiment_fingerprint, str) or not experiment_fingerprint.strip():
+            raise ValueError("experiment_fingerprint must not be empty")
+        if not isinstance(candidate_index, int) or isinstance(candidate_index, bool) or candidate_index < 0:
+            raise ValueError("candidate_index must be a non-negative integer")
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        if not isinstance(dispatch_request, DispatchRequest):
+            raise TypeError("dispatch_request must be a DispatchRequest")
+        if not isinstance(payload, Mapping):
+            raise TypeError("payload must be a mapping")
+        if self._search_dispatch is None:
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.PRECONDITION_FAILED,
+                    "search dispatch is not configured",
+                    request_id,
+                    501,
+                    False,
+                    {"reason": "the host has not supplied atomic worker persistence"},
+                )
+            )
+        resolved = self._search_dispatch(
+            principal=owner,
+            request_id=request_id,
+            experiment_fingerprint=experiment_fingerprint,
+            candidate_index=candidate_index,
+            attempt_id=attempt_id,
+            dispatch_request=dispatch_request,
+            payload=payload,
+        )
+        resolution = await resolved if inspect.isawaitable(resolved) else resolved
+        if not isinstance(resolution, SearchDispatchResolution):
+            raise TypeError("search_dispatch must return a SearchDispatchResolution")
+        return resolution
 
     async def create_resource(
         self,

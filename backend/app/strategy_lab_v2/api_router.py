@@ -45,6 +45,7 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandKind,
     ExecutionCommandResolution,
 )
+from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
     LegacyImportDecision,
@@ -57,6 +58,10 @@ from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationReceipt,
     ResourceMutationRequest,
     ResourceMutationResolution,
+)
+from app.strategy_lab_v2.search_dispatch import (
+    SearchDispatchDecision,
+    SearchDispatchResolution,
 )
 from app.strategy_lab_v2.search_state import (
     SearchExecutionState,
@@ -201,6 +206,21 @@ class SearchStateApiAdapter(Protocol):
         now: datetime,
     ) -> Awaitable[SearchStateResolution] | SearchStateResolution: ...
 
+
+class SearchDispatchApiAdapter(Protocol):
+    """Application-owned atomic search candidate dispatch boundary."""
+
+    def dispatch_search_candidate(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        experiment_fingerprint: str,
+        candidate_index: int,
+        attempt_id: str,
+        dispatch_request: DispatchRequest,
+        payload: Mapping[str, Any],
+    ) -> Awaitable[SearchDispatchResolution] | SearchDispatchResolution: ...
 
 @dataclass(frozen=True, slots=True)
 class SubmissionServiceResult:
@@ -488,6 +508,60 @@ def serialize_search_state(
                     "request_id": request_id,
                     "decision": resolution.decision,
                     "state_fingerprint": state.fingerprint,
+                },
+            }
+        }
+    )
+
+
+def serialize_search_dispatch(
+    resolution: SearchDispatchResolution,
+    *,
+    request_id: str,
+    candidate_index: int,
+    attempt_id: str,
+) -> dict[str, Any]:
+    """Serialize one candidate/admission/dispatch decision and its evidence."""
+
+    if not isinstance(resolution, SearchDispatchResolution):
+        raise TypeError("resolution must be a SearchDispatchResolution")
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise ValueError("request_id must not be empty")
+    if not isinstance(candidate_index, int) or isinstance(candidate_index, bool) or candidate_index < 0:
+        raise ValueError("candidate_index must be a non-negative integer")
+    if not isinstance(attempt_id, str) or not attempt_id.strip():
+        raise ValueError("attempt_id must not be empty")
+    dispatch = resolution.dispatch_resolution
+    envelope = resolution.envelope
+    dispatch_id = envelope.message_id if envelope is not None else content_digest(
+        {
+            "experiment_fingerprint": resolution.search_state.experiment_fingerprint,
+            "candidate_index": candidate_index,
+            "attempt_id": attempt_id,
+            "decision": resolution.decision,
+        }
+    )
+    return _json_value(
+        {
+            "data": {
+                "type": "search-dispatches",
+                "id": dispatch_id,
+                "attributes": {
+                    "decision": resolution.decision,
+                    "candidate_index": candidate_index,
+                    "attempt_id": attempt_id,
+                    "search_state": asdict(resolution.search_state),
+                    "admission_ledger": asdict(resolution.admission_ledger),
+                    "worker_pool": asdict(resolution.pool),
+                    "dispatch": asdict(dispatch) if dispatch is not None else None,
+                    "envelope": asdict(envelope) if envelope is not None else None,
+                    "rejection_reason": resolution.rejection_reason,
+                },
+                "meta": {
+                    "request_id": request_id,
+                    "state_fingerprint": resolution.search_state.fingerprint,
+                    "admission_fingerprint": resolution.admission_ledger.fingerprint,
+                    "worker_pool_fingerprint": resolution.pool.fingerprint,
                 },
             }
         }
@@ -1107,6 +1181,108 @@ def _parse_search_initialization(
         ) from error
 
 
+def _parse_search_dispatch(
+    body: Mapping[str, Any],
+    *,
+    experiment_fingerprint: str,
+    idempotency_key: str,
+    request_id: str,
+) -> tuple[int, str, DispatchRequest]:
+    """Parse the digest-only candidate dispatch envelope."""
+
+    try:
+        require_sha256_digest(experiment_fingerprint, field_name="experiment_fingerprint")
+    except (TypeError, ValueError) as error:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "experiment_id must be a SHA-256 content fingerprint",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                details={"reason": str(error)},
+            )
+        ) from error
+    required = {"candidate_index", "attempt_id", "payload_digest", "queue_name", "created_at"}
+    if not isinstance(body, Mapping) or set(body) != required:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "search dispatch body contains missing or unknown fields",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                details={"required_fields": sorted(required)},
+            )
+        )
+    candidate_index = body["candidate_index"]
+    attempt_id = body["attempt_id"]
+    queue_name = body["queue_name"]
+    payload_digest = body["payload_digest"]
+    created_at = body["created_at"]
+    if (
+        not isinstance(candidate_index, int)
+        or isinstance(candidate_index, bool)
+        or candidate_index < 0
+    ):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "candidate_index must be a non-negative integer",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    if not isinstance(attempt_id, str) or not attempt_id.strip():
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "attempt_id must be a non-empty string",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    if not isinstance(queue_name, str) or not queue_name.strip():
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "queue_name must be a non-empty string",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    if not isinstance(payload_digest, str):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "payload_digest must be a SHA-256 content fingerprint",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    try:
+        require_sha256_digest(payload_digest, field_name="payload_digest")
+        timestamp = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+            raise ValueError("created_at must be timezone-aware")
+        dispatch = DispatchRequest(
+            idempotency_key=idempotency_key,
+            attempt_id=attempt_id,
+            payload_digest=payload_digest,
+            queue_name=queue_name,
+            created_at=timestamp,
+        )
+    except (AttributeError, TypeError, ValueError) as error:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "search dispatch fields are invalid",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                details={"reason": str(error)},
+            )
+        ) from error
+    return candidate_index, attempt_id, dispatch
+
+
 def create_strategy_lab_router(
     *,
     adapter_dependency: Callable[..., Any],
@@ -1499,6 +1675,117 @@ def create_strategy_lab_router(
                 _api_error(
                     ApiErrorCode.INTERNAL_ERROR,
                     "Strategy Lab v2 search cancellation failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
+    @router.post(
+        "/experiments/{experiment_id}/search/dispatch", status_code=status.HTTP_202_ACCEPTED
+    )
+    async def dispatch_search_candidate(
+        experiment_id: str,
+        request: Request,
+        body: Any = Body(...),
+        idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Stage one search candidate through the host's atomic worker boundary."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            body = await _strict_json_body(request, request_id)
+            key = _safe_header_value(idempotency_key, "Idempotency-Key", 256)
+            candidate_index, attempt_id, dispatch_request = _parse_search_dispatch(
+                body,
+                experiment_fingerprint=experiment_id,
+                idempotency_key=key,
+                request_id=request_id,
+            )
+            dispatch = getattr(adapter, "dispatch_search_candidate", None)
+            if not callable(dispatch):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "search dispatch adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                        details={
+                            "reason": "the host has not supplied atomic search worker persistence"
+                        },
+                    )
+                )
+            resolution = await _resolve(
+                dispatch(
+                    principal=principal,
+                    request_id=request_id,
+                    experiment_fingerprint=experiment_id,
+                    candidate_index=candidate_index,
+                    attempt_id=attempt_id,
+                    dispatch_request=dispatch_request,
+                    payload=body,
+                )
+            )
+            if not isinstance(resolution, SearchDispatchResolution):
+                raise TypeError("adapter returned an invalid search dispatch resolution")
+            if resolution.decision is SearchDispatchDecision.SATURATED:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.RATE_LIMITED,
+                        "search worker capacity is saturated",
+                        request_id,
+                        status.HTTP_429_TOO_MANY_REQUESTS,
+                        retryable=True,
+                    )
+                )
+            if resolution.decision in {
+                SearchDispatchDecision.CONFLICT,
+                SearchDispatchDecision.REJECT,
+            }:
+                code = (
+                    ApiErrorCode.IDEMPOTENCY_CONFLICT
+                    if resolution.decision is SearchDispatchDecision.CONFLICT
+                    else ApiErrorCode.PRECONDITION_FAILED
+                )
+                return _error_response(
+                    _api_error(
+                        code,
+                        resolution.rejection_reason or "search candidate dispatch was rejected",
+                        request_id,
+                        status.HTTP_409_CONFLICT,
+                    )
+                )
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content=serialize_search_dispatch(
+                    resolution,
+                    request_id=request_id,
+                    candidate_index=candidate_index,
+                    attempt_id=attempt_id,
+                ),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "search dispatch request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 search dispatch failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 search dispatch failed",
                     locals().get("request_id", "unknown"),
                     status.HTTP_500_INTERNAL_SERVER_ERROR,
                     retryable=True,
@@ -1941,6 +2228,7 @@ __all__ = [
     "MAX_PAGE_SIZE",
     "ApiAdapterError",
     "CapabilityPreflightAdapter",
+    "SearchDispatchApiAdapter",
     "SearchStateApiAdapter",
     "StrategyLabApiAdapter",
     "SubmissionServiceResult",
@@ -1948,6 +2236,7 @@ __all__ = [
     "serialize_collection",
     "serialize_command",
     "serialize_capability_summary",
+    "serialize_search_dispatch",
     "serialize_search_state",
     "serialize_resource",
     "serialize_resource_identifier",

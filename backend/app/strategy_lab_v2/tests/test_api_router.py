@@ -9,6 +9,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
 from app.strategy_lab_v2.api_contracts import ApiCursor
 from app.strategy_lab_v2.api_resources import (
     ApiResourceType,
@@ -38,6 +39,7 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandReceipt,
     ExecutionCommandResolution,
 )
+from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.legacy import (
     LegacyImportDecision,
     LegacyImportRecord,
@@ -50,10 +52,12 @@ from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationResolution,
     create_resource_mutation_receipt,
 )
+from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution, resolve_search_dispatch
 from app.strategy_lab_v2.search_state import (
     SearchExecutionState,
     SearchStateDecision,
     SearchStateResolution,
+    new_search_execution_state,
     request_search_cancellation,
 )
 from app.strategy_lab_v2.submissions import (
@@ -61,6 +65,7 @@ from app.strategy_lab_v2.submissions import (
     SubmissionResolution,
     create_submission_receipt,
 )
+from app.strategy_lab_v2.tests.test_admission import _fixture, _reservation
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 SNAPSHOT = content_digest({"snapshot": "one"})
@@ -137,6 +142,7 @@ class FakeAdapter:
         self.legacy_imports: list[str] = []
         self.preflights: list[tuple[str, str, str]] = []
         self.search_states: dict[str, SearchExecutionState] = {}
+        self.search_dispatches: list[SearchDispatchResolution] = []
         self.document = _document()
 
     async def list_resources(self, **kwargs: Any) -> ResourceCollection:
@@ -269,6 +275,30 @@ class FakeAdapter:
         )
         if resolution.decision is SearchStateDecision.APPLY:
             self.search_states[experiment_fingerprint] = resolution.state
+        return resolution
+
+    async def dispatch_search_candidate(self, **kwargs: Any) -> SearchDispatchResolution:
+        authorization, runtime_request, runtime_preflight, pool = _fixture()
+        state = new_search_execution_state(
+            kwargs["experiment_fingerprint"],
+            (content_digest("trial-1"),),
+            now=NOW,
+        )
+        resolution = resolve_search_dispatch(
+            state,
+            candidate_index=kwargs["candidate_index"],
+            attempt_id=kwargs["attempt_id"],
+            authorization=authorization,
+            runtime_request=runtime_request,
+            runtime_preflight=runtime_preflight,
+            admission_ledger=ExecutionAdmissionLedger(),
+            pool=pool,
+            reservation_id=_reservation("api"),
+            dispatch_request=cast(DispatchRequest, kwargs["dispatch_request"]),
+            prior_dispatches=(),
+            now=NOW,
+        )
+        self.search_dispatches.append(resolution)
         return resolution
 
 
@@ -530,6 +560,61 @@ def test_search_api_rejects_invalid_queue_definition_and_missing_adapter() -> No
         )
         assert unsupported.status_code == 501
         assert unsupported.json()["errors"][0]["code"] == "precondition_failed"
+
+
+def test_search_dispatch_api_stages_candidate_evidence_and_fails_closed_without_binding() -> None:
+    experiment = content_digest("search-experiment")
+    payload_digest = content_digest("candidate-payload")
+    body = {
+        "candidate_index": 0,
+        "attempt_id": "attempt-1",
+        "payload_digest": payload_digest,
+        "queue_name": "strategy-backtest",
+        "created_at": NOW.isoformat().replace("+00:00", "Z"),
+    }
+    adapter = FakeAdapter()
+    with _client(adapter) as client:
+        response = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/search/dispatch",
+            headers={"Idempotency-Key": "dispatch-key", "X-Request-ID": "dispatch-request"},
+            json=body,
+        )
+        assert response.status_code == 202
+        assert response.headers["x-request-id"] == "dispatch-request"
+        data = response.json()["data"]
+        assert data["type"] == "search-dispatches"
+        assert data["attributes"]["decision"] == "enqueue"
+        assert data["attributes"]["search_state"]["candidates"][0]["phase"] == "running"
+        assert data["attributes"]["envelope"]["request"]["idempotency_key"] == "dispatch-key"
+        assert len(adapter.search_dispatches) == 1
+
+    with _client(object()) as client:
+        unsupported = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/search/dispatch",
+            headers={"Idempotency-Key": "dispatch-key"},
+            json=body,
+        )
+        assert unsupported.status_code == 501
+        assert unsupported.json()["errors"][0]["code"] == "precondition_failed"
+
+
+def test_search_dispatch_api_rejects_unknown_fields_and_missing_idempotency() -> None:
+    experiment = content_digest("search-experiment")
+    body = {
+        "candidate_index": 0,
+        "attempt_id": "attempt-1",
+        "payload_digest": content_digest("candidate-payload"),
+        "queue_name": "strategy-backtest",
+        "created_at": NOW.isoformat().replace("+00:00", "Z"),
+        "unexpected": True,
+    }
+    with _client(FakeAdapter()) as client:
+        invalid = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/search/dispatch",
+            json=body,
+        )
+        assert invalid.status_code == 422
+        assert invalid.json()["errors"][0]["code"] == "validation_error"
 
 
 def test_router_lists_preserved_legacy_imports_without_payload_bytes() -> None:

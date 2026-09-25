@@ -5,6 +5,7 @@ from typing import Any, cast
 
 import pytest
 
+from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
 from app.strategy_lab_v2.api_contracts import ApiErrorCode
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.api_router import ApiAdapterError, ResourceMutationServiceResult
@@ -16,16 +17,20 @@ from app.strategy_lab_v2.application import (
 )
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary, CapabilitySummaryDecision
+from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_commands import PostgresCommandAdapter
 from app.strategy_lab_v2.postgres_execution_state import PostgresExecutionStateAdapter
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
 from app.strategy_lab_v2.resource_mutations import ResourceMutationRequest
+from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution, resolve_search_dispatch
+from app.strategy_lab_v2.search_state import new_search_execution_state
 from app.strategy_lab_v2.storage import (
     StorageTransactionDecision,
     resolve_storage_transaction,
 )
+from app.strategy_lab_v2.tests.test_admission import _fixture, _reservation
 
 
 @dataclass
@@ -132,10 +137,87 @@ def test_registered_router_uses_versioned_prefix_and_application_dependencies() 
         "/strategy-lab/v2/capabilities/preflight",
         "/strategy-lab/v2/experiments/{experiment_id}/search",
         "/strategy-lab/v2/experiments/{experiment_id}/search/cancel",
+        "/strategy-lab/v2/experiments/{experiment_id}/search/dispatch",
         "/strategy-lab/v2/submissions",
         "/strategy-lab/v2/attempts/{attempt_id}/commands",
     }
     assert get_strategy_lab_v2_adapter() is get_strategy_lab_v2_adapter()
+
+
+@pytest.mark.asyncio
+async def test_application_search_dispatch_callback_is_owner_scoped_and_typed() -> None:
+    authorization, runtime_request, runtime_preflight, pool = _fixture()
+    observed: dict[str, Any] = {}
+
+    async def resolve(**kwargs: Any) -> SearchDispatchResolution:
+        observed.update(kwargs)
+        return resolve_search_dispatch(
+            new_search_execution_state(
+                kwargs["experiment_fingerprint"],
+                (content_digest("trial-1"),),
+                now=NOW,
+            ),
+            candidate_index=kwargs["candidate_index"],
+            attempt_id=kwargs["attempt_id"],
+            authorization=authorization,
+            runtime_request=runtime_request,
+            runtime_preflight=runtime_preflight,
+            admission_ledger=ExecutionAdmissionLedger(),
+            pool=pool,
+            reservation_id=_reservation("application"),
+            dispatch_request=kwargs["dispatch_request"],
+            prior_dispatches=(),
+            now=NOW,
+        )
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._search_dispatch = resolve
+    dispatch = DispatchRequest(
+        "dispatch-key",
+        "attempt-1",
+        content_digest("payload"),
+        "strategy-backtest",
+        NOW,
+    )
+    resolved = await adapter.dispatch_search_candidate(
+        principal=_User(42),
+        request_id="request-1",
+        experiment_fingerprint=content_digest("experiment"),
+        candidate_index=0,
+        attempt_id="attempt-1",
+        dispatch_request=dispatch,
+        payload={"payload_digest": dispatch.payload_digest},
+    )
+
+    assert resolved.decision.value == "enqueue"
+    assert observed["principal"].id == "42"
+    assert observed["dispatch_request"] == dispatch
+
+
+@pytest.mark.asyncio
+async def test_application_search_dispatch_fails_closed_without_host_binding() -> None:
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._search_dispatch = None
+
+    with pytest.raises(ApiAdapterError) as raised:
+        await adapter.dispatch_search_candidate(
+            principal=_User(42),
+            request_id="request-1",
+            experiment_fingerprint=content_digest("experiment"),
+            candidate_index=0,
+            attempt_id="attempt-1",
+            dispatch_request=DispatchRequest(
+                "dispatch-key",
+                "attempt-1",
+                content_digest("payload"),
+                "strategy-backtest",
+                NOW,
+            ),
+            payload={},
+        )
+
+    assert raised.value.error.code is ApiErrorCode.PRECONDITION_FAILED
+    assert raised.value.error.status_code == 501
 
 
 @pytest.mark.asyncio
