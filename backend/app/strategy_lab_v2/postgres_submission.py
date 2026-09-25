@@ -32,6 +32,7 @@ from app.strategy_lab_v2.submissions import (
     SubmissionRequest,
     resolve_submission,
 )
+from app.strategy_lab_v2.worker_evidence import WorkerSubmissionBinding
 
 
 class AsyncSessionFactory(Protocol):
@@ -299,6 +300,56 @@ class PostgresSubmissionDispatchAdapter:
                 if row.get("request_fingerprint") != receipt.request.fingerprint:
                     raise ValueError("PostgreSQL submission fingerprint does not match bytes")
                 return receipt
+
+    async def load_submission_binding(
+        self, *, request_fingerprint: str, attempt_id: str
+    ) -> WorkerSubmissionBinding | None:
+        """Resolve the unique owner/submission binding for a worker request.
+
+        Redis transports intentionally carry content identities rather than
+        tenant data. If the same request identity is bound to multiple owners,
+        the lookup fails closed instead of selecting an arbitrary principal.
+        """
+
+        require_sha256_digest(request_fingerprint, field_name="request_fingerprint")
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                result = await session.execute(
+                    _statement(
+                        f"""
+                        SELECT owner_id, idempotency_key, request_fingerprint, operation,
+                               attempt_id, payload_digest, submitted_at, accepted_at
+                        FROM {self._schema.submission_table}
+                        WHERE request_fingerprint = :request_fingerprint
+                          AND attempt_id = :attempt_id
+                        FOR SHARE
+                        """
+                    ),
+                    {
+                        "request_fingerprint": request_fingerprint,
+                        "attempt_id": attempt_id,
+                    },
+                )
+                rows = list(result.mappings())
+                if not rows:
+                    return None
+                if len(rows) != 1:
+                    raise ValueError("PostgreSQL worker submission binding is ambiguous")
+                row = rows[0]
+                owner_id = row.get("owner_id")
+                if not isinstance(owner_id, str) or not owner_id.strip():
+                    raise ValueError("PostgreSQL worker submission owner is malformed")
+                receipt = _decode_submission(row)
+                if row.get("request_fingerprint") != receipt.request.fingerprint:
+                    raise ValueError("PostgreSQL worker submission fingerprint does not match bytes")
+                if row.get("attempt_id") != attempt_id:
+                    raise ValueError("PostgreSQL worker submission attempt identity drifted")
+                if receipt.request.fingerprint != request_fingerprint:
+                    raise ValueError("PostgreSQL worker request fingerprint identity drifted")
+                return WorkerSubmissionBinding(owner_id, receipt)
 
     async def _load_payload(
         self, session: AsyncSessionLike, payload_digest: str

@@ -12,6 +12,26 @@ from app.strategy_lab_v2.submissions import SubmissionReceipt
 
 
 @dataclass(frozen=True, slots=True)
+class WorkerSubmissionBinding:
+    """Durable owner identity bound to one accepted worker submission."""
+
+    owner_id: str
+    receipt: SubmissionReceipt
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.owner_id, str) or not self.owner_id.strip():
+            raise ValueError("owner_id must not be empty")
+        if any(character in self.owner_id for character in "\x00\r\n"):
+            raise ValueError("owner_id must not contain control characters")
+        if not isinstance(self.receipt, SubmissionReceipt):
+            raise TypeError("receipt must be a SubmissionReceipt")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
 class WorkerTerminalEvidenceInputs:
     """Owner-authenticated durable state supplied to one terminal resolver.
 
@@ -61,4 +81,34 @@ class WorkerTerminalEvidenceInputs:
         return content_digest(self)
 
 
-__all__ = ["WorkerTerminalEvidenceInputs"]
+@dataclass(frozen=True, slots=True)
+class WorkerTerminalEvidenceLookup:
+    """Owner-derived evidence inputs resolved from a worker request identity."""
+
+    binding: WorkerSubmissionBinding
+    inputs: WorkerTerminalEvidenceInputs
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.binding, WorkerSubmissionBinding):
+            raise TypeError("binding must be a WorkerSubmissionBinding")
+        if not isinstance(self.inputs, WorkerTerminalEvidenceInputs):
+            raise TypeError("inputs must be WorkerTerminalEvidenceInputs")
+        if self.binding.receipt != self.inputs.submission:
+            raise ValueError("lookup binding and evidence submission differ")
+        if self.binding.receipt.request.attempt_id != self.inputs.attempt_id:
+            raise ValueError("lookup binding and evidence attempt differ")
+
+    @property
+    def owner_id(self) -> str:
+        return self.binding.owner_id
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+__all__ = [
+    "WorkerSubmissionBinding",
+    "WorkerTerminalEvidenceInputs",
+    "WorkerTerminalEvidenceLookup",
+]

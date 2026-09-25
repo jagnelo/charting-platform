@@ -55,6 +55,14 @@ class FakeSession:
         sql = str(statement)
         values = dict(params or {})
         self.calls.append(sql)
+        if sql.lstrip().startswith("SELECT") and "request_fingerprint = :request_fingerprint" in sql:
+            rows = [
+                row
+                for row in self.submissions.values()
+                if row.get("request_fingerprint") == values.get("request_fingerprint")
+                and row.get("attempt_id") == values.get("attempt_id")
+            ]
+            return FakeResult(rows)
         if sql.lstrip().startswith("SELECT") and "attempt_id = :attempt_id" in sql:
             rows = [
                 row
@@ -136,6 +144,19 @@ async def test_submission_adapter_stages_receipt_and_dispatch_atomically() -> No
     loaded = await adapter.load_submission(principal="alice", attempt_id="attempt-1")
     assert loaded == accepted.receipt
     assert await adapter.load_submission(principal="bob", attempt_id="attempt-1") is None
+
+    binding = await adapter.load_submission_binding(
+        request_fingerprint=request.fingerprint, attempt_id="attempt-1"
+    )
+    assert binding is not None
+    assert binding.owner_id == "alice"
+    assert binding.receipt == accepted.receipt
+
+    await adapter.submit(principal="bob", request=request, payload=payload)
+    with pytest.raises(ValueError, match="ambiguous"):
+        await adapter.load_submission_binding(
+            request_fingerprint=request.fingerprint, attempt_id="attempt-1"
+        )
 
     calls = len(session.calls)
     replay = await adapter.submit(principal="alice", request=request, payload=payload)

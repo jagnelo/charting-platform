@@ -14,7 +14,11 @@ from app.strategy_lab_v2.result_publication import (
 )
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
 from app.strategy_lab_v2.tests.test_result_publication import _result
-from app.strategy_lab_v2.worker_evidence import WorkerTerminalEvidenceInputs
+from app.strategy_lab_v2.worker_evidence import (
+    WorkerSubmissionBinding,
+    WorkerTerminalEvidenceInputs,
+    WorkerTerminalEvidenceLookup,
+)
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 
@@ -81,3 +85,18 @@ def test_terminal_evidence_inputs_require_deterministic_publication_order() -> N
     ordered = tuple(sorted((first, second), key=lambda item: item.fingerprint))
     with pytest.raises(ValueError, match="ordered"):
         WorkerTerminalEvidenceInputs("attempt-1", None, None, None, tuple(reversed(ordered)))
+
+
+def test_terminal_evidence_lookup_binds_owner_and_submission() -> None:
+    receipt = _submission()
+    inputs = WorkerTerminalEvidenceInputs("attempt-1", receipt, _execution(), None)
+    lookup = WorkerTerminalEvidenceLookup(WorkerSubmissionBinding("alice", receipt), inputs)
+
+    assert lookup.owner_id == "alice"
+    assert lookup.fingerprint.startswith("sha256:")
+
+    with pytest.raises(ValueError, match="binding and evidence submission"):
+        WorkerTerminalEvidenceLookup(
+            WorkerSubmissionBinding("alice", receipt),
+            WorkerTerminalEvidenceInputs("attempt-1", None, None, None),
+        )

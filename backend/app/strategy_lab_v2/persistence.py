@@ -49,7 +49,10 @@ from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAd
 from app.strategy_lab_v2.postgres_worker_settlement import PostgresWorkerSettlementAdapter
 from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
-from app.strategy_lab_v2.worker_evidence import WorkerTerminalEvidenceInputs
+from app.strategy_lab_v2.worker_evidence import (
+    WorkerTerminalEvidenceInputs,
+    WorkerTerminalEvidenceLookup,
+)
 from app.strategy_lab_v2.worker_terminal_adapter import (
     PostgresWorkerTerminalAdapter,
     WorkerTerminalEvidenceResolver,
@@ -338,6 +341,23 @@ class PostgresStrategyLabV2Persistence:
             manifest=manifest,
             publications=publications,
         )
+
+    async def load_worker_terminal_evidence_for_request(
+        self, *, request_fingerprint: str, attempt_id: str
+    ) -> WorkerTerminalEvidenceLookup | None:
+        """Resolve owner identity, then load its authenticated evidence inputs."""
+
+        binding = await self.submissions.load_submission_binding(
+            request_fingerprint=request_fingerprint,
+            attempt_id=attempt_id,
+        )
+        if binding is None:
+            return None
+        inputs = await self.load_worker_terminal_evidence_inputs(
+            principal=binding.owner_id,
+            attempt_id=attempt_id,
+        )
+        return WorkerTerminalEvidenceLookup(binding, inputs)
 
 
 __all__ = ["PostgresStrategyLabV2Persistence"]

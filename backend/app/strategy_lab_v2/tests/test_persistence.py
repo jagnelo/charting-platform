@@ -24,7 +24,10 @@ from app.strategy_lab_v2.progress import new_progress_state
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
 from app.strategy_lab_v2.tests.test_result_publication import _result
-from app.strategy_lab_v2.worker_evidence import WorkerTerminalEvidenceInputs
+from app.strategy_lab_v2.worker_evidence import (
+    WorkerSubmissionBinding,
+    WorkerTerminalEvidenceInputs,
+)
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 
@@ -138,3 +141,19 @@ async def test_persistence_bundle_loads_terminal_evidence_inputs() -> None:
         ("manifest", "owner-a", "attempt-1"),
         ("publication", "owner-a", "attempt-1"),
     ]
+
+    async def load_submission_binding(
+        *, request_fingerprint: str, attempt_id: str
+    ) -> WorkerSubmissionBinding:
+        assert request_fingerprint == request.fingerprint
+        assert attempt_id == manifest.attempt_id
+        return WorkerSubmissionBinding("owner-a", receipt)
+
+    bundle.submissions.load_submission_binding = load_submission_binding  # type: ignore[method-assign]
+    lookup = await bundle.load_worker_terminal_evidence_for_request(
+        request_fingerprint=request.fingerprint,
+        attempt_id=manifest.attempt_id,
+    )
+    assert lookup is not None
+    assert lookup.owner_id == "owner-a"
+    assert lookup.inputs == inputs
