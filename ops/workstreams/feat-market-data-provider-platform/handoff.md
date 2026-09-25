@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current safety preflight after cursor fix
+
+- At source `10bf4bf6fb857f9b15c81f7d6803bd28aeb88f9b`, the complete live
+  preflight stopped before transport (`0/0`, zero provider requests) using the
+  owner-managed durable quota coordinator. It recorded the remaining
+  provider-specific baselines/contracts, legal/use controls, FINRA async-byte
+  admission, complete OTC/SEC reconciliation, target secret stores, and
+  deferred-provider cases; no unknown limit or zero usage was inferred.
+- Routing diagnostics now explicitly show Alpaca and Massive corporate-action
+  cursors as lossless/resumable. Massive market-event cursor live coverage is
+  still deferred because the provider's terms/usage admission is unresolved,
+  not because the implementation truncates pages.
+
 ## 2026-09-25 Massive cursor-paginated market-event retention
 
 - Massive IPO/event pages are now followed through every validated
