@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 migration-chain collision correction
+
+- The final Alembic inspection found the newly chosen `d4e5f6a7b8c9` ID already
+  existed in the repository's historical `add_isin_to_instrument` migration.
+  The new fundamental/short-interest migration now uses unique revision
+  `d6a7b8c9d0e1`; the option migration points to it.
+- Alembic now reports exactly one head, `d5f6a7b8c9d0`. The affected migration
+  tests pass `2/2`, the complete migration suite passes `17/17`, and Ruff/diff
+  checks pass on source `0856b6e51`.
+- This was a schema-graph correction only; the previously recorded full unit
+  and Docker integration gates remain valid for the unchanged table operations.
+
 ## 2026-09-25 exact-current provider preflight after observation corrections
 
 - Source `c2fb160c3f49fe69cafac824d2cee454f3debeaa` ran the full provider live

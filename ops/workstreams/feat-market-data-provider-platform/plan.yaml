@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 migration graph correction: the new fundamental/short-interest
+    migration initially reused an existing historical revision ID. It now uses
+    unique revision d6a7b8c9d0e1 and d5f6a7b8c9d0 points to it; Alembic reports
+    exactly one head. Affected migration tests pass 2/2, complete migration
+    coverage passes 17/17, and Ruff/diff checks pass on source 0856b6e51.
+    No table operation changed; previously recorded full unit/integration gates
+    remain valid.
+  - >-
     2026-09-25 exact-current provider preflight after the append-only
     observation corrections: source c2fb160c3f49fe69cafac824d2cee454f3debeaa
     stopped before transport with 0/0 cases and zero ordinary provider
