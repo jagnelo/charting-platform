@@ -104,6 +104,12 @@ branch/coverage gates below. The resolver remains intentionally application
 owned: this branch supplies the typed composition boundary, not a guessed
 resource lookup or transport-derived evidence implementation.
 
+The environment contract now names the package-owned callback composer as the
+default and documents the resolver as the only required application setting.
+Malformed module/attribute targets are rejected before callback construction;
+the focused callback/handoff suite covers missing, malformed, and valid
+resolver configuration.
+
 ## 2026-09-24 - Typed result-manifest rehydration
 
 `postgres_result_materialization.py` now exposes owner-scoped
