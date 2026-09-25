@@ -259,6 +259,53 @@ async def test_refresh_market_events_resumes_cursor_after_restart(db, monkeypatc
 
 
 @pytest.mark.asyncio
+async def test_refresh_market_events_marks_malformed_page_failed(db, monkeypatch):
+    async def fake_execute(_db, _capability, _operation, **_kwargs):
+        return SimpleNamespace(provider_name="massive", result={"unexpected": "shape"})
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+
+    assert result["failures"] == 1
+    state = db.execute(
+        select(ProviderPaginationState).where(ProviderPaginationState.provider == "massive")
+    ).scalar_one()
+    assert state.status == "failed"
+    assert state.last_error == "provider returned malformed market-event records"
+
+
+@pytest.mark.asyncio
+async def test_refresh_market_events_rejects_complete_page_with_continuation(db, monkeypatch):
+    async def fake_execute(_db, _capability, _operation, **_kwargs):
+        return SimpleNamespace(
+            provider_name="massive",
+            result={
+                "events": [_record(event_key="massive:ipo:contradictory", payload={})],
+                "next_url": "https://api.massive.com/vX/reference/ipos?cursor=ignored",
+                "next_cursor": "ignored",
+                "complete": True,
+            },
+        )
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+
+    assert result["failures"] == 1
+    assert db.execute(select(MarketEvent)).scalar_one().event_key == (
+        "massive:ipo:contradictory"
+    )
+    state = db.execute(
+        select(ProviderPaginationState).where(ProviderPaginationState.provider == "massive")
+    ).scalar_one()
+    assert state.status == "failed"
+    assert state.cursor is None
+
+
+@pytest.mark.asyncio
 async def test_refresh_market_events_leaves_ambiguous_symbol_unlinked(
     db, instrument, instrument_type, monkeypatch
 ):
