@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 EODHD account-usage refresh: the configured key's network
+    `/user` snapshot passed 1/1 with one measured request and 304 response
+    bytes. It reported the account's 20 calls/day pool and native
+    1,200-requests/minute response-header pool. Routing remains fail-closed
+    until each environment supplies the reviewed non-secret minute limit,
+    reset semantics, and evidence fields (`EODHD_REVIEWED_MINUTE_LIMIT`,
+    `EODHD_REVIEWED_MINUTE_RESET`, and `EODHD_MINUTE_QUOTA_EVIDENCE`).
+  - >-
     2026-09-25 FMP reset-source conflict: the official API FAQ states that the
     Basic 250-call allowance resets every 24 hours at 15:00
     America/New_York, while the newer official FMP limit guidance says no

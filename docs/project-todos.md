@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-25 — EODHD account-usage evidence refresh
+
+- [x] The configured EODHD key's bounded native `/user` snapshot passed over
+      network-enabled execution: 1/1 case, 1 measured request, 304 response
+      bytes. The account reported a `20 calls/day` pool and native
+      `1200 requests/minute` headers; the response is retained only as
+      aggregate/redacted usage evidence outside Git.
+
+- [ ] Supply the reviewed non-secret EODHD controls in each target environment
+      (`EODHD_REVIEWED_MINUTE_LIMIT=1200`, the provider's reviewed minute reset,
+      and `EODHD_MINUTE_QUOTA_EVIDENCE`) before routing. The implementation
+      remains fail-closed until those operator-owned controls are present.
+
 ### 2026-09-25 — Discovery-cache row isolation
 
 - [x] Harden the EODHD/FMP full-catalogue cache so both cached rows and rows

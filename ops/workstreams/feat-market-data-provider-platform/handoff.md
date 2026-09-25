@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 EODHD account-usage evidence refresh
+
+- A network-enabled, account-usage-only run against the configured EODHD key
+  passed `1/1` at source `cd54d21a6f4cd4e0b0cd3ca51c926f0afcd5f384`.
+- The measured operation made exactly one `/user` request and received 304
+  response bytes. The provider-native snapshot exposed the account's
+  `20 calls/day` allowance and `1200 requests/minute` native header pool.
+- This closes the evidence gap about the current key's observed limits, but
+  does not silently promote routing: the reviewed non-secret minute-limit,
+  reset-semantics, and evidence settings must still be supplied per environment
+  before EODHD is admitted.
+
 ## 2026-09-25 discovery-cache row isolation
 
 - The EODHD/FMP full-catalogue cache now copies each row on insertion and on
