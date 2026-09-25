@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
+from app.config import settings
 from app.models.ohlcv import Timeframe
 from app.providers.errors import (
     ProviderNotConfiguredError,
@@ -856,6 +857,41 @@ def test_marketstack_discovery_requires_explicit_exchange_and_preserves_scope():
 
     assert page["quotes"][0]["exchange"] == "XNAS"
     assert get.call_args.args[1]["exchange"] == "XNAS"
+
+
+def test_eodhd_full_catalogue_is_reused_across_reconciliation_pages(monkeypatch):
+    provider = EODHDProvider()
+    rows = [
+        {"Code": "AAA", "Name": "Alpha", "Exchange": "NASDAQ", "Type": "Common Stock"},
+        {"Code": "BBB", "Name": "Beta", "Exchange": "NYSE", "Type": "Common Stock"},
+    ]
+    monkeypatch.setattr(settings, "EODHD_API_KEY", "eodhd-cache-key")
+    with patch("app.providers.optional_market_data._FULL_DISCOVERY_CACHE", {}), patch.object(
+        provider, "_get", return_value=rows
+    ) as get:
+        first = provider.discover_universe_page("EQUITY", 0)
+        second = provider.discover_universe_page("EQUITY", 1)
+
+    assert first["quotes"][0]["symbol"] == "AAA"
+    assert second["quotes"][0]["symbol"] == "BBB"
+    get.assert_called_once_with("exchange-symbol-list/US", {"fmt": "json"})
+
+
+def test_fmp_full_catalogue_cache_is_scoped_to_credentials(monkeypatch):
+    provider = FMPProvider()
+    first_rows = [{"symbol": "AAA", "name": "Alpha", "assetType": "EQUITY"}]
+    second_rows = [{"symbol": "BBB", "name": "Beta", "assetType": "EQUITY"}]
+    monkeypatch.setattr(settings, "FMP_API_KEY", "fmp-first-key")
+    with patch("app.providers.optional_market_data._FULL_DISCOVERY_CACHE", {}), patch.object(
+        provider, "_get", side_effect=[first_rows, second_rows]
+    ) as get:
+        first = provider.discover_universe_page("EQUITY", 0)
+        monkeypatch.setattr(settings, "FMP_API_KEY", "fmp-second-key")
+        second = provider.discover_universe_page("EQUITY", 0)
+
+    assert first["quotes"][0]["symbol"] == "AAA"
+    assert second["quotes"][0]["symbol"] == "BBB"
+    assert get.call_count == 2
 
 
 def test_fmp_uses_current_stable_history_endpoint():

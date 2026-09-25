@@ -17,9 +17,11 @@ provider adjustment policy before promoting a series to canonical data.
 from __future__ import annotations
 
 import logging
+import time
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from email.utils import parsedate_to_datetime
+from hashlib import sha256
 from math import ceil, isfinite
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -69,6 +71,32 @@ _TF_SECONDS: dict[Timeframe, int] = {
 _TWELVE_DATA_POINTS_PER_REQUEST = 5000
 _MARKETSTACK_POINTS_PER_REQUEST = 100
 _MARKETDATA_APP_CANDLES_PER_CREDIT = 1000
+_FULL_DISCOVERY_CACHE_TTL_SECONDS = 300
+_FULL_DISCOVERY_CACHE: dict[tuple[str, str], tuple[float, list[dict[str, Any]]]] = {}
+
+
+def _cached_full_discovery_rows(
+    provider_name: str,
+    credential: str,
+    fetch: Any,
+) -> list[dict[str, Any]]:
+    """Reuse one full-catalogue response across pages without retaining secrets.
+
+    EODHD and FMP expose full US catalogues rather than offset-aware discovery
+    endpoints. The reconciliation service requests successive pages, so
+    refetching the same catalogue for every offset would waste quota and could
+    observe inconsistent snapshots mid-run. Scope the short-lived cache by
+    provider and a one-way credential digest; callers still receive copies.
+    """
+
+    cache_key = (provider_name, sha256(str(credential).encode("utf-8")).hexdigest())
+    now = time.monotonic()
+    cached = _FULL_DISCOVERY_CACHE.get(cache_key)
+    if cached is not None and now - cached[0] < _FULL_DISCOVERY_CACHE_TTL_SECONDS:
+        return list(cached[1])
+    rows = fetch()
+    _FULL_DISCOVERY_CACHE[cache_key] = (now, list(rows))
+    return list(rows)
 
 
 def _retry_at_from_headers(headers: dict[str, str]) -> datetime | None:
@@ -2576,7 +2604,13 @@ class EODHDProvider(_RESTProvider):
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        rows = self._strict_rows(self._get("exchange-symbol-list/US", {"fmt": "json"}), self.name)
+        rows = _cached_full_discovery_rows(
+            self.name,
+            self._key(),
+            lambda: self._strict_rows(
+                self._get("exchange-symbol-list/US", {"fmt": "json"}), self.name
+            ),
+        )
         filtered = []
         for row in rows:
             symbol = _required_text(row, self.name, "symbol", "Code", "code").upper()
@@ -2721,7 +2755,11 @@ class FMPProvider(_RESTProvider):
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        rows = self._strict_rows(self._get("stock-list"), self.name)
+        rows = _cached_full_discovery_rows(
+            self.name,
+            self._key(),
+            lambda: self._strict_rows(self._get("stock-list"), self.name),
+        )
         filtered = []
         for row in rows:
             symbol = _required_text(row, self.name, "symbol", "symbol").upper()
