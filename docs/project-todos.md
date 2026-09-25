@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-25 — FINRA ORF credential-scoped token cache
+
+- [x] Scope the in-memory ORF access-token cache to the TRAQS username and a
+      non-secret refresh-token digest, preventing credential-rotation reuse
+      while retaining no raw refresh token. Focused FINRA coverage passed
+      `40/40`; Ruff passed.
+
+- [x] Validate exact source
+      `461a7aeee9b8094e6fc84d6adfca5f81a4d83ceb`: branch-owned unit scope
+      passed `1,922/1,922` with `37` warnings in `324.59s`; Docker integration
+      passed `386/386` with `57` warnings in `711.07s` (session
+      `00cd7f28-fdac-4b17-92d1-d36d7f46d472`); cleanup completed without
+      host-wide pruning.
+
 ### 2026-09-25 — FINRA ORF endpoint-path hardening and exact validation
 
 - [x] Require the documented ORF `/DownloadHandler.ashx` path before any

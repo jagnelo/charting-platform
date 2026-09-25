@@ -1,5 +1,23 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 FINRA ORF credential-scoped token cache
+
+- The in-memory ORF access-token cache is now scoped by the configured TRAQS
+  username and a one-way digest of the refresh token. Credential rotation in a
+  long-running process therefore cannot reuse a token issued for a prior
+  credential pair; raw refresh tokens are not retained. Focused FINRA coverage
+  passed `40/40` and Ruff passed.
+
+## 2026-09-25 exact-head validation after ORF cache hardening
+
+- The branch-owned backend unit gate passed `1,922/1,922` with `37` warnings
+  in `324.59s` at source `461a7aeee9b8094e6fc84d6adfca5f81a4d83ceb`.
+- The authoritative Docker integration gate passed `386/386` with `57`
+  warnings in `711.07s`, using isolated PostgreSQL/Redis testcontainers
+  (session `00cd7f28-fdac-4b17-92d1-d36d7f46d472`). Cleanup completed without
+  host-wide pruning. External ORF entitlement, terms, operation-cost bound,
+  and credentialed live evidence remain fail-closed.
+
 ## 2026-09-25 FINRA ORF endpoint-path contract hardening
 
 - ORF source validation now requires the documented `/DownloadHandler.ashx`
