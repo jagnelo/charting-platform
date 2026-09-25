@@ -52,7 +52,10 @@ from app.strategy_lab_v2.commands import (
 from app.strategy_lab_v2.contracts import CarryInMode, ForwardInstance, ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.forward_account import initial_forward_account_state
-from app.strategy_lab_v2.forward_event_dispatch import resolve_forward_event_dispatch
+from app.strategy_lab_v2.forward_event_dispatch import (
+    ForwardEventDispatchResolution,
+    resolve_forward_event_dispatch,
+)
 from app.strategy_lab_v2.forward_event_transaction import (
     ForwardEventTransactionDecision,
     ForwardEventTransactionResolution,
@@ -559,6 +562,30 @@ class WarmupRouteAdapter(FakeAdapter):
         return resolve_forward_warmup(warming, receipt)
 
 
+class ForwardRouteAdapter(WarmupRouteAdapter):
+    async def transact_forward_event(self, **kwargs: Any) -> ForwardEventTransactionResolution:
+        return ForwardEventTransactionResolution(
+            ForwardEventTransactionDecision.ACCEPTED,
+            forward_state(),
+            content_digest(kwargs["event"]),
+        )
+
+    async def dispatch_forward_event(self, **kwargs: Any) -> ForwardEventDispatchResolution:
+        return resolve_forward_event_dispatch(
+            forward_state(),
+            kwargs["event"],
+            kwargs["observation"],
+            dispatch_request=kwargs["dispatch_request"],
+            correction_command=kwargs.get("correction_command"),
+        )
+
+    async def transition_forward_instance(self, **kwargs: Any) -> ForwardStateMutationResolution:
+        return ForwardStateMutationResolution(
+            ForwardStateMutationDecision.APPLIED,
+            forward_state().checkpoint.instance,
+        )
+
+
 class ResourceConflictAdapter(FakeAdapter):
     async def create_resource(self, **kwargs: Any) -> ResourceMutationServiceResult:
         request = kwargs["request"]
@@ -625,9 +652,7 @@ def _client(adapter: Any) -> TestClient:
     return TestClient(app)
 
 
-@pytest.mark.asyncio
-async def test_warmup_route_executes_through_asgi_boundary() -> None:
-    adapter = WarmupRouteAdapter()
+def _asgi_app(adapter: Any) -> FastAPI:
     async def get_adapter() -> Any:
         return adapter
 
@@ -644,6 +669,13 @@ async def test_warmup_route_executes_through_asgi_boundary() -> None:
         ),
         prefix="/api/v1",
     )
+    return app
+
+
+@pytest.mark.asyncio
+async def test_warmup_route_executes_through_asgi_boundary() -> None:
+    adapter = WarmupRouteAdapter()
+    app = _asgi_app(adapter)
     receipt = ForwardWarmupReceipt(
         "forward-1",
         SNAPSHOT,
@@ -670,6 +702,80 @@ async def test_warmup_route_executes_through_asgi_boundary() -> None:
     assert response.status_code == 202
     assert response.json()["data"]["type"] == "forward-warmups"
     assert response.json()["data"]["meta"]["decision"] == "complete"
+
+
+def _ordinary_forward_dispatch_body() -> dict[str, Any]:
+    event = correction_event("live-0", 0)
+    observation = observe_forward_event(ForwardCursor(), event)
+    event_fingerprint = content_digest(event)
+    payload = {"event_fingerprint": event_fingerprint, "replay_plan_fingerprint": None}
+    dispatch = DispatchRequest(
+        idempotency_key="forward-dispatch-route",
+        attempt_id="forward-1",
+        payload_digest=content_digest(payload),
+        queue_name="forward",
+        created_at=NOW,
+    )
+    return {
+        "event": {
+            "event_id": event.event_id,
+            "sequence": event.sequence,
+            "event_time": event.event_time.isoformat(),
+            "arrived_at": event.arrived_at.isoformat(),
+            "source_digest": event.source_digest,
+        },
+        "observation": {
+            "disposition": observation.disposition.value,
+            "stale": observation.stale,
+            "missing_sequence_start": observation.missing_sequence_start,
+            "missing_sequence_end": observation.missing_sequence_end,
+            "correction_requires_counterfactual_replay": observation.correction_requires_counterfactual_replay,
+            "next_cursor": {
+                "last_sequence": observation.next_cursor.last_sequence,
+                "last_event_id": observation.next_cursor.last_event_id,
+                "last_event_time": observation.next_cursor.last_event_time.isoformat()
+                if observation.next_cursor.last_event_time is not None
+                else None,
+            },
+            "buffer_event": observation.buffer_event,
+        },
+        "dispatch": {
+            "idempotency_key": dispatch.idempotency_key,
+            "attempt_id": dispatch.attempt_id,
+            "payload_digest": dispatch.payload_digest,
+            "queue_name": dispatch.queue_name,
+            "created_at": dispatch.created_at.isoformat(),
+        },
+        "payload": payload,
+    }
+
+
+@pytest.mark.asyncio
+async def test_dispatch_route_executes_atomic_forward_outbox_boundary() -> None:
+    app = _asgi_app(ForwardRouteAdapter())
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://strategy-lab.test") as client:
+        response = await client.post(
+            "/api/v1/strategy-lab/v2/forward-instances/forward-1/events/dispatch",
+            json=_ordinary_forward_dispatch_body(),
+        )
+    assert response.status_code == 202
+    assert response.json()["data"]["type"] == "forward-event-dispatches"
+    assert response.json()["data"]["attributes"]["decision"] == "enqueue"
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_route_executes_compare_and_set_boundary() -> None:
+    app = _asgi_app(ForwardRouteAdapter())
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://strategy-lab.test") as client:
+        response = await client.post(
+            "/api/v1/strategy-lab/v2/forward-instances/forward-1/lifecycle",
+            json={"target": "active", "now": NOW.isoformat()},
+        )
+    assert response.status_code == 202
+    assert response.json()["data"]["type"] == "forward-lifecycle-transitions"
+    assert response.json()["data"]["attributes"]["decision"] == "applied"
 
 
 def test_resource_serialization_preserves_decimal_as_exact_string() -> None:
