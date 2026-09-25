@@ -1506,6 +1506,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-25 Alpaca credential-scoped asset cache: the authenticated
+      `/assets` cache now keys entries by trading host, key ID, and a one-way
+      secret digest, preventing account-specific universe reuse after host or
+      credential rotation without retaining raw secrets. Focused coverage
+      passed 51/51; exact-source unit validation passed 1,926/1,926 and Docker
+      integration passed 386/386 at source
+      `f346ea2bf4f92fad0703b00789d6e838d5fc421c`.
+    - >-
       2026-09-25 FINRA ORF credential-scoped directory cache: the in-memory
       directory cache now keys entries by source identity, TRAQS username, and
       a one-way refresh-token digest, preventing stale authenticated snapshots

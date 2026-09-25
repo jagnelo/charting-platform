@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Alpaca credential-scoped asset cache
+
+- The authenticated Alpaca `/assets` cache now includes the configured
+  trading host, key ID, and one-way secret digest. Paper/live or credential
+  rotation cannot reuse account-specific universe rows; raw secrets are not
+  retained. Focused Alpaca coverage passed `51/51` with Ruff clean.
+
+## 2026-09-25 exact-head validation after Alpaca asset-cache hardening
+
+- The branch-owned backend unit gate passed `1,926/1,926` with `37` warnings
+  in `313.17s` at source `f346ea2bf4f92fad0703b00789d6e838d5fc421c`.
+- The authoritative Docker integration gate passed `386/386` with `57`
+  warnings in `704.95s`, using isolated PostgreSQL/Redis testcontainers
+  (session `e53bcc4b-d9b4-4e4c-a9e6-173b50d5f076`). Cleanup completed without
+  host-wide pruning. Alpaca account entitlement and credentialed live evidence
+  remain subject to the existing provider admission gates.
+
 ## 2026-09-25 FINRA ORF credential-scoped directory cache
 
 - The ORF directory cache now includes the TRAQS username and a one-way

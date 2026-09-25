@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-25 — Alpaca credential-scoped asset cache
+
+- [x] Scope the authenticated Alpaca asset cache to the trading host, key ID,
+      and a one-way secret digest so paper/live or credential changes cannot
+      reuse account-specific universe rows without retaining raw secrets.
+      Focused Alpaca coverage passed `51/51`; Ruff passed.
+
+- [x] Validate exact source
+      `f346ea2bf4f92fad0703b00789d6e838d5fc421c`: branch-owned unit scope
+      passed `1,926/1,926` with `37` warnings in `313.17s`; Docker integration
+      passed `386/386` with `57` warnings in `704.95s` (testcontainer session
+      `e53bcc4b-d9b4-4e4c-a9e6-173b50d5f076`); cleanup completed without
+      host-wide pruning.
+
 ### 2026-09-25 — FINRA ORF credential-scoped directory cache
 
 - [x] Scope the ORF directory cache to the TRAQS username and a one-way
