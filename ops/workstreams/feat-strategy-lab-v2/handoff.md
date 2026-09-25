@@ -5625,3 +5625,6 @@ The versioned Strategy Lab API now exposes `POST /forward-instances/{instance_id
 ## 2026-09-25 - Forward warm-up API checkpoint
 
 The versioned Strategy Lab API now exposes `POST /forward-instances/{instance_id}/warmup`. It strictly reconstructs the immutable warm-up receipt, verifies route/receipt instance identity and carry-in mode, delegates the one-time durable warm-up boundary, and serializes receipt/instance fingerprints. This keeps activation evidence separate from live event admission and does not fetch provider data or start Nautilus. Five focused forward API/parser/serializer tests pass in the current slice; Ruff, MyPy (293 source files), and whitespace validation pass.
+## 2026-09-25 - Forward lifecycle API checkpoint
+
+The versioned Strategy Lab API now exposes `POST /forward-instances/{instance_id}/lifecycle`, strictly parses a target state and timezone-aware transition timestamp, delegates owner-scoped compare-and-set persistence, and serializes applied/replay/conflict evidence. This completes the API-side lifecycle seam around the already durable forward-state adapter; provider event acquisition, worker activation, and Nautilus execution remain gated. Six focused forward API/parser/serializer tests pass in the current slice; Ruff, MyPy (293 source files), and whitespace validation pass.
