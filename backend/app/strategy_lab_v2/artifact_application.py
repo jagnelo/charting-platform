@@ -37,6 +37,8 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest
 from app.strategy_lab_v2.postgres_artifact_commit import PostgresArtifactCommitAdapter
 from app.strategy_lab_v2.postgres_artifact_retention import PostgresArtifactRetentionAdapter
+from app.strategy_lab_v2.sandbox import SandboxCommandPlan, sandbox_output_path
+from app.strategy_lab_v2.sandbox_execution import SandboxRunResult, SandboxRunStatus
 
 
 class ArtifactCommitter(Protocol):
@@ -165,6 +167,38 @@ class LocalArtifactPublicationService:
             manifest,
             storage,
             already_committed=already_committed,
+            committed_at=committed_at,
+        )
+
+    async def publish_sandbox_result(
+        self,
+        manifest: ArtifactManifest,
+        sandbox_plan: SandboxCommandPlan,
+        sandbox_result: SandboxRunResult,
+        *,
+        committed_at: datetime,
+    ) -> ArtifactPublicationResolution:
+        """Publish the exact result file identified by one sandbox execution."""
+
+        if not isinstance(manifest, ArtifactManifest):
+            raise TypeError("manifest must be an ArtifactManifest")
+        if not isinstance(sandbox_plan, SandboxCommandPlan):
+            raise TypeError("sandbox_plan must be a SandboxCommandPlan")
+        if not isinstance(sandbox_result, SandboxRunResult):
+            raise TypeError("sandbox_result must be a SandboxRunResult")
+        if sandbox_result.plan_fingerprint != sandbox_plan.fingerprint:
+            raise ValueError("sandbox result does not match its command plan")
+        if sandbox_result.status is not SandboxRunStatus.SUCCEEDED:
+            raise ValueError("sandbox result publication requires a successful execution")
+        if sandbox_result.result_digest is None or sandbox_result.result_bytes is None:
+            raise ValueError("sandbox result is missing mounted result evidence")
+        if manifest.content_digest != sandbox_result.result_digest:
+            raise ValueError("artifact manifest does not match sandbox result digest")
+        if manifest.byte_length != sandbox_result.result_bytes:
+            raise ValueError("artifact manifest does not match sandbox result length")
+        return await self.publish_file(
+            manifest,
+            sandbox_output_path(sandbox_plan),
             committed_at=committed_at,
         )
 

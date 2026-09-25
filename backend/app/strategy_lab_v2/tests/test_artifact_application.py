@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from app.strategy_lab_v2.artifact_application import (
     ArtifactCleanupScheduler,
     ArtifactPublicationDecision,
@@ -32,6 +34,8 @@ from app.strategy_lab_v2.artifact_store import (
 from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
+from app.strategy_lab_v2.sandbox_execution import SandboxRunResult, SandboxRunStatus
+from app.strategy_lab_v2.tests.test_sandbox_execution import _plan as sandbox_plan
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
@@ -111,6 +115,62 @@ async def test_publish_file_coordinates_streamed_bytes_and_commit(tmp_path) -> N
     assert published.storage.decision is ArtifactStoreDecision.WRITTEN
     assert published.commit is not None
     assert published.commit.decision is ArtifactCommitDecision.COMMIT
+
+
+async def test_publish_sandbox_result_binds_plan_evidence_and_manifest(tmp_path) -> None:
+    payload = b"sandbox result"
+    source = tmp_path / "result.bin"
+    source.write_bytes(payload)
+    plan = sandbox_plan(output_path=os.fspath(source))
+    sandbox_result = SandboxRunResult(
+        plan.fingerprint,
+        plan.request_fingerprint,
+        SandboxRunStatus.SUCCEEDED,
+        0,
+        content_digest("stdout"),
+        content_digest("stderr"),
+        6,
+        0,
+        result_digest=artifact_content_digest(payload),
+        result_bytes=len(payload),
+    )
+    service = LocalArtifactPublicationService(
+        LocalArtifactStore(tmp_path / "artifacts"), _Committer()
+    )
+
+    published = await service.publish_sandbox_result(
+        _manifest(payload), plan, sandbox_result, committed_at=NOW
+    )
+
+    assert published.decision is ArtifactPublicationDecision.COMMITTED
+    assert published.storage.decision is ArtifactStoreDecision.WRITTEN
+
+
+async def test_publish_sandbox_result_rejects_manifest_identity_drift(tmp_path) -> None:
+    payload = b"sandbox result"
+    source = tmp_path / "result.bin"
+    source.write_bytes(payload)
+    plan = sandbox_plan(output_path=os.fspath(source))
+    sandbox_result = SandboxRunResult(
+        plan.fingerprint,
+        plan.request_fingerprint,
+        SandboxRunStatus.SUCCEEDED,
+        0,
+        content_digest("stdout"),
+        content_digest("stderr"),
+        6,
+        0,
+        result_digest=artifact_content_digest(payload),
+        result_bytes=len(payload),
+    )
+    service = LocalArtifactPublicationService(
+        LocalArtifactStore(tmp_path / "artifacts"), _Committer()
+    )
+
+    with pytest.raises(ValueError, match="manifest.*digest"):
+        await service.publish_sandbox_result(
+            _manifest(b"different"), plan, sandbox_result, committed_at=NOW
+        )
 
 
 async def test_bad_payload_is_rejected_before_commit(tmp_path) -> None:
