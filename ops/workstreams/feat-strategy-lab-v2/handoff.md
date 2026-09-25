@@ -125,6 +125,12 @@ all returned records to retain the same attempt identity and deterministic
 publication ordering; it does not pretend those independent reads are one
 cross-table transaction.
 
+The worker-facing lookup now derives the owner from the unique durable
+submission request fingerprint (`load_submission_binding()`), then performs
+owner-scoped evidence reads. If the same request/attempt identity is bound to
+multiple owners, the adapter rejects it as ambiguous; no tenant is guessed
+from Redis or strategy payload bytes.
+
 ## 2026-09-24 - Typed result-manifest rehydration
 
 `postgres_result_materialization.py` now exposes owner-scoped
