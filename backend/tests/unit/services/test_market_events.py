@@ -112,6 +112,86 @@ async def test_refresh_market_events_runs_additional_provider_calendar_operation
 
 
 @pytest.mark.asyncio
+async def test_refresh_market_events_follows_massive_cursor_pages(
+    db, monkeypatch
+):
+    calls = []
+
+    async def fake_execute(_db, capability, operation, **kwargs):
+        assert capability is ProviderCapability.MARKET_EVENTS
+        assert operation == "fetch_market_events"
+        calls.append(len(calls))
+        if len(calls) == 1:
+            result = {
+                "events": [
+                    _record(event_key="massive:ipo:first", payload={"ticker": "FIRST"})
+                ],
+                "next_url": "https://api.massive.com/vX/reference/ipos?cursor=next",
+                "next_cursor": "next",
+                "complete": False,
+            }
+        else:
+            result = {
+                "events": [
+                    _record(event_key="massive:ipo:second", payload={"ticker": "SECOND"})
+                ],
+                "next_url": None,
+                "next_cursor": None,
+                "complete": True,
+            }
+        return SimpleNamespace(provider_name="massive", result=result)
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+
+    assert calls == [0, 1]
+    assert result["status"] == "refreshed"
+    assert result["events"] == 2
+    assert result["failures"] == 0
+    assert {
+        row.event_key for row in db.execute(select(MarketEvent)).scalars().all()
+    } == {"massive:ipo:first", "massive:ipo:second"}
+
+
+@pytest.mark.asyncio
+async def test_refresh_market_events_retains_pages_before_cursor_failure(
+    db, monkeypatch
+):
+    calls = 0
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise RuntimeError("provider quota exhausted")
+        return SimpleNamespace(
+            provider_name="massive",
+            result={
+                "events": [
+                    _record(event_key="massive:ipo:retained", payload={"ticker": "RETAINED"})
+                ],
+                "next_url": "https://api.massive.com/vX/reference/ipos?cursor=blocked",
+                "next_cursor": "blocked",
+                "complete": False,
+            },
+        )
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["massive"]
+    )
+
+    assert calls == 2
+    assert result["status"] == "refreshed"
+    assert result["events"] == 1
+    assert result["failures"] == 1
+    assert result["providers"][0]["failures"][0]["page_cursor"] == "blocked"
+    assert db.execute(select(MarketEvent)).scalar_one().event_key == "massive:ipo:retained"
+
+
+@pytest.mark.asyncio
 async def test_refresh_market_events_leaves_ambiguous_symbol_unlinked(
     db, instrument, instrument_type, monkeypatch
 ):

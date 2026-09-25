@@ -754,10 +754,15 @@ class MassiveProvider:
             ):
                 events.append(event)
         next_url = payload.get("next_url")
-        _require_next_cursor(next_url, self.name, "IPO calendar")
+        next_cursor = _require_next_cursor(next_url, self.name, "IPO calendar")
         return {
             "events": events,
             "next_url": next_url,
+            # Keep the validated opaque cursor available to the durable
+            # market-event service.  Re-parsing provider URLs there would
+            # duplicate trust-boundary validation and could lose a cursor
+            # when the provider changes its continuation URL shape.
+            "next_cursor": next_cursor,
             "complete": not isinstance(next_url, str) or not next_url,
         }
 

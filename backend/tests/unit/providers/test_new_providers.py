@@ -2061,6 +2061,7 @@ class TestMassiveReferenceProvider:
         assert event.is_provisional is True
         assert event.raw_payload["primary_exchange"] == "XNAS"
         assert page["next_url"].endswith("cursor=next")
+        assert page["next_cursor"] == "next"
         assert page["complete"] is False
         assert get.call_count == 1
         assert get.call_args.args[0] == "https://api.massive.com/vX/reference/ipos"

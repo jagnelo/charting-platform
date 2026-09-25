@@ -123,6 +123,143 @@ def _market_event_operations(
     return operations
 
 
+async def _fetch_cursor_paginated_market_events(
+    db: AsyncSession,
+    *,
+    provider_name: str,
+    start: date | None,
+    end: date | None,
+) -> tuple[str, list[MarketEventRecord], list[dict[str, str]], int]:
+    """Read every provider cursor page while accounting each request.
+
+    Massive exposes the IPO calendar through a cursor-paginated endpoint.  A
+    one-page compatibility method is useful to callers, but persistence must
+    not silently discard the continuation.  Each page is routed through the
+    normal quota/health runtime, so a quota failure after page N leaves pages
+    1..N available for persistence and the failure is retained for the next
+    scheduled run.
+    """
+
+    provider = get_provider(provider_name)
+    page_method = getattr(provider, "fetch_market_events_page", None)
+    if not callable(page_method):
+        raise TypeError("provider does not expose cursor-paginated market events")
+
+    cursor: str | None = None
+    seen_cursors: set[str] = set()
+    records: list[MarketEventRecord] = []
+    failures: list[dict[str, str]] = []
+    page_count = 0
+    while True:
+        page_cursor = cursor
+        try:
+            execution = await execute_provider_call(
+                db,
+                ProviderCapability.MARKET_EVENTS,
+                "fetch_market_events",
+                provider_name=provider_name,
+                invoke=lambda resolved, _provider_symbol, page_cursor=page_cursor: resolved.fetch_market_events_page(
+                    start=start,
+                    end=end,
+                    cursor=page_cursor,
+                ),
+                response_items=lambda result: (
+                    len(result.get("events", []))
+                    if isinstance(result, dict)
+                    else len(result)
+                    if isinstance(result, list)
+                    else None
+                ),
+                treat_empty_as_failure=False,
+            )
+        except Exception as exc:  # noqa: BLE001 - retain partial pages.
+            failures.append(
+                {
+                    "operation": "fetch_market_events",
+                    "error_type": exc.__class__.__name__,
+                    "error": bounded_redact_provider_message(exc, max_length=500),
+                    "page_cursor": page_cursor or "<initial>",
+                }
+            )
+            break
+
+        page_count += 1
+        page = execution.result
+        if isinstance(page, list):
+            # Preserve compatibility with fixture doubles and providers whose
+            # page method is represented as a normalized list.
+            page_events = page
+            next_cursor = None
+            next_url = None
+            complete = True
+        elif isinstance(page, dict):
+            page_events = page.get("events")
+            next_url = page.get("next_url")
+            next_cursor = page.get("next_cursor")
+            complete = page.get("complete") is True or not next_url
+        else:
+            failures.append(
+                {
+                    "operation": "fetch_market_events",
+                    "error_type": "TypeError",
+                    "error": "provider returned malformed market-event page",
+                    "page_cursor": page_cursor or "<initial>",
+                }
+            )
+            break
+
+        if not isinstance(page_events, list) or any(
+            not isinstance(record, MarketEventRecord) for record in page_events
+        ):
+            failures.append(
+                {
+                    "operation": "fetch_market_events",
+                    "error_type": "TypeError",
+                    "error": "provider returned malformed market-event records",
+                    "page_cursor": page_cursor or "<initial>",
+                }
+            )
+            break
+        records.extend(page_events)
+        if complete:
+            break
+        if not isinstance(next_url, str) or not next_url:
+            failures.append(
+                {
+                    "operation": "fetch_market_events",
+                    "error_type": "ValueError",
+                    "error": "provider returned an incomplete page without next_url",
+                    "page_cursor": page_cursor or "<initial>",
+                }
+            )
+            break
+        if not isinstance(next_cursor, str) or not next_cursor.strip():
+            failures.append(
+                {
+                    "operation": "fetch_market_events",
+                    "error_type": "ValueError",
+                    "error": "provider returned next_url without a validated next_cursor",
+                    "page_cursor": page_cursor or "<initial>",
+                }
+            )
+            break
+        next_cursor = next_cursor.strip()
+        if next_cursor in seen_cursors or next_cursor == page_cursor:
+            failures.append(
+                {
+                    "operation": "fetch_market_events",
+                    "error_type": "ValueError",
+                    "error": "provider repeated a market-event cursor",
+                    "page_cursor": next_cursor,
+                }
+            )
+            break
+        seen_cursors.add(next_cursor)
+        cursor = next_cursor
+
+    return execution.provider_name if "execution" in locals() else provider_name, records, failures, page_count
+
+
 async def _resolve_event_targets(
     db: AsyncSession,
     *,
@@ -219,34 +356,52 @@ async def refresh_market_events(
             )
 
         for operation, invoke in operations:
-            try:
-                execution = await execute_provider_call(
+            if operation == "fetch_market_events" and callable(
+                getattr(get_provider(requested_name), "fetch_market_events_page", None)
+            ):
+                (
+                    resolved_provider_name,
+                    records,
+                    page_failures,
+                    _page_count,
+                ) = await _fetch_cursor_paginated_market_events(
                     db,
-                    ProviderCapability.MARKET_EVENTS,
-                    operation,
                     provider_name=requested_name,
-                    invoke=invoke,
-                    response_items=lambda result: len(result)
-                    if isinstance(result, list)
-                    else None,
-                    treat_empty_as_failure=False,
+                    start=start,
+                    end=end,
                 )
-                resolved_provider_name = execution.provider_name
-                records = execution.result
-                if not isinstance(records, list) or any(
-                    not isinstance(record, MarketEventRecord) for record in records
-                ):
-                    raise TypeError("market-event provider returned malformed records")
-            except Exception as exc:  # noqa: BLE001 - retain per-operation outcome.
-                failures += 1
-                operation_failures.append(
-                    {
-                        "operation": operation,
-                        "error_type": exc.__class__.__name__,
-                        "error": bounded_redact_provider_message(exc, max_length=500),
-                    }
-                )
-                continue
+                if page_failures:
+                    failures += len(page_failures)
+                    operation_failures.extend(page_failures)
+            else:
+                try:
+                    execution = await execute_provider_call(
+                        db,
+                        ProviderCapability.MARKET_EVENTS,
+                        operation,
+                        provider_name=requested_name,
+                        invoke=invoke,
+                        response_items=lambda result: len(result)
+                        if isinstance(result, list)
+                        else None,
+                        treat_empty_as_failure=False,
+                    )
+                    resolved_provider_name = execution.provider_name
+                    records = execution.result
+                    if not isinstance(records, list) or any(
+                        not isinstance(record, MarketEventRecord) for record in records
+                    ):
+                        raise TypeError("market-event provider returned malformed records")
+                except Exception as exc:  # noqa: BLE001 - retain per-operation outcome.
+                    failures += 1
+                    operation_failures.append(
+                        {
+                            "operation": operation,
+                            "error_type": exc.__class__.__name__,
+                            "error": bounded_redact_provider_message(exc, max_length=500),
+                        }
+                    )
+                    continue
 
             for record in records:
                 payload = dict(record.raw_payload or {})
