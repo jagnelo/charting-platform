@@ -162,6 +162,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 lossless identity-quarantine correction at source
+    c961adf78: the deduplicated InstrumentIdentityQuarantine row remains the
+    current review projection, while every repeated provider candidate payload
+    is now appended to InstrumentIdentityQuarantineObservation. Migration
+    e9f3a4b5c6d7 refuses downgrade while evidence exists. Focused service and
+    migration tests pass 2/2; branch-owned unit validation passes 1910/1910
+    and Docker integration passes 386/386. Provider-contract, live/legal,
+    complete NMS/OTC/SEC, secret-store, deferred-provider, publication, and
+    final-shadow gates remain open.
+  - >-
     2026-09-25 lossless reconciliation-issue correction at source
     2fd3a732809c7fd3e51dd44436da98ba6941f7f1: the deduplicated mutable
     InstrumentReconciliationIssue queue remains the current review projection,

@@ -6487,3 +6487,21 @@ provider or start the shadow run.
   changed here. Provider quota/legal/capability, complete NMS/OTC/SEC,
   external secret-store, deferred-provider, publication, and final-shadow
   gates remain open and fail-closed.
+
+## 2026-09-25 identity-quarantine evidence retention
+
+- `InstrumentIdentityQuarantine` remains the deduplicated current review
+  projection, but repeated provider candidate payloads are now retained in
+  append-only `InstrumentIdentityQuarantineObservation` rows. Each row keeps
+  the proposed identity, provider symbol/venue, reason, status, timestamp, and
+  complete candidate payload; later observations cannot erase earlier evidence.
+- Additive migration `e9f3a4b5c6d7` refuses downgrade while evidence exists.
+  Focused identity service/migration coverage passes `2/2`, Ruff/diff checks
+  are clean, and Alembic reports one head.
+- Exact source `c961adf78` passes the branch-owned unit scope `1,910/1,910`
+  (37 existing warnings, 328.73s), excluding only the parallel ETF adapter
+  file, and the elevated Docker gate passes `386/386` in 716.80s (57 warnings).
+  Testcontainers were cleaned without a host-wide prune.
+- No ETF source or test was changed. Provider quota/legal/capability,
+  complete NMS/OTC/SEC, external secret-store, deferred-provider, publication,
+  and final-shadow gates remain open and fail-closed.
