@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -9,7 +10,6 @@ from typing import Any, cast
 import httpx
 import pytest
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
 from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
 from app.strategy_lab_v2.api_contracts import ApiCursor
@@ -743,7 +743,42 @@ class SnapshotDriftAdapter(FakeAdapter):
         )
 
 
-def _client(adapter: Any) -> TestClient:
+class _SyncASGIClient:
+    """Synchronous test facade over the async ASGI transport.
+
+    Starlette's synchronous ``TestClient`` can hang while entering its portal
+    in this repository's constrained runtime. The route tests only need basic
+    GET/POST calls, so keep the existing synchronous call sites while running
+    each request through the same in-process transport used by the async tests.
+    """
+
+    def __init__(self, app: FastAPI) -> None:
+        self._app = app
+
+    def __enter__(self) -> _SyncASGIClient:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        return None
+
+    def get(self, url: str, **kwargs: Any) -> httpx.Response:
+        return self._request("GET", url, **kwargs)
+
+    def post(self, url: str, **kwargs: Any) -> httpx.Response:
+        return self._request("POST", url, **kwargs)
+
+    def _request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
+        async def execute() -> httpx.Response:
+            transport = httpx.ASGITransport(app=self._app)
+            async with httpx.AsyncClient(
+                transport=transport, base_url="http://strategy-lab.test"
+            ) as client:
+                return await client.request(method, url, **kwargs)
+
+        return asyncio.run(execute())
+
+
+def _client(adapter: Any) -> _SyncASGIClient:
     async def get_adapter() -> Any:
         return adapter
 
@@ -760,7 +795,7 @@ def _client(adapter: Any) -> TestClient:
         ),
         prefix="/api/v1",
     )
-    return TestClient(app)
+    return _SyncASGIClient(app)
 
 
 def _asgi_app(adapter: Any) -> FastAPI:

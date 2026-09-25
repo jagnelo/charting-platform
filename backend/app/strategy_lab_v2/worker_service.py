@@ -190,7 +190,7 @@ class DedicatedStrategyWorkerService:
             )
         try:
             try:
-                result = await asyncio.to_thread(self._process_executor.run, request)
+                result = await self._process_executor.run_async(request)
             except Exception as error:  # pragma: no cover - process adapter boundary
                 return WorkerHandleResult(
                     entry.fingerprint,

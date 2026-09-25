@@ -10,6 +10,7 @@ state, or decide whether a result is authoritative.
 
 from __future__ import annotations
 
+import asyncio
 import multiprocessing
 import threading
 from collections.abc import Callable
@@ -250,6 +251,123 @@ class SerialWorkerProcessExecutor:
             if receiver is not None:
                 receiver.close()
             self._run_lock.release()
+
+    async def run_async(
+        self,
+        request: WorkerExecutionRequest,
+        *,
+        timeout_seconds: float | None = None,
+        poll_interval_seconds: float = 0.005,
+    ) -> WorkerProcessResolution:
+        """Run one spawn child without starting it from an executor thread.
+
+        ``multiprocessing`` spawn bootstrap is tied to the interpreter's main
+        thread in several supported runtimes.  Starting the child here keeps
+        that boundary on the worker event-loop thread while cooperative polling
+        leaves lease-heartbeat tasks responsive.
+        """
+
+        if not isinstance(request, WorkerExecutionRequest):
+            raise TypeError("request must be a WorkerExecutionRequest")
+        timeout = self._timeout_seconds if timeout_seconds is None else timeout_seconds
+        if (
+            not isinstance(timeout, int | float)
+            or isinstance(timeout, bool)
+            or not isfinite(float(timeout))
+            or timeout <= 0
+        ):
+            raise ValueError("timeout_seconds must be a finite positive number")
+        if (
+            not isinstance(poll_interval_seconds, int | float)
+            or isinstance(poll_interval_seconds, bool)
+            or not isfinite(float(poll_interval_seconds))
+            or poll_interval_seconds <= 0
+        ):
+            raise ValueError("poll_interval_seconds must be a finite positive number")
+        if not self._run_lock.acquire(blocking=False):
+            raise RuntimeError("serial worker process executor is already running")
+        receiver = sender = process = None
+        try:
+            receiver, sender = self._pipe_factory(False)
+            process = self._process_factory(target=_child_main, args=(request, sender))
+            try:
+                process.start()
+            except BaseException as error:
+                return WorkerProcessResolution(
+                    request.request_fingerprint,
+                    WorkerProcessDecision.START_FAILED,
+                    process_id=None,
+                    error_digest=_error_digest(error),
+                )
+            sender.close()
+            sender = None
+            deadline = asyncio.get_running_loop().time() + float(timeout)
+            while process.is_alive():
+                if asyncio.get_running_loop().time() >= deadline:
+                    process.terminate()
+                    process.join(1.0)
+                    return WorkerProcessResolution(
+                        request.request_fingerprint,
+                        WorkerProcessDecision.TIMED_OUT,
+                        process_id=getattr(process, "pid", None),
+                        error_digest=content_digest("strategy lab worker process timed out"),
+                    )
+                await asyncio.sleep(float(poll_interval_seconds))
+            process.join()
+            process_id = getattr(process, "pid", None)
+            return _resolution_from_pipe(request.request_fingerprint, receiver, process_id)
+        finally:
+            if sender is not None:
+                sender.close()
+            if receiver is not None:
+                receiver.close()
+            self._run_lock.release()
+
+
+def _resolution_from_pipe(
+    request_fingerprint: str,
+    receiver: Any,
+    process_id: int | None,
+) -> WorkerProcessResolution:
+    """Decode one completed child message for sync and async callers."""
+
+    if not receiver.poll():
+        return WorkerProcessResolution(
+            request_fingerprint,
+            WorkerProcessDecision.CHILD_FAILED,
+            process_id=process_id,
+            error_digest=content_digest("strategy lab worker exited without evidence"),
+        )
+    message = receiver.recv()
+    if not isinstance(message, tuple) or len(message) != 2:
+        return WorkerProcessResolution(
+            request_fingerprint,
+            WorkerProcessDecision.CHILD_FAILED,
+            process_id=process_id,
+            error_digest=content_digest("strategy lab worker returned malformed evidence"),
+        )
+    tag, value = message
+    if tag == "completed" and isinstance(value, WorkerExecutionResolution):
+        return WorkerProcessResolution(
+            request_fingerprint,
+            WorkerProcessDecision.COMPLETED,
+            execution=value,
+            process_id=process_id,
+        )
+    if tag == "failed" and isinstance(value, str):
+        require_sha256_digest(value, field_name="child error digest")
+        return WorkerProcessResolution(
+            request_fingerprint,
+            WorkerProcessDecision.CHILD_FAILED,
+            process_id=process_id,
+            error_digest=value,
+        )
+    return WorkerProcessResolution(
+        request_fingerprint,
+        WorkerProcessDecision.CHILD_FAILED,
+        process_id=process_id,
+        error_digest=content_digest("strategy lab worker returned invalid evidence"),
+    )
 
 
 def _child_main(request: WorkerExecutionRequest, sender: Any) -> None:

@@ -56,6 +56,16 @@ def test_worker_process_runs_one_handoff_in_a_spawned_child(tmp_path: Path) -> N
     assert result.fingerprint.startswith("sha256:")
 
 
+@pytest.mark.asyncio
+async def test_worker_process_async_runs_spawned_child_without_thread_bootstrap(tmp_path: Path) -> None:
+    result = await SerialWorkerProcessExecutor(timeout_seconds=10).run_async(_request(tmp_path))
+
+    assert result.decision is WorkerProcessDecision.COMPLETED
+    assert result.process_id is not None
+    assert result.execution is not None
+    assert result.execution.decision.value == "succeeded"
+
+
 def test_worker_process_preserves_typed_child_failure(tmp_path: Path) -> None:
     result = SerialWorkerProcessExecutor(timeout_seconds=10).run(
         _request(tmp_path, body="exit 7")
@@ -85,4 +95,3 @@ def test_worker_process_rejects_concurrent_use_and_invalid_inputs(tmp_path: Path
         SerialWorkerProcessExecutor().run("bad")  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="timezone-aware"):
         replace(request, started_at=datetime(2024, 1, 1))
-
