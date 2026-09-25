@@ -162,6 +162,17 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    The current official EODHD API-limits page documents 1,000 HTTP
+    requests/minute with a per-minute reset, but the Free Starter card still
+    says 20 requests/minute and the configured key's bounded `/user` response
+    reports a 20-call daily limit, stale `apiRequestsDate=2026-09-15`, and
+    native minute headers `1200/1199`. The contradiction and current daily
+    baseline remain explicitly fail-closed; the source audit is recorded in
+    `docs/data-providers.md` and no limit was inferred. OpenFIGI's current
+    matrix passed `3/3` at source
+    `3a893b91fb51bc31d7dd3bbb3bf6cf73194155c1`; keyed-mode limits remain
+    unproven without an OpenFIGI key.
+  - >-
     Exact-current full safety preflight at source
     `936cdab7264fcf3dad8420ec995161ba52386a3e` ran with the durable quota
     coordinator available and stopped before transport (`0/0` ordinary cases,

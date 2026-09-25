@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 EODHD limits audit and OpenFIGI matrix
+
+- The current official EODHD API-limits page documents 1,000 HTTP requests per
+  minute on every plan with a per-minute reset, while the Free Starter card
+  still says 20 requests/minute. The configured key's bounded `/user` response
+  reported `dailyRateLimit=20`, stale `apiRequestsDate=2026-09-15`, and native
+  minute headers `1200/1199`. This evidence is recorded in
+  `docs/data-providers.md`; the contradiction and missing current daily
+  baseline remain fail-closed rather than being resolved by inference.
+- After its native usage refresh, OpenFIGI's current-source matrix passed
+  `3/3` at source `3a893b91fb51bc31d7dd3bbb3bf6cf73194155c1`. The receipt is
+  redacted and appended to `validation.jsonl`; keyed-mode limits remain
+  unproven because no OpenFIGI key is configured.
+
 ## 2026-09-25 exact-current full safety preflight
 
 - Source `936cdab7264fcf3dad8420ec995161ba52386a3e` ran the full manifest

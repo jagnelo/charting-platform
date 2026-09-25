@@ -321,6 +321,20 @@ decimal interpretation would allow; the contract records the basis explicitly.
 | yfinance | legacy broad fallback, options/futures compatibility only | none | No official quota/SLA; unofficial scraping | unknown | legacy-only and disabled by default |
 | ETF holdings internal | platform's issuer/SEC holdings ingestion | internal configuration | Internal job/provider budgets, not an external market-data API | internal | generic bridge only; issuer-specific work remains on ETF branch |
 
+### 2026-09-25 EODHD limits audit
+
+The current official [EODHD API-limits documentation](https://eodhd.com/financial-apis/api-limits)
+states that the minute request ceiling is 1,000 requests per minute on every
+plan and resets every minute; it also documents the separate daily call pool
+and lazy midnight-GMT reset. A direct bounded `/user` observation for the
+configured free key returned `dailyRateLimit=20`, a stale
+`apiRequestsDate=2026-09-15`, and native minute headers of `1200/1199`. The
+free-plan card still states 20 requests/minute, so the account-specific limit
+and the published plan pages are not reconciled. The implementation therefore
+retains the contradiction and keeps ordinary EODHD routing fail-closed until
+the active account entitlement and baseline are explicitly reconciled; no
+limit is inferred from the newer page alone.
+
 Nasdaq Trader's directory is listing evidence, not a complete delisting-event feed.
 The adapter excludes test issues, retains Nasdaq Financial Status Indicators
 (including deficient or bankrupt-but-listed issues), and uses repeated complete
