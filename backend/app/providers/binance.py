@@ -169,6 +169,8 @@ class BinanceProvider:
             reset_at=dimension.reset_at,
             account_plan="public",
             dimensions=(dimension,),
+            raw_payload=payload,
+            response_headers=provider_response_headers(response),
         )
 
     # ── Price History ─────────────────────────────────────────────────────────

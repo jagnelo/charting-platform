@@ -48,10 +48,9 @@ class OpenFigiProvider:
         different reset model or a generic daily allowance.
         """
 
-        results, headers = self._mapping_request(
+        results, headers, raw_payload = self._mapping_request(
             [{"idType": _OPENFIGI_ID_TYPES["ticker"], "idValue": "SPY"}]
         )
-        del results
         # ``ratelimit-reset`` is a response-relative number of seconds, so
         # anchor the durable observation at the response boundary rather than
         # at request start.
@@ -99,6 +98,8 @@ class OpenFigiProvider:
             reset_at=reset_at,
             account_plan="api_key" if settings.OPENFIGI_API_KEY else "anonymous",
             dimensions=(dimension,),
+            raw_payload={"mapping_response": raw_payload},
+            response_headers=headers,
         )
 
     def fetch_stable_identifiers(
@@ -176,12 +177,12 @@ class OpenFigiProvider:
         return None
 
     def _mapping_results(self, payload: list[dict[str, str]]) -> list[list[dict[str, Any]]]:
-        results, _ = self._mapping_request(payload)
+        results, _, _ = self._mapping_request(payload)
         return results
 
     def _mapping_request(
         self, payload: list[dict[str, str]]
-    ) -> tuple[list[list[dict[str, Any]]], dict[str, str]]:
+    ) -> tuple[list[list[dict[str, Any]]], dict[str, str], list[dict[str, Any]]]:
         headers = {"Content-Type": "application/json"}
         if settings.OPENFIGI_API_KEY:
             headers["X-OPENFIGI-APIKEY"] = settings.OPENFIGI_API_KEY
@@ -247,7 +248,7 @@ class OpenFigiProvider:
             if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
                 raise ProviderResponseError(self.name, "OpenFIGI returned invalid mapping rows")
             results.append(rows)
-        return results, response_capacity_headers
+        return results, response_capacity_headers, raw_payload
 
     def _identifier_records_from_mapping(
         self,

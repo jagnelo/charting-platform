@@ -156,6 +156,12 @@ and snapshot-retention settings. Request logs are quota and audit evidence, not
 disposable operational cache. This preserves every quota-consuming provider
 response and usage fact for audit, replay, and future reconciliation.
 
+Provider-native account-usage observations now retain both the decoded raw
+provider body and the allow-listed capacity headers alongside each normalized
+dimension. This preserves provider-specific fields such as usage dates, plan
+metadata, and reset evidence across sessions; the migration downgrade refuses
+to remove non-empty evidence rather than silently discarding it.
+
 Raw OHLCV observations follow the same rule: the conflict key includes the
 fetch observation timestamp, so a later provider revision of an existing bar
 creates a new raw observation instead of overwriting the earlier response.

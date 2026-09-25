@@ -218,6 +218,11 @@ class ProviderAccountUsage:
     options_data_permissions: str | None = None
     account_plan: str | None = None
     dimensions: tuple[ProviderAccountUsageDimension, ...] = ()
+    # The decoded provider body and safe, allow-listed capacity headers are
+    # immutable evidence. They are not routing policy and must never contain
+    # credentials or arbitrary request headers.
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+    response_headers: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(slots=True)

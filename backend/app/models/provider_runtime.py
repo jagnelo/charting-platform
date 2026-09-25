@@ -326,6 +326,11 @@ class ProviderAccountUsageObservation(Base, TimestampMixin):
     reset_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     options_data_permissions: Mapped[str | None] = mapped_column(String(80), nullable=True)
     account_plan: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    # Account-usage responses are quota evidence too. Keep the decoded
+    # provider body and the allow-listed capacity headers so later reviews can
+    # reconcile provider-specific fields without re-spending quota.
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    response_headers: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
 
     data_source: Mapped["DataSource"] = relationship(
         back_populates="provider_account_usage_observations"

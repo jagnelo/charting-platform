@@ -168,6 +168,16 @@ class AlpacaProvider:
 
         headers = provider_response_headers(response)
         try:
+            raw_payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(
+                self.name, "Alpaca returned invalid account-usage JSON"
+            ) from exc
+        if not isinstance(raw_payload, dict):
+            raise ProviderResponseError(
+                self.name, "Alpaca returned an invalid account-usage payload"
+            )
+        try:
             limit = int(headers["x-ratelimit-limit"])
             remaining = int(headers["x-ratelimit-remaining"])
             reset_epoch = int(headers["x-ratelimit-reset"])
@@ -211,6 +221,8 @@ class AlpacaProvider:
             reset_at=reset_at,
             account_plan="market_data_headers",
             dimensions=(dimension,),
+            raw_payload=raw_payload,
+            response_headers=headers,
         )
 
     # ── Price History ─────────────────────────────────────────────────────────

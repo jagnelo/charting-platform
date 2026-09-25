@@ -388,6 +388,8 @@ class TestAlpacaCredentialWarning:
         assert usage.dimensions[0].consumed == 1
         assert usage.reset_at is not None and usage.reset_at.tzinfo is not None
         assert get.call_args.args[0] == "https://data.alpaca.markets/v2/stocks/bars/latest"
+        assert usage.raw_payload == {"bars": {"AAPL": {"c": 1}}}
+        assert usage.response_headers["x-ratelimit-limit"] == "200"
 
     def test_account_usage_retains_current_boundary_without_promoting_it(self):
         response = MagicMock()
@@ -990,6 +992,8 @@ class TestBinanceSymbolHelpers:
         assert usage.consumed == 37
         assert usage.reset_at is not None and usage.reset_at.tzinfo is not None
         assert usage.dimensions[0].name == "request_weight_per_minute"
+        assert usage.raw_payload == {"serverTime": 1_726_000_000_000}
+        assert usage.response_headers["x-mbx-used-weight-1m"] == "37"
 
     def test_account_usage_rejects_missing_native_weight_header(self):
         response = httpx.Response(

@@ -143,6 +143,12 @@ def test_openfigi_account_usage_parses_native_window_headers(monkeypatch):
     assert dimension.consumed == 1
     assert dimension.reset_at is not None
     assert dimension.reset_at > usage.observed_at
+    assert usage.raw_payload == {"mapping_response": [{"data": []}]}
+    assert usage.response_headers == {
+        "ratelimit-limit": "25",
+        "ratelimit-remaining": "24",
+        "ratelimit-reset": "47",
+    }
 
 
 def test_openfigi_account_usage_rejects_missing_native_window_headers(monkeypatch):

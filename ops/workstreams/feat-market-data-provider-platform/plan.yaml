@@ -162,6 +162,18 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 append-only account-usage evidence correction: provider-native
+    account-usage observations now retain raw decoded bodies and allow-listed
+    capacity headers for Alpaca, OpenFIGI, Binance, Twelve Data, MarketData.app,
+    and EODHD. Migration e6f7a8b9c0d1 adds non-null JSON evidence columns and
+    refuses downgrade while non-empty evidence would be destroyed; OpenFIGI
+    carries the validated raw mapping response through its account-usage path.
+    Complete unit validation passes 2399/2399 with 37 warnings and 71.07%
+    coverage in 378.80 seconds; Docker integration passes 386/386 with 57
+    warnings in 719.90 seconds; migration compatibility, single-head, Ruff,
+    and diff gates pass. Remaining external-provider, universe, secret-store,
+    deferred-provider, publication, and shadow gates remain open.
+  - >-
     2026-09-25 exact-current full provider preflight on source
     fc860dc1adcd8c0b25d8dc7cebc6c674e0f95ccc stopped before transport with
     0/0 ordinary cases and zero ordinary provider requests. The receipt is

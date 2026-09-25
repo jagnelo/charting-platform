@@ -1257,6 +1257,8 @@ class TwelveDataProvider(_RESTProvider):
             reset_at=reset_at,
             account_plan=plan.strip() if isinstance(plan, str) and plan.strip() else None,
             dimensions=(dimension,),
+            raw_payload=payload,
+            response_headers=headers,
         )
 
     def fetch_ohlcv(
@@ -1737,6 +1739,8 @@ class MarketDataAppProvider(_RESTProvider):
                 else None
             ),
             dimensions=(dimension,),
+            raw_payload=payload,
+            response_headers=headers,
         )
 
     def fetch_ohlcv(
@@ -2489,6 +2493,8 @@ class EODHDProvider(_RESTProvider):
                 else None
             ),
             dimensions=tuple(dimensions),
+            raw_payload=payload,
+            response_headers=headers,
         )
 
     def fetch_ohlcv(

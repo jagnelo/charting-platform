@@ -68,6 +68,8 @@ def _usage_payload(observation: ProviderAccountUsageObservation, provider: str) 
         "reset_at": observation.reset_at,
         "options_data_permissions": observation.options_data_permissions,
         "account_plan": observation.account_plan,
+        "payload": observation.payload,
+        "response_headers": observation.response_headers,
     }
 
 
@@ -133,6 +135,13 @@ def _validate_usage(usage: ProviderAccountUsage, provider_name: str) -> tuple[Pr
             raise ValueError("provider returned an empty account-usage unit")
     if usage.reset_at is not None and usage.reset_at.tzinfo is None:
         raise ValueError("provider returned a timezone-naive account-usage reset")
+    if not isinstance(usage.raw_payload, dict):
+        raise ValueError("provider returned a non-object raw account-usage payload")
+    if not isinstance(usage.response_headers, dict) or any(
+        not isinstance(key, str) or not isinstance(value, str)
+        for key, value in usage.response_headers.items()
+    ):
+        raise ValueError("provider returned invalid account-usage response headers")
     return dimensions
 
 
@@ -255,6 +264,8 @@ async def refresh_provider_account_usage(
                     reset_at=dimension.reset_at,
                     options_data_permissions=usage.options_data_permissions,
                     account_plan=usage.account_plan,
+                    payload=dict(usage.raw_payload or {}),
+                    response_headers=dict(usage.response_headers or {}),
                 )
                 db.add(row)
                 await db.flush()

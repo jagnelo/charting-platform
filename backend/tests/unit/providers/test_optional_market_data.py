@@ -267,6 +267,11 @@ def test_twelve_data_fetches_documented_minute_account_usage_headers():
     assert usage.dimensions[0].reset_at is not None
     assert usage.dimensions[0].reset_at.second == 0
     assert usage.dimensions[0].reset_at > usage.observed_at
+    assert usage.raw_payload == {"status": "ok", "plan": "Basic"}
+    assert usage.response_headers == {
+        "api-credits-used": "3",
+        "api-credits-left": "5",
+    }
     assert get.call_args.args[0] == "https://api.twelvedata.com/api_usage"
     assert get.call_args.kwargs["params"] == {"apikey": "demo"}
 
@@ -1039,6 +1044,8 @@ def test_marketdata_app_fetches_account_usage_from_unversioned_user_endpoint():
     assert usage.consumed == 0
     assert usage.reset_at == datetime.fromtimestamp(1789306200, tz=UTC)
     assert usage.options_data_permissions == "OPRA data delayed 15 minutes"
+    assert usage.raw_payload["x-options-data-permissions"] == "OPRA data delayed 15 minutes"
+    assert usage.response_headers["X-Api-Ratelimit-Limit"] == "10000"
     assert get.call_args.args[0] == "https://api.marketdata.app/user/"
     assert get.call_args.kwargs["headers"] == {"Authorization": "Bearer demo"}
 

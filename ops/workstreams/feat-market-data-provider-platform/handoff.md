@@ -1,5 +1,25 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 append-only account-usage evidence correction
+
+- Provider-native account-usage observations now retain the decoded raw body
+  and allow-listed capacity headers for Alpaca, OpenFIGI, Binance, Twelve Data,
+  MarketData.app, and EODHD. Normalized quota dimensions remain the routing
+  projection, while provider-specific usage dates, plan fields, and reset
+  evidence survive across sessions.
+- Migration `e6f7a8b9c0d1` adds non-null JSON evidence columns and refuses to
+  downgrade while non-empty evidence would be destroyed. OpenFIGI's internal
+  mapping helper now carries the validated raw response through its usage
+  observation path instead of retaining only normalized rows.
+- Focused provider/service/migration coverage passes; the current complete
+  backend unit gate passes `2399/2399` with `37` warnings and `71.07%` coverage
+  in `378.80s`; Docker-backed PostgreSQL/Redis integration passes `386/386`
+  with `57` warnings in `719.90s`. Migration compatibility passes and Alembic
+  reports one head (`e6f7a8b9c0d1`); Ruff and diff checks pass.
+- No frontend, ETF adapter, external provider live data, deployment, or secret
+  was changed. Provider-contract, universe, secret-store, deferred-provider,
+  publication, and final shadow gates remain open.
+
 ## 2026-09-25 exact-current full provider preflight
 
 - Source `fc860dc1adcd8c0b25d8dc7cebc6c674e0f95ccc` ran the full manifest

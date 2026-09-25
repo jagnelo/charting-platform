@@ -75,6 +75,8 @@ async def test_refresh_persists_provider_native_counters_and_stops_after_first_p
             consumed=6,
             reset_at=reset_at,
             options_data_permissions="delayed",
+            raw_payload={"plan": "starter", "credits": 6},
+            response_headers={"x-api-ratelimit-limit": "10000"},
         ),
     )
     calls = []
@@ -106,6 +108,8 @@ async def test_refresh_persists_provider_native_counters_and_stops_after_first_p
     assert row.remaining == 9994
     assert row.consumed == 6
     assert row.reset_at.replace(tzinfo=UTC) == reset_at
+    assert row.payload == {"plan": "starter", "credits": 6}
+    assert row.response_headers == {"x-api-ratelimit-limit": "10000"}
 
 
 @pytest.mark.asyncio
