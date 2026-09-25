@@ -162,6 +162,11 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 current-source OpenFIGI keyless identity matrix passed `3/3`
+    (mapping, profile, and native account-usage paths). This refreshes
+    transport evidence for canonical identifier exchange; keyed-plan limits
+    remain unverified because no OpenFIGI key is configured.
+  - >-
     2026-09-25 current-source Nasdaq Trader NMS snapshot passed `1/1`, using
     exactly the two official directory-file requests and the persisted
     completeness/duplicate checks. This closes the current NMS transport and

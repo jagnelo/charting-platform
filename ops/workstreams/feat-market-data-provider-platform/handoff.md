@@ -1,5 +1,13 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 current-source OpenFIGI identity matrix
+
+- The keyless OpenFIGI mapping/profile/account-usage matrix passed `3/3`.
+  The redacted receipt is in `validation.jsonl`; no key or payload was
+  persisted. This proves current transport and canonical-identity mapping
+  behavior, while keyed-plan limits remain unverified because no OpenFIGI key
+  is configured.
+
 ## 2026-09-25 current-source Nasdaq Trader NMS snapshot
 
 - The official `nasdaqlisted.txt` and `otherlisted.txt` snapshot passed `1/1`
