@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current full safety preflight and Tiingo usage audit
+
+- The exact-current manifest preflight at source
+  `e6f63d080f5dae1679a7301e5d0a18108a0a7ab9` stopped before provider
+  transport: `0/0` ordinary cases and zero external requests. It records the
+  same provider-specific baseline, capability, legal/use, universe, secret,
+  deferred-provider, and publication blockers against the current commit.
+- A bounded Tiingo usage-page check followed the provider's documented
+  account-usage URL. The API host redirects to the Tiingo web account page;
+  the public web route is not a machine-readable usage endpoint. No Tiingo
+  credential was forwarded to the redirect target and no provider data request
+  was made. The official docs still publish the Starter hourly/daily/monthly
+  pools, but do not provide a native counter/reset payload that can establish
+  this account's prior usage safely. Tiingo therefore remains fail-closed
+  until a reviewed account-usage source or explicit operator evidence exists.
+- This is evidence-only progress; no generic quota defaults or inferred
+  Tiingo counters were introduced. The new provider-specific EODHD reset fix
+  remains covered by the preceding checkpoint.
+
 ## 2026-09-25 EODHD minute-native reset reconciliation
 
 - `EODHDProvider.fetch_account_usage` now preserves the provider-documented

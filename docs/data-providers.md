@@ -335,6 +335,19 @@ retains the contradiction and keeps ordinary EODHD routing fail-closed until
 the active account entitlement and baseline are explicitly reconciled; no
 limit is inferred from the newer page alone.
 
+### 2026-09-25 Tiingo usage-account audit
+
+Tiingo's current official documentation publishes the Starter ceilings and
+reset families (hourly requests, daily requests at midnight Eastern, and
+monthly bandwidth at the first of the month Eastern), but its documented
+`/account/usage` URL redirects from the API host to a web account page rather
+than returning a machine-readable usage payload. The implementation therefore
+does not fabricate an account baseline from the plan card or from local request
+counts. Tiingo remains fail-closed until a reviewed machine-readable usage
+source or explicit operator evidence establishes the account's prior usage and
+any unresolved reset model; operation byte bounds and internal-use terms remain
+separate admission controls.
+
 Nasdaq Trader's directory is listing evidence, not a complete delisting-event feed.
 The adapter excludes test issues, retains Nasdaq Financial Status Indicators
 (including deficient or bankrupt-but-listed issues), and uses repeated complete

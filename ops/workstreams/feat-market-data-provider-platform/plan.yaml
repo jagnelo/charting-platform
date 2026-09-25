@@ -162,6 +162,17 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Exact-current full safety preflight at source
+    `e6f63d080f5dae1679a7301e5d0a18108a0a7ab9` stopped before transport with
+    `0/0` ordinary cases and zero provider requests. It refreshed the complete
+    provider-specific blocker inventory after the EODHD reset fix. A bounded
+    Tiingo usage-page check confirmed that the documented account-usage URL
+    redirects from the API host to a web account page; it supplies no
+    machine-readable counter/reset payload that can establish prior account
+    usage safely. No credential was forwarded to the redirect target and no
+    Tiingo data request was made. Tiingo remains fail-closed; no generic quota
+    or inferred baseline was introduced.
+  - >-
     At exact source `d050a169c9d3f4e283187e43ca7513e9b09fe334`, EODHD native
     `X-RateLimit-*` observations now retain the documented next-minute reset
     boundary, and the account-usage reconciler supports that provider-specific

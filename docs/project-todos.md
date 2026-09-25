@@ -2,6 +2,17 @@
 
 ### 2026-09-25 — Current provider-contract audit continuation
 
+- [x] Refresh the exact-current full provider safety preflight at source
+      `e6f63d080f5dae1679a7301e5d0a18108a0a7ab9`; it stopped before transport
+      with `0/0` cases and zero provider requests.
+- [x] Audit Tiingo's documented account-usage route. The API URL redirects to
+      a web account page rather than a machine-readable counter endpoint, so
+      no prior usage or reset state can be established automatically. No
+      credential was forwarded across the redirect and no Tiingo data request
+      was made.
+- [ ] Obtain a reviewed machine-readable Tiingo usage source or explicit
+      operator evidence before admitting Tiingo's quota-limited routing.
+
 - [x] Preserve the EODHD provider-documented minute reset boundary in native
       account-usage observations and allow that named dimension to reconcile
       only against a reviewed EODHD contract. Focused tests passed `11/11`,
