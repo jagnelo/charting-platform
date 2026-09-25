@@ -31,6 +31,29 @@ containers, images, or volumes. Host application evidence resolution, stable
 Nautilus release conformance, upstream contract reconciliation, and full
 application integration remain open gates.
 
+## 2026-09-25 - Typed worker terminal evidence resolver checkpoint
+
+`worker_evidence_resolution.py` now deterministically combines the authenticated
+owner/attempt lookup, durable submission/outcome/progress state, result
+manifest, and accepted publication plan into `WorkerTerminalEvidence`. It
+rejects process/attempt drift, missing or conflicting durable evidence,
+multiple publication candidates, non-terminal runtime state, and artifact
+plans on failed/cancelled runs. Artifact-file mapping remains an explicit host
+callback; no worker path or principal is guessed. The persistence bundle now
+exposes `worker_terminal_evidence_resolver()` to compose its authenticated
+lookup with that callback shape.
+
+Focused resolver/persistence tests passed 7 tests; the complete Strategy Lab v2
+package passed 836 tests. Branch-declared validation passed all six checks
+(836 package tests, 2 migration tests, Ruff, MyPy across 272 files, diff, and
+workstream validation). The exact backend gate passed 2,487 tests at 83.73%
+coverage with 86 warnings; the referenced runtime env file was absent in this
+checkout and `.env.dev` supplied test configuration. Compose profile validation
+passed, and both required cleanup passes retained zero testcontainer sessions,
+containers, images, or volumes. Host artifact mapping, stable Nautilus release
+conformance, upstream contract reconciliation, and full application
+integration remain open gates.
+
 ## 2026-09-25 - Mounted result evidence checkpoint
 
 `sandbox.py` now exposes the validated host source for the hardened
