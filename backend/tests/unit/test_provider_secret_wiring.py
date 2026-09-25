@@ -904,7 +904,9 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     )
     statuses = routing_safety_preflight()
     assert statuses["tiingo"] == "routable"
-    assert statuses["fmp"].startswith("non-routable: missing reviewed controls for")
+    assert statuses["fmp"] == (
+        "non-routable: missing reviewed controls for FMP_BANDWIDTH_QUOTA_EVIDENCE"
+    )
 
     monkeypatch.setenv("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "calendar_month_est")
     monkeypatch.setenv("TIINGO_REVIEWED_HOURLY_RESET", "rolling")

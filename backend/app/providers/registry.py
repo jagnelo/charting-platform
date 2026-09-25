@@ -953,8 +953,9 @@ def provider_missing_routing_controls(
             ),
             None,
         )
-        has_daily_safety = isinstance(daily_dimension, dict) and provider_quota_reset_is_admission_safe(
-            daily_dimension.get("safety_reset")
+        has_daily_reset = isinstance(daily_dimension, dict) and (
+            provider_quota_reset_is_admission_safe(daily_dimension.get("reset"))
+            or provider_quota_reset_is_admission_safe(daily_dimension.get("safety_reset"))
         )
         configured_map = getattr(settings, "FMP_OPERATION_BYTE_BOUNDS", {}) or {}
         operations = provider_required_operation_byte_bounds(name)
@@ -971,7 +972,7 @@ def provider_missing_routing_controls(
         daily_evidence = str(
             getattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "") or ""
         ).strip()
-        if not (has_daily_safety and not daily_reset and not daily_evidence):
+        if not (has_daily_reset and not daily_reset and not daily_evidence):
             if not provider_quota_reset_is_admission_safe(daily_reset):
                 missing.append("FMP_REVIEWED_DAILY_RESET")
             if not daily_evidence:

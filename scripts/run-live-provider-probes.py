@@ -1454,6 +1454,8 @@ def routing_safety_preflight() -> dict[str, str]:
             provider_reset = dimension.get("reset", contract.get("reset"))
             safety_reset = dimension.get("safety_reset")
             effective = provider_quota_admission_reset(provider_reset, safety_reset)
+            if provider_quota_reset_is_admission_safe(provider_reset):
+                return str(provider_reset).strip()
             if (
                 safety_reset
                 and effective != str(provider_reset or "").strip()

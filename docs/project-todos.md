@@ -333,13 +333,28 @@
       review Massive's free-plan use/redistribution terms before promoting
       ordinary routing or corporate-action history.
 
+### 2026-09-25 — FMP exact daily reset reconciliation
+
+- [x] Replace the former provider-defined/rolling safety treatment for the
+      Basic/Free 250-call pool with the official FAQ's exact 3 PM Eastern
+      reset (`15:00 America/New_York`). The boundary is timezone-aware and
+      handles daylight-saving transitions in the shared quota-window resolver.
+- [x] Keep the independent 500 MB trailing-30-day bandwidth pool, conservative
+      decimal-byte ceiling, complete operation-byte bounds, and current
+      entitlement evidence requirements unchanged. This closes only the daily
+      reset-contract gap; FMP remains non-routable until the byte/evidence gates
+      are satisfied.
+- [x] Add regression coverage for pre/post-reset window calculation and the
+      exact default/override seed contract. Official sources: [FMP pricing](https://site.financialmodelingprep.com/developer/docs/pricing)
+      and [FMP FAQ](https://site.financialmodelingprep.com/de/faqs?code=statements).
+
 ### 2026-09-17 — FMP daily-cap safety envelope and independent quota controls
 
 - [x] Add explicit FMP controls for the independent 250-calls/day and
-      512 MB/30-day bandwidth pools. The exact daily ceiling now uses a
-      provider-scoped rolling-24-hour application safety envelope because the
-      native bucket boundary is not documented; `FMP_REVIEWED_DAILY_RESET`
-      and `FMP_DAILY_QUOTA_EVIDENCE` remain optional native-reset overrides.
+      512 MB/30-day bandwidth pools. At that time the exact daily ceiling used
+      a provider-scoped rolling-24-hour application safety envelope; the later
+      2026-09-25 reconciliation supersedes that reset treatment with the
+      official 3 PM Eastern boundary.
       `FMP_BANDWIDTH_QUOTA_EVIDENCE` and the complete response-byte map remain
       mandatory, while the documented rolling-30-day bandwidth boundary is
       used by default. No generic provider limit is inferred.

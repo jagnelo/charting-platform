@@ -1,5 +1,25 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 FMP exact daily-reset reconciliation
+
+- The official [FMP FAQ](https://site.financialmodelingprep.com/de/faqs?code=statements)
+  states that the Basic/Free 250-call allowance resets every 24 hours at 3 PM
+  Eastern. The seed now records the exact provider-specific
+  `15:00 America/New_York` boundary, and the shared quota resolver calculates
+  it with timezone/DST awareness. The former provider-defined/rolling safety
+  treatment is no longer used for FMP.
+- The FMP registry diagnostics now recognize that seeded exact reset, so blank
+  `FMP_REVIEWED_DAILY_RESET`/`FMP_DAILY_QUOTA_EVIDENCE` do not create a false
+  blocker. Reviewed overrides remain available for future plan changes.
+- The independent conservative 500,000,000-byte trailing-30-day bandwidth
+  pool, complete `FMP_OPERATION_BYTE_BOUNDS` map, and current
+  `FMP_BANDWIDTH_QUOTA_EVIDENCE` requirements remain unchanged; FMP is still
+  non-routable until those controls are supplied. No provider request was
+  required for this documentation-backed correction.
+- Focused quota/registry tests pass `137/137`; full unit, Docker integration,
+  lint, diff, and workstream validation remain required before the next durable
+  checkpoint.
+
 ## 2026-09-25 exact-current full safety preflight and Tiingo usage audit
 
 - The exact-current manifest preflight at source

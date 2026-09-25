@@ -90,9 +90,14 @@ def _window_start_for_dimension(
         eastern = now.astimezone(ZoneInfo("America/New_York"))
         reset_local = eastern.replace(hour=0, minute=0, second=0, microsecond=0)
         window_start = reset_local.astimezone(UTC)
-    elif admission_reset.startswith("09:30") and window_seconds >= 86400:
+    elif admission_reset in {"09:30 America/New_York", "15:00 America/New_York"} and window_seconds >= 86400:
         eastern = now.astimezone(ZoneInfo("America/New_York"))
-        reset_local = eastern.replace(hour=9, minute=30, second=0, microsecond=0)
+        reset_hour, reset_minute = (
+            int(part) for part in admission_reset.split(" ", 1)[0].split(":")
+        )
+        reset_local = eastern.replace(
+            hour=reset_hour, minute=reset_minute, second=0, microsecond=0
+        )
         if eastern < reset_local:
             reset_local -= timedelta(days=1)
         window_start = reset_local.astimezone(UTC)

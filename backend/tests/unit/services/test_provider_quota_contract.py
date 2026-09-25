@@ -562,6 +562,31 @@ def test_unresolved_provider_reset_cannot_be_converted_to_a_local_window():
         )
 
 
+def test_fmp_daily_reset_uses_three_pm_eastern_boundary_across_the_day():
+    dimension = {
+        "name": "calls_per_day",
+        "limit": 250,
+        "window_seconds": 86400,
+        "unit": "requests",
+        "source": "FMP official FAQ",
+        "reset": "15:00 America/New_York",
+    }
+    before_reset, rolling_before = _window_start_for_dimension(
+        dimension,
+        reset="15:00 America/New_York",
+        now=datetime(2026, 1, 15, 19, 30, tzinfo=UTC),
+    )
+    after_reset, rolling_after = _window_start_for_dimension(
+        dimension,
+        reset="15:00 America/New_York",
+        now=datetime(2026, 1, 15, 20, 30, tzinfo=UTC),
+    )
+    assert before_reset == datetime(2026, 1, 14, 20, tzinfo=UTC)
+    assert after_reset == datetime(2026, 1, 15, 20, tzinfo=UTC)
+    assert rolling_before is False
+    assert rolling_after is False
+
+
 def test_per_dimension_without_dimension_reset_is_not_a_window():
     with pytest.raises(ProviderQuotaUnknownError, match="reset boundary is unresolved"):
         _window_start_for_dimension(
@@ -664,7 +689,7 @@ def test_tiingo_byte_pool_uses_provider_scoped_reset_safety_envelopes(monkeypatc
     assert seed["quota_contract"].get("untracked_constraints")
 
 
-def test_fmp_byte_pool_uses_documented_trailing_window_and_daily_safety_envelope(monkeypatch):
+def test_fmp_byte_pool_uses_documented_trailing_window_and_daily_reset(monkeypatch):
     bounds = {
         "fetch_ohlcv": 1_000_000,
         "fetch_latest_ohlcv": 1_000_000,
@@ -679,22 +704,19 @@ def test_fmp_byte_pool_uses_documented_trailing_window_and_daily_safety_envelope
     monkeypatch.setattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "")
     monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "")
     monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "current plan evidence")
-    promoted_by_safety = provider_rate_limit_seed("fmp")
-    safety_contract = promoted_by_safety["quota_contract"]
-    assert safety_contract["untracked_constraints"] == []
-    assert safety_contract["unknown_dimensions"] == ["calls_daily_reset_anchor"]
-    safety_daily = next(
-        item for item in safety_contract["dimensions"] if item["name"] == "calls_per_day"
-    )
-    assert "reset" not in safety_daily
-    assert safety_daily["safety_reset"] == "rolling"
-    assert safety_contract["reset"] == "per_dimension"
-    assert promoted_by_safety["_byte_reservation_bounds"] == bounds
+    promoted = provider_rate_limit_seed("fmp")
+    contract = promoted["quota_contract"]
+    assert contract["untracked_constraints"] == []
+    assert contract["unknown_dimensions"] == []
+    daily = next(item for item in contract["dimensions"] if item["name"] == "calls_per_day")
+    assert daily["reset"] == "15:00 America/New_York"
+    assert contract["reset"] == "15:00 America/New_York"
+    assert promoted["_byte_reservation_bounds"] == bounds
 
     monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "")
     blocked = provider_rate_limit_seed("fmp")["quota_contract"]
     assert blocked["untracked_constraints"]
-    assert blocked["unknown_dimensions"] == ["calls_daily_reset_anchor"]
+    assert blocked["unknown_dimensions"] == []
 
     monkeypatch.setattr(settings, "FMP_REVIEWED_DAILY_RESET", "calendar_day_utc")
     monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "current account evidence")
@@ -703,7 +725,7 @@ def test_fmp_byte_pool_uses_documented_trailing_window_and_daily_safety_envelope
     contract = promoted["quota_contract"]
     assert contract["unknown_dimensions"] == []
     assert contract["untracked_constraints"] == []
-    assert contract["reset"] == "per_dimension"
+    assert contract["reset"] == "calendar_day_utc"
     assert next(item for item in contract["dimensions"] if item["name"] == "calls_per_day")["reset"] == "calendar_day_utc"
     assert next(item for item in contract["dimensions"] if item["name"] == "bandwidth_bytes_per_30_days")["reset"] == "rolling_30_days"
     assert promoted["_byte_reservation_bounds"] == bounds
@@ -2957,8 +2979,8 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert tiingo["untracked_constraints"][0]["reset"] == "calendar_month_est"
     assert tiingo["untracked_constraints"][0]["limit"] == 1_000_000_000
     assert fmp["dimensions"][0]["limit"] == 250
-    assert fmp["dimensions"][0]["reset"] == "provider_defined"
-    assert fmp["unknown_dimensions"] == ["calls_daily_reset_anchor"]
+    assert fmp["dimensions"][0]["reset"] == "15:00 America/New_York"
+    assert fmp["unknown_dimensions"] == []
     assert fmp["untracked_constraints"][0]["limit"] == 500_000_000
     assert fmp["untracked_constraints"][0]["window_seconds"] == 2_592_000
     assert (

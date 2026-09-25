@@ -1088,19 +1088,18 @@ class Settings(BaseSettings):
                         "unit": "requests",
                         "scope": "api_key",
                         "quota_group": "api_key",
-                        "source": "operator_account_dashboard_2026-09-07",
-                        "reset": "provider_defined",
-                        # The account ceiling is exact, but its daily bucket
-                        # boundary is not documented.  Keep the provider
-                        # label for audit and enforce a provider-scoped
-                        # rolling 24-hour safety envelope.
-                        "safety_reset": "rolling",
-                        "safety_resolves_unknown_dimensions": [
-                            "calls_daily_reset_anchor"
-                        ],
+                        "source": (
+                            "FMP official FAQ (3 PM EST daily reset): "
+                            "https://site.financialmodelingprep.com/de/faqs?code=statements"
+                        ),
+                        # FMP's current Basic/Free FAQ specifies that the
+                        # 250-call allowance resets every 24 hours at 3 PM
+                        # Eastern. Keep this provider-specific boundary exact;
+                        # do not substitute a generic rolling safety window.
+                        "reset": "15:00 America/New_York",
                     }
                 ],
-                "reset": "provider_defined",
+                "reset": "15:00 America/New_York",
                 "untracked_constraints": [
                     {
                         "name": "bandwidth_bytes_per_30_days",
@@ -1121,9 +1120,7 @@ class Settings(BaseSettings):
                         "limit_basis": "decimal_bytes_conservative_for_published_MB",
                     }
                 ],
-                "unknown_dimensions": [
-                    "calls_daily_reset_anchor",
-                ],
+                "unknown_dimensions": [],
             },
             "quota_scope": "api_key",
             "quota_source": (
@@ -2181,10 +2178,8 @@ class Settings(BaseSettings):
     TIINGO_HOURLY_QUOTA_EVIDENCE: str = ""
     FMP_OPERATION_BYTE_BOUNDS: dict[str, int] = {}
     # FMP publishes separate daily-call and trailing-30-day bandwidth pools.
-    # The official pricing page establishes the bandwidth window, while the
-    # daily-call reset boundary remains provider-defined. The seed enforces a
-    # rolling 24-hour safety envelope for the daily pool; this optional native
-    # reset override remains configurable for future plan changes.
+    # The seed records the official 3 PM Eastern daily reset; this optional
+    # native reset override remains configurable for future plan changes.
     FMP_REVIEWED_DAILY_RESET: str = ""
     FMP_REVIEWED_BANDWIDTH_RESET: str = ""
     FMP_DAILY_QUOTA_EVIDENCE: str = ""
@@ -2636,6 +2631,7 @@ def provider_positive_integer(value: object) -> int | None:
 _KNOWN_PROVIDER_QUOTA_RESETS = frozenset(
     {
         "09:30 America/New_York",
+        "15:00 America/New_York",
         "calendar_day_est",
         "calendar_day_gmt",
         "calendar_day_utc",
@@ -3563,10 +3559,10 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
     if provider_name == "fmp":
         # FMP exposes independent daily-call and bandwidth pools. The current
         # official pricing contract defines bandwidth as a trailing 30-day
-        # pool; the daily-call reset remains provider-defined. The daily pool
-        # carries an explicit rolling 24-hour safety envelope. An operator may
-        # override either boundary for a future plan, but a blank bandwidth
-        # override retains the documented rolling-30-day semantics.
+        # pool, while the official FAQ defines the 250-call reset at 3 PM
+        # Eastern. An operator may override either boundary for a future plan,
+        # but a blank bandwidth override retains the documented rolling-30-day
+        # semantics.
         daily_reset = str(
             getattr(settings, "FMP_REVIEWED_DAILY_RESET", "") or ""
         ).strip()
@@ -3589,8 +3585,8 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             ),
             None,
         )
-        daily_safety_reset = (
-            str(daily_dimension.get("safety_reset") or "").strip()
+        seeded_daily_reset = (
+            str(daily_dimension.get("reset") or "").strip()
             if isinstance(daily_dimension, dict)
             else ""
         )
@@ -3600,7 +3596,7 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         daily_default_valid = (
             not daily_reset
             and not daily_evidence
-            and provider_quota_reset_is_admission_safe(daily_safety_reset)
+            and provider_quota_reset_is_admission_safe(seeded_daily_reset)
         )
         if not (
             (daily_override_valid or daily_default_valid)
@@ -3639,22 +3635,15 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         ):
             dimensions.append(dict(byte_constraint))
         contract["dimensions"] = dimensions
-        contract["reset"] = "per_dimension"
-        if daily_override_valid:
-            contract["unknown_dimensions"] = [
-                item
-                for item in (contract.get("unknown_dimensions") or [])
-                if item != "calls_daily_reset_anchor"
-            ]
+        contract["reset"] = daily_reset if daily_override_valid else seeded_daily_reset
         for dimension in dimensions:
             if not isinstance(dimension, dict):
                 continue
             if dimension.get("name") == "calls_per_day":
                 if daily_override_valid:
                     dimension["reset"] = daily_reset
-                else:
-                    dimension.pop("reset", None)
-                    dimension["safety_reset"] = "rolling"
+                elif seeded_daily_reset:
+                    dimension["reset"] = seeded_daily_reset
             elif dimension.get("name") == byte_constraint.get("name"):
                 dimension["reset"] = bandwidth_reset
         contract["dimension_costs_required"] = True
@@ -3662,8 +3651,8 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         contract["source"] = (
             f"{contract.get('source', 'FMP account and pricing evidence')} plus "
             + (
-                "provider-scoped rolling daily safety envelope and "
-                "documented rolling bandwidth semantics"
+                "documented 15:00 America/New_York daily reset and "
+                "rolling bandwidth semantics"
                 if not daily_override_valid
                 else "operator-reviewed daily/bandwidth reset evidence"
             )
@@ -3672,7 +3661,7 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         seed["quota_source"] = (
             "FMP account allowance plus "
             + (
-                "provider-scoped rolling daily safety envelope and documented "
+                "documented 15:00 America/New_York daily reset and "
                 "rolling bandwidth semantics"
                 if not daily_override_valid
                 else "operator-reviewed daily/bandwidth reset evidence"

@@ -615,11 +615,11 @@ pricing contract defines a 500 MB trailing-30-day bandwidth pool (the account
 reports 512 MB, so the implementation retains the conservative
 500,000,000-byte ceiling). FMP still requires a complete operator-reviewed
 `FMP_OPERATION_BYTE_BOUNDS` map and current bandwidth entitlement evidence.
-The daily-call reset is labelled provider-defined for audit but uses an
-explicit rolling 24-hour application envelope; `FMP_REVIEWED_DAILY_RESET` and
-`FMP_DAILY_QUOTA_EVIDENCE` are optional native-reset overrides. FMP's
-`FMP_REVIEWED_BANDWIDTH_RESET` is also only an optional override for a future
-plan. Analyst-estimate/price-target
+The daily-call reset is now modeled from the official FAQ as the exact
+15:00 `America/New_York` boundary; `FMP_REVIEWED_DAILY_RESET` and
+`FMP_DAILY_QUOTA_EVIDENCE` remain optional native-reset overrides for a future
+plan. FMP's `FMP_REVIEWED_BANDWIDTH_RESET` is also only an optional override
+for a future plan. Analyst-estimate/price-target
 endpoints remain outside this adapter until their plan entitlements are
 separately validated.
 
@@ -781,9 +781,9 @@ are not implicitly guessed. Tiingo and FMP remain non-routable unless the
 deployment supplies a positive, provider-reviewed maximum response size for
 every exposed operation through `TIINGO_OPERATION_BYTE_BOUNDS` and
 `FMP_OPERATION_BYTE_BOUNDS` JSON maps. FMP additionally requires current
-bandwidth entitlement evidence; its exact daily-call ceiling is admitted
-through the provider-scoped rolling-24-hour safety envelope by default, while
-reviewed native daily reset/evidence remain optional overrides. The documented
+bandwidth entitlement evidence; its exact daily-call ceiling uses the
+documented 15:00 `America/New_York` reset by default, while reviewed native
+daily reset/evidence remain optional overrides. The documented
 rolling-30-day bandwidth boundary is used by default and may be replaced only
 by an explicit reviewed override.
 Tiingo's exact distinct-symbol and hourly ceilings use provider-scoped rolling
