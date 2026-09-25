@@ -5667,3 +5667,17 @@ counterfactual replay plan belongs to that state's forward instance. This
 prevents a malformed host resolution from publishing mixed-instance dispatch
 evidence. The focused forward/API suite passes 33 tests; Ruff, MyPy (293
 source files), and whitespace validation remain green.
+
+## 2026-09-25 - Async dedicated-worker spawn checkpoint
+
+Dedicated worker services now use an asynchronous process-executor path that
+starts the fresh spawn child on the worker event-loop thread and cooperatively
+polls it, preserving lease-heartbeat scheduling without invoking Python spawn
+from `asyncio.to_thread` (which stalled in this runtime). The synchronous
+executor remains available for direct callers. The API test helper now uses a
+synchronous facade over `httpx.ASGITransport`, removing the hanging Starlette
+`TestClient` portal while retaining the same route assertions.
+
+The complete Strategy Lab v2 package suite passes 949 tests, including 124
+PostgreSQL adapter tests and 3 migration-startup tests. Ruff, MyPy (293 source
+files), and whitespace validation remain green.
