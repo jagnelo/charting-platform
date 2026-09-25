@@ -1184,8 +1184,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `default_evidence_resolver_factory` is available for local deployments that
   want the package-owned authenticated lookup plus single-output artifact
   mapper, while a host may still provide a stricter/custom multi-artifact
-  resolver. The fallback completion writer can only return a retry, so
-  terminal evidence cannot be acknowledged through the legacy path.
+  resolver. Failed runtime receipts without a projected durable API error are
+  mapped to a stable internal error carrying only the persisted error digest;
+  exception text and paths are never reconstructed at this boundary. The
+  fallback completion writer can only return a retry, so terminal evidence
+  cannot be acknowledged through the legacy path.
 - The root Compose stack now contains an explicit, opt-in
   `strategy-lab-v2-worker` profile. It is separate from the general ARQ worker,
   starts only after PostgreSQL/Redis health, writes to the named
