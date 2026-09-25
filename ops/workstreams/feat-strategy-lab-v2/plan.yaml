@@ -649,7 +649,8 @@ progress:
     - strategy-lab-v2-search-candidate-dispatch-api-boundary
     - strategy-lab-v2-atomic-postgres-search-dispatch
     - strategy-lab-v2-search-dispatch-application-binding
+    - strategy-lab-v2-search-dispatch-worker-lookup
   total: 18
-  current_phase: strategy-lab-v2-search-dispatch-application-binding-staging-ready-for-human-review
+  current_phase: strategy-lab-v2-search-dispatch-worker-lookup-staging-ready-for-human-review
   current_blocker: Stable Nautilus release, deployment-specific host evidence configuration, migration/schema reconciliation, upstream contract reconciliation, and full repository integration remain open
-  next_action: reconcile the additive admission/search-dispatch schema with the combined staging migration graph, then enable the configured local worker callback only after stable Nautilus v2 conformance
+  next_action: bind the authenticated dispatch-record lookup into the dedicated worker handler, then enable the configured local worker callback only after stable Nautilus v2 conformance

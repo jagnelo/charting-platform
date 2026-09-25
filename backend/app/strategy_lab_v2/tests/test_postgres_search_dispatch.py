@@ -91,8 +91,19 @@ class FakeSession:
             rows = [
                 row
                 for (owner, _), row in self.dispatches.items()
-                if owner == values["owner_id"]
-                and row["experiment_fingerprint"] == values["experiment_fingerprint"]
+                if ("owner_id" not in values or owner == values["owner_id"])
+                and (
+                    "experiment_fingerprint" not in values
+                    or row["experiment_fingerprint"] == values["experiment_fingerprint"]
+                )
+                and (
+                    "candidate_index" not in values
+                    or row["candidate_index"] == values["candidate_index"]
+                )
+                and (
+                    "request_fingerprint" not in values
+                    or row["request_fingerprint"] == values["request_fingerprint"]
+                )
             ]
             return FakeResult(sorted(rows, key=lambda row: row["request_fingerprint"]))
         if normalized.startswith("INSERT INTO strategy_lab_v2_search_states"):
@@ -212,6 +223,54 @@ async def test_postgres_search_dispatch_stages_and_replays_all_rows_atomically()
     assert len(session.reservations) == 1
     assert len(session.dispatches) == 1
     assert len(session.outboxes) == 1
+
+
+@pytest.mark.asyncio
+async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_identity() -> None:
+    session = FakeSession()
+    search_state = PostgresSearchStateAdapter(lambda: session)
+    worker_state = PostgresWorkerStateAdapter(lambda: session)
+    adapter = PostgresSearchDispatchAdapter(
+        lambda: session, search_state=search_state, worker_state=worker_state
+    )
+    authorization, runtime_request, runtime_preflight, pool = _fixture()
+    await search_state.initialize(
+        principal="owner-1",
+        state=new_search_execution_state(
+            EXPERIMENT, (content_digest("trial-1"),), now=NOW
+        ),
+    )
+    await worker_state.ensure_profile(pool.profile)
+    request = DispatchRequest(
+        "dispatch-key",
+        authorization.attempt_id,
+        content_digest("payload"),
+        "strategy-backtest",
+        NOW,
+    )
+    await adapter.dispatch(
+        principal="owner-1",
+        experiment_fingerprint=EXPERIMENT,
+        candidate_index=0,
+        attempt_id=authorization.attempt_id,
+        authorization=authorization,
+        runtime_request=runtime_request,
+        runtime_preflight=runtime_preflight,
+        reservation_id=_reservation("one"),
+        dispatch_request=request,
+        now=NOW,
+    )
+
+    owner_record = await adapter.load(
+        principal="owner-1", experiment_fingerprint=EXPERIMENT, candidate_index=0
+    )
+    worker_record = await adapter.load_by_request_fingerprint(request.fingerprint)
+    assert owner_record is not None
+    assert worker_record == owner_record
+    assert worker_record.request.attempt_id == authorization.attempt_id
+    assert await adapter.load(
+        principal="owner-2", experiment_fingerprint=EXPERIMENT, candidate_index=0
+    ) is None
 
 
 def test_postgres_search_dispatch_schema_is_additive_and_safe() -> None:

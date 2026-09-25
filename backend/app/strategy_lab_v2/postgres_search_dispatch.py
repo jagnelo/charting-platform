@@ -114,6 +114,33 @@ class PostgresSearchDispatchSchema:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class SearchDispatchRecord:
+    """Authenticated dispatch identity handed from Redis to a worker."""
+
+    owner_id: str
+    experiment_fingerprint: str
+    candidate_index: int
+    request: DispatchRequest
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.owner_id, str) or not self.owner_id.strip():
+            raise ValueError("owner_id must not be empty")
+        require_sha256_digest(self.experiment_fingerprint, field_name="experiment_fingerprint")
+        if (
+            not isinstance(self.candidate_index, int)
+            or isinstance(self.candidate_index, bool)
+            or self.candidate_index < 0
+        ):
+            raise ValueError("candidate_index must be a non-negative integer")
+        if not isinstance(self.request, DispatchRequest):
+            raise TypeError("request must be a DispatchRequest")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
 class PostgresSearchDispatchAdapter:
     """Stage one candidate, admission, dispatch, and outbox atomically."""
 
@@ -135,6 +162,56 @@ class PostgresSearchDispatchAdapter:
     @property
     def schema(self) -> PostgresSearchDispatchSchema:
         return self._schema
+
+    async def load(
+        self,
+        *,
+        principal: Any,
+        experiment_fingerprint: str,
+        candidate_index: int,
+    ) -> SearchDispatchRecord | None:
+        """Load one owner-scoped dispatch identity for a worker or recovery task."""
+
+        owner_id = _principal_id(principal)
+        _validate_digest(experiment_fingerprint, "experiment_fingerprint")
+        if (
+            not isinstance(candidate_index, int)
+            or isinstance(candidate_index, bool)
+            or candidate_index < 0
+        ):
+            raise ValueError("candidate_index must be a non-negative integer")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                rows = await self._select_dispatch_rows(
+                    session,
+                    "WHERE owner_id = :owner_id AND experiment_fingerprint = :experiment_fingerprint "
+                    "AND candidate_index = :candidate_index",
+                    {
+                        "owner_id": owner_id,
+                        "experiment_fingerprint": experiment_fingerprint,
+                        "candidate_index": candidate_index,
+                    },
+                )
+                return _single_dispatch_record(rows, owner_id=owner_id)
+
+    async def load_by_request_fingerprint(
+        self, request_fingerprint: str
+    ) -> SearchDispatchRecord | None:
+        """Resolve one dispatch from Redis content identity without guessing an owner."""
+
+        _validate_digest(request_fingerprint, "request_fingerprint")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                rows = await self._select_dispatch_rows(
+                    session,
+                    "WHERE request_fingerprint = :request_fingerprint",
+                    {"request_fingerprint": request_fingerprint},
+                )
+                if len(rows) > 1:
+                    raise ValueError("PostgreSQL search dispatch identity is ambiguous")
+                return _single_dispatch_record(rows)
 
     async def dispatch(
         self,
@@ -338,6 +415,28 @@ class PostgresSearchDispatchAdapter:
             requests.append(request)
         return tuple(sorted(requests, key=lambda item: item.fingerprint))
 
+    async def _select_dispatch_rows(
+        self,
+        session: AsyncSessionLike,
+        predicate: str,
+        params: Mapping[str, Any],
+    ) -> list[Mapping[str, Any]]:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT owner_id, experiment_fingerprint, candidate_index,
+                       idempotency_key, request_fingerprint, attempt_id,
+                       payload_digest, queue_name, created_at, dispatch_fingerprint
+                FROM {self._schema.dispatch_table}
+                {predicate}
+                ORDER BY request_fingerprint ASC
+                FOR SHARE
+                """
+            ),
+            params,
+        )
+        return list(result.mappings())
+
     async def _load_reservation(
         self, session: AsyncSessionLike, worker_id: str, reservation_id: str
     ) -> WorkerReservation | None:
@@ -538,6 +637,34 @@ def _decode_dispatch(row: Mapping[str, Any]) -> DispatchRequest:
     return request
 
 
+def _single_dispatch_record(
+    rows: list[Mapping[str, Any]], *, owner_id: str | None = None
+) -> SearchDispatchRecord | None:
+    if not rows:
+        return None
+    if len(rows) != 1:
+        raise ValueError("PostgreSQL search dispatch query returned duplicate identities")
+    row = rows[0]
+    row_owner = row.get("owner_id")
+    if not isinstance(row_owner, str) or not row_owner.strip():
+        raise ValueError("PostgreSQL search dispatch owner is malformed")
+    if owner_id is not None and row_owner != owner_id:
+        raise ValueError("PostgreSQL search dispatch owner identity drifted")
+    experiment = row.get("experiment_fingerprint")
+    if not isinstance(experiment, str):
+        raise ValueError("PostgreSQL search dispatch experiment identity is malformed")
+    request = _decode_dispatch(row)
+    if row.get("request_fingerprint") != request.fingerprint:
+        raise ValueError("PostgreSQL search dispatch fingerprint does not match bytes")
+    if row.get("dispatch_fingerprint") not in (None, request.fingerprint):
+        raise ValueError("PostgreSQL search dispatch record fingerprint does not match bytes")
+    try:
+        candidate_index = int(row["candidate_index"])
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL search dispatch candidate index is malformed") from error
+    return SearchDispatchRecord(row_owner, experiment, candidate_index, request)
+
+
 def _decode_reservation(row: Mapping[str, Any]) -> WorkerReservation:
     from app.strategy_lab_v2.workers import WorkerKind
 
@@ -593,4 +720,8 @@ def _statement(sql: str) -> Any:
     return text(sql)
 
 
-__all__ = ["PostgresSearchDispatchAdapter", "PostgresSearchDispatchSchema"]
+__all__ = [
+    "PostgresSearchDispatchAdapter",
+    "PostgresSearchDispatchSchema",
+    "SearchDispatchRecord",
+]

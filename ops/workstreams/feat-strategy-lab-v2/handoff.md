@@ -51,6 +51,16 @@ for registration-neutral hosts, and configuring both forms is rejected as
 ambiguous. Focused application coverage passed 10 tests, including normalized
 owner propagation, durable-store delegation, and fail-closed missing binding.
 
+## 2026-09-25 - Authenticated worker dispatch lookup checkpoint
+
+`PostgresSearchDispatchAdapter` now exposes owner-scoped lookup by experiment
+and candidate, plus an ambiguity-rejecting lookup by the Redis request
+fingerprint. Both paths re-authenticate the dispatch request and its stored
+fingerprint before returning the attempt/queue identity needed by a worker or
+recovery handler; no owner is guessed when a request identity is ambiguous.
+Focused lookup coverage passed 3 tests. Dedicated worker handler binding and
+stable Nautilus execution remain separate gates.
+
 The shared persistence bundle now exposes this adapter while leaving runtime
 authorization, provider entitlement, and Nautilus execution as explicit host
 inputs. The additive schema declares only admission and search-dispatch tables;
