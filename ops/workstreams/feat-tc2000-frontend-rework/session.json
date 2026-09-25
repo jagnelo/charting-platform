@@ -113,8 +113,8 @@
   "head": "8db6c9ac6",
   "implementation_sha": "8db6c9ac6",
   "interrupted": false,
-  "last_checkpoint": "2026-09-25T02:00:00+01:00",
-  "last_human_progress_update": "2026-09-25T02:00:00+01:00",
+  "last_checkpoint": "2026-09-25T02:04:00+01:00",
+  "last_human_progress_update": "2026-09-25T02:04:00+01:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Verify the protected visual mismatch in a matching browser/font environment without changing snapshots or visual policy; keep provider/ETF consumer integration deferred until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
   "plan_hash": "b04e51b5e3ce909b1f8db77e4da0a4a0eeb24ed371f9aab79bf494ec9e0ab5dc",
@@ -134,7 +134,7 @@
     "current_phase": "R6_chart_control_layering_and_visual_checkpoint_recorded",
     "next_action": "Verify the protected visual mismatch in a matching browser/font environment without changing snapshots or visual policy; keep provider/ETF consumer integration deferred until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
     "total": 9,
-    "updated_at": "2026-09-25T02:00:00+01:00"
+    "updated_at": "2026-09-25T02:04:00+01:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
