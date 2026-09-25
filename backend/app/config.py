@@ -2390,7 +2390,10 @@ class Settings(BaseSettings):
     # provider entitlement and is never copied into ProviderPolicy defaults.
     PROVIDER_MAX_CONCURRENCY: int = 2
     OPTION_CHAIN_REFRESH_HORIZON_DAYS: int = 45
-    PROVIDER_REQUEST_LOG_RETENTION_DAYS: int = 30
+    # Provider request logs are append-only quota/audit evidence. This legacy
+    # setting remains readable for configuration compatibility, but
+    # provider_maintenance deliberately ignores it for destructive deletion.
+    PROVIDER_REQUEST_LOG_RETENTION_DAYS: int = 0
     # Optional read-only view of the direct live-probe usage ledger.  The
     # ledger is outside the application database and is never required for
     # routing; an absent/unmounted file is reported as unavailable.

@@ -12,7 +12,7 @@ from app.models.provider_observation import (
     InstrumentSearchSnapshot,
     LatestPriceSnapshot,
 )
-from app.models.provider_runtime import ProviderCapability, ProviderHealthState
+from app.models.provider_runtime import ProviderCapability, ProviderHealthState, ProviderRequestLog
 from app.services.provider_maintenance import (
     list_stale_dataset_states,
     prune_provider_observations,
@@ -24,7 +24,7 @@ from tests.unit.conftest import AsyncSessionAdapter
 
 @pytest.mark.asyncio
 async def test_summarize_and_prune_provider_observations_keeps_provider_evidence(
-    db, instrument, monkeypatch
+    db, instrument
 ):
     async_db = AsyncSessionAdapter(db)
     data_source = DataSource(name="yfinance", is_active=True)
@@ -51,20 +51,29 @@ async def test_summarize_and_prune_provider_observations_keeps_provider_evidence
             payload={"query": "aapl", "results": []},
         )
     )
+    db.add(
+        ProviderRequestLog(
+            data_source_id=data_source.id,
+            capability=ProviderCapability.PRICE_HISTORY,
+            operation="fetch_ohlcv",
+            operation_family="history",
+            requested_at=datetime.now(UTC) - timedelta(days=31),
+            success=True,
+        )
+    )
     db.commit()
 
     summary = await summarize_provider_observations(async_db)
     latest_prices = next(row for row in summary if row["dataset"] == "latest_price_snapshot")
     assert latest_prices["rows"] == 1
 
-    monkeypatch.setattr(
-        "app.services.provider_maintenance.settings.LATEST_PRICE_SNAPSHOT_RETENTION_DAYS", 30
-    )
     deleted = await prune_provider_observations(async_db)
 
     remaining = db.execute(select(LatestPriceSnapshot)).scalars().all()
     assert deleted["latest_price_snapshot"] == 0
+    assert deleted["provider_request_log"] == 0
     assert len(remaining) == 1
+    assert len(db.execute(select(ProviderRequestLog)).scalars().all()) == 1
 
 
 @pytest.mark.asyncio

@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.provider_observation import (
@@ -40,7 +39,8 @@ def _targets() -> list[_RetentionTarget]:
             "provider_request_log",
             ProviderRequestLog,
             "requested_at",
-            settings.PROVIDER_REQUEST_LOG_RETENTION_DAYS,
+            0,
+            immutable_observation=True,
         ),
         _RetentionTarget(
             "latest_price_snapshot",
@@ -142,30 +142,21 @@ async def list_stale_dataset_states(
 
 
 async def prune_provider_observations(db: AsyncSession) -> dict[str, int]:
-    """Prune operational logs without deleting provider observations.
+    """Keep provider evidence append-only; report no destructive deletions.
 
-    Provider snapshots are append-only evidence: they contain data obtained
-    from quota-limited external services and must remain available for future
-    reconciliation, audit, and replay.  Their historical retention settings
-    remain exposed for compatibility/diagnostics but cannot authorize
-    destructive deletion.  Only the operational request log is prunable.
+    Provider snapshots and request logs are append-only evidence. They contain
+    data and usage facts obtained from quota-limited external services and must
+    remain available for future reconciliation, audit, and replay. Their
+    historical retention settings remain exposed for compatibility/diagnostics
+    but cannot authorize destructive deletion.
     """
 
     deleted: dict[str, int] = {}
-    now = _now_utc()
     for target in _targets():
-        if target.immutable_observation:
-            deleted[target.name] = 0
-            continue
-        if target.retention_days <= 0:
-            deleted[target.name] = 0
-            continue
-        cutoff = now - timedelta(days=target.retention_days)
-        result = await db.execute(
-            delete(target.model).where(getattr(target.model, target.ts_attr) < cutoff)
-        )
-        deleted[target.name] = int(result.rowcount or 0)
-    await db.flush()
+        # Every registered provider dataset is immutable evidence. Keep the
+        # return shape for API compatibility while making destructive pruning
+        # impossible by construction.
+        deleted[target.name] = 0
     return deleted
 
 
