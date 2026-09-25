@@ -99,6 +99,11 @@ opening Redis when it is missing, malformed, or does not return a callable
 resolver. A legacy completion path is retained only as a typed retry guard;
 terminal evidence cannot be acknowledged without the durable terminal writer.
 
+The callback package is covered by focused composition tests and the full
+branch/coverage gates below. The resolver remains intentionally application
+owned: this branch supplies the typed composition boundary, not a guessed
+resource lookup or transport-derived evidence implementation.
+
 ## 2026-09-24 - Typed result-manifest rehydration
 
 `postgres_result_materialization.py` now exposes owner-scoped
