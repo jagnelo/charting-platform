@@ -6358,7 +6358,7 @@ provider or start the shadow run.
   Other providers still fail closed when their reset boundary is not future
   and proven. No generic rate-limit fallback was added.
 - Focused quota/account-usage tests pass `50/50`. Exact committed source
-  `b268bf7fabf621292c98e10e3bacd4b6604d5c37` passed the complete Alpaca live
+  `249262dc3f7b664308a5f4b7e34711ee52ce366e` passed the complete Alpaca live
   manifest `7/7` with eight measured requests and complete same-run evidence:
   daily/intraday history, latest price, account usage, equity/crypto profiles,
   universe discovery, and corporate actions.

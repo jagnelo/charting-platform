@@ -4526,7 +4526,7 @@ progress:
       skew; all other providers still require a future reset boundary. Added
       accept/reject regression tests; quota/account-usage focused coverage
       passed 50/50. The exact committed-source Alpaca matrix at
-      `b268bf7fabf621292c98e10e3bacd4b6604d5c37` passed `7/7`, eight measured
+      `249262dc3f7b664308a5f4b7e34711ee52ce366e` passed `7/7`, eight measured
       requests, and complete same-run evidence. This fixes a real pre-transport
       admission failure without adding a generic fallback; all other provider,
       legal/use, universe, secret-store, deferred-provider, publication, and
