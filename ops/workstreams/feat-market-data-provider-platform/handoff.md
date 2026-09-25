@@ -45,7 +45,8 @@
 - Provider observation snapshots are now immutable retention evidence. The
   maintenance path no longer deletes latest-price, search, universe, profile,
   or identifier snapshots, even when legacy snapshot-retention settings are
-  positive; only operational request logs remain prunable.
+  positive. The subsequent request-audit checkpoint extends the same
+  append-only rule to provider request logs.
 - Maintenance/router regressions pass `10/10`, Ruff passes, and the workstream
   validator accepts all `30` records. This closes a destructive local data-loss
   path and does not change provider routing, quota, legal, or entitlement

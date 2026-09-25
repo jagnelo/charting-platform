@@ -197,9 +197,10 @@ remaining_gaps:
   - >-
     2026-09-25 append-only observation retention correction: provider
     latest-price, search, universe, profile, and identifier snapshots are now
-    immutable evidence and cannot be deleted by the maintenance endpoint;
-    only operational request logs remain prunable. Maintenance/router coverage
-    passes 10/10 with Ruff and workstream validation clean. Provider routing,
+    immutable evidence and cannot be deleted by the maintenance endpoint. This
+    checkpoint is superseded by the subsequent request-audit correction, which
+    also made provider request logs immutable. Maintenance/router coverage
+    passed 10/10 with Ruff and workstream validation clean. Provider routing,
     quota/legal/capability, universe, secret-store, deferred-provider, and
     shadow gates remain unchanged.
   - >-
