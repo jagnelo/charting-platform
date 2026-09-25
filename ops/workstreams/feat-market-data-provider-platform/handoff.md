@@ -6515,3 +6515,24 @@ provider or start the shadow run.
   paths remain admitted; unresolved provider-specific quota/baseline, legal/use,
   capability, complete-universe, external secret-store, deferred-provider,
   publication, and final-shadow controls remain listed in the receipt.
+
+## 2026-09-25 durable account-usage and bounded live evidence
+
+- The owner-only durable quota coordinator was unavailable inside the
+  restricted sandbox, so the first Alpaca attempt stopped before transport and
+  recorded `0/0` requests. The same probe was then rerun with host-level access
+  to the existing local ledger; no credentials or source files were changed.
+- Native account-usage probes passed and wrote durable ledger-linked receipts
+  for Alpaca, Binance, EODHD, MarketData.app, OpenFIGI, and Twelve Data (one
+  measured request per provider). These observations establish the current
+  account-usage baselines used by subsequent bounded runs; they do not invent
+  provider limits or override unresolved legal/byte/reset controls.
+- Complete bounded live matrices passed at the exact current source
+  `22af5f119fc5c9f8429b6ce1f54ba7e2593f28ca`: Alpaca `7/7`, Binance `3/3`,
+  OpenFIGI `3/3`, and MarketData.app `7/7`. Every selected case passed with
+  measured HTTP usage and a linked durable receipt. These are focused provider
+  runs, not a claim that the full multi-provider matrix is complete.
+- The full matrix remains fail-closed before transport for providers whose
+  active quota baseline, response-byte bound, legal/use authority, source
+  completeness, or deferred-provider admission is unresolved. No ETF adapter
+  or frontend path was touched.
