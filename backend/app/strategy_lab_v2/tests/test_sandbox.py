@@ -7,7 +7,11 @@ import pytest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolationRequest
 from app.strategy_lab_v2.runtime_execution import StrategyRuntimeRequest
-from app.strategy_lab_v2.sandbox import SandboxCommandPlan, build_sandbox_command
+from app.strategy_lab_v2.sandbox import (
+    SandboxCommandPlan,
+    build_sandbox_command,
+    sandbox_runtime_image_digest,
+)
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
@@ -64,6 +68,7 @@ def test_allowed_request_builds_deterministic_hardened_argv(tmp_path) -> None:
     assert "--security-opt=no-new-privileges:true" in plan.argv
     assert "--user=65532:65532" in plan.argv
     assert f"strategy-lab/runtime@{profile.runtime_image_digest}" in plan.argv
+    assert sandbox_runtime_image_digest(plan) == profile.runtime_image_digest
     assert "--env=STRATEGY_ATTEMPT_ID=attempt-1" in plan.argv
     assert not any("SECRET" in value for value in plan.argv)
     assert plan.wall_timeout_seconds == profile.wall_timeout_seconds

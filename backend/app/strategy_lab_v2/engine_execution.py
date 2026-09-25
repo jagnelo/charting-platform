@@ -14,6 +14,7 @@ from app.strategy_lab_v2.execution import ExecutionAuthorization
 from app.strategy_lab_v2.runtime_execution import StrategyRuntimePreflight
 from app.strategy_lab_v2.sandbox import (
     SandboxCommandPlan,
+    sandbox_runtime_image_digest,
     validate_sandbox_command_plan,
 )
 
@@ -126,6 +127,18 @@ def plan_nautilus_execution(
         reasons.append("stable_authoritative_conformance_required")
     if requested_authoritative and conformance_evidence.release_channel.value != "stable":
         reasons.append("stable_engine_release_required")
+    if requested_authoritative and conformance_report.authoritative:
+        release_pin = conformance_evidence.release_pin
+        if release_pin is None:
+            reasons.append("stable_release_pin_missing")
+        else:
+            try:
+                runtime_image_digest = sandbox_runtime_image_digest(sandbox_plan)
+            except (TypeError, ValueError):
+                reasons.append("sandbox_runtime_image_unreadable")
+            else:
+                if runtime_image_digest != release_pin.runtime_image_digest:
+                    reasons.append("nautilus_runtime_image_mismatch")
     reasons_tuple = tuple(sorted(set(reasons)))
     decision = EngineExecutionDecision.REJECT if reasons_tuple else EngineExecutionDecision.READY
     return NautilusExecutionPlan(

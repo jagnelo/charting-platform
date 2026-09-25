@@ -4919,6 +4919,24 @@ The branch remains `ready_for_human_review`. Host callback activation, shared
 migration/application reconciliation, stable Nautilus v2 conformance, and
 upstream provider/ETF/TC2000 integration remain gated.
 
+## 2026-09-25 - Authoritative Nautilus image binding checkpoint
+
+The final Nautilus execution gate now extracts the validated sandbox image
+digest and compares it with the stable release pin's runtime-image digest
+before producing an authoritative execution plan. A mismatched, unreadable,
+or absent pinned image is rejected without process creation; compatibility-only
+release-candidate plans retain their non-authoritative path. Focused sandbox
+and engine-gate coverage passed 11 tests. The complete branch gate passed 878
+package tests, 2 migration tests, Ruff, MyPy across 276 files, diff validation,
+and workstream validation. The exact backend coverage gate passed 2,529 tests
+with 83.79% total coverage and 86 warnings; the referenced runtime env file
+was absent and `.env.dev` supplied test configuration. Two cleanup passes
+retained zero testcontainer resources.
+
+The branch remains `ready_for_human_review`. Stable Nautilus v2 publication,
+isolated runtime activation, shared worker/database reconciliation, upstream
+provider/ETF/TC2000 integration, and deployment remain gated.
+
 ## 2026-09-25 - Legacy import inspection checkpoint
 
 Preserved digest-only legacy records are now exposed through the read-only

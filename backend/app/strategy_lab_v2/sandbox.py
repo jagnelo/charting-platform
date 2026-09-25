@@ -164,6 +164,19 @@ def sandbox_output_path(plan: SandboxCommandPlan) -> Path:
     return Path(_mount_source(plan.argv[16], "/outputs/result", "rw"))
 
 
+def sandbox_runtime_image_digest(plan: SandboxCommandPlan) -> str:
+    """Return the exact pinned runtime image digest from a validated plan."""
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    _image_name, separator, image_digest = plan.argv[19].rpartition("@")
+    if not separator:
+        raise ValueError("sandbox command plan must pin its runtime image digest")
+    require_sha256_digest(image_digest, field_name="runtime image digest")
+    return image_digest
+
+
 def _require_positive_option(value: str, label: str) -> None:
     if not value.isdecimal() or int(value) <= 0:
         raise ValueError(f"sandbox {label} must be a positive integer")

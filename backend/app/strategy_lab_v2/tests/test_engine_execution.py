@@ -61,7 +61,7 @@ def _conformance(*, engine_id: str = "nautilus", channel: EngineReleaseChannel =
             package_version="2.0.0",
             release_tag="v2.0.0" if channel is not EngineReleaseChannel.RELEASE_CANDIDATE else "v2.0.0-rc1",
             source_digest=content_digest("nautilus-source"),
-            runtime_image_digest=content_digest("nautilus-runtime"),
+            runtime_image_digest=content_digest("runtime-image"),
             python_version="3.12.11",
             rust_version="1.88.0",
             legacy_runtime_isolated=True,
@@ -124,6 +124,36 @@ def test_complete_stable_nautilus_gate_is_ready_and_authoritative() -> None:
     assert result.authoritative
     assert result.engine_id == "nautilus"
     assert result.fingerprint.startswith("sha256:")
+
+
+def test_authoritative_nautilus_gate_rejects_runtime_image_drift() -> None:
+    trial, attempt, source, capability, lease = _execution_fixture(authoritative=True)
+    from app.strategy_lab_v2.execution import authorize_execution
+
+    authorization = authorize_execution(
+        trial, attempt, source, capability, lease, now=NOW.replace(second=3)
+    )
+    request, runtime = _runtime()
+    evidence, report = _conformance()
+    plan = _plan(request)
+    drifted = SandboxCommandPlan(
+        plan.request_fingerprint,
+        plan.profile_fingerprint,
+        (*plan.argv[:19], f"runtime@{content_digest('different-nautilus-image')}", *plan.argv[20:]),
+        plan.wall_timeout_seconds,
+        plan.output_limit_bytes,
+    )
+    result = plan_nautilus_execution(
+        authorization,
+        runtime,
+        evidence,
+        report,
+        drifted,
+        data_snapshot_fingerprint=content_digest("snapshot"),
+    )
+
+    assert result.decision is EngineExecutionDecision.REJECT
+    assert "nautilus_runtime_image_mismatch" in result.rejection_reasons
 
 
 def test_release_candidate_or_non_nautilus_is_rejected_for_authoritative_runs() -> None:

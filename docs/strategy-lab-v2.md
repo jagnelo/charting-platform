@@ -1050,8 +1050,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   authorization, runtime preflight, sandbox request identity, data-snapshot
   identity, hardened sandbox argv validation, and complete conformance
   evidence. Only a compatible Nautilus build can run; authoritative runs
-  additionally require stable release evidence and an authoritative
-  authorization, and no engine process is started while any gate is missing.
+  additionally require stable release evidence, an authoritative
+  authorization, and an exact match between the release pin's runtime-image
+  digest and the sandbox image that will actually execute. No engine process is
+  started while any gate is missing.
 - `redis_transport.py` publishes dispatch envelopes to Redis Streams through a
   Lua compare-and-set script. The idempotency key and stream append are staged
   atomically, exact retries replay, changed payloads conflict, and failed
