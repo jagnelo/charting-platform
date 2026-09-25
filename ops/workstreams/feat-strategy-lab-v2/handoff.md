@@ -2,6 +2,24 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Conformance evidence gate checkpoint
+
+Conformance evidence construction now fails closed when a fixture suite omits a
+required check, while retaining complete suites with failed observations as
+explicit compatibility evidence. Conformance test timestamps normalize to UTC,
+so offset-equivalent evidence retains one identity. Focused conformance
+coverage passed 16 tests. The complete branch gate passed 881 package tests,
+2 migration tests, Ruff, MyPy across 276 files, diff validation, and workstream
+validation. The exact backend coverage gate passed 2,532 tests with 83.79%
+total coverage (required threshold: 75%) and 86 warnings; the referenced
+runtime env file was absent and `.env.dev` supplied test configuration. Two
+cleanup passes retained zero testcontainer sessions, containers, images, or
+volumes.
+
+The branch remains `ready_for_human_review`. Stable Nautilus v2 publication,
+shared worker/database reconciliation, host activation, upstream
+provider/ETF/TC2000 integration, and deployment remain gated.
+
 ## 2026-09-25 - Search candidate dispatch API boundary checkpoint
 
 The versioned API now exposes `POST /experiments/{experiment_id}/search/dispatch`.

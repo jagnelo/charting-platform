@@ -1288,7 +1288,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   executable `execute_conformance_suite(...)` runs every required check through
   an injected engine boundary, reduces runner exceptions to deterministic
   failed observations, and returns suite/evidence/report as one identity-bound
-  resolution. `NautilusReleasePin` binds the exact v2 package/tag, source and
+  resolution. Evidence construction rejects omitted checks while preserving
+  complete suites with failed observations as compatibility evidence, and
+  normalizes aware test timestamps to UTC. `NautilusReleasePin` binds the exact v2 package/tag, source and
   runtime-image digests, Python/Rust versions, and legacy-runtime isolation;
   complete stable fixture evidence without a valid isolated pin remains
   compatible evidence but can never be authoritative.
