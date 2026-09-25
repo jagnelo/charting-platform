@@ -5681,3 +5681,8 @@ synchronous facade over `httpx.ASGITransport`, removing the hanging Starlette
 The complete Strategy Lab v2 package suite passes 949 tests, including 124
 PostgreSQL adapter tests and 3 migration-startup tests. Ruff, MyPy (293 source
 files), and whitespace validation remain green.
+
+The repository-authoritative Docker-backed combined backend coverage gate also
+passes at the exact implementation tip: 2,600 tests, 83.76% total coverage
+(required threshold 75%), and 86 warnings. Integration containers were cleaned
+up after the run; no containers, images, or volumes were retained.
