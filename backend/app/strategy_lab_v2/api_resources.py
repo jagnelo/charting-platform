@@ -33,6 +33,7 @@ class ApiResourceType(StrEnum):
     METRIC_SET = "metric-sets"
     ARTIFACT = "artifacts"
     FORWARD_INSTANCE = "forward-instances"
+    CAPABILITY_SUMMARY = "capability-summaries"
 
 
 @dataclass(frozen=True, slots=True)

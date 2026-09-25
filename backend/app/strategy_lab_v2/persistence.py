@@ -126,6 +126,7 @@ class PostgresStrategyLabV2Persistence:
         forward_state = PostgresForwardStateAdapter(session_factory)
         result_materialization = PostgresResultMaterializationAdapter(session_factory)
         metrics = PostgresMetricsAdapter(session_factory)
+        capability = PostgresCapabilityAdapter(session_factory)
 
         async def attempt_projection(*, principal: Any) -> tuple[ResourceDocument, ...]:
             summaries = await execution_summaries.load_all(principal=principal)
@@ -215,6 +216,28 @@ class PostgresStrategyLabV2Persistence:
                 )
             return tuple(documents)
 
+        async def capability_summary_projection(
+            *, principal: Any
+        ) -> tuple[ResourceDocument, ...]:
+            summaries = await capability.load_all(principal=principal)
+            return tuple(
+                ResourceDocument(
+                    ResourceIdentifier(
+                        ApiResourceType.CAPABILITY_SUMMARY,
+                        summary.fingerprint,
+                        revision_digest=summary.fingerprint,
+                    ),
+                    attributes=asdict(summary),
+                    meta={
+                        "projection": "postgres",
+                        "record_fingerprint": summary.fingerprint,
+                        "report_fingerprint": summary.report_fingerprint,
+                        "binding_fingerprint": summary.binding_fingerprint,
+                    },
+                )
+                for summary in summaries
+            )
+
         return cls(
             aggregate_store=aggregate_store,
             resources=PostgresResourceReader(
@@ -224,12 +247,13 @@ class PostgresStrategyLabV2Persistence:
                     ApiResourceType.METRIC_SET: metric_set_projection,
                     ApiResourceType.FORWARD_INSTANCE: forward_instance_projection,
                     ApiResourceType.ARTIFACT: artifact_projection,
+                    ApiResourceType.CAPABILITY_SUMMARY: capability_summary_projection,
                 },
             ),
             acquisition=PostgresAcquisitionAdapter(session_factory),
             artifact_commits=PostgresArtifactCommitAdapter(session_factory),
             artifact_retention=PostgresArtifactRetentionAdapter(session_factory),
-            capability=PostgresCapabilityAdapter(session_factory),
+            capability=capability,
             commands=PostgresCommandAdapter(
                 session_factory,
                 execution_state.read_context,

@@ -71,6 +71,30 @@ def _document(resource_id: str = "trial-1") -> ResourceDocument:
     )
 
 
+def _capability_document() -> ResourceDocument:
+    return ResourceDocument(
+        ResourceIdentifier(
+            ApiResourceType.CAPABILITY_SUMMARY,
+            content_digest("capability-summary"),
+            revision_digest=content_digest("capability-summary-revision"),
+        ),
+        attributes={
+            "decision": "rigorous",
+            "data_gaps": (),
+            "execution_gaps": (),
+            "degradations": (),
+            "ranking_eligible": True,
+            "executable": True,
+            "authoritative": True,
+            "can_publish_authoritative_results": True,
+        },
+        meta={
+            "report_fingerprint": content_digest("capability-report"),
+            "binding_fingerprint": content_digest("capability-binding"),
+        },
+    )
+
+
 class FakeAdapter:
     def __init__(self) -> None:
         self.submissions: list[tuple[str, str, dict[str, Any]]] = []
@@ -80,17 +104,27 @@ class FakeAdapter:
         self.document = _document()
 
     async def list_resources(self, **kwargs: Any) -> ResourceCollection:
+        document = (
+            _capability_document()
+            if kwargs["resource_type"] is ApiResourceType.CAPABILITY_SUMMARY
+            else self.document
+        )
         return ResourceCollection(
             request_id=kwargs["request_id"],
             resource_type=kwargs["resource_type"],
             snapshot_digest=SNAPSHOT,
-            items=(self.document,),
+            items=(document,),
             has_more=False,
         )
 
     async def get_resource(self, **kwargs: Any) -> ResourceDocument | None:
-        if kwargs["resource_id"] == self.document.id:
-            return self.document
+        document = (
+            _capability_document()
+            if kwargs["resource_type"] is ApiResourceType.CAPABILITY_SUMMARY
+            else self.document
+        )
+        if kwargs["resource_id"] == document.id:
+            return document
         return None
 
     async def submit(self, **kwargs: Any) -> SubmissionServiceResult:
@@ -283,6 +317,16 @@ def test_router_lists_and_reads_cursor_bound_resources() -> None:
         missing = client.get("/api/v1/strategy-lab/v2/trials/missing")
         assert missing.status_code == 404
         assert missing.json()["errors"][0]["code"] == "not_found"
+
+
+def test_router_lists_capability_summary_projection_as_read_only_resource() -> None:
+    with _client(FakeAdapter()) as client:
+        response = client.get("/api/v1/strategy-lab/v2/capability-summaries")
+        assert response.status_code == 200
+        data = response.json()["data"][0]
+        assert data["type"] == "capability-summaries"
+        assert data["attributes"]["decision"] == "rigorous"
+        assert data["attributes"]["can_publish_authoritative_results"] is True
 
 
 def test_router_rejects_invalid_cursor_and_unknown_resource_with_typed_errors() -> None:

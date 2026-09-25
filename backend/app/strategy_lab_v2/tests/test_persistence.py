@@ -10,6 +10,10 @@ from app.strategy_lab_v2.artifact_application import (
     LocalArtifactRetentionService,
 )
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.capability_summary import (
+    CapabilitySummary,
+    CapabilitySummaryDecision,
+)
 from app.strategy_lab_v2.outbox_application import OutboxRelayService
 from app.strategy_lab_v2.outcomes import new_execution_outcome
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
@@ -56,6 +60,7 @@ def test_persistence_bundle_shares_store_and_wires_all_initial_api_dependencies(
         ApiResourceType.METRIC_SET,
         ApiResourceType.FORWARD_INSTANCE,
         ApiResourceType.ARTIFACT,
+        ApiResourceType.CAPABILITY_SUMMARY,
     }
 
     class _Redis:
@@ -86,6 +91,37 @@ async def test_metric_resource_projection_uses_typed_metric_set_reads() -> None:
     assert documents[0].id == metric_set.metric_set_id
     assert documents[0].attributes["metric_set_id"] == metric_set.metric_set_id
     assert documents[0].meta["record_fingerprint"] == metric_set.fingerprint
+
+
+@pytest.mark.asyncio
+async def test_capability_summary_projection_uses_authenticated_summary_reads() -> None:
+    bundle = PostgresStrategyLabV2Persistence.build(lambda: object())
+    summary = CapabilitySummary(
+        report_fingerprint=content_digest("capability-report"),
+        binding_fingerprint=content_digest("capability-binding"),
+        decision=CapabilitySummaryDecision.RIGOROUS,
+        data_gaps=(),
+        execution_gaps=(),
+        degradations=(),
+        ranking_eligible=True,
+        executable=True,
+        authoritative=True,
+        can_publish_authoritative_results=True,
+    )
+
+    async def load_all(*, principal: Any) -> tuple[CapabilitySummary, ...]:
+        assert principal == "owner-a"
+        return (summary,)
+
+    bundle.capability.load_all = load_all  # type: ignore[method-assign]
+    projection = bundle.resources._projections[ApiResourceType.CAPABILITY_SUMMARY]
+    documents = await cast(Any, projection)(principal="owner-a")
+
+    assert len(documents) == 1
+    assert documents[0].id == summary.fingerprint
+    assert documents[0].attributes["decision"] == CapabilitySummaryDecision.RIGOROUS
+    assert documents[0].attributes["ranking_eligible"] is True
+    assert documents[0].meta["report_fingerprint"] == summary.report_fingerprint
 
 
 @pytest.mark.asyncio

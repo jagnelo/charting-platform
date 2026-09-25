@@ -845,7 +845,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   are the stable key; gaps, degradations, executable/ranking flags, and
   authoritative-publication eligibility are serialized and re-authenticated so
   altered projections conflict instead of silently replacing preflight
-  evidence. Capability calculation, provider entitlement, engine registration,
+  evidence. The shared persistence bundle projects these summaries through the
+  read-only `capability-summaries` API resource, preserving the
+  provider/engine boundary while making preflight outcomes machine-readable.
+  Capability calculation, provider entitlement, engine registration,
   migrations, and API authorization remain outside the adapter.
 - `postgres_acquisition.py` maps provider-produced acquisition receipts to an
   owner-scoped additive PostgreSQL handoff registry keyed by the preflight
