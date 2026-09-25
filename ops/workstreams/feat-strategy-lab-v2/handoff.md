@@ -2,6 +2,18 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Durable forward-worker authorization bridge checkpoint
+
+The application adapter now exposes
+`load_forward_worker_authorization()`, loading an authenticated worker-pool
+reservation and lease from the existing PostgreSQL worker-state adapter and
+returning the typed authorization consumed by the forward-worker gate. Missing
+reservation or lease records return no authorization; no capacity or lease is
+invented at the application boundary.
+
+The focused application authorization bridge suite passed 2 tests. Ruff and
+MyPy remain green across 291 source files; whitespace validation is clean.
+
 ## 2026-09-25 - Forward-worker reservation/lease authorization checkpoint
 
 Added the pure `AuthorizedForwardEventHandler` gate and the
