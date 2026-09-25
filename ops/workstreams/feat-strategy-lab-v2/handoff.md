@@ -96,6 +96,28 @@ containers, images, or volumes. Multi-artifact host mapping, stable Nautilus
 release conformance, upstream contract reconciliation, and full application
 integration remain open gates.
 
+## 2026-09-25 - Package evidence resolver factory checkpoint
+
+`worker_callbacks.py` now exposes
+`default_evidence_resolver_factory(persistence, artifact_root)`. When selected
+through the existing namespaced resolver setting, it composes the shared
+owner/attempt lookup, the single-output sandbox artifact mapper, and the
+durable PostgreSQL terminal writer without a host-specific module. Startup
+remains fail-closed when the resolver setting is absent or malformed; the
+factory itself still rejects persistence bundles missing explicit artifact or
+terminal composition methods.
+
+Focused callback tests passed 5 tests; the complete Strategy Lab v2 package
+passed 839 tests. Branch-declared validation passed all six checks (839
+package tests, 2 migration tests, Ruff, MyPy across 272 files, diff, and
+workstream validation). The exact backend gate passed 2,490 tests at 83.74%
+coverage with 86 warnings; the referenced runtime env file was absent in this
+checkout and `.env.dev` supplied test configuration. Compose profile validation
+passed, and both required cleanup passes retained zero testcontainer sessions,
+containers, images, or volumes. Multi-artifact host mapping, deployment
+configuration selection, stable Nautilus release conformance, upstream
+contract reconciliation, and full application integration remain open gates.
+
 ## 2026-09-25 - Mounted result evidence checkpoint
 
 `sandbox.py` now exposes the validated host source for the hardened

@@ -1178,10 +1178,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `materialize_worker_handoff()` for the worker callback seam. It does not
   resolve terminal/result evidence or acknowledge Redis entries.
 - `worker_callbacks.py` composes that materializer with the durable
-  `PostgresWorkerTerminalAdapter`. It loads an application-owned evidence
-  resolver from `STRATEGY_LAB_V2_EVIDENCE_RESOLVER` using explicit
-  `module:attribute` syntax; missing or malformed configuration fails before
-  Redis is opened. The fallback completion writer can only return a retry, so
+  `PostgresWorkerTerminalAdapter`. It loads an evidence resolver from
+  `STRATEGY_LAB_V2_EVIDENCE_RESOLVER` using explicit `module:attribute`
+  syntax; missing or malformed configuration fails before Redis is opened.
+  `default_evidence_resolver_factory` is available for local deployments that
+  want the package-owned authenticated lookup plus single-output artifact
+  mapper, while a host may still provide a stricter/custom multi-artifact
+  resolver. The fallback completion writer can only return a retry, so
   terminal evidence cannot be acknowledged through the legacy path.
 - The root Compose stack now contains an explicit, opt-in
   `strategy-lab-v2-worker` profile. It is separate from the general ARQ worker,
@@ -1190,8 +1193,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   capabilities, no-new-privileges, and a bounded `/tmp`. Because sandbox
   plans launch separately pinned runtime containers, the profile requires the
   local Docker socket. The package-owned callback composer is the default;
-  its application-owned `STRATEGY_LAB_V2_EVIDENCE_RESOLVER` must be supplied
-  before Redis opens, and the profile is never enabled by the default stack.
+  its resolver setting must be supplied before Redis opens, and the profile is
+  never enabled by the default stack.
 - `migration_startup.py` provides the explicit Alembic startup hook. It
   validates a PostgreSQL URL and absolute script location, runs the configured
   target off the event loop, serializes concurrent callers, replays the exact
