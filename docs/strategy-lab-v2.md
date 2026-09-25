@@ -97,7 +97,9 @@ or transport boundaries.
 The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 
 - `canonical.py` provides stable JSON serialization, SHA-256 content addresses,
-  and recursive immutability.
+  and recursive immutability. Datetimes normalize aware offsets to UTC and
+  timedeltas have an explicit structural representation, so fingerprinted
+  lifecycle evidence remains stable across equivalent transport encodings.
 - `contracts.py` defines immutable strategy, portfolio, snapshot, experiment,
   package, trial, attempt, artifact, metric, run-result provenance, and
   forward-instance records. Portfolios carry a typed, calendar-versioned
@@ -114,6 +116,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   Authoritative metric sets likewise validate typed values and canonicalize
   `(name, basis)` records before their content-addressed fingerprint is used.
 - `capabilities.py` implements strict/degraded capability-cell preflight.
+  Requirement and supported-history boundaries normalize aware timestamps to
+  UTC before matching and identity calculation.
   `execution_capabilities.py` binds that data decision to a registered engine
   build and conformance fingerprint, failing closed when product, execution,
   or account semantics are not supported. Non-authoritative engines may be
@@ -125,6 +129,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   incomplete coverage reject the handoff deterministically; provider fetching,
   repair, and persistence remain adapter responsibilities. Request and receipt
   timestamps normalize to UTC before acquisition identity and temporal checks.
+- `coverage.py` verifies provider attestations against frozen series metadata,
+  normalizing series and attestation timestamps to UTC before coverage identity
+  and comparison.
 - `execution_data_admission.py` is the final pure data gate before a Nautilus
   plan is consumed. It requires the verified acquisition handoff to match the
   scientific trial, frozen snapshot, and ready engine plan, so a worker cannot
@@ -164,6 +171,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `ArtifactManifest` using raw-byte SHA-256 and exact byte length, returning a
   digest-bound receipt with typed mismatch reasons. Retrieval, atomic
   publication, retention, and storage I/O remain adapter/worker concerns.
+- `artifact_store.py` provides local atomic content-addressed byte storage and
+  bounded cleanup evidence. Cleanup observation and filesystem modification
+  timestamps normalize to UTC; cleanup resolutions fingerprint their explicit
+  minimum-age duration as canonical structured data.
 - `artifact_publication.py` turns verified receipts into a storage-neutral
   create-if-absent or reuse-existing plan and exposes whether the retention
   class requires a pin. It never overwrites an existing content address or

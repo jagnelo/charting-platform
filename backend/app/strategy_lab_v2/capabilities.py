@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -56,8 +56,12 @@ class CapabilityRequirement:
             raise ValueError("start must be timezone-aware")
         if self.end.tzinfo is None or self.end.utcoffset() is None:
             raise ValueError("end must be timezone-aware")
-        if self.start >= self.end:
+        start = self.start.astimezone(UTC)
+        end = self.end.astimezone(UTC)
+        if start >= end:
             raise ValueError("required history start must precede end")
+        object.__setattr__(self, "start", start)
+        object.__setattr__(self, "end", end)
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,7 +92,9 @@ class CapabilityCell:
             raise ValueError("history_start must be timezone-aware")
         if self.history_end.tzinfo is None or self.history_end.utcoffset() is None:
             raise ValueError("history_end must be timezone-aware")
-        if self.history_start >= self.history_end:
+        history_start = self.history_start.astimezone(UTC)
+        history_end = self.history_end.astimezone(UTC)
+        if history_start >= history_end:
             raise ValueError("capability history must have a positive interval")
         if any(
             not values
@@ -137,6 +143,8 @@ class CapabilityCell:
             "corporate_action_semantics",
         ):
             object.__setattr__(self, name, frozenset(getattr(self, name)))
+        object.__setattr__(self, "history_start", history_start)
+        object.__setattr__(self, "history_end", history_end)
 
 
 @dataclass(frozen=True, slots=True)

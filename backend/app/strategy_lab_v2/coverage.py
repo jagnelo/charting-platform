@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -66,7 +66,9 @@ class CoverageAttestation:
             raise TypeError("adjustment must be an AdjustmentMode")
         _aware(self.start, "start")
         _aware(self.end, "end")
-        if self.start >= self.end:
+        start = self.start.astimezone(UTC)
+        end = self.end.astimezone(UTC)
+        if start >= end:
             raise ValueError("coverage start must be earlier than end")
         if not isinstance(self.row_count, int) or isinstance(self.row_count, bool) or self.row_count <= 0:
             raise ValueError("coverage row_count must be a positive integer")
@@ -74,6 +76,9 @@ class CoverageAttestation:
             if not isinstance(getattr(self, name), bool):
                 raise TypeError(f"coverage {name} must be a bool")
         _aware(self.attested_at, "attested_at")
+        object.__setattr__(self, "start", start)
+        object.__setattr__(self, "end", end)
+        object.__setattr__(self, "attested_at", self.attested_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:

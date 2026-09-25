@@ -7,7 +7,7 @@ import hashlib
 import json
 import math
 from collections.abc import Mapping
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from types import MappingProxyType
@@ -53,6 +53,8 @@ def _canonical_value(value: Any) -> Any:
             "datetime",
             value.astimezone(UTC).isoformat(timespec="microseconds").replace("+00:00", "Z"),
         ]
+    if isinstance(value, timedelta):
+        return ["timedelta", value.days, value.seconds, value.microseconds]
     if isinstance(value, date):
         return ["date", value.isoformat()]
     if isinstance(value, Mapping):

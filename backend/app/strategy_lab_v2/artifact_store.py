@@ -149,6 +149,7 @@ class ArtifactCleanupRecord:
             raise ValueError("modified_at must be timezone-aware")
         if not isinstance(self.decision, ArtifactCleanupDecision):
             raise TypeError("decision must be an ArtifactCleanupDecision")
+        object.__setattr__(self, "modified_at", self.modified_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:
@@ -174,6 +175,7 @@ class ArtifactCleanupResolution:
         paths = [record.relative_path for record in records]
         if paths != sorted(paths) or len(paths) != len(set(paths)):
             raise ValueError("cleanup records must be unique and deterministically ordered")
+        object.__setattr__(self, "observed_at", self.observed_at.astimezone(UTC))
         object.__setattr__(self, "records", records)
 
     @property
@@ -521,6 +523,7 @@ class LocalArtifactStore:
             raise TypeError("committed_storage_keys must be a collection of digest strings")
         if observed_at.tzinfo is None or observed_at.utcoffset() is None:
             raise ValueError("observed_at must be timezone-aware")
+        observed_at = observed_at.astimezone(UTC)
         if not isinstance(minimum_age, timedelta) or minimum_age.total_seconds() < 0:
             raise ValueError("minimum_age must be a non-negative timedelta")
         committed: set[str] = set()
