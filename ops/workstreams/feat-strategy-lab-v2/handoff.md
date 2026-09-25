@@ -54,6 +54,26 @@ zero testcontainer sessions, containers, images, or volumes. Host application
 evidence resolution, stable Nautilus release conformance, upstream contract
 reconciliation, and full application integration remain open gates.
 
+## 2026-09-25 - Sandbox-bound artifact publication checkpoint
+
+`LocalArtifactPublicationService.publish_sandbox_result()` now binds artifact
+publication to the exact successful `SandboxCommandPlan` and
+`SandboxRunResult`. It requires captured mounted-file evidence, verifies the
+manifest digest and byte length before any storage or commit operation, derives
+the validated `/outputs/result` host source from the plan, and delegates to
+streamed file publication. Plan drift, failed executions, missing evidence,
+and manifest identity drift fail before the artifact ledger can change.
+
+Focused artifact tests passed 29 tests; the complete Strategy Lab v2 package
+passed 830 tests. Branch-declared validation passed all six checks across 830
+package tests, migrations, Ruff, MyPy across 270 files, diff, and workstream
+validation. The exact backend gate passed 2,481 tests at 83.73% coverage with
+86 warnings; the referenced runtime env file was absent in this checkout and
+`.env.dev` supplied test configuration. Both required cleanup passes retained
+zero testcontainer sessions, containers, images, or volumes. Host application
+evidence resolution, stable Nautilus release conformance, upstream contract
+reconciliation, and full application integration remain open gates.
+
 ## 2026-09-25 - Mounted result identity materialization checkpoint
 
 Successful runtime materialization now uses the validated mounted result-file
