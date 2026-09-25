@@ -177,6 +177,13 @@ remaining_gaps:
     separate written market-data-use authority gate, not because its technical
     rate limit is unknown.
   - >-
+    2026-09-25 current-source native account-usage refresh passed for Alpaca,
+    MarketData.app, EODHD, Binance, and OpenFIGI (`1/1` each; exactly one
+    request each) at source `604494af5bb3db9e229ec0f3c3ba9c300bfbf1cf`.
+    Redacted receipts are durable in `validation.jsonl`; this refresh does not
+    resolve EODHD's contradictory account entitlement or any other provider's
+    legal, byte-cost, capability, universe, secret-store, or deferred gates.
+  - >-
     2026-09-25 Twelve Data reset-source reconciliation: official credits
     documentation confirms the Basic 800-credit daily pool resets at
     00:00 UTC, and the seed records `calendar_day_utc` from that source. The

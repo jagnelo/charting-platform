@@ -13,6 +13,12 @@
       daily-metered routing. The exact provider reset boundary is already
       documented as 00:00 UTC; the `/api_usage` response does not expose prior
       daily consumption, so no daily usage is inferred.
+- [x] Refresh bounded native account-usage evidence at the current source for
+      Alpaca, MarketData.app, EODHD, Binance, and OpenFIGI. Each focused live
+      case passed `1/1` with exactly one request; redacted receipts and byte
+      totals are durable in the provider workstream.
+- [ ] Keep EODHD fail-closed until its contradictory published minute limits,
+      active account entitlement, and current daily baseline are reconciled.
 
 - [x] Refresh the exact-current full provider safety preflight at source
       `fcb047f68531a34dc9719be48d751cc1f88e401d`; it stopped before transport

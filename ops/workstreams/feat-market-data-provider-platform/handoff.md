@@ -14,6 +14,20 @@
 - The earlier DNS-blocked attempt remains historical environment evidence; it
   is superseded for live validation by this successful network-enabled run.
 
+## 2026-09-25 current-source native usage refresh
+
+- With approved external network access and isolated owner-local ledgers, the
+  bounded native account-usage cases for Alpaca, MarketData.app, EODHD,
+  Binance, and OpenFIGI each passed `1/1` at source
+  `604494af5bb3db9e229ec0f3c3ba9c300bfbf1cf`.
+- Each case made exactly one provider request. Redacted response-byte totals
+  were Alpaca `125`, MarketData.app `135`, EODHD `304`, Binance `28`, and
+  OpenFIGI `8,812`; the complete receipts are appended to `validation.jsonl`.
+- These observations refresh transport and native usage snapshots only. They
+  do not promote EODHD (whose published limits still conflict), widen
+  MarketData.app response-priced option-history admission, or close any legal,
+  byte-cost, universe, deployment-secret, or deferred-provider gate.
+
 ## 2026-09-25 Docker integration gate at current tip
 
 - Docker-backed PostgreSQL/Redis integration validation was rerun at the
