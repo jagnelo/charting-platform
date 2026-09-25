@@ -169,6 +169,13 @@ dimension. This preserves provider-specific fields such as usage dates, plan
 metadata, and reset evidence across sessions; the migration downgrade refuses
 to remove non-empty evidence rather than silently discarding it.
 
+Profile, identifier, search, universe-discovery, and option-chain snapshots are
+also append-only evidence. Identical payloads from separate provider requests
+are retained as separate observations; their hashes remain useful for
+comparison, but no longer act as deduplication keys. The migration refuses a
+downgrade if repeated evidence would make the former unique constraints
+unsafe to recreate.
+
 Raw OHLCV observations follow the same rule: the conflict key includes the
 fetch observation timestamp, so a later provider revision of an existing bar
 creates a new raw observation instead of overwriting the earlier response.

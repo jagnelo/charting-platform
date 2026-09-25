@@ -170,22 +170,6 @@ async def store_profile_snapshot(
     payload = build_profile_snapshot_payload(profile)
     profile_hash = _payload_hash(payload)
     data_source = await ensure_data_source(db, profile.provider)
-    existing = (
-        await db.execute(
-            select(InstrumentProfileSnapshot).where(
-                InstrumentProfileSnapshot.instrument_id == instrument.id,
-                InstrumentProfileSnapshot.data_source_id == data_source.id,
-                InstrumentProfileSnapshot.profile_hash == profile_hash,
-            )
-        )
-    ).scalar_one_or_none()
-    if existing is not None:
-        existing.observed_at = observed_at
-        existing.fetched_at = fetched_at
-        existing.provider_symbol = profile.symbol
-        existing.payload = payload
-        return existing
-
     snapshot = InstrumentProfileSnapshot(
         instrument_id=instrument.id,
         data_source_id=data_source.id,

@@ -162,6 +162,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 provider snapshot retention correction: profile, identifier,
+    search, universe-discovery, and option-chain snapshots no longer
+    deduplicate identical payloads or overwrite observation timestamps. Hashes
+    remain comparison metadata; migration e8f9a0b1c2e4 removes the old unique
+    constraints and refuses downgrade when repeated evidence exists. Migration
+    tests pass 20/20, focused option/market-data/quota tests pass 64/64, and
+    migration compatibility, Alembic single-head, Ruff, and diff checks pass.
+    External provider, universe, secret-store, deferred-provider, and shadow
+    gates remain unchanged.
+  - >-
     2026-09-25 exact-current full provider preflight at source
     70b313a93cbb6b4e64c803a395904041950869e1 stopped before transport with
     0/0 ordinary cases and zero provider requests. Raw OHLCV immutability did

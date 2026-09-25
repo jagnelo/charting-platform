@@ -89,12 +89,6 @@ class InstrumentProfileSnapshot(Base, TimestampMixin):
     data_source: Mapped["DataSource"] = relationship(back_populates="profile_snapshots")
 
     __table_args__ = (
-        UniqueConstraint(
-            "instrument_id",
-            "data_source_id",
-            "profile_hash",
-            name="uq_instrument_profile_snapshot_hash",
-        ),
         Index(
             "ix_instrument_profile_snapshot_inst_source_observed",
             "instrument_id",
@@ -126,12 +120,6 @@ class InstrumentIdentifierSnapshot(Base, TimestampMixin):
     data_source: Mapped["DataSource"] = relationship(back_populates="identifier_snapshots")
 
     __table_args__ = (
-        UniqueConstraint(
-            "instrument_id",
-            "data_source_id",
-            "snapshot_hash",
-            name="uq_instrument_identifier_snapshot_hash",
-        ),
         Index(
             "ix_instrument_identifier_snapshot_inst_source_observed",
             "instrument_id",
@@ -255,13 +243,6 @@ class OptionChainSnapshot(Base, TimestampMixin):
     )
 
     __table_args__ = (
-        UniqueConstraint(
-            "underlying_instrument_id",
-            "data_source_id",
-            "expiration_date",
-            "snapshot_hash",
-            name="uq_option_chain_snapshot_hash",
-        ),
         Index(
             "ix_option_chain_snapshot_underlying_exp_observed",
             "underlying_instrument_id",
@@ -378,12 +359,6 @@ class InstrumentSearchSnapshot(Base, TimestampMixin):
     data_source: Mapped["DataSource"] = relationship(back_populates="search_snapshots")
 
     __table_args__ = (
-        UniqueConstraint(
-            "data_source_id",
-            "query",
-            "result_hash",
-            name="uq_instrument_search_snapshot_hash",
-        ),
         Index(
             "ix_instrument_search_snapshot_source_query_observed",
             "data_source_id",
@@ -412,13 +387,6 @@ class UniverseDiscoverySnapshot(Base, TimestampMixin):
     data_source: Mapped["DataSource"] = relationship(back_populates="discovery_snapshots")
 
     __table_args__ = (
-        UniqueConstraint(
-            "data_source_id",
-            "quote_type",
-            "offset",
-            "snapshot_hash",
-            name="uq_universe_discovery_snapshot_hash",
-        ),
         Index(
             "ix_universe_discovery_snapshot_source_type_offset_observed",
             "data_source_id",

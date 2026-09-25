@@ -5,7 +5,6 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.provider_observation import (
@@ -52,33 +51,17 @@ async def store_identifier_snapshot(
         ],
     }
     snapshot_hash = _payload_hash(payload)
-    snapshot = (
-        await db.execute(
-            select(InstrumentIdentifierSnapshot).where(
-                InstrumentIdentifierSnapshot.instrument_id == instrument_id,
-                InstrumentIdentifierSnapshot.data_source_id == data_source_id,
-                InstrumentIdentifierSnapshot.snapshot_hash == snapshot_hash,
-            )
-        )
-    ).scalar_one_or_none()
-    if snapshot is None:
-        snapshot = InstrumentIdentifierSnapshot(
-            instrument_id=instrument_id,
-            data_source_id=data_source_id,
-            provider_symbol=provider_symbol,
-            observed_at=observed_at,
-            fetched_at=fetched_at,
-            snapshot_hash=snapshot_hash,
-            payload=payload,
-        )
-        db.add(snapshot)
-        await db.flush()
-        return snapshot
-
-    snapshot.provider_symbol = provider_symbol
-    snapshot.observed_at = observed_at
-    snapshot.fetched_at = fetched_at
-    snapshot.payload = payload
+    snapshot = InstrumentIdentifierSnapshot(
+        instrument_id=instrument_id,
+        data_source_id=data_source_id,
+        provider_symbol=provider_symbol,
+        observed_at=observed_at,
+        fetched_at=fetched_at,
+        snapshot_hash=snapshot_hash,
+        payload=payload,
+    )
+    db.add(snapshot)
+    await db.flush()
     return snapshot
 
 
@@ -149,31 +132,16 @@ async def store_search_snapshot(
         ],
     }
     result_hash = _payload_hash(payload)
-    snapshot = (
-        await db.execute(
-            select(InstrumentSearchSnapshot).where(
-                InstrumentSearchSnapshot.data_source_id == data_source_id,
-                InstrumentSearchSnapshot.query == query,
-                InstrumentSearchSnapshot.result_hash == result_hash,
-            )
-        )
-    ).scalar_one_or_none()
-    if snapshot is None:
-        snapshot = InstrumentSearchSnapshot(
-            data_source_id=data_source_id,
-            query=query,
-            observed_at=observed_at,
-            fetched_at=fetched_at,
-            result_hash=result_hash,
-            payload=payload,
-        )
-        db.add(snapshot)
-        await db.flush()
-        return snapshot
-
-    snapshot.observed_at = observed_at
-    snapshot.fetched_at = fetched_at
-    snapshot.payload = payload
+    snapshot = InstrumentSearchSnapshot(
+        data_source_id=data_source_id,
+        query=query,
+        observed_at=observed_at,
+        fetched_at=fetched_at,
+        result_hash=result_hash,
+        payload=payload,
+    )
+    db.add(snapshot)
+    await db.flush()
     return snapshot
 
 
@@ -195,31 +163,15 @@ async def store_universe_discovery_snapshot(
         "page": page,
     }
     snapshot_hash = _payload_hash(payload)
-    snapshot = (
-        await db.execute(
-            select(UniverseDiscoverySnapshot).where(
-                UniverseDiscoverySnapshot.data_source_id == data_source_id,
-                UniverseDiscoverySnapshot.quote_type == quote_type,
-                UniverseDiscoverySnapshot.offset == offset,
-                UniverseDiscoverySnapshot.snapshot_hash == snapshot_hash,
-            )
-        )
-    ).scalar_one_or_none()
-    if snapshot is None:
-        snapshot = UniverseDiscoverySnapshot(
-            data_source_id=data_source_id,
-            quote_type=quote_type,
-            offset=offset,
-            observed_at=observed_at,
-            fetched_at=fetched_at,
-            snapshot_hash=snapshot_hash,
-            payload=payload,
-        )
-        db.add(snapshot)
-        await db.flush()
-        return snapshot
-
-    snapshot.observed_at = observed_at
-    snapshot.fetched_at = fetched_at
-    snapshot.payload = payload
+    snapshot = UniverseDiscoverySnapshot(
+        data_source_id=data_source_id,
+        quote_type=quote_type,
+        offset=offset,
+        observed_at=observed_at,
+        fetched_at=fetched_at,
+        snapshot_hash=snapshot_hash,
+        payload=payload,
+    )
+    db.add(snapshot)
+    await db.flush()
     return snapshot

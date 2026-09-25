@@ -453,29 +453,18 @@ async def sync_option_chain_snapshot(
     )
     snapshot_hash = _snapshot_hash(contracts, expiration)
     fetched_at = _now_utc()
-    snapshot = (
-        await db.execute(
-            select(OptionChainSnapshot).where(
-                OptionChainSnapshot.underlying_instrument_id == underlying.id,
-                OptionChainSnapshot.data_source_id == execution.data_source.id,
-                OptionChainSnapshot.expiration_date == expiration,
-                OptionChainSnapshot.snapshot_hash == snapshot_hash,
-            )
-        )
-    ).scalar_one_or_none()
-    if snapshot is None:
-        snapshot = OptionChainSnapshot(
-            underlying_instrument_id=underlying.id,
-            data_source_id=execution.data_source.id,
-            provider_symbol=provider_symbol_for_instrument(underlying, execution.provider_name),
-            expiration_date=expiration,
-            observed_at=observed_at,
-            fetched_at=fetched_at,
-            snapshot_hash=snapshot_hash,
-            raw_payload={"provider": execution.provider_name, "contract_count": len(contracts)},
-        )
-        db.add(snapshot)
-        await db.flush()
+    snapshot = OptionChainSnapshot(
+        underlying_instrument_id=underlying.id,
+        data_source_id=execution.data_source.id,
+        provider_symbol=provider_symbol_for_instrument(underlying, execution.provider_name),
+        expiration_date=expiration,
+        observed_at=observed_at,
+        fetched_at=fetched_at,
+        snapshot_hash=snapshot_hash,
+        raw_payload={"provider": execution.provider_name, "contract_count": len(contracts)},
+    )
+    db.add(snapshot)
+    await db.flush()
 
     # Fetch spot and RFR once per expiration snapshot for greek estimation
     spot_row = (

@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 provider snapshot retention correction
+
+- Profile, identifier, search, universe-discovery, and option-chain evidence
+  now appends every provider response, including identical payloads. Hashes
+  remain comparison metadata and are no longer uniqueness constraints.
+- Migration `e8f9a0b1c2e4` removes the former hash-based uniqueness and refuses
+  downgrade when repeated evidence would be lost. Migration tests pass `20/20`,
+  focused option/market-data/quota tests pass `64/64`, and migration
+  compatibility, Alembic, Ruff, and diff checks pass.
+- Canonical/latest projections remain available and unchanged; no provider
+  routing, frontend, or ETF behavior changed.
+
 ## 2026-09-25 exact-current preflight after raw OHLCV immutability correction
 
 - Source `70b313a93` ran the full provider manifest preflight and stopped before
