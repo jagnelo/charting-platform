@@ -521,6 +521,7 @@ async def test_application_search_dispatch_evidence_resolver_uses_durable_store(
     assert observed["principal"].id == "42"
     assert observed["store"]["principal"].id == "42"
     assert observed["store"]["reservation_id"] == _reservation("application-evidence")
+    assert observed["store"]["payload"] == {}
 
 
 @pytest.mark.asyncio

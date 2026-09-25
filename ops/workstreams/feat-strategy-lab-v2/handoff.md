@@ -2,6 +2,20 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Search dispatch payload durability checkpoint
+
+The atomic PostgreSQL search-dispatch adapter now canonicalizes and verifies
+the application payload against `DispatchRequest.payload_digest`, persists the
+payload in the shared dispatch-payload table before enqueue, and rejects
+changed bytes on replay. The application evidence path now forwards its
+payload into that durable store. Redis workers can therefore resolve the
+content-addressed handoff after dispatch without a second, uncoordinated
+payload write.
+
+Focused application and PostgreSQL dispatch coverage passed 18 tests. Ruff and
+MyPy remain green across the package. Forward-event dispatch persistence and
+stable Nautilus execution remain gated.
+
 ## 2026-09-25 - Search dispatch migration reconciliation checkpoint
 
 The canonical additive Alembic revision now creates the two tables required by

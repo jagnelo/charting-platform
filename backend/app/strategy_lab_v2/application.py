@@ -477,6 +477,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             runtime_preflight=evidence.runtime_preflight,
             reservation_id=evidence.reservation_id,
             dispatch_request=dispatch_request,
+            payload=payload,
             now=evidence.now,
         )
 

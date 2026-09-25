@@ -20,6 +20,7 @@ from app.strategy_lab_v2.admission import (
 )
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.execution import ExecutionAuthorization
 from app.strategy_lab_v2.outbox import OutboxMessage
 from app.strategy_lab_v2.postgres_search_state import PostgresSearchStateAdapter
@@ -61,12 +62,14 @@ class PostgresSearchDispatchSchema:
 
     admission_table: str = "strategy_lab_v2_execution_admissions"
     dispatch_table: str = "strategy_lab_v2_search_dispatches"
+    payload_table: str = "strategy_lab_v2_dispatch_payloads"
     outbox_table: str = "strategy_lab_v2_execution_outbox"
 
     def __post_init__(self) -> None:
         for name, value in (
             ("admission_table", self.admission_table),
             ("dispatch_table", self.dispatch_table),
+            ("payload_table", self.payload_table),
             ("outbox_table", self.outbox_table),
         ):
             if not isinstance(value, str) or not re.fullmatch(r"[a-z_][a-z0-9_]*", value):
@@ -109,6 +112,14 @@ class PostgresSearchDispatchSchema:
                 PRIMARY KEY (owner_id, idempotency_key),
                 UNIQUE (owner_id, experiment_fingerprint, candidate_index),
                 UNIQUE (owner_id, request_fingerprint)
+            )
+            """,
+            f"""
+            CREATE TABLE {self.payload_table} (
+                payload_digest TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                byte_length BIGINT NOT NULL,
+                payload_fingerprint TEXT NOT NULL
             )
             """,
         )
@@ -225,6 +236,7 @@ class PostgresSearchDispatchAdapter:
         runtime_preflight: StrategyRuntimePreflight,
         reservation_id: str,
         dispatch_request: DispatchRequest,
+        payload: Mapping[str, Any],
         now: datetime,
     ) -> SearchDispatchResolution:
         """Resolve and persist one candidate dispatch in one SQL transaction."""
@@ -243,6 +255,11 @@ class PostgresSearchDispatchAdapter:
             raise TypeError("runtime_preflight must be a StrategyRuntimePreflight")
         if not isinstance(dispatch_request, DispatchRequest):
             raise TypeError("dispatch_request must be a DispatchRequest")
+        if not isinstance(payload, Mapping):
+            raise TypeError("payload must be a mapping")
+        payload_record = DispatchPayload.from_mapping(payload)
+        if payload_record.payload_digest != dispatch_request.payload_digest:
+            raise ValueError("dispatch payload does not match its content digest")
         _validate_digest(reservation_id, "reservation_id")
         if now.tzinfo is None or now.utcoffset() is None:
             raise ValueError("dispatch time must be timezone-aware")
@@ -269,6 +286,11 @@ class PostgresSearchDispatchAdapter:
                 prior_dispatches = await self._load_dispatches(
                     session, owner_id, experiment_fingerprint
                 )
+                prior_payload = await self._load_payload(
+                    session, dispatch_request.payload_digest
+                )
+                if prior_payload is not None and prior_payload != payload_record:
+                    raise ValueError("dispatch payload identity is already bound to different content")
                 resolution = resolve_search_dispatch(
                     state,
                     candidate_index=candidate_index,
@@ -290,6 +312,8 @@ class PostgresSearchDispatchAdapter:
                     return resolution
                 if resolution.decision is SearchDispatchDecision.REPLAY_EXISTING:
                     return resolution
+                if prior_payload is None:
+                    await self._insert_payload(session, payload_record)
                 await self._persist_resolution(
                     session,
                     owner_id,
@@ -414,6 +438,51 @@ class PostgresSearchDispatchAdapter:
                 raise ValueError("PostgreSQL search dispatch fingerprint does not match bytes")
             requests.append(request)
         return tuple(sorted(requests, key=lambda item: item.fingerprint))
+
+    async def _load_payload(self, session: AsyncSessionLike, payload_digest: str) -> DispatchPayload | None:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT payload_digest, payload_json, byte_length, payload_fingerprint
+                FROM {self._schema.payload_table}
+                WHERE payload_digest = :payload_digest
+                FOR SHARE
+                """
+            ),
+            {"payload_digest": payload_digest},
+        )
+        rows = list(result.mappings())
+        if not rows:
+            return None
+        if len(rows) != 1:
+            raise ValueError("PostgreSQL search dispatch payload query returned duplicate keys")
+        row = rows[0]
+        payload = DispatchPayload(
+            row["payload_digest"], row["payload_json"], int(row["byte_length"])
+        )
+        if row.get("payload_fingerprint") not in (None, payload.fingerprint):
+            raise ValueError("PostgreSQL search dispatch payload fingerprint does not match bytes")
+        return payload
+
+    async def _insert_payload(self, session: AsyncSessionLike, payload: DispatchPayload) -> None:
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.payload_table}
+                    (payload_digest, payload_json, byte_length, payload_fingerprint)
+                VALUES (:payload_digest, :payload_json, :byte_length, :payload_fingerprint)
+                ON CONFLICT (payload_digest) DO NOTHING
+                """
+            ),
+            {
+                "payload_digest": payload.payload_digest,
+                "payload_json": payload.payload_json,
+                "byte_length": payload.byte_length,
+                "payload_fingerprint": payload.fingerprint,
+            },
+        )
+        if getattr(result, "rowcount", 0) != 1:
+            raise ValueError("PostgreSQL search dispatch payload insert lost a uniqueness race")
 
     async def _select_dispatch_rows(
         self,

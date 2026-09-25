@@ -48,6 +48,7 @@ class FakeSession:
         self.reservations: dict[str, dict[str, Any]] = {}
         self.admissions: dict[tuple[str, str], dict[str, Any]] = {}
         self.dispatches: dict[tuple[str, str], dict[str, Any]] = {}
+        self.payloads: dict[str, dict[str, Any]] = {}
         self.outboxes: dict[str, dict[str, Any]] = {}
 
     async def __aenter__(self):
@@ -106,6 +107,9 @@ class FakeSession:
                 )
             ]
             return FakeResult(sorted(rows, key=lambda row: row["request_fingerprint"]))
+        if "FROM strategy_lab_v2_dispatch_payloads" in sql:
+            row = self.payloads.get(values["payload_digest"])
+            return FakeResult([] if row is None else [row])
         if normalized.startswith("INSERT INTO strategy_lab_v2_search_states"):
             key = (values["owner_id"], values["experiment_fingerprint"])
             if key in self.searches:
@@ -139,6 +143,12 @@ class FakeSession:
             if key in self.dispatches:
                 return FakeResult(rowcount=0)
             self.dispatches[key] = values
+            return FakeResult(rowcount=1)
+        if normalized.startswith("INSERT INTO strategy_lab_v2_dispatch_payloads"):
+            key = values["payload_digest"]
+            if key in self.payloads:
+                return FakeResult(rowcount=0)
+            self.payloads[key] = values
             return FakeResult(rowcount=1)
         if normalized.startswith("INSERT INTO strategy_lab_v2_execution_outbox"):
             key = values["message_id"]
@@ -182,10 +192,11 @@ async def test_postgres_search_dispatch_stages_and_replays_all_rows_atomically()
     request = DispatchRequest(
         "dispatch-key",
         authorization.attempt_id,
-        content_digest("payload"),
+        content_digest({"payload": "value"}),
         "strategy-backtest",
         NOW,
     )
+    payload = {"payload": "value"}
 
     first = await adapter.dispatch(
         principal="owner-1",
@@ -197,12 +208,14 @@ async def test_postgres_search_dispatch_stages_and_replays_all_rows_atomically()
         runtime_preflight=runtime_preflight,
         reservation_id=_reservation("one"),
         dispatch_request=request,
+        payload=payload,
         now=NOW,
     )
     assert first.decision is SearchDispatchDecision.ENQUEUE
     assert len(session.admissions) == 1
     assert len(session.reservations) == 1
     assert len(session.dispatches) == 1
+    assert len(session.payloads) == 1
     assert len(session.outboxes) == 1
     assert session.candidates[("owner-1", EXPERIMENT, 0)]["phase"] == "running"
 
@@ -216,12 +229,14 @@ async def test_postgres_search_dispatch_stages_and_replays_all_rows_atomically()
         runtime_preflight=runtime_preflight,
         reservation_id=_reservation("one"),
         dispatch_request=request,
+        payload=payload,
         now=NOW,
     )
     assert replay.decision is SearchDispatchDecision.REPLAY_EXISTING
     assert len(session.admissions) == 1
     assert len(session.reservations) == 1
     assert len(session.dispatches) == 1
+    assert len(session.payloads) == 1
     assert len(session.outboxes) == 1
 
 
@@ -244,10 +259,11 @@ async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_id
     request = DispatchRequest(
         "dispatch-key",
         authorization.attempt_id,
-        content_digest("payload"),
+        content_digest({"payload": "value"}),
         "strategy-backtest",
         NOW,
     )
+    payload = {"payload": "value"}
     await adapter.dispatch(
         principal="owner-1",
         experiment_fingerprint=EXPERIMENT,
@@ -258,6 +274,7 @@ async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_id
         runtime_preflight=runtime_preflight,
         reservation_id=_reservation("one"),
         dispatch_request=request,
+        payload=payload,
         now=NOW,
     )
 
@@ -275,7 +292,7 @@ async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_id
 
 def test_postgres_search_dispatch_schema_is_additive_and_safe() -> None:
     schema = PostgresSearchDispatchSchema()
-    assert len(schema.statements) == 2
+    assert len(schema.statements) == 3
     assert all("CREATE TABLE" in statement for statement in schema.statements)
     with pytest.raises(ValueError, match="safe SQL identifier"):
         PostgresSearchDispatchSchema(dispatch_table="unsafe;drop")
