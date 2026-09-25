@@ -419,9 +419,10 @@ native-promoted through its page-declared dated FilePoint JSON route; and
 serves unrelated content, while `argent` and `arin` expose holdings pages that
 are likewise blocked to backend requests. These records remain fallback-only
 until a complete executable issuer route is proven.
-`azimut` is classified as a non-portfolio publisher because its official
-catalogue contains mutual-fund/UCITS products rather than a U.S. ETF holdings
-route.
+`azimut` is classified as a non-portfolio publisher at the parent-identity
+boundary: current U.S. ETF products NSIV/NSIG are published under the distinct
+North Square identity, whose current pages remain non-executable for complete
+holdings ingestion.
 `bridgeway` is native-promoted through complete, dated holdings tables on its
 official BBLU, BAGX, BRSV, BSVO, and BUSM product pages.
 `brookstone` is native-promoted through complete, dated holdings CSVs declared by

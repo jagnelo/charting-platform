@@ -989,24 +989,24 @@ symbol_audit_ledger:
       provider_identity: north_square
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:north-square-nsiv-non-executable-2026-09-03", "web:north-square-nsig-filepoint-2026-09-03", "web:north-square-sec-disclosure-2026-09-03"]
+      investigated_at: 2026-09-25
+      evidence_refs: ["web:north-square-nsiv-non-executable-2026-09-03", "web:north-square-nsig-filepoint-2026-09-03", "web:north-square-sec-disclosure-2026-09-03", "web:north-square-current-etf-catalogue-2026-09-25", "web:north-square-nsiv-nsig-non-executable-2026-09-25"]
       next_action: "Re-audit the official North Square product and FilePoint pages after the next reporting cycle; promote only when executable current rows and dates are proven."
     - symbol: NSIG
       tier: 1
       provider_identity: north_square
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:north-square-nsiv-non-executable-2026-09-03", "web:north-square-nsig-filepoint-2026-09-03", "web:north-square-sec-disclosure-2026-09-03"]
+      investigated_at: 2026-09-25
+      evidence_refs: ["web:north-square-nsiv-non-executable-2026-09-03", "web:north-square-nsig-filepoint-2026-09-03", "web:north-square-sec-disclosure-2026-09-03", "web:north-square-current-etf-catalogue-2026-09-25", "web:north-square-nsiv-nsig-non-executable-2026-09-25"]
       next_action: "Re-audit the official North Square product and FilePoint pages after the next reporting cycle; promote only when executable current rows and dates are proven."
     - symbol: QTPI
       tier: 1
       provider_identity: north_square
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:north-square-nsiv-non-executable-2026-09-03", "web:north-square-nsig-filepoint-2026-09-03", "web:north-square-sec-disclosure-2026-09-03"]
+      investigated_at: 2026-09-25
+      evidence_refs: ["web:north-square-nsiv-non-executable-2026-09-03", "web:north-square-nsig-filepoint-2026-09-03", "web:north-square-sec-disclosure-2026-09-03", "web:north-square-current-etf-catalogue-2026-09-25", "web:north-square-nsiv-nsig-non-executable-2026-09-25"]
       next_action: "Re-audit the official North Square product and FilePoint pages after the next reporting cycle; promote only when executable current rows and dates are proven."
     - symbol: WAGN
       tier: 1
@@ -2599,6 +2599,8 @@ providers:
       - "live:azimut-official-catalogue-recheck-2026-09-07"
       - "live:azfund-catalogue-tls-mismatch-2026-09-07"
       - "live:azimut-provider-page-404-2026-09-07"
+      - "web:azimut-north-square-nsiv-nsig-launch-2026-07-09"
+      - "web:north-square-current-etf-catalogue-2026-09-25"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2624,8 +2626,16 @@ providers:
         source: "https://stockanalysis.com/etf/provider/azimut/"
         result: "The public U.S. ETF provider endpoint still returns HTTP 404; no active U.S. ETF provider holdings catalogue is available for this identity."
         evidence_ref: "live:azimut-provider-page-404-2026-09-07"
-    disposition_reason: "azimut: Fresh first-party catalogue checks still expose general Azimut fund research rather than a U.S. ETF portfolio publisher; the Azfund endpoint has a certificate mismatch and the public U.S. ETF provider endpoint remains 404. Retain explicit SEC fallback eligibility without native promotion."
-    next_action: "azimut: Keep fallback-only unless Azimut launches a U.S. ETF and publishes a complete executable first-party holdings route with symbol mapping and current-date provenance."
+      - date: 2026-09-25
+        source: "https://www.nasdaq.com/press-release/north-square-investments-launches-actively-managed-large-cap-equity-etfs-2026-07-09; https://northsquareinvest.com/strategies/"
+        result: "Current evidence identifies North Square Investments, a division of Azimut NSI, as the U.S. ETF publisher for NSIV and NSIG. The products must remain attributed to the distinct north_square identity rather than receive an Azimut adapter."
+        evidence_ref: "web:azimut-north-square-nsiv-nsig-launch-2026-07-09"
+      - date: 2026-09-25
+        source: "https://northsquareinvest.com/strategies/"
+        result: "The current North Square catalogue lists NSIV, NSIG, and QTPI as separate U.S. ETFs; no complete executable holdings artifact is exposed through the Azimut parent identity."
+        evidence_ref: "web:north-square-current-etf-catalogue-2026-09-25"
+    disposition_reason: "azimut: Azimut's current U.S. ETF relationship is through the distinct North Square Investments identity; Azimut itself is not the ETF portfolio publisher. North Square remains separately audited as non_executable_public_source, and no parent-level native route or SEC-derived reconstruction is promoted."
+    next_action: "azimut: Keep the parent identity provider_not_a_portfolio_publisher; resolve NSIV/NSIG/QTPI to north_square and promote only through that identity after a complete executable first-party holdings route is proven."
     implementation_sha: null
     validation_refs: []
   - adapter_key: baillie_gifford
@@ -6163,7 +6173,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-03
+    last_checked: 2026-09-25
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [NSIV, NSIG, QTPI]
     estimated_us_etf_count: null
@@ -6184,6 +6194,8 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.north_square"
       - "runtime:ISSUER_ADAPTER_CONFIGS.north_square"
+      - "web:north-square-current-etf-catalogue-2026-09-25"
+      - "web:north-square-nsiv-nsig-non-executable-2026-09-25"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -6201,6 +6213,14 @@ providers:
         source: "https://www.sec.gov/Archives/edgar/data/1750821/000158064226002170/epat_northswuare-485a.htm"
         result: "The SEC filing confirms North Square's adviser role and website disclosure policy but does not provide a current complete public holdings artifact."
         evidence_ref: "web:north-square-sec-disclosure-2026-09-03"
+      - date: 2026-09-25
+        source: "https://northsquareinvest.com/strategies/"
+        result: "The current catalogue lists NSIV, NSIG, and QTPI as U.S. ETFs, while the linked product pages still state that portfolio characteristics are quarterly and a complete list of holdings is available upon request; no executable complete current artifact is exposed."
+        evidence_ref: "web:north-square-current-etf-catalogue-2026-09-25"
+      - date: 2026-09-25
+        source: "https://northsquareinvest.com/strategies/north-square-disciplined-value-etf/; https://northsquareinvest.com/strategies/north-square-growth-opportunities-etf/"
+        result: "Current NSIV and NSIG pages identify the products and inception date but expose only quarterly characteristics/top-ten sections and an upon-request complete list; they remain non-executable for current constituent ingestion."
+        evidence_ref: "web:north-square-nsiv-nsig-non-executable-2026-09-25"
     disposition_reason: "north_square: Official NSIV/NSIG pages and the FilePoint catalogue identify the current ETFs but expose no executable complete current holdings artifact; portfolio characteristics are quarterly and complete lists are available upon request. The provider remains fallback-only as non_executable_public_source, with no SEC-derived reconstruction promoted."
     next_action: "north_square: Re-audit the official product and FilePoint pages for a public complete holdings download after the next reporting cycle; promote only when executable current rows and dates are proven."
     implementation_sha: null

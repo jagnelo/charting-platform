@@ -37,6 +37,16 @@ is a distinct publisher identity and must not be attributed to AMG National.
 The AMG National fallback therefore remains `provider_not_a_portfolio_publisher`;
 no 13F or third-party portfolio data is promoted as ETF constituents.
 
+## Current audit checkpoint — Azimut/North Square identity boundary — 2026-09-25
+
+Current evidence identifies North Square Investments, a division of Azimut NSI,
+as the publisher identity for NSIV and NSIG (with QTPI also listed in the North
+Square catalogue). The product pages expose quarterly characteristics and say
+complete holdings are available on request, so they remain unavailable for
+current ingestion. The parent `azimut` identity remains
+`provider_not_a_portfolio_publisher`; no parent-level or SEC-derived route is
+promoted.
+
 ## Current branch state
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`

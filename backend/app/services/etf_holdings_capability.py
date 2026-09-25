@@ -1305,11 +1305,13 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="non_executable_public_source",
     provider_identity="north_square",
-    investigated_at=date(2026, 9, 3),
+    investigated_at=date(2026, 9, 25),
     evidence_refs=(
         "web:north-square-nsiv-non-executable-2026-09-03",
         "web:north-square-nsig-filepoint-2026-09-03",
         "web:north-square-sec-disclosure-2026-09-03",
+        "web:north-square-current-etf-catalogue-2026-09-25",
+        "web:north-square-nsiv-nsig-non-executable-2026-09-25",
     ),
     next_action=(
         "Re-audit the official North Square product and FilePoint pages after the next reporting "
