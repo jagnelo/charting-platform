@@ -162,6 +162,18 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    At committed source `741cfa4308dbe988cfcebcdcaa7fa428a50a8acc`, the bounded
+    Alpaca matrix passed `7/7` with eight requests and 6,537,679 response
+    bytes, MarketData.app passed `7/7` with nine requests and 21,155 bytes
+    (including the intentional zero-request guard for unbounded response-priced
+    history), and the explicitly capped Dinari Sandbox canary passed `1/1`
+    with 14 requests and 120,335 bytes. Receipts are redacted and durable in
+    `validation.jsonl`; Dinari remains non-routable/non-persisting because its
+    Sandbox quota and commercial/redistribution terms are unpublished. All
+    provider-contract/legal/capability, complete NMS/OTC/SEC universe,
+    external secret-store, deferred-provider, publication, and final-shadow
+    gates remain open.
+  - >-
     At source `0aa295707c50f42ac715760f5ea9c6cf3c05f8a7`, owner-authorized
     focused native account-usage probes passed for Alpaca, OpenFIGI, Twelve
     Data, EODHD, MarketData.app, and Binance (`6/6`, one request each). The

@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 current-source bounded live matrix refresh
+
+- At committed source `741cfa4308dbe988cfcebcdcaa7fa428a50a8acc`, the
+  credentialed Alpaca matrix passed `7/7` with eight upstream requests and
+  `6,537,679` response bytes, including the complete bounded corporate-action
+  page case. MarketData.app passed `7/7` with nine upstream requests and
+  `21,155` response bytes; the response-priced unbounded-history case made
+  zero requests by policy. Dinari's explicitly capped Sandbox canary passed
+  `1/1` with 14 requests and `120,335` response bytes.
+- These are redacted aggregate transport/schema receipts in
+  `validation.jsonl`; no credentials or provider payloads entered Git. Dinari
+  remains non-routable and non-persisting because its Sandbox quota and
+  commercial/redistribution terms are unpublished. The provider contract,
+  legal/use, capability, complete-universe, external secret-store,
+  deferred-provider, publication, and final-shadow gates remain open.
+
 ## 2026-09-25 current-source native account-usage refresh
 
 - With owner-authorized access to the private durable quota coordinator, the
