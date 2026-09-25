@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Alpaca native usage refresh
+
+- The focused credentialed Alpaca account-usage probe passed `1/1` at source
+  `26ce20ed97829c31b5eb8ae03425165f8b4fa21e`, using exactly one bounded native
+  latest-bar request. Its redacted receipt and owner-local durable usage
+  update are recorded by the live runner; no secret or response payload was
+  added to Git.
+- The full matrix remains intentionally fail-closed on the unrelated
+  provider-specific quota, legal/use, capability, universe, secret-store,
+  deferred-provider, publication, and final-shadow gates.
+
 ## 2026-09-25 exact-current identity-envelope correction and validation
 
 - Commit `89d54d45e802410bbe08dad977928c0738c65bd2` closes the analogous

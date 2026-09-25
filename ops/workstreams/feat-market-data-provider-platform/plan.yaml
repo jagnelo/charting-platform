@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    A bounded Alpaca native account-usage refresh passed 1/1 at source
+    `26ce20ed97829c31b5eb8ae03425165f8b4fa21e` with exactly one request; the
+    redacted receipt and durable owner-local usage evidence are recorded.
+    This confirms the already-reviewed Alpaca 200-requests/minute native
+    header path but does not widen unrelated provider admission or close the
+    remaining provider-contract, legal, capability, universe, secret-store,
+    deferred-provider, publication, or final-shadow gates.
+  - >-
     Exact-current source `89d54d45e802410bbe08dad977928c0738c65bd2` also
     preserves explicitly empty identity-quarantine candidate envelopes in the
     mutable projection and append-only observation. Focused coverage passes
