@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -45,6 +45,18 @@ def test_enqueue_orders_messages_and_exact_request_retry_replays() -> None:
     assert replay.decision is OutboxEnqueueDecision.REPLAY_EXISTING
     assert replay.state == applied.state
     assert first.message_id.startswith("sha256:")
+
+
+def test_outbox_normalizes_offset_equivalent_schedule_times() -> None:
+    offset = timezone(timedelta(hours=1))
+    equivalent = _message(
+        created_at=datetime(2024, 1, 1, 1, tzinfo=offset),
+        available_at=datetime(2024, 1, 1, 1, 1, tzinfo=offset),
+    )
+    baseline = _message(available_at=NOW + timedelta(minutes=1))
+    assert equivalent == baseline
+    assert equivalent.created_at.tzinfo is UTC
+    assert equivalent.available_at.tzinfo is UTC
 
 
 def test_changed_payload_with_same_request_conflicts() -> None:
@@ -104,4 +116,3 @@ def test_message_requires_digest_time_order_and_scheduling_identity() -> None:
 def test_enqueue_rejects_invalid_prior_message_sequence() -> None:
     with pytest.raises(TypeError, match="prior_messages"):
         resolve_outbox_enqueue(OutboxState(), _message(), "not-messages")  # type: ignore[arg-type]
-

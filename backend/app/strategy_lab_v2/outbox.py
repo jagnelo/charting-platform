@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -47,8 +47,12 @@ class OutboxMessage:
         _nonempty(self.topic, "topic")
         _aware(self.created_at, "created_at")
         _aware(self.available_at, "available_at")
-        if self.available_at < self.created_at:
+        created_at = self.created_at.astimezone(UTC)
+        available_at = self.available_at.astimezone(UTC)
+        if available_at < created_at:
             raise ValueError("available_at must not precede created_at")
+        object.__setattr__(self, "created_at", created_at)
+        object.__setattr__(self, "available_at", available_at)
 
     @property
     def message_id(self) -> str:
