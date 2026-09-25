@@ -1427,6 +1427,19 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-25 FMP exact-reset implementation validation: the official FAQ's
+      3 PM Eastern daily boundary is modeled as
+      `15:00 America/New_York` with DST-aware window calculation; the FMP
+      registry and live-preflight diagnostics recognize the seeded reset while
+      retaining the independent bandwidth/byte-evidence gates. Focused
+      quota/registry coverage passed 137/137; the branch-owned unit gate passed
+      1,916/1,916 with 37 warnings; Docker PostgreSQL/Redis integration passed
+      386/386 with 57 warnings; Ruff, diff, and workstream validation passed.
+      The exact-current preflight at source
+      `0cdfce21ea7c241d862c5bb4e25e5ecc4557b4e4` stopped before transport with
+      0/0 cases and zero provider requests because durable quota admission and
+      the pre-existing provider/legal/capability gates remain unresolved.
+    - >-
       2026-09-17 loss-prevention pagination/evidence correction passed the
       exact-source Docker-backed backend gate: `2,766/2,766` unit and
       PostgreSQL/Redis integration tests, `89` warnings, and `82.05%` coverage

@@ -16,9 +16,13 @@
   `FMP_BANDWIDTH_QUOTA_EVIDENCE` requirements remain unchanged; FMP is still
   non-routable until those controls are supplied. No provider request was
   required for this documentation-backed correction.
-- Focused quota/registry tests pass `137/137`; full unit, Docker integration,
-  lint, diff, and workstream validation remain required before the next durable
-  checkpoint.
+- Focused quota/registry tests pass `137/137`; the full branch-owned unit gate
+  passes `1,916/1,916` with 37 warnings; Docker PostgreSQL/Redis integration
+  passes `386/386` with 57 warnings; Ruff, diff, and workstream validation are
+  green. The exact-current live preflight at this SHA stops before transport
+  (`0/0`, zero provider requests) because the durable quota coordinator is not
+  available in this shell and the existing provider baseline/legal/capability
+  gates remain unresolved. Receipt is appended to `validation.jsonl`.
 
 ## 2026-09-25 exact-current full safety preflight and Tiingo usage audit
 
