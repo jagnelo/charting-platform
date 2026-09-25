@@ -35,6 +35,10 @@ outbox message together. Saturation, rejection, and conflict resolutions
 return before any write. Exact retries replay the existing admission and
 dispatch evidence without duplicating rows.
 
+The pure resolver also rejects a second dispatch identity for an already bound
+attempt, so a new idempotency key cannot create a duplicate queue message for
+the same candidate.
+
 The shared persistence bundle now exposes this adapter while leaving runtime
 authorization, provider entitlement, and Nautilus execution as explicit host
 inputs. The additive schema declares only admission and search-dispatch tables;
