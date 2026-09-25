@@ -4616,4 +4616,15 @@ progress:
       integration gate and focused provider/quota gates remain the reliable
       green evidence; a compatible unit-test environment is still required for
       the full unit gate.
+    - >-
+      2026-09-25 identifier-payload retention checkpoint: Alpaca, Massive, and
+      OpenFIGI now preserve complete decoded identifier rows in append-only
+      identifier snapshots through `IdentifierRecord.raw_payload`. Exact source
+      `716d4417954e470ff8436f31e77418857506337e` passed the branch-owned unit
+      gate `1,911/1,911`, Docker integration `386/386`, Alpaca live `7/7`, and
+      OpenFIGI live `3/3`; all receipts are durable. A transient container-loss
+      run was reproduced as infrastructure-only and resolved by a clean retry.
+      No ETF/frontend paths changed. Remaining provider quota/legal/source,
+      complete-universe, target-secret, deferred-provider, publication, and
+      final-shadow gates remain fail-closed.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.
