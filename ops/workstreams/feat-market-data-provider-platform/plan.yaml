@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current full provider preflight at source
+    174b693f446ea7ae820951f400598a47c65b3ba8 stopped before transport with
+    0/0 ordinary cases and zero provider requests. Repeated snapshot retention
+    did not widen routing. The receipt is appended to validation.jsonl; the
+    provider quota/legal, unresolved capability, universe, secret-store,
+    deferred-provider, and final-shadow gates remain fail-closed.
+  - >-
     2026-09-25 provider snapshot retention correction: profile, identifier,
     search, universe-discovery, and option-chain snapshots no longer
     deduplicate identical payloads or overwrite observation timestamps. Hashes

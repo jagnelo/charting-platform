@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current preflight after repeated-snapshot retention
+
+- Source `174b693f4` ran the full provider manifest preflight and stopped before
+  transport: `0/0` ordinary cases and zero provider requests. The receipt is
+  appended to `validation.jsonl`.
+- Repeated snapshot retention did not widen routing. Provider quota/cost/
+  baseline, legal/use, unresolved capability, complete NMS/OTC/SEC
+  reconciliation, external secret-store, deferred-provider, publication, and
+  final shadow gates remain fail-closed.
+
 ## 2026-09-25 provider snapshot retention correction
 
 - Profile, identifier, search, universe-discovery, and option-chain evidence
