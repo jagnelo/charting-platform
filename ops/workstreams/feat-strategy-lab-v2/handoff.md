@@ -22,10 +22,12 @@ binding, request, and payload fingerprints. If the host has not supplied the
 binding, the route fails closed with `capability_unsupported`/501 rather than
 inventing entitlement or engine capability.
 
-Focused API coverage passed 26 tests, including successful delegation,
+Focused API coverage passed 23 tests, including successful delegation,
 canonical identity propagation, malformed-body rejection, and the missing
 binding failure. Capability calculation, provider entitlement, engine
-registration, and application wiring remain host-owned gates.
+registration, and application wiring remain host-owned gates. The authorized
+push remains blocked by the environment's rejected GitHub SSH key
+(`Permission denied (publickey)`).
 
 ## 2026-09-25 - Result-manifest artifact binding checkpoint
 
