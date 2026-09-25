@@ -10,6 +10,11 @@ from importlib import import_module
 from typing import Any
 
 from app.strategy_lab_v2.dispatch_payload import DispatchPayloadLoader
+from app.strategy_lab_v2.forward_account_worker import (
+    ForwardAccountEventResolver,
+    ForwardAccountStore,
+    ForwardAccountWorkerHandler,
+)
 from app.strategy_lab_v2.forward_worker_authorization import (
     AuthorizedForwardEventHandler,
     ForwardWorkerAuthorizationResolver,
@@ -288,6 +293,44 @@ class RedisDispatchRuntime:
             ),
             interval_seconds=interval_seconds,
             sleep=sleep,
+        )
+
+    def account_settling_forward_worker_service(
+        self,
+        worker: RedisDispatchWorker,
+        *,
+        payload_loader: DispatchPayloadLoader,
+        materializer: ForwardEventMaterializer,
+        authorization_resolver: ForwardWorkerAuthorizationResolver,
+        account_store: ForwardAccountStore,
+        principal: Any,
+        event_resolver: ForwardAccountEventResolver,
+        release_store: ForwardCapacityReleaseStore,
+        profile: WorkerProfile,
+        observation_resolver: ForwardReleaseObservationResolver,
+        interval_seconds: float = 1.0,
+        sleep: Callable[[float], Awaitable[None]],
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> ForwardEventWorkerService:
+        """Compose authorization, account settlement, and capacity release."""
+
+        account_handler = ForwardAccountWorkerHandler(
+            account_store,
+            principal=principal,
+            event_resolver=event_resolver,
+        )
+        return self.settling_forward_worker_service(
+            worker,
+            payload_loader=payload_loader,
+            materializer=materializer,
+            authorization_resolver=authorization_resolver,
+            handler=account_handler,
+            release_store=release_store,
+            profile=profile,
+            observation_resolver=observation_resolver,
+            interval_seconds=interval_seconds,
+            sleep=sleep,
+            clock=clock,
         )
 
     async def aclose(self) -> None:

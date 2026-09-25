@@ -257,6 +257,26 @@ async def test_redis_runtime_composes_transport_relay_and_closes_once() -> None:
         clock=lambda: NOW,
     )
     assert isinstance(settling_forward_service, ForwardEventWorkerService)
+
+    class AccountStore:
+        async def apply(self, **_kwargs: Any) -> Any:
+            return None
+
+    account_settling_service = runtime.account_settling_forward_worker_service(
+        forward_worker,
+        payload_loader=Loader(),
+        materializer=materialize,
+        authorization_resolver=cast(Any, lambda _entry, _item: None),
+        account_store=AccountStore(),
+        principal="owner-1",
+        event_resolver=cast(Any, lambda _entry, _item: None),
+        release_store=ReleaseStore(),
+        profile=WorkerProfile("forward-worker", WorkerKind.FORWARD, content_digest("runtime")),
+        observation_resolver=cast(Any, lambda _entry, _item, _authorization: None),
+        sleep=sleep,
+        clock=lambda: NOW,
+    )
+    assert isinstance(account_settling_service, ForwardEventWorkerService)
     await runtime.aclose()
     await runtime.aclose()
     assert client.close_calls == 1
