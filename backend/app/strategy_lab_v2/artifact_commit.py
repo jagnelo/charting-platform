@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.artifact_publication import (
@@ -36,6 +36,7 @@ class ArtifactCommitRecord:
         if not isinstance(self.byte_length, int) or isinstance(self.byte_length, bool) or self.byte_length < 0:
             raise ValueError("artifact byte_length must be a non-negative integer")
         _aware(self.committed_at, "committed_at")
+        object.__setattr__(self, "committed_at", self.committed_at.astimezone(UTC))
 
     @property
     def commit_key(self) -> str:
@@ -131,6 +132,7 @@ def finalize_artifact_commit(
     if not isinstance(plan, ArtifactPublicationPlan):
         raise TypeError("plan must be an ArtifactPublicationPlan")
     _aware(committed_at, "committed_at")
+    committed_at = committed_at.astimezone(UTC)
     if plan.storage_key != plan.content_digest:
         return ArtifactCommitResolution(
             ArtifactCommitDecision.REJECT,

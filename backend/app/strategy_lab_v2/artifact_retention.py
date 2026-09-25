@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -41,11 +41,15 @@ class ArtifactRetentionPin:
         for name in ("owner_type", "owner_id"):
             _nonempty(getattr(self, name), name)
         _aware(self.created_at, "created_at")
+        created_at = self.created_at.astimezone(UTC)
+        object.__setattr__(self, "created_at", created_at)
         for name in ("expires_at", "released_at"):
             value = getattr(self, name)
             if value is not None:
                 _aware(value, name)
-                if value < self.created_at:
+                value = value.astimezone(UTC)
+                object.__setattr__(self, name, value)
+                if value < created_at:
                     raise ValueError(f"{name} must not precede created_at")
 
     @property
@@ -58,6 +62,7 @@ class ArtifactRetentionPin:
         """Evaluate activity at an explicit instant, including expiry boundaries."""
 
         _aware(observed_at, "observed_at")
+        observed_at = observed_at.astimezone(UTC)
         return (
             self.created_at <= observed_at
             and (self.expires_at is None or observed_at < self.expires_at)
@@ -86,6 +91,11 @@ class ArtifactRetentionState:
             raise TypeError("retention_class must be an ArtifactRetention")
         if self.retention_eligible_at is not None:
             _aware(self.retention_eligible_at, "retention_eligible_at")
+            object.__setattr__(
+                self,
+                "retention_eligible_at",
+                self.retention_eligible_at.astimezone(UTC),
+            )
         if self.retention_class in {
             ArtifactRetention.TIERED_RESULT,
             ArtifactRetention.EPHEMERAL,
@@ -214,6 +224,7 @@ def release_retention_pin(
         raise TypeError("state must be an ArtifactRetentionState")
     require_sha256_digest(pin_id, field_name="pin_id")
     _aware(released_at, "released_at")
+    released_at = released_at.astimezone(UTC)
     for index, pin in enumerate(state.pins):
         if pin.pin_id != pin_id:
             continue
@@ -232,6 +243,7 @@ def resolve_artifact_retention(
     if not isinstance(state, ArtifactRetentionState):
         raise TypeError("state must be an ArtifactRetentionState")
     _aware(observed_at, "observed_at")
+    observed_at = observed_at.astimezone(UTC)
     active_pin_ids = tuple(
         sorted(pin.pin_id for pin in state.pins if pin.active_at(observed_at))
     )

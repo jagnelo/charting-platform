@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -41,6 +41,18 @@ def test_create_if_absent_commit_and_exact_retry_replay() -> None:
     replay = finalize_artifact_commit(committed.ledger, plan, committed_at=NOW + timedelta(days=1))
     assert replay.decision is ArtifactCommitDecision.REPLAY_EXISTING
     assert replay.record == committed.record
+
+
+def test_commit_record_normalizes_offset_equivalent_times() -> None:
+    offset = timezone(timedelta(hours=1))
+    first = finalize_artifact_commit(
+        ArtifactCommitLedger(),
+        _plan(),
+        committed_at=datetime(2024, 1, 1, 1, tzinfo=offset),
+    )
+    assert first.record is not None
+    assert first.record.committed_at == NOW
+    assert first.record.committed_at.tzinfo is UTC
 
 
 def test_reuse_existing_requires_prior_commit_record() -> None:

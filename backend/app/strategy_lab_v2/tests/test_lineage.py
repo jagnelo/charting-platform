@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -58,6 +58,14 @@ def test_lineage_append_is_idempotent_and_deterministically_ordered() -> None:
         LineageRole.OUTPUT_ARTIFACT,
     ]
     assert combined.index.fingerprint.startswith("sha256:")
+
+
+def test_lineage_entry_normalizes_offset_equivalent_creation_times() -> None:
+    equivalent = _entry(
+        created_at=datetime(2024, 1, 1, 1, tzinfo=timezone(timedelta(hours=1)))
+    )
+    assert equivalent == _entry()
+    assert equivalent.created_at.tzinfo is UTC
 
 
 def test_same_semantic_lineage_with_changed_recording_time_conflicts() -> None:

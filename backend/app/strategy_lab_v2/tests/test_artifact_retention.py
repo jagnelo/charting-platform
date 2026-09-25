@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -69,6 +69,23 @@ def test_pin_add_and_exact_replay_are_idempotent() -> None:
     replay = add_retention_pin(added.state, pin)
     assert replay.decision is RetentionPinDecision.REPLAY_EXISTING
     assert replay.state == added.state
+
+
+def test_retention_pin_normalizes_offset_equivalent_times() -> None:
+    offset = timezone(timedelta(hours=1))
+    pin = ArtifactRetentionPin(
+        pin_id=content_digest({"pin": "offset"}),
+        artifact_manifest_fingerprint=content_digest(MANIFEST),
+        owner_type="experiment",
+        owner_id="experiment-1",
+        created_at=datetime(2024, 1, 1, 1, tzinfo=offset),
+        expires_at=datetime(2024, 1, 3, 1, tzinfo=offset),
+    )
+    assert pin.created_at == NOW
+    assert pin.expires_at == NOW + timedelta(days=2)
+    assert pin.created_at.tzinfo is UTC
+    assert pin.expires_at is not None
+    assert pin.expires_at.tzinfo is UTC
 
 
 def test_same_pin_id_with_changed_metadata_is_a_conflict() -> None:
