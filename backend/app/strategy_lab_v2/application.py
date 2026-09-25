@@ -38,6 +38,7 @@ from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.execution import ExecutionAuthorization
 from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
 from app.strategy_lab_v2.forward_corrections import ForwardCorrectionCommand
+from app.strategy_lab_v2.forward_event_dispatch import ForwardEventDispatchResolution
 from app.strategy_lab_v2.forward_event_transaction import ForwardEventTransactionResolution
 from app.strategy_lab_v2.forward_warmup import (
     ForwardWarmupReceipt,
@@ -825,6 +826,43 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             instance_id=instance_id,
             event=event,
             observation=observation,
+            correction_command=correction_command,
+        )
+
+    async def dispatch_forward_event(
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        event: CanonicalForwardEvent,
+        observation: ForwardEventObservation,
+        dispatch_request: DispatchRequest,
+        payload: Mapping[str, Any],
+        correction_command: ForwardCorrectionCommand | None = None,
+    ) -> ForwardEventDispatchResolution:
+        """Atomically stage forward admission, payload, dispatch, and outbox evidence."""
+
+        if not isinstance(instance_id, str) or not instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        if not isinstance(event, CanonicalForwardEvent):
+            raise TypeError("event must be a CanonicalForwardEvent")
+        if not isinstance(observation, ForwardEventObservation):
+            raise TypeError("observation must be a ForwardEventObservation")
+        if not isinstance(dispatch_request, DispatchRequest):
+            raise TypeError("dispatch_request must be a DispatchRequest")
+        if not isinstance(payload, Mapping):
+            raise TypeError("payload must be a mapping")
+        if correction_command is not None and not isinstance(
+            correction_command, ForwardCorrectionCommand
+        ):
+            raise TypeError("correction_command must be a ForwardCorrectionCommand")
+        return await self._persistence.forward_dispatch.dispatch(
+            principal=_principal_identity(principal),
+            instance_id=instance_id,
+            event=event,
+            observation=observation,
+            dispatch_request=dispatch_request,
+            payload=payload,
             correction_command=correction_command,
         )
 

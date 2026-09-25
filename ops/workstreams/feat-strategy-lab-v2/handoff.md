@@ -2,6 +2,21 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Forward-event dispatch persistence checkpoint
+
+Added `PostgresForwardEventDispatchAdapter`, which reuses the authenticated
+forward checkpoint/replay transaction and stages canonical event payload bytes,
+idempotent forward dispatch identity, and the shared execution outbox together.
+The application persistence bundle and adapter now expose this seam, and the
+Alembic revision creates its owner/event/request uniqueness boundary. Replayed
+events cannot create a second dispatch identity; the pure resolver returns a
+typed conflict before persistence.
+
+Focused forward-dispatch, application/persistence, and migration coverage
+passed 29 tests. Ruff and MyPy remain green across 279 source files. Worker
+authorization/capacity binding, event-stream activation, and stable Nautilus
+execution remain gated.
+
 ## 2026-09-25 - Search dispatch payload durability checkpoint
 
 The atomic PostgreSQL search-dispatch adapter now canonicalizes and verifies

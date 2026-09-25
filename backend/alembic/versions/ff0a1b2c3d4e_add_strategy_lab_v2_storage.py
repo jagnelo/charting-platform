@@ -372,6 +372,27 @@ _DDL: tuple[tuple[str, str], ...] = (
         """,
     ),
     (
+        "strategy_lab_v2_forward_event_dispatches",
+        """
+        CREATE TABLE strategy_lab_v2_forward_event_dispatches (
+            owner_id TEXT NOT NULL,
+            instance_id TEXT NOT NULL,
+            event_fingerprint TEXT NOT NULL,
+            idempotency_key TEXT NOT NULL,
+            request_fingerprint TEXT NOT NULL,
+            attempt_id TEXT NOT NULL,
+            payload_digest TEXT NOT NULL,
+            queue_name TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            replay_plan_fingerprint TEXT NULL,
+            dispatch_fingerprint TEXT NOT NULL,
+            PRIMARY KEY (owner_id, idempotency_key),
+            UNIQUE (owner_id, instance_id, event_fingerprint),
+            UNIQUE (owner_id, request_fingerprint)
+        )
+        """
+    ),
+    (
         "strategy_lab_v2_legacy_imports",
         """
         CREATE TABLE strategy_lab_v2_legacy_imports (

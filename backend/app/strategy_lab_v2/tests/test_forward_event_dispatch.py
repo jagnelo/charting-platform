@@ -171,3 +171,24 @@ def test_dispatch_conflict_or_payload_mismatch_rolls_back_forward_state() -> Non
     assert wrong_payload.decision is ForwardEventDispatchDecision.REJECT
     assert wrong_payload.rejection_reason == "dispatch payload does not match forward event evidence"
     assert wrong_payload.state == state
+
+
+def test_replayed_event_cannot_create_a_second_dispatch_identity() -> None:
+    state = _state()
+    event = _event("live-0", 0)
+    observation = observe_forward_event(ForwardCursor(), event)
+    first = _dispatch(_payload(content_digest(event)), key="first")
+    accepted = resolve_forward_event_dispatch(
+        state, event, observation, dispatch_request=first
+    )
+    conflicting = resolve_forward_event_dispatch(
+        accepted.state,
+        event,
+        observation,
+        dispatch_request=_dispatch(_payload(content_digest(event)), key="second"),
+        prior_dispatches=(first,),
+    )
+    assert conflicting.decision is ForwardEventDispatchDecision.CONFLICT
+    assert conflicting.rejection_reason == (
+        "forward event is already bound to a different dispatch identity"
+    )

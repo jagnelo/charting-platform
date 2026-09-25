@@ -165,6 +165,21 @@ def resolve_forward_event_dispatch(
             rejection_reason="forward dispatch idempotency key is bound to different content",
         )
     if (
+        transaction.decision
+        in {
+            ForwardEventTransactionDecision.REPLAY_EXISTING,
+            ForwardEventTransactionDecision.CORRECTION_REPLAY,
+        }
+        and dispatch.decision is DispatchDecision.ENQUEUE
+    ):
+        return ForwardEventDispatchResolution(
+            ForwardEventDispatchDecision.CONFLICT,
+            state,
+            transaction,
+            dispatch,
+            rejection_reason="forward event is already bound to a different dispatch identity",
+        )
+    if (
         transaction.decision is ForwardEventTransactionDecision.CORRECTION_ACCEPTED
         and dispatch.decision is DispatchDecision.REPLAY_EXISTING
     ):

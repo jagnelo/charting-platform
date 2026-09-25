@@ -32,6 +32,7 @@ from app.strategy_lab_v2.postgres_event_transaction import (
 )
 from app.strategy_lab_v2.postgres_execution_state import PostgresExecutionStateAdapter
 from app.strategy_lab_v2.postgres_execution_summary import PostgresExecutionSummaryAdapter
+from app.strategy_lab_v2.postgres_forward_dispatch import PostgresForwardEventDispatchAdapter
 from app.strategy_lab_v2.postgres_forward_state import PostgresForwardStateAdapter
 from app.strategy_lab_v2.postgres_legacy import PostgresLegacyImportAdapter
 from app.strategy_lab_v2.postgres_lineage import PostgresLineageAdapter
@@ -109,6 +110,7 @@ class PostgresStrategyLabV2Persistence:
     execution_state: PostgresExecutionStateAdapter
     execution_summaries: PostgresExecutionSummaryAdapter
     forward_state: PostgresForwardStateAdapter
+    forward_dispatch: PostgresForwardEventDispatchAdapter
     legacy_imports: PostgresLegacyImportAdapter
     lineage: PostgresLineageAdapter
     metrics: PostgresMetricsAdapter
@@ -139,6 +141,9 @@ class PostgresStrategyLabV2Persistence:
         execution_state = PostgresExecutionStateAdapter(session_factory)
         execution_summaries = PostgresExecutionSummaryAdapter(session_factory)
         forward_state = PostgresForwardStateAdapter(session_factory)
+        forward_dispatch = PostgresForwardEventDispatchAdapter(
+            session_factory, forward_state=forward_state
+        )
         result_materialization = PostgresResultMaterializationAdapter(session_factory)
         metrics = PostgresMetricsAdapter(session_factory)
         capability = PostgresCapabilityAdapter(session_factory)
@@ -305,6 +310,7 @@ class PostgresStrategyLabV2Persistence:
             execution_state=execution_state,
             execution_summaries=execution_summaries,
             forward_state=forward_state,
+            forward_dispatch=forward_dispatch,
             legacy_imports=legacy_imports,
             lineage=PostgresLineageAdapter(session_factory),
             metrics=metrics,
