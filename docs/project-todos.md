@@ -16,6 +16,8 @@
 - [x] Refresh the keyless OpenFIGI mapping/profile/account-usage matrix at the
       current source. It passed `3/3` with three requests; keyed-mode evidence
       remains intentionally absent because no OpenFIGI key is configured.
+- [x] Re-run provider secret-wiring validation after the latest workflow and
+      evidence changes: `26/26` passed without contacting external services.
 
 - [x] Attempt the focused credentialed Twelve Data account-usage probe with an
       isolated owner-only durable ledger. The first shell attempt failed before

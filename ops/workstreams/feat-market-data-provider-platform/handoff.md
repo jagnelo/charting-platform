@@ -1,5 +1,13 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 provider secret-wiring regression
+
+- The backend secret-wiring suite passed `26/26` after the current workflow and
+  provider-contract updates. It verifies the local/RPi Compose mappings,
+  branch-scoped GitHub live workflow environments, provider secret/variable
+  separation, and redacted live-artifact contract without contacting any
+  external service.
+
 ## 2026-09-25 OpenFIGI keyless matrix at current source
 
 - The bounded keyless OpenFIGI mapping/profile/account-usage matrix passed
