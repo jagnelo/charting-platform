@@ -2156,6 +2156,7 @@ providers:
       - "runtime:FALLBACK_ISSUER_AUDITS.amg_national"
       - "runtime:ISSUER_ADAPTER_CONFIGS.amg_national"
       - "web:amg-national-current-nonpublisher-2026-09-25"
+      - "web:amg-active-etfs-distinct-publisher-2026-09-25"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2169,8 +2170,12 @@ providers:
         source: "https://www.amgnational.com/solutions/retirement-plan-services/; https://www.amgnational.com/solutions/investment-management/; https://www.amgnational.com/about-amg/"
         result: "Current AMG National pages describe a national bank, trust, wealth-management, retirement-plan, and portfolio-strategy business; no independently sponsored ETF catalogue or complete ETF holdings publisher was identified."
         evidence_ref: "web:amg-national-current-nonpublisher-2026-09-25"
-    disposition_reason: "amg_national: AMG National Trust is a bank and wealth-management manager rather than an independent publisher of ETF portfolios; its 13F disclosures cannot be promoted as issuer ETF holdings."
-    next_action: "amg_national: Resolve any ETFDB source row to the actual ETF sponsor or adviser; do not create an AMG National native adapter from 13F or third-party portfolio data."
+      - date: 2026-09-25
+        source: "https://amgetfs.com/"
+        result: "The separate AMG Active ETFs site identifies AMG GW&K Muni Income ETF (MUNX) and its ETF platform; this is a distinct AMG Funds/AMG ETF Trust publisher and must not be attributed to AMG National Trust or represented by an AMG National adapter."
+        evidence_ref: "web:amg-active-etfs-distinct-publisher-2026-09-25"
+    disposition_reason: "amg_national: AMG National Trust is a bank and wealth-management manager rather than an independent publisher of ETF portfolios; the separate AMG Active ETFs/AMG Funds publisher must not be conflated with it, and its 13F disclosures cannot be promoted as issuer ETF holdings."
+    next_action: "amg_national: Resolve any ETFDB source row to the actual ETF sponsor or adviser, including the distinct AMG Funds/AMG ETF Trust identity where applicable; do not create an AMG National native adapter from 13F or third-party portfolio data."
     implementation_sha: null
     validation_refs: []
   - adapter_key: amplius

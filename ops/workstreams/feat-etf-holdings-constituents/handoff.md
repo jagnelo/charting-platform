@@ -29,6 +29,14 @@ top-ten or summary data. No complete machine-readable constituent artifact
 with stable identifiers was captured; all four symbols remain unavailable and
 non-executable.
 
+## Current audit checkpoint — AMG National identity boundary — 2026-09-25
+
+AMG National's first-party site describes a national bank and wealth-management
+business. The separate AMG Active ETFs/AMG ETF Trust site exposes MUNX, but it
+is a distinct publisher identity and must not be attributed to AMG National.
+The AMG National fallback therefore remains `provider_not_a_portfolio_publisher`;
+no 13F or third-party portfolio data is promoted as ETF constituents.
+
 ## Current branch state
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
