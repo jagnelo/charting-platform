@@ -42,7 +42,7 @@
     },
     {
       "id": "AC11",
-      "text": "The 77 current fallback identities are reassessed at symbol level in relevance order, with Tier 0 US ETFs receiving a completed free/zero-cost/cheap-source investigation and an explicit current, degraded, stale, unavailable, successor, or not-applicable outcome."
+      "text": "The 76 current fallback identities are reassessed at symbol level in relevance order, with Tier 0 US ETFs receiving a completed free/zero-cost/cheap-source investigation and an explicit current, degraded, stale, unavailable, successor, or not-applicable outcome."
     },
     {
       "id": "AC12",
@@ -105,11 +105,11 @@
   "goal_unavailable_reason": null,
   "head": "d3572435dce1bd3f131d65cb215124bd12f40f48",
   "implementation_sha": "d3572435dce1bd3f131d65cb215124bd12f40f48",
-  "last_checkpoint": "2026-09-25T07:35:00Z",
-  "last_human_progress_update": "2026-09-25T07:35:00Z",
+  "last_checkpoint": "2026-09-25T09:30:00Z",
+  "last_human_progress_update": "2026-09-25T09:30:00Z",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "await provider-platform staging before the ETF_HOLDINGS bridge; meanwhile preserve the explicit fallback capability boundary and human-review handoff",
-  "plan_hash": "46292657b7e1f99612db24ec4181cbd362983cd8b93731a6f03a5f603f5bb105",
+  "next_action": "record and validate the VistaShares native promotion; continue awaiting provider-platform staging before the ETF_HOLDINGS bridge while preserving the explicit fallback capability boundary and human-review handoff",
+  "plan_hash": "8ebffeb7dd8df340de62dac7a43b259eb3e82300db6a36838f20c55e6876c64b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -130,9 +130,9 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "origin/feat/market-data-provider-platform is 73d1d1aa and the local shared branch is ca265b0c, but neither is an ancestor of origin/staging 8b885a2f; both ProviderCapability enums still lack ETF_HOLDINGS, so AC10 cannot be reconciled. All 15 Tier-0 and 159 Tier-1 representative symbols retain explicit outcomes; PIMCO MINT/BOND remain unavailable. The local checkpoint is not yet on the remote feature ref because GitHub rejected the available SSH credentials; AC8 remote synchronization therefore remains open. AC11 remains open for unresolved fallback evidence and AC14 remains post-integration.",
+    "current_blocker": "origin/feat/market-data-provider-platform is 73d1d1aa and the local shared branch is ca265b0c, but neither is an ancestor of origin/staging 8b885a2f; both ProviderCapability enums still lack ETF_HOLDINGS, so AC10 cannot be reconciled. VistaShares is now native-promoted for RTOO, AIS, AMMO, QUSA, OMAH, ACKY, and DRKY through its declared complete CSV route. All 15 Tier-0 and 159 Tier-1 representative symbols retain explicit outcomes; PIMCO MINT/BOND remain unavailable. The local checkpoint is not yet on the remote feature ref because GitHub rejected the available SSH credentials; AC8 remote synchronization therefore remains open. AC11 remains open for unresolved fallback evidence and AC14 remains post-integration.",
     "current_phase": "provider_evidence_reconciliation",
-    "next_action": "Await provider-platform staging before the ETF_HOLDINGS bridge; preserve the explicit fallback capability boundary and human-review handoff without activating paid/direct-provider routes.",
+    "next_action": "Record the VistaShares native promotion and continue awaiting provider-platform staging before the ETF_HOLDINGS bridge; preserve the explicit fallback capability boundary and human-review handoff without activating paid/direct-provider routes.",
     "total": 14,
     "updated_at": "2026-09-25T05:10:00Z"
   },

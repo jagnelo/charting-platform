@@ -86,18 +86,27 @@ MarketXLS advertises complete exports behind paid FundXLS access shown as
 $99/month. Both Tier-0 symbols remain unavailable; no paid, SEC-derived, or
 third-party preview route was promoted.
 
+## Current audit checkpoint — VistaShares complete holdings CSV — 2026-09-25
+
+VistaShares' official RTOO, AIS, AMMO, QUSA, OMAH, ACKY, and DRKY product pages
+declare a symbol-scoped complete holdings CSV. The strict native adapter validates
+the official page/form identity, declared completeness, account, single composition
+date, freshness, and derivative rows. The bounded live evidence returned dated
+2026-09-24 snapshots with 62/64/53/85/76/38/68 rows respectively; all seven
+symbols are now native-promoted and covered by deterministic plus opt-in live tests.
+
 ## Current branch state
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 419 native/live-backed, 77
+- Current code-derived state: 496 registered, 420 native/live-backed, 76
   fallback-only.
-- Current fallback status split: 8 issuer-access-blocked, 56
+- Current fallback status split: 8 issuer-access-blocked, 55
   needs-first-party-route-discovery, 3 non-executable public source, 8
   non-portfolio-publisher, and 2 inactive-or-successor-disposition. The ledger retains dated terminal dispositions for
   every fallback key; all 140 historical records are represented exactly once.
 - `docs/etf-provider-universe.md` is reconciled from code to the current
-  496/419/77 snapshot; future updates must remain code-derived.
+  496/420/76 snapshot; future updates must remain code-derived.
 - The symbol capability boundary now maps provider identities already audited
   as `issuer_access_blocked` or `non_executable_public_source` to explicit
   `unavailable` outcomes; unresolved route discovery remains `unknown`.

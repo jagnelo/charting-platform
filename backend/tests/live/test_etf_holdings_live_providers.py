@@ -81,6 +81,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "shelton",
     "tidal",
     "scharf",
+    "vistashares",
     "cohanzick",
     "tremblant",
     "cohen_steers",
@@ -2405,6 +2406,13 @@ async def test_live_m_d_sass_issuer_csv_route_preserves_dated_rows():
         # stale 500-row expectation from an older universe snapshot.
         ("calvert", "CVLC", None, {}, 100),
         ("alerian", "ENFR", None, {}, 20),
+        ("vistashares", "RTOO", None, {}, 50),
+        ("vistashares", "AIS", None, {}, 50),
+        ("vistashares", "AMMO", None, {}, 50),
+        ("vistashares", "QUSA", None, {}, 70),
+        ("vistashares", "OMAH", None, {}, 50),
+        ("vistashares", "ACKY", None, {}, 30),
+        ("vistashares", "DRKY", None, {}, 50),
     ],
 )
 async def test_live_issuer_direct_holdings_routes_return_parseable_rows(

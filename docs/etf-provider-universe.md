@@ -102,14 +102,24 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `419`
-- Audited fallback-only providers: `77`
+- Native/live-backed providers: `420`
+- Audited fallback-only providers: `76`
 
-This is the current branch-derived split after the Warren WCAP request-profile,
+This is the current branch-derived split after the VistaShares RTOO, AIS, AMMO,
+QUSA, OMAH, ACKY, and DRKY official product-page-declared complete CSV routes,
+and the Warren WCAP request-profile,
 Inspire ETF Engine, Fidelity named-zero-weight-row, Anydrus NDOW
 page-declared FilePoint JSON, and WisdomTree DXJ/NTSX HTTP/1.1 transport repairs.
 The remaining Vident and MM VAM aliases stay fallback-only because the shared
 Vident issuer route returns a Cloudflare challenge to the application client.
+
+Current fallback status counts are:
+
+- `issuer_access_blocked`: `8`
+- `needs_first_party_route_discovery`: `55`
+- `non_executable_public_source`: `3`
+- `provider_not_a_portfolio_publisher`: `8`
+- `inactive_or_successor_disposition`: `2`
 
 Provider identity is not the same as symbol-level usability. The branch now
 exposes a per-symbol capability contract that labels current, degraded, stale,

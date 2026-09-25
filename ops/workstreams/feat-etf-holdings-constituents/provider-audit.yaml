@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 419
-current_fallback_count: 77
+current_native_count: 420
+current_fallback_count: 76
 generated_at: 2026-09-25T00:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -7956,10 +7956,10 @@ providers:
     display_name: vistashares
     queue_rank: 128
     starting_status: needs_first_party_route_discovery
-    current_status: non_executable_public_source
-    disposition: non_executable_public_source
-    last_checked: 2026-09-04
-    source_access_declared: issuer_public_holdings_file
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-25
+    source_access_declared: issuer_product_page_declared_complete_current_holdings_csv
     representative_symbols: [RTOO, AIS, AMMO, QUSA, OMAH, ACKY, DRKY]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
@@ -7969,16 +7969,22 @@ providers:
     candidate_routes:
       - "https://www.vistashares.com/etf/rtoo/"
       - "https://www.vistashares.com/etf/ais/"
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+      - "https://www.vistashares.com/etf/ammo/"
+      - "https://www.vistashares.com/etf/qusa/"
+      - "https://www.vistashares.com/etf/omah/"
+      - "https://www.vistashares.com/etf/acky/"
+      - "https://www.vistashares.com/etf/drky/"
+      - "https://www.vistashares.com/csv/top-holdings/?etf={SYMBOL}"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: "backend/tests/unit/services/test_etf_holdings_adapters.py::test_vistashares_adapter_parses_declared_complete_holdings_csv"
+    live_test: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
     credential_required: false
     evidence_refs:
-      - "runtime:FALLBACK_ISSUER_AUDITS.vistashares"
       - "runtime:ISSUER_ADAPTER_CONFIGS.vistashares"
-      - "web:vistashares-current-product-pages-2026-09-04"
+      - "web:vistashares-current-product-pages-2026-09-25"
+      - "live:vistashares-product-page-declared-complete-holdings-csv-2026-09-25"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -7988,10 +7994,16 @@ providers:
         source: "VistaShares official ETF product pages"
         result: "Official pages expose current top-ten holdings and a Download All Holdings affordance, but the bounded page response does not declare a resolvable complete holdings artifact."
         evidence_ref: "web:vistashares-current-product-pages-2026-09-04"
-    disposition_reason: "vistashares: Official product pages expose current top-ten data but no resolvable complete executable holdings artifact in the bounded route, so native promotion is not justified."
-    next_action: "vistashares: Re-test official product pages and resolve the Download All Holdings endpoint before considering native promotion."
+      - date: 2026-09-25
+        source: "VistaShares official product pages and symbol-scoped complete holdings CSV"
+        result: "All seven representative products resolved their official product page and declared CSV route; rows were complete, account-matched, single-dated 2026-09-24, and returned 62/64/53/85/76/38/68 rows for RTOO/AIS/AMMO/QUSA/OMAH/ACKY/DRKY."
+        evidence_ref: "live:vistashares-product-page-declared-complete-holdings-csv-2026-09-25"
+    disposition_reason: "vistashares: Official product pages declare a complete symbol-scoped CSV; the strict adapter validates identity, account, date, completeness, and derivative rows, with live matrix coverage for all seven products."
+    next_action: "vistashares: Keep native while the complete current CSV remains identity-verified and within the freshness deadline; re-audit on route or schema drift."
     implementation_sha: null
-    validation_refs: []
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_vistashares_adapter_parses_declared_complete_holdings_csv"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
   - adapter_key: wellesley_asset_management
     display_name: wellesley_asset_management
     queue_rank: 129

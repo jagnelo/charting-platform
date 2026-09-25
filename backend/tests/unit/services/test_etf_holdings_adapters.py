@@ -15375,6 +15375,52 @@ async def test_argent_adapter_parses_current_symbol_scoped_holdings_table(monkey
     assert result.legal_metadata["composition_date"] == "2026-09-24"
 
 
+@pytest.mark.asyncio
+async def test_vistashares_adapter_parses_declared_complete_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("vistashares")
+    assert adapter is not None
+    assert type(adapter).__name__ == "VistaSharesHoldingsAdapter"
+    assert "vistashares" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["vistashares"].live_tested_default_route is True
+
+    page_url = "https://www.vistashares.com/etf/qusa/"
+    csv_url = "https://www.vistashares.com/csv/top-holdings/?etf=QUSA"
+    page_html = """
+    <h1>VistaShares QUSA ETF (QUSA)</h1>
+    <table><tr><td>Number of Holdings</td><td>2</td></tr></table>
+    <form method="GET" action="https://www.vistashares.com/csv/top-holdings">
+      <input type="hidden" name="etf" value="QUSA">
+    </form>
+    """
+    csv_text = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+09/24/2026,QUSA,MSFT,594918104,Microsoft Corp,100,500.00,50000,0.6000,8333333,100000,1,
+09/24/2026,QUSA,LRCX  261002C00285000,,Lam Research call option,1,10.00,1000,-0.0120,8333333,100000,1,
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_html, content_type="text/html", url=page_url),
+        FakeResponse(text=csv_text, content_type="text/csv", url=csv_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="QUSA")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [page_url, csv_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "MSFT"
+    assert result.rows[0].weight == Decimal("0.6000")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "derivative"
+    assert result.rows[1].holding_type == "derivative"
+    assert result.rows[1].extra_data["source_ticker"] == "LRCX  261002C00285000"
+    assert result.legal_metadata["source_provider"] == "vistashares"
+    assert result.legal_metadata["route_resolution"] == (
+        "vistashares_product_page_declared_complete_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-24"
+    assert result.raw_json["declared_holdings_count"] == 2
+
+
 async def test_capforce_adapter_parses_complete_current_holdings_tables(monkeypatch):
     adapter = get_holdings_adapter("capforce")
     assert adapter is not None
@@ -28445,8 +28491,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 419
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 77
+    assert ledger["current_native_count"] == 420
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 76
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -28516,6 +28562,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "stratified",
         "trimtabs",
         "wisdomtree",
+        "vistashares",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

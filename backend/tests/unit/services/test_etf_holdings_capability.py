@@ -1059,12 +1059,12 @@ def test_final_ranked_fallback_vega_shares_is_top_ten_only():
     assert result.provider_identity == "vega_financial"
 
 
-def test_final_ranked_fallback_vistashares_download_is_unresolved():
+def test_final_ranked_vistashares_current_download_is_verified():
     result = symbol_audit_for_profile(profile_with_symbol("RTOO", "vistashares"))
 
     assert result.tier == 1
-    assert result.outcome == UNAVAILABLE
-    assert result.evidence_state == "non_executable_public_source"
+    assert result.outcome == CURRENT
+    assert result.evidence_state == "issuer_current_canary_verified"
     assert result.provider_identity == "vistashares"
 
 
@@ -1150,9 +1150,7 @@ def test_terminal_non_publisher_identity_is_not_applicable_at_symbol_boundary():
 
 def test_blocked_and_non_executable_fallback_identities_are_explicitly_unavailable():
     blocked = symbol_audit_for_profile(profile_with_symbol("SYNTHETIC_AEGON", "aegon"))
-    non_executable = symbol_audit_for_profile(
-        profile_with_symbol("SYNTHETIC_EPWA", "epwa")
-    )
+    non_executable = symbol_audit_for_profile(profile_with_symbol("SYNTHETIC_EPWA", "epwa"))
 
     assert blocked.outcome == UNAVAILABLE
     assert blocked.evidence_state == "identity_level_access_blocked"
@@ -1196,7 +1194,7 @@ def test_all_symbolless_fallback_identities_remain_non_current_at_capability_bou
 
 def test_every_fallback_identity_rejects_unreviewed_synthetic_symbols():
     """A complete snapshot cannot turn an unreviewed fallback identity current."""
-    assert len(FALLBACK_ISSUER_AUDITS) == 77
+    assert len(FALLBACK_ISSUER_AUDITS) == 76
 
     for adapter_key in sorted(FALLBACK_ISSUER_AUDITS):
         profile_value = profile_with_symbol(f"SYNTHETIC_{adapter_key}", adapter_key)

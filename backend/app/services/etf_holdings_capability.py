@@ -1614,14 +1614,17 @@ _register_non_tier_0_audits(
 )
 _register_non_tier_0_audits(
     ("RTOO", "AIS", "AMMO", "QUSA", "OMAH", "ACKY", "DRKY"),
-    outcome=UNAVAILABLE,
-    evidence_state="non_executable_public_source",
+    outcome=CURRENT,
+    evidence_state="issuer_current_canary_verified",
     provider_identity="vistashares",
-    investigated_at=date(2026, 9, 4),
-    evidence_refs=("web:vistashares-current-product-pages-2026-09-04",),
+    investigated_at=date(2026, 9, 25),
+    evidence_refs=(
+        "web:vistashares-current-product-pages-2026-09-25",
+        "live:vistashares-product-page-declared-complete-holdings-csv-2026-09-25",
+    ),
     next_action=(
-        "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint "
-        "before considering native promotion."
+        "Keep current only while the complete symbol-scoped VistaShares CSV remains identity-verified "
+        "and within the freshness deadline; re-audit on route or schema drift."
     ),
 )
 _register_non_tier_0_audits(

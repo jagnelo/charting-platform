@@ -70879,6 +70879,26 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Argent publishes complete current holdings tables on its public product pages; issuer terms govern use.",
     ),
+    "vistashares": IssuerCsvAdapterConfig(
+        adapter_key="vistashares",
+        source_provider="vistashares",
+        source_access="issuer_product_page_declared_complete_current_holdings_csv",
+        expected_cadence="daily",
+        product_page_templates=(
+            "https://www.vistashares.com/etf/rtoo/",
+            "https://www.vistashares.com/etf/ais/",
+            "https://www.vistashares.com/etf/ammo/",
+            "https://www.vistashares.com/etf/qusa/",
+            "https://www.vistashares.com/etf/omah/",
+            "https://www.vistashares.com/etf/acky/",
+            "https://www.vistashares.com/etf/drky/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "VistaShares publishes complete current holdings through its official product pages "
+            "and declared CSV endpoint; issuer terms govern use."
+        ),
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -70982,7 +71002,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "tweedy_browne",
         "vega_financial",
         "wellesley_asset_management",
-        "vistashares",
         "worth_charting",
         "yoke",
     ),
@@ -73001,8 +73020,183 @@ class BluemonteReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Bluemonte discovery."""
 
 
-class VistaSharesReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending VistaShares discovery."""
+class VistaSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch VistaShares' complete product-page-declared holdings CSVs."""
+
+    SUPPORTED_SYMBOLS = frozenset({"RTOO", "AIS", "AMMO", "QUSA", "OMAH", "ACKY", "DRKY"})
+    PRODUCT_PAGE_URLS = {
+        symbol: f"https://www.vistashares.com/etf/{symbol.lower()}/" for symbol in SUPPORTED_SYMBOLS
+    }
+    HOLDINGS_ENDPOINT = "https://www.vistashares.com/csv/top-holdings/"
+    ROUTE_RESOLUTION = "vistashares_product_page_declared_complete_holdings_csv"
+    SNAPSHOT_PROVENANCE = "vistashares_native_product_declared_holdings_csv"
+    _ACCOUNT_INPUT_PATTERN = re.compile(
+        r'name=["\']etf["\'][^>]*value=["\'](?P<symbol>[A-Z0-9]+)["\']',
+        re.IGNORECASE,
+    )
+    _DECLARED_COUNT_PATTERN = re.compile(
+        r"Number\s+of\s+Holdings\s*</[^>]+>\s*<[^>]+>\s*(?P<count>[\d,]+)",
+        re.IGNORECASE,
+    )
+    _DERIVATIVE_PATTERN = re.compile(r"\b\d{6}[CP]\d{8}\b", re.IGNORECASE)
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9700") if product_page_url else Decimal("0.2500"),
+            status="ready" if product_page_url else "unsupported_symbol",
+            reason=(
+                "VistaShares' official product page declares a complete symbol-scoped holdings CSV."
+                if product_page_url
+                else f"No verified VistaShares holdings route is configured for {normalized_symbol}."
+            ),
+            source_url=product_page_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if not product_page_url:
+            raise ValueError(
+                f"No verified VistaShares holdings route is configured for {normalized_symbol}."
+            )
+        if source_url and not self._is_official_route(source_url, normalized_symbol):
+            raise ValueError(
+                "VistaShares holdings must use the matching official product or CSV route."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        product_response.raise_for_status()
+        page_text = html.unescape(product_response.text)
+        normalized_page = re.sub(r"\s+", " ", page_text)
+        if normalized_symbol not in normalized_page:
+            raise ValueError(f"VistaShares product page did not identify {normalized_symbol}.")
+        account_match = self._ACCOUNT_INPUT_PATTERN.search(page_text)
+        if account_match is None or account_match.group("symbol").upper() != normalized_symbol:
+            raise ValueError(
+                f"VistaShares product page did not declare the {normalized_symbol} holdings form."
+            )
+        declared_match = self._DECLARED_COUNT_PATTERN.search(normalized_page)
+        declared_count = (
+            int(declared_match.group("count").replace(",", "")) if declared_match else None
+        )
+        if declared_count is None or declared_count < 1:
+            raise ValueError(
+                f"VistaShares product page did not declare a positive holdings count for {normalized_symbol}."
+            )
+
+        holdings_url = f"{self.HOLDINGS_ENDPOINT}?etf={normalized_symbol}"
+        result = await self._fetch_explicit_issuer_csv(
+            symbol=normalized_symbol,
+            issuer_product_id=normalized_symbol,
+            source_url=holdings_url,
+            identifiers=None,
+            route_resolution=self.ROUTE_RESOLUTION,
+        )
+        if len(result.rows) < declared_count:
+            raise ValueError(
+                f"VistaShares {normalized_symbol} holdings returned {len(result.rows)} rows; "
+                f"the product page declares {declared_count}."
+            )
+
+        composition_dates: set[date] = set()
+        for index, row in enumerate(result.rows, start=1):
+            account = _clean(row.extra_data.get("Account"))
+            if account.upper() != normalized_symbol:
+                raise ValueError(
+                    f"VistaShares {normalized_symbol} holdings contained account {account or '<empty>'}."
+                )
+            row_date = _parse_issuer_date(row.extra_data.get("Date"))
+            if row_date is None:
+                raise ValueError(f"VistaShares {normalized_symbol} holdings row has no date.")
+            composition_dates.add(row_date)
+            raw_ticker = _clean(row.extra_data.get("StockTicker"))
+            raw_name = _clean(row.extra_data.get("SecurityName")) or row.name
+            row.source_row_id = f"{normalized_symbol}:{row_date.isoformat()}:{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "source_ticker": raw_ticker,
+                "source": self.ROUTE_RESOLUTION,
+            }
+            row.currency = "USD"
+            if self._DERIVATIVE_PATTERN.search(raw_ticker or ""):
+                row.symbol = None
+                row.row_type = "derivative"
+                row.holding_type = "derivative"
+            elif (
+                not raw_ticker
+                or raw_ticker in {"-", "USD", "CASH"}
+                or any(marker in (raw_name or "").upper() for marker in ("CASH", "MONEY MARKET"))
+            ):
+                row.symbol = None
+                row.cusip = None
+                row.row_type = "cash"
+                row.holding_type = "cash"
+            else:
+                row.row_type = "security"
+                row.holding_type = "fund" if " ETF" in (raw_name or "").upper() else "equity"
+        if len(composition_dates) != 1:
+            raise ValueError(
+                f"VistaShares {normalized_symbol} holdings contained inconsistent dates: "
+                f"{sorted(value.isoformat() for value in composition_dates)}"
+            )
+        composition_date = next(iter(composition_dates))
+        if composition_date > date.today():
+            raise ValueError(f"VistaShares {normalized_symbol} holdings date is in the future.")
+        result.raw_json = {
+            **(result.raw_json or {}),
+            "source_format": "issuer_declared_csv",
+            "row_count": len(result.rows),
+            "declared_holdings_count": declared_count,
+            "holdings_url": holdings_url,
+        }
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": self.ROUTE_RESOLUTION,
+            "product_page_url": str(product_response.url),
+            "holdings_url": holdings_url,
+            "composition_date": composition_date.isoformat(),
+            "as_of_date": composition_date.isoformat(),
+            "declared_holdings_count": declared_count,
+            "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
+            "source_quality": "issuer_reported_current_holdings",
+            "completeness_status": "issuer_declared_complete",
+            "terms_note": self.config.terms_note,
+        }
+        return result
+
+    @classmethod
+    def _is_official_route(cls, source_url: str, symbol: str) -> bool:
+        parsed = urlparse(source_url)
+        if not parsed.hostname or not _domain_matches(parsed.hostname, "vistashares.com"):
+            return False
+        path = parsed.path.rstrip("/")
+        if path == f"/etf/{symbol.lower()}":
+            return not parsed.query
+        if path == "/csv/top-holdings":
+            query = parse_qs(parsed.query)
+            return set(query) == {"etf"} and query.get("etf") == [symbol]
+        return False
 
 
 class ErSharesReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -75690,7 +75884,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "vident": VidentHoldingsAdapter,
         "wellesley_asset_management": WellesleyAssetManagementReconciledFallbackHoldingsAdapter,
         "westwood": WestwoodAuditedFallbackHoldingsAdapter,
-        "vistashares": VistaSharesReconciledFallbackHoldingsAdapter,
+        "vistashares": VistaSharesHoldingsAdapter,
         "worth_charting": WorthChartingReconciledFallbackHoldingsAdapter,
         "yoke": YokeReconciledFallbackHoldingsAdapter,
         "acquirers": AcquirersHoldingsAdapter,

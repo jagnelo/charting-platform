@@ -28,6 +28,19 @@ Governing sources, in precedence order:
 If sources disagree, preserve the stricter safety/evidence boundary and update
 durable records in the same coherent checkpoint as the decision.
 
+## Current implementation checkpoint — VistaShares native promotion — 2026-09-25
+
+VistaShares is now a native provider route for RTOO, AIS, AMMO, QUSA, OMAH,
+ACKY, and DRKY. Each official product page declares a symbol-scoped complete
+holdings CSV; the adapter verifies page/form identity, declared row-count
+completeness, account identity, a single non-future composition date, freshness,
+and derivative/cash row semantics. The bounded live evidence returned
+2026-09-24 snapshots with 62, 64, 53, 85, 76, 38, and 68 rows respectively.
+The provider universe is consequently 496 registered / 420 native / 76
+fallback-only, with 55 route-discovery fallback records. The shared
+provider-platform `ETF_HOLDINGS` capability bridge remains intentionally
+deferred until that branch reaches staging.
+
 ## 2. Authoritative starting baseline
 
 ### 2.1 Git and workflow
