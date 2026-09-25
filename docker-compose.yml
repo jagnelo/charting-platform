@@ -242,7 +242,10 @@ services:
       STRATEGY_LAB_V2_REDIS_URL: redis://redis:6379/0
       STRATEGY_LAB_V2_ARTIFACT_ROOT: /strategy-lab-artifacts
       STRATEGY_LAB_V2_CALLBACK_FACTORY: ${STRATEGY_LAB_V2_CALLBACK_FACTORY:-app.strategy_lab_v2.worker_callbacks:create}
-      STRATEGY_LAB_V2_EVIDENCE_RESOLVER: ${STRATEGY_LAB_V2_EVIDENCE_RESOLVER:-}
+      # The package-owned mapper is safe for the canonical single
+      # /outputs/result contract. Hosts with multi-artifact manifests must
+      # override this with an explicit resolver that maps every artifact.
+      STRATEGY_LAB_V2_EVIDENCE_RESOLVER: ${STRATEGY_LAB_V2_EVIDENCE_RESOLVER:-app.strategy_lab_v2.worker_callbacks:default_evidence_resolver_factory}
       STRATEGY_LAB_V2_MIGRATIONS_ENABLED: ${STRATEGY_LAB_V2_MIGRATIONS_ENABLED:-true}
       STRATEGY_LAB_V2_MIGRATION_TARGET: ${STRATEGY_LAB_V2_MIGRATION_TARGET:-head}
       STRATEGY_LAB_V2_QUEUE: ${STRATEGY_LAB_V2_QUEUE:-backtest}

@@ -1257,9 +1257,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   attempt through the authoritative submission adapter and returns no terminal
   evidence when that receipt is missing. Ordinary submission-backed workers
   retain the two-argument factory contract.
-  `default_evidence_resolver_factory` is available for local deployments that
-  want the package-owned authenticated lookup plus single-output artifact
-  mapper, while a host may still provide a stricter/custom multi-artifact
+  `default_evidence_resolver_factory` is the opt-in local Compose worker
+  default for the package-owned authenticated lookup plus single-output
+  artifact mapper, while a host may still provide a stricter/custom multi-artifact
   resolver. Failed runtime receipts without a projected durable API error are
   mapped to a stable internal error carrying only the persisted error digest;
   exception text and paths are never reconstructed at this boundary. The
@@ -1297,9 +1297,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `strategy_lab_artifacts` volume, and uses a read-only root, dropped
   capabilities, no-new-privileges, and a bounded `/tmp`. Because sandbox
   plans launch separately pinned runtime containers, the profile requires the
-  local Docker socket. The package-owned callback composer is the default;
-  its resolver setting must be supplied before Redis opens, and the profile is
-  never enabled by the default stack.
+  local Docker socket. The package-owned callback composer is the default; its
+  resolver setting may be overridden before Redis opens when a host needs
+  multi-artifact mapping, and the profile is never enabled by the default
+  stack.
 - `migration_startup.py` provides the explicit Alembic startup hook. It
   validates a PostgreSQL URL and absolute script location, runs the configured
   target off the event loop, serializes concurrent callers, replays the exact

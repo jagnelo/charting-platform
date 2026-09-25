@@ -2,6 +2,18 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Local worker evidence resolver activation checkpoint
+
+The opt-in `strategy-lab-v2-worker` Compose profile now defaults its evidence
+resolver to the package-owned authenticated single-output mapper. This lets a
+local worker reach callback composition without an unrelated blank environment
+setting, while preserving explicit override for host-owned multi-artifact
+mapping and the resolver's fail-closed publication checks. Compose validation
+passed with the profile enabled; no worker or Docker socket was started.
+
+Stable Nautilus execution, host multi-artifact policy, live runtime activation,
+provider reconciliation, and deployment remain gated.
+
 ## 2026-09-25 - Search and forward state read API checkpoint
 
 The application adapter now exposes authenticated reads for resumable search
