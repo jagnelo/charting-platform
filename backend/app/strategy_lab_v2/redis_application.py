@@ -19,6 +19,11 @@ from app.strategy_lab_v2.forward_worker_service import (
     ForwardEventMaterializer,
     ForwardEventWorkerService,
 )
+from app.strategy_lab_v2.forward_worker_settlement import (
+    ForwardCapacityReleaseStore,
+    ForwardReleaseObservationResolver,
+    ForwardWorkerCapacityReleaseHandler,
+)
 from app.strategy_lab_v2.outbox_application import (
     OutboxPersistence,
     OutboxRelayScheduler,
@@ -37,6 +42,7 @@ from app.strategy_lab_v2.worker_service import (
     WorkerLeaseHeartbeatWriter,
     WorkerTerminalWriter,
 )
+from app.strategy_lab_v2.workers import WorkerProfile
 
 
 class RedisDispatchRuntime:
@@ -245,6 +251,39 @@ class RedisDispatchRuntime:
             handler=AuthorizedForwardEventHandler(
                 authorization_resolver,
                 handler,
+                clock=clock,
+            ),
+            interval_seconds=interval_seconds,
+            sleep=sleep,
+        )
+
+    def settling_forward_worker_service(
+        self,
+        worker: RedisDispatchWorker,
+        *,
+        payload_loader: DispatchPayloadLoader,
+        materializer: ForwardEventMaterializer,
+        authorization_resolver: ForwardWorkerAuthorizationResolver,
+        handler: ForwardEventHandler,
+        release_store: ForwardCapacityReleaseStore,
+        profile: WorkerProfile,
+        observation_resolver: ForwardReleaseObservationResolver,
+        interval_seconds: float = 1.0,
+        sleep: Callable[[float], Awaitable[None]],
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> ForwardEventWorkerService:
+        """Compose a forward worker that releases capacity before ack."""
+
+        return self.forward_worker_service(
+            worker,
+            payload_loader=payload_loader,
+            materializer=materializer,
+            handler=ForwardWorkerCapacityReleaseHandler(
+                authorization_resolver,
+                handler,
+                release_store,
+                profile=profile,
+                observation_resolver=observation_resolver,
                 clock=clock,
             ),
             interval_seconds=interval_seconds,

@@ -20,6 +20,7 @@ from app.strategy_lab_v2.redis_application import RedisDispatchRuntime
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
 from app.strategy_lab_v2.worker_consumer import RedisDispatchWorkerScheduler
 from app.strategy_lab_v2.worker_service import DedicatedStrategyWorkerService
+from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 
@@ -238,6 +239,24 @@ async def test_redis_runtime_composes_transport_relay_and_closes_once() -> None:
         clock=lambda: NOW,
     )
     assert isinstance(authorized_forward_service, ForwardEventWorkerService)
+
+    class ReleaseStore:
+        async def release_capacity(self, **_kwargs: Any) -> Any:
+            return None
+
+    settling_forward_service = runtime.settling_forward_worker_service(
+        forward_worker,
+        payload_loader=Loader(),
+        materializer=materialize,
+        authorization_resolver=cast(Any, lambda _entry, _item: None),
+        handler=complete,
+        release_store=ReleaseStore(),
+        profile=WorkerProfile("forward-worker", WorkerKind.FORWARD, content_digest("runtime")),
+        observation_resolver=cast(Any, lambda _entry, _item, _authorization: None),
+        sleep=sleep,
+        clock=lambda: NOW,
+    )
+    assert isinstance(settling_forward_service, ForwardEventWorkerService)
     await runtime.aclose()
     await runtime.aclose()
     assert client.close_calls == 1
