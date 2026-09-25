@@ -782,7 +782,10 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     )
     assert statuses["marketstack quota"].startswith("non-routable:")
     assert statuses["tiingo"].startswith("non-routable:")
-    assert statuses["fmp"] == "non-routable: FMP_OPERATION_BYTE_BOUNDS is not valid JSON"
+    assert statuses["fmp"] == (
+        "non-routable: missing reviewed controls for FMP_OPERATION_BYTE_BOUNDS is not valid JSON, "
+        "FMP_REVIEWED_DAILY_RESET, FMP_DAILY_QUOTA_EVIDENCE, FMP_BANDWIDTH_QUOTA_EVIDENCE"
+    )
     assert (
         statuses["marketdata.app account plan"]
         == "non-routable: explicit reviewed plan/limit pair required"

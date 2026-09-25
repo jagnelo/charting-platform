@@ -1826,25 +1826,26 @@ def routing_safety_preflight() -> dict[str, str]:
     for provider, operations in BYTE_BOUND_OPERATIONS.items():
         variable = f"{provider.upper()}_OPERATION_BYTE_BOUNDS"
         raw = os.getenv(variable, "").strip()
+        missing: list[str] = []
         if not raw:
-            result[provider] = f"non-routable: {variable} is unset"
-            continue
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError:
-            result[provider] = f"non-routable: {variable} is not valid JSON"
-            continue
-        if not isinstance(parsed, dict):
-            result[provider] = f"non-routable: {variable} must be a JSON object"
-            continue
-        missing = [
-            operation
-            for operation in operations
-            if operation not in parsed
-            or not isinstance(parsed[operation], int)
-            or isinstance(parsed[operation], bool)
-            or parsed[operation] <= 0
-        ]
+            missing.append(f"{variable} is unset")
+        else:
+            try:
+                parsed = json.loads(raw)
+            except json.JSONDecodeError:
+                parsed = None
+                missing.append(f"{variable} is not valid JSON")
+            if raw and parsed is not None and not isinstance(parsed, dict):
+                missing.append(f"{variable} must be a JSON object")
+            if isinstance(parsed, dict):
+                missing.extend(
+                    operation
+                    for operation in operations
+                    if operation not in parsed
+                    or not isinstance(parsed[operation], int)
+                    or isinstance(parsed[operation], bool)
+                    or parsed[operation] <= 0
+                )
         if provider == "tiingo":
             unique_reset = os.getenv("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "").strip()
             hourly_reset = os.getenv("TIINGO_REVIEWED_HOURLY_RESET", "").strip()
