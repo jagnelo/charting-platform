@@ -145,7 +145,7 @@
     "current_phase": "strategy-lab-v2-forward-account-api-read-projection-staging-ready-for-human-review",
       "next_action": "reconcile shared worker/database paths and bind host event resolution to admitted canonical events only after provider authorization and stable Nautilus v2 conformance",
     "total": 18,
-      "updated_at": "2026-09-25T10:54:06+00:00"
+      "updated_at": "2026-09-25T10:59:53+00:00"
   },
   "remote": "c5583f5b8f650f3c86ea842c117de4cdc74f3895",
   "remote_sha": "c5583f5b8f650f3c86ea842c117de4cdc74f3895",
