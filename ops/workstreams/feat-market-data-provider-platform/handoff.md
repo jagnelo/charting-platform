@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 full-unit harness environment blocker
+
+- The unit rerun remains inconclusive before the calendar-router assertions.
+  This is reproducible outside the application: with the locked FastAPI
+  0.111.0 / Starlette 0.37.2 / AnyIO 4.14.2 stack, a minimal FastAPI app
+  hangs in `TestClient.get()` and the underlying
+  `anyio.from_thread.start_blocking_portal().call(...)` also hangs. The
+  in-process `httpx.ASGITransport` path works for a minimal async endpoint,
+  but the unit fixture's sync facade cannot safely replace the framework
+  client without reworking the test lifecycle. No production code or test
+  assertions were changed to hide this environment failure.
+- This is an automated-harness/dependency-environment gate, separate from
+  provider integration behavior. The Docker-backed integration suite remains
+  green (`386/386`), and focused provider/quota tests remain green. A full
+  unit pass still must be obtained in a compatible test environment before
+  the branch can claim that gate.
+
 ## 2026-09-25 exact-current provider preflight after availability retention
 
 - Source `b72ac9a01` was run with host access to the owner-only durable quota
