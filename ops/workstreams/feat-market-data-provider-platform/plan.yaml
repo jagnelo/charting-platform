@@ -1435,6 +1435,15 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-25 Twelve Data reset-source reconciliation: official credits
+      documentation confirms the Basic 800-credit daily pool resets at
+      00:00 UTC, and the seed now attributes `calendar_day_utc` to that
+      source. `/api_usage` still exposes only minute counters, so the prior
+      daily account baseline remains required and no daily usage is inferred.
+      Focused provider tests passed 9/9; the branch-owned unit gate passed
+      1,916/1,916 with 37 warnings; Ruff, diff, and workstream validation
+      passed at source `3ccbfb8a14e0a2f54b42c0437357e0269341dfd`.
+    - >-
       2026-09-25 FMP exact-reset implementation validation: the official FAQ's
       3 PM Eastern daily boundary is modeled as
       `15:00 America/New_York` with DST-aware window calculation; the FMP

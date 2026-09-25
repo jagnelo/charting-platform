@@ -11,8 +11,10 @@
   from minute headers, and the durable prior daily baseline remains required
   before ordinary routing. No provider request was made for this correction.
 - A focused regression now asserts the official daily-reset source alongside
-  the existing dimension contract. The broader branch validation remains the
-  authoritative checkpoint below.
+  the existing dimension contract. Focused provider tests pass `9/9`; the
+  complete branch-owned unit gate at source `3ccbfb8a14e0a2f54b42c0437357e0269341dfd`
+  passes `1,916/1,916` with 37 warnings. Ruff, diff, and workstream validation
+  also pass; the receipt is appended to `validation.jsonl`.
 
 ## 2026-09-25 FMP exact daily-reset reconciliation
 
