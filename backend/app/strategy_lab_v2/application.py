@@ -48,6 +48,7 @@ from app.strategy_lab_v2.forward_warmup import (
     ForwardWarmupReceipt,
     ForwardWarmupResolution,
 )
+from app.strategy_lab_v2.forward_worker_authorization import ForwardWorkerAuthorization
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
     LegacyImportRequest,
@@ -93,6 +94,7 @@ from app.strategy_lab_v2.storage import (
     StorageTransactionRequest,
 )
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
+from app.strategy_lab_v2.workers import WorkerProfile
 
 
 @dataclass(frozen=True, slots=True)
@@ -892,6 +894,31 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         return await self._persistence.forward_account.load(
             principal=_principal_identity(principal), instance_id=instance_id
         )
+
+    async def load_forward_worker_authorization(
+        self,
+        *,
+        profile: WorkerProfile,
+        reservation_id: str,
+        lease_id: str,
+    ) -> ForwardWorkerAuthorization | None:
+        """Load the reservation/lease pair used by the forward-worker gate."""
+
+        if not isinstance(profile, WorkerProfile):
+            raise TypeError("profile must be a WorkerProfile")
+        if not isinstance(reservation_id, str) or not reservation_id.strip():
+            raise ValueError("reservation_id must not be empty")
+        if not isinstance(lease_id, str) or not lease_id.strip():
+            raise ValueError("lease_id must not be empty")
+        pool = await self._persistence.worker_state.load_pool(profile)
+        reservation = next(
+            (item for item in pool.reservations if item.reservation_id == reservation_id),
+            None,
+        )
+        lease_state = await self._persistence.worker_state.load_lease(lease_id)
+        if reservation is None or lease_state is None:
+            return None
+        return ForwardWorkerAuthorization(reservation, lease_state.lease)
 
     async def apply_forward_account_event(
         self, *, principal: Any, event: ForwardAccountEvent

@@ -22,6 +22,9 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary, CapabilitySummaryDecision
 from app.strategy_lab_v2.contracts import ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.forward_worker_authorization import ForwardWorkerAuthorization
+from app.strategy_lab_v2.lease_observations import LeaseObservationState
+from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease
 from app.strategy_lab_v2.outcomes import OutcomeStatus
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_commands import PostgresCommandAdapter
@@ -56,6 +59,12 @@ from app.strategy_lab_v2.tests.test_execution_summary import (
 from app.strategy_lab_v2.tests.test_postgres_forward_state import _instance
 from app.strategy_lab_v2.tests.test_postgres_forward_state import _receipt as _forward_receipt
 from app.strategy_lab_v2.tests.test_result_completion import _runtime_success
+from app.strategy_lab_v2.workers import (
+    WorkerKind,
+    WorkerPoolState,
+    WorkerProfile,
+    WorkerReservation,
+)
 
 
 @dataclass
@@ -116,6 +125,46 @@ async def test_application_forward_lifecycle_is_owner_scoped_and_utc_normalized(
     assert observed["transition"]["principal"].id == "42"
     assert observed["transition"]["now"].tzinfo is UTC
     assert observed["warmup"]["principal"].id == "42"
+
+
+@pytest.mark.asyncio
+async def test_application_loads_forward_worker_authorization_from_durable_records() -> None:
+    profile = WorkerProfile("forward-worker-1", WorkerKind.FORWARD, content_digest("runtime"))
+    reservation = WorkerReservation(
+        content_digest("reservation"),
+        profile.worker_id,
+        WorkerKind.FORWARD,
+        "forward-instance",
+        NOW,
+    )
+    lease = ExecutionAttemptLease(
+        "forward-instance",
+        profile.worker_id,
+        "lease-1",
+        NOW,
+        NOW,
+        NOW.replace(hour=13),
+    )
+
+    class WorkerStore:
+        async def load_pool(self, received_profile: WorkerProfile) -> WorkerPoolState:
+            assert received_profile == profile
+            return WorkerPoolState(profile, (reservation,))
+
+        async def load_lease(self, lease_id: str) -> LeaseObservationState:
+            assert lease_id == lease.lease_id
+            return LeaseObservationState(lease)
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._persistence = SimpleNamespace(worker_state=WorkerStore())
+    authorization = await adapter.load_forward_worker_authorization(
+        profile=profile,
+        reservation_id=reservation.reservation_id,
+        lease_id=lease.lease_id,
+    )
+    assert isinstance(authorization, ForwardWorkerAuthorization)
+    assert authorization.reservation == reservation
+    assert authorization.lease == lease
 
 
 @pytest.mark.asyncio
