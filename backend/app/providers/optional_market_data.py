@@ -94,9 +94,9 @@ def _cached_full_discovery_rows(
     cached = _FULL_DISCOVERY_CACHE.get(cache_key)
     if cached is not None and now - cached[0] < _FULL_DISCOVERY_CACHE_TTL_SECONDS:
         return list(cached[1])
-    rows = fetch()
-    _FULL_DISCOVERY_CACHE[cache_key] = (now, list(rows))
-    return list(rows)
+    rows = [dict(row) for row in fetch()]
+    _FULL_DISCOVERY_CACHE[cache_key] = (now, rows)
+    return [dict(row) for row in rows]
 
 
 def _retry_at_from_headers(headers: dict[str, str]) -> datetime | None:

@@ -870,10 +870,12 @@ def test_eodhd_full_catalogue_is_reused_across_reconciliation_pages(monkeypatch)
         provider, "_get", return_value=rows
     ) as get:
         first = provider.discover_universe_page("EQUITY", 0)
+        rows[1]["Name"] = "Mutated after fetch"
         second = provider.discover_universe_page("EQUITY", 1)
 
     assert first["quotes"][0]["symbol"] == "AAA"
     assert second["quotes"][0]["symbol"] == "BBB"
+    assert second["quotes"][0]["longName"] == "Beta"
     get.assert_called_once_with("exchange-symbol-list/US", {"fmt": "json"})
 
 
