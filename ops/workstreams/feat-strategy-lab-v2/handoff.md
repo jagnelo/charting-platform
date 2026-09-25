@@ -10,6 +10,23 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - Planning state: ready; the plan remains at `ready_for_human_review` and the
   session-local goal is held at its plan-ready guard.
 
+## 2026-09-25 - Capability preflight API seam checkpoint
+
+The registration-neutral v2 router now exposes `POST /capabilities/preflight`.
+Requests require a canonical JSON object and `Idempotency-Key`; an optional
+application-owned `preflight_capability` binding receives the authenticated
+principal, request identity, idempotency key, payload, and payload digest, then
+returns the typed `CapabilitySummary` without exposing provider or engine
+handles. Responses are stable `capability-preflights` documents with report,
+binding, request, and payload fingerprints. If the host has not supplied the
+binding, the route fails closed with `capability_unsupported`/501 rather than
+inventing entitlement or engine capability.
+
+Focused API coverage passed 26 tests, including successful delegation,
+canonical identity propagation, malformed-body rejection, and the missing
+binding failure. Capability calculation, provider entitlement, engine
+registration, and application wiring remain host-owned gates.
+
 ## 2026-09-25 - Result-manifest artifact binding checkpoint
 
 Result completion now accepts the successful manifest's output-artifact

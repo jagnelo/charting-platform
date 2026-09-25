@@ -17,7 +17,7 @@ import math
 import re
 import uuid
 from collections.abc import Awaitable, Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import Enum
@@ -38,6 +38,7 @@ from app.strategy_lab_v2.api_resources import (
     ResourceIdentifier,
 )
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import (
     ExecutionCommand,
     ExecutionCommandDecision,
@@ -149,6 +150,26 @@ class StrategyLabApiAdapter(Protocol):
         request: LegacyImportRequest,
         assessment: LegacyCompatibilityAssessment,
     ) -> Awaitable[LegacyImportResolution] | LegacyImportResolution: ...
+
+
+class CapabilityPreflightAdapter(Protocol):
+    """Optional application-owned capability calculation seam.
+
+    Capability calculation needs provider entitlement and engine-registration
+    knowledge that the engine-neutral API package must not invent.  Keeping
+    this protocol optional lets the route fail closed until the application
+    supplies that binding while preserving a stable, typed response contract.
+    """
+
+    def preflight_capability(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        idempotency_key: str,
+        payload: Mapping[str, Any],
+        payload_digest: str,
+    ) -> Awaitable[CapabilitySummary] | CapabilitySummary: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -383,6 +404,34 @@ def serialize_legacy_import(
                     "request_id": request_id,
                     "report_fingerprint": report.fingerprint,
                     "registry_fingerprint": resolution.registry.fingerprint,
+                },
+            }
+        }
+    )
+
+
+def serialize_capability_summary(
+    summary: CapabilitySummary, *, request_id: str, payload_digest: str
+) -> dict[str, Any]:
+    """Serialize one typed capability preflight without exposing provider handles."""
+
+    if not isinstance(summary, CapabilitySummary):
+        raise TypeError("summary must be a CapabilitySummary")
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise ValueError("request_id must not be empty")
+    if not isinstance(payload_digest, str) or not payload_digest.strip():
+        raise ValueError("payload_digest must not be empty")
+    return _json_value(
+        {
+            "data": {
+                "type": "capability-preflights",
+                "id": summary.fingerprint,
+                "attributes": asdict(summary),
+                "meta": {
+                    "request_id": request_id,
+                    "payload_digest": payload_digest,
+                    "report_fingerprint": summary.report_fingerprint,
+                    "binding_fingerprint": summary.binding_fingerprint,
                 },
             }
         }
@@ -1149,6 +1198,111 @@ def create_strategy_lab_router(
                 )
             )
 
+    @router.post("/capabilities/preflight")
+    async def preflight_capability(
+        request: Request,
+        body: Any = Body(...),
+        idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Evaluate a capability request through an application-owned binding.
+
+        The package deliberately does not interpret provider entitlements or
+        engine registrations.  Until the host supplies the optional adapter
+        method, this endpoint returns a typed fail-closed response.
+        """
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            body = await _strict_json_body(request, request_id)
+            if not isinstance(body, Mapping):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "capability preflight body must be a JSON object",
+                        request_id,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+                )
+            try:
+                key = _safe_header_value(idempotency_key, "Idempotency-Key", 256)
+            except (TypeError, ValueError) as error:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "Idempotency-Key must be non-empty, at most 256 characters, and control-free",
+                        request_id,
+                        status.HTTP_400_BAD_REQUEST,
+                        details={"reason": str(error)},
+                    )
+                )
+            try:
+                payload_digest = content_digest(body)
+            except (TypeError, ValueError) as error:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "capability preflight body is not canonical JSON",
+                        request_id,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        details={"reason": str(error)},
+                    )
+                )
+            preflight = getattr(adapter, "preflight_capability", None)
+            if not callable(preflight):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.CAPABILITY_UNSUPPORTED,
+                        "capability preflight is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                        details={"reason": "the host has not supplied a capability binding"},
+                    )
+                )
+            summary = await _resolve(
+                preflight(
+                    principal=principal,
+                    request_id=request_id,
+                    idempotency_key=key,
+                    payload=body,
+                    payload_digest=payload_digest,
+                )
+            )
+            if not isinstance(summary, CapabilitySummary):
+                raise TypeError("adapter returned an invalid capability summary")
+            response = JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=serialize_capability_summary(
+                    summary, request_id=request_id, payload_digest=payload_digest
+                ),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "capability preflight request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 capability preflight failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 capability preflight failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
     @router.post("/legacy/imports", status_code=status.HTTP_202_ACCEPTED)
     async def import_legacy(
         request: Request,
@@ -1479,11 +1633,13 @@ def create_strategy_lab_router(
 __all__ = [
     "MAX_PAGE_SIZE",
     "ApiAdapterError",
+    "CapabilityPreflightAdapter",
     "StrategyLabApiAdapter",
     "SubmissionServiceResult",
     "create_strategy_lab_router",
     "serialize_collection",
     "serialize_command",
+    "serialize_capability_summary",
     "serialize_resource",
     "serialize_resource_identifier",
     "serialize_submission",

@@ -26,6 +26,10 @@ from app.strategy_lab_v2.api_router import (
     serialize_resource,
 )
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.capability_summary import (
+    CapabilitySummary,
+    CapabilitySummaryDecision,
+)
 from app.strategy_lab_v2.commands import (
     CommandEffect,
     ExecutionCommandDecision,
@@ -125,6 +129,7 @@ class FakeAdapter:
         self.commands: list[tuple[str, str]] = []
         self.mutations: list[tuple[str, str, str]] = []
         self.legacy_imports: list[str] = []
+        self.preflights: list[tuple[str, str, str]] = []
         self.document = _document()
 
     async def list_resources(self, **kwargs: Any) -> ResourceCollection:
@@ -216,6 +221,23 @@ class FakeAdapter:
         )
         return LegacyImportResolution(LegacyImportDecision.ACCEPT, registry, report)
 
+    async def preflight_capability(self, **kwargs: Any) -> CapabilitySummary:
+        self.preflights.append(
+            (kwargs["idempotency_key"], kwargs["request_id"], kwargs["payload_digest"])
+        )
+        return CapabilitySummary(
+            report_fingerprint=content_digest("capability-report"),
+            binding_fingerprint=content_digest("capability-binding"),
+            decision=CapabilitySummaryDecision.RIGOROUS,
+            data_gaps=(),
+            execution_gaps=(),
+            degradations=(),
+            ranking_eligible=True,
+            executable=True,
+            authoritative=True,
+            can_publish_authoritative_results=True,
+        )
+
 
 class ConflictAdapter(FakeAdapter):
     async def submit(self, **kwargs: Any) -> SubmissionServiceResult:
@@ -284,8 +306,8 @@ class SnapshotDriftAdapter(FakeAdapter):
         )
 
 
-def _client(adapter: FakeAdapter) -> TestClient:
-    async def get_adapter() -> FakeAdapter:
+def _client(adapter: Any) -> TestClient:
+    async def get_adapter() -> Any:
         return adapter
 
     async def get_principal() -> str:
@@ -355,6 +377,60 @@ def test_router_lists_capability_summary_projection_as_read_only_resource() -> N
         assert data["type"] == "capability-summaries"
         assert data["attributes"]["decision"] == "rigorous"
         assert data["attributes"]["can_publish_authoritative_results"] is True
+
+
+def test_capability_preflight_delegates_and_returns_typed_summary() -> None:
+    adapter = FakeAdapter()
+    payload = {"requirements": [{"instrument_id": "AAPL", "field": "close"}]}
+    with _client(adapter) as client:
+        response = client.post(
+            "/api/v1/strategy-lab/v2/capabilities/preflight",
+            headers={"Idempotency-Key": "capability-key", "X-Request-ID": "capability-request"},
+            json=payload,
+        )
+
+        assert response.status_code == 200
+        assert response.headers["x-request-id"] == "capability-request"
+        data = response.json()["data"]
+        assert data["type"] == "capability-preflights"
+        assert data["attributes"]["decision"] == "rigorous"
+        assert data["attributes"]["ranking_eligible"] is True
+        assert data["meta"]["request_id"] == "capability-request"
+        assert data["meta"]["payload_digest"] == content_digest(payload)
+        assert adapter.preflights == [
+            ("capability-key", "capability-request", content_digest(payload))
+        ]
+
+
+def test_capability_preflight_fails_closed_until_host_binding_is_configured() -> None:
+    with _client(object()) as client:
+        response = client.post(
+            "/api/v1/strategy-lab/v2/capabilities/preflight",
+            headers={"Idempotency-Key": "capability-key"},
+            json={"requirements": []},
+        )
+
+        assert response.status_code == 501
+        error = response.json()["errors"][0]
+        assert error["code"] == "capability_unsupported"
+        assert error["request_id"] == "request-generated"
+
+
+def test_capability_preflight_requires_idempotency_and_object_body() -> None:
+    with _client(FakeAdapter()) as client:
+        missing_key = client.post(
+            "/api/v1/strategy-lab/v2/capabilities/preflight", json={"requirements": []}
+        )
+        assert missing_key.status_code == 400
+        assert missing_key.json()["errors"][0]["code"] == "validation_error"
+
+        invalid_body = client.post(
+            "/api/v1/strategy-lab/v2/capabilities/preflight",
+            headers={"Idempotency-Key": "capability-key"},
+            json=["requirements"],
+        )
+        assert invalid_body.status_code == 422
+        assert invalid_body.json()["errors"][0]["code"] == "validation_error"
 
 
 def test_router_lists_preserved_legacy_imports_without_payload_bytes() -> None:
