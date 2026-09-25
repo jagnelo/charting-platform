@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.market_data_foundation import FundamentalFact, MarketEvent, ShortInterestObservation
+from app.models.market_data_foundation import (
+    FundamentalFact,
+    MarketEvent,
+    MarketEventObservation,
+    ShortInterestObservation,
+)
 from app.providers.base import FundamentalFactRecord, ShortInterestRecord
 
 
@@ -113,6 +119,7 @@ async def persist_market_event(
     payload: dict | None = None,
     is_provisional: bool = False,
 ) -> MarketEvent:
+    observed_at = datetime.now(UTC)
     existing = (
         await db.execute(
             select(MarketEvent).where(
@@ -140,6 +147,18 @@ async def persist_market_event(
         if existing.source_version is None and source_version is not None:
             existing.source_version = source_version
         existing.is_provisional = is_provisional
+        db.add(
+            MarketEventObservation(
+                market_event_id=existing.id,
+                event_key=event_key,
+                source=source,
+                event_type=event_type,
+                source_version=source_version,
+                observed_at=observed_at,
+                payload=payload or {},
+            )
+        )
+        await db.flush()
         return existing
     event = MarketEvent(
         event_key=event_key,
@@ -155,5 +174,17 @@ async def persist_market_event(
         is_provisional=is_provisional,
     )
     db.add(event)
+    await db.flush()
+    db.add(
+        MarketEventObservation(
+            market_event_id=event.id,
+            event_key=event_key,
+            source=source,
+            event_type=event_type,
+            source_version=source_version,
+            observed_at=observed_at,
+            payload=payload or {},
+        )
+    )
     await db.flush()
     return event

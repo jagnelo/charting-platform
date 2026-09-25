@@ -8,7 +8,7 @@ from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
-from app.models.market_data_foundation import Issuer, MarketEvent
+from app.models.market_data_foundation import Issuer, MarketEvent, MarketEventObservation
 from app.models.provider_runtime import ProviderCapability
 from app.providers.base import MarketEventRecord
 from app.services import market_events
@@ -68,6 +68,7 @@ async def test_refresh_market_events_persists_and_exactly_links_provider_symbol(
     assert row.instrument_id == instrument.id
     assert row.source == "massive"
     assert row.payload["ticker"] == "aapl"
+    assert len(db.execute(select(MarketEventObservation)).scalars().all()) == 1
 
     # The provider event key is the durable idempotency boundary.
     second = await market_events.refresh_market_events(
@@ -75,6 +76,7 @@ async def test_refresh_market_events_persists_and_exactly_links_provider_symbol(
     )
     assert second["events"] == 1
     assert len(db.execute(select(MarketEvent)).scalars().all()) == 1
+    assert len(db.execute(select(MarketEventObservation)).scalars().all()) == 2
 
 
 @pytest.mark.asyncio

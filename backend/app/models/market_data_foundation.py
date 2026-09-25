@@ -545,6 +545,41 @@ class MarketEvent(Base, TimestampMixin):
     __table_args__ = (UniqueConstraint("event_key", "source", name="uq_market_event_source_key"),)
 
 
+class MarketEventObservation(Base, TimestampMixin):
+    """Immutable provider observation for a canonical market event.
+
+    ``MarketEvent`` is the latest normalized projection keyed by provider
+    event identity. This table retains every fetched payload so a later
+    provider revision cannot erase the earlier evidence.
+    """
+
+    __tablename__ = "market_event_observation"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    market_event_id: Mapped[int] = mapped_column(
+        BIGINT_ID, ForeignKey("market_event.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    event_key: Mapped[str] = mapped_column(String(180), nullable=False, index=True)
+    source: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    event_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    source_version: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    market_event: Mapped["MarketEvent"] = relationship()
+
+    __table_args__ = (
+        Index(
+            "ix_market_event_observation_source_event_observed",
+            "source",
+            "event_key",
+            "observed_at",
+        ),
+    )
+
+
 class MarketEventConsensus(Base, TimestampMixin):
     """Conservative cross-provider event reconciliation result.
 
