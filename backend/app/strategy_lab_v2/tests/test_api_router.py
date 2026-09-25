@@ -811,6 +811,21 @@ def test_forward_replay_serializer_preserves_deterministic_plan_identity() -> No
     assert payload["meta"]["count"] == 1
 
 
+def test_forward_replay_serializer_rejects_plans_for_another_instance() -> None:
+    replay_plan = CounterfactualReplayPlan(
+        replay_id=content_digest("replay-serializer-other-instance"),
+        instance_id="forward-2",
+        correction_event_id="correction-1",
+        original_event_id="live-0",
+        base_checkpoint_fingerprint=forward_state().checkpoint.fingerprint,
+        warmup_receipt_fingerprint=forward_state().warmup_receipt_fingerprint,
+        planned_at=NOW,
+    )
+
+    with pytest.raises(ValueError, match="instance"):
+        serialize_forward_replays((replay_plan,), instance_id="forward-1", request_id="request-1")
+
+
 @pytest.mark.asyncio
 async def test_replay_route_exposes_additive_counterfactual_plans() -> None:
     app = _asgi_app(ReplayRouteAdapter())

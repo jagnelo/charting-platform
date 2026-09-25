@@ -850,6 +850,8 @@ def serialize_forward_replays(
     ordered = tuple(sorted(replays, key=lambda replay: replay.replay_id))
     if ordered != replays:
         raise ValueError("replays must be deterministically ordered")
+    if any(replay.instance_id != instance_id for replay in ordered):
+        raise ValueError("replay plan instance does not match the requested instance")
     return _json_value(
         {
             "data": [
