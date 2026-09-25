@@ -477,6 +477,7 @@ async def _record_bar_observations(
                 "ts",
                 "is_adjusted",
                 "scope_key",
+                "observed_at",
             ],
             set_={
                 "provider_symbol": pg_insert(MarketBarObservation).excluded.provider_symbol,

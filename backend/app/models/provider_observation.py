@@ -192,6 +192,7 @@ class MarketBarObservation(Base):
             "ts",
             "is_adjusted",
             "scope_key",
+            "observed_at",
             name="uq_market_bar_observation",
         ),
     )

@@ -151,6 +151,11 @@ and snapshot-retention settings. Request logs are quota and audit evidence, not
 disposable operational cache. This preserves every quota-consuming provider
 response and usage fact for audit, replay, and future reconciliation.
 
+Raw OHLCV observations follow the same rule: the conflict key includes the
+fetch observation timestamp, so a later provider revision of an existing bar
+creates a new raw observation instead of overwriting the earlier response.
+Canonical bars remain projections and may be refreshed independently.
+
 The mapping is enforced consistently by normal application routing, the direct
 live-probe planner, and the manifest preflight. Missing, duplicated, or
 non-existent `reconciled_dimensions` entries fail closed before transport;
