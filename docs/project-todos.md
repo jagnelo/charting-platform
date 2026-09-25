@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-25 — Current provider-contract audit continuation
+
+- [x] Reconcile the current official EODHD API-limits page: it documents
+      1,000 HTTP requests/minute with a per-minute reset, while the Free
+      Starter card still says 20 requests/minute. The configured key's bounded
+      `/user` response reports a 20-call daily limit, stale
+      `apiRequestsDate=2026-09-15`, and native minute headers `1200/1199`.
+      Preserve this contradiction and keep ordinary routing fail-closed; do
+      not infer the active account entitlement or current daily baseline.
+- [x] Run current-source keyless matrices for OpenFIGI (`3/3`) and Binance
+      (`3/3`) after native usage refreshes. Redacted receipts are durable in
+      the provider workstream; keyed OpenFIGI limits remain unproven.
+- [ ] Reconcile EODHD's active account entitlement and current daily baseline
+      from provider-authoritative evidence before enabling ordinary routing.
+
 ### 2026-09-17 — Explicit provider-scoped reset safety envelopes
 
 - [x] Apply the Alpaca reset-boundary decision to the other providers whose
