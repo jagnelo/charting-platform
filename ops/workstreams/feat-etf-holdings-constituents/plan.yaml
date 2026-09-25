@@ -308,6 +308,7 @@ remaining_gaps:
   - "The 2026-09-25 Arin recheck found an indexed 23-row ATTR holdings table dated 2026-09-16, but direct access timed out from the allowed browser path. ATTR remains issuer_access_blocked; no native promotion or third-party substitute was introduced."
   - "The 2026-09-25 AVOS recheck found the current indexed official page exposing a complete holdings table dated 2026-09-17, while the earlier backend-equivalent request remained HTTP 403 and the current direct probe failed DNS resolution. AVOS remains issuer_access_blocked and unavailable; indexed evidence was not promoted to native support."
   - "The 2026-09-25 Baillie Gifford recheck confirmed current first-party BGGG/BGIA/BGEG/BGUS pages and daily all-holdings spreadsheet claims, but executable content remained top-ten or summary-only without a complete machine-readable constituent universe and stable identifiers. All four remain non-executable and unavailable; no promotion or SEC reconstruction occurred."
+  - "Implementation checkpoint d3572435 makes the symbol capability boundary truthful for audited fallback identities: issuer_access_blocked and non_executable_public_source now map to explicit unavailable outcomes, while unresolved route discovery remains unknown. Capability coverage passed 91 tests, the audit/parity slice passed 3, Ruff, workstream validation, and diff-check passed."
 progress:
   completed:
     - AC1

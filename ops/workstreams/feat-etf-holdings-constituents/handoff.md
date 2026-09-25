@@ -41,6 +41,9 @@ non-executable.
   every fallback key; all 140 historical records are represented exactly once.
 - `docs/etf-provider-universe.md` is reconciled from code to the current
   496/419/77 snapshot; future updates must remain code-derived.
+- The symbol capability boundary now maps provider identities already audited
+  as `issuer_access_blocked` or `non_executable_public_source` to explicit
+  `unavailable` outcomes; unresolved route discovery remains `unknown`.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - The latest complete `make validate-integration` run on the current working
@@ -51,9 +54,8 @@ non-executable.
   fresh-stack retry passed all four workspace-floating viewport variants. The
   mismatch was transient and did not implicate ETF holdings tests or routes.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint is `2502482790704c1b5d081c90a4bf419a24966926`; subsequent
-  commits through `f59017427a32d92dfc12dde97a86988e0cb73213` contain only
-  branch-owned validation, documentation, and session-record updates. The
+- Latest implementation checkpoint is `d3572435dce1bd3f131d65cb215124bd12f40f48`; the
+  subsequent `3413e3b73` commit refreshes the durable session checkpoint. The
   provider implementation remains at the reconciled 496/419/77 state described
   above.
   Earlier
