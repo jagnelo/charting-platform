@@ -98,6 +98,10 @@ def _validate_orf_source_url(url: str, *, expected_file: str) -> None:
         raise ProviderNotConfiguredError(
             "finra_otc_directory ORF source must use FINRA's apidownload.finratraqs.org HTTPS host"
         )
+    if parsed.path.lower() != "/downloadhandler.ashx":
+        raise ProviderNotConfiguredError(
+            "finra_otc_directory ORF source requires path=/DownloadHandler.ashx"
+        )
     if str(query.get("action", [""])[0]).upper() != "DOWNLOAD":
         raise ProviderNotConfiguredError("finra_otc_directory ORF source requires action=DOWNLOAD")
     if str(query.get("facility", [""])[0]).upper() != "ORF":

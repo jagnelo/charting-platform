@@ -159,6 +159,22 @@ def test_finra_otc_directory_orf_requires_inactive_master(monkeypatch):
         FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
 
 
+def test_finra_otc_directory_orf_requires_documented_download_handler_path(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_orf_security_master")
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://apidownload.finratraqs.org/not-the-download-handler?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+    )
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+        "https://apidownload.finratraqs.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
+    )
+    with pytest.raises(ProviderNotConfiguredError, match="DownloadHandler"):
+        FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+
+
 def test_parse_otc_markets_security_master_verifies_validation_record_count():
     validation = (
         "Datafile|Source|Date/Time|Record Count\n"
