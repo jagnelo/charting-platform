@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from app.strategy_lab_v2.api_contracts import ApiErrorCode
+from app.strategy_lab_v2.api_contracts import ApiError, ApiErrorCode
 from app.strategy_lab_v2.artifact_application import (
     ArtifactPublicationDecision,
     ArtifactPublicationResolution,
@@ -194,6 +194,34 @@ def test_builder_maps_failed_runtime_to_typed_digest_only_error(tmp_path: Path) 
     }
 
 
+def test_builder_uses_host_runtime_error_factory(tmp_path: Path) -> None:
+    context, accepted_lookup = _context_and_lookup(tmp_path, body="exit 7")
+    lookup = _failed_lookup(accepted_lookup)
+    seen: list[str] = []
+
+    def factory(received_context, runtime_state):
+        seen.append(runtime_state.error_digest or "missing")
+        return ApiError(
+            ApiErrorCode.INTERNAL_ERROR,
+            "host-classified worker failure",
+            received_context.request.request_fingerprint,
+            500,
+            False,
+            {"classification": "non-retryable"},
+        )
+
+    evidence = build_worker_terminal_evidence(
+        context,
+        lookup,
+        runtime_error_factory=factory,
+    )
+
+    assert seen == [context.process.execution.runtime_result.state.error_digest]  # type: ignore[union-attr]
+    assert evidence.error is not None
+    assert evidence.error.message == "host-classified worker failure"
+    assert evidence.error.retryable is False
+
+
 def test_default_worker_failure_error_rejects_non_failed_runtime(tmp_path: Path) -> None:
     context, _ = _context_and_lookup(tmp_path)
     assert context.process.execution is not None
@@ -223,6 +251,38 @@ async def test_factory_loads_lookup_and_resolves_artifact_plans(tmp_path: Path) 
 
     assert calls == [(context.request.request_fingerprint, "attempt-1")]
     assert evidence.artifact_plans == (_artifact_plan(lookup),)
+
+
+@pytest.mark.asyncio
+async def test_factory_forwards_host_runtime_error_factory(tmp_path: Path) -> None:
+    context, accepted_lookup = _context_and_lookup(tmp_path, body="exit 7")
+    lookup = _failed_lookup(accepted_lookup)
+
+    def factory(received_context, _runtime_state):
+        return ApiError(
+            ApiErrorCode.INTERNAL_ERROR,
+            "factory failure",
+            received_context.request.request_fingerprint,
+            500,
+        )
+
+    async def load(*, request_fingerprint: str, attempt_id: str):
+        assert request_fingerprint == context.request.request_fingerprint
+        assert attempt_id == context.request.admission.attempt_id
+        return lookup
+
+    async def artifacts(_context: WorkerCompletionContext, _lookup):
+        return ()
+
+    resolver = create_worker_terminal_evidence_resolver(
+        load,
+        artifacts,
+        runtime_error_factory=factory,
+    )
+    evidence = await resolver(context)
+
+    assert evidence.error is not None
+    assert evidence.error.message == "factory failure"
 
 
 @pytest.mark.asyncio

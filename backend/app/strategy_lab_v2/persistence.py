@@ -55,6 +55,7 @@ from app.strategy_lab_v2.worker_evidence import (
 )
 from app.strategy_lab_v2.worker_evidence_resolution import (
     ArtifactPlanResolver,
+    WorkerRuntimeErrorFactory,
     create_worker_terminal_evidence_resolver,
 )
 from app.strategy_lab_v2.worker_terminal_adapter import (
@@ -364,7 +365,10 @@ class PostgresStrategyLabV2Persistence:
         return WorkerTerminalEvidenceLookup(binding, inputs)
 
     def worker_terminal_evidence_resolver(
-        self, artifact_plan_resolver: ArtifactPlanResolver
+        self,
+        artifact_plan_resolver: ArtifactPlanResolver,
+        *,
+        runtime_error_factory: WorkerRuntimeErrorFactory | None = None,
     ) -> WorkerTerminalEvidenceResolver:
         """Compose authenticated lookup with explicit artifact mapping.
 
@@ -377,6 +381,7 @@ class PostgresStrategyLabV2Persistence:
         return create_worker_terminal_evidence_resolver(
             self.load_worker_terminal_evidence_for_request,
             artifact_plan_resolver,
+            runtime_error_factory=runtime_error_factory,
         )
 
 

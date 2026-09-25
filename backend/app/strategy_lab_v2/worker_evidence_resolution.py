@@ -33,6 +33,7 @@ ArtifactPlanResolver = Callable[
     Sequence[ArtifactPublicationPlan]
     | Awaitable[Sequence[ArtifactPublicationPlan]],
 ]
+WorkerRuntimeErrorFactory = Callable[[WorkerCompletionContext, RuntimeExecutionState], ApiError]
 
 
 class EvidenceLookup(Protocol):
@@ -90,6 +91,7 @@ def build_worker_terminal_evidence(
     *,
     artifact_plans: Sequence[ArtifactPublicationPlan] = (),
     released_at: datetime | None = None,
+    runtime_error_factory: WorkerRuntimeErrorFactory | None = None,
 ) -> WorkerTerminalEvidence:
     """Combine one worker receipt with authenticated durable terminal state.
 
@@ -97,13 +99,16 @@ def build_worker_terminal_evidence(
     host application knows which mounted files correspond to each result
     manifest.  Successful evidence requires one accepted publication plan for
     the exact manifest; failed/cancelled evidence cannot carry result data or
-    artifact plans.
+    artifact plans. A host runtime-error factory may classify failed runtime
+    evidence; when omitted, the package uses the digest-only fallback.
     """
 
     if not isinstance(context, WorkerCompletionContext):
         raise TypeError("context must be a WorkerCompletionContext")
     if not isinstance(lookup, WorkerTerminalEvidenceLookup):
         raise TypeError("lookup must be a WorkerTerminalEvidenceLookup")
+    if runtime_error_factory is not None and not callable(runtime_error_factory):
+        raise TypeError("runtime_error_factory must be callable")
     if lookup.inputs.attempt_id != context.request.admission.attempt_id:
         raise ValueError("durable evidence references a different attempt")
     if context.process.decision is not WorkerProcessDecision.COMPLETED:
@@ -161,7 +166,10 @@ def build_worker_terminal_evidence(
         raise ValueError("non-successful worker evidence cannot carry result evidence")
     error = execution.outcome.error
     if runtime_phase is RuntimeExecutionPhase.FAILED and error is None:
-        error = default_worker_failure_error(context, process_execution.runtime_result.state)
+        factory = runtime_error_factory or default_worker_failure_error
+        error = factory(context, process_execution.runtime_result.state)
+        if not isinstance(error, ApiError):
+            raise TypeError("runtime_error_factory must return an ApiError")
     if runtime_phase is RuntimeExecutionPhase.CANCELLED and error is not None:
         raise ValueError("cancelled worker evidence cannot carry an error")
     if runtime_phase not in {
@@ -189,13 +197,22 @@ def build_worker_terminal_evidence(
 def create_worker_terminal_evidence_resolver(
     lookup_loader: EvidenceLookup,
     artifact_plan_resolver: ArtifactPlanResolver,
+    *,
+    runtime_error_factory: WorkerRuntimeErrorFactory | None = None,
 ) -> Callable[[WorkerCompletionContext], Awaitable[WorkerTerminalEvidence]]:
-    """Create the callback shape consumed by ``PostgresWorkerTerminalAdapter``."""
+    """Create the callback shape consumed by ``PostgresWorkerTerminalAdapter``.
+
+    ``runtime_error_factory`` is intentionally injected rather than discovered
+    from worker payloads, preserving application ownership of retry policy and
+    typed error classification.
+    """
 
     if not callable(lookup_loader):
         raise TypeError("lookup_loader must be callable")
     if not callable(artifact_plan_resolver):
         raise TypeError("artifact_plan_resolver must be callable")
+    if runtime_error_factory is not None and not callable(runtime_error_factory):
+        raise TypeError("runtime_error_factory must be callable")
 
     async def resolve(context: WorkerCompletionContext) -> WorkerTerminalEvidence:
         if not isinstance(context, WorkerCompletionContext):
@@ -214,7 +231,12 @@ def create_worker_terminal_evidence_resolver(
         plans = await resolved if inspect.isawaitable(resolved) else resolved
         if not isinstance(plans, Sequence):
             raise TypeError("artifact_plan_resolver must return a sequence")
-        return build_worker_terminal_evidence(context, lookup, artifact_plans=plans)
+        return build_worker_terminal_evidence(
+            context,
+            lookup,
+            artifact_plans=plans,
+            runtime_error_factory=runtime_error_factory,
+        )
 
     return resolve
 
@@ -280,6 +302,7 @@ __all__ = [
     "ArtifactPlanResolver",
     "EvidenceLookup",
     "SandboxArtifactPublisher",
+    "WorkerRuntimeErrorFactory",
     "build_worker_terminal_evidence",
     "create_sandbox_artifact_plan_resolver",
     "create_worker_terminal_evidence_resolver",
