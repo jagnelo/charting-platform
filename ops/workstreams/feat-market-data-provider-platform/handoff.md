@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 FINRA ORF endpoint-path contract hardening
+
+- ORF source validation now requires the documented `/DownloadHandler.ashx`
+  path in addition to the TRAQS HTTPS host and exact `action`, `facility`, and
+  file parameters. A malformed path is rejected before credentials or network
+  transport. Focused ORF coverage passed `24/24` and Ruff passed.
+
+## 2026-09-25 exact-head validation after ORF path hardening
+
+- The branch-owned backend unit gate passed `1,921/1,921` with `37` warnings
+  at source `f4880cb7742d943399603ece66318ba169a502ad`.
+- The authoritative Docker integration gate passed `386/386` with `57`
+  warnings in `719.08s`, using isolated PostgreSQL/Redis testcontainers
+  (session `3a62ab45-5477-4314-b858-8d2825c3f808`). Cleanup completed without
+  host-wide pruning. External ORF entitlement, terms, operation-cost bound,
+  and credentialed live evidence remain fail-closed.
+
 ## 2026-09-25 FINRA ORF host validation correction
 
 - The ORF source validator and all branch-owned fixtures now use the

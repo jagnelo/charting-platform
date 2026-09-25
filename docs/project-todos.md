@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-25 — FINRA ORF endpoint-path hardening and exact validation
+
+- [x] Require the documented ORF `/DownloadHandler.ashx` path before any
+      credentialed request; malformed paths are now rejected explicitly.
+      Focused ORF coverage passed `24/24` and Ruff passed.
+
+- [x] Validate exact source `f4880cb7742d943399603ece66318ba169a502ad`:
+      branch-owned unit scope passed `1,921/1,921` with `37` warnings, and
+      Docker PostgreSQL/Redis integration passed `386/386` with `57` warnings
+      in `719.08s` (session `3a62ab45-5477-4314-b858-8d2825c3f808`); cleanup
+      completed without host-wide pruning.
+
 ### 2026-09-25 — FINRA ORF host correction and full validation
 
 - [x] Correct the ORF validator and branch-owned fixtures to use the official
