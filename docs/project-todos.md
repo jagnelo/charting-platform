@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-25 — Massive market-event cursor retention
+
+- [x] Close the no-discard gap in market-wide event persistence. Massive IPO
+      pages are now followed through every validated cursor, with each page
+      passing through the normal quota/health runtime and every normalized
+      event retained.
+- [x] If a later page fails (for example because the provider quota is
+      exhausted), earlier successful pages are still persisted and the typed
+      page failure is retained for the next scheduled run. Repeated or
+      malformed cursors fail closed rather than silently truncating the feed.
+- [x] Regression coverage verifies complete two-page traversal and partial
+      retention; the branch-owned unit gate passed `1,930/1,930`, Docker
+      PostgreSQL/Redis integration passed `386/386`, and Ruff/diff checks are
+      clean. Live Massive event transport remains terms-gated and was not
+      called.
+
 ### 2026-09-25 — Twelve Data account-usage evidence refresh
 
 - [x] The configured Twelve Data key's account-usage-only live case passed

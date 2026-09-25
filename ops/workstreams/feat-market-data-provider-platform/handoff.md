@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Massive cursor-paginated market-event retention
+
+- Massive IPO/event pages are now followed through every validated
+  continuation cursor by `refresh_market_events`; each page is admitted and
+  charged independently through the durable provider runtime.
+- Successful earlier pages are retained when a later page fails. Malformed or
+  repeated cursors fail closed and are reported, so no page is silently
+  discarded and the next scheduled run can retry the unresolved continuation.
+- Focused market-event/provider tests passed `17/17`; the branch-owned unit
+  gate passed `1,930/1,930` with 37 existing warnings; Docker integration
+  passed `386/386` with 57 warnings; Ruff and `git diff --check` passed.
+- No live Massive event request was made: Massive remains terms-gated and
+  current provider safety preflight still blocks its normal routing.
+
 ## 2026-09-25 exact-current safety preflight
 
 - The exact current branch source stopped the full live matrix before
