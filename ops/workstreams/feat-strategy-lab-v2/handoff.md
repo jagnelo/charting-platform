@@ -4688,3 +4688,26 @@ The Docker-backed combined gate completed 2,159 tests with 83.03% total
 coverage (required threshold: 75%), and Docker setup/cleanup succeeded.
 Schema/API/worker/Compose integration and stable Nautilus execution remain
 deferred behind the existing gates.
+
+## 2026-09-25 - Failed worker runtime evidence checkpoint
+
+`worker_evidence_resolution.py` now maps a failed runtime receipt that has not
+yet received a durable API error projection to a deterministic typed
+`ApiError`. The fallback carries only the persisted runtime `error_digest`,
+uses the request fingerprint as its stable request identity, and never
+reconstructs exception text or filesystem paths. Existing application-owned
+errors still take precedence; successful and cancelled runtime evidence retain
+their strict manifest/error rules.
+
+The focused resolver suite passed 7 tests. The exact branch validation passed
+841 package tests, 2 migration tests, Ruff, MyPy across 272 files, diff
+validation, and workstream validation. The Docker-backed combined coverage
+gate passed 2,492 tests with 83.75% total coverage (required threshold: 75%);
+the referenced runtime env file was absent in this checkout and `.env.dev`
+supplied test configuration. Two cleanup passes retained zero testcontainer
+sessions, containers, images, or volumes.
+
+The branch remains `ready_for_human_review`. Host application resolver
+configuration, explicit multi-artifact mapping, stable Nautilus release
+conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
+integration remain deferred behind their existing gates.
