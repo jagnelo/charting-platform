@@ -313,6 +313,11 @@ async def test_forward_adapter_stages_correction_replay_atomically() -> None:
     assert replay.decision is ForwardEventTransactionDecision.CORRECTION_REPLAY
     assert replay.replay_plan == accepted.replay_plan
     assert len(session.replays) == 1
+    loaded_replays = await adapter.load_replays(
+        principal="owner-1", instance_id=instance.instance_id
+    )
+    assert loaded_replays == (accepted.replay_plan,)
+    assert await adapter.load_replays(principal="owner-2", instance_id=instance.instance_id) is None
 
 
 def test_forward_state_schema_is_explicit_and_safe() -> None:
