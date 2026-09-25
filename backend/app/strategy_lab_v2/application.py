@@ -10,7 +10,7 @@ engine; those lifecycle concerns remain explicit follow-up gates.
 from __future__ import annotations
 
 import inspect
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from importlib import import_module
@@ -29,9 +29,11 @@ from app.strategy_lab_v2.api_router import (
     SubmissionServiceResult,
     create_strategy_lab_router,
 )
+from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
+from app.strategy_lab_v2.contracts import ArtifactManifest
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.execution import ExecutionAuthorization
 from app.strategy_lab_v2.legacy import (
@@ -39,7 +41,10 @@ from app.strategy_lab_v2.legacy import (
     LegacyImportRequest,
     LegacyImportResolution,
 )
+from app.strategy_lab_v2.outcomes import ExecutionOutcome
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
+from app.strategy_lab_v2.postgres_result_publication import PublicationStateResolution
+from app.strategy_lab_v2.progress import ExecutionProgressState
 from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
@@ -47,7 +52,13 @@ from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationResolution,
     create_resource_mutation_receipt,
 )
+from app.strategy_lab_v2.result_completion import ResultCompletionResolution
+from app.strategy_lab_v2.result_publication import (
+    ResultPublicationDecision,
+    ResultPublicationPlan,
+)
 from app.strategy_lab_v2.runtime_execution import (
+    RuntimeExecutionState,
     StrategyRuntimePreflight,
     StrategyRuntimeRequest,
 )
@@ -59,7 +70,7 @@ from app.strategy_lab_v2.storage import (
     StorageTransactionDecision,
     StorageTransactionRequest,
 )
-from app.strategy_lab_v2.submissions import SubmissionRequest
+from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,6 +112,28 @@ class SearchDispatchEvidence:
 SearchDispatchEvidenceResolver = Callable[
     ..., Awaitable[SearchDispatchEvidence] | SearchDispatchEvidence
 ]
+
+
+@dataclass(frozen=True, slots=True)
+class ResultPublicationCompletionResolution:
+    """Application-owned result publication and terminal completion outcome.
+
+    Publication-plan registration is deliberately a separate durable step from
+    completion.  This lets the worker evidence resolver authenticate an
+    accepted plan before terminal execution while the completion adapter still
+    owns its atomic artifact/completion transaction.
+    """
+
+    publication: PublicationStateResolution
+    completion: ResultCompletionResolution | None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.publication, PublicationStateResolution):
+            raise TypeError("publication must be a PublicationStateResolution")
+        if self.completion is not None and not isinstance(
+            self.completion, ResultCompletionResolution
+        ):
+            raise TypeError("completion must be a ResultCompletionResolution or None")
 
 
 def _principal_identity(principal: Any) -> _PrincipalIdentity:
@@ -610,6 +643,70 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             assessment=assessment,
         )
 
+    async def publish_and_complete_result(
+        self,
+        *,
+        principal: Any,
+        submission: SubmissionReceipt,
+        runtime_state: RuntimeExecutionState,
+        outcome: ExecutionOutcome,
+        progress: ExecutionProgressState,
+        publication: ResultPublicationPlan,
+        artifact_plans: Sequence[ArtifactPublicationPlan],
+        completed_at: datetime,
+        result_artifacts: Sequence[ArtifactManifest] | None = None,
+    ) -> ResultPublicationCompletionResolution:
+        """Register authenticated publication evidence and complete a result.
+
+        The publication adapter is intentionally called first: worker terminal
+        evidence can subsequently load the immutable plan by owner and
+        attempt.  Accepted plans then flow into the PostgreSQL completion
+        adapter, which atomically commits artifact ledgers and the completion
+        receipt.  Rejected plans are durably recorded but cannot enter the
+        successful completion path.
+        """
+
+        if not isinstance(submission, SubmissionReceipt):
+            raise TypeError("submission must be a SubmissionReceipt")
+        if not isinstance(runtime_state, RuntimeExecutionState):
+            raise TypeError("runtime_state must be a RuntimeExecutionState")
+        if not isinstance(outcome, ExecutionOutcome):
+            raise TypeError("outcome must be an ExecutionOutcome")
+        if not isinstance(progress, ExecutionProgressState):
+            raise TypeError("progress must be an ExecutionProgressState")
+        if not isinstance(publication, ResultPublicationPlan):
+            raise TypeError("publication must be a ResultPublicationPlan")
+        plans = tuple(artifact_plans)
+        if any(not isinstance(item, ArtifactPublicationPlan) for item in plans):
+            raise TypeError("artifact_plans must contain ArtifactPublicationPlan values")
+        if result_artifacts is not None:
+            artifacts = tuple(result_artifacts)
+            if any(not isinstance(item, ArtifactManifest) for item in artifacts):
+                raise TypeError("result_artifacts must contain ArtifactManifest values")
+            result_artifacts = artifacts
+        if not isinstance(completed_at, datetime):
+            raise TypeError("completed_at must be a datetime")
+        if completed_at.tzinfo is None or completed_at.utcoffset() is None:
+            raise ValueError("completed_at must be timezone-aware")
+        owner = _principal_identity(principal)
+        registered = await self._persistence.result_publication.ensure(
+            principal=owner, plan=publication
+        )
+        if registered.plan.decision is ResultPublicationDecision.REJECT:
+            return ResultPublicationCompletionResolution(registered, None)
+        completion = await self._persistence.result_completion.finalize(
+            principal=owner,
+            submission=submission,
+            runtime_state=runtime_state,
+            outcome=outcome,
+            progress=progress,
+            publication=registered.plan,
+            artifact_plans=plans,
+            completed_at=completed_at.astimezone(UTC),
+            result_artifacts=result_artifacts,
+        )
+        return ResultPublicationCompletionResolution(registered, completion)
+
 
 _default_adapter: PostgresStrategyLabV2Adapter | None = None
 
@@ -643,6 +740,7 @@ def create_registered_strategy_lab_v2_router():
 __all__ = [
     "CapabilityPreflightResolver",
     "PostgresStrategyLabV2Adapter",
+    "ResultPublicationCompletionResolution",
     "create_registered_strategy_lab_v2_router",
     "get_strategy_lab_v2_adapter",
 ]

@@ -11,20 +11,34 @@ from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.api_router import ApiAdapterError, ResourceMutationServiceResult
 from app.strategy_lab_v2.application import (
     PostgresStrategyLabV2Adapter,
+    ResultPublicationCompletionResolution,
     SearchDispatchEvidence,
     _principal_identity,
     create_registered_strategy_lab_v2_router,
     get_strategy_lab_v2_adapter,
 )
+from app.strategy_lab_v2.artifact_commit import ArtifactCommitLedger
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary, CapabilitySummaryDecision
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.outcomes import OutcomeStatus
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_commands import PostgresCommandAdapter
 from app.strategy_lab_v2.postgres_execution_state import PostgresExecutionStateAdapter
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
+from app.strategy_lab_v2.postgres_result_publication import (
+    PublicationStateDecision,
+    PublicationStateResolution,
+)
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
+from app.strategy_lab_v2.progress import ProgressPhase
 from app.strategy_lab_v2.resource_mutations import ResourceMutationRequest
+from app.strategy_lab_v2.result_completion import (
+    ResultCompletionDecision,
+    ResultCompletionLedger,
+    ResultCompletionResolution,
+)
+from app.strategy_lab_v2.result_publication import ResultPublicationDecision
 from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution, resolve_search_dispatch
 from app.strategy_lab_v2.search_state import new_search_execution_state
 from app.strategy_lab_v2.storage import (
@@ -32,6 +46,13 @@ from app.strategy_lab_v2.storage import (
     resolve_storage_transaction,
 )
 from app.strategy_lab_v2.tests.test_admission import _fixture, _reservation
+from app.strategy_lab_v2.tests.test_execution_summary import (
+    _outcome,
+    _progress,
+    _publication,
+    _receipt,
+)
+from app.strategy_lab_v2.tests.test_result_completion import _runtime_success
 
 
 @dataclass
@@ -128,6 +149,96 @@ async def test_application_capability_preflight_fails_closed_without_host_bindin
 
     assert raised.value.error.code is ApiErrorCode.CAPABILITY_UNSUPPORTED
     assert raised.value.error.status_code == 501
+
+
+@pytest.mark.asyncio
+async def test_application_result_publication_completion_is_owner_scoped_and_idempotent() -> None:
+    submission = _receipt()
+    outcome = _outcome(OutcomeStatus.SUCCEEDED)
+    progress = _progress(ProgressPhase.SUCCEEDED, sequence=1)
+    publication = _publication(outcome.result_digest or "")
+    observed: dict[str, Any] = {}
+
+    class PublicationStore:
+        async def ensure(self, *, principal: Any, plan: Any) -> PublicationStateResolution:
+            observed["publication_principal"] = principal
+            observed["publication_plan"] = plan
+            return PublicationStateResolution(PublicationStateDecision.REGISTERED, plan)
+
+    class CompletionStore:
+        async def finalize(self, **kwargs: Any) -> ResultCompletionResolution:
+            observed.update(kwargs)
+            return ResultCompletionResolution(
+                ResultCompletionDecision.REJECT,
+                ResultCompletionLedger(),
+                ArtifactCommitLedger(),
+                content_digest("completion"),
+                rejection_reason="fixture completion",
+            )
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._persistence = SimpleNamespace(
+        result_publication=PublicationStore(), result_completion=CompletionStore()
+    )
+    resolved = await adapter.publish_and_complete_result(
+        principal=_User(42),
+        submission=submission,
+        runtime_state=_runtime_success(),
+        outcome=outcome,
+        progress=progress,
+        publication=publication,
+        artifact_plans=(),
+        completed_at=datetime(2024, 1, 1, 13, 0, tzinfo=UTC),
+    )
+
+    assert isinstance(resolved, ResultPublicationCompletionResolution)
+    assert resolved.publication.plan == publication
+    assert resolved.completion is not None
+    assert observed["publication_principal"].id == "42"
+    assert observed["principal"].id == "42"
+    assert observed["publication"] == publication
+    assert observed["completed_at"].tzinfo is UTC
+
+
+@pytest.mark.asyncio
+async def test_application_rejected_publication_is_recorded_without_completion() -> None:
+    publication = _publication(content_digest("result"))
+    publication = publication.__class__(
+        publication.result_fingerprint,
+        publication.reproduction_fingerprint,
+        publication.attempt_id,
+        publication.engine_build_digest,
+        ResultPublicationDecision.REJECT,
+        ("authoritative evidence missing",),
+    )
+    observed: dict[str, Any] = {}
+
+    class PublicationStore:
+        async def ensure(self, *, principal: Any, plan: Any) -> PublicationStateResolution:
+            observed["plan"] = plan
+            return PublicationStateResolution(PublicationStateDecision.REGISTERED, plan)
+
+    class CompletionStore:
+        async def finalize(self, **kwargs: Any) -> Any:
+            raise AssertionError("rejected publication must not finalize completion")
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._persistence = SimpleNamespace(
+        result_publication=PublicationStore(), result_completion=CompletionStore()
+    )
+    resolved = await adapter.publish_and_complete_result(
+        principal=_User(42),
+        submission=_receipt(),
+        runtime_state=_runtime_success(),
+        outcome=_outcome(OutcomeStatus.SUCCEEDED),
+        progress=_progress(ProgressPhase.SUCCEEDED, sequence=1),
+        publication=publication,
+        artifact_plans=(),
+        completed_at=NOW,
+    )
+
+    assert resolved.completion is None
+    assert observed["plan"] == publication
 
 
 def test_registered_router_uses_versioned_prefix_and_application_dependencies() -> None:

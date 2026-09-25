@@ -2,6 +2,25 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Application result publication/completion bridge checkpoint
+
+`PostgresStrategyLabV2Adapter.publish_and_complete_result` now provides the
+application-owned seam between authenticated host evidence and the durable
+result adapters. It normalizes the authenticated principal, registers the
+immutable owner-scoped publication plan before terminal completion, records
+rejected plans without entering completion, and delegates accepted plans to
+the atomic PostgreSQL completion/artifact transaction with UTC-normalized
+completion time. This gives worker evidence lookup a durable publication
+identity without claiming that publication-plan registration and completion
+are one cross-table transaction.
+
+Focused application/result coverage passed 5 tests. Ruff passed for the
+changed package files and MyPy passed across 277 source files. The existing
+full package rerun limitation remains: Starlette `TestClient` hangs during
+context startup in this restricted runtime, while direct ASGI validation is
+successful. Worker activation, publication-byte mapping, stable Nautilus v2,
+upstream reconciliation, and deployment remain gated.
+
 ## 2026-09-25 - PostgreSQL read-model replay identity checkpoint
 
 Persisted metric-set and runtime-request read models now normalize aware

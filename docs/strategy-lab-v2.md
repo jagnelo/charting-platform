@@ -906,7 +906,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   completion contract before new commits and the completion receipt are
   inserted; artifact conflicts leave both ledgers unchanged, and exact retries
   replay the existing receipt. Artifact bytes, migrations, authorization, and
-  worker wiring remain outside this registration-neutral adapter.
+  worker wiring remain outside this registration-neutral adapter. The
+  application adapter now registers the owner-scoped publication plan before
+  delegating accepted terminal evidence to this atomic completion boundary;
+  rejected publication plans are retained as evidence and cannot complete.
 - `postgres_result_publication.py` maps immutable publish/replay/reject plans to
   an owner-scoped additive PostgreSQL evidence table. Plan fingerprints,
   attempt/result/reproduction/build identities, and rejection reasons are
@@ -989,6 +992,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   resolves PostgreSQL retention at an explicit observation time, then invokes
   the guarded collector; its cleanup factory shares the authoritative commit
   ledger for orphan discovery and scheduled reconciliation.
+- `application.py` exposes the owner-scoped `publish_and_complete_result`
+  bridge. It authenticates the application principal, registers immutable
+  publication evidence before terminal completion, short-circuits rejected
+  plans, and delegates accepted plans to the atomic result-completion/artifact
+  transaction with UTC-normalized completion time. Worker activation, route
+  selection, and publication-byte mapping remain explicit host responsibilities.
 - `artifacts.py` and `ArtifactManifest` enforce typed byte lengths, retention
   classes, and authenticated integrity receipts. Verified receipts cannot claim
   success with mismatched observed bytes, and failure reasons are canonicalized
