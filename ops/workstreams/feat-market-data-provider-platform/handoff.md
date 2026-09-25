@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 current-source Nasdaq Trader NMS snapshot
+
+- The official `nasdaqlisted.txt` and `otherlisted.txt` snapshot passed `1/1`
+  with exactly two requests and the full-directory pagination,
+  completeness, and duplicate checks green. The redacted receipt is in
+  `validation.jsonl`.
+- This closes current NMS transport evidence only. OTC security-master
+  completeness and lifecycle reconciliation remain independently fail-closed.
+
 ## 2026-09-25 current-source Dinari Sandbox canary
 
 - The replacement Dinari Sandbox credentials passed the explicitly capped,
