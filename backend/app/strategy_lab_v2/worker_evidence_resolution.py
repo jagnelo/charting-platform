@@ -20,6 +20,7 @@ from app.strategy_lab_v2.artifact_application import (
 )
 from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import RunResultManifest
 from app.strategy_lab_v2.outcomes import OutcomeStatus
 from app.strategy_lab_v2.result_publication import ResultPublicationDecision
 from app.strategy_lab_v2.runtime_execution import RuntimeExecutionPhase, RuntimeExecutionState
@@ -149,6 +150,7 @@ def build_worker_terminal_evidence(
         )
         if len(candidates) != 1:
             raise ValueError("successful worker evidence requires one accepted publication plan")
+        plans = _validate_artifact_plans(manifest, plans)
         return WorkerTerminalEvidence(
             principal=lookup.owner_id,
             submission=submission,
@@ -192,6 +194,40 @@ def build_worker_terminal_evidence(
         error=error,
         released_at=released_at,
     )
+
+
+def _validate_artifact_plans(
+    manifest: RunResultManifest,
+    plans: tuple[ArtifactPublicationPlan, ...],
+) -> tuple[ArtifactPublicationPlan, ...]:
+    """Require one exact publication plan for every manifest output artifact."""
+
+    expected = {
+        content_digest(artifact): (
+            artifact.content_digest,
+            artifact.storage_key,
+            artifact.byte_length,
+            artifact.retention_class,
+        )
+        for artifact in manifest.output_artifacts
+    }
+    observed: dict[str, ArtifactPublicationPlan] = {}
+    for plan in plans:
+        if plan.manifest_fingerprint not in expected:
+            raise ValueError("artifact plan references an unknown result artifact")
+        if plan.manifest_fingerprint in observed:
+            raise ValueError("artifact plans must contain one plan per result artifact")
+        if (
+            plan.content_digest,
+            plan.storage_key,
+            plan.byte_length,
+            plan.retention_class,
+        ) != expected[plan.manifest_fingerprint]:
+            raise ValueError("artifact plan does not match its result artifact")
+        observed[plan.manifest_fingerprint] = plan
+    if set(observed) != set(expected):
+        raise ValueError("artifact plans must cover every result artifact")
+    return tuple(observed[key] for key in sorted(observed))
 
 
 def create_worker_terminal_evidence_resolver(

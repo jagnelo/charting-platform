@@ -177,6 +177,22 @@ def test_builder_requires_one_accepted_publication(tmp_path: Path) -> None:
         build_worker_terminal_evidence(context, missing)
 
 
+def test_builder_requires_exact_plan_for_every_result_artifact(tmp_path: Path) -> None:
+    context, lookup = _context_and_lookup(tmp_path)
+
+    with pytest.raises(ValueError, match="cover every result artifact"):
+        build_worker_terminal_evidence(context, lookup)
+
+
+def test_builder_rejects_plan_for_an_unknown_result_artifact(tmp_path: Path) -> None:
+    context, lookup = _context_and_lookup(tmp_path)
+    plan = _artifact_plan(lookup)
+    unknown = replace(plan, manifest_fingerprint=content_digest("unknown-manifest"))
+
+    with pytest.raises(ValueError, match="unknown result artifact"):
+        build_worker_terminal_evidence(context, lookup, artifact_plans=(unknown,))
+
+
 def test_builder_maps_failed_runtime_to_typed_digest_only_error(tmp_path: Path) -> None:
     context, accepted_lookup = _context_and_lookup(tmp_path, body="exit 7")
     lookup = _failed_lookup(accepted_lookup)
