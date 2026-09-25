@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import csv
 import time
 import zipfile
@@ -776,6 +777,7 @@ async def run_etf_holdings_capability_canaries(
     *,
     symbols: list[str],
     max_symbols: int,
+    timeout_seconds: float = 60.0,
     failure_threshold: int = 3,
     cooldown_seconds: int = 3600,
 ) -> dict[str, Any]:
@@ -888,7 +890,10 @@ async def run_etf_holdings_capability_canaries(
         started = time.perf_counter()
         previous_failures = _failure_streak(metadata)
         try:
-            snapshot = await _refresh_adapter_route(db, profile)
+            snapshot = await asyncio.wait_for(
+                _refresh_adapter_route(db, profile),
+                timeout=max(float(timeout_seconds), 0.1),
+            )
         except ETFHoldingsRouteNotReadyError as exc:
             summary["skipped"] += 1
             await _record_skip(db, profile, "needs_issuer_route", str(exc))

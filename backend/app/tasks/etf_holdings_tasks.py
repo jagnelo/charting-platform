@@ -79,6 +79,7 @@ async def etf_holdings_capability_canary_task(ctx: dict) -> dict:
             db,
             symbols=symbols,
             max_symbols=settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS,
+            timeout_seconds=settings.ETF_HOLDINGS_CAPABILITY_CANARY_TIMEOUT_SECONDS,
             failure_threshold=settings.ETF_HOLDINGS_CAPABILITY_CANARY_FAILURE_THRESHOLD,
             cooldown_seconds=settings.ETF_HOLDINGS_CAPABILITY_CANARY_COOLDOWN_SECONDS,
         )

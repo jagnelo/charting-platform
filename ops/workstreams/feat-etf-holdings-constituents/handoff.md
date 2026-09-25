@@ -5474,3 +5474,14 @@ existing current audit; no new native promotion or silent downgrade was made.
 Evidence refs: `web:wisdomtree-dxj-product-page-2026-09-25-current-top-ten`,
 `web:wisdomtree-ntsx-product-page-2026-09-25-current-top-ten`,
 `live:wisdomtree-dxj-canary-2026-09-25-bounded-timeout`.
+
+## Canary timeout hardening — 2026-09-25
+
+The capability-canary runner now applies an explicit per-symbol timeout budget
+through `ETF_HOLDINGS_CAPABILITY_CANARY_TIMEOUT_SECONDS` (default `60`). A
+timed-out adapter refresh is recorded as a transport failure and flows through
+the existing failure streak, circuit, capability, and persisted canary-history
+paths instead of allowing one issuer route to hold the entire sweep open.
+The timeout is configurable for deployment environments with different route
+latency constraints; it does not alter adapter parsing, source eligibility, or
+the shared provider-platform governance boundary.

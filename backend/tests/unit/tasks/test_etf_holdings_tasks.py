@@ -175,6 +175,7 @@ def test_etf_capability_canary_passes_bounded_configuration(monkeypatch):
     monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", True)
     monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS", "DXJ, NTSX")
     monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS", 2)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_TIMEOUT_SECONDS", 45.0)
     monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_FAILURE_THRESHOLD", 3)
     monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_COOLDOWN_SECONDS", 600)
     monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
@@ -189,6 +190,7 @@ def test_etf_capability_canary_passes_bounded_configuration(monkeypatch):
         {
             "symbols": ["DXJ", "NTSX"],
             "max_symbols": 2,
+            "timeout_seconds": 45.0,
             "failure_threshold": 3,
             "cooldown_seconds": 600,
         }

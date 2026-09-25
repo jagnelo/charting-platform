@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
@@ -338,6 +339,42 @@ async def test_canary_failure_persists_class_and_opens_circuit_at_threshold(monk
     assert state.extra_data["last_canary_failure_class"] == "empty_or_partial_source"
     assert state.extra_data["last_failure_class"] == "empty_or_partial_source"
     assert state.extra_data["circuit_open_until"] is not None
+
+
+@pytest.mark.asyncio
+async def test_canary_enforces_per_symbol_timeout_and_records_transport_failure(monkeypatch):
+    profile = _profile()
+    state = _state(status="success")
+    db = _Session(
+        [
+            _Result(rows=[profile]),
+            _Result(scalar=state),
+            _Result(scalar=state),
+        ]
+    )
+
+    async def slow_refresh(_db, _profile):
+        await asyncio.sleep(1)
+
+    async def fake_failure(_db, _profile, failure):
+        state.status = "failure"
+        state.failure_reason = str(failure)
+        state.extra_data = {"consecutive_failures": 1}
+
+    monkeypatch.setattr(refresh, "_refresh_adapter_route", slow_refresh)
+    monkeypatch.setattr(refresh, "_record_failure", fake_failure)
+
+    result = await refresh.run_etf_holdings_capability_canaries(
+        db,
+        symbols=["DXJ"],
+        max_symbols=1,
+        timeout_seconds=0.01,
+        failure_threshold=1,
+    )
+
+    assert result["failed"] == 1
+    assert result["reports"][0]["failure_class"] == "transport_error"
+    assert state.extra_data["last_canary_failure_class"] == "transport_error"
 
 
 @pytest.mark.asyncio
