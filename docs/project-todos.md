@@ -8,9 +8,11 @@
       writable-ledger/PostgreSQL requirement without exposing paths or secrets.
 
 - [x] Re-run the authoritative Docker-backed integration gate after the FMP
-      reset-conflict changes. `make test-int` passed `386` tests with `57`
-      warnings in `720.15s`; the isolated PostgreSQL/Redis testcontainer
-      session was cleaned without host-wide pruning.
+      reset-conflict and quota-ledger diagnostic changes. The exact-head
+      `make test-int` run passed `386` tests with `57` warnings in `721.87s`
+      using isolated PostgreSQL/Redis testcontainers (session
+      `119701e7-3cb6-40d6-8f2c-ad2ee013b968`); cleanup completed without
+      host-wide pruning.
 
 - [x] Make live preflight diagnostics exhaustive for FMP. Missing or malformed
       byte maps no longer suppress the daily-reset and bandwidth-evidence

@@ -10,12 +10,13 @@
 
 ## 2026-09-25 Docker integration gate at current HEAD
 
-- The authoritative `make test-int` gate passed `386` tests with `57` warnings
-  in `720.15s` using an isolated PostgreSQL/Redis testcontainer session. The
-  session was cleaned without host-wide pruning and the branch remained clean
-  afterward. This validates the current provider-contract changes against the
-  full backend integration surface; it does not promote unresolved external
-  provider quotas, legal controls, or live-matrix evidence.
+- The exact-head authoritative `make test-int` gate passed `386` tests with
+  `57` warnings in `721.87s` using isolated PostgreSQL/Redis testcontainers
+  (session `119701e7-3cb6-40d6-8f2c-ad2ee013b968`). Cleanup completed without
+  host-wide pruning and the branch remained clean afterward. This supersedes
+  the earlier 720.15s run and validates the current provider-contract changes
+  against the full backend integration surface; it does not promote unresolved
+  external provider quotas, legal controls, or live-matrix evidence.
 
 ## 2026-09-25 exhaustive FMP preflight diagnostics
 
