@@ -834,6 +834,46 @@ class FundamentalFact(Base, TimestampMixin):
     )
 
 
+class FundamentalFactObservation(Base, TimestampMixin):
+    """Immutable provider response behind the current fundamental projection."""
+
+    __tablename__ = "fundamental_fact_observation"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    fundamental_fact_id: Mapped[int | None] = mapped_column(
+        BIGINT_ID, ForeignKey("fundamental_fact.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    issuer_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("issuer.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    instrument_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    fact_namespace: Mapped[str] = mapped_column(String(120), nullable=False)
+    fact_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    unit: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    value_numeric: Mapped[Decimal | None] = mapped_column(Numeric(30, 10), nullable=True)
+    value_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    period_start: Mapped[date | None] = mapped_column(Date, nullable=True)
+    period_end: Mapped[date | None] = mapped_column(Date, nullable=True)
+    filed_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    source_identifier: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    __table_args__ = (
+        Index(
+            "ix_fundamental_fact_observation_source_identity",
+            "source",
+            "fact_namespace",
+            "fact_key",
+            "observed_at",
+        ),
+    )
+
+
 class ShortInterestObservation(Base, TimestampMixin):
     """FINRA/provider short-interest observation with publication provenance."""
 
@@ -855,6 +895,42 @@ class ShortInterestObservation(Base, TimestampMixin):
     __table_args__ = (
         UniqueConstraint(
             "instrument_id", "settlement_date", "source", name="uq_short_interest_observation"
+        ),
+    )
+
+
+class ShortInterestProviderObservation(Base, TimestampMixin):
+    """Immutable provider response behind the latest short-interest row."""
+
+    __tablename__ = "short_interest_provider_observation"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    canonical_observation_id: Mapped[int | None] = mapped_column(
+        BIGINT_ID,
+        ForeignKey("short_interest_observation.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    instrument_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    settlement_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    publication_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    short_position: Mapped[Decimal | None] = mapped_column(Numeric(30, 4), nullable=True)
+    short_percent_float: Mapped[Decimal | None] = mapped_column(Numeric(12, 8), nullable=True)
+    days_to_cover: Mapped[Decimal | None] = mapped_column(Numeric(12, 8), nullable=True)
+    source: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    source_identifier: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    __table_args__ = (
+        Index(
+            "ix_short_interest_provider_observation_identity",
+            "instrument_id",
+            "settlement_date",
+            "source",
+            "observed_at",
         ),
     )
 

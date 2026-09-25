@@ -45,6 +45,7 @@ from app.models.market_data_foundation import (
     ExchangeCalendarException,
     ExchangeSessionRule,
     FundamentalFact,
+    FundamentalFactObservation,
     IdentityStatus,
     InstrumentIdentityQuarantine,
     Issuer,
@@ -68,6 +69,7 @@ from app.models.market_data_foundation import (
     ProviderWorkloadLease,
     SecIssuerDirectoryCandidate,
     ShortInterestObservation,
+    ShortInterestProviderObservation,
 )
 from app.models.market_map import MarketMapCache, MarketMapSnapshot
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
@@ -171,7 +173,9 @@ __all__ = [
     "MarketUniverseReconciliationRun",
     "MarketUniverseLifecycleObservation",
     "FundamentalFact",
+    "FundamentalFactObservation",
     "ShortInterestObservation",
+    "ShortInterestProviderObservation",
     "AssetClass",
     "InstrumentType",
     "Basket",

@@ -10,9 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.market_data_foundation import (
     FundamentalFact,
+    FundamentalFactObservation,
     MarketEvent,
     MarketEventObservation,
     ShortInterestObservation,
+    ShortInterestProviderObservation,
 )
 from app.providers.base import FundamentalFactRecord, ShortInterestRecord
 
@@ -27,6 +29,7 @@ async def persist_fundamental_facts(
 ) -> int:
     inserted = 0
     for record in records:
+        observed_at = datetime.now(UTC)
         query = select(FundamentalFact).where(
             FundamentalFact.source == source,
             FundamentalFact.issuer_id == issuer_id,
@@ -39,10 +42,8 @@ async def persist_fundamental_facts(
             FundamentalFact.filed_at == record.filed_at,
         )
         existing = (await db.execute(query)).scalar_one_or_none()
-        if existing is not None:
-            continue
-        db.add(
-            FundamentalFact(
+        if existing is None:
+            existing = FundamentalFact(
                 issuer_id=issuer_id,
                 instrument_id=instrument_id,
                 fact_namespace=record.namespace,
@@ -58,10 +59,32 @@ async def persist_fundamental_facts(
                 source_identifier=record.source_identifier,
                 payload=record.raw_payload,
             )
+            db.add(existing)
+            await db.flush()
+            inserted += 1
+        db.add(
+            FundamentalFactObservation(
+                fundamental_fact_id=existing.id,
+                issuer_id=issuer_id,
+                instrument_id=instrument_id,
+                fact_namespace=record.namespace,
+                fact_key=record.key,
+                unit=record.unit,
+                value_numeric=record.value_numeric,
+                value_text=record.value_text,
+                period_start=record.period_start,
+                period_end=record.period_end,
+                filed_at=record.filed_at,
+                accepted_at=record.accepted_at,
+                source=source,
+                source_identifier=record.source_identifier,
+                observed_at=observed_at,
+                payload=record.raw_payload,
+            )
         )
-        inserted += 1
-    if inserted:
-        await db.flush()
+    # Evidence rows are appended even when the normalized projection already
+    # exists, so always flush the session before returning.
+    await db.flush()
     return inserted
 
 
@@ -74,6 +97,7 @@ async def persist_short_interest(
 ) -> int:
     inserted = 0
     for record in records:
+        observed_at = datetime.now(UTC)
         existing = (
             await db.execute(
                 select(ShortInterestObservation).where(
@@ -83,10 +107,8 @@ async def persist_short_interest(
                 )
             )
         ).scalar_one_or_none()
-        if existing is not None:
-            continue
-        db.add(
-            ShortInterestObservation(
+        if existing is None:
+            existing = ShortInterestObservation(
                 instrument_id=instrument_id,
                 settlement_date=record.settlement_date,
                 publication_date=record.publication_date,
@@ -97,10 +119,27 @@ async def persist_short_interest(
                 source_identifier=record.source_identifier,
                 payload=record.raw_payload,
             )
+            db.add(existing)
+            await db.flush()
+            inserted += 1
+        db.add(
+            ShortInterestProviderObservation(
+                canonical_observation_id=existing.id,
+                instrument_id=instrument_id,
+                settlement_date=record.settlement_date,
+                publication_date=record.publication_date,
+                short_position=record.short_position,
+                short_percent_float=record.short_percent_float,
+                days_to_cover=record.days_to_cover,
+                source=source,
+                source_identifier=record.source_identifier,
+                observed_at=observed_at,
+                payload=record.raw_payload,
+            )
         )
-        inserted += 1
-    if inserted:
-        await db.flush()
+    # Evidence rows are appended even when the normalized projection already
+    # exists, so always flush the session before returning.
+    await db.flush()
     return inserted
 
 

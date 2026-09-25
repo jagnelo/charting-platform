@@ -167,6 +167,13 @@ to `tokenized_asset_observation` with provider asset identity and both provider
 observation and local fetch timestamps. Repeated identical responses are kept;
 they are quota/audit evidence and are never deduplicated or pruned.
 
+Fundamental facts and short-interest data also have a projection/evidence
+split. The existing point-in-time rows remain compatibility projections, while
+every provider response is appended to `fundamental_fact_observation` or
+`short_interest_provider_observation`. A later revision for the same filing or
+settlement date therefore remains available for replay and audit instead of
+being silently ignored by the natural-key projection.
+
 The mapping is enforced consistently by normal application routing, the direct
 live-probe planner, and the manifest preflight. Missing, duplicated, or
 non-existent `reconciled_dimensions` entries fail closed before transport;
