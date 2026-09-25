@@ -116,6 +116,15 @@ resolver needs to bind terminal context to a durable `SubmissionReceipt`.
 Missing attempts return no record; duplicate attempt bindings and row identity
 drift fail closed.
 
+`worker_evidence.py` and
+`PostgresStrategyLabV2Persistence.load_worker_terminal_evidence_inputs()` now
+compose the authenticated submission, execution outcome/progress context,
+rehydrated result manifest, and owner-scoped publication plans for an explicit
+application resolver. The bundle preserves missing-state signals and requires
+all returned records to retain the same attempt identity and deterministic
+publication ordering; it does not pretend those independent reads are one
+cross-table transaction.
+
 ## 2026-09-24 - Typed result-manifest rehydration
 
 `postgres_result_materialization.py` now exposes owner-scoped
