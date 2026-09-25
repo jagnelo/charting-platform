@@ -219,6 +219,12 @@ class DedicatedStrategyWorkerService:
                     rejection_reason=f"worker process execution failed: {type(error).__name__}",
                 )
         finally:
+            if not execution_task.done():
+                execution_task.cancel()
+            try:
+                await execution_task
+            except (asyncio.CancelledError, Exception):
+                pass
             if heartbeat_task is not None:
                 heartbeat_task.cancel()
                 try:

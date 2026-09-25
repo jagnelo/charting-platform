@@ -5,6 +5,8 @@ import time
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
+
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.lease_observations import (
@@ -323,6 +325,56 @@ async def test_service_cancels_execution_when_heartbeat_fails(tmp_path: Path) ->
 
     assert result.decision is WorkerHandleDecision.RETRY
     assert result.rejection_reason == "worker lease heartbeat rejected: reject"
+    assert executor.cancelled
+
+
+async def test_service_cancellation_cancels_execution_task(tmp_path: Path) -> None:
+    service, payload, entry = _service(tmp_path)
+
+    class CancellationAwareExecutor(SerialWorkerProcessExecutor):
+        def __init__(self) -> None:
+            super().__init__(timeout_seconds=1)
+            self.cancelled = False
+
+        async def run_async(
+            self,
+            request: WorkerExecutionRequest,
+            *,
+            timeout_seconds: float | None = None,
+            poll_interval_seconds: float = 0.005,
+        ) -> WorkerProcessResolution:
+            del request, timeout_seconds, poll_interval_seconds
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.cancelled = True
+                raise
+            raise AssertionError("execution should be cancelled with the service")
+
+    executor = CancellationAwareExecutor()
+    initial_request = _request(tmp_path)
+
+    async def materializer(
+        _entry: RedisStreamEntry, _payload: DispatchPayload
+    ) -> WorkerExecutionRequest:
+        return initial_request
+
+    async def completion(*_args: Any) -> WorkerHandleResult:
+        raise AssertionError("completion must not run after service cancellation")
+
+    service = DedicatedStrategyWorkerService(
+        service.scheduler,
+        _Loader(payload),
+        materializer,
+        completion,
+        process_executor=executor,
+    )
+    task = asyncio.create_task(service.handle(entry, payload))
+    await asyncio.sleep(0.01)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
     assert executor.cancelled
 
 
