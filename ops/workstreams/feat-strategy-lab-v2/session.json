@@ -144,7 +144,7 @@
     "current_blocker": "Stable Nautilus release, deployment-specific host evidence configuration, migration/schema reconciliation, upstream contract reconciliation, and full repository integration remain open",
     "current_phase": "strategy-lab-v2-forward-event-admission-api-staging-ready-for-human-review",
       "next_action": "reconcile shared worker/database paths and bind host event resolution to admitted canonical events only after provider authorization and stable Nautilus v2 conformance",
-    "total": 19,
+    "total": 18,
       "updated_at": "2026-09-25T12:30:00+00:00"
   },
   "remote": "c5583f5b8f650f3c86ea842c117de4cdc74f3895",
