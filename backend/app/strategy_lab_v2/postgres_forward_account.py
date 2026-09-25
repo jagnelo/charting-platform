@@ -176,7 +176,12 @@ class PostgresForwardAccountAdapter:
                     )
                 resolution = apply_forward_account_event(current, event)
                 if resolution.decision is ForwardAccountDecision.APPLIED:
-                    await self._update(session, owner_id, resolution.state)
+                    await self._update(
+                        session,
+                        owner_id,
+                        resolution.state,
+                        expected_fingerprint=current.fingerprint,
+                    )
                     return ForwardAccountStateResolution(
                         ForwardAccountStateDecision.APPLIED,
                         resolution.state,
@@ -243,8 +248,15 @@ class PostgresForwardAccountAdapter:
             raise ValueError("forward account insert lost a uniqueness race")
 
     async def _update(
-        self, session: AsyncSessionLike, owner_id: str, state: ForwardAccountState
+        self,
+        session: AsyncSessionLike,
+        owner_id: str,
+        state: ForwardAccountState,
+        *,
+        expected_fingerprint: str | None = None,
     ) -> None:
+        if expected_fingerprint is not None:
+            require_sha256_digest(expected_fingerprint, field_name="expected_fingerprint")
         payload = canonical_json(state)
         result = await session.execute(
             _statement(
@@ -252,11 +264,13 @@ class PostgresForwardAccountAdapter:
                 UPDATE {self._schema.account_table}
                 SET state_json = :state_json, state_fingerprint = :state_fingerprint
                 WHERE owner_id = :owner_id AND instance_id = :instance_id
+                  AND (:expected_fingerprint IS NULL OR state_fingerprint = :expected_fingerprint)
                 """
             ),
             {
                 "owner_id": owner_id,
                 "instance_id": state.instance_id,
+                "expected_fingerprint": expected_fingerprint,
                 "state_json": payload,
                 "state_fingerprint": state.fingerprint,
             },
