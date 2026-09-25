@@ -1224,6 +1224,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   re-registers the authenticated publication plan through the shared
   publication adapter, so retries cannot bypass owner-scoped publication
   evidence or turn a rejected plan into a completion.
+- `worker_evidence_resolution.py` keeps the default sandbox mapper fail-closed
+  for its single `/outputs/result` contract, and now accepts an explicit
+  application-owned artifact-path mapping callback for multi-artifact result
+  manifests. Every manifest artifact must be mapped exactly once and each
+  mapped file is independently verified/published; no path is inferred from
+  worker payloads.
 - `worker_entrypoint.py` is the explicit local process boundary for that
   composition. It validates namespaced environment configuration, runs startup
   migrations before connecting Redis, builds the shared PostgreSQL persistence

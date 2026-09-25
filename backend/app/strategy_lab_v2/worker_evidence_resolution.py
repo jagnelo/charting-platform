@@ -9,7 +9,8 @@ principal from the worker payload, or inventing missing terminal evidence.
 from __future__ import annotations
 
 import inspect
-from collections.abc import Awaitable, Callable, Sequence
+import os
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, Protocol
 
@@ -52,6 +53,21 @@ class SandboxArtifactPublisher(Protocol):
         *,
         committed_at: datetime,
     ) -> ArtifactPublicationResolution: ...
+
+    async def publish_file(
+        self,
+        manifest: Any,
+        source: Any,
+        *,
+        committed_at: datetime,
+    ) -> ArtifactPublicationResolution: ...
+
+
+ArtifactPathResolver = Callable[
+    [WorkerCompletionContext, WorkerTerminalEvidenceLookup],
+    Mapping[str, str | os.PathLike[str]]
+    | Awaitable[Mapping[str, str | os.PathLike[str]]],
+]
 
 
 def default_worker_failure_error(
@@ -283,6 +299,8 @@ def create_worker_terminal_evidence_resolver(
 
 def create_sandbox_artifact_plan_resolver(
     publisher: SandboxArtifactPublisher,
+    *,
+    artifact_path_resolver: ArtifactPathResolver | None = None,
 ) -> Callable[
     [WorkerCompletionContext, WorkerTerminalEvidenceLookup],
     Awaitable[tuple[ArtifactPublicationPlan, ...]],
@@ -297,6 +315,8 @@ def create_sandbox_artifact_plan_resolver(
 
     if not callable(getattr(publisher, "publish_sandbox_result", None)):
         raise TypeError("publisher must provide publish_sandbox_result")
+    if artifact_path_resolver is not None and not callable(artifact_path_resolver):
+        raise TypeError("artifact_path_resolver must be callable or None")
 
     async def resolve(
         context: WorkerCompletionContext,
@@ -309,6 +329,42 @@ def create_sandbox_artifact_plan_resolver(
         manifest = lookup.inputs.manifest
         if manifest is None:
             return ()
+        if artifact_path_resolver is not None:
+            paths = artifact_path_resolver(context, lookup)
+            resolved_paths = await paths if inspect.isawaitable(paths) else paths
+            if not isinstance(resolved_paths, Mapping):
+                raise TypeError("artifact_path_resolver must return a mapping")
+            expected = {content_digest(item) for item in manifest.output_artifacts}
+            if set(resolved_paths) != expected:
+                raise ValueError(
+                    "artifact_path_resolver must map every result artifact exactly once"
+                )
+            publish_file = getattr(publisher, "publish_file", None)
+            if not callable(publish_file):
+                raise TypeError("publisher must provide publish_file for multi-artifact results")
+            plans: list[ArtifactPublicationPlan] = []
+            for artifact in manifest.output_artifacts:
+                source = resolved_paths[content_digest(artifact)]
+                if not isinstance(source, str | os.PathLike):
+                    raise TypeError("artifact paths must be strings or path-like values")
+                publication = await publish_file(
+                    artifact,
+                    source,
+                    committed_at=context.observed_at,
+                )
+                if not isinstance(publication, ArtifactPublicationResolution):
+                    raise TypeError(
+                        "publisher returned an invalid artifact publication resolution"
+                    )
+                if publication.decision is ArtifactPublicationDecision.REJECT:
+                    raise ValueError(
+                        publication.rejection_reason
+                        or "artifact publication was rejected"
+                    )
+                if publication.artifact_plan is None:
+                    raise ValueError("artifact publication omitted its verified plan")
+                plans.append(publication.artifact_plan)
+            return tuple(plans)
         if len(manifest.output_artifacts) != 1:
             raise ValueError(
                 "sandbox artifact resolver requires exactly one result output artifact"
@@ -339,6 +395,7 @@ def create_sandbox_artifact_plan_resolver(
 
 
 __all__ = [
+    "ArtifactPathResolver",
     "ArtifactPlanResolver",
     "EvidenceLookup",
     "SandboxArtifactPublisher",

@@ -129,11 +129,32 @@ class _Publisher:
         self.calls.append((manifest, sandbox_plan, sandbox_result, committed_at))
         return self.resolution
 
+    async def publish_file(self, manifest, source, *, committed_at):
+        raise AssertionError("single-artifact publisher should not publish files")
+
 
 def _publication_resolution(lookup: WorkerTerminalEvidenceLookup) -> ArtifactPublicationResolution:
     assert lookup.inputs.manifest is not None
     artifact = lookup.inputs.manifest.output_artifacts[0]
     integrity = verify_artifact_payload(artifact, b"result")
+    plan = plan_artifact_publication(artifact, integrity)
+    commit = finalize_artifact_commit(ArtifactCommitLedger(), plan, committed_at=NOW)
+    assert commit.record is not None
+    return ArtifactPublicationResolution(
+        ArtifactPublicationDecision.COMMITTED,
+        ArtifactStoreResolution(
+            ArtifactStoreDecision.WRITTEN,
+            artifact.storage_key,
+            artifact.byte_length,
+            integrity,
+        ),
+        commit,
+        artifact_plan=plan,
+    )
+
+
+def _publication_resolution_for_artifact(artifact, payload: bytes) -> ArtifactPublicationResolution:
+    integrity = verify_artifact_payload(artifact, payload)
     plan = plan_artifact_publication(artifact, integrity)
     commit = finalize_artifact_commit(ArtifactCommitLedger(), plan, committed_at=NOW)
     assert commit.record is not None
@@ -400,3 +421,46 @@ async def test_sandbox_artifact_resolver_rejects_multi_artifact_manifest(tmp_pat
 
     with pytest.raises(ValueError, match="exactly one"):
         await resolver(context, multi)
+
+
+@pytest.mark.asyncio
+async def test_sandbox_artifact_resolver_accepts_explicit_multi_file_mapping(tmp_path: Path) -> None:
+    context, lookup = _context_and_lookup(tmp_path)
+    assert lookup.inputs.manifest is not None
+    first = lookup.inputs.manifest.output_artifacts[0]
+    second = replace(
+        first,
+        content_digest=artifact_content_digest(b"second"),
+        storage_key=artifact_content_digest(b"second"),
+    )
+    manifest = replace(lookup.inputs.manifest, output_artifacts=(first, second))
+    multi = WorkerTerminalEvidenceLookup(lookup.binding, replace(lookup.inputs, manifest=manifest))
+    calls: list[tuple[object, object, datetime]] = []
+
+    class MultiPublisher(_Publisher):
+        async def publish_file(self, artifact, source, *, committed_at: datetime):
+            calls.append((artifact, source, committed_at))
+            payload = b"result" if source == "/tmp/first" else b"second"
+            return _publication_resolution_for_artifact(artifact, payload)
+
+    publisher = MultiPublisher(_publication_resolution(lookup))
+    resolver = create_sandbox_artifact_plan_resolver(
+        publisher,
+        artifact_path_resolver=lambda _context, _lookup: {
+            content_digest(first): "/tmp/first",
+            content_digest(second): "/tmp/second",
+        },
+    )
+
+    plans = await resolver(context, multi)
+
+    assert tuple(plan.manifest_fingerprint for plan in plans) == tuple(
+        content_digest(artifact) for artifact in manifest.output_artifacts
+    )
+    paths = {
+        content_digest(first): "/tmp/first",
+        content_digest(second): "/tmp/second",
+    }
+    assert [source for artifact, source, _at in calls] == [
+        paths[content_digest(artifact)] for artifact in manifest.output_artifacts
+    ]

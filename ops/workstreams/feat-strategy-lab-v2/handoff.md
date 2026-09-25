@@ -2,6 +2,20 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Explicit multi-artifact publication mapping checkpoint
+
+The sandbox evidence resolver retains its safe single-file default and now
+supports an explicit host-owned path mapping callback for result manifests
+with multiple output artifacts. It requires an exact one-to-one mapping by
+manifest digest, calls the byte-verifying `publish_file` path for each output,
+and fails closed on missing/extra mappings, invalid paths, publisher rejection,
+or missing publication plans. Worker payloads never select host paths.
+
+Focused worker evidence coverage passed 14 tests, including the new
+multi-artifact mapping and existing single-file rejection paths. Ruff passed
+for the package and MyPy passed across 277 source files. Stable Nautilus,
+worker activation, event-stream integration, and deployment remain gated.
+
 ## 2026-09-25 - Search candidate application lifecycle checkpoint
 
 The application adapter now exposes owner-normalized search candidate

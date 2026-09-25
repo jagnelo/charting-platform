@@ -466,6 +466,13 @@ remaining_gaps:
       async materializer compatible with the dedicated worker callback seam;
       terminal/result evidence resolution remains application-owned.
   - >-
+      `worker_evidence_resolution.py` keeps the default sandbox mapper
+      fail-closed for its single `/outputs/result` mount and now accepts an
+      explicit application-owned artifact-path mapping for multi-artifact
+      manifests. Every manifest artifact is mapped exactly once and published
+      through the byte-verifying artifact service; worker payloads cannot infer
+      host paths.
+  - >-
       `worker_callbacks.py` now composes the typed handoff materializer with
       `PostgresWorkerTerminalAdapter` through a namespaced
       `STRATEGY_LAB_V2_EVIDENCE_RESOLVER` module/attribute factory. Missing or
