@@ -30,7 +30,7 @@ from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
-_token_cache: tuple[str, datetime] | None = None
+_token_cache: tuple[str, datetime, str, str] | None = None
 _orf_token_cache: tuple[str, datetime, str, str] | None = None
 
 
@@ -417,7 +417,13 @@ class FINRAProvider:
 def _access_token(client_id: str, client_secret: str) -> str:
     global _token_cache
     now = datetime.now(UTC)
-    if _token_cache and _token_cache[1] > now:
+    client_secret_digest = sha256(client_secret.encode("utf-8")).hexdigest()
+    if (
+        _token_cache
+        and _token_cache[1] > now
+        and _token_cache[2] == client_id
+        and _token_cache[3] == client_secret_digest
+    ):
         return _token_cache[0]
     try:
         response = httpx.post(
@@ -450,7 +456,12 @@ def _access_token(client_id: str, client_secret: str) -> str:
     # FINRA documents caching the token for at most 30 minutes. Refresh one
     # minute before a shorter provider expiry and never reuse a stale grant.
     cache_seconds = min(1800, max(60, expires_in - 60))
-    _token_cache = (token, now + timedelta(seconds=cache_seconds))
+    _token_cache = (
+        token,
+        now + timedelta(seconds=cache_seconds),
+        client_id,
+        client_secret_digest,
+    )
     return token
 
 

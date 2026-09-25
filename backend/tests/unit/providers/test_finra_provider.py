@@ -48,6 +48,25 @@ def test_finra_orf_access_token_cache_is_scoped_to_credentials(monkeypatch):
     assert post.call_count == 2
 
 
+def test_finra_gateway_access_token_cache_is_scoped_to_credentials(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_TOKEN_URL", "https://example.test/oauth")
+    first = Mock(status_code=200)
+    first.headers = {}
+    first.json.return_value = {"access_token": "first-token", "expires_in": 3600}
+    first.raise_for_status.return_value = None
+    second = Mock(status_code=200)
+    second.headers = {}
+    second.json.return_value = {"access_token": "second-token", "expires_in": 3600}
+    second.raise_for_status.return_value = None
+    with (
+        patch.object(finra, "_token_cache", None),
+        patch("app.providers.finra.httpx.post", side_effect=[first, second]) as post,
+    ):
+        assert finra._access_token("client-one", "secret-one") == "first-token"
+        assert finra._access_token("client-two", "secret-two") == "second-token"
+    assert post.call_count == 2
+
+
 def test_finra_parser_keeps_publication_and_raw_provenance(monkeypatch):
     monkeypatch.setattr(settings, "FINRA_SHORT_INTEREST_URL", "https://example.test/short")
     monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
