@@ -128,6 +128,17 @@ def resolve_search_dispatch(
         raise TypeError("prior_dispatches must be a sequence")
     if dispatch_request.attempt_id != attempt_id:
         return _reject(state, admission_ledger, pool, "dispatch request references a different attempt")
+    prior_attempt_dispatches = tuple(
+        item for item in prior_dispatches if item.attempt_id == attempt_id
+    )
+    if any(item.fingerprint != dispatch_request.fingerprint for item in prior_attempt_dispatches):
+        return _reject(
+            state,
+            admission_ledger,
+            pool,
+            "attempt is already bound to different dispatch content",
+            decision=SearchDispatchDecision.CONFLICT,
+        )
     if now.tzinfo is None or now.utcoffset() is None:
         raise ValueError("dispatch time must be timezone-aware")
     if now < dispatch_request.created_at:

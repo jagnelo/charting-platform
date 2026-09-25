@@ -222,3 +222,30 @@ def test_search_dispatch_rejects_cancelled_or_mismatched_dispatch_without_side_e
     assert mismatch.decision is SearchDispatchDecision.REJECT
     assert mismatch.rejection_reason == "dispatch request references a different attempt"
     assert mismatch.search_state == state
+
+
+def test_search_dispatch_rejects_a_second_dispatch_for_the_same_attempt() -> None:
+    authorization, request, preflight, pool = _fixture()
+    state = _state()
+    first = _dispatch("attempt-1")
+    different_key = _dispatch("attempt-1", key="different-key")
+    rejected = resolve_search_dispatch(
+        state,
+        candidate_index=0,
+        attempt_id="attempt-1",
+        authorization=authorization,
+        runtime_request=request,
+        runtime_preflight=preflight,
+        admission_ledger=ExecutionAdmissionLedger(),
+        pool=pool,
+        reservation_id=_reservation("one"),
+        dispatch_request=different_key,
+        prior_dispatches=(first,),
+        now=NOW + timedelta(seconds=4),
+    )
+
+    assert rejected.decision is SearchDispatchDecision.CONFLICT
+    assert rejected.rejection_reason == "attempt is already bound to different dispatch content"
+    assert rejected.search_state == state
+    assert rejected.admission_ledger == ExecutionAdmissionLedger()
+    assert rejected.pool == pool
