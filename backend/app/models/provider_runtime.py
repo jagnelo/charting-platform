@@ -426,6 +426,13 @@ class ProviderAvailabilityObservation(Base, TimestampMixin):
     success: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     classification: Mapped[str] = mapped_column(String(48), nullable=False)
     response_shape: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Availability probes are real provider calls.  Keep the normalized
+    # response as immutable evidence as well as its shape so a later adapter
+    # or provider schema change can be replayed without spending quota again.
+    # The probe service serializes/redacts this value before persistence.
+    response_payload: Mapped[dict | list | str | int | float | bool | None] = mapped_column(
+        JSON, nullable=True
+    )
     consecutive_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     recovered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

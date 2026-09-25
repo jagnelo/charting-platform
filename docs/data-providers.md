@@ -67,6 +67,16 @@ missing environment-variable names for each provider. These are names only;
 secret values are never returned. This lets operators distinguish an absent
 credential or non-secret scope setting from an unreviewed entitlement or quota
 contract without turning the diagnostics endpoint into a secret store.
+
+Availability probes are provider calls, not synthetic health flags. Each
+successful or empty/partial probe now retains the complete normalized response
+in `provider_availability_observation.response_payload` in addition to its
+shape and classification, so schema regressions can be replayed without
+spending another quota unit. Authentication-shaped fields (`api_key`, access
+tokens, secrets, cookies, and private keys) are redacted before persistence;
+pagination tokens and all other returned data remain evidence. Failed probes
+retain their redacted typed error and response shape, with a null payload when
+the provider returned no value.
 Routing-safety controls are exposed separately: FINRA's positive async result
 bound and the complete Tiingo/FMP operation-byte maps have their own required
 and missing-variable fields, so a configured credential cannot be mistaken for

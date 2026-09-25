@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 availability-probe response retention correction
+
+- Availability probes are real quota-consuming provider calls. Their complete
+  normalized responses are now retained in
+  `provider_availability_observation.response_payload` rather than only a
+  response shape. Dataclasses, enums, dates, decimals, and collections are
+  serialized without an item limit; authentication-shaped fields are redacted
+  before persistence, while pagination and domain data remain intact.
+- Migration `e8f9a0b1c2e5` adds the JSON evidence column and refuses downgrade
+  when any retained payload would be destroyed. Focused service/migration
+  tests pass `15/15`; no provider network call was made.
+- Exact-current provider preflight, provider contract/legal gates, complete
+  NMS/OTC/SEC reconciliation, external secret stores, deferred providers, and
+  final 30-day shadow phase remain fail-closed.
+
 ## 2026-09-25 exact-current preflight after repeated-snapshot retention
 
 - Source `174b693f4` ran the full provider manifest preflight and stopped before

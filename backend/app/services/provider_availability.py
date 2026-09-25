@@ -9,10 +9,14 @@ parallel for the same provider.
 from __future__ import annotations
 
 import asyncio
+import dataclasses
+import enum
 import inspect
 import time
 from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime, timedelta
+from datetime import time as datetime_time
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import desc, select
@@ -187,6 +191,69 @@ def response_shape(value: Any) -> dict[str, Any]:
             "item_type": type(next(iter(value), None)).__name__,
         }
     return {"type": type(value).__name__}
+
+
+_SENSITIVE_RESPONSE_KEYS = frozenset(
+    {
+        "api_key",
+        "apikey",
+        "access_key",
+        "access_token",
+        "authorization",
+        "client_secret",
+        "cookie",
+        "password",
+        "private_key",
+        "refresh_token",
+        "secret",
+        "secret_key",
+    }
+)
+
+
+def _sensitive_response_key(key: object) -> bool:
+    normalized = str(key).strip().lower().replace("-", "_")
+    return normalized in _SENSITIVE_RESPONSE_KEYS
+
+
+def response_payload(value: Any) -> Any:
+    """Convert a probe result into complete JSON evidence without secrets.
+
+    Provider adapters intentionally return typed dataclasses, enums, dates,
+    and decimals rather than raw HTTP JSON.  Persisting only ``response_shape``
+    loses the actual evidence and forces a quota-consuming re-probe.  This
+    conversion keeps every returned field while redacting only fields whose
+    names are authentication material; it does not impose a row/item limit.
+    """
+
+    if value is None or isinstance(value, str | int | float | bool):
+        return (
+            value
+            if not isinstance(value, str)
+            else bounded_redact_provider_message(value, max_length=len(value))
+        )
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, datetime | date | datetime_time):
+        return value.isoformat()
+    if isinstance(value, enum.Enum):
+        return response_payload(value.value)
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return response_payload(dataclasses.asdict(value))
+    if isinstance(value, dict):
+        return {
+            str(key): "<redacted>" if _sensitive_response_key(key) else response_payload(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list | tuple | set | frozenset):
+        return [response_payload(item) for item in value]
+    model_dump = getattr(value, "model_dump", None)
+    if callable(model_dump):
+        return response_payload(model_dump(mode="json"))
+    as_dict = getattr(value, "dict", None)
+    if callable(as_dict):
+        return response_payload(as_dict())
+    return bounded_redact_provider_message(repr(value), max_length=len(repr(value)))
 
 
 def classify_response(value: Any) -> str:
@@ -517,6 +584,7 @@ async def run_availability_probes(
             # Preserve shape evidence for empty/partial responses as well as
             # successes; exceptions still record an explicit null shape.
             response_shape=response_shape(value),
+            response_payload=response_payload(value),
             consecutive_failures=streak,
             recovered=recovered,
             error_message=error_message,
@@ -579,6 +647,7 @@ async def latest_availability(db: AsyncSession) -> list[dict[str, Any]]:
                 "recovered": observation.recovered,
                 "error_message": observation.error_message,
                 "observed_at": observation.created_at,
+                "response_payload": observation.response_payload,
                 "last_success_at": health.last_success_at if health else None,
                 "last_failure_at": health.last_failure_at if health else None,
                 "response_shape": observation.response_shape,

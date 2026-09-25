@@ -15,6 +15,7 @@ from app.services.provider_availability import (
     provider_configured,
     representative_operation,
     representative_request,
+    response_payload,
     response_shape,
     run_availability_probes,
 )
@@ -153,6 +154,26 @@ def test_classification_is_deterministic_for_empty_and_transport_failures():
     assert classify_exception(TimeoutError()) == "timeout"
     assert classify_exception(ConnectionError("DNS lookup failed")) == "dns_transport"
     assert classify_exception(KeyError("new_field")) == "schema_content_incompatibility"
+
+
+def test_response_payload_retains_typed_fields_and_redacts_only_auth_material():
+    from app.providers.base import ProviderSearchResult
+
+    value = {
+        "rows": [ProviderSearchResult(symbol="AAPL", name="Apple")],
+        "observed_at": datetime(2026, 9, 25, tzinfo=UTC),
+        "price": 123.45,
+        "api_key": "do-not-persist",
+        "next_page_token": "continuation-is-data",
+    }
+
+    assert response_payload(value) == {
+        "rows": [{"symbol": "AAPL", "name": "Apple", "exchange": "", "instrument_type": ""}],
+        "observed_at": "2026-09-25T00:00:00+00:00",
+        "price": 123.45,
+        "api_key": "<redacted>",
+        "next_page_token": "continuation-is-data",
+    }
 
 
 def test_availability_error_message_redacts_credentials_and_is_bounded():

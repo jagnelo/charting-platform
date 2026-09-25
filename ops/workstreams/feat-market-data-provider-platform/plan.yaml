@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 availability-probe evidence correction: provider availability
+    observations now retain the complete normalized probe response in
+    response_payload (with authentication-shaped fields redacted) instead of
+    retaining only response_shape. Migration e8f9a0b1c2e5 refuses downgrade
+    while payload evidence exists; focused service/migration tests pass 15/15.
+    Exact-current provider preflight, full backend harness, provider-contract,
+    universe, secret-store, deferred-provider, and final-shadow gates remain
+    open.
+  - >-
     2026-09-25 exact-current full provider preflight at source
     174b693f446ea7ae820951f400598a47c65b3ba8 stopped before transport with
     0/0 ordinary cases and zero provider requests. Repeated snapshot retention
