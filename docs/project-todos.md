@@ -1,5 +1,12 @@
 # Project TODO Memory
 
+### 2026-09-25 — Twelve Data account-usage evidence refresh
+
+- [x] The configured Twelve Data key's account-usage-only live case passed
+      `1/1` with one request and 131 response bytes. Native credits reported an
+      `8 credits/minute` pool with `7` remaining in the measured response; the
+      separate daily account baseline remains unobservable and is not inferred.
+
 ### 2026-09-25 — MarketData.app account-usage evidence refresh
 
 - [x] The configured MarketData.app key's account-usage-only live case passed

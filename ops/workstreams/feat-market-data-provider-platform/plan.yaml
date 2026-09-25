@@ -162,6 +162,12 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 Twelve Data account-usage refresh: the configured key's native
+    `/api_usage` case passed 1/1 with one measured request and 131 response
+    bytes. The response exposed an exact 8-credits/minute pool with 7
+    remaining; it did not expose a durable daily baseline, so no daily usage
+    or reset is inferred and daily-metered routing remains fail-closed.
+  - >-
     2026-09-25 MarketData.app account-usage refresh: the configured key's
     native account snapshot passed 1/1 with one measured request and 135
     response bytes, exposing a 10,000-credits/day limit, 10,000 remaining,

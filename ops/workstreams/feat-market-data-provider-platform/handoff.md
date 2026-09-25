@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Twelve Data account-usage evidence refresh
+
+- A network-enabled account-usage-only run passed `1/1` at source
+  `f10db27790ecfde327749e19caa254d93b6d9aff`, measuring one request and 131
+  response bytes. Native headers exposed the exact `8 credits/minute` pool and
+  `7` remaining after the request. No daily usage/reset value was inferred;
+  daily-metered routing remains fail-closed until a durable daily baseline is
+  observable.
+
 ## 2026-09-25 MarketData.app account-usage evidence refresh
 
 - A network-enabled account-usage-only run passed `1/1` at source
