@@ -162,6 +162,25 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 current-source backend validation passed on source
+    750f70f4aa7a3428bda5c672568fe6b94642eb38: complete unit suite 2398/2398
+    with 37 warnings and 71.09% coverage in 393.60 seconds; Docker-backed
+    PostgreSQL/Redis integration 386/386 with 57 warnings in 715.74 seconds;
+    migration compatibility clean; Alembic exactly one head d5f6a7b8c9d0;
+    workstream validator accepts all 30 records. These gates do not close the
+    remaining provider-contract, universe, secret-store, deferred-provider,
+    publication, or final shadow-run controls.
+  - >-
+    2026-09-25 exact-current EODHD account-usage-only live validation passed
+    1/1 on source 750f70f4aa7a3428bda5c672568fe6b94642eb38. The authenticated
+    /user response reports Free-plan calls_per_day limit 20, consumed 3, and
+    remaining 17, but its apiRequestsDate is stale so no reset boundary is
+    admitted; native minute headers report 1200/1199 without a reset. This
+    confirms the daily plan value but does not resolve the conflicting
+    published minute contracts. Ordinary EODHD routing remains fail-closed
+    until reviewed minute limit/reset/evidence are configured; no generic
+    fallback was added. Receipt is appended to validation.jsonl.
+  - >-
     2026-09-25 migration graph correction: the new fundamental/short-interest
     migration initially reused an existing historical revision ID. It now uses
     unique revision d6a7b8c9d0e1 and d5f6a7b8c9d0 points to it; Alembic reports
@@ -191,7 +210,7 @@ remaining_gaps:
     2026-09-25 append-only fundamentals/short-interest correction and full
     validation: every provider response now appends immutable evidence in
     fundamental_fact_observation or short_interest_provider_observation while
-    compatibility projections remain available. Migration d4e5f6a7b8c9 and
+    compatibility projections remain available. Migration d6a7b8c9d0e1 and
     focused persistence tests pass; full unit suite 2397/2397 with 37 warnings
     in 167.69 seconds and Docker-backed integration 386/386 with 57 warnings
     in 461.92 seconds pass on source 772f316c1. External provider, universe,

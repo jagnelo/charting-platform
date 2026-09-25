@@ -1,5 +1,36 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 current-source backend validation
+
+- The complete backend unit gate passed on source
+  `750f70f4aa7a3428bda5c672568fe6b94642eb38`: `2398/2398` tests, `37`
+  warnings, `71.09%` total coverage, in `393.60s`.
+- The Docker-backed PostgreSQL/Redis integration gate passed on the same
+  source: `386/386` tests, `57` warnings, in `715.74s`; the test stack was
+  cleaned up afterward without a host-wide prune.
+- Migration compatibility remains clean (no migration delta since the already
+  validated collision correction), Alembic reports exactly one head
+  (`d5f6a7b8c9d0`), and the workstream validator accepts all `30` records.
+- These are backend-only gates. They do not close the explicitly remaining
+  provider-contract, universe reconciliation, secret-store, deferred-provider,
+  publication, or final shadow-run gates.
+
+## 2026-09-25 EODHD native account-usage validation
+
+- The exact-current, account-usage-only live probe passed `1/1` on source
+  `750f70f4aa7a3428bda5c672568fe6b94642eb38`; its non-secret receipt is
+  appended to `validation.jsonl` and the owner-only cross-session ledger.
+- The authenticated `/user` response reports the configured Free plan with a
+  `calls_per_day` limit of `20`, `3` consumed, and `17` remaining. Its
+  `apiRequestsDate` is stale relative to the probe date, so the adapter
+  correctly exposes no reset timestamp and the runner cannot use that counter
+  as a current admission baseline. The same response emitted native minute
+  headers of `1200` limit and `1199` remaining without a reset boundary.
+- This confirms the daily plan value but does not resolve EODHD's conflicting
+  published minute contracts. Ordinary EODHD routing remains fail-closed until
+  the exact minute limit, reset boundary, and evidence reference are reviewed;
+  no generic fallback was added.
+
 ## 2026-09-25 migration-chain collision correction
 
 - The final Alembic inspection found the newly chosen `d4e5f6a7b8c9` ID already
@@ -45,7 +76,7 @@
   response in immutable `fundamental_fact_observation` and
   `short_interest_provider_observation` tables. Existing natural-key rows
   remain compatibility projections, so later revisions no longer disappear.
-- Migration `d4e5f6a7b8c9` and focused persistence coverage pass; the complete
+- Migration `d6a7b8c9d0e1` and focused persistence coverage pass; the complete
   migration suite passes `16/16`. On source `772f316c1`, the full backend unit
   suite passes `2397/2397` with `37` warnings in `167.69s`, and the persistent
   Docker-backed integration suite passes `386/386` with `57` warnings in

@@ -135,7 +135,12 @@ represented by durable request/byte/header telemetry and are not queried
 through a guessed endpoint. EODHD daily usage can reconcile only a current-date
 `calls_per_day` baseline whose returned limit matches the reviewed contract;
 its minute headers remain observational while the provider's official
-minute-limit sources conflict. Twelve Data's native minute-credit observation can
+minute-limit sources conflict. On 2026-09-25 the configured Free account
+returned `calls_per_day=20`, `consumed=3`, and `remaining=17`, but its
+`apiRequestsDate` was stale; the adapter therefore returned no reset boundary
+and the live runner did not admit the counter. The same response returned
+`X-RateLimit-Limit=1200` and `X-RateLimit-Remaining=1199` without a reset, so
+those headers remain observational. Twelve Data's native minute-credit observation can
 reconcile the exact reviewed `credits_per_minute` coordinator baseline; its
 separately documented daily allowance is stored as an observation only until
 the provider exposes a stable daily counter. The bootstrap contract records
