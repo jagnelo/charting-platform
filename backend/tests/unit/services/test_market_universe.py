@@ -8,6 +8,7 @@ import pytest
 from app.models.data_source import DataSource
 from app.models.exchange import Exchange
 from app.models.instrument import Instrument
+from app.models.instrument_reconciliation import InstrumentReconciliationIssueObservation
 from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import (
     Issuer,
@@ -429,6 +430,26 @@ async def test_reconciliation_quarantines_conflicting_stable_owners(db, instrume
     assert run.quarantined_count == 1
     assert run.observed_count == 0
     assert db.query(InstrumentListing).count() == 0
+    assert db.query(InstrumentReconciliationIssueObservation).count() == 1
+
+    await _reconcile_rows(
+        AsyncSessionAdapter(db),
+        run=run,
+        provider_name="massive",
+        rows=[
+            {
+                "symbol": "AAPL",
+                "name": "Conflicting Security",
+                "exchange": "NASDAQ",
+                "currency": "USD",
+                "figi": "BBG000B9XRY4",
+                "isin": "US0378331005",
+            }
+        ],
+        quote_type="EQUITY",
+        observed_at=run.observed_at,
+    )
+    assert db.query(InstrumentReconciliationIssueObservation).count() == 2
 
 
 @pytest.mark.asyncio

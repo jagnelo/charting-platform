@@ -9,12 +9,40 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.instrument_reconciliation import InstrumentReconciliationIssue
+from app.models.instrument_reconciliation import (
+    InstrumentReconciliationIssue,
+    InstrumentReconciliationIssueObservation,
+)
 
 
 def _fingerprint(payload: Any) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+async def append_issue_observation(
+    db: AsyncSession,
+    issue: InstrumentReconciliationIssue,
+    *,
+    observed_at: datetime,
+    payload: dict[str, Any],
+    candidates: list | None,
+) -> None:
+    """Retain one immutable provider evidence envelope for a queue issue."""
+
+    db.add(
+        InstrumentReconciliationIssueObservation(
+            issue_id=issue.id,
+            data_source_id=issue.data_source_id,
+            provider_symbol=issue.provider_symbol,
+            issue_type=issue.issue_type,
+            fingerprint=issue.fingerprint,
+            observed_at=observed_at,
+            candidates=candidates,
+            payload=dict(payload),
+        )
+    )
+    await db.flush()
 
 
 async def record_discovery_ambiguities(
@@ -54,25 +82,30 @@ async def record_discovery_ambiguities(
             )
         ).scalar_one_or_none()
         if issue is None:
-            db.add(
-                InstrumentReconciliationIssue(
-                    data_source_id=data_source_id,
-                    provider_symbol=symbol,
-                    issue_type="ambiguous_ticker_issuer",
-                    fingerprint=fingerprint,
-                    status="open",
-                    candidates=candidates,
-                    payload=issue_payload,
-                    observed_at=observed_at,
-                )
+            issue = InstrumentReconciliationIssue(
+                data_source_id=data_source_id,
+                provider_symbol=symbol,
+                issue_type="ambiguous_ticker_issuer",
+                fingerprint=fingerprint,
+                status="open",
+                candidates=candidates,
+                payload=issue_payload,
+                observed_at=observed_at,
             )
+            db.add(issue)
+            await db.flush()
             recorded += 1
         elif issue.status == "open":
             issue.observed_at = observed_at
             issue.candidates = candidates
             issue.payload = issue_payload
-    if recorded:
-        await db.flush()
+        await append_issue_observation(
+            db,
+            issue,
+            observed_at=observed_at,
+            payload=issue_payload,
+            candidates=candidates,
+        )
     return recorded
 
 

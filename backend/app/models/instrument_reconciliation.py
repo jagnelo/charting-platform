@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -39,5 +39,38 @@ class InstrumentReconciliationIssue(Base, TimestampMixin):
             "issue_type",
             "fingerprint",
             name="uq_instrument_reconciliation_issue_identity",
+        ),
+    )
+
+
+class InstrumentReconciliationIssueObservation(Base, TimestampMixin):
+    """Immutable provider evidence for one reconciliation issue observation."""
+
+    __tablename__ = "instrument_reconciliation_issue_observation"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    issue_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("instrument_reconciliation_issue.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    provider_symbol: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    issue_type: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    fingerprint: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    candidates: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    __table_args__ = (
+        Index(
+            "ix_instrument_reconciliation_observation_issue_observed",
+            "issue_id",
+            "observed_at",
         ),
     )

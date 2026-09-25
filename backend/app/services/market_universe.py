@@ -52,6 +52,7 @@ from app.services.instrument_mastering import (
     register_identifier,
     register_provider_symbol,
 )
+from app.services.instrument_reconciliation import append_issue_observation
 from app.services.market_data_identity import (
     apply_domain_identity,
     choose_domain_key,
@@ -441,19 +442,28 @@ async def _quarantine_candidate(
             )
         )
     ).scalar_one_or_none()
+    issue_payload = {"reason": reason, "quote": payload}
+    observed_at = _utc()
     if existing is None:
-        db.add(
-            InstrumentReconciliationIssue(
-                data_source_id=data_source_id,
-                provider_symbol=symbol,
-                issue_type="unresolved_universe_identity",
-                fingerprint=fingerprint,
-                status="open",
-                candidates=payload.get("identity_ambiguity"),
-                payload={"reason": reason, "quote": payload},
-                observed_at=_utc(),
-            )
+        existing = InstrumentReconciliationIssue(
+            data_source_id=data_source_id,
+            provider_symbol=symbol,
+            issue_type="unresolved_universe_identity",
+            fingerprint=fingerprint,
+            status="open",
+            candidates=payload.get("identity_ambiguity"),
+            payload=issue_payload,
+            observed_at=observed_at,
         )
+        db.add(existing)
+        await db.flush()
+    await append_issue_observation(
+        db,
+        existing,
+        observed_at=observed_at,
+        payload=issue_payload,
+        candidates=payload.get("identity_ambiguity"),
+    )
 
 
 async def _upsert_observation(
