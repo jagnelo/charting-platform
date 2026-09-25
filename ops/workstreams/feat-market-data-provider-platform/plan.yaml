@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Exact committed-source validation at acc0d4bb8a4e26598a1737d8bf9bfbcca362124a6:
+    availability/migration focused tests pass 15/15, Docker-backed PostgreSQL/
+    Redis integration passes 386/386 with 57 warnings, and migration
+    compatibility plus previous-release /health smoke pass. The complete unit
+    harness remains inconclusive because the existing calendar-router test
+    hangs before returning a result; no full-unit pass is claimed.
+  - >-
     2026-09-25 exact-current full provider preflight at source
     b72ac9a0112e6e6007a1547485b50dfb7636a4a6 ran with the owner-only durable
     quota ledger accessible and stopped before transport: 0/0 ordinary cases

@@ -11,6 +11,18 @@
   production secret stores, deferred Tradier/IBKR/Ondo, and the final shadow
   phase. No generic fallback was applied.
 
+## 2026-09-25 exact committed-source validation
+
+- At `acc0d4bb8`, focused availability/migration tests pass `15/15`; the
+  Docker-backed PostgreSQL/Redis integration suite passes `386/386` with `57`
+  warnings; and migration compatibility passes against the previous schema,
+  including previous-release `/health` smoke `200`.
+- The full unit harness remains inconclusive: it collected `2404` tests and
+  stopped making progress at the existing
+  `test_market_events_calendar_read_is_authenticated_and_database_only` router
+  test. A retry excluding that router file also became inconclusive. No full
+  unit pass is claimed; this is recorded explicitly in `validation.jsonl`.
+
 ## 2026-09-25 availability-probe response retention correction
 
 - Availability probes are real quota-consuming provider calls. Their complete
