@@ -5447,6 +5447,11 @@ latest local checkpoint; the next executable integration action is to
 reconcile the bridge only after the provider-platform capability contract is
 present in staging.
 
+The provider-platform branch subsequently advanced to `750f70f4` with
+provider-owned migration/documentation work, but the capability inspection is
+unchanged: `ETF_HOLDINGS` is still absent and the branch remains outside
+staging. AC10 therefore remains deferred and no ETF bridge was added.
+
 ## PIMCO MINT/BOND current product-page recheck — 2026-09-25
 
 The current official PIMCO ETF suite and the symbol-specific BOND and MINT
