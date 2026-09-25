@@ -4831,6 +4831,33 @@ configuration, explicit multi-artifact mapping, stable Nautilus release
 conformance, upstream provider/ETF/TC2000 reconciliation, and full shared-path
 integration remain deferred behind their existing gates.
 
+## 2026-09-25 - Authenticated search worker materializer checkpoint
+
+`search_worker_handoff.py` now provides an explicit worker materializer for
+search-dispatch queues. Before decoding a Redis payload, it resolves the
+request fingerprint through the owner-agnostic PostgreSQL search-dispatch
+lookup and verifies request, attempt, payload, and queue identities. It then
+validates the decoded immutable worker request's attempt binding and all
+orchestration component fingerprints, failing closed on drift or missing
+records.
+
+`worker_callbacks.create_search_dispatch()` exposes this binding as an
+explicit callback-factory choice using the worker's existing
+`STRATEGY_LAB_V2_QUEUE` setting. The ordinary submission-backed callback
+factory remains unchanged; no queue is treated as search-dispatch-backed by
+default. Focused coverage passed 10 tests, and the complete branch gate passed
+874 package tests, 2 migration tests, Ruff, MyPy across 276 files, diff
+validation, and workstream validation. The exact backend coverage gate passed
+2,525 tests with 83.78% total coverage (required threshold: 75%) and 86
+warnings; the referenced runtime env file was absent in this checkout and
+`.env.dev` supplied test configuration. Two cleanup passes retained zero
+testcontainer sessions, containers, images, or volumes.
+
+The branch remains `ready_for_human_review`. Enabling this callback in the
+actual dedicated worker entrypoint still requires host configuration,
+migration/schema reconciliation, stable Nautilus release conformance,
+upstream provider/ETF/TC2000 reconciliation, and full shared-path integration.
+
 ## 2026-09-25 - Legacy import inspection checkpoint
 
 Preserved digest-only legacy records are now exposed through the read-only

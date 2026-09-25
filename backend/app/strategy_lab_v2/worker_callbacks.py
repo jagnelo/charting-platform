@@ -9,6 +9,9 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any, cast
 
+from app.strategy_lab_v2.search_worker_handoff import (
+    create_authenticated_search_dispatch_materializer,
+)
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
 from app.strategy_lab_v2.worker_evidence_resolution import (
     create_sandbox_artifact_plan_resolver,
@@ -46,6 +49,38 @@ async def create(persistence: Any, artifact_root: Path) -> WorkerServiceCallback
         materialize_worker_handoff,
         _terminal_only_completion,
         terminal_writer=cast(WorkerTerminalWriter, terminal_writer),
+    )
+
+
+async def create_search_dispatch(
+    persistence: Any, artifact_root: Path
+) -> WorkerServiceCallbacks:
+    """Build callbacks that authenticate search dispatches before decoding.
+
+    This is an explicit callback-factory variant for a worker whose queue is
+    populated by the search-dispatch transaction.  The ordinary ``create``
+    factory remains available for submission-backed queues; selecting this
+    factory is a host configuration decision and requires the queue identity
+    to be declared through the same ``STRATEGY_LAB_V2_QUEUE`` setting as the
+    worker entrypoint.
+    """
+
+    callbacks = await create(persistence, artifact_root)
+    dispatch_store = getattr(persistence, "search_dispatch", None)
+    queue_name = os.environ.get("STRATEGY_LAB_V2_QUEUE")
+    if dispatch_store is None:
+        raise TypeError("persistence must expose search_dispatch")
+    if queue_name is None or not queue_name.strip():
+        raise ValueError("STRATEGY_LAB_V2_QUEUE must be configured for search dispatch workers")
+    materializer = create_authenticated_search_dispatch_materializer(
+        dispatch_store,
+        queue_name=queue_name,
+    )
+    return WorkerServiceCallbacks(
+        materializer,
+        callbacks.completion_writer,
+        heartbeat_writer=callbacks.heartbeat_writer,
+        terminal_writer=callbacks.terminal_writer,
     )
 
 
@@ -105,5 +140,6 @@ def _load_resolver_factory(spec: str | None) -> EvidenceResolverFactory:
 __all__ = [
     "EvidenceResolverFactory",
     "create",
+    "create_search_dispatch",
     "default_evidence_resolver_factory",
 ]

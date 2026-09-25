@@ -5,7 +5,12 @@ from typing import Any
 
 import pytest
 
-from app.strategy_lab_v2.worker_callbacks import create, default_evidence_resolver_factory
+from app.strategy_lab_v2.search_worker_handoff import AuthenticatedSearchDispatchMaterializer
+from app.strategy_lab_v2.worker_callbacks import (
+    create,
+    create_search_dispatch,
+    default_evidence_resolver_factory,
+)
 from app.strategy_lab_v2.worker_handoff import materialize_worker_handoff
 
 
@@ -44,6 +49,14 @@ class _ComposedPersistence:
     def worker_terminal_evidence_resolver(self, resolver: Any) -> Any:
         self.plan_resolver = resolver
         return resolver
+
+
+class _SearchDispatchPersistence(_Persistence):
+    class _Store:
+        async def load_by_request_fingerprint(self, _request_fingerprint: str) -> None:
+            return None
+
+    search_dispatch = _Store()
 
 
 class _Publisher:
@@ -91,6 +104,36 @@ async def test_callback_factory_composes_typed_materializer_and_terminal_writer(
     assert callbacks.materializer is materialize_worker_handoff
     assert callbacks.terminal_writer is not None
     assert persistence.resolver is not None
+
+
+@pytest.mark.asyncio
+async def test_search_callback_factory_binds_authenticated_dispatch_materializer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_EVIDENCE_RESOLVER",
+        "app.strategy_lab_v2.tests.test_worker_callbacks:resolver_factory",
+    )
+    monkeypatch.setenv("STRATEGY_LAB_V2_QUEUE", "strategy-backtest")
+    callbacks = await create_search_dispatch(
+        _SearchDispatchPersistence(), Path("/tmp/artifacts")
+    )
+
+    assert isinstance(callbacks.materializer, AuthenticatedSearchDispatchMaterializer)
+    assert callbacks.materializer.queue_name == "strategy-backtest"
+
+
+@pytest.mark.asyncio
+async def test_search_callback_factory_requires_queue_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_EVIDENCE_RESOLVER",
+        "app.strategy_lab_v2.tests.test_worker_callbacks:resolver_factory",
+    )
+    monkeypatch.delenv("STRATEGY_LAB_V2_QUEUE", raising=False)
+    with pytest.raises(ValueError, match="QUEUE"):
+        await create_search_dispatch(_SearchDispatchPersistence(), Path("/tmp/artifacts"))
 
 
 def test_default_evidence_resolver_factory_composes_persistence_and_artifacts() -> None:
