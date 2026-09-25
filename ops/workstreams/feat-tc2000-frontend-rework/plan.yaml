@@ -20,12 +20,17 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No TC-owned product or validation blocker is present after the definitive
-  exact gate passed at product tip 7057262e. Provider-platform and ETF consumer
-  integration remains a sequencing gate until both upstream branches reach
-  staging; shared-path reconciliation and the final post-staging exact gate
-  remain pending. Origin synchronization remains a separate operational hold
-  under the recorded private-origin safeguard.
+  The Research Results state-semantics slice is implemented and its focused,
+  unit, build, backend, contract, and browser evidence is recorded at
+  b0e23a97a. The standard parallel frontend gate remains host-timing-sensitive
+  on the unrelated 100k-point uPlot benchmark; the serial coverage equivalent
+  passes 1,150/1,150. Two unrelated browser scenarios remain reproducibly red:
+  F9c-template-comparison pointer interception and F8u-boolean missing persisted
+  header. Provider-platform and ETF consumer integration remains a sequencing
+  gate until both upstream branches reach staging; shared-path reconciliation
+  and the final post-staging exact gate remain pending. Origin synchronization
+  remains a separate operational hold under the recorded private-origin
+  safeguard.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -259,18 +264,19 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_breadth_drilldown_state_accessibility_exact_gate_passed
+  current_phase: R6_research_results_selection_state_accessibility_validation_recorded
   next_action: >-
-    Preserve all prior disclosure, export-menu, Market Map, and breadth
-    drilldown aria-pressed receipts plus the definitive exact-gate result at
-    product tip 7057262e. Continue with the next bounded TC-owned R1/R5/R6
-    item; keep provider/ETF consumer work deferred until both upstream branches
-    reach staging. Do not retry origin synchronization under the existing
-    private-origin safeguard without newly accepted exact-payload
-    authorization.
+    Preserve the b0e23a97a Research Results aria-pressed receipt and the
+    serial frontend/full backend/browser evidence. Keep the two unrelated
+    browser regressions visible for human review, then continue with the next
+    bounded TC-owned R1/R5/R6 item only after confirming no provider/ETF overlap;
+    keep consumer integration deferred until both upstream branches reach
+    staging. Do not retry origin synchronization under the existing private-
+    origin safeguard without newly accepted exact-payload authorization.
   current_blocker: >-
-    No TC-owned product or validation blocker is present after the definitive
-    exact gate passed at product tip 7057262e. Provider-platform and ETF
+    The TC-owned Research Results change is validated, but the host's parallel
+    frontend timing guard and two unrelated browser scenarios prevent claiming
+    a clean standard exact gate for this checkpoint. Provider-platform and ETF
     consumer integration remains a sequencing gate until both upstream branches
     reach staging; shared-path reconciliation and the final post-staging exact
     gate remain pending. Origin synchronization remains a separate operational
@@ -492,6 +498,9 @@ historical_implementation_records_continued:
   - "The definitive exact-tip PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip c3ee381bf: backend combined coverage passed 1,621 unit and 408 integration tests with 82.26% total coverage; frontend Vitest passed 1,150/1,150; type-check/build, Compose/provider contracts, branch-scoped Docker health, and research-runner probes passed; authenticated functional Chromium passed 170 with 107 documented skips; and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, generated images, and test sessions; resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable because of host Xcode license status 69; the installed CommandLineTools Make binary ran the same target. This clean rerun supersedes the earlier transient F8u-boolean candidate without changing the browser oracle or any provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy. This receipt covers the Strategy Lab export-menu keyboard-semantics slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commit a981101c adds explicit aria-pressed state to Market Map hierarchy/group buttons and breadcrumb selection controls, preserving navigation, selection, data, and visual layout. Focused Market Map coverage passed 54/54; full frontend Vitest passed 1,151/1,151; frontend type-check and production build passed with the existing large-chunk warning; authenticated Chromium F8s-family-map-drilldown passed 1/1; TC scope validation/self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip a981101cbe2a0838967f609cbd10e3cadc137e63: backend combined coverage passed 1,621 unit and 408 integration tests with 82.26% total coverage; frontend Vitest passed 1,151/1,151; type-check/build, Compose/provider contracts, branch-scoped Docker health, and research-runner probes passed; authenticated functional Chromium passed 170 with 107 documented skips; and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable because of host Xcode license status 69; the installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the Market Map hierarchy/breadcrumb aria-pressed semantics slice and does not close the broader workstream or upstream staging dependencies."
+  - "Product commit b0e23a97a exposes the selected Research Results run through aria-pressed on each run-selection button while preserving wrapper aria-current, labels, keyboard Enter/Space selection, mouse selection, and result rendering. Focused Research Results coverage passed 49/49; the serialised full frontend coverage stage passed 124/124 files and 1,150/1,150 tests at 84.78% statement coverage; type-check/build, TC scope/workstream/diff checks, and focused authenticated F8t-results passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance-policy behavior changed."
+  - "Checkpoint validation for b0e23a97a passed backend combined coverage (1,621 unit and 408 integration tests at 82.26%), Compose/provider contracts, and research-runner sandbox/resource probes. The seeded Chromium suite completed 164 passed and 107 documented skips; four initial ERR_NETWORK_CHANGED failures passed on focused retry. Two unrelated existing UI scenarios remain reproducibly red: F9c-template-comparison pointer interception and F8u-boolean missing persisted RSI Boolean column header. Visual cases completed without additional failures. The host-parallel frontend benchmark remains timing-sensitive, while the serial equivalent passes; no oracle or threshold was changed. Stack teardown removed branch-scoped resources."
+
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."

@@ -1,5 +1,33 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-25 — R6 Research Results run-selection state and validation receipt
+
+Product commit `b0e23a97a` exposes the selected Research Results run through
+`aria-pressed` on each run-selection button while preserving the wrapper's
+`aria-current`, labels, keyboard Enter/Space selection, mouse selection, and
+result rendering. Focused Research Results coverage passed `49/49`; the full
+serialised frontend coverage stage passed `124/124` files and `1,150/1,150`
+tests with `84.78%` statement coverage; type-check and production build passed;
+TC scope/workstream/diff checks passed; and the focused authenticated F8t-results
+flow passed `1/1`. No provider-platform, ETF, visual oracle, threshold, mask,
+skip, fallback, or acceptance-policy behavior changed.
+
+The locked backend stages passed `1,621` unit and `408` integration tests at
+`82.26%` combined coverage. Compose/provider contracts and research-runner
+sandbox/resource probes passed. The seeded Chromium suite completed `164`
+passed and `107` documented skips; four initial `ERR_NETWORK_CHANGED` failures
+passed on focused retry. Two unrelated existing UI scenarios remain
+reproducibly red: `F9c-template-comparison` (Chart Templates comparison-chip
+pointer interception) and `F8u-boolean` (persisted RSI Boolean column header not
+found). Visual cases completed without additional failures. Stack teardown
+removed branch-scoped containers, volumes, network, and test sessions; no
+provider/ETF or other worktree was mutated.
+
+The broader goal remains active: provider/ETF consumer integration is still
+sequenced behind both branches reaching staging, followed by line-level shared
+path reconciliation and a clean exact-tip gate. The two unrelated browser
+regressions are recorded as review gates and were not changed in this slice.
+
 ## 2026-09-17 — R6 breadth-drilldown state accessibility and definitive gate
 
 Product commit `7057262e` exposes the selected state of breadth controls

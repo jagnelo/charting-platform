@@ -37,7 +37,7 @@
       "text": "The branch stops at ready_for_human_review with clean, synchronized TC-owned workstream records and no direct branch merge, deployment, or mutation of another worktree."
     }
   ],
-  "active_session_id": "9b1fe115-af11-4e05-b633-356c4d5c18f1",
+  "active_session_id": "e7ed8602-bc49-4daa-be2c-7cc01bf37f6b",
   "branch": "feat/tc2000-frontend-rework",
   "claim": {
     "branch": "feat/tc2000-frontend-rework",
@@ -61,8 +61,8 @@
     "known_bytes": 0,
     "over_budget": false,
     "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
+      "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae"
     ],
     "testcontainer_sessions": [],
     "threshold_bytes": 5000000000,
@@ -71,7 +71,7 @@
     "unknown_components": [],
     "volume_bytes": 0,
     "volume_count": 0,
-    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+    "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -103,46 +103,47 @@
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/tc2000-frontend-rework: Deliver the frontend-led TC2000 V25-inspired workstation by consuming the market-data-provider-platform and ETF-holdings-constituents contracts, retaining TC-owned Study/Strategy capabilities, reconciling upstream overlaps after staging promotion, and stopping at ready_for_human_review.. Acceptance criteria: AC1: The TC-only ownership boundary is executable: future touched paths are in the scoped allowlist or documented shared exceptions, and provider/ETF-owned paths fail validation.; AC2: TC consumes the provider-platform preflight and coverage contract from staging without implementing generic provider selection, credentials, ingestion, refresh workers, or provider probes.; AC3: TC consumes ETF holdings capability/source lineage from staging; stale last-known holdings remain display-only and do not become current analytic input.; AC4: The TC workstation supports its benchmark-to-sector/industry/constituent flow, Market Map, breadth, ratios, and historical analytics over persisted evidence with explicit gaps and provenance.; AC5: The existing TC Python/DSL/Study/Strategy engine remains the single programming model, immutable and lineage-preserving, with compatible promotions and explicit capability errors.; AC6: Mapped V25 reference states and the workstation interaction model are implemented and validated without weakening visual or functional oracles.; AC7: Golden Layout/window resilience, accessibility, security, sandbox, endurance, dense-data performance, migration, and logging checks provide actionable evidence.; AC8: After both upstream branches reach staging, every intersecting path has a line-level semantic disposition and the TC branch passes exact-tip validation or records a precise reproducible external blocker.; AC9: The branch stops at ready_for_human_review with clean, synchronized TC-owned workstream records and no direct branch merge, deployment, or mutation of another worktree.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-09-15T11:51:20.631573+00:00",
+  "goal_recorded_at": "2026-09-24T22:32:32.131679+00:00",
   "goal_request": {
-    "objective": "Advance feat/tc2000-frontend-rework: Execute docs/tc2000-roadmap.md to deliver the canonical-data-backed, V25-inspired TC2000 workstation and stop at ready_for_human_review.. Acceptance criteria: AC1: Every change preserves existing functional and visual assertions; no baseline, mask, threshold, or skip is changed to hide a regression.; AC2: All eight benchmark families expose explicit canonical readiness, provider entitlement, point-in-time holdings/classification/weights/history, continuity, provenance, and unsupported-role states without silent fallback or fabricated data.; AC3: The live-data top-down workflow links benchmark, style, sector, industry/proxy, and constituent views with synchronized symbols/timeframes, indicators, drawings, keyboard behavior, save/restore, source lock/edit states, and actionable freshness.; AC4: Current and historical breadth contracts support generic condition predicates, denominator/exclusion/member-level/source lineage evidence, derived-series semantics, and supported ratio/history queries.; AC5: Market Map, breadth, rotation, ranking, leadership, concentration, dispersion, drawdown, volatility, correlation, and seasonality consumers use source-polymorphic, period-aware, bounded, provenance-visible contracts where data supports them.; AC6: Python/Study Lab outputs remain immutable and lineage-preserving while compatible shapes promote to columns, filters, scans, gauges, alerts, chart plots, and strategy signals with explicit capability errors.; AC7: The mapped V25 reference states are implemented and validated across source selection, treemap geometry, breadth/study/promotion, loading/error/freshness, keyboard, tool menus, popouts, and state restoration using the unchanged visual acceptance policy.; AC8: Golden Layout and native/browser window resilience, endurance beyond 100 rounds, 100k-point/10k-row performance, accessibility, security, sandbox, migration, and logging checks provide actionable evidence.; AC9: Focused backend/frontend/unit/integration checks, authenticated browser flows, all four visual projects, provider/data probes, and the final exact-tip exhaustive integration gate pass or record an explicit reproducible blocker.; AC10: The branch stops at ready_for_human_review with clean, synchronized branch-owned workstream records and no integration, promotion, deployment, or mutation of another worktree.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+    "objective": "Advance feat/tc2000-frontend-rework: Deliver the frontend-led TC2000 V25-inspired workstation by consuming the market-data-provider-platform and ETF-holdings-constituents contracts, retaining TC-owned Study/Strategy capabilities, reconciling upstream overlaps after staging promotion, and stopping at ready_for_human_review.. Acceptance criteria: AC1: The TC-only ownership boundary is executable: future touched paths are in the scoped allowlist or documented shared exceptions, and provider/ETF-owned paths fail validation.; AC2: TC consumes the provider-platform preflight and coverage contract from staging without implementing generic provider selection, credentials, ingestion, refresh workers, or provider probes.; AC3: TC consumes ETF holdings capability/source lineage from staging; stale last-known holdings remain display-only and do not become current analytic input.; AC4: The TC workstation supports its benchmark-to-sector/industry/constituent flow, Market Map, breadth, ratios, and historical analytics over persisted evidence with explicit gaps and provenance.; AC5: The existing TC Python/DSL/Study/Strategy engine remains the single programming model, immutable and lineage-preserving, with compatible promotions and explicit capability errors.; AC6: Mapped V25 reference states and the workstation interaction model are implemented and validated without weakening visual or functional oracles.; AC7: Golden Layout/window resilience, accessibility, security, sandbox, endurance, dense-data performance, migration, and logging checks provide actionable evidence.; AC8: After both upstream branches reach staging, every intersecting path has a line-level semantic disposition and the TC branch passes exact-tip validation or records a precise reproducible external blocker.; AC9: The branch stops at ready_for_human_review with clean, synchronized TC-owned workstream records and no direct branch merge, deployment, or mutation of another worktree.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
-  "goal_request_state": "fulfilled",
+  "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7057262eeb10933ce5947426e8e7fa87e4edacee",
-  "implementation_sha": "7057262eeb10933ce5947426e8e7fa87e4edacee",
+  "head": "b0e23a97aa77e9d49b6059dab3094decaf2f443e",
+  "implementation_sha": "b0e23a97aa77e9d49b6059dab3094decaf2f443e",
   "interrupted": false,
-  "last_checkpoint": "2026-09-17T23:28:34+01:00",
-  "last_human_progress_update": "2026-09-17T23:28:34+01:00",
+  "last_checkpoint": "2026-09-25T01:03:43+01:00",
+  "last_human_progress_update": "2026-09-25T01:03:43+01:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Preserve all prior disclosure, export-menu, Market Map, and breadth drilldown aria-pressed receipts plus the definitive exact-gate result at product tip 7057262e; continue with the next bounded TC-owned R1/R5/R6 item; keep provider and ETF consumer work deferred until both branches reach staging.",
-  "plan_hash": "de0ab69352d7bcf4997185f4ef0bade1578688a26c2eef7ed4c6b9cbcd5f42f8",
+  "next_action": "Keep the two unrelated browser regressions visible for human review; defer provider/ETF consumer integration until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
+  "plan_hash": "4a83bf4b8977c18269645256eb4aa47065aea3572a47bc075a962813b68cfb47",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
     "ce1948d0-bd3b-49d2-847e-f4ba0c1ee6fb",
     "961be75d-9213-41f9-81cb-f60edd291288",
-    "c6f8279b-7b20-46a5-97a5-3fc128f832ae"
+    "c6f8279b-7b20-46a5-97a5-3fc128f832ae",
+    "9b1fe115-af11-4e05-b633-356c4d5c18f1"
   ],
   "progress": {
     "completed": [
       "AC1"
     ],
-    "current_blocker": "No TC-owned product or validation blocker is present after the definitive exact gate passed at product tip 7057262e. Provider-platform and ETF consumer integration remains a sequencing gate until both upstream branches reach staging; shared-path reconciliation and the final post-staging exact gate remain pending. Origin synchronization remains a separate operational hold under the recorded private-origin safeguard.",
-    "current_phase": "R6_breadth_drilldown_state_accessibility_exact_gate_passed",
-    "next_action": "Preserve all prior disclosure, export-menu, Market Map, and breadth drilldown aria-pressed receipts plus the definitive exact-gate result at product tip 7057262e; continue with the next bounded TC-owned R1/R5/R6 item; keep provider and ETF consumer work deferred until both branches reach staging.",
+    "current_blocker": "The TC-owned Research Results change is validated, but the host's parallel frontend timing guard and two unrelated browser scenarios prevent claiming a clean standard exact gate for this checkpoint. Provider-platform and ETF consumer integration remains a sequencing gate until both upstream branches reach staging; shared-path reconciliation and the final post-staging exact gate remain pending. Origin synchronization remains a separate operational hold under the recorded private-origin safeguard.",
+    "current_phase": "R6_research_results_selection_state_accessibility_validation_recorded",
+    "next_action": "Keep the two unrelated browser regressions visible for human review; continue only with bounded TC-owned R1/R5/R6 work that does not overlap provider/ETF ownership, and defer consumer integration until both upstream branches reach staging.",
     "total": 9,
-    "updated_at": "2026-09-17T23:28:34+01:00"
+    "updated_at": "2026-09-25T01:03:43+01:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "a981101cbe2a0838967f609cbd10e3cadc137e63",
-    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..a981101cbe2a0838967f609cbd10e3cadc137e63",
+    "current_local_head": "b0e23a97aa77e9d49b6059dab3094decaf2f443e",
+    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..b0e23a97aa77e9d49b6059dab3094decaf2f443e",
     "failure_category": "a previous exact payload was rejected by the private-origin safeguard; this updated pending range was not retried without trusted exact-payload authorization; read-only remote lookup succeeds",
-    "head_at_product_checkpoint": "a981101cbe2a0838967f609cbd10e3cadc137e63",
-    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..a981101cbe2a0838967f609cbd10e3cadc137e63",
+    "head_at_product_checkpoint": "b0e23a97aa77e9d49b6059dab3094decaf2f443e",
+    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..b0e23a97aa77e9d49b6059dab3094decaf2f443e",
     "remote": "origin",
     "remote_tracking_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
     "status": "committed_locally_pending_push"
@@ -152,7 +153,7 @@
   "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,
-  "session_id": "9b1fe115-af11-4e05-b633-356c4d5c18f1",
+  "session_id": "e7ed8602-bc49-4daa-be2c-7cc01bf37f6b",
   "state": "checkpointed",
   "takeover_history": [
     {
@@ -175,13 +176,13 @@
     }
   ],
   "validation_tier": "full_integration",
-  "workstream": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework",
   "workstream_files": [
-    "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
-    "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/session.json"
+    "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
-  "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
-  "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
+  "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
 }
