@@ -89,6 +89,7 @@ async def _materialize_directory_issuers(
     names_by_cik: dict[str, str] = {}
     name_candidates_by_cik: dict[str, list[str]] = {}
     tickers_by_cik: dict[str, list[str]] = {}
+    source_payloads_by_cik: dict[str, dict[str, Any]] = {}
     source_identity_conflicts: set[str] = set()
     for row in rows:
         cik = str(row.get("cik") or "").strip()
@@ -115,6 +116,7 @@ async def _materialize_directory_issuers(
             )
         names_by_cik[cik] = name
         name_candidates_by_cik[cik] = normalized_names
+        source_payloads_by_cik[cik] = dict(row)
         raw_tickers = row.get("tickers")
         if raw_tickers is not None and (
             not isinstance(raw_tickers, list)
@@ -150,6 +152,7 @@ async def _materialize_directory_issuers(
                     "name": name,
                     "name_candidates": name_candidates_by_cik[cik],
                     "tickers": tickers_by_cik[cik],
+                    "source_payload": source_payloads_by_cik[cik],
                     "admission_decision": (
                         "existing_source_name_conflict"
                         if cik in source_identity_conflicts
@@ -173,6 +176,7 @@ async def _materialize_directory_issuers(
                     "name": name,
                     "name_candidates": name_candidates_by_cik[cik],
                     "tickers": tickers_by_cik[cik],
+                    "source_payload": source_payloads_by_cik[cik],
                     "admission_decision": "blocked_conflicting_names",
                     "decision_reason": (
                         "SEC directory contains multiple distinct names for this CIK."
@@ -191,6 +195,7 @@ async def _materialize_directory_issuers(
                     "name": name,
                     "name_candidates": name_candidates_by_cik[cik],
                     "tickers": tickers_by_cik[cik],
+                    "source_payload": source_payloads_by_cik[cik],
                     "admission_decision": "blocked_domain_key_collision",
                     "decision_reason": (
                         "The canonical cik domain key is already owned by a different CIK."
@@ -205,6 +210,7 @@ async def _materialize_directory_issuers(
                 "name": name,
                 "name_candidates": name_candidates_by_cik[cik],
                 "tickers": tickers_by_cik[cik],
+                "source_payload": source_payloads_by_cik[cik],
                 "admission_decision": "would_create",
                 "decision_reason": (
                     "No issuer matches this CIK; this candidate is eligible for issuer-only "
@@ -274,6 +280,7 @@ async def _materialize_directory_issuers(
                 conformed_name=candidate["name"],
                 name_candidates=candidate["name_candidates"],
                 tickers=candidate["tickers"],
+                source_payload=dict(candidate.get("source_payload") or {}),
                 admission_decision=candidate["admission_decision"],
                 decision_reason=candidate["decision_reason"],
                 matched_issuer_id=issuer.id if issuer is not None else None,

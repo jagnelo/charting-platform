@@ -773,6 +773,10 @@ class SecIssuerDirectoryCandidate(Base, TimestampMixin):
     conformed_name: Mapped[str] = mapped_column(String(300), nullable=False)
     name_candidates: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     tickers: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    # Exact row returned by the provider adapter.  The normalized columns are
+    # admission/reporting projections; this payload is immutable source
+    # evidence so later SEC schema changes cannot erase fields we received.
+    source_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     admission_decision: Mapped[str] = mapped_column(String(32), nullable=False)
     decision_reason: Mapped[str] = mapped_column(String(500), nullable=False)
     cycle_status: Mapped[str] = mapped_column(String(24), nullable=False, default="running")

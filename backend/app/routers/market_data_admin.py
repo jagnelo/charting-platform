@@ -886,6 +886,7 @@ async def list_sec_directory_candidates(
                 "conformed_name": candidate.conformed_name,
                 "name_candidates": candidate.name_candidates,
                 "tickers": candidate.tickers,
+                "source_payload": candidate.source_payload,
                 "admission_decision": candidate.admission_decision,
                 "decision_reason": candidate.decision_reason,
                 "matched_issuer": (

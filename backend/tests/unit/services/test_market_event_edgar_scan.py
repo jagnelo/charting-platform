@@ -281,6 +281,11 @@ async def test_edgar_directory_scan_requires_reviewed_dry_cycle_before_materiali
     assert dry_candidate.cik == "0000000042"
     assert dry_candidate.conformed_name == "Example Holdings, Inc."
     assert dry_candidate.tickers == ["EXM"]
+    assert dry_candidate.source_payload == {
+        "cik": "0000000042",
+        "name": "Example Holdings, Inc.",
+        "tickers": ["EXM"],
+    }
     assert dry_candidate.admission_decision == "would_create"
     assert dry_candidate.matched_issuer_id is None
     assert dry_candidate.cycle_status == "complete"
