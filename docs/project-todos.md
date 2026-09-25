@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-25 — Discovery-cache row isolation
+
+- [x] Harden the EODHD/FMP full-catalogue cache so both cached rows and rows
+      returned to callers are copied per dictionary. A caller-side mutation can
+      no longer alter later reconciliation pages; the regression is covered in
+      the optional-provider suite.
+
+- [x] Focused coverage passed `109/109`; the final branch-owned unit gate passed
+      `1,928/1,928` with `37` warnings, and Docker integration passed `386/386`
+      with `57` warnings. No ETF/frontend source changed.
+
 ### 2026-09-25 — EODHD/FMP full-catalogue reuse
 
 - [x] Reuse each provider's full US discovery catalogue across successive

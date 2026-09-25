@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 discovery-cache row isolation
+
+- The EODHD/FMP full-catalogue cache now copies each row on insertion and on
+  return, preventing mutations of a fetched response from changing later
+  reconciliation pages. Focused optional-provider coverage remains `109/109`
+  with Ruff clean.
+
+## 2026-09-25 exact-head validation after row-isolation hardening
+
+- The branch-owned backend unit gate passed `1,928/1,928` with `37` warnings
+  in `313.57s` at source `b0fd8d88d16d7a4fe9f1e8aacc5f4478e77fcbc9` (the
+  command used an isolated `/tmp` coverage file after an earlier environment
+  SIGBUS from stale parallel coverage shards).
+- The authoritative Docker integration gate passed `386/386` with `57`
+  warnings in `700.63s`, using isolated PostgreSQL/Redis testcontainers
+  (session `aa18f454-5431-4d9b-9ad4-029e993086b7`). Cleanup completed without
+  host-wide pruning. External provider admission, legal/use, complete-universe,
+  secret-store, deferred-provider, and final-shadow gates remain fail-closed.
+
 ## 2026-09-25 EODHD/FMP full-catalogue reuse
 
 - EODHD and FMP discovery now reuse the same full US catalogue for successive

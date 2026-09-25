@@ -1506,6 +1506,13 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-25 discovery-cache row isolation: EODHD/FMP full-catalogue cache
+      entries and returned rows are now copied per dictionary, preventing
+      caller-side mutation from changing later reconciliation pages. Focused
+      optional-provider coverage passed 109/109; exact-source unit validation
+      passed 1,928/1,928 and Docker integration passed 386/386 at source
+      `b0fd8d88d16d7a4fe9f1e8aacc5f4478e77fcbc9`.
+    - >-
       2026-09-25 EODHD/FMP full-catalogue reuse: successive reconciliation
       pages now reuse a five-minute, provider- and one-way-credential-digest
       scoped full catalogue instead of repeating non-paginated upstream
