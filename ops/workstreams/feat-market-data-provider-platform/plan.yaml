@@ -162,6 +162,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 append-only option-quote correction and full validation: every
+    option-chain and historical quote payload now appends immutable evidence in
+    option_quote_observation while OptionQuotePoint remains the normalized
+    projection. Migration d5f6a7b8c9d0, focused option/migration coverage (6/6),
+    complete migration coverage (17/17), and Ruff/diff checks pass. Full unit
+    suite 2398/2398 with 37 warnings in 165.90 seconds and Docker-backed
+    integration 386/386 with 57 warnings in 459.25 seconds pass on source
+    fa40d5a6f. External provider, universe, secret-store, deferred-provider,
+    publication, and final-shadow gates remain open.
+  - >-
     2026-09-25 append-only fundamentals/short-interest correction and full
     validation: every provider response now appends immutable evidence in
     fundamental_fact_observation or short_interest_provider_observation while

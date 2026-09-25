@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 append-only option-quote validation
+
+- Option-chain and historical quote ingestion now appends every provider quote
+  payload to `option_quote_observation`; normalized `OptionQuotePoint` rows
+  remain the query projection and can no longer be the only copy of a revised
+  response sharing an observation timestamp.
+- Migration `d5f6a7b8c9d0`, focused option/migration coverage (`6/6`), and the
+  complete migration suite (`17/17`) pass. On source `fa40d5a6f`, the full
+  backend unit suite passes `2398/2398` with `37` warnings in `165.90s`, and
+  the persistent Docker-backed integration suite passes `386/386` with `57`
+  warnings in `459.25s`.
+- No external provider request, deployment, ETF adapter change, or shadow
+  activation occurred. Provider quota/legal/capability, universe,
+  secret-store, deferred-provider, publication, and final shadow gates remain
+  open.
+
 ## 2026-09-25 append-only fundamentals/short-interest validation
 
 - Fundamental facts and short-interest refreshes now retain every provider
