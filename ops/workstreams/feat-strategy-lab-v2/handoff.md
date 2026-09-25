@@ -5637,3 +5637,6 @@ ASGI-level route coverage now exercises the atomic forward dispatch/outbox and l
 ## 2026-09-25 - Counterfactual replay observability checkpoint
 
 Persisted forward correction replay plans now have an authenticated owner-scoped read bridge and `GET /forward-instances/{instance_id}/replays` projection. The adapter returns `404` for unknown instances, verifies deterministic replay ordering, and the API exposes immutable plan identities without changing live state. ASGI route, serializer, and forward-state tests pass; the focused suite now passes 29 tests with Ruff, MyPy (293 source files), and whitespace validation green.
+## 2026-09-25 - Durable replay read-back evidence
+
+The replay observability slice now includes direct PostgreSQL-adapter coverage: persisted correction plans load deterministically for the owning principal, while another owner receives no instance evidence. The focused forward/API suite remains at 29 passing tests with Ruff, MyPy (293 source files), and whitespace validation green.
