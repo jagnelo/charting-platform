@@ -5640,3 +5640,11 @@ Persisted forward correction replay plans now have an authenticated owner-scoped
 ## 2026-09-25 - Durable replay read-back evidence
 
 The replay observability slice now includes direct PostgreSQL-adapter coverage: persisted correction plans load deterministically for the owning principal, while another owner receives no instance evidence. The focused forward/API suite remains at 29 passing tests with Ruff, MyPy (293 source files), and whitespace validation green.
+
+## 2026-09-25 - Replay instance-binding hardening
+
+Replay serialization now rejects any persisted plan whose instance identity does
+not match the route resource being projected. This closes a local resource
+binding gap while preserving deterministic replay ordering and immutable plan
+identity. The focused forward/API suite passes 30 tests, with Ruff, MyPy (293
+source files), and whitespace validation green.
