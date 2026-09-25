@@ -504,6 +504,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and idempotent release. Unsafe profiles, reused reservation identities, and
   concurrent attempts fail closed; process scheduling, lease heartbeats,
   restart recovery, and engine disposal remain adapter responsibilities.
+  Reservation acquisition/release timestamps normalize to UTC before capacity
+  identity and replay comparison.
 - `artifact_retention.py` defines immutable owner-scoped retention pins and
   manifest-bound retention state. Pin adds and releases are idempotent; pinned
   classes fail closed without an active pin, while tiered/ephemeral eligibility
@@ -513,7 +515,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   restart-safe lease observation state. Exact retries replay, changed content
   conflicts, gaps/stale sequences remain visible, and expired or released
   leases reject further heartbeats. Lease identity and final heartbeat
-  metadata must match; persistence and clock scheduling remain adapter-owned.
+  metadata must match; aware observation and expiry timestamps normalize to UTC
+  before ordering and replay; persistence and clock scheduling remain
+  adapter-owned.
 - `forward_warmup.py` defines manifest-bound warm-up completion receipts. A
   warming instance can transition to active once, seed its historical cursor,
   and replay the same receipt without rewriting live state; changed receipts,
@@ -1263,6 +1267,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   already-released reservation and lease; changed evidence, an active pool with
   an existing receipt, an expired lease, or a missing/mismatched reservation
   fails closed and leaves recovery to the retry path.
+  Settlement release timestamps normalize to UTC before receipt identity and
+  reservation/lease reconciliation.
 - `worker_terminal.py` composes the terminal public outcome/progress projection
   with worker pool and lease settlement. It returns a committed proposal only
   when both terminal evidence and capacity release accept; a missing result,
