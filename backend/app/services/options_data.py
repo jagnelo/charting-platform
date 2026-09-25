@@ -44,7 +44,9 @@ def _option_quote_payload(point: object) -> dict:
     """Return the original quote body, or a lossless normalized fallback."""
 
     raw_payload = getattr(point, "raw_payload", None)
-    if raw_payload:
+    # An explicitly empty provider object is still the original response and
+    # must not be replaced by a lossy normalized reconstruction.
+    if raw_payload is not None:
         return raw_payload
     return {
         "provider_symbol": getattr(point, "provider_symbol", None),

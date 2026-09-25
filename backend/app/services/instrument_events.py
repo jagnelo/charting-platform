@@ -261,7 +261,10 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
         await db.execute(stmt)
         inserted += 1
 
-    if page.raw_payload:
+    # Persist every successful provider page, including an explicitly empty
+    # JSON envelope. An empty response is still quota-consuming evidence and
+    # must be available for replay/audit; truthiness would silently discard it.
+    if page.raw_payload is not None:
         snapshot_stmt = (
             pg_insert(InstrumentEventPageSnapshot)
             .values(

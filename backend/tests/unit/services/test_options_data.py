@@ -9,6 +9,7 @@ from app.models.provider_observation import DatasetStatus, InstrumentDatasetStat
 from app.providers.errors import ProviderRateLimitError, ProviderResponseError
 from app.services.options_data import (
     _marketdata_option_quote_credit_bound,
+    _option_quote_payload,
     list_option_expirations,
     sync_option_chain_snapshot,
     sync_option_quote_history,
@@ -25,6 +26,13 @@ def test_marketdata_option_quote_credit_bound_uses_inclusive_calendar_range():
     assert _marketdata_option_quote_credit_bound(
         start, start + timedelta(days=1000)
     ) == 2
+
+
+def test_option_quote_payload_preserves_explicit_empty_provider_object():
+    class _Point:
+        raw_payload = {}
+
+    assert _option_quote_payload(_Point()) == {}
 
 
 @pytest.mark.asyncio

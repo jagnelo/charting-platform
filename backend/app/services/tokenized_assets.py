@@ -540,7 +540,11 @@ async def upsert_tokenized_asset(
             token_symbol=record.symbol,
             observed_at=observed_at,
             fetched_at=datetime.now(UTC),
-            payload=source_payload if source_payload is not None else (record.raw_payload or {}),
+            payload=(
+                source_payload
+                if source_payload is not None
+                else (record.raw_payload if record.raw_payload is not None else {})
+            ),
         )
     )
 
@@ -574,7 +578,11 @@ async def upsert_tokenized_asset(
             observed_at=observed_at,
             fetched_at=datetime.now(UTC),
             price=record.price,
-            payload=source_payload or record.raw_payload,
+            payload=(
+                source_payload
+                if source_payload is not None
+                else (record.raw_payload if record.raw_payload is not None else {})
+            ),
         )
         db.add(snapshot)
     await db.flush()

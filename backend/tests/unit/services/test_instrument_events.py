@@ -242,3 +242,42 @@ async def test_event_pages_are_persisted_and_resumed_without_refetching_page_one
     await fetch_and_store_instrument_events(async_db, instrument)
     assert db.query(InstrumentEventPageSnapshot).count() == 3
     assert calls == [None, "page-2", None]
+
+
+@pytest.mark.asyncio
+async def test_empty_successful_event_page_is_retained_as_raw_evidence(
+    db, instrument, monkeypatch
+):
+    """An empty provider envelope is still a successful, quota-consuming read."""
+
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="alpaca", is_active=True)
+    db.add(source)
+    db.flush()
+
+    class _Provider:
+        name = "alpaca"
+
+        def fetch_instrument_events_page(self, _symbol, page_token=None, **_kwargs):
+            return InstrumentEventPage(
+                events=[],
+                next_page_token=None,
+                request_page_token=page_token,
+                raw_payload={},
+            )
+
+    async def _execute(_db, _capability, _operation, **kwargs):
+        return ProviderExecutionResult(
+            provider_name="alpaca",
+            data_source=source,
+            policy=object(),
+            health=object(),
+            result=kwargs["invoke"](_Provider(), "AAPL"),
+        )
+
+    monkeypatch.setattr(instrument_events, "execute_provider_call", _execute)
+
+    await fetch_and_store_instrument_events(async_db, instrument)
+
+    snapshot = db.query(InstrumentEventPageSnapshot).one()
+    assert snapshot.payload == {}
