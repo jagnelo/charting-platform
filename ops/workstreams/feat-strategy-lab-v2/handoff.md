@@ -10,6 +10,28 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - Planning state: ready; the plan remains at `ready_for_human_review` and the
   session-local goal is held at its plan-ready guard.
 
+## 2026-09-25 - Mounted result evidence checkpoint
+
+`sandbox.py` now exposes the validated host source for the hardened
+`/outputs/result` bind mount, reusing the same mount parser used by plan
+validation. `sandbox_execution.py` hashes a successful mounted result file in
+bounded streaming chunks and records its content digest and byte length on
+`SandboxRunResult`; symlinks, directories, missing files, and files over the
+declared output limit produce no valid result-file evidence. The executor does
+not publish bytes or choose an application result manifest: those remain
+application-owned adapter responsibilities, while stdout/stderr runtime
+evidence remains backward compatible.
+
+Focused sandbox tests passed 12 tests, the complete Strategy Lab v2 package
+passed 823 tests, and branch-declared validation passed all six checks across
+823 package tests, migrations, Ruff, MyPy across 270 files, diff, and
+workstream validation. The exact backend gate passed 2,474 tests at 83.73%
+coverage with 86 warnings; the referenced runtime env file was absent in this
+checkout and `.env.dev` supplied test configuration. Both required cleanup
+passes retained zero testcontainer sessions, containers, images, or volumes.
+The application-owned evidence resolver, stable Nautilus release, upstream
+contract reconciliation, and full application integration remain open gates.
+
 ## 2026-09-25 - Typed metric-set rehydration
 
 `postgres_metrics.py` now exposes owner-scoped `load_metric_set()` and
