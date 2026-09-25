@@ -162,6 +162,12 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 Docker-backed integration validation after the market-event
+    observation migration: current source passed 386/386 backend integration
+    tests with 57 warnings in 521.73 seconds. PostgreSQL/Redis migration and
+    event persistence paths are green; provider routing, quota/legal/capability,
+    universe, secret-store, deferred-provider, and shadow gates remain open.
+  - >-
     2026-09-25 append-only market-event observation correction: general market
     events now retain every fetched provider payload in the immutable
     market_event_observation table, while market_event remains the latest

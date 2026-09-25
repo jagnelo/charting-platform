@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Docker integration validation after market-event migration
+
+- The complete persistent Docker-backed backend integration suite passed on
+  the market-event observation source: `386/386` tests, `57` warnings, in
+  `521.73s`.
+- This validates the new migration/table and event persistence against the
+  PostgreSQL/Redis stack. No frontend, ETF adapter, external provider, or
+  shadow operation was performed.
+
 ## 2026-09-25 append-only market-event observation checkpoint
 
 - General provider market events now have an immutable `market_event_observation`
