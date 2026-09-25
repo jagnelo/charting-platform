@@ -205,7 +205,7 @@ def _native_baseline_candidate(
         if (
             provider_name != "alpaca"
             or isinstance(skew_limit, bool)
-            or not isinstance(skew_limit, (int, float))
+            or not isinstance(skew_limit, int | float)
             or skew_limit < 0
             or (observed_at - reset_at).total_seconds() > float(skew_limit)
         ):

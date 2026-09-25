@@ -6345,6 +6345,26 @@ Commit `247718a6f` adds a requirement-by-requirement acceptance audit to
 verified by repository evidence and which remain external/provider,
 deployment-secret, universe, or final-shadow gates; it does not promote any
 provider or start the shadow run.
+
+## 2026-09-25 Alpaca native-reset reconciliation correction
+
+- Alpaca's official market-data contract remains `200` historical requests per
+  minute on the Basic plan. Its `X-RateLimit-Reset` header is an integer Unix
+  timestamp; live observation showed that it can equal or precede the local
+  observation by a fraction of a second as a response crosses the boundary.
+- The quota baseline candidate now accepts only this explicitly reviewed
+  two-second Alpaca skew while anchoring admission to the exact native
+  limit/remaining snapshot and the reviewed rolling 60-second safety window.
+  Other providers still fail closed when their reset boundary is not future
+  and proven. No generic rate-limit fallback was added.
+- Focused quota/account-usage tests pass `50/50`. Exact committed source
+  `b268bf7fabf621292c98e10e3bacd4b6604d5c37` passed the complete Alpaca live
+  manifest `7/7` with eight measured requests and complete same-run evidence:
+  daily/intraday history, latest price, account usage, equity/crypto profiles,
+  universe discovery, and corporate actions.
+- The remaining provider-specific quota/cost/reset, legal/use, capability,
+  complete NMS/OTC/SEC, external secret-store, deferred-provider, publication,
+  and final-shadow gates are unchanged and remain fail-closed.
 ## 2026-09-25 SEC issuer-directory source evidence retention
 
 - Commit `27f3cc34a` adds immutable `source_payload` evidence to every

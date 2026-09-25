@@ -4517,4 +4517,18 @@ progress:
       transport with 0/0 cases because those byte/evidence controls are unset;
       no FMP request was made. Receipts are recorded in validation.jsonl under
       receipt commit 897b076ec.
+    - >-
+      2026-09-25 Alpaca native-reset reconciliation correction: Alpaca's
+      documented X-RateLimit-Reset is integer-second evidence and live probes
+      showed it can equal or precede the client observation by a fraction of
+      a second while the 200-limit/remaining counters are valid. The reviewed
+      Alpaca rolling contract now permits only a two-second provider-specific
+      skew; all other providers still require a future reset boundary. Added
+      accept/reject regression tests; quota/account-usage focused coverage
+      passed 50/50. The exact committed-source Alpaca matrix at
+      `b268bf7fabf621292c98e10e3bacd4b6604d5c37` passed `7/7`, eight measured
+      requests, and complete same-run evidence. This fixes a real pre-transport
+      admission failure without adding a generic fallback; all other provider,
+      legal/use, universe, secret-store, deferred-provider, publication, and
+      final-shadow gates remain open.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.
