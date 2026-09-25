@@ -6569,3 +6569,40 @@ provider or start the shadow run.
 - This is recorded as an incomplete preflight at source
   `c9bbdc015ec2e25c7d383eb7b3b8e42a7506b54b`; it is not presented as live
   coverage. No request was sent and no provider state was changed.
+
+## 2026-09-25 lossless identifier-payload retention
+
+- `IdentifierRecord.raw_payload` now carries the complete decoded provider row
+  through Alpaca, Massive, and OpenFIGI identifier adapters. The append-only
+  `InstrumentIdentifierSnapshot.payload.identifiers[*]` record retains that
+  row alongside normalized identifier fields, so venue, lifecycle, status, and
+  provider-specific identity evidence is not discarded before mastering or
+  reconciliation. Existing rows without a raw payload keep the historical
+  serialized shape.
+- Focused persistence coverage passes `17/17`; provider/new-provider plus
+  persistence coverage passes `292/292`. Exact source
+  `716d4417954e470ff8436f31e77418857506337e` passes the branch-owned unit gate
+  `1,911/1,911` (37 warnings, 322.79s; the parallel ETF adapter file remains
+  excluded) and Docker PostgreSQL/Redis integration `386/386` (57 warnings,
+  709.44s). A prior integration attempt lost its container mid-run; both
+  implicated tests passed in isolation and the clean retry passed completely.
+- No ETF-provider adapter or frontend path was changed. Provider-specific
+  live/legal/use, complete-universe, external secret-store, deferred-provider,
+  publication, and final-shadow gates remain open and fail-closed.
+
+## 2026-09-25 current-source identifier live verification
+
+- At exact source `716d4417954e470ff8436f31e77418857506337e`, the bounded Alpaca
+  live matrix passed `7/7` cases with eight measured requests, including asset
+  identifier, profile, historical, intraday, latest-price, crypto-profile, and
+  corporate-action paths. The durable quota ledger admitted the run using the
+  documented 200-requests/minute native-header contract.
+- The keyless OpenFIGI live matrix passed `3/3` cases with three measured
+  requests, including stable-identifier mapping, profile resolution, and
+  account-usage observation. Both receipts are linked in `validation.jsonl`;
+  no secrets or response payloads entered Git.
+- The same preflight still fail-closes unresolved providers before transport:
+  Twelve Data daily-pool baseline, EODHD/FRED exact quota and rights evidence,
+  FINRA byte/source controls, Massive/Coinbase/xStocks/Bybit use authority,
+  Dinari sandbox quota, Marketstack account/discovery controls, and Tiingo/FMP
+  byte bounds. This is intentional safety behavior, not an unrecorded default.
