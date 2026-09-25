@@ -5703,3 +5703,8 @@ path in addition to synchronous timeout handling. A real spawned child that
 outlives the deadline is escalated, reaped, and returned as typed timeout
 evidence without leaving the event loop blocked. The complete Strategy Lab v2
 package suite passes 950 tests; focused worker coverage passes 12 tests.
+
+The repository-authoritative Docker-backed combined gate also passes at the
+current exact tip: 2,601 tests, 83.76% total coverage (required threshold
+75%), and 86 warnings. Cleanup removed the test containers, images, and
+volumes.
