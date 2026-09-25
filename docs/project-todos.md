@@ -10,6 +10,9 @@
       The full-directory pagination/completeness case passed `1/1` with the
       two official files, two requests, and 892,447 response bytes. OTC
       completeness remains a separate FINRA/OTC source gate.
+- [x] Attempt the exact-source EDGAR live matrix. It stopped before transport
+      at `0/0` because no durable account-wide/IP request baseline is
+      available; no SEC request was made and no quota was inferred.
 
 - [x] Attempt the focused credentialed Twelve Data account-usage probe with an
       isolated owner-only durable ledger. The first shell attempt failed before

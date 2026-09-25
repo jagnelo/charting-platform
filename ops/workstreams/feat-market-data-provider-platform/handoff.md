@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 EDGAR live preflight remains baseline-gated
+
+- The exact current EDGAR live matrix was attempted with the valid local SEC
+  contact configuration and external network access. The runner stopped before
+  transport at `0/0` because EDGAR's account-wide/IP request baseline is not
+  observable and no durable prior baseline was available; no SEC request was
+  made in that attempt.
+- This is intentional fail-closed behavior. The SEC provider's published
+  10-requests/second ceiling is already modeled as a provider-specific rolling
+  safety envelope, but that envelope cannot fabricate usage consumed by other
+  sessions or applications. The redacted preflight receipt is retained in
+  `validation.jsonl`.
+
 ## 2026-09-25 final exact-HEAD safety preflight
 
 - The full manifest preflight ran after the current live receipts with an
