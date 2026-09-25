@@ -20,6 +20,7 @@ from app.strategy_lab_v2.application import (
 from app.strategy_lab_v2.artifact_commit import ArtifactCommitLedger
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary, CapabilitySummaryDecision
+from app.strategy_lab_v2.contracts import ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.outcomes import OutcomeStatus
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
@@ -52,6 +53,8 @@ from app.strategy_lab_v2.tests.test_execution_summary import (
     _publication,
     _receipt,
 )
+from app.strategy_lab_v2.tests.test_postgres_forward_state import _instance
+from app.strategy_lab_v2.tests.test_postgres_forward_state import _receipt as _forward_receipt
 from app.strategy_lab_v2.tests.test_result_completion import _runtime_success
 
 
@@ -76,6 +79,43 @@ def test_principal_identity_rejects_missing_or_boolean_identity() -> None:
             assert "principal identity" in str(error)
         else:  # pragma: no cover - assertion branch
             raise AssertionError("principal identity should be rejected")
+
+
+@pytest.mark.asyncio
+async def test_application_forward_lifecycle_is_owner_scoped_and_utc_normalized() -> None:
+    instance = _instance()
+    receipt = _forward_receipt(instance)
+    observed: dict[str, Any] = {}
+
+    class ForwardStore:
+        async def ensure_instance(self, *, principal: Any, instance: Any) -> Any:
+            observed["ensure_principal"] = principal
+            observed["instance"] = instance
+            return SimpleNamespace(instance=instance)
+
+        async def transition(self, **kwargs: Any) -> Any:
+            observed["transition"] = kwargs
+            return SimpleNamespace(instance=instance)
+
+        async def complete_warmup(self, **kwargs: Any) -> Any:
+            observed["warmup"] = kwargs
+            return SimpleNamespace(receipt=kwargs["receipt"])
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._persistence = SimpleNamespace(forward_state=ForwardStore())
+    await adapter.register_forward_instance(principal=_User(42), instance=instance)
+    await adapter.transition_forward_instance(
+        principal=_User(42),
+        instance_id=instance.instance_id,
+        target=ForwardState.WARMING_UP,
+        now=datetime(2024, 1, 2, 13, 0, tzinfo=UTC),
+    )
+    await adapter.complete_forward_warmup(principal=_User(42), receipt=receipt)
+
+    assert observed["ensure_principal"].id == "42"
+    assert observed["transition"]["principal"].id == "42"
+    assert observed["transition"]["now"].tzinfo is UTC
+    assert observed["warmup"]["principal"].id == "42"
 
 
 def test_application_adapter_composes_all_durable_api_adapters() -> None:

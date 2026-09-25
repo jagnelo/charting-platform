@@ -33,16 +33,27 @@ from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
-from app.strategy_lab_v2.contracts import ArtifactManifest
+from app.strategy_lab_v2.contracts import ArtifactManifest, ForwardInstance, ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.execution import ExecutionAuthorization
+from app.strategy_lab_v2.forward_corrections import ForwardCorrectionCommand
+from app.strategy_lab_v2.forward_event_transaction import ForwardEventTransactionResolution
+from app.strategy_lab_v2.forward_warmup import (
+    ForwardWarmupReceipt,
+    ForwardWarmupResolution,
+)
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
     LegacyImportRequest,
     LegacyImportResolution,
 )
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent, ForwardEventObservation
 from app.strategy_lab_v2.outcomes import ExecutionOutcome
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
+from app.strategy_lab_v2.postgres_forward_state import (
+    ForwardInstanceResolution,
+    ForwardStateMutationResolution,
+)
 from app.strategy_lab_v2.postgres_result_publication import PublicationStateResolution
 from app.strategy_lab_v2.progress import ExecutionProgressState
 from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
@@ -641,6 +652,80 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             principal=_principal_identity(principal),
             request=request,
             assessment=assessment,
+        )
+
+    async def register_forward_instance(
+        self, *, principal: Any, instance: ForwardInstance
+    ) -> ForwardInstanceResolution:
+        """Register or replay one authenticated broker-free forward instance."""
+
+        if not isinstance(instance, ForwardInstance):
+            raise TypeError("instance must be a ForwardInstance")
+        return await self._persistence.forward_state.ensure_instance(
+            principal=_principal_identity(principal), instance=instance
+        )
+
+    async def transition_forward_instance(
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        target: ForwardState,
+        now: datetime,
+    ) -> ForwardStateMutationResolution:
+        """Apply one owner-scoped forward lifecycle transition."""
+
+        if not isinstance(instance_id, str) or not instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        if not isinstance(target, ForwardState):
+            raise TypeError("target must be a ForwardState")
+        if not isinstance(now, datetime) or now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("now must be a timezone-aware datetime")
+        return await self._persistence.forward_state.transition(
+            principal=_principal_identity(principal),
+            instance_id=instance_id,
+            target=target,
+            now=now.astimezone(UTC),
+        )
+
+    async def complete_forward_warmup(
+        self, *, principal: Any, receipt: ForwardWarmupReceipt
+    ) -> ForwardWarmupResolution:
+        """Persist the one-time warm-up receipt for an authenticated instance."""
+
+        if not isinstance(receipt, ForwardWarmupReceipt):
+            raise TypeError("receipt must be a ForwardWarmupReceipt")
+        return await self._persistence.forward_state.complete_warmup(
+            principal=_principal_identity(principal), receipt=receipt
+        )
+
+    async def transact_forward_event(
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        event: CanonicalForwardEvent,
+        observation: ForwardEventObservation,
+        correction_command: ForwardCorrectionCommand | None = None,
+    ) -> ForwardEventTransactionResolution:
+        """Atomically admit a canonical event and optional correction replay."""
+
+        if not isinstance(instance_id, str) or not instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        if not isinstance(event, CanonicalForwardEvent):
+            raise TypeError("event must be a CanonicalForwardEvent")
+        if not isinstance(observation, ForwardEventObservation):
+            raise TypeError("observation must be a ForwardEventObservation")
+        if correction_command is not None and not isinstance(
+            correction_command, ForwardCorrectionCommand
+        ):
+            raise TypeError("correction_command must be a ForwardCorrectionCommand")
+        return await self._persistence.forward_state.transact(
+            principal=_principal_identity(principal),
+            instance_id=instance_id,
+            event=event,
+            observation=observation,
+            correction_command=correction_command,
         )
 
     async def publish_and_complete_result(

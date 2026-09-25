@@ -844,6 +844,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   now also exposes authenticated deterministic instance listing for the future
   forward-instance collection projection. It never fetches provider data,
   submits broker orders, starts workers, or applies migrations.
+- `application.py` now exposes owner-normalized forward lifecycle methods for
+  instance registration, lifecycle transitions, one-time warm-up completion,
+  and atomic canonical-event/correction admission. Offset-aware transition
+  observations are normalized to UTC at this boundary; provider event
+  acquisition, forward worker scheduling, and broker submission remain outside
+  the adapter.
 - `postgres_search_state.py` maps immutable experiment queues and candidate
   checkpoints to additive PostgreSQL tables. Candidate starts/retries,
   terminal receipts, and cancellation requests delegate to the pure search

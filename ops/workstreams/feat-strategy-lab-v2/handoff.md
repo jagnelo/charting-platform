@@ -2,6 +2,20 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Forward lifecycle application seam checkpoint
+
+`PostgresStrategyLabV2Adapter` now exposes owner-normalized forward lifecycle
+operations over the durable forward-state adapter: instance registration,
+compare-and-set lifecycle transition, one-time warm-up completion, and atomic
+canonical event/correction admission. Transition timestamps are normalized to
+UTC before persistence, while event acquisition and worker scheduling remain
+explicit host responsibilities.
+
+Focused application forward-lifecycle coverage passed 1 test. Ruff passed for
+the package and MyPy passed across 277 source files. Forward event-stream
+activation, provider integration, stable Nautilus execution, and deployment
+remain gated.
+
 ## 2026-09-25 - Worker terminal publication binding checkpoint
 
 `PostgresWorkerTerminalAdapter` now receives the shared result-publication
