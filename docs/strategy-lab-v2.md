@@ -1210,7 +1210,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   between immutable settlement and the capacity compare-and-set. The shared
   persistence bundle exposes this as `worker_terminal_writer(...)`; evidence
   resolution remains application-owned and no transport or engine policy is
-  hidden inside it.
+  hidden inside it. Before successful completion, the callback now
+  re-registers the authenticated publication plan through the shared
+  publication adapter, so retries cannot bypass owner-scoped publication
+  evidence or turn a rejected plan into a completion.
 - `worker_entrypoint.py` is the explicit local process boundary for that
   composition. It validates namespaced environment configuration, runs startup
   migrations before connecting Redis, builds the shared PostgreSQL persistence

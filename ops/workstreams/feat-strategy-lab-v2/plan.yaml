@@ -550,6 +550,12 @@ remaining_gaps:
       before result completion. Manifest persistence is owner-scoped,
       attempt-bound, immutable, and replay-safe; failures leave the transport
       entry pending and cannot acknowledge an unregistered result.
+  - >-
+      The dedicated terminal callback now re-registers the authenticated
+      owner-scoped result-publication plan before invoking atomic result
+      completion. Exact retries replay the immutable plan, rejected plans
+      remain audit evidence and cannot complete, and publication registration
+      is explicitly separate from the completion/artifact transaction.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts

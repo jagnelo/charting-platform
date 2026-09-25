@@ -67,6 +67,10 @@ class ResultManifestWriter(Protocol):
     async def ensure(self, *, principal: Any, manifest: Any): ...
 
 
+class ResultPublicationWriter(Protocol):
+    async def ensure(self, *, principal: Any, plan: ResultPublicationPlan): ...
+
+
 @dataclass(frozen=True, slots=True)
 class WorkerTerminalEvidence:
     """Authenticated application evidence required after process execution."""
@@ -123,6 +127,7 @@ class PostgresWorkerTerminalAdapter:
         runtime_execution: PostgresRuntimeExecutionAdapter,
         execution_state: PostgresExecutionStateAdapter,
         execution_summaries: Any,
+        result_publication: ResultPublicationWriter,
         result_completion: PostgresResultCompletionAdapter,
         result_materialization: ResultManifestWriter,
         metrics: MetricSetWriter,
@@ -136,6 +141,7 @@ class PostgresWorkerTerminalAdapter:
             ("runtime_execution", runtime_execution),
             ("execution_state", execution_state),
             ("execution_summaries", execution_summaries),
+            ("result_publication", result_publication),
             ("result_completion", result_completion),
             ("result_materialization", result_materialization),
             ("metrics", metrics),
@@ -150,6 +156,7 @@ class PostgresWorkerTerminalAdapter:
         self._runtime_execution = runtime_execution
         self._execution_state = execution_state
         self._execution_summaries = execution_summaries
+        self._result_publication = result_publication
         self._result_completion = result_completion
         self._result_materialization = result_materialization
         self._metrics = metrics
@@ -258,6 +265,20 @@ class PostgresWorkerTerminalAdapter:
             if evidence.publication is None or evidence.result is None:
                 return _reject(entry_fingerprint, "successful terminal evidence is missing publication")
             try:
+                publication = await self._result_publication.ensure(
+                    principal=evidence.principal, plan=evidence.publication
+                )
+            except Exception as error:  # pragma: no cover - persistence boundary
+                return _retry(
+                    entry_fingerprint,
+                    f"result publication persistence failed: {type(error).__name__}",
+                )
+            if publication.plan.decision.value == "reject":
+                return _reject(
+                    entry_fingerprint,
+                    "successful terminal evidence has a rejected publication plan",
+                )
+            try:
                 await self._result_materialization.ensure(
                     principal=evidence.principal,
                     manifest=evidence.result,
@@ -274,7 +295,7 @@ class PostgresWorkerTerminalAdapter:
                     runtime_state=runtime.state,
                     outcome=persisted_outcome,
                     progress=persisted_progress,
-                    publication=evidence.publication,
+                    publication=publication.plan,
                     artifact_plans=evidence.artifact_plans,
                     completed_at=context.observed_at,
                     result_artifacts=evidence.result.output_artifacts,
@@ -293,7 +314,7 @@ class PostgresWorkerTerminalAdapter:
                 )
             except Exception as error:  # pragma: no cover - persistence boundary
                 return _retry(entry_fingerprint, f"metric-set persistence failed: {type(error).__name__}")
-        publication = evidence.publication if persisted_outcome.status.value == "succeeded" else None
+        publication = publication.plan if persisted_outcome.status.value == "succeeded" else None
         try:
             summary = await self._execution_summaries.ensure(
                 principal=evidence.principal,

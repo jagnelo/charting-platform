@@ -2,6 +2,21 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Worker terminal publication binding checkpoint
+
+`PostgresWorkerTerminalAdapter` now receives the shared result-publication
+adapter from `PostgresStrategyLabV2Persistence`. Successful terminal retries
+re-register the authenticated publication plan before manifest/completion
+persistence; a rejected plan is rejected at the worker boundary, while exact
+accepted retries continue through the atomic completion/artifact ledger. This
+closes the bypass where a terminal callback could load publication evidence
+but invoke completion without re-authenticating the owner-scoped plan.
+
+Focused worker callback, terminal adapter, and persistence coverage passed 18
+tests. Ruff passed for the package and MyPy passed across 277 source files.
+Stable Nautilus execution, worker activation, publication-byte mapping, and
+upstream/deployment gates remain open.
+
 ## 2026-09-25 - Application result publication/completion bridge checkpoint
 
 `PostgresStrategyLabV2Adapter.publish_and_complete_result` now provides the
