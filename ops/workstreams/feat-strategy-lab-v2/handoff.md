@@ -32,6 +32,28 @@ passes retained zero testcontainer sessions, containers, images, or volumes.
 The application-owned evidence resolver, stable Nautilus release, upstream
 contract reconciliation, and full application integration remain open gates.
 
+## 2026-09-25 - Streamed local artifact publication checkpoint
+
+`artifacts.py` now verifies digest/byte-length observations independently of
+in-memory payloads. `LocalArtifactStore.publish_file()` streams regular local
+result files into the same-directory temporary/atomic-link workflow, verifies
+the manifest before linking, re-verifies existing/racing/published targets by
+streamed digest and length, and never buffers the mounted artifact. The
+application publication service exposes `publish_file()` and finalizes the
+existing idempotent PostgreSQL commit ledger through the same publication
+decision path as byte payloads. Symlinks, directories, digest/length drift,
+and malformed target content fail closed.
+
+Focused artifact tests passed 27 tests; the complete Strategy Lab v2 package
+passed 828 tests. Branch-declared validation passed all six checks across 828
+package tests, migrations, Ruff, MyPy across 270 files, diff, and workstream
+validation. The exact backend gate passed 2,479 tests at 83.73% coverage with
+86 warnings; the referenced runtime env file was absent in this checkout and
+`.env.dev` supplied test configuration. Both required cleanup passes retained
+zero testcontainer sessions, containers, images, or volumes. Host application
+evidence resolution, stable Nautilus release conformance, upstream contract
+reconciliation, and full application integration remain open gates.
+
 ## 2026-09-25 - Mounted result identity materialization checkpoint
 
 Successful runtime materialization now uses the validated mounted result-file
