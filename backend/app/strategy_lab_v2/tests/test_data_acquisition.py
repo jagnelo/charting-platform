@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -48,6 +48,23 @@ def test_verified_acquisition_binds_preflight_snapshot_and_coverage() -> None:
     assert report.snapshot_fingerprint == snapshot.fingerprint
     assert report.receipt_fingerprint == receipt.fingerprint
     assert report.coverage_resolution_fingerprint == coverage.fingerprint
+
+
+def test_acquisition_timestamps_normalize_offset_equivalent_instants() -> None:
+    request, _snapshot, _coverage, receipt = _fixture()
+    equivalent_request = DataAcquisitionRequest(
+        request.request_id,
+        request.preflight_report,
+        datetime(2024, 1, 1, 1, tzinfo=timezone(timedelta(hours=1))),
+    )
+    equivalent_receipt = replace(
+        receipt,
+        acquired_at=datetime(2024, 1, 1, 1, 1, tzinfo=timezone(timedelta(hours=1))),
+    )
+    assert equivalent_request == request
+    assert equivalent_receipt == receipt
+    assert equivalent_request.requested_at.tzinfo is UTC
+    assert equivalent_receipt.acquired_at.tzinfo is UTC
 
 
 @pytest.mark.parametrize(

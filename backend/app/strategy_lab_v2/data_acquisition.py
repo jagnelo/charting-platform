@@ -10,7 +10,7 @@ define provider-specific request fields.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -42,6 +42,7 @@ class DataAcquisitionRequest:
         if not isinstance(self.preflight_report, PreflightReport):
             raise TypeError("preflight_report must be a PreflightReport")
         _aware(self.requested_at, "requested_at")
+        object.__setattr__(self, "requested_at", self.requested_at.astimezone(UTC))
 
     @property
     def preflight_fingerprint(self) -> str:
@@ -75,6 +76,7 @@ class DataAcquisitionReceipt:
         for name in ("snapshot_id", "provider_snapshot_id"):
             _nonempty(getattr(self, name), name)
         _aware(self.acquired_at, "acquired_at")
+        object.__setattr__(self, "acquired_at", self.acquired_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:

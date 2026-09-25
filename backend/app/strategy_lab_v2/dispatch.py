@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -36,6 +36,7 @@ class DispatchRequest:
         require_sha256_digest(self.payload_digest, field_name="payload_digest")
         if self.created_at.tzinfo is None or self.created_at.utcoffset() is None:
             raise ValueError("dispatch created_at must be timezone-aware")
+        object.__setattr__(self, "created_at", self.created_at.astimezone(UTC))
 
     @property
     def fingerprint(self) -> str:

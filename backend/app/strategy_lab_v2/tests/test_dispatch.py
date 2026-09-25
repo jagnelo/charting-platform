@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -39,6 +39,18 @@ def test_dispatch_resolution_enqueues_and_replays_identical_requests() -> None:
     replay = resolve_idempotent_dispatch(request, (request,))
     assert replay.decision is DispatchDecision.REPLAY_EXISTING
     assert replay.existing_fingerprint == request.fingerprint
+
+
+def test_dispatch_normalizes_offset_equivalent_creation_times() -> None:
+    equivalent = DispatchRequest(
+        idempotency_key="request-1",
+        attempt_id="attempt-1",
+        payload_digest=content_digest("payload"),
+        queue_name="backtest",
+        created_at=datetime(2024, 1, 1, 1, tzinfo=timezone(timedelta(hours=1))),
+    )
+    assert equivalent == _request()
+    assert equivalent.created_at.tzinfo is UTC
 
 
 def test_dispatch_resolution_rejects_same_key_with_different_payload_or_queue() -> None:
