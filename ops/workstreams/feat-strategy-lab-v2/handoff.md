@@ -5695,3 +5695,11 @@ process handle before returning typed timeout evidence. This closes the last
 local orphan-process path in the serial Nautilus worker boundary. The full
 Strategy Lab package suite passes 949 tests, and the exact-tip Docker-backed
 combined gate passes 2,600 tests with 83.76% coverage (threshold 75%).
+
+## 2026-09-25 - Async worker timeout regression evidence
+
+The serial worker process suite now directly covers the asynchronous timeout
+path in addition to synchronous timeout handling. A real spawned child that
+outlives the deadline is escalated, reaped, and returned as typed timeout
+evidence without leaving the event loop blocked. The complete Strategy Lab v2
+package suite passes 950 tests; focused worker coverage passes 12 tests.
