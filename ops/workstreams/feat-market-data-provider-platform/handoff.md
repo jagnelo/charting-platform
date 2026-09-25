@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current preflight after account-usage evidence correction
+
+- Source `ab0bed0e6b5050d36730245d241bb7ce3d9f1992` ran the full manifest
+  preflight and stopped before transport: `0/0` ordinary cases and zero
+  ordinary provider requests. The non-secret `incomplete_preflight` receipt
+  is appended to `validation.jsonl`.
+- The new raw account-usage evidence path did not widen admission. The same
+  explicit quota/bandwidth, legal/use, unresolved-capability, NMS/OTC/SEC,
+  secret-store, deferred-provider, and final-shadow gates remain fail-closed.
+
 ## 2026-09-25 append-only account-usage evidence correction
 
 - Provider-native account-usage observations now retain the decoded raw body

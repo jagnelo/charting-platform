@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current preflight after the account-usage evidence
+    correction ran on source ab0bed0e6b5050d36730245d241bb7ce3d9f1992 and
+    stopped before transport with 0/0 ordinary cases and zero ordinary provider
+    requests. Receipt is appended to validation.jsonl. The new evidence path
+    did not widen admission; provider quota/bandwidth, legal/use,
+    unresolved-capability, NMS/OTC/SEC, secret-store, deferred-provider, and
+    final-shadow gates remain fail-closed.
+  - >-
     2026-09-25 append-only account-usage evidence correction: provider-native
     account-usage observations now retain raw decoded bodies and allow-listed
     capacity headers for Alpaca, OpenFIGI, Binance, Twelve Data, MarketData.app,
