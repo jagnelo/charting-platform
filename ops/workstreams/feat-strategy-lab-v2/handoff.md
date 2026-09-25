@@ -2,6 +2,27 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Preflight and cleanup evidence identity checkpoint
+
+Capability requirements/cells, provider coverage attestations, and artifact
+cleanup evidence now normalize aware history, series, observation, attestation,
+and filesystem timestamps to UTC before matching and fingerprinting. Canonical
+serialization now gives `timedelta` an explicit structural representation,
+allowing cleanup resolutions with minimum-age policies to fingerprint and replay
+deterministically. Focused regression coverage passed 64 tests. Ruff passed for
+the package, MyPy passed across 277 source files, the 2 migration tests passed,
+diff validation passed, and workstream validation accepted 30 records.
+
+The last complete exact backend gate remains 2,542 tests with 83.81% coverage
+from the preceding artifact-lifecycle checkpoint. A fresh broad package rerun
+could not complete in this restricted runtime because Starlette's `TestClient`
+hangs even for a minimal FastAPI application during context startup; direct
+ASGI transport for the Strategy Lab route succeeds. This is recorded as an
+environmental validation limitation, not as a passing claim. The branch remains
+`ready_for_human_review`; stable Nautilus v2 publication, shared
+worker/database reconciliation, host activation, upstream provider/ETF/TC2000
+integration, and deployment remain gated.
+
 ## 2026-09-25 - Artifact lifecycle identity checkpoint
 
 Artifact commit, lineage, and retention timestamps now normalize aware
