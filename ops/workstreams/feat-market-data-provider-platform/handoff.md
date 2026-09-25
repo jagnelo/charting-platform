@@ -17,6 +17,14 @@
   remain redacted. The quota-coordinator/live-runner focused suite passed
   `86/86`, and the exact-current-head receipt is in `validation.jsonl`.
 
+- A second focused FMP preflight used a private writable isolated SQLite
+  ledger, bypassing the sandbox host-ledger permission issue. It still made
+  zero provider requests and stopped on the actual FMP contract blockers:
+  reviewed operation-byte bounds for `fetch_market_events`, `fetch_ohlcv`,
+  and `get_instrument_profile`, plus the reviewed daily-reset and bandwidth
+  evidence controls. This confirms the safety gate is provider-specific and
+  not merely a local ledger-permission artifact.
+
 ## 2026-09-25 Docker integration gate at current HEAD
 
 - The exact-head authoritative `make test-int` gate passed `386` tests with

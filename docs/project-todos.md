@@ -14,6 +14,11 @@
       suite passed `86/86`; the current preflight receipt identifies the
       writable-ledger/PostgreSQL requirement without exposing paths or secrets.
 
+- [x] Re-run the focused FMP preflight with a private writable isolated ledger.
+      It made zero provider requests and reached the provider-specific byte,
+      reset, daily, and bandwidth evidence blockers, proving the host-ledger
+      permission issue is not masking the FMP contract gate.
+
 - [x] Re-run the authoritative Docker-backed integration gate after the FMP
       reset-conflict and quota-ledger diagnostic changes. The exact-head
       `make test-int` run passed `386` tests with `57` warnings in `721.87s`
