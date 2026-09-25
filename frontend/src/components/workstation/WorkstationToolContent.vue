@@ -3715,8 +3715,9 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .chart-tool__surface { position: relative; z-index: 2; min-width: 0; min-height: 0; flex: 1 1 auto; padding-top: 24px; box-sizing: border-box; }
 .chart-tool__status { position: absolute; inset: 24px 0 0; z-index: 4; background: rgba(7, 12, 16, 0.72); pointer-events: none; }
 .chart-tool__templates { position: absolute; top: 3px; right: 4px; z-index: 12; }
-.chart-tool__plots { position: absolute; top: 3px; right: 88px; z-index: 13; }
-.chart-tool__compare { position: absolute; top: 3px; left: 4px; right: 152px; z-index: 12; display: flex; align-items: center; gap: 3px; overflow: hidden; }
+.chart-tool__plots { position: absolute; top: 3px; left: 150px; z-index: 13; }
+.chart-tool__compare { position: absolute; top: 3px; left: 4px; z-index: 14; display: flex; align-items: center; gap: 3px; max-width: calc(100% - 290px); overflow: hidden; pointer-events: none; }
+.chart-tool__compare input, .chart-tool__compare > button { pointer-events: auto; }
 .chart-tool__compare input { width: 72px; border: 1px solid #42515c; background: #11161b; color: #dce9f2; padding: 2px 4px; font: 10px "Segoe UI", Arial, sans-serif; }
 .chart-tool__compare > button { border: 1px solid #42515c; background: #1b252d; color: #b9c9d3; padding: 1px 4px; font: 10px "Segoe UI", Arial, sans-serif; cursor: pointer; white-space: nowrap; }
 .chart-tool__compare-chip { overflow: hidden; text-overflow: ellipsis; }
@@ -3724,7 +3725,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 @media (max-width: 520px) {
   .chart-tool__surface { padding-top: 46px; }
   .chart-tool__compare { top: 3px; left: 4px; right: 4px; max-width: none; }
-  .chart-tool__plots { top: 25px; left: 4px; right: auto; }
+  .chart-tool__plots { top: 25px; left: 4px; }
   .chart-tool__templates { top: 25px; right: 4px; }
 }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
