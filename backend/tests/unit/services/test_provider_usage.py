@@ -301,6 +301,22 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db, monkeypa
                 latency_ms=250,
                 error_type="TimeoutError",
             ),
+            ProviderRequestLog(
+                data_source_id=source.id,
+                capability=ProviderCapability.INSTRUMENT_SEARCH,
+                operation="search_instruments",
+                operation_family="search_instruments",
+                requested_at=now - timedelta(days=31),
+                completed_at=now - timedelta(days=31),
+                success=True,
+                usage_mode="call_count",
+                usage_unit_label="requests",
+                usage_units=Decimal("1"),
+                settled_usage_units=Decimal("1"),
+                http_requests=1,
+                response_bytes=600,
+                latency_ms=90,
+            ),
         ]
     )
     db.add(
@@ -345,6 +361,8 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db, monkeypa
 
     assert summary["usage_mode"] == "call_count"
     assert summary["usage_unit_label"] == "requests"
+    assert summary["retained_requests"] == 3
+    assert summary["retained_response_bytes"] == 2600
     assert summary["requests_24h"] == 2
     assert summary["units_24h"] == pytest.approx(2.0)
     assert summary["settled_units_24h"] == pytest.approx(1.0)

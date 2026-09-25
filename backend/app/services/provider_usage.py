@@ -491,8 +491,6 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
     now = _now_utc()
     live_usage_ledger = read_live_usage_ledger(now=now)
     live_usage_by_provider = live_usage_ledger.get("providers") or {}
-    retention_days = max(int(settings.PROVIDER_REQUEST_LOG_RETENTION_DAYS or 30), 7)
-    retained_since = now - timedelta(days=retention_days)
     last_24h_since = now - timedelta(hours=24)
     last_7d_since = now - timedelta(days=7)
 
@@ -503,7 +501,6 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
         (
             await db.execute(
                 select(ProviderRequestLog)
-                .where(ProviderRequestLog.requested_at >= retained_since)
                 .order_by(ProviderRequestLog.requested_at.asc())
             )
         )
