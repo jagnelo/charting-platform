@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 Docker integration gate at current tip
+
+- Docker-backed PostgreSQL/Redis integration validation was rerun at the
+  current branch tip `bea971570`.
+- The repository gate completed successfully: `386 passed, 57 warnings` in
+  718.43 seconds. Testcontainers cleanup removed only this worktree's
+  temporary containers; no host-wide prune or unrelated service mutation was
+  performed.
+
 ## 2026-09-25 Twelve Data live-validation environment result
 
 - The credentialed `twelve_data:fetch_account_usage` probe was attempted with
