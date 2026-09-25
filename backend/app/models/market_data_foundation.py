@@ -246,6 +246,44 @@ class InstrumentIdentityQuarantine(Base, TimestampMixin):
     instrument: Mapped["Instrument | None"] = relationship()
 
 
+class InstrumentIdentityQuarantineObservation(Base, TimestampMixin):
+    """Immutable provider evidence for one identity-quarantine observation."""
+
+    __tablename__ = "instrument_identity_quarantine_observation"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    quarantine_id: Mapped[int] = mapped_column(
+        BIGINT_ID,
+        ForeignKey("instrument_identity_quarantine.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    instrument_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    proposed_domain_key: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    provider_name: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    exchange_mic: Mapped[str | None] = mapped_column(String(10), nullable=True, index=True)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    candidate_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    quarantine: Mapped["InstrumentIdentityQuarantine"] = relationship()
+    instrument: Mapped["Instrument | None"] = relationship()
+
+    __table_args__ = (
+        Index(
+            "ix_instrument_identity_quarantine_observation_lookup",
+            "quarantine_id",
+            "observed_at",
+        ),
+    )
+
+
 class ProviderQuotaWindow(Base, TimestampMixin):
     """Durable usage/capacity counter for a provider capability window."""
 

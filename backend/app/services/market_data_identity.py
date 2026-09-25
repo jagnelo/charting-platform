@@ -16,7 +16,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
-from app.models.market_data_foundation import IdentityStatus, InstrumentIdentityQuarantine
+from app.models.market_data_foundation import (
+    IdentityStatus,
+    InstrumentIdentityQuarantine,
+    InstrumentIdentityQuarantineObservation,
+)
 
 _DOMAIN_PREFIXES = {
     InstrumentIdentifierType.FIGI: "figi",
@@ -177,22 +181,39 @@ async def _record_quarantine(
             )
         )
     ).scalar_one_or_none()
+    observed_at = identity_observed_at()
     if existing is not None:
         existing.reason = reason
         existing.exchange_mic = exchange_mic
         existing.candidate_payload = candidate_payload or existing.candidate_payload or {}
-        return existing
-    row = InstrumentIdentityQuarantine(
-        proposed_domain_key=proposed_domain_key,
-        provider_name=provider_name,
-        provider_symbol=symbol,
-        exchange_mic=exchange_mic,
-        reason=reason,
-        status="pending",
-        candidate_payload=candidate_payload or {},
-        instrument_id=instrument.id,
+        row = existing
+    else:
+        row = InstrumentIdentityQuarantine(
+            proposed_domain_key=proposed_domain_key,
+            provider_name=provider_name,
+            provider_symbol=symbol,
+            exchange_mic=exchange_mic,
+            reason=reason,
+            status="pending",
+            candidate_payload=candidate_payload or {},
+            instrument_id=instrument.id,
+        )
+        db.add(row)
+        await db.flush()
+    db.add(
+        InstrumentIdentityQuarantineObservation(
+            quarantine_id=row.id,
+            instrument_id=instrument.id,
+            proposed_domain_key=proposed_domain_key,
+            provider_name=provider_name,
+            provider_symbol=symbol,
+            exchange_mic=exchange_mic,
+            reason=reason,
+            status=row.status,
+            observed_at=observed_at,
+            candidate_payload=candidate_payload or {},
+        )
     )
-    db.add(row)
     await db.flush()
     return row
 
