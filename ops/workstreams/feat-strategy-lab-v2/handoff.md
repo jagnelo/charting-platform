@@ -5742,3 +5742,15 @@ The repository-authoritative Docker-backed combined gate passes at this exact
 implementation tip: 2,604 tests, 83.78% total coverage (required threshold
 75%), and 86 warnings. Cleanup removed the test containers, images, and
 volumes.
+
+## 2026-09-25 - Service-shutdown execution cancellation
+
+Cancelling the dedicated worker service handler itself now cancels its
+separately scheduled execution task and awaits its cleanup, so shutdown cannot
+leave a running simulation child behind. Focused worker coverage passes 16
+tests and the complete Strategy Lab v2 package suite passes 954 tests.
+
+The repository-authoritative Docker-backed combined gate passes at this exact
+implementation tip: 2,605 tests, 83.78% total coverage (required threshold
+75%), and 86 warnings. Cleanup removed the test containers, images, and
+volumes.
