@@ -1187,7 +1187,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   resolver. Failed runtime receipts without a projected durable API error are
   mapped to a stable internal error carrying only the persisted error digest;
   exception text and paths are never reconstructed at this boundary. The
-  fallback completion writer can only return a retry, so terminal evidence
+  persistence composition also accepts an optional host runtime-error factory
+  when retryability or typed classification must follow application policy;
+  the digest-only fallback remains deterministic when no factory is supplied.
+  The fallback completion writer can only return a retry, so terminal evidence
   cannot be acknowledged through the legacy path.
 - The root Compose stack now contains an explicit, opt-in
   `strategy-lab-v2-worker` profile. It is separate from the general ARQ worker,
