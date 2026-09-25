@@ -1,11 +1,11 @@
 """Application composition for immutable Strategy Lab v2 artifacts.
 
 The filesystem store owns only content-addressed bytes and the PostgreSQL
-adapter owns only durable commit evidence.  This seam verifies the payload,
-publishes it with create-if-absent semantics, and finalizes the matching
-metadata record.  A crash between those two operations leaves an immutable
-orphan that can be reconciled later; it can never replace a committed digest
-with different bytes.
+adapter owns only durable commit evidence.  This seam verifies byte payloads
+or streamed local result files, publishes them with create-if-absent semantics,
+and finalizes the matching metadata record.  A crash between those two
+operations leaves an immutable orphan that can be reconciled later; it can
+never replace a committed digest with different bytes.
 """
 
 from __future__ import annotations
@@ -134,6 +134,48 @@ class LocalArtifactPublicationService:
             record.storage_key == manifest.storage_key for record in ledger.records
         )
         storage = self._store.publish(manifest, payload)
+        return await self._finalize_storage(
+            manifest,
+            storage,
+            already_committed=already_committed,
+            committed_at=committed_at,
+        )
+
+    async def publish_file(
+        self,
+        manifest: ArtifactManifest,
+        source: str | os.PathLike[str],
+        *,
+        committed_at: datetime,
+    ) -> ArtifactPublicationResolution:
+        """Publish a mounted/local result file without loading it in memory."""
+
+        if not isinstance(manifest, ArtifactManifest):
+            raise TypeError("manifest must be an ArtifactManifest")
+        if committed_at.tzinfo is None or committed_at.utcoffset() is None:
+            raise ValueError("committed_at must be timezone-aware")
+        ledger = await self._committer.load_ledger()
+        if not isinstance(ledger, ArtifactCommitLedger):
+            raise TypeError("committer.load_ledger must return an ArtifactCommitLedger")
+        already_committed = any(
+            record.storage_key == manifest.storage_key for record in ledger.records
+        )
+        storage = self._store.publish_file(manifest, source)
+        return await self._finalize_storage(
+            manifest,
+            storage,
+            already_committed=already_committed,
+            committed_at=committed_at,
+        )
+
+    async def _finalize_storage(
+        self,
+        manifest: ArtifactManifest,
+        storage: ArtifactStoreResolution,
+        *,
+        already_committed: bool,
+        committed_at: datetime,
+    ) -> ArtifactPublicationResolution:
         if storage.decision is ArtifactStoreDecision.REJECT:
             return ArtifactPublicationResolution(
                 ArtifactPublicationDecision.REJECT,

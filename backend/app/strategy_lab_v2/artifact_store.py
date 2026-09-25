@@ -9,6 +9,7 @@ are made read-only after publication and every read is re-verified.
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import tempfile
@@ -25,6 +26,7 @@ from app.strategy_lab_v2.artifact_retention import (
 from app.strategy_lab_v2.artifacts import (
     ArtifactIntegrityReceipt,
     artifact_content_digest,
+    verify_artifact_observation,
     verify_artifact_payload,
 )
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -249,9 +251,11 @@ class LocalArtifactStore:
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.parent.is_symlink():
             raise ArtifactStoreCorruptionError("artifact shard directory is a symlink")
-        existing = self._read_existing(target, manifest.storage_key)
+        existing = self._read_existing_observation(target, manifest.storage_key)
         if existing is not None:
-            existing_integrity = verify_artifact_payload(manifest, existing)
+            existing_integrity = verify_artifact_observation(
+                manifest, existing[0], existing[1]
+            )
             if not existing_integrity.verified:
                 raise ArtifactStoreCorruptionError(
                     "existing artifact bytes do not match the requested manifest"
@@ -259,7 +263,7 @@ class LocalArtifactStore:
             return ArtifactStoreResolution(
                 ArtifactStoreDecision.REUSED,
                 manifest.storage_key,
-                len(existing),
+                existing[1],
                 existing_integrity,
             )
 
@@ -276,12 +280,14 @@ class LocalArtifactStore:
             try:
                 os.link(temporary_name, target)
             except FileExistsError:
-                raced = self._read_existing(target, manifest.storage_key)
+                raced = self._read_existing_observation(target, manifest.storage_key)
                 if raced is None:
                     raise ArtifactStoreCorruptionError(
                         "artifact target appeared but could not be read"
                     )
-                raced_integrity = verify_artifact_payload(manifest, raced)
+                raced_integrity = verify_artifact_observation(
+                    manifest, raced[0], raced[1]
+                )
                 if not raced_integrity.verified:
                     raise ArtifactStoreCorruptionError(
                         "concurrent artifact writer published mismatched bytes"
@@ -289,20 +295,123 @@ class LocalArtifactStore:
                 return ArtifactStoreResolution(
                     ArtifactStoreDecision.REUSED,
                     manifest.storage_key,
-                    len(raced),
+                    raced[1],
                     raced_integrity,
                 )
             self._fsync_directory(target.parent)
-            published = self._read_existing(target, manifest.storage_key)
+            published = self._read_existing_observation(target, manifest.storage_key)
             if published is None:
                 raise ArtifactStoreCorruptionError("published artifact cannot be read")
-            published_integrity = verify_artifact_payload(manifest, published)
+            published_integrity = verify_artifact_observation(
+                manifest, published[0], published[1]
+            )
             if not published_integrity.verified:
                 raise ArtifactStoreCorruptionError("published artifact failed verification")
             return ArtifactStoreResolution(
                 ArtifactStoreDecision.WRITTEN,
                 manifest.storage_key,
-                len(published),
+                published[1],
+                published_integrity,
+            )
+        finally:
+            if temporary_name is not None:
+                try:
+                    os.unlink(temporary_name)
+                except FileNotFoundError:
+                    pass
+
+    def publish_file(
+        self, manifest: ArtifactManifest, source: str | os.PathLike[str]
+    ) -> ArtifactStoreResolution:
+        """Stream a regular local file into immutable storage without buffering it."""
+
+        if not isinstance(manifest, ArtifactManifest):
+            raise TypeError("manifest must be an ArtifactManifest")
+        source_path = Path(source)
+        if source_path.is_symlink() or not source_path.is_file():
+            raise ValueError("artifact source must be a regular file")
+
+        target = self.path_for(manifest.storage_key)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.parent.is_symlink():
+            raise ArtifactStoreCorruptionError("artifact shard directory is a symlink")
+        existing = self._read_existing_observation(target, manifest.storage_key)
+        if existing is not None:
+            existing_integrity = verify_artifact_observation(
+                manifest, existing[0], existing[1]
+            )
+            if not existing_integrity.verified:
+                raise ArtifactStoreCorruptionError(
+                    "existing artifact bytes do not match the requested manifest"
+                )
+            return ArtifactStoreResolution(
+                ArtifactStoreDecision.REUSED,
+                manifest.storage_key,
+                existing[1],
+                existing_integrity,
+            )
+
+        temporary_name: str | None = None
+        observed_bytes = 0
+        digest = hashlib.sha256()
+        try:
+            with source_path.open("rb") as source_stream, tempfile.NamedTemporaryFile(
+                mode="wb", dir=target.parent, prefix=f".{target.name}.", delete=False
+            ) as temporary:
+                temporary_name = temporary.name
+                while chunk := source_stream.read(1024 * 1024):
+                    observed_bytes += len(chunk)
+                    digest.update(chunk)
+                    temporary.write(chunk)
+                temporary.flush()
+                os.fsync(temporary.fileno())
+            observed_digest = f"sha256:{digest.hexdigest()}"
+            integrity = verify_artifact_observation(
+                manifest, observed_digest, observed_bytes
+            )
+            if not integrity.verified:
+                return ArtifactStoreResolution(
+                    ArtifactStoreDecision.REJECT,
+                    manifest.storage_key,
+                    observed_bytes,
+                    integrity,
+                    "artifact source failed integrity verification",
+                )
+            os.chmod(temporary_name, 0o444)
+            try:
+                os.link(temporary_name, target)
+            except FileExistsError:
+                raced = self._read_existing_observation(target, manifest.storage_key)
+                if raced is None:
+                    raise ArtifactStoreCorruptionError(
+                        "artifact target appeared but could not be read"
+                    )
+                raced_integrity = verify_artifact_observation(
+                    manifest, raced[0], raced[1]
+                )
+                if not raced_integrity.verified:
+                    raise ArtifactStoreCorruptionError(
+                        "concurrent artifact writer published mismatched bytes"
+                    )
+                return ArtifactStoreResolution(
+                    ArtifactStoreDecision.REUSED,
+                    manifest.storage_key,
+                    raced[1],
+                    raced_integrity,
+                )
+            self._fsync_directory(target.parent)
+            published = self._read_existing_observation(target, manifest.storage_key)
+            if published is None:
+                raise ArtifactStoreCorruptionError("published artifact cannot be read")
+            published_integrity = verify_artifact_observation(
+                manifest, published[0], published[1]
+            )
+            if not published_integrity.verified:
+                raise ArtifactStoreCorruptionError("published artifact failed verification")
+            return ArtifactStoreResolution(
+                ArtifactStoreDecision.WRITTEN,
+                manifest.storage_key,
+                published[1],
                 published_integrity,
             )
         finally:
@@ -505,6 +614,29 @@ class LocalArtifactStore:
         if artifact_content_digest(payload) != storage_key:
             raise ArtifactStoreCorruptionError("existing artifact bytes have the wrong digest")
         return payload
+
+    @staticmethod
+    def _read_existing_observation(
+        target: Path, storage_key: str
+    ) -> tuple[str, int] | None:
+        """Verify an existing artifact by streaming digest/length evidence."""
+
+        if target.is_symlink():
+            raise ArtifactStoreCorruptionError("artifact target is not a regular immutable file")
+        if not target.exists():
+            return None
+        if not target.is_file():
+            raise ArtifactStoreCorruptionError("artifact target is not a regular immutable file")
+        digest = hashlib.sha256()
+        byte_length = 0
+        with target.open("rb") as stream:
+            while chunk := stream.read(1024 * 1024):
+                byte_length += len(chunk)
+                digest.update(chunk)
+        observed_digest = f"sha256:{digest.hexdigest()}"
+        if observed_digest != storage_key:
+            raise ArtifactStoreCorruptionError("existing artifact bytes have the wrong digest")
+        return observed_digest, byte_length
 
     @staticmethod
     def _fsync_directory(path: Path) -> None:

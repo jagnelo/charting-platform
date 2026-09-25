@@ -63,6 +63,36 @@ def test_publish_rejects_bad_payload_without_creating_a_file(tmp_path) -> None:
     assert not store.path_for(manifest.storage_key).exists()
 
 
+def test_publish_file_streams_and_deduplicates_without_buffering_payload(tmp_path) -> None:
+    payload = b"mounted result bytes"
+    source = tmp_path / "mounted-result"
+    source.write_bytes(payload)
+    manifest = _manifest(payload)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+
+    written = store.publish_file(manifest, source)
+    assert written.decision is ArtifactStoreDecision.WRITTEN
+    assert written.integrity is not None and written.integrity.verified
+    assert store.read(manifest.storage_key) == payload
+    reused = store.publish_file(manifest, source)
+    assert reused.decision is ArtifactStoreDecision.REUSED
+
+
+def test_publish_file_rejects_digest_or_non_regular_sources(tmp_path) -> None:
+    expected = b"expected"
+    source = tmp_path / "source"
+    source.write_bytes(b"different")
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    rejected = store.publish_file(_manifest(expected), source)
+    assert rejected.decision is ArtifactStoreDecision.REJECT
+    assert rejected.integrity is not None
+    assert not rejected.integrity.verified
+    directory = tmp_path / "directory"
+    directory.mkdir()
+    with pytest.raises(ValueError, match="regular file"):
+        store.publish_file(_manifest(expected), directory)
+
+
 def test_reads_fail_closed_after_content_is_tampered(tmp_path) -> None:
     payload = b"durable bytes"
     manifest = _manifest(payload)

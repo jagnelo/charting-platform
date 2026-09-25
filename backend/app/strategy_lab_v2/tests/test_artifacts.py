@@ -5,6 +5,7 @@ import pytest
 from app.strategy_lab_v2.artifacts import (
     ArtifactIntegrityReceipt,
     artifact_content_digest,
+    verify_artifact_observation,
     verify_artifact_payload,
 )
 from app.strategy_lab_v2.canonical import content_digest
@@ -58,6 +59,17 @@ def test_artifact_content_digest_is_deterministic() -> None:
     assert artifact_content_digest(payload) == artifact_content_digest(payload)
     with pytest.raises(TypeError, match="payload must be bytes"):
         artifact_content_digest("same-bytes")  # type: ignore[arg-type]
+
+
+def test_streamed_artifact_observation_reuses_payload_integrity_rules() -> None:
+    payload = b"streamed"
+    manifest = _manifest(payload)
+    receipt = verify_artifact_observation(
+        manifest, artifact_content_digest(payload), len(payload)
+    )
+    assert receipt.verified
+    mismatch = verify_artifact_observation(manifest, content_digest("other"), len(payload))
+    assert mismatch.failure_reasons == ("digest_mismatch",)
 
 
 def test_integrity_receipt_rejects_forged_verified_mismatches() -> None:

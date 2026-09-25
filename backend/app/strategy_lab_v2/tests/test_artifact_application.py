@@ -96,6 +96,23 @@ async def test_publish_coordinates_bytes_and_commit_then_replays(tmp_path) -> No
     assert [plan.action.value for plan in committer.plans] == ["create_if_absent", "reuse_existing"]
 
 
+async def test_publish_file_coordinates_streamed_bytes_and_commit(tmp_path) -> None:
+    payload = b"mounted result"
+    source = tmp_path / "result.bin"
+    source.write_bytes(payload)
+    committer = _Committer()
+    service = LocalArtifactPublicationService(
+        LocalArtifactStore(tmp_path / "artifacts"), committer
+    )
+
+    published = await service.publish_file(_manifest(payload), source, committed_at=NOW)
+
+    assert published.decision is ArtifactPublicationDecision.COMMITTED
+    assert published.storage.decision is ArtifactStoreDecision.WRITTEN
+    assert published.commit is not None
+    assert published.commit.decision is ArtifactCommitDecision.COMMIT
+
+
 async def test_bad_payload_is_rejected_before_commit(tmp_path) -> None:
     payload = b"expected"
     committer = _Committer()

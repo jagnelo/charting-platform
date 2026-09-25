@@ -1,9 +1,9 @@
 """Pure content-integrity checks for immutable Strategy Lab artifacts.
 
-The artifact store owns retrieval and atomic publication. This module only
-checks an already-read byte payload against its typed manifest, so workers and
-storage adapters can share one deterministic verification contract without
-introducing filesystem or network access into the engine-neutral package.
+The artifact store owns retrieval and atomic publication. This module checks
+either an already-read byte payload or streamed digest/length evidence against
+its typed manifest, so workers and storage adapters can share one deterministic
+verification contract without retaining large artifacts in memory.
 """
 
 from __future__ import annotations
@@ -74,8 +74,25 @@ def verify_artifact_payload(
     if not isinstance(payload, bytes):
         raise TypeError("artifact payload must be bytes")
 
-    observed_digest = artifact_content_digest(payload)
-    observed_byte_length = len(payload)
+    return verify_artifact_observation(manifest, artifact_content_digest(payload), len(payload))
+
+
+def verify_artifact_observation(
+    manifest: ArtifactManifest,
+    observed_digest: str,
+    observed_byte_length: int,
+) -> ArtifactIntegrityReceipt:
+    """Compare streamed digest/length evidence with an artifact manifest."""
+
+    if not isinstance(manifest, ArtifactManifest):
+        raise TypeError("artifact manifest must be an ArtifactManifest")
+    require_sha256_digest(observed_digest, field_name="observed_digest")
+    if (
+        not isinstance(observed_byte_length, int)
+        or isinstance(observed_byte_length, bool)
+        or observed_byte_length < 0
+    ):
+        raise ValueError("observed_byte_length must be a non-negative integer")
     failures: list[str] = []
     if observed_digest != manifest.content_digest:
         failures.append("digest_mismatch")

@@ -921,7 +921,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   request retries replay the recorded committed set. PostgreSQL mapping and
   transaction execution remain outside this pure contract.
 - `artifact_store.py` provides the local-first raw-byte adapter for immutable
-  content-addressed artifacts. It verifies manifests before publication, uses
+  content-addressed artifacts. It verifies manifests before publication,
+  including streaming digest/length checks for mounted result files, uses
   same-directory temporary files and atomic create-if-absent links, deduplicates
   concurrent writers, makes published files read-only, and re-verifies every
   read so tampering or path/symlink escapes fail closed. Its retention-aware
@@ -932,7 +933,7 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   digest-verified aged uncommitted content or recognized crash-left temporary
   files, retains fresh/committed entries, and never touches unknown files.
 - `artifact_application.py` composes that byte store with the PostgreSQL commit
-  ledger. It verifies and publishes bytes before finalizing durable commit
+  ledger. It verifies and publishes bytes or mounted files before finalizing durable commit
   evidence, maps exact retries to replayed commit records, and exposes an
   explicit factory with a caller-supplied NAS-mountable root. A crash between
   byte publication and metadata finalization leaves only an immutable orphan
