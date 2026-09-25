@@ -162,6 +162,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    At source `0aa295707c50f42ac715760f5ea9c6cf3c05f8a7`, owner-authorized
+    focused native account-usage probes passed for Alpaca, OpenFIGI, Twelve
+    Data, EODHD, MarketData.app, and Binance (`6/6`, one request each). The
+    redacted receipts are in `validation.jsonl` and durable usage evidence is
+    in the owner-local coordinator ledger. This confirms transport and
+    snapshot persistence only; it does not infer provider reset semantics or
+    widen routing. Provider contract/legal/capability, complete NMS/OTC/SEC
+    universe, external secret-store, deferred-provider, publication, and
+    final-shadow gates remain open.
+  - >-
     Exact-current source `e003da2349ddbf919f3953573c3ac4bf30cfdc7e` ran the
     full provider manifest preflight and stopped before transport at 0/0 with
     zero provider requests. Massive's current published terms were rechecked:

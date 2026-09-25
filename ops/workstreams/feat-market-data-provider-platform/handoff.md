@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 current-source native account-usage refresh
+
+- With owner-authorized access to the private durable quota coordinator, the
+  six manifest-defined account-usage probes passed individually at source
+  `0aa295707c50f42ac715760f5ea9c6cf3c05f8a7`: Alpaca, OpenFIGI, Twelve Data,
+  EODHD, MarketData.app, and Binance (`6/6`, one bounded request each).
+  Measured response bytes were respectively `125`, `8,812`, `131`, `304`,
+  `135`, and `28`; each receipt is redacted and appended to
+  `validation.jsonl`, while durable usage evidence remains in the owner-local
+  ledger outside Git.
+- These probes confirm transport and account-usage snapshot persistence only.
+  They do not infer unknown reset semantics, widen any provider's routing
+  entitlement, or close the remaining provider contract/legal, capability,
+  complete-universe, external secret-store, deferred-provider, publication,
+  and final-shadow gates.
+
 ## 2026-09-25 exact-current preflight after Massive terms audit
 
 - Source `e003da2349ddbf919f3953573c3ac4bf30cfdc7e` ran the full provider
