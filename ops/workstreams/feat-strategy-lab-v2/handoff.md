@@ -2,6 +2,18 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Atomic forward-worker authorization load checkpoint
+
+`PostgresWorkerStateAdapter.load_forward_authorization()` now loads the
+forward worker profile, reservation, and lease plus its authenticated
+observation history in one transaction with row locks. The application bridge
+delegates to this method, eliminating the race that separate pool and lease
+reads could introduce between authorization and dispatch handling.
+
+The focused PostgreSQL worker-state and application authorization suite passed
+8 tests. Ruff and MyPy remain green across 291 source files; whitespace
+validation is clean.
+
 ## 2026-09-25 - Durable forward-worker authorization bridge checkpoint
 
 The application adapter now exposes
