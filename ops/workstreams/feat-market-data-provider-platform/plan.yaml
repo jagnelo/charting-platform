@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 exact-current account-usage-only evidence: EODHD, Twelve Data,
+    and MarketData.app each passed their bounded native account snapshot case
+    (`1/1`) without ordinary data requests. These observations do not promote
+    routing: EODHD's conflicting minute pool, Twelve Data's separate daily
+    credit pool, and MarketData.app plan/option controls remain independently
+    reviewed gates.
+  - >-
     2026-09-25 exact-current full provider preflight at source
     `33499e60dccce63d9c9396b0989138c8047efbd3` stopped before transport with
     `0/0` cases and zero provider requests. It confirms the continuation

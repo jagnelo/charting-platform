@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 native account-usage refresh
+
+- Exact-current account-usage-only probes passed for EODHD, Twelve Data, and
+  MarketData.app (`1/1` each). These were control-plane reads only; no
+  ordinary market-data, options, or universe requests were issued.
+- The observations are retained as current provider evidence but do not
+  promote routing: EODHD's conflicting minute contract, Twelve Data's
+  separate daily-credit baseline, and MarketData.app's reviewed plan/option
+  controls remain enforced exactly as configured.
+
 ## 2026-09-25 exact-current preflight refresh
 
 - Source `33499e60d` ran the full provider preflight and stopped before
