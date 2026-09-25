@@ -559,6 +559,48 @@ _DDL: tuple[tuple[str, str], ...] = (
         """,
     ),
     (
+        "strategy_lab_v2_execution_admissions",
+        """
+        CREATE TABLE strategy_lab_v2_execution_admissions (
+            owner_id TEXT NOT NULL,
+            request_fingerprint TEXT NOT NULL,
+            authorization_fingerprint TEXT NOT NULL,
+            runtime_request_fingerprint TEXT NOT NULL,
+            attempt_id TEXT NOT NULL,
+            worker_id TEXT NOT NULL,
+            worker_kind TEXT NOT NULL,
+            worker_profile_fingerprint TEXT NOT NULL,
+            reservation_id TEXT NOT NULL,
+            admitted_at TEXT NOT NULL,
+            authoritative BOOLEAN NOT NULL,
+            admission_fingerprint TEXT NOT NULL,
+            PRIMARY KEY (owner_id, request_fingerprint),
+            UNIQUE (owner_id, attempt_id),
+            UNIQUE (owner_id, reservation_id)
+        )
+        """
+    ),
+    (
+        "strategy_lab_v2_search_dispatches",
+        """
+        CREATE TABLE strategy_lab_v2_search_dispatches (
+            owner_id TEXT NOT NULL,
+            experiment_fingerprint TEXT NOT NULL,
+            candidate_index BIGINT NOT NULL,
+            idempotency_key TEXT NOT NULL,
+            request_fingerprint TEXT NOT NULL,
+            attempt_id TEXT NOT NULL,
+            payload_digest TEXT NOT NULL,
+            queue_name TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            dispatch_fingerprint TEXT NOT NULL,
+            PRIMARY KEY (owner_id, idempotency_key),
+            UNIQUE (owner_id, experiment_fingerprint, candidate_index),
+            UNIQUE (owner_id, request_fingerprint)
+        )
+        """
+    ),
+    (
         "strategy_lab_v2_search_states",
         """
         CREATE TABLE strategy_lab_v2_search_states (

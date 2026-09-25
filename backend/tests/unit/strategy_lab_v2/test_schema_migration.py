@@ -40,11 +40,13 @@ def test_additive_migration_covers_all_v2_adapter_tables_without_legacy_tables()
     tables = tuple(name for name, _ in migration._DDL)
 
     assert migration.revision == "ff0a1b2c3d4e"
-    assert len(tables) == 39
+    assert len(tables) == 41
     assert len(set(tables)) == len(tables)
     assert "strategy_definition" not in tables
     assert "strategy_version" not in tables
     assert "strategy_run" not in tables
+    assert "strategy_lab_v2_execution_admissions" in tables
+    assert "strategy_lab_v2_search_dispatches" in tables
     for table_name, statement in migration._DDL:
         assert f"CREATE TABLE {table_name}" in statement
     assert any(

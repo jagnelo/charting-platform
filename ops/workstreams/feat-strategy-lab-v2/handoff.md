@@ -2,6 +2,18 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Search dispatch migration reconciliation checkpoint
+
+The canonical additive Alembic revision now creates the two tables required by
+`PostgresSearchDispatchAdapter`: owner-scoped execution admissions and
+idempotent search dispatch identities. Their keys, uniqueness constraints, and
+authenticated fields match the adapter schema, so durable search dispatch no
+longer depends on undeclared tables. Migration coverage now asserts 41 v2
+tables and the focused PostgreSQL search-dispatch/persistence suite passed 10
+tests; Ruff and MyPy remain green across the package.
+
+Forward-event dispatch persistence and stable Nautilus execution remain gated.
+
 ## 2026-09-25 - Local worker evidence resolver activation checkpoint
 
 The opt-in `strategy-lab-v2-worker` Compose profile now defaults its evidence
