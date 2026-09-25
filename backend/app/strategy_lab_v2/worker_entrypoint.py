@@ -35,6 +35,7 @@ from app.strategy_lab_v2.redis_application import RedisDispatchRuntime
 from app.strategy_lab_v2.worker_consumer import (
     WorkerCycleResolution,
 )
+from app.strategy_lab_v2.worker_handoff import materialize_worker_handoff
 from app.strategy_lab_v2.worker_process import SerialWorkerProcessExecutor
 from app.strategy_lab_v2.worker_service import (
     WorkerCompletionWriter,
@@ -484,6 +485,7 @@ __all__ = [
     "install_worker_signal_handlers",
     "main",
     "run_strategy_lab_v2_worker",
+    "materialize_worker_handoff",
 ]
 
 

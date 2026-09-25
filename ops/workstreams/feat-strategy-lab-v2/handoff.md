@@ -75,6 +75,21 @@ jobs with incomplete evidence.
 rendered service contains no provider credentials. Stable Nautilus release
 conformance and callback implementation remain separate gates.
 
+## 2026-09-25 - Typed worker dispatch handoff
+
+`worker_handoff.py` now defines the versioned
+`strategy-lab.worker-execution-request.v1` envelope. It binds canonical
+`WorkerExecutionRequest` bytes to the outer `DispatchPayload` digest, fully
+rehydrates nested authorization/admission/runtime/sandbox/engine/worker/lease
+contracts through the allowlisted decoder, and exposes an async
+`materialize_worker_handoff()` callback adapter. Schema drift, reordered
+canonical fields, request-fingerprint drift, and outer-envelope drift fail
+closed before process execution.
+
+Focused handoff/process checks pass (7 tests); the complete Strategy Lab v2
+package passes 810 tests. Terminal/result evidence resolution remains an
+application-owned callback gate.
+
 ## 2026-09-24 - Typed result-manifest rehydration
 
 `postgres_result_materialization.py` now exposes owner-scoped

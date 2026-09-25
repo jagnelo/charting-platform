@@ -1164,6 +1164,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   worker adapters. Invoke it locally with
   `python -m app.strategy_lab_v2.worker_entrypoint` once a callback factory is
   configured.
+- `worker_handoff.py` defines the versioned
+  `strategy-lab.worker-execution-request.v1` dispatch envelope. It stores the
+  canonical `WorkerExecutionRequest` bytes behind an outer content-addressed
+  mapping, rehydrates all nested execution contracts through the explicit
+  allowlist, verifies the request and payload identities, and exposes
+  `materialize_worker_handoff()` for the worker callback seam. It does not
+  resolve terminal/result evidence or acknowledge Redis entries.
 - The root Compose stack now contains an explicit, opt-in
   `strategy-lab-v2-worker` profile. It is separate from the general ARQ worker,
   starts only after PostgreSQL/Redis health, writes to the named

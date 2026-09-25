@@ -459,6 +459,13 @@ remaining_gaps:
       callback factory fails closed at worker startup; the default stack never
       enables this profile.
   - >-
+      `worker_handoff.py` now defines a versioned, content-addressed dispatch
+      envelope for `WorkerExecutionRequest`. The envelope decoder rehydrates
+      the complete execution contract through the allowlisted decoder,
+      verifies request identity and outer payload binding, and exposes an
+      async materializer compatible with the dedicated worker callback seam;
+      terminal/result evidence resolution remains application-owned.
+  - >-
       `worker_service.py` now optionally emits ordered, content-addressed lease
       heartbeats during each serial process handoff and fails closed on an
       unexpected sequence/state or durable observation rejection. The local
@@ -630,6 +637,6 @@ progress:
     - strategy-lab-v2-typed-runtime-preflight-rehydration
     - strategy-lab-v2-api-startup-migration-rollout
   total: 18
-  current_phase: strategy-lab-v2-opt-in-worker-compose-activation-staging-ready-for-human-review
-  current_blocker: Compose activation, stable Nautilus release, upstream contract reconciliation, and full repository integration remain open
-  next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add Compose activation and stable-release conformance without changing the engine-neutral boundary
+  current_phase: strategy-lab-v2-typed-worker-dispatch-handoff-staging-ready-for-human-review
+  current_blocker: Application-owned terminal/result callback wiring, stable Nautilus release, upstream contract reconciliation, and full repository integration remain open
+  next_action: implement the application-owned terminal/result callback over the typed worker handoff, then reconcile upstream contracts and add stable-release conformance without changing the engine-neutral boundary
