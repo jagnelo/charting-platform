@@ -2,6 +2,19 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Dedicated forward-worker runtime composition checkpoint
+
+`RedisDispatchRuntime` now exposes an explicit `forward_worker_service()`
+factory. It binds a dedicated queue scheduler to
+`ForwardEventWorkerService`, while preserving the generic backtest/runtime
+worker factory as a separate path. The host still supplies authenticated
+handoff materialization, canonical-event/account settlement, worker
+reservation, and engine callbacks; this seam does not start providers or
+Nautilus.
+
+The Redis runtime composition suite passed 6 tests, with Ruff, MyPy, and
+whitespace validation green across 289 source files.
+
 ## 2026-09-25 - Forward shadow-account API projection checkpoint
 
 Added the authenticated read-only
