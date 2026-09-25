@@ -794,6 +794,11 @@ SEC directory candidate reports are append-only across scan cycles. The filing
 parser also retains every matching prospectus/registration filing in each
 retrieved submissions response; local batch settings are compatibility and
 fairness controls, not retention limits.
+Each `SecIssuerDirectoryCandidate` additionally retains the exact normalized
+provider-adapter row in `source_payload`, and the admin candidate report
+returns it, so fields received from SEC are not lost behind the admission
+projection. The additive migration refuses downgrade while that evidence is
+non-empty.
 
 Scanning requires a positive,
 deployment-reviewed `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS`
