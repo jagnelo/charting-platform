@@ -15,6 +15,7 @@ from app.models.market_data_foundation import (
     MarketEvent,
     MarketEventConsensus,
     MarketEventPrelistingCandidate,
+    ProviderPaginationState,
 )
 from app.services.market_event_prelisting import (
     materialize_prelisting_candidates,
@@ -187,6 +188,33 @@ async def test_malformed_symbol_is_skipped_without_guessing_identity(db):
 
     assert result["skipped"] == 1
     assert db.execute(select(MarketEventPrelistingCandidate)).scalar_one_or_none() is None
+
+
+@pytest.mark.asyncio
+async def test_materialization_continues_after_bounded_batch(db):
+    db.add_all(
+        [
+            _event(
+                source="edgar",
+                key=f"edgar:ipo:continuation:{index}",
+                payload={"symbol": f"CONT{index}", "name": f"Continuation {index}"},
+            )
+            for index in range(3)
+        ]
+    )
+    db.flush()
+
+    first = await materialize_prelisting_candidates(AsyncSessionAdapter(db), max_events=2)
+    second = await materialize_prelisting_candidates(AsyncSessionAdapter(db), max_events=2)
+
+    assert first["status"] == "partial"
+    assert first["events_considered"] == 2
+    assert second["status"] == "complete"
+    assert second["events_considered"] == 1
+    assert second["cycle_complete"] is True
+    assert len(db.execute(select(MarketEventPrelistingCandidate)).scalars().all()) == 3
+    state = db.execute(select(ProviderPaginationState)).scalar_one()
+    assert state.cursor is None
 
 
 @pytest.mark.asyncio

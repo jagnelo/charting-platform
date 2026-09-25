@@ -689,7 +689,13 @@ become a durable `conflicted` group with per-source values, while a single
 source remains `single_source`. Provider rows and raw payloads are never
 overwritten. Operators can inspect these groups through the authenticated
 admin-only `GET /api/v1/market-data/event-consensus` endpoint, filtered by
-status, event type, instrument, or issuer. Future IPO/IPO-pipeline observations
+status, event type, instrument, or issuer. Reconciliation is quota/fairness
+bounded but uses durable event-ID continuation state keyed by the requested
+date window, so a later invocation resumes after the last processed row rather
+than restarting at row zero and starving later observations. The same durable
+continuation protects opt-in future-listing materialization; every persisted
+event is eventually considered, while the raw provider row remains immutable.
+Future IPO/IPO-pipeline observations
 can additionally be materialized by the opt-in
 `app.services.market_event_prelisting` workflow. It creates one auditable
 candidate per consensus group. An inactive `provisional` stock instrument is

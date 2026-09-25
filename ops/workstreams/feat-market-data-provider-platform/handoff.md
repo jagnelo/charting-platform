@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 event-reconciliation continuation checkpoint
+
+- Market-event consensus reconciliation and future-listing materialization no
+  longer restart from row zero after a bounded job. Both workflows now use the
+  existing durable `ProviderPaginationState` table with a date-window-scoped
+  event-ID cursor, recording the next continuation and completing the cycle
+  only after the final persisted row is processed. Raw provider observations
+  remain immutable and are never removed by the bounded work budget.
+- Event reconciliation/prelisting tests pass `14/14`; Ruff passes on the
+  changed implementation and tests. The new regressions prove a three-row
+  dataset is processed as 2+1 across successive invocations.
+- This closes a local starvation/data-exclusion defect only. Provider
+  quota/legal/capability gates, NMS/OTC/SEC reconciliation, secret stores,
+  deferred providers, publication, and the final shadow run remain open.
+
 ## 2026-09-25 latest-price raw-response retention checkpoint
 
 - Current-price provider calls now opt into explicit response-body capture at

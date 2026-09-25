@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 event-reconciliation continuation correction: bounded
+    market-event consensus and future-listing materialization jobs now persist
+    a date-window-scoped event-ID cursor in `ProviderPaginationState` and
+    resume after the last processed row. This prevents repeated first-page
+    starvation and ensures every persisted event is eventually considered.
+    Focused event reconciliation/prelisting coverage passes 14/14 with Ruff
+    clean. Provider contract/live-evidence, venue/SEC universe, secret-store,
+    deferred-provider, publication, and shadow gates remain unchanged.
+  - >-
     2026-09-25 latest-price raw-response retention correction: current-price
     calls now explicitly capture and persist every ordered provider response
     body (with the prior singular compatibility field retained for one

@@ -20,7 +20,11 @@ from typing import Any
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.market_data_foundation import MarketEvent, MarketEventConsensus
+from app.models.market_data_foundation import (
+    MarketEvent,
+    MarketEventConsensus,
+    ProviderPaginationState,
+)
 
 _VENUE_MIC = re.compile(r"^[A-Z0-9]{4}$")
 _PAYLOAD_ALIASES: dict[str, tuple[str, ...]] = {
@@ -206,6 +210,42 @@ async def reconcile_market_events(
     if start is not None and end is not None and end < start:
         raise ValueError("end must be on or after start")
 
+    scan_key = "market-event-reconciliation:" + ":".join(
+        (value.isoformat() if value is not None else "*") for value in (start, end)
+    )
+    state = (
+        await db.execute(
+            select(ProviderPaginationState)
+            .where(ProviderPaginationState.state_key == scan_key)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if state is None:
+        state = ProviderPaginationState(
+            state_key=scan_key,
+            provider="internal",
+            capability="market_event_reconciliation",
+            operation="reconcile_market_events",
+            page_size=max_events,
+            metadata_payload={
+                "window": {
+                    "start": start.isoformat() if start else None,
+                    "end": end.isoformat() if end else None,
+                }
+            },
+        )
+        db.add(state)
+        await db.flush()
+
+    cursor_id: int | None = None
+    if state.cursor is not None:
+        try:
+            cursor_id = int(state.cursor)
+        except (TypeError, ValueError):
+            state.last_error = "invalid persisted market-event reconciliation cursor"
+            state.status = "failed"
+            raise ValueError("invalid persisted market-event reconciliation cursor")
+
     filters = []
     if start is not None:
         start_at = datetime.combine(start, datetime.min.time(), tzinfo=UTC)
@@ -229,9 +269,12 @@ async def reconcile_market_events(
                 ),
             )
         )
-    query = select(MarketEvent).order_by(MarketEvent.id).limit(max_events + 1)
+    query = select(MarketEvent)
     if filters:
         query = query.where(*filters)
+    if cursor_id is not None:
+        query = query.where(MarketEvent.id > cursor_id)
+    query = query.order_by(MarketEvent.id).limit(max_events + 1)
     rows = (await db.execute(query)).scalars().all()
     truncated = len(rows) > max_events
     events = rows[:max_events]
@@ -329,15 +372,32 @@ async def reconcile_market_events(
             event.consensus_id = consensus.id
         status_counts[consensus.status] += 1
 
+    state.page_number += 1
+    state.pages_fetched += 1
+    state.page_size = max_events
+    state.last_page_count = len(events)
+    state.last_success_at = now
+    state.last_error = None
+    state.status = "partial" if truncated else "complete"
+    state.cursor = str(events[-1].id) if truncated and events else None
+    state.metadata_payload = {
+        **(state.metadata_payload or {}),
+        "last_event_ids": [event.id for event in events],
+        "events_considered": len(events),
+        "truncated": truncated,
+    }
     await db.flush()
     return {
-        "status": "partial" if truncated else "complete",
+        "status": state.status,
         "events_considered": len(events),
         "groups_created": created,
         "groups_updated": updated,
         "groups": len(groups),
         "unresolved": unresolved,
         "truncated": truncated,
+        "cursor": state.cursor,
+        "cycle_complete": state.cursor is None,
+        "scan_key": scan_key,
         "status_counts": dict(sorted(status_counts.items())),
         "window": {"start": start, "end": end},
     }

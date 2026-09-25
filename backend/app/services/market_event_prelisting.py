@@ -25,6 +25,7 @@ from app.models.market_data_foundation import (
     MarketEvent,
     MarketEventConsensus,
     MarketEventPrelistingCandidate,
+    ProviderPaginationState,
 )
 
 _SYMBOL_FIELDS = ("symbol", "ticker", "proposed_ticker", "provider_symbol")
@@ -216,6 +217,42 @@ async def materialize_prelisting_candidates(
     if start is not None and end is not None and end < start:
         raise ValueError("end must be on or after start")
 
+    scan_key = "market-event-prelisting:" + ":".join(
+        (value.isoformat() if value is not None else "*") for value in (start, end)
+    )
+    state = (
+        await db.execute(
+            select(ProviderPaginationState)
+            .where(ProviderPaginationState.state_key == scan_key)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if state is None:
+        state = ProviderPaginationState(
+            state_key=scan_key,
+            provider="internal",
+            capability="market_event_prelisting",
+            operation="materialize_prelisting_candidates",
+            page_size=max_events,
+            metadata_payload={
+                "window": {
+                    "start": start.isoformat() if start else None,
+                    "end": end.isoformat() if end else None,
+                }
+            },
+        )
+        db.add(state)
+        await db.flush()
+
+    cursor_id: int | None = None
+    if state.cursor is not None:
+        try:
+            cursor_id = int(state.cursor)
+        except (TypeError, ValueError):
+            state.last_error = "invalid persisted market-event prelisting cursor"
+            state.status = "failed"
+            raise ValueError("invalid persisted market-event prelisting cursor")
+
     query = (
         select(MarketEvent)
         .where(
@@ -223,11 +260,13 @@ async def materialize_prelisting_candidates(
             MarketEvent.instrument_id.is_(None),
         )
         .order_by(MarketEvent.id)
-        .limit(max_events + 1)
     )
+    if cursor_id is not None:
+        query = query.where(MarketEvent.id > cursor_id)
     filters = _date_filters(start, end)
     if filters:
         query = query.where(*filters)
+    query = query.limit(max_events + 1)
     rows = (await db.execute(query)).scalars().all()
     truncated = len(rows) > max_events
     rows = rows[:max_events]
@@ -398,9 +437,23 @@ async def materialize_prelisting_candidates(
         candidate.instrument_id = instrument.id
         instruments_created += 1
 
+    state.page_number += 1
+    state.pages_fetched += 1
+    state.page_size = max_events
+    state.last_page_count = len(rows)
+    state.last_success_at = now
+    state.last_error = None
+    state.status = "partial" if truncated else "complete"
+    state.cursor = str(rows[-1].id) if truncated and rows else None
+    state.metadata_payload = {
+        **(state.metadata_payload or {}),
+        "last_event_ids": [event.id for event in rows],
+        "events_considered": len(rows),
+        "truncated": truncated,
+    }
     await db.flush()
     return {
-        "status": "partial" if truncated else "complete",
+        "status": state.status,
         "events_considered": len(rows),
         "candidates": len(grouped),
         "created": created,
@@ -409,6 +462,9 @@ async def materialize_prelisting_candidates(
         "quarantined": quarantined,
         "skipped": skipped,
         "truncated": truncated,
+        "cursor": state.cursor,
+        "cycle_complete": state.cursor is None,
+        "scan_key": scan_key,
         "window": {"start": start, "end": end},
     }
 

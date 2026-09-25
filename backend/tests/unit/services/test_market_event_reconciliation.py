@@ -3,7 +3,11 @@ from datetime import UTC, date, datetime
 import pytest
 from sqlalchemy import select
 
-from app.models.market_data_foundation import MarketEvent, MarketEventConsensus
+from app.models.market_data_foundation import (
+    MarketEvent,
+    MarketEventConsensus,
+    ProviderPaginationState,
+)
 from app.services.market_event_reconciliation import reconcile_market_events
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -133,6 +137,15 @@ async def test_reconciliation_reports_bounded_partial_window(db, instrument):
     assert result["status"] == "partial"
     assert result["events_considered"] == 2
     assert result["truncated"] is True
+
+    continuation = await reconcile_market_events(AsyncSessionAdapter(db), max_events=2)
+
+    assert continuation["status"] == "complete"
+    assert continuation["events_considered"] == 1
+    assert continuation["truncated"] is False
+    assert continuation["cycle_complete"] is True
+    state = db.execute(select(ProviderPaginationState)).scalar_one()
+    assert state.cursor is None
 
 
 @pytest.mark.asyncio
