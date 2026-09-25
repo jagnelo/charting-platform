@@ -5729,3 +5729,16 @@ The repository-authoritative Docker-backed combined gate passes at this exact
 implementation tip: 2,603 tests, 83.78% total coverage (required threshold
 75%), and 86 warnings. Cleanup removed the test containers, images, and
 volumes.
+
+## 2026-09-25 - Heartbeat-failure execution cancellation
+
+Dedicated worker services now monitor the process handoff and lease-heartbeat
+task together. A rejected or failed heartbeat immediately cancels the
+simulation task, which invokes the cancellation-safe process reaper before the
+entry is returned for retry. Focused worker coverage passes 15 tests and the
+complete Strategy Lab v2 package suite passes 953 tests.
+
+The repository-authoritative Docker-backed combined gate passes at this exact
+implementation tip: 2,604 tests, 83.78% total coverage (required threshold
+75%), and 86 warnings. Cleanup removed the test containers, images, and
+volumes.
