@@ -5490,3 +5490,16 @@ paths instead of allowing one issuer route to hold the entire sweep open.
 The timeout is configurable for deployment environments with different route
 latency constraints; it does not alter adapter parsing, source eligibility, or
 the shared provider-platform governance boundary.
+
+## Branch-owned acceptance checkpoint — 2026-09-25
+
+The current ETF branch-local acceptance surface is green: 704 backend ETF
+adapter/capability/refresh/task tests passed; the default live-provider contract
+passed 2 checks with 529 opt-in network cases skipped by design; Ruff passed;
+frontend type-check passed; the 17 targeted ETF view/panel tests passed; the
+frontend production build passed; workstream validation and diff-check passed.
+
+This checkpoint proves the owned deterministic, UI, and build contracts only.
+It does not claim the shared provider-platform capability is staged, AC10 is
+integrated, unresolved fallback evidence is closed, or the post-integration
+30-day AC14 shadow gate has run.
