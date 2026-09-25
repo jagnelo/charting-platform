@@ -969,7 +969,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   exit, timeout, output overflow, and process-start failure. Process-start
   evidence is a versioned exception-type digest rather than a host-specific OS
   error string, preserving deterministic identities without exposing paths.
-  Docker remains the production command boundary.
+  On successful execution it also streams the validated host source bound to
+  `/outputs/result`, recording bounded content digest/size evidence when the
+  file is regular, non-symlinked, present, and within the declared limit.
+  This evidence does not publish bytes or invent a result manifest; those
+  remain application-owned publication responsibilities. Docker remains the
+  production command boundary.
 - `backend/strategy_runtime/` provides the restricted invocation runner used
   inside that command boundary. It binds source bytes to the declared digest,
   repeats static source preflight, exposes only the engine-neutral SDK symbols
