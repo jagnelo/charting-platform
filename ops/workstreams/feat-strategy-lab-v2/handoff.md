@@ -5634,3 +5634,6 @@ The warm-up endpoint now has executable ASGI-level coverage using an in-process 
 ## 2026-09-25 - Forward dispatch/lifecycle ASGI evidence
 
 ASGI-level route coverage now exercises the atomic forward dispatch/outbox and lifecycle compare-and-set endpoints in addition to warm-up. The focused forward/API suite passes 27 tests, proving the registered HTTP boundaries delegate typed requests through the application seams and return typed 202 responses. Ruff, MyPy (293 source files), and whitespace validation remain green.
+## 2026-09-25 - Counterfactual replay observability checkpoint
+
+Persisted forward correction replay plans now have an authenticated owner-scoped read bridge and `GET /forward-instances/{instance_id}/replays` projection. The adapter returns `404` for unknown instances, verifies deterministic replay ordering, and the API exposes immutable plan identities without changing live state. ASGI route, serializer, and forward-state tests pass; the focused suite now passes 29 tests with Ruff, MyPy (293 source files), and whitespace validation green.
