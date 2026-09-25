@@ -49,6 +49,7 @@ from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAd
 from app.strategy_lab_v2.postgres_worker_settlement import PostgresWorkerSettlementAdapter
 from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
+from app.strategy_lab_v2.worker_evidence import WorkerTerminalEvidenceInputs
 from app.strategy_lab_v2.worker_terminal_adapter import (
     PostgresWorkerTerminalAdapter,
     WorkerTerminalEvidenceResolver,
@@ -305,6 +306,37 @@ class PostgresStrategyLabV2Persistence:
             worker_state=self.worker_state,
             settlements=self.worker_settlements,
             clock=clock,
+        )
+
+    async def load_worker_terminal_evidence_inputs(
+        self, *, principal: Any, attempt_id: str
+    ) -> WorkerTerminalEvidenceInputs:
+        """Load authenticated durable inputs for an application resolver.
+
+        The individual adapters retain their own transaction and integrity
+        checks. This composition deliberately does not claim one cross-table
+        transaction; the resolver must treat missing or changing state as a
+        retry and keep the immutable attempt binding from its worker context.
+        """
+
+        submission = await self.submissions.load_submission(
+            principal=principal, attempt_id=attempt_id
+        )
+        execution = await self.execution_state.read_context(
+            principal=principal, attempt_id=attempt_id
+        )
+        manifest = await self.result_materialization.load_manifest(
+            principal=principal, attempt_id=attempt_id
+        )
+        publications = await self.result_publication.load_for_attempt(
+            principal=principal, attempt_id=attempt_id
+        )
+        return WorkerTerminalEvidenceInputs(
+            attempt_id=attempt_id,
+            submission=submission,
+            execution=execution,
+            manifest=manifest,
+            publications=publications,
         )
 
 

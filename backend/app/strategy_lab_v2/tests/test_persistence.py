@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -8,17 +9,24 @@ from app.strategy_lab_v2.artifact_application import (
     LocalArtifactCleanupService,
     LocalArtifactRetentionService,
 )
+from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.outbox_application import OutboxRelayService
+from app.strategy_lab_v2.outcomes import new_execution_outcome
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_artifact_commit import PostgresArtifactCommitAdapter
-from app.strategy_lab_v2.postgres_commands import PostgresCommandAdapter
+from app.strategy_lab_v2.postgres_commands import ExecutionCommandContext, PostgresCommandAdapter
 from app.strategy_lab_v2.postgres_execution_state import PostgresExecutionStateAdapter
 from app.strategy_lab_v2.postgres_forward_state import PostgresForwardStateAdapter
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
+from app.strategy_lab_v2.progress import new_progress_state
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
+from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
 from app.strategy_lab_v2.tests.test_result_publication import _result
+from app.strategy_lab_v2.worker_evidence import WorkerTerminalEvidenceInputs
+
+NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 
 
 def test_persistence_bundle_shares_store_and_wires_all_initial_api_dependencies(
@@ -75,3 +83,58 @@ async def test_metric_resource_projection_uses_typed_metric_set_reads() -> None:
     assert documents[0].id == metric_set.metric_set_id
     assert documents[0].attributes["metric_set_id"] == metric_set.metric_set_id
     assert documents[0].meta["record_fingerprint"] == metric_set.fingerprint
+
+
+@pytest.mark.asyncio
+async def test_persistence_bundle_loads_terminal_evidence_inputs() -> None:
+    bundle = PostgresStrategyLabV2Persistence.build(lambda: object())
+    manifest, *_ = _result()
+    request = SubmissionRequest(
+        "terminal-evidence-key",
+        "backtest",
+        manifest.attempt_id,
+        content_digest("terminal-evidence-payload"),
+        NOW,
+    )
+    receipt = SubmissionReceipt(request, NOW)
+    execution = ExecutionCommandContext(
+        new_execution_outcome(receipt.submission_id, manifest.attempt_id, accepted_at=NOW),
+        new_progress_state(manifest.attempt_id, total_units=1, now=NOW),
+    )
+    calls: list[tuple[str, Any, str]] = []
+
+    async def load_submission(*, principal: Any, attempt_id: str) -> SubmissionReceipt:
+        calls.append(("submission", principal, attempt_id))
+        return receipt
+
+    async def read_context(*, principal: Any, attempt_id: str) -> ExecutionCommandContext:
+        calls.append(("execution", principal, attempt_id))
+        return execution
+
+    async def load_manifest(*, principal: Any, attempt_id: str) -> Any:
+        calls.append(("manifest", principal, attempt_id))
+        return manifest
+
+    async def load_for_attempt(*, principal: Any, attempt_id: str) -> tuple[Any, ...]:
+        calls.append(("publication", principal, attempt_id))
+        return ()
+
+    bundle.submissions.load_submission = load_submission  # type: ignore[method-assign]
+    bundle.execution_state.read_context = read_context  # type: ignore[method-assign]
+    bundle.result_materialization.load_manifest = load_manifest  # type: ignore[method-assign]
+    bundle.result_publication.load_for_attempt = load_for_attempt  # type: ignore[method-assign]
+
+    inputs = await bundle.load_worker_terminal_evidence_inputs(
+        principal="owner-a", attempt_id=manifest.attempt_id
+    )
+
+    assert isinstance(inputs, WorkerTerminalEvidenceInputs)
+    assert inputs.submission == receipt
+    assert inputs.execution == execution
+    assert inputs.manifest == manifest
+    assert calls == [
+        ("submission", "owner-a", "attempt-1"),
+        ("execution", "owner-a", "attempt-1"),
+        ("manifest", "owner-a", "attempt-1"),
+        ("publication", "owner-a", "attempt-1"),
+    ]
