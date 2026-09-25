@@ -406,8 +406,10 @@ than returning an empty series or price. Do not enable a new series merely
 because another series has an authority reference.
 
 Coinbase Exchange publishes a technical public REST ceiling of 10
-requests/second/IP with a burst of 15, but that limit is not permission to use
-the data in this application. Its [market-data terms](https://www.coinbase.com/en-in/legal/market_data)
+requests/second/IP with a burst of 15, implemented as a lazy-fill token bucket
+(continuous refill, no calendar reset), but that limit is not permission to use
+the data in this application. Its [official REST rate-limit documentation](https://docs.cdp.coinbase.com/exchange/rest-api/rate-limits)
+defines the bucket behavior and its [market-data terms](https://www.coinbase.com/en-in/legal/market_data)
 restrict use in AI/ML development, training, or operation absent prior express
 written consent, as well as redistribution. Consequently no live Coinbase
 request or normal routing is allowed unless the exact intended automated,

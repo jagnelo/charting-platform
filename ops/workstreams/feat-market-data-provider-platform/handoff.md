@@ -9,6 +9,18 @@
   temporary containers; no host-wide prune or unrelated service mutation was
   performed.
 
+## 2026-09-25 Coinbase public-bucket contract audit
+
+- Coinbase's current official Exchange REST documentation specifies public
+  endpoints at 10 requests/second per IP with a burst capacity of 15, using a
+  lazy-fill token bucket (continuous refill rather than a calendar reset).
+  The checked-in seed already models this provider-native 10/second + 15 burst
+  contract and rolling reset semantics; no generic fallback was introduced.
+- This closes the representation/documentation gap only. Coinbase remains
+  non-routable because the separate market-data terms/use-authority gate for
+  automated persistent storage is still absent; a technical rate limit is not
+  treated as permission to use or redistribute the data.
+
 ## 2026-09-25 Twelve Data live-validation environment result
 
 - The credentialed `twelve_data:fetch_account_usage` probe was attempted with
