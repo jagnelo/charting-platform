@@ -162,6 +162,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    At exact source `d050a169c9d3f4e283187e43ca7513e9b09fe334`, EODHD native
+    `X-RateLimit-*` observations now retain the documented next-minute reset
+    boundary, and the account-usage reconciler supports that provider-specific
+    `requests_per_minute` dimension under an explicitly reviewed contract.
+    Focused EODHD/account-usage tests passed `11/11`; the branch-owned unit
+    gate passed `1,915/1,915`, and Docker PostgreSQL/Redis integration passed
+    `386/386`. This does not promote EODHD: its active account limit/evidence
+    remains contradictory, its `/user` daily date is stale, and ordinary
+    routing remains fail-closed until the reviewed controls are populated.
+  - >-
     Current-source keyless matrices passed for OpenFIGI (`3/3`, three requests,
     88,407 bytes at `3a893b91fb51bc31d7dd3bbb3bf6cf73194155c1`) and Binance
     (`3/3`, seven requests, 17,652,701 bytes at

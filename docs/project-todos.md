@@ -2,6 +2,16 @@
 
 ### 2026-09-25 — Current provider-contract audit continuation
 
+- [x] Preserve the EODHD provider-documented minute reset boundary in native
+      account-usage observations and allow that named dimension to reconcile
+      only against a reviewed EODHD contract. Focused tests passed `11/11`,
+      branch-owned unit tests passed `1,915/1,915`, and Docker integration
+      passed `386/386` at source
+      `d050a169c9d3f4e283187e43ca7513e9b09fe334`.
+- [ ] Reconcile the configured EODHD account's active minute entitlement and
+      current daily usage date, then replay its bounded live matrix. Until that
+      evidence exists, EODHD remains fail-closed and no quota is inferred.
+
 - [x] Reconcile the current official EODHD API-limits page: it documents
       1,000 HTTP requests/minute with a per-minute reset, while the Free
       Starter card still says 20 requests/minute. The configured key's bounded

@@ -1,5 +1,25 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 EODHD minute-native reset reconciliation
+
+- `EODHDProvider.fetch_account_usage` now preserves the provider-documented
+  next-minute reset boundary for the native `X-RateLimit-*` dimension instead
+  of dropping it. The account-usage reconciler now accepts multiple explicitly
+  allow-listed native dimensions, including EODHD `requests_per_minute`, while
+  retaining the existing provider-specific OpenFIGI alias behavior.
+- Admission is still fail-closed: the reviewed active EODHD limit/evidence and
+  a current daily usage date are required before routing. No limit, plan, or
+  daily reset is inferred from the conflicting sources or stale `/user` date.
+- Exact source `d050a169c9d3f4e283187e43ca7513e9b09fe334` passed focused EODHD
+  provider/account-usage tests (`11/11` selected), Ruff, and diff checks; the
+  branch-owned unit gate passed `1,915/1,915` and Docker PostgreSQL/Redis
+  integration passed `386/386` (57 warnings). The ETF adapter file remains
+  excluded and untouched.
+- This closes the reset-boundary representation gap only. Provider contract,
+  entitlement/legal-use, complete-universe, external secret-store, deferred
+  provider, publication, routing-promotion, and final-shadow gates remain
+  explicitly open.
+
 ## 2026-09-25 current-source OpenFIGI and Binance matrices
 
 - OpenFIGI's keyless matrix passed `3/3` at source
