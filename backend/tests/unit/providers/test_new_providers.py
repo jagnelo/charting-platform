@@ -472,6 +472,40 @@ class TestAlpacaCredentialWarning:
         assert page["quotes"][0]["symbol"] == "AAPL"
         assert get.call_args.args[0] == "https://paper-api.alpaca.markets/v2/assets"
 
+    def test_assets_cache_is_scoped_to_host_and_credentials(self):
+        first_response = MagicMock()
+        first_response.json.return_value = [
+            {"symbol": "AAPL", "name": "Apple Inc.", "exchange": "NASDAQ", "tradable": True}
+        ]
+        first_response.raise_for_status.return_value = None
+        second_response = MagicMock()
+        second_response.json.return_value = [
+            {"symbol": "MSFT", "name": "Microsoft Corp.", "exchange": "NASDAQ", "tradable": True}
+        ]
+        second_response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca._asset_cache", {}),
+            patch(
+                "app.providers.alpaca.httpx.get",
+                side_effect=[first_response, second_response],
+            ) as get,
+        ):
+            configured.ALPACA_API_KEY = "first-key"
+            configured.ALPACA_SECRET_KEY = "first-secret"
+            configured.ALPACA_TRADING_BASE_URL = "https://paper-api.alpaca.markets/v2"
+            first_page = AlpacaProvider().discover_universe_page("EQUITY", 0)
+            configured.ALPACA_API_KEY = "second-key"
+            configured.ALPACA_SECRET_KEY = "second-secret"
+            configured.ALPACA_TRADING_BASE_URL = "https://api.alpaca.markets/v2"
+            second_page = AlpacaProvider().discover_universe_page("EQUITY", 0)
+
+        assert first_page["quotes"][0]["symbol"] == "AAPL"
+        assert second_page["quotes"][0]["symbol"] == "MSFT"
+        assert get.call_count == 2
+        assert get.call_args_list[0].args[0] == "https://paper-api.alpaca.markets/v2/assets"
+        assert get.call_args_list[1].args[0] == "https://api.alpaca.markets/v2/assets"
+
     def test_get_instrument_profile_preserves_asset_identity_and_listing_metadata(self):
         response = MagicMock()
         response.status_code = 200

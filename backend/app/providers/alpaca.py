@@ -20,6 +20,7 @@ import logging
 import time
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from hashlib import sha256
 from math import ceil
 from typing import Any
 from urllib.parse import quote
@@ -88,7 +89,7 @@ _TF_SECONDS: dict[Timeframe, int] = {
 _BARS_PAGE_SIZE = 1000
 
 # Module-level asset cache: keyed by asset_class string
-_asset_cache: dict[str, list[dict]] = {}
+_asset_cache: dict[tuple[str, str, str, str], list[dict]] = {}
 _asset_cache_ts: float = 0.0
 _ASSET_CACHE_TTL = 3600 * 4  # 4 hours
 
@@ -848,11 +849,16 @@ def _parse_corporate_action_events(
 def _cached_assets(headers: dict, asset_class: str) -> list[dict]:
     global _asset_cache, _asset_cache_ts
     now = time.monotonic()
-    if asset_class in _asset_cache and (now - _asset_cache_ts) < _ASSET_CACHE_TTL:
-        return _asset_cache[asset_class]
+    trading_base = _trading_base_url()
+    key_id = str(getattr(settings, "ALPACA_API_KEY", "") or "").strip()
+    secret = str(getattr(settings, "ALPACA_SECRET_KEY", "") or "")
+    secret_digest = sha256(secret.encode("utf-8")).hexdigest()
+    cache_key = (asset_class, trading_base, key_id, secret_digest)
+    if cache_key in _asset_cache and (now - _asset_cache_ts) < _ASSET_CACHE_TTL:
+        return _asset_cache[cache_key]
     try:
         r = httpx.get(
-            f"{_trading_base_url()}/assets",
+            f"{trading_base}/assets",
             params={"status": "active", "asset_class": asset_class},
             headers=headers,
             timeout=30,
@@ -865,7 +871,7 @@ def _cached_assets(headers: dict, asset_class: str) -> list[dict]:
         if any(not isinstance(asset, dict) for asset in payload):
             raise ProviderResponseError("alpaca", "Alpaca returned a malformed asset row")
         assets = [a for a in payload if a.get("tradable")]
-        _asset_cache[asset_class] = assets
+        _asset_cache[cache_key] = assets
         _asset_cache_ts = now
         return assets
     except httpx.HTTPStatusError:
