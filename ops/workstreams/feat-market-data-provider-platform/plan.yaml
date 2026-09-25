@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 append-only request-audit retention correction: provider
+    request logs are now immutable quota/audit evidence, like latest-price,
+    search, universe, profile, and identifier snapshots. The maintenance
+    endpoint cannot delete any registered provider-evidence dataset; legacy
+    retention settings remain compatibility/diagnostic fields only. Focused
+    maintenance/router coverage passes 10/10 with Ruff clean. Provider
+    routing, quota/legal/capability, universe, secret-store, deferred-provider,
+    and shadow gates remain unchanged.
+  - >-
     2026-09-25 append-only observation retention correction: provider
     latest-price, search, universe, profile, and identifier snapshots are now
     immutable evidence and cannot be deleted by the maintenance endpoint;

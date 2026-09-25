@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 append-only request-audit retention checkpoint
+
+- Provider request logs are now immutable quota/audit evidence alongside
+  latest-price, search, universe, profile, and identifier snapshots. The
+  maintenance endpoint cannot delete any registered provider-evidence dataset;
+  its legacy retention settings remain diagnostic compatibility fields only.
+- The regression now inserts an old request log and verifies both the log and
+  snapshot survive maintenance. Focused maintenance/router coverage passes
+  `10/10`, Ruff passes, and no provider routing or external quota was touched.
+
 ## 2026-09-25 append-only observation retention checkpoint
 
 - Provider observation snapshots are now immutable retention evidence. The
