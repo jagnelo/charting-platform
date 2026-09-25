@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 MarketData.app account-usage evidence refresh
+
+- A network-enabled account-usage-only run passed `1/1` at source
+  `6ab77ff635b7b34b5330cb4ce7baaf8b7f608ba5`, measuring one request and 135
+  response bytes. Native headers reported a `10,000 credits/day` limit with
+  `10,000` remaining and a reset timestamp. The response did not expose an
+  account-plan string, so the configured Starter Trial expiry and automatic
+  Free Forever fallback remain the source of plan selection; no plan was
+  inferred from the endpoint.
+
 ## 2026-09-25 EODHD account-usage evidence refresh
 
 - A network-enabled, account-usage-only run against the configured EODHD key

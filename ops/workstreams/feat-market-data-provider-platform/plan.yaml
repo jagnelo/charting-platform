@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-09-25 MarketData.app account-usage refresh: the configured key's
+    native account snapshot passed 1/1 with one measured request and 135
+    response bytes, exposing a 10,000-credits/day limit, 10,000 remaining,
+    and a reset timestamp. The endpoint omitted the account-plan body field,
+    so the configured Starter Trial expiry and Free Forever fallback remain
+    authoritative; no plan is inferred from `/user/`.
+  - >-
     2026-09-25 EODHD account-usage refresh: the configured key's network
     `/user` snapshot passed 1/1 with one measured request and 304 response
     bytes. It reported the account's 20 calls/day pool and native

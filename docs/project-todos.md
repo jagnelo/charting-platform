@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-25 — MarketData.app account-usage evidence refresh
+
+- [x] The configured MarketData.app key's account-usage-only live case passed
+      `1/1` with one request and 135 response bytes. The native response
+      reported a `10,000 credits/day` allowance, `10,000` remaining, and a
+      reset timestamp; the account-plan body remained absent, so the configured
+      trial-expiry/fallback policy remains authoritative rather than inferred
+      from `/user/`.
+
 ### 2026-09-25 — EODHD account-usage evidence refresh
 
 - [x] The configured EODHD key's bounded native `/user` snapshot passed over
