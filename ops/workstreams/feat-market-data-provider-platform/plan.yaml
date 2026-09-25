@@ -180,6 +180,10 @@ remaining_gaps:
     provider-specific safety envelope, but no usage is fabricated and no SEC
     request was made.
   - >-
+    2026-09-25 the bounded keyless OpenFIGI mapping/profile/account-usage
+    matrix passed `3/3` at source `fd2fecb0b8452c48e77d63ab25442ab494c3e3db`.
+    Keyed-mode limits remain unproven because no OpenFIGI key is configured.
+  - >-
     2026-09-25 Twelve Data credentialed live validation passed `1/1` from a
     network-enabled execution at source `eeea8cc667de905a5fd635b695713e33f5872f66`,
     with one request and 131 response bytes. Native minute headers reported

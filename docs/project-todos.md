@@ -13,6 +13,9 @@
 - [x] Attempt the exact-source EDGAR live matrix. It stopped before transport
       at `0/0` because no durable account-wide/IP request baseline is
       available; no SEC request was made and no quota was inferred.
+- [x] Refresh the keyless OpenFIGI mapping/profile/account-usage matrix at the
+      current source. It passed `3/3` with three requests; keyed-mode evidence
+      remains intentionally absent because no OpenFIGI key is configured.
 
 - [x] Attempt the focused credentialed Twelve Data account-usage probe with an
       isolated owner-only durable ledger. The first shell attempt failed before

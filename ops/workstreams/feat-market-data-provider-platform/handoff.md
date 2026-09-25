@@ -1,5 +1,13 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 OpenFIGI keyless matrix at current source
+
+- The bounded keyless OpenFIGI mapping/profile/account-usage matrix passed
+  `3/3` at source `fd2fecb0b8452c48e77d63ab25442ab494c3e3db`, with three
+  requests and redacted aggregate telemetry. This refreshes current-source
+  transport evidence; keyed-mode limits remain unproven because no OpenFIGI
+  key is configured.
+
 ## 2026-09-25 EDGAR live preflight remains baseline-gated
 
 - The exact current EDGAR live matrix was attempted with the valid local SEC
