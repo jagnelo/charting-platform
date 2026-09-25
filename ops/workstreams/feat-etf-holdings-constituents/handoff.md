@@ -62,6 +62,14 @@ Exchange. This confirms a Canadian publisher identity rather than a U.S.-listed
 ETF route, so `desjardins` remains `provider_not_a_portfolio_publisher` for the
 target universe.
 
+## Current audit checkpoint — Discipline Funds current tables — 2026-09-25
+
+Current DDV, DDX, and DDXX pages expose dated holdings views, but the tables
+are paginated and no stable executable export or independently callable complete
+endpoint has been captured. Discipline Funds remains
+`non_executable_public_source`; rendered browser evidence is not promoted as a
+native route.
+
 ## Current branch state
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`

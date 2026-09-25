@@ -3376,7 +3376,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-02
+    last_checked: 2026-09-25
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
@@ -3400,6 +3400,8 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.discipline_funds"
       - "web:discipline-funds-wpdatatables-loader-2026-09-02"
       - "live:discipline-funds-incomplete-holdings-route-2026-09-02"
+      - "web:discipline-funds-current-ddv-ddx-ddxx-pages-2026-09-25"
+      - "web:discipline-funds-current-holdings-pagination-2026-09-25"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -3413,7 +3415,15 @@ providers:
         source: "https://disciplinefunds.com/wp-admin/admin-ajax.php?action=get_wdtable&table_id=143"
         result: "The public wpDataTables AJAX probe returned an empty response even with the page nonce, session cookies, referrer, and complete DataTables payload; this does not provide a reproducible complete holdings route for the adapter."
         evidence_ref: "live:discipline-funds-incomplete-holdings-route-2026-09-02"
-    disposition_reason: "discipline_funds: The issuer's DDV, DDX, and DDXX pages are first-party candidates but currently expose a nonce-backed wpDataTables loader without a proven complete machine-readable artifact. Bounded fetches failed the complete-route contract (no DDV rows and only ten DDX/DDXX rows), so the provider remains fallback-only and is not promoted from an incomplete or potentially paginated view."
+      - date: 2026-09-25
+        source: "https://disciplinefunds.com/ddv-data/; https://disciplinefunds.com/ddx-data/; https://disciplinefunds.com/ddxx-data/"
+        result: "Current issuer pages expose dated holdings views for DDV (09/09/2026), DDX (09/18/2026), and DDXX (09/22/2026), but the rendered tables are paginated (five visible entries and ten total entries) and no executable export or independently callable complete endpoint was captured from this environment."
+        evidence_ref: "web:discipline-funds-current-ddv-ddx-ddxx-pages-2026-09-25"
+      - date: 2026-09-25
+        source: "https://disciplinefunds.com/ddx-data/; https://disciplinefunds.com/ddxx-data/"
+        result: "The current DDX and DDXX pages expose ten total table entries through the rendered pagination and current dates, but this browser evidence does not establish a stable machine-readable complete route for the adapter; no native promotion is made from rendered HTML alone."
+        evidence_ref: "web:discipline-funds-current-holdings-pagination-2026-09-25"
+    disposition_reason: "discipline_funds: Current DDV/DDX/DDXX pages now expose dated holdings views, but only through rendered paginated tables with no captured stable executable export or independently callable complete endpoint. The provider remains fallback-only and is not promoted from browser-rendered or potentially paginated evidence."
     next_action: "discipline_funds: Re-test only after the issuer exposes a stable complete holdings export or a reproducible public data endpoint; then prove DDV/DDX/DDXX identity, current date, all rows, parser fixture, and bounded live coverage before native promotion."
     implementation_sha: null
     validation_refs: []
