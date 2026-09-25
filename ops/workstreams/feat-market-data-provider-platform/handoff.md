@@ -1,5 +1,25 @@
 # feat/market-data-provider-platform
 
+## 2026-09-25 exact-current lossless-envelope correction and validation
+
+- Commit `2ce1523494ef6222eb07fee00745131e0d4d8a27` closes another silent-loss
+  path: successful provider responses whose raw envelope is explicitly `{}` are
+  now retained for instrument events, option quotes, and tokenized assets;
+  explicit empty source payloads are never replaced by a fallback payload.
+  Focused regression coverage and Ruff pass.
+- The branch-owned backend unit gate passed `1913/1913` tests with `37`
+  warnings in `327.52s`, excluding only the ETF adapter file owned by the
+  parallel `feat/etf-holdings-constituents` branch. The Docker-backed
+  PostgreSQL/Redis integration gate passed `386/386` with `57` warnings in
+  `720.11s`; test containers were cleaned without a host-wide prune.
+- Exact-current provider preflight at this source stopped before transport:
+  `0/0` cases and zero provider requests. Its redacted `incomplete_preflight`
+  receipt is appended to `validation.jsonl`; no generic quota fallback was
+  introduced. Remaining blockers are still the explicit provider-specific
+  baseline/contract/rights/capability controls, complete NMS/OTC/SEC
+  reconciliation, external secret stores, deferred providers, publication,
+  and the separately authorized final shadow phase.
+
 ## 2026-09-25 full-unit harness environment blocker
 
 - The unit rerun remains inconclusive before the calendar-router assertions.

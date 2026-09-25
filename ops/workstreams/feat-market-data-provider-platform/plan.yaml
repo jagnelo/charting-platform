@@ -162,6 +162,17 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Exact-current source `2ce1523494ef6222eb07fee00745131e0d4d8a27` now
+    retains explicitly empty successful provider envelopes instead of dropping
+    them or substituting another payload: instrument-event pages, option quote
+    responses, and tokenized asset responses preserve `{}` evidence. The
+    branch-owned backend unit gate passes 1913/1913 (37 warnings, 327.52s),
+    Docker PostgreSQL/Redis integration passes 386/386 (57 warnings, 720.11s),
+    Ruff/diff/workstream validation pass, and the exact-current live preflight
+    stops before transport at 0/0 with zero provider requests. Provider
+    contract/baseline/legal/capability, universe, secret-store, deferred
+    provider, publication, and final-shadow gates remain open.
+  - >-
     Exact current source `8954f59f00cef77343adbe53440bb17eeb13ddca` now has
     durable, credentialed account-usage evidence for MarketData.app, Twelve
     Data, EODHD, and Binance (`1/1` each; four bounded requests). The native
