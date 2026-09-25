@@ -17,6 +17,7 @@ from app.models.provider_observation import (
     DatasetStatus,
     InstrumentDatasetState,
     OptionChainSnapshot,
+    OptionQuoteObservation,
     OptionQuotePoint,
 )
 from app.models.provider_runtime import ProviderCapability
@@ -37,6 +38,30 @@ from app.services.risk_free_rate import get_risk_free_rate
 # Backward-compatible private name retained for existing service tests and
 # callers while the reviewed estimator now lives with the provider adapter.
 _marketdata_option_quote_credit_bound = estimate_marketdata_app_option_quote_history_credit_count
+
+
+def _option_quote_payload(point: object) -> dict:
+    """Return the original quote body, or a lossless normalized fallback."""
+
+    raw_payload = getattr(point, "raw_payload", None)
+    if raw_payload:
+        return raw_payload
+    return {
+        "provider_symbol": getattr(point, "provider_symbol", None),
+        "observed_at": getattr(point, "observed_at").isoformat(),
+        "bid": str(getattr(point, "bid")) if getattr(point, "bid") is not None else None,
+        "ask": str(getattr(point, "ask")) if getattr(point, "ask") is not None else None,
+        "mark": str(getattr(point, "mark")) if getattr(point, "mark") is not None else None,
+        "last": str(getattr(point, "last_price", getattr(point, "last", None)))
+        if getattr(point, "last_price", getattr(point, "last", None)) is not None
+        else None,
+        "volume": str(getattr(point, "volume")) if getattr(point, "volume") is not None else None,
+        "open_interest": (
+            str(getattr(point, "open_interest"))
+            if getattr(point, "open_interest") is not None
+            else None
+        ),
+    }
 
 
 def _now_utc() -> datetime:
@@ -427,6 +452,7 @@ async def sync_option_chain_snapshot(
         (contract.observed_at for contract in contracts if contract.observed_at), default=_now_utc()
     )
     snapshot_hash = _snapshot_hash(contracts, expiration)
+    fetched_at = _now_utc()
     snapshot = (
         await db.execute(
             select(OptionChainSnapshot).where(
@@ -444,7 +470,7 @@ async def sync_option_chain_snapshot(
             provider_symbol=provider_symbol_for_instrument(underlying, execution.provider_name),
             expiration_date=expiration,
             observed_at=observed_at,
-            fetched_at=_now_utc(),
+            fetched_at=fetched_at,
             snapshot_hash=snapshot_hash,
             raw_payload={"provider": execution.provider_name, "contract_count": len(contracts)},
         )
@@ -526,6 +552,17 @@ async def sync_option_chain_snapshot(
                 json.dumps(contract.raw_payload or {}, sort_keys=True, default=str).encode("utf-8")
             ).hexdigest(),
         }
+        db.add(
+            OptionQuoteObservation(
+                option_instrument_id=option_instrument.id,
+                snapshot_id=snapshot.id,
+                data_source_id=execution.data_source.id,
+                provider_symbol=contract.provider_symbol,
+                observed_at=point_values["observed_at"],
+                fetched_at=fetched_at,
+                payload=_option_quote_payload(contract),
+            )
+        )
         await db.execute(
             _ins.on_conflict_do_update(
                 constraint="uq_option_quote_point_observed",
@@ -760,6 +797,17 @@ async def sync_option_quote_history(
             ).encode("utf-8")
         ).hexdigest()
         _hist_ins = pg_insert(OptionQuotePoint)
+        db.add(
+            OptionQuoteObservation(
+                option_instrument_id=option_instrument.id,
+                snapshot_id=None,
+                data_source_id=execution.data_source.id,
+                provider_symbol=point.provider_symbol,
+                observed_at=point.observed_at,
+                fetched_at=fetched_at,
+                payload=_option_quote_payload(point),
+            )
+        )
         await db.execute(
             _hist_ins.on_conflict_do_update(
                 constraint="uq_option_quote_point_observed",

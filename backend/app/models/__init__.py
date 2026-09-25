@@ -83,6 +83,7 @@ from app.models.provider_observation import (
     LatestPriceSnapshot,
     MarketBarObservation,
     OptionChainSnapshot,
+    OptionQuoteObservation,
     OptionQuotePoint,
     UniverseDiscoverySnapshot,
 )
@@ -208,6 +209,7 @@ __all__ = [
     "LatestPriceSnapshot",
     "MarketBarObservation",
     "OptionChainSnapshot",
+    "OptionQuoteObservation",
     "OptionQuotePoint",
     "UniverseDiscoverySnapshot",
     "InstrumentEvent",

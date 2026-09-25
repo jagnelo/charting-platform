@@ -174,6 +174,12 @@ every provider response is appended to `fundamental_fact_observation` or
 settlement date therefore remains available for replay and audit instead of
 being silently ignored by the natural-key projection.
 
+Option quote points follow the same rule: normalized `OptionQuotePoint` rows
+serve time-series queries, while each chain or historical quote response is
+also appended to `option_quote_observation` with the original payload and local
+fetch timestamp. A provider revision sharing an observation timestamp cannot
+erase the earlier response.
+
 The mapping is enforced consistently by normal application routing, the direct
 live-probe planner, and the manifest preflight. Missing, duplicated, or
 non-existent `reconciled_dimensions` entries fail closed before transport;

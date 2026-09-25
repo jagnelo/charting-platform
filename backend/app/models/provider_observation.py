@@ -326,6 +326,40 @@ class OptionQuotePoint(Base, TimestampMixin):
     )
 
 
+class OptionQuoteObservation(Base, TimestampMixin):
+    """Immutable provider response behind the normalized option quote point."""
+
+    __tablename__ = "option_quote_observation"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    option_instrument_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    snapshot_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("option_chain_snapshot.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    option_instrument: Mapped["Instrument"] = relationship()
+    snapshot: Mapped["OptionChainSnapshot | None"] = relationship()
+    data_source: Mapped["DataSource"] = relationship()
+
+    __table_args__ = (
+        Index(
+            "ix_option_quote_observation_option_source_observed",
+            "option_instrument_id",
+            "data_source_id",
+            "observed_at",
+        ),
+    )
+
+
 class InstrumentSearchSnapshot(Base, TimestampMixin):
     __tablename__ = "instrument_search_snapshot"
 
