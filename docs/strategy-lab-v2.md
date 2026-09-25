@@ -572,8 +572,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and publish acknowledgements are resolved without I/O. Exact enqueue and
   acknowledgement retries replay idempotently; unknown acknowledgements reject.
   Message identity excludes scheduling timestamps, while the full record retains
-  them for auditability. PostgreSQL transactionality and Redis transport remain
-  adapter responsibilities.
+  them for auditability. Creation and availability timestamps normalize to UTC
+  before scheduling and state fingerprinting. PostgreSQL transactionality and
+  Redis transport remain adapter responsibilities.
 - `audit_outbox.py` links an audit entry to its transport envelope through one
   pure atomic staging resolution. The envelope must carry the audit entry
   identity; gaps, conflicts, or rejects return both original states so an
