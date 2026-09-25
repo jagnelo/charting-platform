@@ -41,7 +41,7 @@ from app.strategy_lab_v2.result_completion import (
 )
 from app.strategy_lab_v2.result_publication import ResultPublicationDecision
 from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution, resolve_search_dispatch
-from app.strategy_lab_v2.search_state import new_search_execution_state
+from app.strategy_lab_v2.search_state import SearchCandidatePhase, new_search_execution_state
 from app.strategy_lab_v2.storage import (
     StorageTransactionDecision,
     resolve_storage_transaction,
@@ -116,6 +116,45 @@ async def test_application_forward_lifecycle_is_owner_scoped_and_utc_normalized(
     assert observed["transition"]["principal"].id == "42"
     assert observed["transition"]["now"].tzinfo is UTC
     assert observed["warmup"]["principal"].id == "42"
+
+
+@pytest.mark.asyncio
+async def test_application_search_candidate_lifecycle_is_owner_scoped_and_utc_normalized() -> None:
+    observed: dict[str, Any] = {}
+    experiment = content_digest("search-experiment")
+
+    class SearchStore:
+        async def start_candidate(self, **kwargs: Any) -> Any:
+            observed["start"] = kwargs
+            return SimpleNamespace()
+
+        async def record_terminal(self, **kwargs: Any) -> Any:
+            observed["terminal"] = kwargs
+            return SimpleNamespace()
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._persistence = SimpleNamespace(search_state=SearchStore())
+    await adapter.start_search_candidate(
+        principal=_User(42),
+        experiment_fingerprint=experiment,
+        candidate_index=0,
+        attempt_id="attempt-1",
+        now=datetime(2024, 1, 2, 13, 0, tzinfo=UTC),
+    )
+    await adapter.record_search_candidate_terminal(
+        principal=_User(42),
+        experiment_fingerprint=experiment,
+        candidate_index=0,
+        attempt_id="attempt-1",
+        phase=SearchCandidatePhase.SUCCEEDED,
+        now=datetime(2024, 1, 2, 14, 0, tzinfo=UTC),
+        result_fingerprint=content_digest("result"),
+    )
+
+    assert observed["start"]["principal"].id == "42"
+    assert observed["start"]["now"].tzinfo is UTC
+    assert observed["terminal"]["principal"].id == "42"
+    assert observed["terminal"]["phase"] is SearchCandidatePhase.SUCCEEDED
 
 
 def test_application_adapter_composes_all_durable_api_adapters() -> None:

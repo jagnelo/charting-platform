@@ -857,6 +857,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   compare-and-set fingerprints. Exact retries replay, while candidate or
   experiment tampering fails closed; dispatch transport and worker effects
   remain separate integration concerns.
+- `application.py` now exposes owner-normalized candidate start/retry and
+  terminal-record methods over that search state adapter. Candidate timestamps
+  are normalized to UTC before compare-and-set persistence, while candidate
+  dispatch authorization and worker transport remain explicit host seams.
 - `postgres_legacy.py` maps digest-only legacy import records and compatibility
   assessments to an owner-scoped additive PostgreSQL registry. Original
   metadata and mapping evidence are authenticated before each read; supported

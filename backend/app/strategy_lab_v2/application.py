@@ -74,7 +74,11 @@ from app.strategy_lab_v2.runtime_execution import (
     StrategyRuntimeRequest,
 )
 from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution
-from app.strategy_lab_v2.search_state import SearchExecutionState, SearchStateResolution
+from app.strategy_lab_v2.search_state import (
+    SearchCandidatePhase,
+    SearchExecutionState,
+    SearchStateResolution,
+)
 from app.strategy_lab_v2.storage import (
     AggregateKey,
     AggregateMutation,
@@ -322,6 +326,66 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             experiment_fingerprint=experiment_fingerprint,
             request_id=cancellation_request_id,
             now=now,
+        )
+
+    async def start_search_candidate(
+        self,
+        *,
+        principal: Any,
+        experiment_fingerprint: str,
+        candidate_index: int,
+        attempt_id: str,
+        now: datetime,
+    ) -> SearchStateResolution:
+        """Start or retry one owner-scoped search candidate."""
+
+        if not isinstance(experiment_fingerprint, str) or not experiment_fingerprint.strip():
+            raise ValueError("experiment_fingerprint must not be empty")
+        if not isinstance(candidate_index, int) or isinstance(candidate_index, bool) or candidate_index < 0:
+            raise ValueError("candidate_index must be a non-negative integer")
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        if not isinstance(now, datetime) or now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("now must be a timezone-aware datetime")
+        return await self._persistence.search_state.start_candidate(
+            principal=_principal_identity(principal),
+            experiment_fingerprint=experiment_fingerprint,
+            candidate_index=candidate_index,
+            attempt_id=attempt_id,
+            now=now.astimezone(UTC),
+        )
+
+    async def record_search_candidate_terminal(
+        self,
+        *,
+        principal: Any,
+        experiment_fingerprint: str,
+        candidate_index: int,
+        attempt_id: str,
+        phase: SearchCandidatePhase,
+        now: datetime,
+        result_fingerprint: str | None = None,
+    ) -> SearchStateResolution:
+        """Persist one terminal search-candidate receipt with replay semantics."""
+
+        if not isinstance(experiment_fingerprint, str) or not experiment_fingerprint.strip():
+            raise ValueError("experiment_fingerprint must not be empty")
+        if not isinstance(candidate_index, int) or isinstance(candidate_index, bool) or candidate_index < 0:
+            raise ValueError("candidate_index must be a non-negative integer")
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        if not isinstance(phase, SearchCandidatePhase):
+            raise TypeError("phase must be a SearchCandidatePhase")
+        if not isinstance(now, datetime) or now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("now must be a timezone-aware datetime")
+        return await self._persistence.search_state.record_terminal(
+            principal=_principal_identity(principal),
+            experiment_fingerprint=experiment_fingerprint,
+            candidate_index=candidate_index,
+            attempt_id=attempt_id,
+            phase=phase,
+            now=now.astimezone(UTC),
+            result_fingerprint=result_fingerprint,
         )
 
     async def dispatch_search_candidate(

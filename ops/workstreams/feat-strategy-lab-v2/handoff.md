@@ -2,6 +2,20 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Search candidate application lifecycle checkpoint
+
+The application adapter now exposes owner-normalized search candidate
+start/retry and terminal-record operations over `PostgresSearchStateAdapter`.
+Candidate transition timestamps are normalized to UTC before persistence, and
+the typed candidate phase/result boundary is validated before the durable
+compare-and-set adapter is called. Search dispatch authorization and worker
+transport remain explicit host-owned seams.
+
+Focused application lifecycle coverage passed 2 tests. Ruff passed for the
+package and MyPy passed across 277 source files. Search dispatch activation,
+stable Nautilus execution, upstream reconciliation, and deployment remain
+gated.
+
 ## 2026-09-25 - Forward lifecycle application seam checkpoint
 
 `PostgresStrategyLabV2Adapter` now exposes owner-normalized forward lifecycle
