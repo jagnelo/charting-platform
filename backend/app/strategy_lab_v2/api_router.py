@@ -37,7 +37,7 @@ from app.strategy_lab_v2.api_resources import (
     ResourceDocument,
     ResourceIdentifier,
 )
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import (
     ExecutionCommand,
@@ -57,6 +57,12 @@ from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationReceipt,
     ResourceMutationRequest,
     ResourceMutationResolution,
+)
+from app.strategy_lab_v2.search_state import (
+    SearchExecutionState,
+    SearchStateDecision,
+    SearchStateResolution,
+    new_search_execution_state,
 )
 from app.strategy_lab_v2.strategy_validation import validate_strategy_source
 from app.strategy_lab_v2.submissions import (
@@ -170,6 +176,30 @@ class CapabilityPreflightAdapter(Protocol):
         payload: Mapping[str, Any],
         payload_digest: str,
     ) -> Awaitable[CapabilitySummary] | CapabilitySummary: ...
+
+
+class SearchStateApiAdapter(Protocol):
+    """Application-owned durable search queue operations exposed by the API."""
+
+    def initialize_search(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        idempotency_key: str,
+        state: SearchExecutionState,
+    ) -> Awaitable[SearchStateResolution] | SearchStateResolution: ...
+
+    def cancel_search(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        idempotency_key: str,
+        experiment_fingerprint: str,
+        cancellation_request_id: str,
+        now: datetime,
+    ) -> Awaitable[SearchStateResolution] | SearchStateResolution: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -432,6 +462,32 @@ def serialize_capability_summary(
                     "payload_digest": payload_digest,
                     "report_fingerprint": summary.report_fingerprint,
                     "binding_fingerprint": summary.binding_fingerprint,
+                },
+            }
+        }
+    )
+
+
+def serialize_search_state(
+    resolution: SearchStateResolution, *, request_id: str
+) -> dict[str, Any]:
+    """Serialize one durable resumable search queue checkpoint."""
+
+    if not isinstance(resolution, SearchStateResolution):
+        raise TypeError("resolution must be a SearchStateResolution")
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise ValueError("request_id must not be empty")
+    state = resolution.state
+    return _json_value(
+        {
+            "data": {
+                "type": "search-experiments",
+                "id": state.experiment_fingerprint,
+                "attributes": asdict(state),
+                "meta": {
+                    "request_id": request_id,
+                    "decision": resolution.decision,
+                    "state_fingerprint": state.fingerprint,
                 },
             }
         }
@@ -987,6 +1043,70 @@ def _parse_legacy_import(
     return import_request, assessment
 
 
+def _parse_search_initialization(
+    body: Mapping[str, Any], *, experiment_fingerprint: str, request_id: str, now: datetime
+) -> SearchExecutionState:
+    """Parse a strict immutable trial-fingerprint list for a search queue."""
+
+    try:
+        require_sha256_digest(experiment_fingerprint, field_name="experiment_fingerprint")
+    except (TypeError, ValueError) as error:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "experiment_id must be a SHA-256 content fingerprint",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                details={"reason": str(error)},
+            )
+        ) from error
+    if not isinstance(body, Mapping) or set(body) != {"trial_fingerprints"}:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "search body must contain trial_fingerprints only",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    trial_fingerprints = body["trial_fingerprints"]
+    if not isinstance(trial_fingerprints, Sequence) or isinstance(
+        trial_fingerprints, str | bytes
+    ):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "trial_fingerprints must be an array",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    trials = tuple(trial_fingerprints)
+    if not trials or any(not isinstance(item, str) for item in trials):
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "trial_fingerprints must contain at least one string",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        )
+    try:
+        for fingerprint in trials:
+            require_sha256_digest(fingerprint, field_name="trial_fingerprint")
+        return new_search_execution_state(experiment_fingerprint, trials, now=now)
+    except (TypeError, ValueError) as error:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "trial_fingerprints are invalid",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                details={"reason": str(error)},
+            )
+        ) from error
+
+
 def create_strategy_lab_router(
     *,
     adapter_dependency: Callable[..., Any],
@@ -1192,6 +1312,193 @@ def create_strategy_lab_router(
                 _api_error(
                     ApiErrorCode.INTERNAL_ERROR,
                     "Strategy Lab v2 resource read failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
+    @router.post("/experiments/{experiment_id}/search", status_code=status.HTTP_202_ACCEPTED)
+    async def initialize_search(
+        experiment_id: str,
+        request: Request,
+        body: Any = Body(...),
+        idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Create or replay a durable resumable search candidate queue."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            body = await _strict_json_body(request, request_id)
+            try:
+                key = _safe_header_value(idempotency_key, "Idempotency-Key", 256)
+            except (TypeError, ValueError) as error:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "Idempotency-Key must be non-empty, at most 256 characters, and control-free",
+                        request_id,
+                        status.HTTP_400_BAD_REQUEST,
+                        details={"reason": str(error)},
+                    )
+                )
+            state = _parse_search_initialization(
+                body,
+                experiment_fingerprint=experiment_id,
+                request_id=request_id,
+                now=clock(),
+            )
+            initialize = getattr(adapter, "initialize_search", None)
+            if not callable(initialize):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "search state adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                        details={"reason": "the host has not supplied search persistence"},
+                    )
+                )
+            resolution = await _resolve(
+                initialize(
+                    principal=principal,
+                    request_id=request_id,
+                    idempotency_key=key,
+                    state=state,
+                )
+            )
+            if not isinstance(resolution, SearchStateResolution):
+                raise TypeError("adapter returned an invalid search state resolution")
+            if resolution.decision is SearchStateDecision.REJECT:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.CONFLICT,
+                        resolution.rejection_reason or "search experiment is already bound to different content",
+                        request_id,
+                        status.HTTP_409_CONFLICT,
+                    )
+                )
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content=serialize_search_state(resolution, request_id=request_id),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "search initialization request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 search initialization failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 search initialization failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
+    @router.post(
+        "/experiments/{experiment_id}/search/cancel", status_code=status.HTTP_202_ACCEPTED
+    )
+    async def cancel_search(
+        experiment_id: str,
+        request: Request,
+        idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Request durable cancellation of a search queue."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            try:
+                key = _safe_header_value(idempotency_key, "Idempotency-Key", 256)
+                require_sha256_digest(experiment_id, field_name="experiment_fingerprint")
+            except (TypeError, ValueError) as error:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "search cancellation identity is invalid",
+                        request_id,
+                        status.HTTP_400_BAD_REQUEST,
+                        details={"reason": str(error)},
+                    )
+                )
+            cancel = getattr(adapter, "cancel_search", None)
+            if not callable(cancel):
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.PRECONDITION_FAILED,
+                        "search state adapter is not configured",
+                        request_id,
+                        status.HTTP_501_NOT_IMPLEMENTED,
+                        details={"reason": "the host has not supplied search persistence"},
+                    )
+                )
+            cancellation_request_id = content_digest(
+                {
+                    "experiment_fingerprint": experiment_id,
+                    "idempotency_key": key,
+                }
+            )
+            resolution = await _resolve(
+                cancel(
+                    principal=principal,
+                    request_id=request_id,
+                    idempotency_key=key,
+                    experiment_fingerprint=experiment_id,
+                    cancellation_request_id=cancellation_request_id,
+                    now=clock(),
+                )
+            )
+            if not isinstance(resolution, SearchStateResolution):
+                raise TypeError("adapter returned an invalid search cancellation resolution")
+            if resolution.decision is SearchStateDecision.REJECT:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.CONFLICT,
+                        resolution.rejection_reason or "search cancellation was rejected",
+                        request_id,
+                        status.HTTP_409_CONFLICT,
+                    )
+                )
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content=serialize_search_state(resolution, request_id=request_id),
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "search cancellation request is invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 search cancellation failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Strategy Lab v2 search cancellation failed",
                     locals().get("request_id", "unknown"),
                     status.HTTP_500_INTERNAL_SERVER_ERROR,
                     retryable=True,
@@ -1634,12 +1941,14 @@ __all__ = [
     "MAX_PAGE_SIZE",
     "ApiAdapterError",
     "CapabilityPreflightAdapter",
+    "SearchStateApiAdapter",
     "StrategyLabApiAdapter",
     "SubmissionServiceResult",
     "create_strategy_lab_router",
     "serialize_collection",
     "serialize_command",
     "serialize_capability_summary",
+    "serialize_search_state",
     "serialize_resource",
     "serialize_resource_identifier",
     "serialize_submission",

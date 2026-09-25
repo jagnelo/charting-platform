@@ -44,6 +44,23 @@ route registration, and the missing-binding failure. Provider entitlement,
 engine registration, and the resolver's actual calculation remain host-owned
 and are not inferred by this branch.
 
+## 2026-09-25 - Durable search queue API checkpoint
+
+The versioned API now exposes durable search lifecycle routes:
+`POST /experiments/{experiment_id}/search` strictly accepts a content-addressed
+trial-fingerprint list and creates/replays the owner-scoped PostgreSQL search
+queue, while `POST /experiments/{experiment_id}/search/cancel` records an
+idempotent cancellation request. Responses expose candidate phases, attempt
+lineage, cancellation state, and authenticated state fingerprints as a stable
+`search-experiments` document. Conflicting definitions, invalid fingerprints,
+and missing search persistence fail closed with typed errors; no worker or
+engine execution is started by FastAPI.
+
+The application adapter now delegates initialization and cancellation to the
+existing CAS-backed `PostgresSearchStateAdapter`. Focused router coverage
+passed 25 tests; search dispatch, worker scheduling, and engine execution
+remain separate durable-worker gates.
+
 ## 2026-09-25 - Result-manifest artifact binding checkpoint
 
 Result completion now accepts the successful manifest's output-artifact

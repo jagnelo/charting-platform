@@ -50,6 +50,12 @@ from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationResolution,
     create_resource_mutation_receipt,
 )
+from app.strategy_lab_v2.search_state import (
+    SearchExecutionState,
+    SearchStateDecision,
+    SearchStateResolution,
+    request_search_cancellation,
+)
 from app.strategy_lab_v2.submissions import (
     SubmissionDecision,
     SubmissionResolution,
@@ -130,6 +136,7 @@ class FakeAdapter:
         self.mutations: list[tuple[str, str, str]] = []
         self.legacy_imports: list[str] = []
         self.preflights: list[tuple[str, str, str]] = []
+        self.search_states: dict[str, SearchExecutionState] = {}
         self.document = _document()
 
     async def list_resources(self, **kwargs: Any) -> ResourceCollection:
@@ -237,6 +244,32 @@ class FakeAdapter:
             authoritative=True,
             can_publish_authoritative_results=True,
         )
+
+    async def initialize_search(self, **kwargs: Any) -> SearchStateResolution:
+        state = kwargs["state"]
+        current = self.search_states.get(state.experiment_fingerprint)
+        if current is not None:
+            if current == state:
+                return SearchStateResolution(SearchStateDecision.REPLAY_EXISTING, current)
+            return SearchStateResolution(
+                SearchStateDecision.REJECT,
+                current,
+                rejection_reason="search experiment is already bound to different content",
+            )
+        self.search_states[state.experiment_fingerprint] = state
+        return SearchStateResolution(SearchStateDecision.APPLY, state)
+
+    async def cancel_search(self, **kwargs: Any) -> SearchStateResolution:
+        experiment_fingerprint = kwargs["experiment_fingerprint"]
+        state = self.search_states[experiment_fingerprint]
+        resolution = request_search_cancellation(
+            state,
+            request_id=kwargs["cancellation_request_id"],
+            now=kwargs["now"],
+        )
+        if resolution.decision is SearchStateDecision.APPLY:
+            self.search_states[experiment_fingerprint] = resolution.state
+        return resolution
 
 
 class ConflictAdapter(FakeAdapter):
@@ -431,6 +464,72 @@ def test_capability_preflight_requires_idempotency_and_object_body() -> None:
         )
         assert invalid_body.status_code == 422
         assert invalid_body.json()["errors"][0]["code"] == "validation_error"
+
+
+def test_search_api_initializes_and_cancels_a_durable_candidate_queue() -> None:
+    adapter = FakeAdapter()
+    experiment = content_digest("search-experiment")
+    trials = [content_digest("trial-1"), content_digest("trial-2")]
+    with _client(adapter) as client:
+        initialized = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/search",
+            headers={"Idempotency-Key": "search-key", "X-Request-ID": "search-request"},
+            json={"trial_fingerprints": trials},
+        )
+        assert initialized.status_code == 202
+        assert initialized.headers["x-request-id"] == "search-request"
+        data = initialized.json()["data"]
+        assert data["type"] == "search-experiments"
+        assert data["id"] == experiment
+        assert [item["phase"] for item in data["attributes"]["candidates"]] == [
+            "pending",
+            "pending",
+        ]
+        assert initialized.json()["data"]["meta"]["decision"] == "apply"
+
+        replay = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/search",
+            headers={"Idempotency-Key": "search-key"},
+            json={"trial_fingerprints": trials},
+        )
+        assert replay.status_code == 202
+        assert replay.json()["data"]["meta"]["decision"] == "replay_existing"
+
+        cancelled = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/search/cancel",
+            headers={"Idempotency-Key": "cancel-key", "X-Request-ID": "cancel-request"},
+        )
+        assert cancelled.status_code == 202
+        assert cancelled.json()["data"]["attributes"]["cancellation_requested"] is True
+        assert cancelled.json()["data"]["meta"]["decision"] == "apply"
+
+        cancel_replay = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/search/cancel",
+            headers={"Idempotency-Key": "cancel-key"},
+        )
+        assert cancel_replay.status_code == 202
+        assert cancel_replay.json()["data"]["meta"]["decision"] == "replay_existing"
+
+
+def test_search_api_rejects_invalid_queue_definition_and_missing_adapter() -> None:
+    experiment = content_digest("search-experiment")
+    with _client(FakeAdapter()) as client:
+        invalid = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/search",
+            headers={"Idempotency-Key": "search-key"},
+            json={"trial_fingerprints": ["not-a-digest"]},
+        )
+        assert invalid.status_code == 422
+        assert invalid.json()["errors"][0]["code"] == "validation_error"
+
+    with _client(object()) as client:
+        unsupported = client.post(
+            f"/api/v1/strategy-lab/v2/experiments/{experiment}/search",
+            headers={"Idempotency-Key": "search-key"},
+            json={"trial_fingerprints": [content_digest("trial-1")]},
+        )
+        assert unsupported.status_code == 501
+        assert unsupported.json()["errors"][0]["code"] == "precondition_failed"
 
 
 def test_router_lists_preserved_legacy_imports_without_payload_bytes() -> None:

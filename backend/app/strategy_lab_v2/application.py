@@ -45,6 +45,7 @@ from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationResolution,
     create_resource_mutation_receipt,
 )
+from app.strategy_lab_v2.search_state import SearchExecutionState, SearchStateResolution
 from app.strategy_lab_v2.storage import (
     AggregateKey,
     AggregateMutation,
@@ -188,6 +189,49 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise TypeError("capability_preflight must return a CapabilitySummary")
         registered = await self._capabilities.ensure(principal=owner, summary=summary)
         return registered.summary
+
+    async def initialize_search(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        idempotency_key: str,
+        state: SearchExecutionState,
+    ) -> SearchStateResolution:
+        """Persist or replay one owner-scoped resumable search queue."""
+
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        if not isinstance(idempotency_key, str) or not idempotency_key.strip():
+            raise ValueError("idempotency_key must not be empty")
+        if not isinstance(state, SearchExecutionState):
+            raise TypeError("state must be a SearchExecutionState")
+        return await self._persistence.search_state.initialize(
+            principal=_principal_identity(principal), state=state
+        )
+
+    async def cancel_search(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        idempotency_key: str,
+        experiment_fingerprint: str,
+        cancellation_request_id: str,
+        now: datetime,
+    ) -> SearchStateResolution:
+        """Persist or replay cancellation for one search queue."""
+
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        if not isinstance(idempotency_key, str) or not idempotency_key.strip():
+            raise ValueError("idempotency_key must not be empty")
+        return await self._persistence.search_state.cancel(
+            principal=_principal_identity(principal),
+            experiment_fingerprint=experiment_fingerprint,
+            request_id=cancellation_request_id,
+            now=now,
+        )
 
     async def create_resource(
         self,

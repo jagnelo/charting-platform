@@ -130,6 +130,8 @@ def test_registered_router_uses_versioned_prefix_and_application_dependencies() 
     assert {route.path for route in router.routes} >= {
         "/strategy-lab/v2/strategies/validate",
         "/strategy-lab/v2/capabilities/preflight",
+        "/strategy-lab/v2/experiments/{experiment_id}/search",
+        "/strategy-lab/v2/experiments/{experiment_id}/search/cancel",
         "/strategy-lab/v2/submissions",
         "/strategy-lab/v2/attempts/{attempt_id}/commands",
     }
