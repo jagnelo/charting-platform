@@ -11,6 +11,7 @@ reconciliation instead of being merged silently.
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Iterable, Sequence
 from datetime import UTC, date, datetime
 from typing import Any
@@ -20,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.data_source import DataSource
 from app.models.instrument_identity import InstrumentProviderSymbol
-from app.models.market_data_foundation import Issuer
+from app.models.market_data_foundation import Issuer, ProviderPaginationState
 from app.models.provider_runtime import ProviderCapability
 from app.providers import get_provider, list_provider_capabilities, supported_provider_names
 from app.providers.base import MarketEventRecord
@@ -145,8 +146,51 @@ async def _fetch_cursor_paginated_market_events(
     if not callable(page_method):
         raise TypeError("provider does not expose cursor-paginated market events")
 
-    cursor: str | None = None
-    seen_cursors: set[str] = set()
+    state_key = "market-events:" + ":".join(
+        (value.isoformat() if value is not None else "*") for value in (start, end)
+    ) + f":{provider_name.strip().lower()}"
+    state = (
+        await db.execute(
+            select(ProviderPaginationState)
+            .where(ProviderPaginationState.state_key == state_key)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if state is None:
+        state = ProviderPaginationState(
+            state_key=state_key,
+            provider=provider_name.strip().lower(),
+            capability=ProviderCapability.MARKET_EVENTS.value,
+            operation="fetch_market_events",
+            page_number=0,
+            cursor=None,
+            page_size=0,
+            status="pending",
+            pages_fetched=0,
+            last_page_count=0,
+            cursor_history=[],
+            metadata_payload={
+                "window": {
+                    "start": start.isoformat() if start else None,
+                    "end": end.isoformat() if end else None,
+                }
+            },
+        )
+        db.add(state)
+        await db.flush()
+    elif state.status == "complete":
+        # A completed daily window is eligible for a fresh snapshot; a
+        # partial/failed window retains its opaque continuation for retry.
+        state.page_number = 0
+        state.cursor = None
+        state.status = "pending"
+        state.pages_fetched = 0
+        state.last_page_count = 0
+        state.last_error = None
+        state.cursor_history = []
+
+    cursor: str | None = state.cursor
+    seen_cursors: set[str] = set(str(item) for item in (state.cursor_history or []))
     records: list[MarketEventRecord] = []
     failures: list[dict[str, str]] = []
     page_count = 0
@@ -173,6 +217,9 @@ async def _fetch_cursor_paginated_market_events(
                 treat_empty_as_failure=False,
             )
         except Exception as exc:  # noqa: BLE001 - retain partial pages.
+            state.status = "failed"
+            state.last_failure_at = datetime.now(UTC)
+            state.last_error = bounded_redact_provider_message(exc, max_length=500)
             failures.append(
                 {
                     "operation": "fetch_market_events",
@@ -184,6 +231,12 @@ async def _fetch_cursor_paginated_market_events(
             break
 
         page_count += 1
+        state.pages_fetched = int(state.pages_fetched or 0) + 1
+        state.page_number = int(state.page_number or 0) + 1
+        state.last_page_count = 0
+        state.last_success_at = datetime.now(UTC)
+        state.last_failure_at = None
+        state.last_error = None
         page = execution.result
         if isinstance(page, list):
             # Preserve compatibility with fixture doubles and providers whose
@@ -211,6 +264,9 @@ async def _fetch_cursor_paginated_market_events(
         if not isinstance(page_events, list) or any(
             not isinstance(record, MarketEventRecord) for record in page_events
         ):
+            state.status = "failed"
+            state.last_failure_at = datetime.now(UTC)
+            state.last_error = "provider returned malformed market-event records"
             failures.append(
                 {
                     "operation": "fetch_market_events",
@@ -221,9 +277,16 @@ async def _fetch_cursor_paginated_market_events(
             )
             break
         records.extend(page_events)
+        state.last_page_count = len(page_events)
         if complete:
+            state.cursor = None
+            state.status = "complete"
+            state.cursor_history = []
             break
         if not isinstance(next_url, str) or not next_url:
+            state.status = "failed"
+            state.last_failure_at = datetime.now(UTC)
+            state.last_error = "provider returned an incomplete page without next_url"
             failures.append(
                 {
                     "operation": "fetch_market_events",
@@ -234,6 +297,9 @@ async def _fetch_cursor_paginated_market_events(
             )
             break
         if not isinstance(next_cursor, str) or not next_cursor.strip():
+            state.status = "failed"
+            state.last_failure_at = datetime.now(UTC)
+            state.last_error = "provider returned next_url without a validated next_cursor"
             failures.append(
                 {
                     "operation": "fetch_market_events",
@@ -244,7 +310,11 @@ async def _fetch_cursor_paginated_market_events(
             )
             break
         next_cursor = next_cursor.strip()
-        if next_cursor in seen_cursors or next_cursor == page_cursor:
+        cursor_digest = hashlib.sha256(next_cursor.encode("utf-8")).hexdigest()
+        if cursor_digest in seen_cursors or next_cursor == page_cursor:
+            state.status = "failed"
+            state.last_failure_at = datetime.now(UTC)
+            state.last_error = "provider repeated a market-event cursor"
             failures.append(
                 {
                     "operation": "fetch_market_events",
@@ -254,8 +324,11 @@ async def _fetch_cursor_paginated_market_events(
                 }
             )
             break
-        seen_cursors.add(next_cursor)
+        seen_cursors.add(cursor_digest)
+        state.cursor_history = sorted(seen_cursors)
         cursor = next_cursor
+        state.cursor = next_cursor
+        state.status = "partial"
 
     return execution.provider_name if "execution" in locals() else provider_name, records, failures, page_count
 

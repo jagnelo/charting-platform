@@ -8,7 +8,12 @@ from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
-from app.models.market_data_foundation import Issuer, MarketEvent, MarketEventObservation
+from app.models.market_data_foundation import (
+    Issuer,
+    MarketEvent,
+    MarketEventObservation,
+    ProviderPaginationState,
+)
 from app.models.provider_runtime import ProviderCapability
 from app.providers.base import MarketEventRecord
 from app.services import market_events
@@ -153,6 +158,12 @@ async def test_refresh_market_events_follows_massive_cursor_pages(
     assert {
         row.event_key for row in db.execute(select(MarketEvent)).scalars().all()
     } == {"massive:ipo:first", "massive:ipo:second"}
+    state = db.execute(
+        select(ProviderPaginationState).where(ProviderPaginationState.provider == "massive")
+    ).scalar_one()
+    assert state.status == "complete"
+    assert state.pages_fetched == 2
+    assert state.cursor is None
 
 
 @pytest.mark.asyncio
@@ -189,6 +200,12 @@ async def test_refresh_market_events_retains_pages_before_cursor_failure(
     assert result["failures"] == 1
     assert result["providers"][0]["failures"][0]["page_cursor"] == "blocked"
     assert db.execute(select(MarketEvent)).scalar_one().event_key == "massive:ipo:retained"
+    state = db.execute(
+        select(ProviderPaginationState).where(ProviderPaginationState.provider == "massive")
+    ).scalar_one()
+    assert state.status == "failed"
+    assert state.cursor == "blocked"
+    assert state.pages_fetched == 1
 
 
 @pytest.mark.asyncio
