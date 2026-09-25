@@ -29,6 +29,21 @@ registration, and application wiring remain host-owned gates. The authorized
 push remains blocked by the environment's rejected GitHub SSH key
 (`Permission denied (publickey)`).
 
+## 2026-09-25 - Application capability preflight binding checkpoint
+
+`PostgresStrategyLabV2Adapter` now exposes the optional application-owned
+capability resolver behind the registration-neutral route. The resolver receives
+the normalized owner, request/idempotency identities, canonical payload, and
+payload digest; its typed `CapabilitySummary` is authenticated and registered
+through the shared owner-scoped PostgreSQL capability adapter before the API
+response is returned. A missing resolver remains an explicit typed 501 rather
+than silently treating provider or engine capability as available.
+
+Focused application tests cover owner normalization, durable summary handoff,
+route registration, and the missing-binding failure. Provider entitlement,
+engine registration, and the resolver's actual calculation remain host-owned
+and are not inferred by this branch.
+
 ## 2026-09-25 - Result-manifest artifact binding checkpoint
 
 Result completion now accepts the successful manifest's output-artifact

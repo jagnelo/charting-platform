@@ -9,24 +9,28 @@ engine; those lifecycle concerns remain explicit follow-up gates.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+import inspect
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from importlib import import_module
 from typing import Any
 
+from app.strategy_lab_v2.api_contracts import ApiError, ApiErrorCode
 from app.strategy_lab_v2.api_resources import (
     ApiResourceType,
     ResourceCollection,
     ResourceDocument,
 )
 from app.strategy_lab_v2.api_router import (
+    ApiAdapterError,
     ResourceMutationServiceResult,
     StrategyLabApiAdapter,
     SubmissionServiceResult,
     create_strategy_lab_router,
 )
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
@@ -57,6 +61,11 @@ class _PrincipalIdentity:
     id: str
 
 
+CapabilityPreflightResolver = Callable[
+    ..., Awaitable[CapabilitySummary] | CapabilitySummary
+]
+
+
 def _principal_identity(principal: Any) -> _PrincipalIdentity:
     """Convert the existing integer-backed ``User.id`` to the storage key.
 
@@ -83,14 +92,19 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         session_factory: Callable[[], Any],
         *,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        capability_preflight: CapabilityPreflightResolver | None = None,
     ) -> None:
         if not callable(session_factory):
             raise TypeError("session_factory must be callable")
         if not callable(clock):
             raise TypeError("clock must be callable")
+        if capability_preflight is not None and not callable(capability_preflight):
+            raise TypeError("capability_preflight must be callable")
         self._clock = clock
+        self._capability_preflight = capability_preflight
         self._persistence = PostgresStrategyLabV2Persistence.build(session_factory, clock=clock)
         self._resources = self._persistence.resources
+        self._capabilities = self._persistence.capability
         self._submissions = self._persistence.submissions
         self._execution_state = self._persistence.execution_state
         self._commands = self._persistence.commands
@@ -124,6 +138,56 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             resource_type=resource_type,
             resource_id=resource_id,
         )
+
+    async def preflight_capability(
+        self,
+        *,
+        principal: Any,
+        request_id: str,
+        idempotency_key: str,
+        payload: Mapping[str, Any],
+        payload_digest: str,
+    ) -> CapabilitySummary:
+        """Resolve and durably register one application-owned capability summary.
+
+        Provider entitlement and engine registration remain outside this module;
+        the injected resolver supplies that typed result. The persistence
+        adapter then authenticates and replays the immutable owner-scoped
+        summary so the API response is backed by durable state.
+        """
+
+        owner = _principal_identity(principal)
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        if not isinstance(idempotency_key, str) or not idempotency_key.strip():
+            raise ValueError("idempotency_key must not be empty")
+        if not isinstance(payload, Mapping):
+            raise TypeError("payload must be a mapping")
+        if not isinstance(payload_digest, str) or not payload_digest.strip():
+            raise ValueError("payload_digest must not be empty")
+        if self._capability_preflight is None:
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.CAPABILITY_UNSUPPORTED,
+                    "capability preflight is not configured",
+                    request_id,
+                    501,
+                    False,
+                    {"reason": "the host has not supplied a capability binding"},
+                )
+            )
+        resolved = self._capability_preflight(
+            principal=owner,
+            request_id=request_id,
+            idempotency_key=idempotency_key,
+            payload=payload,
+            payload_digest=payload_digest,
+        )
+        summary = await resolved if inspect.isawaitable(resolved) else resolved
+        if not isinstance(summary, CapabilitySummary):
+            raise TypeError("capability_preflight must return a CapabilitySummary")
+        registered = await self._capabilities.ensure(principal=owner, summary=summary)
+        return registered.summary
 
     async def create_resource(
         self,
@@ -407,6 +471,7 @@ def create_registered_strategy_lab_v2_router():
 
 
 __all__ = [
+    "CapabilityPreflightResolver",
     "PostgresStrategyLabV2Adapter",
     "create_registered_strategy_lab_v2_router",
     "get_strategy_lab_v2_adapter",

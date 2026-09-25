@@ -5,8 +5,9 @@ from typing import Any, cast
 
 import pytest
 
+from app.strategy_lab_v2.api_contracts import ApiErrorCode
 from app.strategy_lab_v2.api_resources import ApiResourceType
-from app.strategy_lab_v2.api_router import ResourceMutationServiceResult
+from app.strategy_lab_v2.api_router import ApiAdapterError, ResourceMutationServiceResult
 from app.strategy_lab_v2.application import (
     PostgresStrategyLabV2Adapter,
     _principal_identity,
@@ -14,6 +15,7 @@ from app.strategy_lab_v2.application import (
     get_strategy_lab_v2_adapter,
 )
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.capability_summary import CapabilitySummary, CapabilitySummaryDecision
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_commands import PostgresCommandAdapter
 from app.strategy_lab_v2.postgres_execution_state import PostgresExecutionStateAdapter
@@ -59,12 +61,75 @@ def test_application_adapter_composes_all_durable_api_adapters() -> None:
     assert isinstance(adapter._commands, PostgresCommandAdapter)
 
 
+@pytest.mark.asyncio
+async def test_application_capability_preflight_resolver_is_persisted_and_owner_scoped() -> None:
+    summary = CapabilitySummary(
+        report_fingerprint=content_digest("report"),
+        binding_fingerprint=content_digest("binding"),
+        decision=CapabilitySummaryDecision.RIGOROUS,
+        data_gaps=(),
+        execution_gaps=(),
+        degradations=(),
+        ranking_eligible=True,
+        executable=True,
+        authoritative=True,
+        can_publish_authoritative_results=True,
+    )
+    observed: dict[str, Any] = {}
+
+    async def resolve(**kwargs: Any) -> CapabilitySummary:
+        observed.update(kwargs)
+        return summary
+
+    class CapabilityStore:
+        async def ensure(self, *, principal: Any, summary: CapabilitySummary) -> Any:
+            observed["stored_principal"] = principal
+            observed["stored_summary"] = summary
+            return SimpleNamespace(summary=summary)
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._capability_preflight = resolve
+    adapter._capabilities = CapabilityStore()
+
+    resolved = await adapter.preflight_capability(
+        principal=_User(42),
+        request_id="request-1",
+        idempotency_key="capability-key",
+        payload={"requirements": []},
+        payload_digest=content_digest({"requirements": []}),
+    )
+
+    assert resolved == summary
+    assert observed["principal"].id == "42"
+    assert observed["stored_principal"].id == "42"
+    assert observed["stored_summary"] == summary
+
+
+@pytest.mark.asyncio
+async def test_application_capability_preflight_fails_closed_without_host_binding() -> None:
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._capability_preflight = None
+
+    with pytest.raises(ApiAdapterError) as raised:
+        await adapter.preflight_capability(
+            principal=_User(42),
+            request_id="request-1",
+            idempotency_key="capability-key",
+            payload={"requirements": []},
+            payload_digest=content_digest({"requirements": []}),
+        )
+
+    assert raised.value.error.code is ApiErrorCode.CAPABILITY_UNSUPPORTED
+    assert raised.value.error.status_code == 501
+
+
 def test_registered_router_uses_versioned_prefix_and_application_dependencies() -> None:
     router = create_registered_strategy_lab_v2_router()
 
     assert router.prefix == "/strategy-lab/v2"
     assert {route.path for route in router.routes} >= {
         "/strategy-lab/v2/strategies/validate",
+        "/strategy-lab/v2/capabilities/preflight",
         "/strategy-lab/v2/submissions",
         "/strategy-lab/v2/attempts/{attempt_id}/commands",
     }
