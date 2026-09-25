@@ -2,6 +2,20 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Forward shadow-account API projection checkpoint
+
+Added the authenticated read-only
+`GET /api/v1/strategy-lab/v2/forward-instances/{instance_id}/account` route.
+It exposes canonical cash, positions, orders, fills, cursor, and applied-event
+identities through the same fail-closed adapter boundary as forward admission
+state, returning typed not-found and host-not-configured errors without
+inventing account data.
+
+The focused API serializer suite passed 2 tests, with Ruff, MyPy, and
+whitespace validation green. Full TestClient startup remains restricted by the
+existing environment hang; route logic is covered through the package-owned
+serializer and adapter seam.
+
 ## 2026-09-25 - Shadow-account compare-and-set hardening
 
 Account state updates now include the previously loaded state fingerprint in
