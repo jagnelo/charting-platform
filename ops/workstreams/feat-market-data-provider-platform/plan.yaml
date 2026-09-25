@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Exact-current safety preflight at source 7f9afa1be4d7d269544d2d635d77f81babe4505
+    stopped before transport with 0/0 provider cases and zero external
+    requests. It confirms Alpaca, Massive/EDGAR quota envelopes and corporate
+    action cursors remain safely admitted while the unresolved provider-specific
+    quota/baseline, legal/use, capability, complete-universe, and deployment
+    secret controls remain fail-closed. The receipt is in validation.jsonl.
+  - >-
     2026-09-25 lossless identity-quarantine correction at source
     c961adf78: the deduplicated InstrumentIdentityQuarantine row remains the
     current review projection, while every repeated provider candidate payload

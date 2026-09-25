@@ -6505,3 +6505,13 @@ provider or start the shadow run.
 - No ETF source or test was changed. Provider quota/legal/capability,
   complete NMS/OTC/SEC, external secret-store, deferred-provider, publication,
   and final-shadow gates remain open and fail-closed.
+
+## 2026-09-25 exact-current provider safety preflight
+
+- The clean exact-current source `7f9afa1be4d7d269544d2d635d77f81babe4505`
+  was checked with the owner-only quota ledger. The matrix stopped before
+  network transport (`0/0` cases, zero provider requests), preserving fail-closed
+  safety. Alpaca, Massive/EDGAR quota envelopes and corporate-action cursor
+  paths remain admitted; unresolved provider-specific quota/baseline, legal/use,
+  capability, complete-universe, external secret-store, deferred-provider,
+  publication, and final-shadow controls remain listed in the receipt.
