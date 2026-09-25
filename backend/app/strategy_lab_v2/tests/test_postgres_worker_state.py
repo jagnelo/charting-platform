@@ -7,6 +7,7 @@ import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import AttemptState, RunAttempt
+from app.strategy_lab_v2.forward_worker_authorization import ForwardWorkerAuthorization
 from app.strategy_lab_v2.lease_observations import (
     LeaseObservation,
     LeaseObservationDecision,
@@ -351,6 +352,41 @@ async def test_worker_state_adapter_rejects_tampered_rows_and_foreign_profiles()
     session.profiles[profile.worker_id]["profile_fingerprint"] = content_digest("tampered")
     with pytest.raises(ValueError, match="profile fingerprint"):
         await adapter.load_pool(profile)
+
+
+@pytest.mark.asyncio
+async def test_worker_state_adapter_loads_forward_authorization_atomically() -> None:
+    session = FakeSession()
+    adapter = PostgresWorkerStateAdapter(lambda: session)
+    profile = WorkerProfile("worker-1", WorkerKind.FORWARD, RUNTIME)
+    reservation_id = _reservation_id("forward")
+    await adapter.ensure_profile(profile)
+    await adapter.reserve(
+        profile=profile,
+        attempt_id="attempt-1",
+        reservation_id=reservation_id,
+        acquired_at=NOW,
+    )
+    attempt = RunAttempt("attempt-1", "trial-1", 1, AttemptState.RUNNING, NOW)
+    lease = acquire_attempt_lease(
+        attempt,
+        worker_id=profile.worker_id,
+        lease_id="lease-forward",
+        now=NOW,
+        lease_duration=timedelta(minutes=5),
+    )
+    await adapter.persist_lease(lease)
+
+    authorization = await adapter.load_forward_authorization(
+        profile=profile,
+        reservation_id=reservation_id,
+        lease_id=lease.lease_id,
+    )
+
+    assert isinstance(authorization, ForwardWorkerAuthorization)
+    assert authorization.reservation.reservation_id == reservation_id
+    assert authorization.lease.lease_id == lease.lease_id
+    assert any("FOR UPDATE" in call for call in session.calls)
 
 
 @pytest.mark.asyncio

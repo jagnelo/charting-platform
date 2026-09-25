@@ -910,15 +910,11 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise ValueError("reservation_id must not be empty")
         if not isinstance(lease_id, str) or not lease_id.strip():
             raise ValueError("lease_id must not be empty")
-        pool = await self._persistence.worker_state.load_pool(profile)
-        reservation = next(
-            (item for item in pool.reservations if item.reservation_id == reservation_id),
-            None,
+        return await self._persistence.worker_state.load_forward_authorization(
+            profile=profile,
+            reservation_id=reservation_id,
+            lease_id=lease_id,
         )
-        lease_state = await self._persistence.worker_state.load_lease(lease_id)
-        if reservation is None or lease_state is None:
-            return None
-        return ForwardWorkerAuthorization(reservation, lease_state.lease)
 
     async def apply_forward_account_event(
         self, *, principal: Any, event: ForwardAccountEvent

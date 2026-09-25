@@ -17,6 +17,7 @@ from enum import StrEnum
 from typing import Any, Protocol
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.forward_worker_authorization import ForwardWorkerAuthorization
 from app.strategy_lab_v2.lease_observations import (
     LeaseObservation,
     LeaseObservationDecision,
@@ -330,6 +331,41 @@ class PostgresWorkerStateAdapter:
                 if persisted != profile:
                     raise ValueError("PostgreSQL worker profile identity is already bound")
                 return await self._load_pool(session, persisted)
+
+    async def load_forward_authorization(
+        self,
+        *,
+        profile: WorkerProfile,
+        reservation_id: str,
+        lease_id: str,
+    ) -> ForwardWorkerAuthorization | None:
+        """Load one forward reservation and lease under a shared row lock."""
+
+        _validate_profile(profile)
+        if profile.kind is not WorkerKind.FORWARD:
+            raise ValueError("forward authorization requires a FORWARD worker profile")
+        if not isinstance(reservation_id, str) or not reservation_id.strip():
+            raise ValueError("reservation_id must not be empty")
+        require_sha256_digest(reservation_id, field_name="reservation_id")
+        if not isinstance(lease_id, str) or not lease_id.strip():
+            raise ValueError("lease_id must not be empty")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                persisted = await self._load_profile(session, profile.worker_id)
+                if persisted is None:
+                    return None
+                if persisted != profile:
+                    raise ValueError("PostgreSQL worker profile identity is already bound")
+                pool = await self._load_pool(session, persisted)
+                reservation = next(
+                    (item for item in pool.reservations if item.reservation_id == reservation_id),
+                    None,
+                )
+                lease_state = await self._load_lease(session, lease_id)
+                if reservation is None or lease_state is None:
+                    return None
+                return ForwardWorkerAuthorization(reservation, lease_state.lease)
 
     async def persist_lease(self, lease: ExecutionAttemptLease) -> LeaseObservationState:
         """Persist one newly acquired lease or replay the exact lease."""

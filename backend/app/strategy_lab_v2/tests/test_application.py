@@ -147,6 +147,14 @@ async def test_application_loads_forward_worker_authorization_from_durable_recor
     )
 
     class WorkerStore:
+        async def load_forward_authorization(
+            self, *, profile: WorkerProfile, reservation_id: str, lease_id: str
+        ) -> ForwardWorkerAuthorization:
+            assert profile.worker_id == "forward-worker-1"
+            assert reservation_id == reservation.reservation_id
+            assert lease_id == lease.lease_id
+            return ForwardWorkerAuthorization(reservation, lease)
+
         async def load_pool(self, received_profile: WorkerProfile) -> WorkerPoolState:
             assert received_profile == profile
             return WorkerPoolState(profile, (reservation,))
