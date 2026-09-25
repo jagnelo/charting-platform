@@ -684,6 +684,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   only event/replay fingerprints; a host-owned canonical event-stream adapter
   must resolve the event bytes, so transport data cannot select a provider,
   engine, or broker action.
+- `forward_worker_service.py` composes that authenticated handoff with the
+  bounded Redis worker scheduler. It leaves entries pending when materialization
+  or host event handling fails and acknowledges only an entry-bound durable
+  receipt; reservation, event acquisition, and Nautilus process execution stay
+  outside this transport service.
 - `execution_event_transaction.py` links each canonical execution-event append
   to its audit-journal entry and transactional-outbox message. Event sequence
   gaps, audit gaps, identity mismatches, and outbox conflicts return every

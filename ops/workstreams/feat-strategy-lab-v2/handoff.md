@@ -2,6 +2,21 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-09-25 - Forward worker service checkpoint
+
+Added `ForwardEventWorkerService`, a bounded Redis scheduler composition for
+authenticated forward-event work items. It retries materialization or host
+handler failures without acknowledging the stream entry and acknowledges only
+the handler's entry-bound durable receipt. The handler receives the validated
+stream entry plus typed event/replay fingerprints; provider event acquisition,
+forward worker reservation, and Nautilus execution remain explicit host-owned
+integration seams.
+
+Focused forward worker service, handoff, dispatch, application, and
+persistence coverage passed 35 tests. Ruff and MyPy remain green across 283
+source files. Event-stream activation, worker authorization/capacity binding,
+and stable Nautilus execution remain gated.
+
 ## 2026-09-25 - Authenticated forward worker handoff checkpoint
 
 `PostgresForwardEventDispatchAdapter` now exposes an authenticated
