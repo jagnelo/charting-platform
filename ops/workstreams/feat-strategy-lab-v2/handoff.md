@@ -10,6 +10,27 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - Planning state: ready; the plan remains at `ready_for_human_review` and the
   session-local goal is held at its plan-ready guard.
 
+## 2026-09-25 - Result-manifest artifact binding checkpoint
+
+Result completion now accepts the successful manifest's output-artifact
+identities as an optional application-supplied evidence set. When supplied,
+the pure completion gate rejects omitted, substituted, duplicated, or extra
+artifact publication plans before any commit is resolved. The PostgreSQL
+completion adapter carries the same evidence through its transaction, and the
+worker terminal adapter supplies `RunResultManifest.output_artifacts` so the
+host resolver cannot finalize a result against unrelated artifact bytes.
+
+Focused completion/persistence tests passed 10 tests; the complete Strategy Lab
+v2 package passed 832 tests. Branch-declared validation passed all six checks
+(832 package tests, 2 migration tests, Ruff, MyPy across 270 files, diff, and
+workstream validation). The exact backend gate passed 2,483 tests at 83.73%
+coverage with 86 warnings; the referenced runtime env file was absent in this
+checkout and `.env.dev` supplied test configuration. Compose profile validation
+passed, and both required cleanup passes retained zero testcontainer sessions,
+containers, images, or volumes. Host application evidence resolution, stable
+Nautilus release conformance, upstream contract reconciliation, and full
+application integration remain open gates.
+
 ## 2026-09-25 - Mounted result evidence checkpoint
 
 `sandbox.py` now exposes the validated host source for the hardened
