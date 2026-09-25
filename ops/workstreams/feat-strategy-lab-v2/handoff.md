@@ -4882,6 +4882,22 @@ The branch remains `ready_for_human_review`. Dedicated worker activation,
 shared migration/application reconciliation, stable Nautilus v2 conformance,
 and upstream provider/ETF/TC2000 integration remain gated.
 
+## 2026-09-25 - Explicit search terminal binding correction
+
+The search-dispatch terminal-evidence path now fails closed unless the host
+supplies an explicit resolver from the durable `SearchDispatchRecord` to the
+authoritative `WorkerSubmissionBinding`. The resolver is checked for owner and
+attempt consistency before evidence loads, and the persistence bundle threads
+it through the worker terminal resolver. No synthetic `SubmissionReceipt` is
+constructed from queue metadata, so `ExecutionOutcome.submission_id` remains
+the authoritative submission identity for settlement.
+
+Focused persistence and worker-evidence coverage passed 20 tests. The complete
+branch and exact backend coverage gates remain the next validation step for
+this correction; the branch stays `ready_for_human_review` pending host
+callback registration, shared-path reconciliation, stable Nautilus v2
+conformance, and upstream provider/ETF/TC2000 integration.
+
 ## 2026-09-25 - Legacy import inspection checkpoint
 
 Preserved digest-only legacy records are now exposed through the read-only

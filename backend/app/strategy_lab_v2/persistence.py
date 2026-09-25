@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -42,7 +42,10 @@ from app.strategy_lab_v2.postgres_result_materialization import PostgresResultMa
 from app.strategy_lab_v2.postgres_result_publication import PostgresResultPublicationAdapter
 from app.strategy_lab_v2.postgres_runtime_execution import PostgresRuntimeExecutionAdapter
 from app.strategy_lab_v2.postgres_runtime_receipts import PostgresRuntimeReceiptAdapter
-from app.strategy_lab_v2.postgres_search_dispatch import PostgresSearchDispatchAdapter
+from app.strategy_lab_v2.postgres_search_dispatch import (
+    PostgresSearchDispatchAdapter,
+    SearchDispatchRecord,
+)
 from app.strategy_lab_v2.postgres_search_state import PostgresSearchStateAdapter
 from app.strategy_lab_v2.postgres_snapshot_coverage import PostgresSnapshotCoverageAdapter
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
@@ -50,7 +53,7 @@ from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAd
 from app.strategy_lab_v2.postgres_worker_settlement import PostgresWorkerSettlementAdapter
 from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
-from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
+from app.strategy_lab_v2.submissions import SubmissionReceipt
 from app.strategy_lab_v2.worker_evidence import (
     WorkerSubmissionBinding,
     WorkerTerminalEvidenceInputs,
@@ -80,6 +83,14 @@ def _record_document(
         attributes=asdict(record),
         meta={"projection": "postgres", "record_fingerprint": revision_digest},
     )
+
+
+SearchDispatchBindingResolver = Callable[
+    [SearchDispatchRecord],
+    Awaitable[WorkerSubmissionBinding | None]
+    | WorkerSubmissionBinding
+    | None,
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -412,22 +423,30 @@ class PostgresStrategyLabV2Persistence:
         )
 
     async def load_worker_terminal_evidence_for_request(
-        self, *, request_fingerprint: str, attempt_id: str
+        self,
+        *,
+        request_fingerprint: str,
+        attempt_id: str,
+        search_dispatch_binding_resolver: SearchDispatchBindingResolver | None = None,
     ) -> WorkerTerminalEvidenceLookup | None:
         """Resolve a Redis dispatch identity and load authenticated evidence.
 
         Submission-backed queues join their dispatch row to the accepted
-        submission receipt. Search-dispatch queues have no submission row, so
-        their immutable dispatch record is projected into the same typed
-        receipt contract without inventing an owner or relaxing the attempt
-        binding.
+        submission receipt. Search-dispatch queues require an explicit
+        host-owned resolver to bind their dispatch record to that authoritative
+        submission receipt; without that seam, the lookup fails closed.
         """
+
+        if (
+            search_dispatch_binding_resolver is not None
+            and not callable(search_dispatch_binding_resolver)
+        ):
+            raise TypeError("search_dispatch_binding_resolver must be callable or None")
 
         binding = await self.submissions.load_dispatch_binding(
             request_fingerprint=request_fingerprint,
             attempt_id=attempt_id,
         )
-        synthetic_submission: SubmissionReceipt | None = None
         if binding is None:
             dispatch = await self.search_dispatch.load_by_request_fingerprint(
                 request_fingerprint
@@ -436,24 +455,28 @@ class PostgresStrategyLabV2Persistence:
                 return None
             if dispatch.request.attempt_id != attempt_id:
                 raise ValueError("search dispatch attempt identity drifted")
-            synthetic_request = SubmissionRequest(
-                idempotency_key=dispatch.request.idempotency_key,
-                operation=(
-                    f"search:{dispatch.experiment_fingerprint}:{dispatch.candidate_index}"
-                ),
-                attempt_id=dispatch.request.attempt_id,
-                payload_digest=dispatch.request.payload_digest,
-                submitted_at=dispatch.request.created_at,
-            )
-            synthetic_submission = SubmissionReceipt(
-                synthetic_request,
-                dispatch.request.created_at,
-            )
-            binding = WorkerSubmissionBinding(dispatch.owner_id, synthetic_submission)
+            if search_dispatch_binding_resolver is None:
+                return None
+            resolved_binding = search_dispatch_binding_resolver(dispatch)
+            if isinstance(resolved_binding, Awaitable):
+                resolved_binding = await resolved_binding
+            if resolved_binding is not None and not isinstance(
+                resolved_binding, WorkerSubmissionBinding
+            ):
+                raise TypeError(
+                    "search dispatch binding resolver must return WorkerSubmissionBinding or None"
+                )
+            if resolved_binding is None:
+                return None
+            if resolved_binding.owner_id != dispatch.owner_id:
+                raise ValueError("search dispatch owner identity drifted")
+            if resolved_binding.receipt.request.attempt_id != attempt_id:
+                raise ValueError("search dispatch submission attempt identity drifted")
+            binding = resolved_binding
         inputs = await self.load_worker_terminal_evidence_inputs(
             principal=binding.owner_id,
             attempt_id=attempt_id,
-            submission=synthetic_submission,
+            submission=binding.receipt,
         )
         return WorkerTerminalEvidenceLookup(binding, inputs)
 
@@ -462,6 +485,7 @@ class PostgresStrategyLabV2Persistence:
         artifact_plan_resolver: ArtifactPlanResolver,
         *,
         runtime_error_factory: WorkerRuntimeErrorFactory | None = None,
+        search_dispatch_binding_resolver: SearchDispatchBindingResolver | None = None,
     ) -> WorkerTerminalEvidenceResolver:
         """Compose authenticated lookup with explicit artifact mapping.
 
@@ -471,8 +495,17 @@ class PostgresStrategyLabV2Persistence:
         transport identity into an authenticated principal.
         """
 
+        async def lookup(
+            *, request_fingerprint: str, attempt_id: str
+        ) -> WorkerTerminalEvidenceLookup | None:
+            return await self.load_worker_terminal_evidence_for_request(
+                request_fingerprint=request_fingerprint,
+                attempt_id=attempt_id,
+                search_dispatch_binding_resolver=search_dispatch_binding_resolver,
+            )
+
         return create_worker_terminal_evidence_resolver(
-            self.load_worker_terminal_evidence_for_request,
+            lookup,
             artifact_plan_resolver,
             runtime_error_factory=runtime_error_factory,
         )
