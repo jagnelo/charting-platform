@@ -15527,18 +15527,14 @@ async def test_vistashares_adapter_rejects_incomplete_and_cross_account_csv(monk
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 
     FakeAsyncClient.queue = [
-        FakeResponse(
-            text=page_template.format(count=2), content_type="text/html", url=page_url
-        ),
+        FakeResponse(text=page_template.format(count=2), content_type="text/html", url=page_url),
         FakeResponse(text=csv_template.format(account="QUSA"), url=csv_url),
     ]
     with pytest.raises(ValueError, match="returned 1 rows; the product page declares 2"):
         await adapter.fetch_latest(symbol="QUSA")
 
     FakeAsyncClient.queue = [
-        FakeResponse(
-            text=page_template.format(count=1), content_type="text/html", url=page_url
-        ),
+        FakeResponse(text=page_template.format(count=1), content_type="text/html", url=page_url),
         FakeResponse(text=csv_template.format(account="AIS"), url=csv_url),
     ]
     with pytest.raises(ValueError, match="contained account AIS"):

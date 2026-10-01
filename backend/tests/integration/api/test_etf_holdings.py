@@ -3374,10 +3374,11 @@ def test_etf_holdings_snapshot_can_materialize_read_only_basket(
     admin_headers,
     auth_headers,
 ):
+    current_composition_date = date.today() - timedelta(days=1)
     ingest = client.post(
         "/api/v1/etf-holdings/DIA/ingest",
         json={
-            "composition_date": "2026-05-31",
+            "composition_date": current_composition_date.isoformat(),
             "provenance": "issuer_current_holdings",
             "source_provider": "issuer-test",
             "legal_metadata": {
@@ -3425,7 +3426,7 @@ def test_etf_holdings_snapshot_can_materialize_read_only_basket(
     assert basket["source_type"] == "etf_holdings"
     assert basket["is_system_managed"] is True
     assert basket["is_read_only"] is True
-    assert basket["composition_date"] == "2026-05-31"
+    assert basket["composition_date"] == current_composition_date.isoformat()
     assert basket["metadata"]["etf_symbol"] == "DIA"
     assert [member["symbol"] for member in basket["members"]] == ["AAPL", "MSFT"]
     assert basket["members"][0]["weight"] == "0.04000000"

@@ -5588,3 +5588,34 @@ The symbol capability runtime and audit ledger now carry the same dated
 passed 675, Ruff passed, workstream validation passed, and diff-check passed.
 AC10 remains deferred because the shared provider-platform capability is still
 not staged.
+
+## Full integration gate after fixture and formatting reconciliation — 2026-10-01
+
+The branch-owned strict-current test fixtures previously used a fixed
+2026-05-31 composition date. Under the enforced 120-day current-analysis
+window that date was correctly rejected as stale on 2026-10-01, so the two
+fixtures now use a clock-safe recent composition date (`date.today() - 1 day`).
+The focused basket and Strategy Lab regressions passed 2/2.
+
+The complete Docker-backed integration gate then passed workstream and
+dependency checks, migration compatibility (no migration changes), Ruff and
+format checks, frontend type-check, backend coverage (1,865 passed; 81.12%),
+frontend coverage (945 passed; 82.08%), production build, compose contracts,
+stack health, and research-runner isolation/policy probes. The host did not
+provide Docker Buildx, so the gate used an official Buildx v0.37.2 CLI plugin
+installed only under `/tmp/charting-docker-config`; no repository or system
+state was changed. The gate's provider probes were skipped because this
+checkpoint changed tests/formatting only.
+
+The functional E2E stage completed all 260 cases but ended non-green with 152
+passed, 106 skipped, and two failures: the existing Chart
+`F9c-template-comparison` remove-control pointer-interception timeout, and
+`F8p` Study Lab network-change/`Failed to fetch` failures against the local
+stack. Neither failure exercised ETF holdings assertions. Automatic teardown
+removed the branch-scoped stack, images, volumes, and network; the gate
+reported zero remaining containers, volumes, testcontainer sessions, or known
+bytes. This is recorded as narrowly classified unrelated E2E/environment
+evidence, not as a green full gate.
+
+AC10 remains deferred because staging still lacks `ETF_HOLDINGS`; AC11's
+fallback evidence and AC14's post-integration 30-day shadow gate remain open.

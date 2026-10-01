@@ -1,3 +1,6 @@
+from datetime import date, timedelta
+
+
 class TestStrategyLabAPI:
     def test_study_code_version_can_be_reused_as_strategy_signal(self, client, auth_headers):
         asset_res = client.post(
@@ -430,11 +433,12 @@ class TestStrategyLabAPI:
         instrument,
         ohlcv_bars,
     ):
+        current_composition_date = date.today() - timedelta(days=1)
         ingest_res = client.post(
             "/api/v1/etf-holdings/SPY/ingest",
             headers=admin_headers,
             json={
-                "composition_date": "2026-05-31",
+                "composition_date": current_composition_date.isoformat(),
                 "source_provider": "issuer-test",
                 "provenance": "issuer_current_holdings",
                 "legal_metadata": {

@@ -14850,18 +14850,14 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 + (f": {detail}" if detail else "")
             )
         body = output[:metadata_start]
-        metadata = output[metadata_start + len(marker_bytes) :].decode(
-            "utf-8", errors="replace"
-        )
+        metadata = output[metadata_start + len(marker_bytes) :].decode("utf-8", errors="replace")
         metadata_lines = metadata.splitlines()
         if len(metadata_lines) < 2:
             raise requests.RequestException("WisdomTree curl response metadata was incomplete")
         try:
             status_code = int(metadata_lines[0])
         except ValueError as exc:
-            raise requests.RequestException(
-                "WisdomTree curl response status was invalid"
-            ) from exc
+            raise requests.RequestException("WisdomTree curl response status was invalid") from exc
         response = requests.Response()
         response.status_code = status_code
         effective_url = metadata_lines[1]
@@ -14985,9 +14981,10 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                         headers=curl_headers,
                         timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
                     )
-                    if product_response.status_code in {403, 429} and _looks_like_issuer_access_challenge(
-                        product_response.text
-                    ):
+                    if product_response.status_code in {
+                        403,
+                        429,
+                    } and _looks_like_issuer_access_challenge(product_response.text):
                         raise ValueError(
                             "WisdomTree issuer access challenge blocked the curl product route."
                         )
@@ -68024,8 +68021,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         source_access="issuer_public_symbol_scoped_holdings_csv",
         expected_cadence="daily",
         url_templates=(
-            "https://www.mdsassetf.com/assets/data/"
-            "FilepointMDSass.40D4.D4_ETF_Holdings.csv",
+            "https://www.mdsassetf.com/assets/data/" "FilepointMDSass.40D4.D4_ETF_Holdings.csv",
         ),
         product_page_templates=("https://www.mdsassetf.com/",),
         live_tested_default_route=True,
@@ -72597,8 +72593,7 @@ class MDSassHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse the issuer-declared daily SASS holdings CSV."""
 
     HOLDINGS_URL = (
-        "https://www.mdsassetf.com/assets/data/"
-        "FilepointMDSass.40D4.D4_ETF_Holdings.csv"
+        "https://www.mdsassetf.com/assets/data/" "FilepointMDSass.40D4.D4_ETF_Holdings.csv"
     )
     FUND_SYMBOL = "SASS"
 
@@ -72607,7 +72602,9 @@ class MDSassHoldingsAdapter(IssuerCsvHoldingsAdapter):
         normalized_symbol = symbol.strip().upper()
         return HoldingsAdapterProbe(
             adapter_key=self.adapter_key,
-            confidence=Decimal("0.9600") if normalized_symbol == self.FUND_SYMBOL else Decimal("0.3000"),
+            confidence=Decimal("0.9600")
+            if normalized_symbol == self.FUND_SYMBOL
+            else Decimal("0.3000"),
             status="ready" if normalized_symbol == self.FUND_SYMBOL else "needs_issuer_route",
             reason=(
                 "M.D. Sass publishes SASS through an issuer-declared daily CSV."
@@ -72629,7 +72626,9 @@ class MDSassHoldingsAdapter(IssuerCsvHoldingsAdapter):
         del issuer_product_id, identifiers
         normalized_symbol = symbol.strip().upper()
         if normalized_symbol != self.FUND_SYMBOL:
-            raise ValueError(f"M.D. Sass's public holdings route currently supports only {self.FUND_SYMBOL}.")
+            raise ValueError(
+                f"M.D. Sass's public holdings route currently supports only {self.FUND_SYMBOL}."
+            )
         if source_url and source_url.rstrip("/") != self.HOLDINGS_URL.rstrip("/"):
             raise ValueError("M.D. Sass holdings must use the verified issuer CSV route.")
 
@@ -72650,7 +72649,9 @@ class MDSassHoldingsAdapter(IssuerCsvHoldingsAdapter):
         response.raise_for_status()
         rows, composition_date = self._parse_holdings_csv(response.text)
         if not rows or composition_date is None:
-            raise ValueError("M.D. Sass's public holdings CSV did not expose complete dated SASS rows.")
+            raise ValueError(
+                "M.D. Sass's public holdings CSV did not expose complete dated SASS rows."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
@@ -72695,7 +72696,9 @@ class MDSassHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raw_symbol = _clean(item.get("StockTicker"))
             name = _clean(item.get("SecurityName"))
             money_market_flag = _clean(item.get("MoneyMarketFlag"))
-            text = " ".join(value.upper() for value in (raw_symbol, name, money_market_flag) if value)
+            text = " ".join(
+                value.upper() for value in (raw_symbol, name, money_market_flag) if value
+            )
             holding_type = "cash" if money_market_flag == "Y" or "CASH" in text else "equity"
             row_type = "cash" if holding_type == "cash" else "security"
             raw_cusip = _clean(item.get("CUSIP"))

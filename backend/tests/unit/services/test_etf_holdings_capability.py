@@ -526,12 +526,18 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
         assert evidence_refs <= set(result.evidence_refs)
         assert "requires authentication" in result.next_action
 
-    assert "web:pimco-short-term-strategies-current-2026-10-01" in symbol_audit_for_profile(
-        profile_with_symbol("MINT", "pacific_investments")
-    ).evidence_refs
-    assert "web:pimco-core-bond-strategies-current-2026-10-01" in symbol_audit_for_profile(
-        profile_with_symbol("BOND", "pacific_investments")
-    ).evidence_refs
+    assert (
+        "web:pimco-short-term-strategies-current-2026-10-01"
+        in symbol_audit_for_profile(
+            profile_with_symbol("MINT", "pacific_investments")
+        ).evidence_refs
+    )
+    assert (
+        "web:pimco-core-bond-strategies-current-2026-10-01"
+        in symbol_audit_for_profile(
+            profile_with_symbol("BOND", "pacific_investments")
+        ).evidence_refs
+    )
 
 
 def test_tier_zero_symbol_audit_rejects_a_mismatched_provider_identity():

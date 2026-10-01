@@ -3027,7 +3027,9 @@ async def test_live_wisdomtree_tier_zero_symbol_canary(symbol):
     try:
         result = await adapter.fetch_latest(symbol=symbol)
     except (httpx.HTTPError, requests.RequestException, TimeoutError, ValueError) as exc:
-        if _is_external_live_access_failure(exc) or "WisdomTree issuer access challenge" in str(exc):
+        if _is_external_live_access_failure(exc) or "WisdomTree issuer access challenge" in str(
+            exc
+        ):
             pytest.skip(str(exc))
         raise
 
