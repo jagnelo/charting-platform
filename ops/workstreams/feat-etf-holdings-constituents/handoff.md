@@ -5503,3 +5503,37 @@ This checkpoint proves the owned deterministic, UI, and build contracts only.
 It does not claim the shared provider-platform capability is staged, AC10 is
 integrated, unresolved fallback evidence is closed, or the post-integration
 30-day AC14 shadow gate has run.
+
+## Provider-platform dependency recheck after resume — 2026-10-01
+
+The local `feat/market-data-provider-platform` ref advanced to `f5f43a68`
+(`test(market-events): cover malformed continuation states`) after the prior
+ETF checkpoint. The cached remote provider-platform ref remains `73d1d1aa`,
+and staging remains `8b885a2f`; the local provider-platform ref is not an
+ancestor of staging. Read-only inspection of both the local provider-platform
+and staging `ProviderCapability` definitions still finds no `ETF_HOLDINGS`
+member. The provider branch's new work is market-event cursor handling and
+does not expose the shared ETF capability contract required by AC10.
+
+AC10 therefore remains genuinely external and deferred. This ETF worktree did
+not merge, modify, or otherwise mutate the provider-platform or staging
+worktrees, and it did not add a speculative bridge or duplicate entitlement,
+quota, budget, health, or shadow-observation governance. Branch-owned ETF
+acceptance remains the next local validation action; once the shared capability
+is actually present in staging, add only the narrow ETF bridge and re-run the
+post-integration gates.
+
+## Branch-owned acceptance revalidation after resume — 2026-10-01
+
+The resumed ETF worktree remains green after the dependency recheck: the
+deterministic adapter/capability/refresh/task matrix passed 704 tests; Ruff
+passed; the default live-provider contract passed 2 checks with 529 opt-in
+network cases skipped by design; frontend type-check passed; the targeted ETF
+view/panel suite passed 17 tests; the production frontend build passed;
+workstream validation passed; and `git diff --check` passed. The build emitted
+only the existing generic large-chunk warnings.
+
+This is a fresh branch-owned acceptance receipt, not evidence that the shared
+provider-platform contract is staged. AC10 remains deferred, unresolved AC11
+fallback evidence is not silently promoted, and the post-integration AC14
+shadow gate remains unrun.
