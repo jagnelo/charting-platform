@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-10-01 Massive market-event continuation safety
+
+- At exact source `f5f43a68e`, malformed Massive market-event pages now mark
+  `ProviderPaginationState` failed with a typed retry error instead of leaving
+  pending state. A response that claims completion while supplying a
+  continuation is also rejected; normalized events from that page remain
+  retained, and the continuation is never silently dropped.
+- Restart-resume coverage expires the ORM identity map between attempts and
+  verifies that the persisted opaque cursor is used on the next worker run.
+- Focused tests passed `11/11`; branch-owned units passed `1,933/1,933`;
+  exact-head Docker PostgreSQL/Redis integration passed `386/386` in `680.20s`
+  with 57 warnings. The exact-head live safety preflight stopped before
+  transport (`0/0`, zero provider requests) on the existing provider-specific
+  quota/legal/secret-store admission gaps.
+
 ## 2026-09-25 Massive market-event durable cursor continuation
 
 - At source `80ff8384e`, market-event refresh persists Massive's opaque

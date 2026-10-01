@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-01 market-event continuation safety hardening: malformed Massive
+    envelopes and contradictory complete-plus-continuation responses now fail
+    closed while preserving normalized page data and retry state. Restart
+    coverage verifies durable cursor reuse after the ORM state is expired.
+    Focused coverage passed 11/11; exact-head units passed 1,933/1,933; exact-
+    head Docker integration passed 386/386 in 680.20 seconds. The live
+    preflight stopped before transport at 0/0 with zero provider requests.
+  - >-
     2026-09-25 branch-local losslessness fix: Massive cursor-paginated IPO
     market events are now fully traversed through the normal quota/health
     runtime, with every page retained and partial earlier pages persisted when

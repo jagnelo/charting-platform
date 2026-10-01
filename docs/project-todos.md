@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-10-01 — Market-event continuation fail-closed hardening
+
+- [x] Treat malformed Massive market-event envelopes as failed pagination
+      state, preserving the retry cursor and preventing a worker from marking
+      an incomplete scan successful.
+- [x] Reject contradictory provider responses that mark a page complete while
+      also returning a continuation. The page's normalized events remain
+      persisted, but the state is failed so the continuation cannot be silently
+      discarded.
+- [x] Add worker-restart continuation coverage. Focused market-event tests
+      passed `11/11`; the exact-head branch-owned unit gate passed `1,933/1,933`;
+      exact-head Docker PostgreSQL/Redis integration passed `386/386` in
+      `680.20s`; Ruff and diff checks are clean. The live preflight remained
+      fail-closed at `0/0` with zero provider requests.
+
 ### 2026-09-25 — Massive market-event cursor retention
 
 - [x] Close the no-discard gap in market-wide event persistence. Massive IPO
