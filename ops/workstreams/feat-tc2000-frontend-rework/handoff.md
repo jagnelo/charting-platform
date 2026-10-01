@@ -14812,3 +14812,8 @@ Product commit `561b6305` adds stable accessible names to Study Lab Validate,
 Run, Cancel, Rerun snapshot, and Rerun latest controls. Focused Study Lab
 coverage passed `42/42`; `vue-tsc` type-check and diff checks passed. No
 provider, ETF, visual baseline, or acceptance policy changed.
+
+The subsequent full serial frontend regression at the same product tip passed
+`1,151/1,151` tests across 124 files. The only stderr was the existing expected
+negative-path watchlist-store failure coverage; no product or acceptance policy
+failure occurred.
