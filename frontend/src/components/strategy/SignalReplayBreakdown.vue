@@ -16,6 +16,8 @@
         type="button"
         class="signal-replay__row"
         :class="{ 'signal-replay__row--active': activeKey === row.key }"
+        :aria-label="`${row.label}: ${row.count} signals, ${row.shareLabel}`"
+        :aria-pressed="activeKey === row.key ? 'true' : 'false'"
         @mouseenter="hoveredKey = row.key"
         @mouseleave="hoveredKey = null"
         @focus="hoveredKey = row.key"

@@ -36,9 +36,12 @@ describe('WalkForwardSegments', () => {
     expect(wrapper.text()).toContain('1 segments')
     expect(wrapper.text()).toContain('Training 60%')
     expect(wrapper.text()).toContain('Avg OOS 2.25%')
+    expect(wrapper.get('button').attributes('aria-label')).toContain('Segment 1: 1.80% out-sample')
+    expect(wrapper.get('button').attributes('aria-pressed')).toBe('false')
 
     await wrapper.find('button').trigger('click')
     expect(wrapper.text()).toContain('Segment 1')
     expect(wrapper.text()).toContain('Out-sample 1.80%')
+    expect(wrapper.get('button').attributes('aria-pressed')).toBe('true')
   })
 })

@@ -15,6 +15,8 @@
         type="button"
         class="walk-forward-panel__row"
         :class="{ 'walk-forward-panel__row--active': activeSegment === segment.segment }"
+        :aria-label="`Segment ${segment.segment}: ${formatPercent(segment.outSample)} out-sample, ${segment.outRange}`"
+        :aria-pressed="activeSegment === segment.segment ? 'true' : 'false'"
         @mouseenter="hoveredSegment = segment.segment"
         @mouseleave="hoveredSegment = null"
         @focus="hoveredSegment = segment.segment"

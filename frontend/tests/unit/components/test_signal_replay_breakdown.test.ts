@@ -31,8 +31,11 @@ describe('SignalReplayBreakdown', () => {
     expect(wrapper.text()).toContain('75.0% replayed')
     expect(wrapper.text()).toContain('Breakout')
     expect(wrapper.text()).toContain('Reclaim')
+    expect(wrapper.get('button').attributes('aria-label')).toContain('Breakout: 7 signals')
+    expect(wrapper.get('button').attributes('aria-pressed')).toBe('false')
 
     await wrapper.findAll('button')[0].trigger('click')
     expect(wrapper.text()).toContain('Breakout made up')
+    expect(wrapper.get('button').attributes('aria-pressed')).toBe('true')
   })
 })

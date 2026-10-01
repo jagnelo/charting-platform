@@ -38,6 +38,9 @@ describe('ReturnsHeatmap', () => {
 
     expect(wrapper.text()).toContain('-2.5%')
     expect(wrapper.text()).toContain('+2.5%')
+    const cellLabels = wrapper.findAll('button.returns-heatmap__cell').map(button => button.attributes('aria-label') ?? '')
+    expect(cellLabels.every(label => label.length > 0)).toBe(true)
+    expect(cellLabels.some(label => label.startsWith('2026-03:'))).toBe(true)
   })
 
   it('uses the same precision for legend endpoints and visible cells', () => {

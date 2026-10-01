@@ -27,6 +27,8 @@
             type="button"
             class="result-chart__range-button"
             :class="{ 'result-chart__range-button--active': selectedRangeKey === option.key }"
+            :aria-label="`Show ${option.label} chart period`"
+            :aria-pressed="selectedRangeKey === option.key ? 'true' : 'false'"
             @click="selectRange(option.key)"
           >
             {{ option.label }}
