@@ -538,7 +538,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=CURRENT,
         evidence_state="issuer_current_canary_verified",
         provider_identity="wisdomtree",
-        investigated_at=date(2026, 9, 6),
+        investigated_at=date(2026, 10, 1),
         next_action=(
             "Keep DXJ current only while WisdomTree's complete symbol-scoped JSON route remains "
             "identity-verified and within its freshness deadline; retain the bounded HTTP/1.1 "
@@ -551,6 +551,8 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403",
             "live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1",
             "web:etf-holdings-api-contract-2026-09-06",
+            "web:wisdomtree-dxj-product-page-2026-10-01-current",
+            "live:wisdomtree-canary-2026-10-01-opt-in-skipped",
         ),
     ),
     "NTSX": ETFHoldingsSymbolAudit(
@@ -558,7 +560,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=CURRENT,
         evidence_state="issuer_current_canary_verified",
         provider_identity="wisdomtree",
-        investigated_at=date(2026, 9, 6),
+        investigated_at=date(2026, 10, 1),
         next_action=(
             "Keep NTSX current only while WisdomTree's complete symbol-scoped JSON route remains "
             "identity-verified and within its freshness deadline; retain the bounded HTTP/1.1 "
@@ -571,6 +573,8 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403",
             "live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1",
             "web:etf-holdings-api-contract-2026-09-06",
+            "web:wisdomtree-ntsx-product-page-2026-10-01-current",
+            "live:wisdomtree-canary-2026-10-01-opt-in-skipped",
         ),
     ),
     "MINT": ETFHoldingsSymbolAudit(
@@ -578,7 +582,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 9, 25),
+        investigated_at=date(2026, 10, 1),
         next_action=(
             "Keep MINT unavailable: the current PIMCO ETF suite exposes catalogue/product and "
             "daily-disclosure context but no complete executable basket, while the anonymous "
@@ -613,6 +617,8 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:marketxls-mint-paid-full-export-2026-09-25",
             "web:pimco-etf-suite-current-2026-09-25",
             "web:pimco-mint-product-page-no-holdings-2026-09-25",
+            "web:pimco-short-term-strategies-current-2026-10-01",
+            "web:pimco-mint-daily-disclosure-search-2026-10-01",
         ),
     ),
     "BOND": ETFHoldingsSymbolAudit(
@@ -620,7 +626,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 9, 25),
+        investigated_at=date(2026, 10, 1),
         next_action=(
             "Keep BOND unavailable: the current PIMCO ETF suite exposes catalogue/product and "
             "daily-disclosure context but no complete executable basket, while the anonymous "
@@ -655,6 +661,8 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:marketxls-bond-paid-full-export-2026-09-25",
             "web:pimco-etf-suite-current-2026-09-25",
             "web:pimco-bond-product-page-no-holdings-2026-09-25",
+            "web:pimco-core-bond-strategies-current-2026-10-01",
+            "web:pimco-bond-daily-disclosure-search-2026-10-01",
         ),
     ),
     "GEME": ETFHoldingsSymbolAudit(

@@ -477,11 +477,13 @@ def test_tier_zero_symbol_audit_records_wisdomtree_current_route():
     assert result.outcome == "current"
     assert result.evidence_state == "issuer_current_canary_verified"
     assert result.provider_identity == "wisdomtree"
-    assert result.investigated_at == date(2026, 9, 6)
+    assert result.investigated_at == date(2026, 10, 1)
     assert "freshness deadline" in result.next_action
     assert "curl retry" in result.next_action
     assert any("httpx-403" in ref for ref in result.evidence_refs)
     assert any("curl-http1-1" in ref for ref in result.evidence_refs)
+    assert "web:wisdomtree-dxj-product-page-2026-10-01-current" in result.evidence_refs
+    assert "live:wisdomtree-canary-2026-10-01-opt-in-skipped" in result.evidence_refs
 
 
 def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
@@ -520,9 +522,16 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
         assert result.tier == 0
         assert result.outcome == UNAVAILABLE
         assert result.evidence_state == "no_complete_executable_public_artifact"
-        assert result.investigated_at == date(2026, 9, 25)
+        assert result.investigated_at == date(2026, 10, 1)
         assert evidence_refs <= set(result.evidence_refs)
         assert "requires authentication" in result.next_action
+
+    assert "web:pimco-short-term-strategies-current-2026-10-01" in symbol_audit_for_profile(
+        profile_with_symbol("MINT", "pacific_investments")
+    ).evidence_refs
+    assert "web:pimco-core-bond-strategies-current-2026-10-01" in symbol_audit_for_profile(
+        profile_with_symbol("BOND", "pacific_investments")
+    ).evidence_refs
 
 
 def test_tier_zero_symbol_audit_rejects_a_mismatched_provider_identity():

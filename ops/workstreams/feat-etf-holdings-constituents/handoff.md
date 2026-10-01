@@ -5565,3 +5565,26 @@ credential failure remains unresolved; no credential or remote was changed.
 This is metadata alignment only. It does not claim AC10 integration, close
 the unresolved fallback evidence, or satisfy the post-integration AC14 shadow
 gate.
+
+## Fresh Tier-0 issuer recheck — 2026-10-01
+
+Current official WisdomTree DXJ and NTSX pages now show product and holdings
+metadata through `2026-09-30`, including a current top-ten table and a
+“View all holdings” control. The bounded opt-in issuer canary selected the two
+WisdomTree cases but both were skipped by the live-test contract in this
+environment; no complete executable artifact was captured by that run. The
+existing successful symbol-scoped canary remains the basis for the `current`
+outcome, and the fresh page evidence does not silently promote a top-ten table
+or silently downgrade the prior verified route.
+
+Current official PIMCO strategy pages still list MINT and BOND and describe
+daily portfolio disclosure, but the fresh free-first search found no complete
+public machine-readable holdings artifact. The symbols remain `unavailable`
+with `no_complete_executable_public_artifact`; no paid export, creation-unit
+basket, stale SEC aggregation, or authentication-gated route was promoted.
+
+The symbol capability runtime and audit ledger now carry the same dated
+2026-10-01 evidence refs for all four Tier-0 symbols. Capability/parity tests
+passed 675, Ruff passed, workstream validation passed, and diff-check passed.
+AC10 remains deferred because the shared provider-platform capability is still
+not staged.
