@@ -14789,3 +14789,7 @@ prescribed staging sequence is complete.
 The latest read-only ref check observed ETF holdings advance again to
 `4df59539` while provider remains `6f575556` and staging remains `8b885a2f`;
 the same non-ancestor boundary still applies.
+
+The ETF branch subsequently advanced to `cac58903` (`docs(etf): correct
+handoff receipt verification`). Provider remains `6f575556` and staging remains
+`8b885a2f`; neither upstream tip is yet contained in staging.
