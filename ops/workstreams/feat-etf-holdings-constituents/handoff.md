@@ -5551,3 +5551,16 @@ provider-platform or staging `ProviderCapability` definition.
 No ETF bridge, duplicate provider governance, cross-worktree mutation, or
 source-classification change is justified by this ref movement. AC10 remains
 deferred until the shared capability is actually present in staging.
+
+## Durable session-state reconciliation — 2026-10-01
+
+The workstream session metadata was stale relative to the committed ETF
+checkpoint. `session.json` now records the current local tip `369db808b`, the
+current provider-platform/staging dependency refs, the current next action,
+and the known feature-remote ref `52814f95`. It explicitly keeps remote
+synchronization false because the branch is locally ahead and the prior SSH
+credential failure remains unresolved; no credential or remote was changed.
+
+This is metadata alignment only. It does not claim AC10 integration, close
+the unresolved fallback evidence, or satisfy the post-integration AC14 shadow
+gate.
