@@ -5633,3 +5633,18 @@ it does not supply the shared ETF capability contract. This ETF worktree made
 no merge, bridge, staging, provider-worktree, remote, or paid-route change.
 AC10 therefore remains genuinely deferred; the narrow ETF bridge may be
 implemented only after the capability is actually present in staging.
+
+## Q3/QVOY route recheck — 2026-10-01
+
+The current official Q3 QVOY page is now browser-indexed with a complete
+15-position holdings table dated 2026-09-30 and a declared CSV download. A
+bounded application-equivalent request to both the product page and
+`GetHoldingsCSV1_v3aLIVE.php` still returned Cloudflare HTTP 503 HTML, so no
+complete executable artifact was retrieved. QVOY therefore remains explicitly
+`unavailable`/`issuer_route_access_blocked`; the cached page content is evidence
+of issuer publication, not permission to promote a non-executable route.
+
+The runtime capability audit, symbol ledger, and provider ledger now share the
+2026-10-01 evidence references. The focused adapter/capability suite passed
+675 tests, Ruff passed, workstream validation passed, and diff-check passed.
+No adapter promotion or SEC fallback classification changed.
