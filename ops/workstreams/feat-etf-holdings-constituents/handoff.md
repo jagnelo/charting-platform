@@ -5619,3 +5619,17 @@ evidence, not as a green full gate.
 
 AC10 remains deferred because staging still lacks `ETF_HOLDINGS`; AC11's
 fallback evidence and AC14's post-integration 30-day shadow gate remain open.
+
+## Provider-platform dependency recheck after provider branch movement — 2026-10-01
+
+Read-only ref inspection shows the local
+`feat/market-data-provider-platform` tip is now `0058243c`, its cached remote
+tip is `e3a37a9a`, and staging remains `8b885a2f`. Neither provider-platform
+tip is an ancestor of staging. The local provider-platform, cached remote, and
+staging `ProviderCapability` definitions all still lack `ETF_HOLDINGS`.
+
+The provider branch movement is unrelated market-data/tokenized-provider work;
+it does not supply the shared ETF capability contract. This ETF worktree made
+no merge, bridge, staging, provider-worktree, remote, or paid-route change.
+AC10 therefore remains genuinely deferred; the narrow ETF bridge may be
+implemented only after the capability is actually present in staging.
