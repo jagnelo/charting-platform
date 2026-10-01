@@ -2327,7 +2327,7 @@ class MarketstackProvider(_RESTProvider):
                 pagination.get("offset", offset), self.name, "EOD pagination offset"
             )
             count = _strict_int(
-                pagination.get("count", len(rows)), self.name, "EOD pagination count", minimum=1
+                pagination.get("count", len(rows)), self.name, "EOD pagination count", minimum=0
             )
             total_value = pagination.get("total")
             total = (
@@ -2341,6 +2341,17 @@ class MarketstackProvider(_RESTProvider):
                 "EOD pagination limit",
                 minimum=1,
             )
+            if count == 0:
+                # A zero-count page is a valid terminal response for an
+                # empty symbol/range query. It is not valid evidence that a
+                # positive declared result set has been exhausted: accepting
+                # that contradiction would silently lose the remaining rows.
+                if total is not None and page_offset < total:
+                    raise ProviderResponseError(
+                        self.name,
+                        "provider returned an empty EOD page before its declared total",
+                    )
+                break
             if total is not None and total < page_offset + count:
                 raise ProviderResponseError(
                     self.name, "provider returned contradictory EOD pagination metadata"

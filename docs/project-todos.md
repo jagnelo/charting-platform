@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-10-02 — Marketstack empty-page pagination handling
+
+- [x] Accept explicit zero-count terminal EOD pages for valid empty
+      symbol/date ranges instead of converting them into provider failures.
+- [x] Continue rejecting an empty page when the provider declares a positive
+      remaining total, preventing silent historical-row loss. Focused
+      Marketstack coverage passed `13/13`; the optional-provider suite passed
+      `113/113`.
+
 ### 2026-10-01 — EODHD extra-call balance retention
 
 - [x] Preserve the documented EODHD `/user.extraLimit` balance as a named

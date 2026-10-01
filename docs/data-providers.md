@@ -346,6 +346,15 @@ the complete provider body in the durable usage observation. It is deliberately
 not admitted to routing or baseline reconciliation because it is a balance,
 not a reviewed quota window.
 
+### 2026-10-02 Marketstack empty-page pagination handling
+
+Marketstack EOD pagination may return an explicit zero-count page when a
+symbol/date range has no observations. The adapter now treats `count: 0` as a
+terminal empty result only when it does not contradict the declared `total`;
+an empty page before a positive total remains a typed failure so missing rows
+cannot be silently accepted. The full optional-provider suite covers both
+valid empty terminal pages and contradictory metadata.
+
 ### 2026-09-25 Tiingo usage-account audit
 
 Tiingo's current official documentation publishes the Starter ceilings and

@@ -162,6 +162,12 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 Marketstack pagination completeness: explicit zero-count EOD
+    pages are now accepted as terminal empty results only when they do not
+    contradict a positive declared total; contradictory empty pages fail
+    closed. Focused coverage passed 13/13 and the optional-provider suite
+    passed 113/113. This changes no quota admission or account entitlement.
+  - >-
     2026-10-01 EODHD native usage completeness: the documented `/user`
     `extraLimit` purchased-call balance is now retained as an observation-only
     `extra_calls` dimension with no fabricated reset or routing entitlement;

@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 Marketstack empty-page pagination handling
+
+- Marketstack EOD pagination now accepts a provider-declared zero-count page
+  as a terminal empty result only when it is consistent with `total`; a zero
+  count before a positive total fails closed rather than losing later rows.
+- Focused Marketstack tests passed `13/13`; the optional-provider suite passed
+  `113/113`. The full unit and Docker integration receipts are recorded after
+  the implementation commit.
+
 ## 2026-10-01 EODHD extra-call balance retention
 
 - EODHD's provider-native `/user` snapshot now exposes the documented

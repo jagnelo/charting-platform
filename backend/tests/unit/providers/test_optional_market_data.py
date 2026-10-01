@@ -824,6 +824,40 @@ def test_marketstack_invalid_pagination_is_typed_instead_of_truncating_history()
 @pytest.mark.parametrize(
     "pagination",
     [
+        {"offset": 0, "count": 0, "total": 0},
+        {"offset": 0, "count": 0},
+    ],
+)
+def test_marketstack_accepts_explicit_empty_terminal_page(pagination):
+    provider = MarketstackProvider()
+    with patch.object(provider, "_get", return_value={"pagination": pagination, "data": []}):
+        bars = provider.fetch_ohlcv(
+            "AAPL",
+            Timeframe.D1,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 2, 1, tzinfo=UTC),
+            adjusted=False,
+        )
+    assert bars == []
+
+
+def test_marketstack_rejects_empty_page_before_positive_declared_total():
+    provider = MarketstackProvider()
+    payload = {"pagination": {"offset": 0, "count": 0, "total": 1}, "data": []}
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError, match="empty EOD page"):
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 2, 1, tzinfo=UTC),
+                adjusted=False,
+            )
+
+
+@pytest.mark.parametrize(
+    "pagination",
+    [
         {"offset": True, "count": 1, "total": 1},
         {"offset": 0, "count": 1.5, "total": 1},
         {"offset": 0, "count": 1, "total": "1"},
