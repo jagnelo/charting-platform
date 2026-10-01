@@ -5,8 +5,8 @@
         <input v-model.trim="name" aria-label="Study name" placeholder="Study name" />
         <input v-model.trim="symbol" aria-label="Study symbol" placeholder="Symbol" />
         <select v-model="factoryStudyKey" aria-label="Factory study" @change="applyFactoryStudy"><option value="custom">Custom Python</option><option v-for="template in factoryStudyTemplates" :key="template.key" :value="template.key">{{ template.name }}</option></select>
-        <button type="button" :disabled="busy" @click="validate">Validate</button>
-        <button type="button" :disabled="busy || !validation?.valid" @click="saveAndRun">Run</button>
+        <button type="button" aria-label="Validate study" :disabled="busy" @click="validate">Validate</button>
+        <button type="button" aria-label="Run study" :disabled="busy || !validation?.valid" @click="saveAndRun">Run</button>
       </div>
       <div class="study-lab-tool__dataset" aria-label="Study dataset controls">
         <label>Timeframe <select v-model="timeframe" aria-label="Study timeframe"><option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
@@ -61,7 +61,7 @@
       <span v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</span>
     </section>
     <section v-if="run" class="study-lab-tool__run">
-      <div><strong>Run #{{ run.id }}</strong><span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Study run status: ${runStatusLabel}`" :data-status="run.status" :class="`study-lab-tool__run-status--${run.status}`">{{ runStatusLabel }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" @click="cancel">Cancel</button><button v-if="canRerun" type="button" :disabled="rerunBusy" @click="rerun(true)">{{ rerunBusy ? 'Rerunning…' : 'Rerun snapshot' }}</button><button v-if="canRerun" type="button" :disabled="rerunBusy" @click="rerun(false)">{{ rerunBusy ? 'Rerunning…' : 'Rerun latest' }}</button></div>
+      <div><strong>Run #{{ run.id }}</strong><span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Study run status: ${runStatusLabel}`" :data-status="run.status" :class="`study-lab-tool__run-status--${run.status}`">{{ runStatusLabel }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" aria-label="Cancel study run" @click="cancel">Cancel</button><button v-if="canRerun" type="button" aria-label="Rerun study snapshot" :disabled="rerunBusy" @click="rerun(true)">{{ rerunBusy ? 'Rerunning…' : 'Rerun snapshot' }}</button><button v-if="canRerun" type="button" aria-label="Rerun study with latest data" :disabled="rerunBusy" @click="rerun(false)">{{ rerunBusy ? 'Rerunning…' : 'Rerun latest' }}</button></div>
       <p class="study-lab-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ runGuidance }}</p>
       <div v-if="promotableKind || artifactPromotions.length" class="study-lab-tool__promotions" aria-label="Promote study result">
         <button v-if="promotableKind === 'scalar'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as column' }}</button>

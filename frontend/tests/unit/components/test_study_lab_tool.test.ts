@@ -43,6 +43,13 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('[aria-label="Study as of"]').element).toHaveProperty('value', '2024-02-01T15:30')
   })
 
+  it('gives study lifecycle controls stable accessible names', () => {
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+
+    expect(wrapper.get('button[aria-label="Validate study"]').text()).toBe('Validate')
+    expect(wrapper.get('button[aria-label="Run study"]').text()).toBe('Run')
+  })
+
   it('discloses selected Market Map source lineage without replacing the canonical source ID', () => {
     const wrapper = mountTool({
       activeSymbol: 'SPY',
