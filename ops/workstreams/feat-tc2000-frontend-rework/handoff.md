@@ -14793,3 +14793,11 @@ the same non-ancestor boundary still applies.
 The ETF branch subsequently advanced to `cac58903` (`docs(etf): correct
 handoff receipt verification`). Provider remains `6f575556` and staging remains
 `8b885a2f`; neither upstream tip is yet contained in staging.
+
+## 2026-10-01 — Workstation navigation accessibility slice
+
+Product commit `cffa3442` adds explicit accessible names to personal watchlist
+create/rename/copy/delete/add and combo-list actions, and to family-constituent,
+generic-breadth, and breadth-drilldown member navigation buttons. The serial
+frontend suite passed `1,150/1,150` across 124 files and `vue-tsc` type-check
+passed. No provider, ETF, visual baseline, or acceptance policy changed.
