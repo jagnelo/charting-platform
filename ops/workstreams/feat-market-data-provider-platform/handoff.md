@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 Exact-current live preflight
+
+- The full manifest harness ran with the owner-managed environment at source
+  `4a809bd` and stopped before external transport: `0/0` cases, zero provider
+  requests, `incomplete_preflight`.
+- This is intentionally not a live pass. The receipt enumerates the remaining
+  provider-specific usage baselines/cost and byte bounds, legal or automated-use
+  authority, FINRA OTC/SEC universe admission, and unresolved capability cases.
+  No generic limit or prior usage was inferred, and no key was spent by this
+  run.
+
 ## 2026-10-02 Tokenized event page validation
 
 - Tokenized corporate-action refreshes now fail closed before processing a page

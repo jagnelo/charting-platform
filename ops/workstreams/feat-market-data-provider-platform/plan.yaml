@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact-current live preflight: the full manifest ran with the
+    owner-managed environment at source 4a809bd and stopped before transport
+    (0/0 cases, zero provider requests). The receipt records unresolved
+    provider-specific usage baselines/cost and byte bounds, legal/automated-use
+    authority, FINRA OTC/SEC universe admission, and capability coverage; no
+    generic limit or prior usage was inferred.
+  - >-
     2026-10-02 tokenized corporate-action page integrity: a page containing a
     non-object row now fails closed before any event is persisted or its durable
     cursor advances, so malformed provider data is not silently discarded and
