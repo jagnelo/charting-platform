@@ -113,11 +113,11 @@
   "head": "8db6c9ac6",
   "implementation_sha": "8db6c9ac6",
   "interrupted": false,
-  "last_checkpoint": "2026-10-01T19:44:38+01:00",
-  "last_human_progress_update": "2026-10-01T19:44:38+01:00",
+  "last_checkpoint": "2026-10-01T20:05:00+01:00",
+  "last_human_progress_update": "2026-10-01T20:05:00+01:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Verify the protected visual mismatch in a matching browser/font environment without changing snapshots or visual policy; keep provider/ETF consumer integration deferred until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
-  "plan_hash": "ae76f77e89e2ac2c1274a50f6233950530c21d6943fe40b1ff904cee13ffe737",
+  "plan_hash": "74def625909ded69121d375a0023a8796c7fb8df9ade052f06b09fd07008b48c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -130,11 +130,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "The two reproducible TC-owned browser regressions are fixed and validated in 8db6c9ac6, and the baseline-preserving chart layering retains the original plot geometry. A fresh seeded protected visual check reproduced 43,091 differing pixels on the first capture and 45,932 after stability, distributed across board text and anti-aliasing rather than localized chart geometry; no snapshots, masks, thresholds, skips, or visual policy changed, so matching browser/font baseline verification remains open. The current host has no Segoe UI or Arial installation (`fc-match` resolves them to DejaVu Sans and Nimbus Sans), so a matching-font replay is required before attributing the mismatch to product pixels. The parallel frontend timing guard remains host-sensitive on the unrelated 100k-point uPlot benchmark while serial coverage passes 1,150/1,150. On the resumed 2026-10-01 audit, staging remains 8b885a2f while provider is f5f43a68 and ETF is 61abd6a3; neither is an ancestor of staging. Shared-path reconciliation and the final post-staging exact gate remain pending. Origin synchronization remains a separate operational hold under the recorded private-origin safeguard.",
+    "current_blocker": "The two reproducible TC-owned browser regressions are fixed and validated in 8db6c9ac6, and the baseline-preserving chart layering retains the original plot geometry. A fresh seeded protected visual check reproduced 43,091 differing pixels on the first capture and 45,932 after stability, distributed across board text and anti-aliasing rather than localized chart geometry; no snapshots, masks, thresholds, skips, or visual policy changed, so matching browser/font baseline verification remains open. The current host has no Segoe UI or Arial installation (`fc-match` resolves them to DejaVu Sans and Nimbus Sans), so a matching-font replay is required before attributing the mismatch to product pixels. The parallel frontend timing guard remains host-sensitive on the unrelated 100k-point uPlot benchmark while serial coverage passes 1,150/1,150. On the latest 2026-10-01 follow-up audit, staging remains 8b885a2f while provider is 6f575556 and ETF advanced to 4df59539; neither is an ancestor of staging. Shared-path reconciliation and the final post-staging exact gate remain pending. Origin synchronization remains a separate operational hold under the recorded private-origin safeguard.",
     "current_phase": "R6_chart_control_layering_and_visual_checkpoint_recorded",
     "next_action": "Verify the protected visual mismatch in a matching browser/font environment without changing snapshots or visual policy; keep provider/ETF consumer integration deferred until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
     "total": 9,
-    "updated_at": "2026-10-01T19:44:38+01:00"
+    "updated_at": "2026-10-01T20:05:00+01:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

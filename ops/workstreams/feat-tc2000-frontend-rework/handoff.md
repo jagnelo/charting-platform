@@ -14775,3 +14775,17 @@ The host font inventory provides a concrete environment signal: `fc-match
 Sans; neither requested family is installed. Because the board CSS requests
 `Segoe UI, Arial`, the screenshot mismatch must be replayed in a matching
 font/browser environment before it can be treated as a product visual defect.
+
+## 2026-10-01 — Follow-up upstream ref audit
+
+The dependency refs advanced without entering staging: staging remains
+`8b885a2f`, provider-platform is now `6f575556`, and ETF holdings remains
+`b2983db3`. Neither upstream tip is an ancestor of staging. The provider tip
+records continuation safety gates and the ETF tip records a resumed dependency
+recheck; TC therefore still has no authorization to consume either tip directly
+or reconcile shared paths. The final exact-tip gate remains deferred until the
+prescribed staging sequence is complete.
+
+The latest read-only ref check observed ETF holdings advance again to
+`4df59539` while provider remains `6f575556` and staging remains `8b885a2f`;
+the same non-ancestor boundary still applies.
