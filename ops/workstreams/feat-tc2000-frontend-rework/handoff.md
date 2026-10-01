@@ -14830,6 +14830,11 @@ accessible names and selected-state semantics. Focused coverage passed `19/19`
 across four Strategy visualization files; type-check and diff checks passed.
 No provider, ETF, visual baseline, or acceptance policy changed.
 
+The subsequent full serial frontend regression at the same product tip passed
+`1,151/1,151` tests across 124 files. Existing expected watchlist-store failure
+stderr remained confined to negative-path tests; no product or acceptance-policy
+failure occurred.
+
 ## 2026-10-02 — Strategy rule-tree semantic grouping slice
 
 Product commit `075a733b` gives Strategy rule-tree condition, NOT-group, and
