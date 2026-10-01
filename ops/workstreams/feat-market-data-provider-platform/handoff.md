@@ -6,8 +6,10 @@
   when any returned row is not an object. The durable page/cursor state remains
   failed and retryable, so malformed provider data is never silently skipped
   and a partial page cannot be marked complete.
-- Focused tokenized-event coverage passed `7/7`; branch-wide receipts will be
-  recorded after the exact implementation commit.
+- Focused tokenized-event coverage passed `7/7`; the exact implementation SHA
+  `0058243c` then passed branch-owned unit `1,938/1,938`, Docker integration
+  `386/386` in `748.21s`, Ruff, compile, diff, and workstream validation. The
+  receipts are recorded in `validation.jsonl`.
 
 ## 2026-10-02 Marketstack empty-page pagination handling
 
