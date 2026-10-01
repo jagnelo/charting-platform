@@ -14801,3 +14801,7 @@ create/rename/copy/delete/add and combo-list actions, and to family-constituent,
 generic-breadth, and breadth-drilldown member navigation buttons. The serial
 frontend suite passed `1,150/1,150` across 124 files and `vue-tsc` type-check
 passed. No provider, ETF, visual baseline, or acceptance policy changed.
+
+The ETF branch then advanced to `410bf3b25` (`docs(etf): refresh tier0 issuer
+evidence`). Provider remains `6f575556` and staging remains `8b885a2f`; neither
+upstream tip is yet contained in staging.
