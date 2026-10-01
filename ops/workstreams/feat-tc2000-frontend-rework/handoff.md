@@ -14829,3 +14829,10 @@ result-chart range controls, and walk-forward segment controls explicit
 accessible names and selected-state semantics. Focused coverage passed `19/19`
 across four Strategy visualization files; type-check and diff checks passed.
 No provider, ETF, visual baseline, or acceptance policy changed.
+
+## 2026-10-02 — Strategy rule-tree semantic grouping slice
+
+Product commit `075a733b` gives Strategy rule-tree condition, NOT-group, and
+root/nested group containers semantic group roles and accessible labels. Focused
+coverage passed `2/2`; `vue-tsc` type-check and diff checks passed. No provider,
+ETF, visual baseline, or acceptance policy changed.
