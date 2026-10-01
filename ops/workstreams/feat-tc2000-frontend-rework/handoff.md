@@ -14821,3 +14821,11 @@ failure occurred.
 During that run, provider-platform advanced to `ba3a9c531` (`test(provider):
 record eodhd validation receipts`). Staging remains `8b885a2f` and ETF remains
 `410bf3b25`; neither upstream tip is contained in staging.
+
+## 2026-10-02 — Strategy visualization accessibility slice
+
+Product commit `9a121d92` gives Returns Heatmap cells, Signal Replay rows,
+result-chart range controls, and walk-forward segment controls explicit
+accessible names and selected-state semantics. Focused coverage passed `19/19`
+across four Strategy visualization files; type-check and diff checks passed.
+No provider, ETF, visual baseline, or acceptance policy changed.
