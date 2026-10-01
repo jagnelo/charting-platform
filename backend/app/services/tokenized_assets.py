@@ -919,9 +919,15 @@ async def refresh_tokenized_events(
                         )
                     if not isinstance(rows, list) or not isinstance(next_cursor, str | type(None)):
                         raise TypeError("tokenized corporate-action provider returned an invalid page")
+                    if any(not isinstance(row, dict) for row in rows):
+                        # Never silently drop a provider row. A malformed row
+                        # makes the entire page untrusted; leave the durable
+                        # cursor/state at the failed page so a later retry can
+                        # recover it after the provider fixes its response.
+                        raise TypeError(
+                            "tokenized corporate-action provider returned a non-object row"
+                        )
                     for row in rows:
-                        if not isinstance(row, dict):
-                            continue
                         event_payload = _tokenized_event_payload(
                             resolved.provider_name, row, phase=phase
                         )

@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-10-02 — Tokenized event pages fail closed on malformed rows
+
+- [x] Reject a tokenized corporate-action page containing any non-object row
+      before persisting or advancing its durable cursor. This prevents a
+      malformed provider item from being silently discarded or a partially
+      processed page from being marked complete; the failed page remains
+      retryable. Focused tokenized-event coverage passed `7/7`.
+
 ### 2026-10-02 — Marketstack empty-page pagination handling
 
 - [x] Accept explicit zero-count terminal EOD pages for valid empty

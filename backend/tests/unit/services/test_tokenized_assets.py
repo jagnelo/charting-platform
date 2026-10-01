@@ -1057,6 +1057,51 @@ async def test_refresh_tokenized_events_persists_and_links_explicit_action_ident
 
 
 @pytest.mark.asyncio
+async def test_refresh_tokenized_events_fails_closed_on_non_object_page_row(
+    db, instrument, monkeypatch
+):
+    provider = SimpleNamespace(
+        name="xstocks", fetch_tokenized_corporate_actions=lambda **_kwargs: []
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="xstocks", provider=provider)]
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+
+    async def fake_execute(_db, _capability, _operation, **_kwargs):
+        return SimpleNamespace(
+            provider_name="xstocks",
+            result=[
+                {
+                    "id": "valid-but-uncommitted",
+                    "effectiveDate": "2026-09-11",
+                },
+                "malformed-provider-row",
+            ],
+        )
+
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    result = await refresh_tokenized_events(
+        AsyncSessionAdapter(db), max_providers=1, page_size=25, include_upcoming=False
+    )
+
+    assert result["status"] == "failed"
+    assert result["events"] == 0
+    assert result["failed"] == 1
+    assert "non-object row" in result["failures"][0]["error"]
+    assert db.execute(select(MarketEvent)).scalars().all() == []
+    state = db.execute(
+        select(ProviderPaginationState).where(
+            ProviderPaginationState.state_key == "tokenized-events:xstocks:history:25"
+        )
+    ).scalar_one()
+    assert state.status == "failed"
+    assert state.page_number == 1
+    assert state.cursor is None
+
+
+@pytest.mark.asyncio
 async def test_refresh_tokenized_events_runs_bounded_global_split_feed(
     db, instrument, monkeypatch
 ):

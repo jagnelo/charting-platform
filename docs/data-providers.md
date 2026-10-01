@@ -3,6 +3,14 @@
 This document describes every data provider registered with the platform, what data each one
 supplies, its priority level per capability, and where to configure its credentials.
 
+## 2026-10-02 — Tokenized event page validation
+
+Tokenized corporate-action refreshes validate every returned page row before
+writing events or advancing `ProviderPaginationState`. A non-object row raises
+a typed failure, leaves the current page/cursor retryable, and prevents
+silently dropping the malformed provider item or accepting only a prefix of the
+page. Focused coverage passed `7/7` with no external provider calls.
+
 ---
 
 ## Provider Priority Overview

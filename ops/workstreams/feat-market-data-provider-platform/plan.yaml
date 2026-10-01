@@ -162,6 +162,11 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 tokenized corporate-action page integrity: a page containing a
+    non-object row now fails closed before any event is persisted or its durable
+    cursor advances, so malformed provider data is not silently discarded and
+    the page remains retryable. Focused coverage passed 7/7.
+  - >-
     2026-10-02 Marketstack pagination completeness: explicit zero-count EOD
     pages are now accepted as terminal empty results only when they do not
     contradict a positive declared total; contradictory empty pages fail

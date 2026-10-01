@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 Tokenized event page validation
+
+- Tokenized corporate-action refreshes now fail closed before processing a page
+  when any returned row is not an object. The durable page/cursor state remains
+  failed and retryable, so malformed provider data is never silently skipped
+  and a partial page cannot be marked complete.
+- Focused tokenized-event coverage passed `7/7`; branch-wide receipts will be
+  recorded after the exact implementation commit.
+
 ## 2026-10-02 Marketstack empty-page pagination handling
 
 - Marketstack EOD pagination now accepts a provider-declared zero-count page
