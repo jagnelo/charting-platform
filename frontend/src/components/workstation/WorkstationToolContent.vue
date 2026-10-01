@@ -130,12 +130,12 @@
           </select>
         </label>
         <input v-model="personalListNameDraft" aria-label="Personal watchlist name" placeholder="List name" :disabled="flaggedItemsSelected || Boolean(selectedCombo)" @input="markPersonalListNameEdited" @keydown.enter.prevent="selectedPersonalWatchlist ? renamePersonalWatchlist() : createPersonalWatchlist($event)" />
-        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo)" @click="createPersonalWatchlist">New</button>
-        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || !personalListNameDraft.trim() || personalListBusy" @click="renamePersonalWatchlist">Rename</button>
-        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || personalListBusy" @click="copyPersonalWatchlist">Copy</button>
-        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || personalListBusy" @click="deletePersonalWatchlist">Delete</button>
+        <button type="button" aria-label="Create personal watchlist" :disabled="flaggedItemsSelected || Boolean(selectedCombo)" @click="createPersonalWatchlist">New</button>
+        <button type="button" aria-label="Rename personal watchlist" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || !personalListNameDraft.trim() || personalListBusy" @click="renamePersonalWatchlist">Rename</button>
+        <button type="button" aria-label="Copy personal watchlist" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || personalListBusy" @click="copyPersonalWatchlist">Copy</button>
+        <button type="button" aria-label="Delete personal watchlist" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || personalListBusy" @click="deletePersonalWatchlist">Delete</button>
         <input v-model="personalSymbolDraft" aria-label="Add symbol to personal watchlist" placeholder="Add symbol" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked" @keydown.enter.prevent="addPersonalSymbol" />
-        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !personalSymbolDraft.trim() || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || personalWatchlistBusy" @click="addPersonalSymbol">{{ personalWatchlistBusy ? 'Adding…' : 'Add' }}</button>
+        <button type="button" aria-label="Add symbol to personal watchlist" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !personalSymbolDraft.trim() || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || personalWatchlistBusy" @click="addPersonalSymbol">{{ personalWatchlistBusy ? 'Adding…' : 'Add' }}</button>
         <span v-if="flaggedItemsSelected">{{ flaggedWatchlistRows.length }} flagged symbols · select a row to inspect its source list</span>
         <span v-else-if="selectedCombo">{{ comboWatchlistRows.length }} symbols · {{ selectedCombo.name }} · union/intersection/exclusion</span>
         <span v-else-if="selectedPersonalWatchlist">{{ selectedPersonalWatchlist.items.length }} symbols · {{ selectedPersonalWatchlist.is_locked ? 'Locked' : 'Drag rows to reorder' }}</span>
@@ -161,8 +161,8 @@
               <option v-for="watchlist in personalWatchlists" :key="`exclude-${watchlist.id}`" :value="watchlist.id">{{ watchlist.name }}</option>
             </select>
           </label>
-          <button type="button" :disabled="flaggedItemsSelected || !comboNameDraft.trim() || (!comboUnionIds.length && !comboIntersectionIds.length) || comboBusy" @click="saveComboList">{{ selectedCombo ? 'Save combo' : 'New combo' }}</button>
-          <button v-if="selectedCombo" type="button" :disabled="comboBusy" @click="deleteComboList">Delete combo</button>
+          <button type="button" :aria-label="selectedCombo ? 'Save combo list' : 'Create combo list'" :disabled="flaggedItemsSelected || !comboNameDraft.trim() || (!comboUnionIds.length && !comboIntersectionIds.length) || comboBusy" @click="saveComboList">{{ selectedCombo ? 'Save combo' : 'New combo' }}</button>
+          <button v-if="selectedCombo" type="button" aria-label="Delete combo list" :disabled="comboBusy" @click="deleteComboList">Delete combo</button>
           <span v-if="comboError" class="personal-watchlist-tool__error">{{ comboError }}</span>
         </section>
       </div>
@@ -788,7 +788,7 @@
             <strong>{{ familyRoleLabel(familyRatioRole) }} constituents · {{ familyConstituents.etf_symbol }}</strong>
             <span>{{ familyConstituents.composition_date }} · {{ familyConstituents.source_provider }} · {{ familyConstituents.rows.length }} rows</span>
           </div>
-          <button v-for="row in familyConstituents.rows.slice(0, 100)" :key="row.instrument_id" type="button" @click="emit('select', row.symbol, row.instrument_id)">
+          <button v-for="row in familyConstituents.rows.slice(0, 100)" :key="row.instrument_id" type="button" :aria-label="`Select ${row.symbol} ${row.name}`" @click="emit('select', row.symbol, row.instrument_id)">
             <strong>{{ row.symbol }}</strong><span>{{ row.name }}</span><small v-if="row.weight != null">{{ Number(row.weight).toFixed(2) }}%</small>
           </button>
           <small v-if="!familyConstituents.rows.length">No resolved constituent rows are available.</small>
@@ -807,7 +807,7 @@
             <button type="button" :class="{ 'breadth-tool__action--active': genericBreadthMemberState === 'fail' }" :aria-pressed="genericBreadthMemberState === 'fail' ? 'true' : 'false'" @click="genericBreadthMemberState = 'fail'">Fail {{ genericBreadth.eligible_count - genericBreadth.pass_count }}</button>
           </span>
         </header>
-        <button v-for="member in genericBreadthMembers.slice(0, 100)" :key="member.instrument_id" type="button" @click="emit('select', member.symbol, member.instrument_id)"><strong>{{ member.symbol }}</strong><span>{{ member.name }}</span><small v-if="member.metric != null">{{ member.metric.toFixed(3) }}</small><small v-if="member.diagnostics?.length" class="breadth-tool__member-diagnostics" :title="member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ')">{{ member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ') }}</small></button>
+        <button v-for="member in genericBreadthMembers.slice(0, 100)" :key="member.instrument_id" type="button" :aria-label="`Select ${member.symbol} ${member.name}`" @click="emit('select', member.symbol, member.instrument_id)"><strong>{{ member.symbol }}</strong><span>{{ member.name }}</span><small v-if="member.metric != null">{{ member.metric.toFixed(3) }}</small><small v-if="member.diagnostics?.length" class="breadth-tool__member-diagnostics" :title="member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ')">{{ member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ') }}</small></button>
         <small v-if="!genericBreadthMembers.length">No {{ genericBreadthMemberState === 'pass' ? 'passing' : 'failing' }} members are eligible.</small>
       </div>
       <GenericBreadthHistoryUPlot :history="genericBreadthHistory ?? undefined" />
@@ -843,7 +843,7 @@
       <small class="breadth-tool__coverage-detail">Metric coverage: {{ breadthMetricCoverage }}</small>
       <div v-if="breadthDrilldown" class="breadth-tool__drilldown" aria-label="Breadth member drilldown">
         <header><strong>{{ breadthDrilldown.state === 'above' ? 'Passing' : 'Failing' }} {{ breadthDrilldownLabel(breadthDrilldown.key) }} members</strong><span><button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown.state === 'above' }" :aria-pressed="breadthDrilldown.state === 'above' ? 'true' : 'false'" @click="setBreadthDrilldown(breadthDrilldown.key, 'above')">Pass</button><button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown.state === 'below' }" :aria-pressed="breadthDrilldown.state === 'below' ? 'true' : 'false'" @click="setBreadthDrilldown(breadthDrilldown.key, 'below')">Fail</button><button type="button" @click="breadthDrilldown = null">Close</button></span></header>
-        <button v-for="row in breadthDrilldownRows" :key="row.symbol" type="button" @click="emit('select', row.symbol, row.instrumentId)"><strong>{{ row.symbol }}</strong><span>{{ row.name }}</span></button>
+        <button v-for="row in breadthDrilldownRows" :key="row.symbol" type="button" :aria-label="`Select ${row.symbol} ${row.name}`" @click="emit('select', row.symbol, row.instrumentId)"><strong>{{ row.symbol }}</strong><span>{{ row.name }}</span></button>
         <small v-if="!breadthDrilldownRows.length">No locally evaluated members are available.</small>
       </div>
       <BreadthHistoryUPlot :history="breadthHistory" />
