@@ -14758,6 +14758,18 @@ masks, thresholds, skips, or visual policy were changed. The host's regular
 Docker Compose path was used because its CLI lacks `buildx`; the assigned stack
 and volumes were removed cleanly afterward.
 
+## 2026-10-01 — Resumed upstream dependency audit
+
+The resumed goal check found the local staging boundary unchanged at
+`8b885a2f`. The provider-platform branch has advanced to `f5f43a68` and the ETF
+branch to `61abd6a3`, but neither tip is an ancestor of staging. The provider
+workstream reports `ready_for_human_review` with remaining provider/legal/
+universe gates; ETF remains authorized with human closure pending and still
+waits on provider staging. TC did not consume either feature tip directly,
+modify another worktree, or promote staging. Shared-path reconciliation and
+exact-tip validation remain deferred until the prescribed staging sequence is
+complete.
+
 The host font inventory provides a concrete environment signal: `fc-match
 'Segoe UI'` resolves to DejaVu Sans and `fc-match Arial` resolves to Nimbus
 Sans; neither requested family is installed. Because the board CSS requests
