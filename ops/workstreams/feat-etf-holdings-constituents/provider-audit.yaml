@@ -285,16 +285,16 @@ symbol_audit_ledger:
       provider_identity: guinness_atkinson
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-07
-      evidence_refs: [web:guinness-atkinson-fund-resources-2026-09-03, live:guinness-atkinson-fund-resources-2026-09-07-blocked]
+      investigated_at: 2026-10-01
+      evidence_refs: [web:guinness-atkinson-fund-resources-2026-09-03, live:guinness-atkinson-fund-resources-2026-09-07-blocked, web:guinness-atkinson-fund-resources-2026-10-01, live:guinness-atkinson-fund-resources-2026-10-01-blocked]
       next_action: "Re-test the official Fund Resources and symbol-scoped ETF routes; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
     - symbol: GAID
       tier: 1
       provider_identity: guinness_atkinson
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-07
-      evidence_refs: [web:guinness-atkinson-fund-resources-2026-09-03, live:guinness-atkinson-fund-resources-2026-09-07-blocked]
+      investigated_at: 2026-10-01
+      evidence_refs: [web:guinness-atkinson-fund-resources-2026-09-03, live:guinness-atkinson-fund-resources-2026-09-07-blocked, web:guinness-atkinson-fund-resources-2026-10-01, live:guinness-atkinson-fund-resources-2026-10-01-blocked]
       next_action: "Re-test the official Fund Resources and symbol-scoped ETF routes; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
     - symbol: UDIV
       tier: 1
@@ -1620,7 +1620,7 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-07
+    last_checked: 2026-10-01
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [GAUD, GAID]
     estimated_us_etf_count: null
@@ -1656,6 +1656,14 @@ providers:
         source: "https://www.gafunds.com/fund-resources/"
         result: "A fresh bounded request returned HTTP 403 Cloudflare challenge content; no complete holdings rows or downloadable artifact was exposed."
         evidence_ref: "live:guinness-atkinson-fund-resources-2026-09-07-blocked"
+      - date: 2026-10-01
+        source: "https://www.gafunds.com/fund-resources/"
+        result: "Current browser-indexed Fund Resources material still lists GAUD/GAID holdings and investor documents, but the application-equivalent request returned HTTP 403 Cloudflare challenge content."
+        evidence_ref: "web:guinness-atkinson-fund-resources-2026-10-01"
+      - date: 2026-10-01
+        source: "https://www.gafunds.com/fund-resources/"
+        result: "The current bounded request returned HTTP 403 Cloudflare challenge content; no complete executable holdings artifact was retrieved."
+        evidence_ref: "live:guinness-atkinson-fund-resources-2026-10-01-blocked"
     disposition_reason: "guinness_atkinson: Official Fund Resources material identifies GAUD/GAID ETF products, but backend-equivalent access is Cloudflare-blocked and no stable complete holdings artifact is executable."
     next_action: "guinness_atkinson: Re-test the official Fund Resources and symbol-scoped ETF routes; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
     implementation_sha: null

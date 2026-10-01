@@ -5648,3 +5648,12 @@ The runtime capability audit, symbol ledger, and provider ledger now share the
 2026-10-01 evidence references. The focused adapter/capability suite passed
 675 tests, Ruff passed, workstream validation passed, and diff-check passed.
 No adapter promotion or SEC fallback classification changed.
+
+## Provider-platform ref refresh — 2026-10-01
+
+The provider-platform refs advanced again: local and cached remote
+`feat/market-data-provider-platform` are both `366fdd4f`, while staging remains
+`8b885a2f`. The provider branch is still not an ancestor of staging, and the
+staging/provider `ProviderCapability` definitions still do not contain
+`ETF_HOLDINGS`. This was a read-only dependency check; no ETF bridge or
+cross-worktree mutation was introduced.
