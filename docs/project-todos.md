@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-10-01 — EODHD extra-call balance retention
+
+- [x] Preserve the documented EODHD `/user.extraLimit` balance as a named
+      `extra_calls` account-usage dimension instead of exposing only the daily
+      call pool. The value is retained as observation-only remaining balance;
+      no reset, limit, or routing entitlement is fabricated for this
+      non-expiring buffer.
+- [x] Add focused coverage for valid and malformed `extraLimit` payloads.
+- [ ] Keep ordinary EODHD routing fail-closed until the contradictory minute
+      publications and current account-specific reset/evidence controls are
+      reconciled. See `docs/data-providers.md` for the official-source audit.
+
+
 ### 2026-10-01 — Market-event continuation fail-closed hardening
 
 - [x] Treat malformed Massive market-event envelopes as failed pagination

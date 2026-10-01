@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-10-01 EODHD extra-call balance retention
+
+- EODHD's provider-native `/user` snapshot now exposes the documented
+  `extraLimit` balance as an `extra_calls` dimension with only `remaining`.
+  This preserves purchased non-expiring API-call credit without incorrectly
+  adding it to the daily quota or inventing a reset boundary.
+- Focused provider tests cover the valid balance and malformed-value failure;
+  ordinary EODHD routing remains fail-closed because the published minute
+  limits and current account-specific evidence are still contradictory.
+
 ## 2026-10-01 Massive market-event continuation safety
 
 - At exact source `f5f43a68e`, malformed Massive market-event pages now mark

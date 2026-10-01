@@ -653,6 +653,7 @@ def test_eodhd_fetches_documented_daily_usage_and_current_reset_boundary():
             "apiRequests": 7,
             "apiRequestsDate": datetime.now(UTC).date().isoformat(),
             "dailyRateLimit": 20,
+            "extraLimit": 125,
         }
     )
     response.status_code = 200
@@ -679,6 +680,10 @@ def test_eodhd_fetches_documented_daily_usage_and_current_reset_boundary():
     dimensions = {dimension.name: dimension for dimension in usage.dimensions}
     assert dimensions["calls_per_day"].reset_at is not None
     assert dimensions["calls_per_day"].reset_at > usage.observed_at
+    assert dimensions["extra_calls"].unit == "calls"
+    assert dimensions["extra_calls"].limit is None
+    assert dimensions["extra_calls"].remaining == 125
+    assert dimensions["extra_calls"].reset_at is None
     assert dimensions["requests_per_minute"].limit == 20
     assert dimensions["requests_per_minute"].consumed == 1
     assert dimensions["requests_per_minute"].reset_at is not None
@@ -708,6 +713,27 @@ def test_eodhd_stale_usage_date_does_not_invent_current_reset_boundary():
     assert usage is not None
     assert usage.dimensions[0].name == "calls_per_day"
     assert usage.dimensions[0].reset_at is None
+
+
+def test_eodhd_rejects_invalid_extra_call_balance():
+    provider = EODHDProvider()
+    response = _response(
+        {
+            "apiRequests": 7,
+            "apiRequestsDate": datetime.now(UTC).date().isoformat(),
+            "dailyRateLimit": 20,
+            "extraLimit": "not-a-number",
+        }
+    )
+    response.status_code = 200
+    response.headers = {}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", return_value=response),
+    ):
+        configured.EODHD_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError, match="extra API-call balance"):
+            provider.fetch_account_usage()
 
 
 def test_eodhd_fundamentals_uses_documented_v11_endpoint():

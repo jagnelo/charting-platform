@@ -2474,6 +2474,27 @@ class EODHDProvider(_RESTProvider):
                 reset_at=reset_at,
             )
         ]
+        # EODHD exposes ``extraLimit`` as a separate, non-expiring buffer
+        # that is consumed only after the daily call allowance is exhausted.
+        # It is a remaining balance, not a second daily limit: retain it as
+        # its own observation-only dimension rather than folding it into
+        # ``calls_per_day`` or inventing a reset boundary.
+        extra_limit = _account_integer(
+            payload,
+            {},
+            body_keys=("extraLimit",),
+            header_keys=(),
+            field="extra API-call balance",
+            provider_name=self.name,
+        )
+        if extra_limit is not None:
+            dimensions.append(
+                ProviderAccountUsageDimension(
+                    name="extra_calls",
+                    unit="calls",
+                    remaining=extra_limit,
+                )
+            )
         minute_limit = _account_integer(
             {},
             headers,

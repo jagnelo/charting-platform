@@ -335,6 +335,17 @@ retains the contradiction and keeps ordinary EODHD routing fail-closed until
 the active account entitlement and baseline are explicitly reconciled; no
 limit is inferred from the newer page alone.
 
+### 2026-10-01 EODHD extra-call balance retention
+
+EODHD's documented `/user` response also includes `extraLimit`, the remaining
+balance of purchased extra API calls. This is a non-expiring buffer consumed
+only after the daily call allowance is exhausted; it does not increase the
+daily limit and has no daily reset boundary. The adapter now retains it as the
+observation-only `extra_calls` dimension (`remaining` only), while preserving
+the complete provider body in the durable usage observation. It is deliberately
+not admitted to routing or baseline reconciliation because it is a balance,
+not a reviewed quota window.
+
 ### 2026-09-25 Tiingo usage-account audit
 
 Tiingo's current official documentation publishes the Starter ceilings and

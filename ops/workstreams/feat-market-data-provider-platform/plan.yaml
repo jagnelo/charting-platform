@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-01 EODHD native usage completeness: the documented `/user`
+    `extraLimit` purchased-call balance is now retained as an observation-only
+    `extra_calls` dimension with no fabricated reset or routing entitlement;
+    focused coverage includes valid and malformed balances. This does not
+    resolve EODHD's contradictory published minute limits or the account-level
+    reviewed evidence required for ordinary routing.
+  - >-
     2026-10-01 market-event continuation safety hardening: malformed Massive
     envelopes and contradictory complete-plus-continuation responses now fail
     closed while preserving normalized page data and retry state. Restart
