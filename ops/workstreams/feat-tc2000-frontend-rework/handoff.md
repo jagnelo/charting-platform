@@ -14817,3 +14817,7 @@ The subsequent full serial frontend regression at the same product tip passed
 `1,151/1,151` tests across 124 files. The only stderr was the existing expected
 negative-path watchlist-store failure coverage; no product or acceptance policy
 failure occurred.
+
+During that run, provider-platform advanced to `ba3a9c531` (`test(provider):
+record eodhd validation receipts`). Staging remains `8b885a2f` and ETF remains
+`410bf3b25`; neither upstream tip is contained in staging.
