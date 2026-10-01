@@ -14805,3 +14805,10 @@ passed. No provider, ETF, visual baseline, or acceptance policy changed.
 The ETF branch then advanced to `410bf3b25` (`docs(etf): refresh tier0 issuer
 evidence`). Provider remains `6f575556` and staging remains `8b885a2f`; neither
 upstream tip is yet contained in staging.
+
+## 2026-10-02 — Study Lab lifecycle accessibility slice
+
+Product commit `561b6305` adds stable accessible names to Study Lab Validate,
+Run, Cancel, Rerun snapshot, and Rerun latest controls. Focused Study Lab
+coverage passed `42/42`; `vue-tsc` type-check and diff checks passed. No
+provider, ETF, visual baseline, or acceptance policy changed.
