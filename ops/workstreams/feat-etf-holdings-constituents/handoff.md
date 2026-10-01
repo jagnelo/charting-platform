@@ -5537,3 +5537,17 @@ This is a fresh branch-owned acceptance receipt, not evidence that the shared
 provider-platform contract is staged. AC10 remains deferred, unresolved AC11
 fallback evidence is not silently promoted, and the post-integration AC14
 shadow gate remains unrun.
+
+## Provider-platform continuation recheck — 2026-10-01
+
+The local provider-platform ref subsequently advanced again to `6f575556`
+(`docs(provider): record continuation safety gates`). Its new work remains
+provider-owned continuation-safety documentation and does not add the shared
+`ETF_HOLDINGS` capability. The provider branch is still not an ancestor of
+staging `8b885a2f`; the cached remote provider ref remains `73d1d1aa`, and a
+read-only inspection still finds no `ETF_HOLDINGS` member in either the local
+provider-platform or staging `ProviderCapability` definition.
+
+No ETF bridge, duplicate provider governance, cross-worktree mutation, or
+source-classification change is justified by this ref movement. AC10 remains
+deferred until the shared capability is actually present in staging.
