@@ -111,7 +111,7 @@ symbols are now native-promoted and covered by deterministic plus opt-in live te
   as `issuer_access_blocked` or `non_executable_public_source` to explicit
   `unavailable` outcomes; unresolved route discovery remains `unknown`.
 - Validation tier: `full_integration`.
-- Local validation profile: `docker_integration`.
+- Local validation profile: `full_stack_browser`.
 - The latest complete `make validate-integration` run on the current working
   changes passed healthy branch-scoped stack, backend/frontend checks,
   research-runner probes, and functional E2E (154 passed, 106 skipped).
@@ -119,11 +119,12 @@ symbols are now native-promoted and covered by deterministic plus opt-in live te
   snapshot at `visual-1080p-125` exceeded its strict threshold; an isolated
   fresh-stack retry passed all four workspace-floating viewport variants. The
   mismatch was transient and did not implicate ETF holdings tests or routes.
-- Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint is `d13c02b4c5004670ab670e869d673c21ad397e9e`
-  (VistaShares native route); the subsequent `aa9a1950d` commit refreshes the
-  durable session checkpoint. The provider implementation is now at the
-  reconciled 496/420/76 state described above.
+- Planning session: `e83b4e4f-2c58-4ace-949e-cbd7155927e5`.
+- Latest implementation checkpoint is `4df595394` (durable session-state
+  reconciliation after the provider-platform continuation recheck). The
+  provider implementation remains at the reconciled 496/420/76 state described
+  above; the latest branch-owned acceptance evidence is recorded at
+  `2026-10-01T18:47:24Z`.
   Earlier
   checkpoints include `dabe2329965c704f93e3dbb21ec50a7da418ba6c` (Hexis/NICO
   native FilePoint route and synchronized records) and the named provider
