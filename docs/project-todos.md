@@ -1,5 +1,12 @@
 # Project TODO Memory
 
+### 2026-10-02 — Marketstack universe totals fail closed
+
+- [x] Require a strict provider-declared `pagination.total` for Marketstack
+      ticker discovery; missing, negative, boolean, and non-integer totals now
+      fail closed instead of truncating the universe at the current page.
+      Focused Marketstack coverage passed `17/17`.
+
 ### 2026-10-02 — Tokenized event pages fail closed on malformed rows
 
 - [x] Reject a tokenized corporate-action page containing any non-object row

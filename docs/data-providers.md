@@ -3,6 +3,14 @@
 This document describes every data provider registered with the platform, what data each one
 supplies, its priority level per capability, and where to configure its credentials.
 
+## 2026-10-02 — Marketstack universe totals fail closed
+
+Marketstack ticker discovery now requires a provider-declared, non-negative
+integer `pagination.total`. It no longer substitutes the current page length
+when that total is absent or malformed, preventing a partial universe page from
+being mistaken for a complete snapshot. Focused Marketstack coverage passed
+`17/17`.
+
 ## 2026-10-02 — Tokenized event page validation
 
 Tokenized corporate-action refreshes validate every returned page row before

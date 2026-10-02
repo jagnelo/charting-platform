@@ -2399,8 +2399,15 @@ class MarketstackProvider(_RESTProvider):
                 }
             )
         pagination = payload.get("pagination") if isinstance(payload, dict) else None
-        total = pagination.get("total") if isinstance(pagination, dict) else None
-        return {"total": int(total or len(quotes)), "quotes": quotes}
+        if not isinstance(pagination, dict) or "total" not in pagination:
+            raise ProviderResponseError(
+                self.name,
+                "provider omitted the tickers pagination total",
+            )
+        total = _strict_int(
+            pagination["total"], self.name, "tickers pagination total"
+        )
+        return {"total": total, "quotes": quotes}
 
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY", "ETF"]

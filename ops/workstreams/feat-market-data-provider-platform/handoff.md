@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 Marketstack universe-total integrity
+
+- Marketstack ticker discovery now requires a non-negative integer provider
+  `pagination.total`; it fails closed when the total is missing or malformed
+  instead of inferring the total from the current page length and risking
+  permanent universe truncation.
+- Focused Marketstack coverage passed `17/17`; branch-wide validation is
+  required at the post-commit exact SHA.
+
 ## 2026-10-02 Exact-current live preflight
 
 - The full manifest harness ran with the owner-managed environment at source

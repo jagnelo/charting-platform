@@ -919,6 +919,37 @@ def test_marketstack_discovery_requires_explicit_exchange_and_preserves_scope():
     assert get.call_args.args[1]["exchange"] == "XNAS"
 
 
+@pytest.mark.parametrize(
+    "pagination",
+    [
+        {},
+        {"total": "many"},
+        {"total": -1},
+        {"total": True},
+    ],
+)
+def test_marketstack_discovery_requires_strict_provider_total(pagination):
+    provider = MarketstackProvider()
+    payload = {
+        "pagination": pagination,
+        "data": [
+            {
+                "symbol": "AAPL",
+                "name": "Apple Inc.",
+                "exchange": "XNAS",
+                "currency": "USD",
+            }
+        ],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch.object(provider, "_get", return_value=payload),
+    ):
+        configured.MARKETSTACK_DISCOVERY_EXCHANGE = "XNAS"
+        with pytest.raises(ProviderResponseError, match="tickers pagination total"):
+            provider.discover_universe_page("EQUITY", 0)
+
+
 def test_eodhd_full_catalogue_is_reused_across_reconciliation_pages(monkeypatch):
     provider = EODHDProvider()
     rows = [
