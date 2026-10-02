@@ -47,8 +47,12 @@ def _runtime():
     return request, preflight_strategy_runtime(request, profile)
 
 
-def _conformance(*, engine_id: str = "nautilus", channel: EngineReleaseChannel = EngineReleaseChannel.STABLE,
-                 checks: frozenset[ConformanceCheck] = frozenset(ConformanceCheck)):
+def _conformance(
+    *,
+    engine_id: str = "nautilus",
+    channel: EngineReleaseChannel = EngineReleaseChannel.STABLE,
+    checks: frozenset[ConformanceCheck] = frozenset(ConformanceCheck),
+):
     evidence = EngineConformanceEvidence(
         engine_id,
         "2.0.0",
@@ -59,7 +63,9 @@ def _conformance(*, engine_id: str = "nautilus", channel: EngineReleaseChannel =
         NOW,
         NautilusReleasePin(
             package_version="2.0.0",
-            release_tag="v2.0.0" if channel is not EngineReleaseChannel.RELEASE_CANDIDATE else "v2.0.0-rc1",
+            release_tag="v2.0.0"
+            if channel is not EngineReleaseChannel.RELEASE_CANDIDATE
+            else "v2.0.0-rc1",
             source_digest=content_digest("nautilus-source"),
             runtime_image_digest=content_digest("runtime-image"),
             python_version="3.12.11",
@@ -166,7 +172,11 @@ def test_release_candidate_or_non_nautilus_is_rejected_for_authoritative_runs() 
     request, runtime = _runtime()
     evidence, report = _conformance(channel=EngineReleaseChannel.RELEASE_CANDIDATE)
     candidate = plan_nautilus_execution(
-        authorization, runtime, evidence, report, _plan(request),
+        authorization,
+        runtime,
+        evidence,
+        report,
+        _plan(request),
         data_snapshot_fingerprint=content_digest("snapshot"),
     )
     assert candidate.decision is EngineExecutionDecision.REJECT
@@ -174,7 +184,11 @@ def test_release_candidate_or_non_nautilus_is_rejected_for_authoritative_runs() 
 
     foreign, foreign_report = _conformance(engine_id="other-engine")
     non_nautilus = plan_nautilus_execution(
-        authorization, runtime, foreign, foreign_report, _plan(request),
+        authorization,
+        runtime,
+        foreign,
+        foreign_report,
+        _plan(request),
         data_snapshot_fingerprint=content_digest("snapshot"),
     )
     assert non_nautilus.decision is EngineExecutionDecision.REJECT
@@ -191,12 +205,47 @@ def test_non_authoritative_compatible_run_can_be_ready_but_is_not_authoritative(
     request, runtime = _runtime()
     evidence, report = _conformance(channel=EngineReleaseChannel.RELEASE_CANDIDATE)
     result = plan_nautilus_execution(
-        authorization, runtime, evidence, report, _plan(request),
+        authorization,
+        runtime,
+        evidence,
+        report,
+        _plan(request),
         data_snapshot_fingerprint=content_digest("snapshot"),
         requested_authoritative=False,
     )
     assert result.decision is EngineExecutionDecision.READY
     assert not result.authoritative
+
+
+def test_compatible_evidence_without_an_isolated_pin_cannot_execute() -> None:
+    trial, attempt, source, capability, lease = _execution_fixture(authoritative=False)
+    from app.strategy_lab_v2.execution import authorize_execution
+
+    authorization = authorize_execution(
+        trial, attempt, source, capability, lease, now=NOW.replace(second=3)
+    )
+    request, runtime = _runtime()
+    evidence = EngineConformanceEvidence(
+        "nautilus",
+        "2.0.0rc5",
+        content_digest("engine-build"),
+        EngineReleaseChannel.RELEASE_CANDIDATE,
+        content_digest("fixture"),
+        frozenset(ConformanceCheck),
+        NOW,
+    )
+    report = evaluate_engine_conformance(evidence)
+    result = plan_nautilus_execution(
+        authorization,
+        runtime,
+        evidence,
+        report,
+        _plan(request),
+        data_snapshot_fingerprint=content_digest("snapshot"),
+        requested_authoritative=False,
+    )
+    assert result.decision is EngineExecutionDecision.REJECT
+    assert "isolated_v2_release_pin_required" in result.rejection_reasons
 
 
 def test_mismatched_runtime_or_failed_conformance_rejects_before_invocation() -> None:
@@ -207,14 +256,16 @@ def test_mismatched_runtime_or_failed_conformance_rejects_before_invocation() ->
         trial, attempt, source, capability, lease, now=NOW.replace(second=3)
     )
     request, runtime = _runtime()
-    evidence, report = _conformance(
-        checks=frozenset({ConformanceCheck.DETERMINISTIC_REPLAY})
-    )
+    evidence, report = _conformance(checks=frozenset({ConformanceCheck.DETERMINISTIC_REPLAY}))
     mismatched_plan = SandboxCommandPlan(
         content_digest("different-request"), content_digest("profile"), ("docker", "run"), 10, 1024
     )
     result = plan_nautilus_execution(
-        authorization, runtime, evidence, report, mismatched_plan,
+        authorization,
+        runtime,
+        evidence,
+        report,
+        mismatched_plan,
         data_snapshot_fingerprint=content_digest("snapshot"),
     )
     assert result.decision is EngineExecutionDecision.REJECT
@@ -257,7 +308,10 @@ def test_engine_plan_rejects_invalid_inputs_and_authority_shape() -> None:
     with pytest.raises(TypeError, match="authorization"):
         plan_nautilus_execution(
             "bad",  # type: ignore[arg-type]
-            runtime, evidence, report, _plan(request),
+            runtime,
+            evidence,
+            report,
+            _plan(request),
             data_snapshot_fingerprint=content_digest("snapshot"),
         )
     with pytest.raises(ValueError, match="data_snapshot_fingerprint"):
@@ -268,6 +322,10 @@ def test_engine_plan_rejects_invalid_inputs_and_authority_shape() -> None:
             trial, attempt, source, capability, lease, now=NOW.replace(second=3)
         )
         plan_nautilus_execution(
-            authorization, runtime, evidence, report, _plan(request),
+            authorization,
+            runtime,
+            evidence,
+            report,
+            _plan(request),
             data_snapshot_fingerprint="bad",
         )

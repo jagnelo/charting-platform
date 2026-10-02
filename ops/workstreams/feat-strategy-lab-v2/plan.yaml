@@ -46,7 +46,9 @@ scope:
     Add authoritative Nautilus BacktestNode execution only when a stable
     Nautilus v2 release passes the platform conformance suite. Keep its version,
     Python environment, and runtime image isolated from the legacy Nautilus
-    1.226 installation. Release candidates are CI compatibility evidence only.
+    1.226 installation. The current exact v2 release candidate may run in that
+    isolated environment for non-authoritative local compatibility, replay, and
+    event-tape evidence; stable remains mandatory for published authority.
   - >-
     Add isolated serial backtest workers and separately reserved persistent
     forward workers; PostgreSQL metadata/state, Redis durable dispatch and
@@ -116,9 +118,11 @@ execution_plan:
       coordination, artifact storage, Redis/outbox orchestration, and Compose
       services.
     - >-
-      Once stable Nautilus v2 is published, add the isolated Rust canonical-data
-      adapter and authoritative serial backtest/forward worker images; pass the
-      conformance suite before any runtime is enabled.
+      Add the isolated Rust canonical-data adapter and a separate exact-pinned
+      Nautilus v2 release-candidate runtime for non-authoritative compatibility,
+      replay, and event-tape evidence. Once stable v2 is published, rerun the
+      same conformance suite and promote that isolated runtime to authoritative
+      serial backtest/forward execution only after every check passes.
     - >-
       Complete full branch integration/security/reproducibility validation and
       hand off at ready_for_human_review. The UI and any deployed shadow soak
@@ -139,9 +143,10 @@ dependencies:
     staged code/output contracts; do not edit its active files before staging or
     create a parallel editor/research runner.
   - >-
-    Nautilus stable v2 is a runtime enablement gate. Verify the official release
-    and pin exact Python/Rust versions only after stable publication; run
-    release-candidate compatibility checks without production enablement.
+    Nautilus stable v2 is the authoritative publication/live-shadow gate. The
+    current exact 2.0.0rc5 release candidate may be pinned in a separate Python/
+    Rust/runtime-image environment for compatibility execution now; it must be
+    labelled non-authoritative and excluded from official rankings.
 acceptance_criteria:
   - id: AC-DOMAIN
     text: >-
@@ -304,7 +309,7 @@ remaining_gaps:
   - The provider-platform workstream has not reached staging; canonical acquisition and capability adapter wiring is deferred.
   - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
   - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
-  - Nautilus stable v2 is not yet published; authoritative engine runtime activation is gated on a stable release and the new conformance evidence gate.
+  - Nautilus stable v2 is not yet published; this no longer blocks isolated RC compatibility execution. Authoritative engine runtime activation, official rankings, publication, and deployed shadow remain gated on stable release/conformance evidence.
   - The combined backend coverage gate now collects package-owned v2 tests and passes its 75% threshold. The dedicated worker entrypoint is now exposed through an explicit opt-in `strategy-lab-v2` Compose profile with a separate artifact volume, health-gated PostgreSQL/Redis dependencies, read-only root, dropped capabilities, bounded temporary filesystem, fail-closed Docker-socket binding, and a package-owned authenticated single-output evidence resolver default; host multi-artifact policy, live activation, and stable Nautilus execution remain open.
   - Alembic revision `ff0a1b2c3d4e` now creates the complete additive Strategy Lab v2 adapter schema and the active-worker reservation index without touching legacy Strategy Lab tables; the FastAPI lifespan now invokes the explicit startup migration service when namespaced migration settings enable it, while remaining API projections, terminal/result callback wiring, and stable Nautilus execution remain open.
   - Application wiring now composes the existing authenticated user dependency and async session factory with owner-normalized PostgreSQL resource, submission/dispatch, execution-state, and command adapters, and registers the versioned `/api/v1/strategy-lab/v2` router additively. The mutable-resource route now has an application-owned compare-and-set aggregate bridge with durable owner binding, mutation fingerprints, accepted timestamps, exact replay, and fail-closed collision handling; strategy creation additionally normalizes a typed `StrategyVersion`, and read-only search/forward state routes project authenticated durable checkpoints, while remaining domain adapters, dedicated worker service activation, and stable Nautilus execution remain open.
@@ -766,6 +771,6 @@ progress:
     - strategy-lab-v2-forward-worker-compose-boundary-hardening
     - strategy-lab-v2-backtest-worker-compose-boundary-hardening
   total: 18
-  current_phase: strategy-lab-v2-forward-worker-compose-boundary-hardening-awaiting-authoritative-gates
-  current_blocker: Stable Nautilus v2 release/conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration remain open
-  next_action: keep the forward worker opt-in and fail-closed; once stable Nautilus v2 and approved staging promotion exist, run exact-tip conformance and line-level shared-path reconciliation
+  current_phase: strategy-lab-v2-nautilus-rc-compatibility-track-awaiting-authoritative-gates
+  current_blocker: RC compatibility execution can proceed in an isolated exact-pinned runtime; authoritative publication/live shadow remain gated by stable Nautilus conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration
+  next_action: record and validate the exact 2.0.0rc5 isolated runtime contract, then run non-authoritative replay/conformance evidence while keeping worker activation and publication fail-closed

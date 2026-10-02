@@ -22,6 +22,11 @@ class EngineReleaseChannel(StrEnum):
 
 
 NAUTILUS_RELEASE_PIN_VERSION = "strategy-lab.nautilus-release-pin.v1"
+# The current v2 release-candidate track is intentionally exact rather than a
+# floating ``--pre`` install.  Runtime/source/image digests are still supplied
+# by the isolated deployment adapter when it constructs NautilusReleasePin.
+NAUTILUS_V2_RC_PACKAGE_VERSION = "2.0.0rc5"
+NAUTILUS_V2_RC_RELEASE_TAG = "v2.0.0rc5"
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,6 +172,18 @@ class EngineConformanceReport:
         """Whether all fixture checks passed, regardless of release channel."""
 
         return self.decision is ConformanceDecision.PASS
+
+    @property
+    def execution_eligible(self) -> bool:
+        """Whether the evidence may start an isolated engine process.
+
+        Compatibility execution is allowed for a complete release candidate,
+        but every actual process still needs a valid isolated v2 release pin.
+        This keeps an RC useful for local replay/backtest parity without
+        allowing an untracked package or shared legacy runtime to execute.
+        """
+
+        return self.compatible and self.release_pin_valid
 
     @property
     def fingerprint(self) -> str:

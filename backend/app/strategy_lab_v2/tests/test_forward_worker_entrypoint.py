@@ -133,7 +133,7 @@ async def test_forward_worker_composes_dedicated_queue_and_closes_runtime() -> N
 
     result = await run_forward_strategy_lab_v2_worker(
         _config(reclaim_idle_ms=11, batch_size=2, block_ms=7, interval_seconds=2),
-        callback_factory=lambda _persistence: (lambda *_a: None, lambda *_a: None),  # type: ignore[arg-type]
+        callback_factory=lambda _persistence: (lambda *_a: None, lambda *_a: None),  # type: ignore[arg-type,return-value]
         migration_service=_Migration(MigrationDecision.APPLIED),  # type: ignore[arg-type]
         session_factory=lambda: object(),
         persistence_factory=lambda _factory: Persistence(),  # type: ignore[arg-type,return-value]

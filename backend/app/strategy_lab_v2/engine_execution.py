@@ -121,6 +121,8 @@ def plan_nautilus_execution(
         reasons.append("only_nautilus_engine_is_supported")
     if not conformance_report.compatible:
         reasons.append("engine_conformance_failed")
+    if not conformance_report.release_pin_valid:
+        reasons.append("isolated_v2_release_pin_required")
     if requested_authoritative and not authorization.authoritative:
         reasons.append("authorization_is_not_authoritative")
     if requested_authoritative and not conformance_report.authoritative:

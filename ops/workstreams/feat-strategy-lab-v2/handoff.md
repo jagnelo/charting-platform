@@ -5876,3 +5876,29 @@ implementation tip and passes 961 tests. This includes the package-owned
 backtest and forward worker entrypoint/Compose contracts; it does not claim
 provider-backed acquisition, stable Nautilus execution, or full repository
 integration.
+
+## 2026-10-02 - Nautilus v2 release-candidate compatibility track
+
+The absence of a stable Nautilus v2 release no longer blocks all engine work.
+The branch now treats the exact `2.0.0rc5` package/tag as an isolated
+compatibility track. Complete RC conformance evidence may run local backtest,
+replay, and forward event-tape compatibility checks, but the resulting plan is
+always non-authoritative and cannot publish official results, participate in
+official rankings, or activate a deployed shadow instance. Stable v2 remains
+mandatory for those authority boundaries.
+
+The conformance gate now requires a valid isolated v2 release pin for every
+actual Nautilus process, including RC execution; an unpinned or shared-runtime
+build is rejected before sandbox invocation. The current backend
+`nautilus-trader==1.226.0` dependency remains untouched for the legacy runtime.
+The RC runtime must be a separate exact-pinned Python/Rust/runtime-image
+environment and must not use the backend's v1 environment.
+
+Current blockers are therefore narrower and concrete: the provider-platform,
+ETF, and TC2000 refs are still not staging ancestors; host canonical-event,
+account, and engine callback evidence is not configured for forward execution;
+shared migration/application reconciliation is not admissible; and the
+repository-wide formatter baseline still prevents the full integration gate.
+None of these blocks pure contracts, RC conformance fixtures, or isolated
+compatibility-run plumbing. Stable Nautilus remains only the blocker for
+authoritative publication/live shadow, not for continued implementation.

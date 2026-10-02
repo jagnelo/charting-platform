@@ -7,6 +7,8 @@ import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.conformance import (
+    NAUTILUS_V2_RC_PACKAGE_VERSION,
+    NAUTILUS_V2_RC_RELEASE_TAG,
     ConformanceCheck,
     ConformanceDecision,
     EngineConformanceEvidence,
@@ -74,12 +76,33 @@ def test_conformance_evidence_normalizes_offset_equivalent_test_times() -> None:
 
 
 def test_release_candidate_can_be_compatible_but_never_authoritative() -> None:
-    report = evaluate_engine_conformance(
-        _evidence(channel=EngineReleaseChannel.RELEASE_CANDIDATE)
-    )
+    report = evaluate_engine_conformance(_evidence(channel=EngineReleaseChannel.RELEASE_CANDIDATE))
     assert report.compatible
     assert not report.authoritative
     assert report.release_channel is EngineReleaseChannel.RELEASE_CANDIDATE
+
+
+def test_current_rc5_pin_is_execution_eligible_but_never_authoritative() -> None:
+    pin = replace(
+        PIN,
+        package_version=NAUTILUS_V2_RC_PACKAGE_VERSION,
+        release_tag=NAUTILUS_V2_RC_RELEASE_TAG,
+    )
+    evidence = EngineConformanceEvidence(
+        "nautilus",
+        NAUTILUS_V2_RC_PACKAGE_VERSION,
+        BUILD,
+        EngineReleaseChannel.RELEASE_CANDIDATE,
+        FIXTURE,
+        frozenset(ConformanceCheck),
+        NOW,
+        pin,
+    )
+    report = evaluate_engine_conformance(evidence)
+    assert report.compatible
+    assert report.execution_eligible
+    assert not report.authoritative
+    assert report.release_pin_valid
 
 
 def test_missing_conformance_checks_fail_closed() -> None:
@@ -120,8 +143,13 @@ def test_conformance_contract_rejects_invalid_evidence_and_manual_authority() ->
 def test_stable_authority_requires_an_isolated_v2_release_pin() -> None:
     missing = evaluate_engine_conformance(
         EngineConformanceEvidence(
-            "nautilus", "2.0.0", BUILD, EngineReleaseChannel.STABLE,
-            FIXTURE, frozenset(ConformanceCheck), NOW,
+            "nautilus",
+            "2.0.0",
+            BUILD,
+            EngineReleaseChannel.STABLE,
+            FIXTURE,
+            frozenset(ConformanceCheck),
+            NOW,
         )
     )
     assert missing.compatible
@@ -130,8 +158,13 @@ def test_stable_authority_requires_an_isolated_v2_release_pin() -> None:
 
     shared = evaluate_engine_conformance(
         EngineConformanceEvidence(
-            "nautilus", "2.0.0", BUILD, EngineReleaseChannel.STABLE,
-            FIXTURE, frozenset(ConformanceCheck), NOW,
+            "nautilus",
+            "2.0.0",
+            BUILD,
+            EngineReleaseChannel.STABLE,
+            FIXTURE,
+            frozenset(ConformanceCheck),
+            NOW,
             replace(PIN, legacy_runtime_isolated=False),
         )
     )
@@ -141,8 +174,14 @@ def test_stable_authority_requires_an_isolated_v2_release_pin() -> None:
     prerelease_pin = replace(PIN, release_tag="v2.0.0-rc5")
     prerelease = evaluate_engine_conformance(
         EngineConformanceEvidence(
-            "nautilus", "2.0.0", BUILD, EngineReleaseChannel.STABLE,
-            FIXTURE, frozenset(ConformanceCheck), NOW, prerelease_pin,
+            "nautilus",
+            "2.0.0",
+            BUILD,
+            EngineReleaseChannel.STABLE,
+            FIXTURE,
+            frozenset(ConformanceCheck),
+            NOW,
+            prerelease_pin,
         )
     )
     assert not prerelease.authoritative
@@ -154,6 +193,12 @@ def test_release_pin_rejects_non_v2_and_engine_version_drift() -> None:
         replace(PIN, package_version="1.231.0")
     with pytest.raises(ValueError, match="match engine_version"):
         EngineConformanceEvidence(
-            "nautilus", "2.0.1", BUILD, EngineReleaseChannel.STABLE,
-            FIXTURE, frozenset(ConformanceCheck), NOW, PIN,
+            "nautilus",
+            "2.0.1",
+            BUILD,
+            EngineReleaseChannel.STABLE,
+            FIXTURE,
+            frozenset(ConformanceCheck),
+            NOW,
+            PIN,
         )

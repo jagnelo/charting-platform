@@ -501,9 +501,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   This contract does not itself create containers or enforce OS limits.
 - `conformance.py` defines the engine release/conformance evidence gate. The
   required multi-instrument accounting, native order/fill/cost, deterministic
-  replay, lifecycle, and forward-event-tape checks are explicit; complete
-  release-candidate evidence is compatibility-only, and only a complete stable
-  release can be marked authoritative.
+  replay, lifecycle, and forward-event-tape checks are explicit. A complete
+  exact-pinned release candidate is eligible for isolated compatibility,
+  replay, and event-tape execution, but remains non-authoritative; only a
+  complete stable release can be marked authoritative.
 - `result_publication.py` composes conformance, runtime isolation, and exact
   result-artifact integrity into a storage-neutral publish plan. Only a stable
   authoritative build with matching evidence can publish; already-published
@@ -1115,11 +1116,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `engine_execution.py` binds the final Nautilus invocation gate to execution
   authorization, runtime preflight, sandbox request identity, data-snapshot
   identity, hardened sandbox argv validation, and complete conformance
-  evidence. Only a compatible Nautilus build can run; authoritative runs
-  additionally require stable release evidence, an authoritative
-  authorization, and an exact match between the release pin's runtime-image
-  digest and the sandbox image that will actually execute. No engine process is
-  started while any gate is missing.
+  evidence. Only a compatible Nautilus build with a valid isolated v2 release
+  pin can run; authoritative runs additionally require stable release evidence,
+  an authoritative authorization, and an exact match between the release pin's
+  runtime-image digest and the sandbox image that will actually execute. No
+  engine process is started while any gate is missing.
 - `redis_transport.py` publishes dispatch envelopes to Redis Streams through a
   Lua compare-and-set script. The idempotency key and stream append are staged
   atomically, exact retries replay, changed payloads conflict, and failed
@@ -1428,10 +1429,13 @@ authorize, persist, enqueue, or execute a request; the package router itself
 continues to own no I/O.
 
 Nautilus is the planned authoritative simulator, isolated from the legacy 1.x
-environment. Production execution remains disabled until a stable v2 version is
-pinned in a separate runtime and passes platform conformance for
-multi-instrument accounting, native execution/cost models, deterministic replay,
-engine lifecycle, and backtest/forward event-tape parity. Release candidates
-may be used as compatibility evidence only. The local Compose worker/storage
-and API phases follow shared-path reconciliation; the TC2000-native UI and any
-deployed shadow soak are separate authorization boundaries.
+environment. The current exact `2.0.0rc5` release candidate may be installed
+in a separate Python/Rust/runtime-image boundary and used now for local
+backtest, replay, and forward event-tape compatibility evidence. Every such
+run is explicitly non-authoritative and excluded from official rankings and
+publication. Stable v2 remains the gate for authoritative results, official
+rankings, and any deployed shadow soak; it must pass multi-instrument
+accounting, native execution/cost models, deterministic replay, engine
+lifecycle, and backtest/forward event-tape parity. The local Compose
+worker/storage and API phases follow shared-path reconciliation, and the
+TC2000-native UI remains a separate authorization boundary.
