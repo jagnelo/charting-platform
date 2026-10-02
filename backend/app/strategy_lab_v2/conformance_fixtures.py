@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, cast
@@ -19,6 +19,8 @@ from app.strategy_lab_v2.conformance import (
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventParityReceipt,
     NautilusForwardEventParityReceipt,
+    NautilusForwardEventTape,
+    verify_nautilus_forward_event_tape_parity,
 )
 from app.strategy_lab_v2.nautilus_runtime import (
     NautilusRcCompatibilityRuntime,
@@ -180,6 +182,50 @@ class NautilusRcConformanceResolution:
     @property
     def fingerprint(self) -> str:
         return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
+class NautilusForwardParityResolution:
+    """One verified forward wire comparison and its conformance projection."""
+
+    tape: NautilusForwardEventTape
+    receipt: NautilusForwardEventParityReceipt
+    observation: ConformanceFixtureObservation
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.tape, NautilusForwardEventTape):
+            raise TypeError("tape must be a NautilusForwardEventTape")
+        if not isinstance(self.receipt, NautilusForwardEventParityReceipt):
+            raise TypeError("receipt must be a NautilusForwardEventParityReceipt")
+        if not isinstance(self.observation, ConformanceFixtureObservation):
+            raise TypeError("observation must be a ConformanceFixtureObservation")
+        if self.receipt.instance_id != self.tape.instance_id:
+            raise ValueError("forward parity receipt references a different instance")
+        if self.receipt.forward_tape_fingerprint != self.tape.fingerprint:
+            raise ValueError("forward parity receipt references a different tape")
+        if self.observation.check is not ConformanceCheck.FORWARD_EVENT_TAPE_PARITY:
+            raise ValueError("forward parity observation has the wrong conformance check")
+        if self.observation.passed != self.receipt.passed:
+            raise ValueError("forward parity observation disagrees with its receipt")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+def resolve_nautilus_forward_parity(
+    tape: NautilusForwardEventTape,
+    observed_events: Sequence[Mapping[str, Any]],
+    *,
+    expected_digest: str,
+) -> NautilusForwardParityResolution:
+    """Verify one callback wire result and project it into conformance."""
+
+    if not isinstance(tape, NautilusForwardEventTape):
+        raise TypeError("tape must be a NautilusForwardEventTape")
+    receipt = verify_nautilus_forward_event_tape_parity(tape, observed_events)
+    observation = build_event_tape_parity_observation(expected_digest, receipt)
+    return NautilusForwardParityResolution(tape, receipt, observation)
 
 
 def resolve_nautilus_rc_conformance(

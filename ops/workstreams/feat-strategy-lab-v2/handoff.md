@@ -6173,3 +6173,14 @@ pass 29 tests; the complete Strategy Lab v2 package suite passes 1,004 tests,
 Ruff, MyPy across 305 source files, and diff validation. The engine-gate test
 now consumes the resolver output directly through the backtest-compatible
 execution scope.
+
+## 2026-10-02 - Forward parity adapter resolution
+
+`resolve_nautilus_forward_parity(...)` now composes strict forward-wire
+verification with the existing conformance projection. It returns a typed
+resolution binding the instance-scoped tape, parity receipt, and
+`FORWARD_EVENT_TAPE_PARITY` observation, while preserving mismatch evidence
+and the non-authoritative boundary for the eventual host/Rust callback.
+The focused conformance-fixture suite passes 18 tests and the complete
+Strategy Lab v2 package suite passes 1,004 tests, Ruff, MyPy, and diff
+validation.

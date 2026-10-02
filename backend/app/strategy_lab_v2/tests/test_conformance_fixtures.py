@@ -16,6 +16,7 @@ from app.strategy_lab_v2.conformance_fixtures import (
     ConformanceExecutionResolution,
     ConformanceFixtureObservation,
     ConformanceFixtureSuite,
+    NautilusForwardParityResolution,
     NautilusRcConformanceResolution,
     build_conformance_evidence,
     build_event_tape_parity_observation,
@@ -23,6 +24,7 @@ from app.strategy_lab_v2.conformance_fixtures import (
     require_complete_conformance_suite,
     require_rc_fixture_binding,
     require_runtime_probe_binding,
+    resolve_nautilus_forward_parity,
     resolve_nautilus_rc_conformance,
 )
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
@@ -313,26 +315,29 @@ def test_forward_event_tape_parity_receipt_projects_into_conformance_observation
         (event,),
         event_type_by_dependency={"daily-bars": "ohlcv"},
     )
-    receipt = verify_nautilus_forward_event_tape_parity(
+    observed = (
+        {
+            "dependency_id": "daily-bars",
+            "event_id": "bar-1",
+            "instrument_id": "US.AAPL",
+            "event_type": "ohlcv",
+            "event_time_ns": 1_704_067_200_000_000_000,
+            "sequence": 0,
+            "values": dict(event.values),
+        },
+    )
+    expected_receipt = verify_nautilus_forward_event_tape_parity(tape, observed)
+    resolution = resolve_nautilus_forward_parity(
         tape,
-        (
-            {
-                "dependency_id": "daily-bars",
-                "event_id": "bar-1",
-                "instrument_id": "US.AAPL",
-                "event_type": "ohlcv",
-                "event_time_ns": 1_704_067_200_000_000_000,
-                "sequence": 0,
-                "values": dict(event.values),
-            },
-        ),
+        observed,
+        expected_digest=content_digest(expected_receipt),
     )
 
-    observation = build_event_tape_parity_observation(content_digest(receipt), receipt)
-
-    assert observation.check is ConformanceCheck.FORWARD_EVENT_TAPE_PARITY
-    assert observation.passed is True
-    assert observation.observed_digest == observation.expected_digest
+    assert isinstance(resolution, NautilusForwardParityResolution)
+    assert resolution.observation.check is ConformanceCheck.FORWARD_EVENT_TAPE_PARITY
+    assert resolution.observation.passed is True
+    assert resolution.observation.observed_digest == resolution.observation.expected_digest
+    assert resolution.fingerprint.startswith("sha256:")
 
 
 def test_executable_suite_requires_exact_expected_checks() -> None:

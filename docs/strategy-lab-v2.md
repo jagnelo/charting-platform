@@ -554,6 +554,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `verify_nautilus_forward_event_tape_parity(...)` applies the same strict
   wire comparison to an admitted forward batch and retains the instance/tape
   identity in a separate non-authoritative forward-parity receipt.
+- `resolve_nautilus_forward_parity(...)` composes that strict verifier with
+  the `FORWARD_EVENT_TAPE_PARITY` conformance projection, returning one typed
+  resolution that binds the tape, receipt, and observation for the eventual
+  host/Rust callback boundary.
 - `build_event_tape_parity_observation(...)` projects that receipt into the
   existing `FORWARD_EVENT_TAPE_PARITY` conformance check. Failed receipts are
   assigned a distinct failure digest, so expected-fixture configuration cannot
