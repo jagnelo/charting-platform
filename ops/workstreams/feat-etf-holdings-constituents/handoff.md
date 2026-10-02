@@ -5834,3 +5834,10 @@ feed. Direct application-equivalent requests failed DNS resolution for
 `www.wagonsetf.com`, so no current rows were retrieved. Pabrai remains
 `non_executable_public_source`; no periodic report or SEC reconstruction was
 promoted as current.
+
+## Premise/TCTL route recheck — 2026-10-02
+
+Both issuer hostnames (`tctl.us` and `www.tctl.us`) remain inaccessible: direct
+DNS failed and the web fetcher could not open either URL. No current TCTL product
+or holdings artifact was retrieved. TCTL remains `issuer_access_blocked`; no SEC
+reconstruction or unproven native route was introduced.

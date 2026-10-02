@@ -6712,7 +6712,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-03
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [TCTL]
     estimated_us_etf_count: null
@@ -6735,6 +6735,8 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.premise_capital"
       - "web:premise-tctl-current-identity-2026-09-03"
       - "live:premise-tctl-domain-unreachable-2026-09-03"
+      - "web:premise-tctl-domain-recheck-2026-10-02"
+      - "live:premise-tctl-route-recheck-2026-10-02-dns-failure"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -6748,6 +6750,10 @@ providers:
         source: "https://www.tctl.us"
         result: "Backend-equivalent retrieval failed at DNS resolution for both tctl.us and www.tctl.us, before any product or holdings artifact could be accessed."
         evidence_ref: "live:premise-tctl-domain-unreachable-2026-09-03"
+      - date: 2026-10-02
+        source: "https://www.tctl.us; https://tctl.us"
+        result: "A fresh bounded route check could not access either issuer hostname: direct curl failed DNS resolution and the web fetcher reported both URLs inaccessible. No current TCTL product or holdings artifact was retrieved; issuer access remains blocked."
+        evidence_ref: "web:premise-tctl-domain-recheck-2026-10-02"
     disposition_reason: "premise_capital: The historical TCTL issuer identity points to tctl.us, but both issuer hostnames currently fail DNS resolution and no current symbol-scoped holdings artifact can be executed. The provider remains issuer_access_blocked; no SEC-derived reconstruction or unproven native adapter is counted. Reopen only after a reachable issuer-owned product/holdings route is established."
     next_action: "premise_capital: Recheck tctl.us and current trust disclosures for a reachable TCTL issuer route; do not promote from SEC filings alone."
     implementation_sha: null
