@@ -14896,6 +14896,12 @@ refresh marketstack preflight evidence`), and ETF holdings at
 evidence`). Neither upstream tip is an ancestor of staging. TC still has no
 permission to consume either feature tip directly.
 
+The latest boundary check still finds staging unchanged at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; provider-platform remains
+`1b51877881ceee0e01318d80833752c0fb7ab7ee`, and ETF holdings has advanced to
+`446b2efa8dbff03986c27818b5c11860aa6011d4` (`docs(etf): refresh segall and
+siren route evidence`). Neither dependency is an ancestor of staging.
+
 ## 2026-10-02 — Symbol List selection-state accessibility slice
 
 Product commit `07f75bca6` keeps Symbol List selection and emitted symbol

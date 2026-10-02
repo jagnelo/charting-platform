@@ -36,7 +36,7 @@ current_blocker: >-
   unrelated 100k-point uPlot benchmark; serial coverage passes 1,152/1,152.
   Provider-platform and ETF consumer integration remains a sequencing gate
   until both upstream branches reach staging. On the resumed 2026-10-01 audit,
-  provider is at `1b518778`, ETF is at `6dc8fbea`, and staging remains
+  provider is at `1b518778`, ETF is at `446b2efa`, and staging remains
   `8b885a2f`; neither dependency is an ancestor of staging. Shared-path reconciliation and
   the final post-staging exact gate remain pending. Origin synchronization
   remains a separate operational hold under the recorded private-origin
