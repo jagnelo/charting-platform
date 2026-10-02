@@ -5862,7 +5862,7 @@ tests; `make test-compose-contract` passes.
 
 ## 2026-10-02 - Current dependency and runtime-boundary audit
 
-The current remote refs are market-data `982fa996ef85`, ETF
+The current remote refs are market-data `1b51877881ce`, ETF
 `52814f95bd0e`, and TC2000 `63d64bfe95c9`; `origin/staging` remains
 `8b885a2ffd9c`, and none of those dependency refs is a staging ancestor.
 The implementation therefore remains prohibited from shared provider, ETF,
