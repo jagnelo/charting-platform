@@ -20,47 +20,32 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The chart-control and promoted-column regressions are fixed in 8db6c9ac6:
-  focused F9c-template-comparison and F8u-boolean both pass, while the
-  baseline-preserving chart layering keeps the original plot geometry. A fresh
-  seeded protected visual check still reports an approximately 45,932-pixel
-  mismatch; an isolated rebuilt-stack rerun reproduced 43,091 pixels on the
-  first capture and 45,932 after stability, with differences distributed across
-  board text/anti-aliasing rather than a localized geometry defect. No
-  snapshots, masks, thresholds, skips, or visual policy were changed, so
-  visual-baseline/environment verification remains open. The current host has
-  no Segoe UI or Arial installation (`fc-match` resolves them to DejaVu Sans
-  and Nimbus Sans), so a matching-font replay is required before attributing
-  the mismatch to product pixels. The
-  standard parallel frontend gate remains host-timing-sensitive on the
-  unrelated 100k-point uPlot benchmark; serial coverage now passes 1,168/1,168.
-  A Buildx-assisted exact gate reached the branch-scoped stack and completed
-  backend unit/integration coverage (1,621/1,621 and 408/408, 82.26%), frontend
-  tests (128 files, 1,167/1,167), type-check, build, Compose contracts, and
-  research-runner probes. The full authenticated browser stage then reported
-  161 passed, 9 failed, and 107 documented skips. The nine failures are in
-  late Study Lab cancellation/failure recovery, Market Map Python lineage,
-  Instrument Report disclosure, chart-indicator/condition promotions, Python
-  Library archive, and personal-watchlist flows; several report
-  `ERR_NETWORK_CHANGED` after the long browser run. The stack and generated
-  images were cleaned up. A fresh-stack targeted retry passed all nine
-  scenarios after aligning stale exact selectors with the UI's explicit
-  accessible names; no product behavior changed. A complete authenticated
-  Chromium replay then passed 167/173 with three documented skips and three
-  transient failures; an immediate isolated retry passed those three (3/3),
-  yielding 170/170 functional scenarios passed. The current serial frontend
-  suite after later UI-only slices is 1,168/1,168. The visual projects were not enabled by the exact
-  command (their 104 tests are included in the skips); the separately approved
-  visual replay still reproduces the roughly 45,932-pixel board text/font
-  anti-aliasing mismatch. No snapshots, masks, thresholds, skips, fallbacks,
-  provider/ETF behavior, or acceptance policy changed. Provider-platform and
-  ETF consumer integration remains a sequencing gate until both upstream
-  branches reach staging. The current atomic audit observes staging at
-    `8b885a2f`, provider-platform at `88132e91`, and ETF holdings at
-    `a600d30d`; neither dependency is an ancestor of staging. Shared-path
-  reconciliation and the final post-staging exact gate remain pending. Origin
-  synchronization remains a separate operational hold under the recorded
-  private-origin safeguard.
+  At feature tip `e52009bf9`, the latest version-matched Playwright 1.62.1
+  visual replay covered eight protected cases: two passed and six failed.
+  Pixel review identifies state divergence, not only font noise. The two
+  1080p watchlist-column-editor screenshots contain the current all-family
+  readiness line, which is absent from the saved images. The four
+  workspace-floating saved images contain the benchmark header but no rows;
+  the current test waits for post-float hydration and captures the five seeded
+  benchmark rows. The 1080p editor diffs were 16,279 and 16,128 pixels; the
+  floating diffs were 9,591, 10,384, 9,591, and 10,384 pixels across the four
+  projects. The host's font substitutions caused two additional editor
+  failures in the host replay; the matching image removed those, but not these
+  six state mismatches. `docs/tc2000-visual-parity.md` requires human review
+  and a linked intentional change for every snapshot update, so no baseline,
+  mask, threshold, skip, fallback, or acceptance rule changed. This targeted
+  replay is not a full 104-case pass. The 10,000-row network hydration check
+  passed 1/1 in 20.2 seconds with fewer than 100 rendered rows and the row
+  budget within limits. The 100-cycle two-popout churn check passed 1/1 in
+  4.3 minutes, returning the page, tool, and canvas counts to baseline each
+  round; memory ceilings were asserted where Chromium exposed heap samples.
+  The branch-scoped Docker stack, seeded test volumes, network, and local test
+  images were removed after these checks. Provider-platform and ETF consumer
+  integration remains a sequencing gate: current local refs are staging
+  `8b885a2f`, provider-platform `26e6dd5b`, and ETF holdings `4da62c54`; neither
+  dependency is an ancestor of staging. Shared-path reconciliation and the
+  final post-staging exact gate remain pending. Origin synchronization remains
+  a separate operational hold under the recorded private-origin safeguard.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -296,40 +281,28 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_browser_gate_revalidated_host_visual_open
+  current_phase: R6_latest_resilience_evidence_visual_state_review_open
   next_action: >-
-    Re-run the protected visual mismatch in a matching browser/font environment
-    without changing snapshots or visual policy. Keep provider/ETF consumer
-    integration deferred until both upstream branches reach staging, then
-    reconcile shared paths and rerun the exact-tip gate. The host lacks Docker
-    Buildx, so the standard stack-up target needs a Buildx-capable runner; the
-    manually started ordinary-Compose stack already proved functional browser
-    coverage. Continue bounded TC-owned R1/R5/R6 work while that sequencing
-    gate is open. Do not retry origin synchronization under the existing
-    private-origin safeguard without newly accepted exact-payload authorization.
+    Continue independent TC-owned workstation and Study/Strategy work while
+    provider/ETF consumer integration waits for both branches to reach staging.
+    Keep the six explained screenshot state mismatches visible; do not rewrite
+    baselines, masks, thresholds, skips, or acceptance rules without the visual
+    review required by docs/tc2000-visual-parity.md. After both upstream tips
+    are in staging, synchronize through the prescribed workflow, reconcile
+    shared paths semantically, and rerun the exact-tip gate. Do not retry origin
+    synchronization under the private-origin safeguard without newly accepted
+    exact-payload authorization.
   current_blocker: >-
-    The Study Lab browser tests initially failed only because stale E2E selectors
-    asked for an exact accessible name Run while the UI correctly exposes Run
-    study; the selectors were corrected and the affected seven browser tests
-    passed. The Buildx-assisted exact gate passed backend unit/integration
-    coverage (1,621/1,621 and 408/408, 82.26%), frontend tests (128 files,
-    1,167/1,167), type-check, build, contracts, policy checks, and branch-scoped
-    stack startup. The authenticated browser stage reported 161 passed, 9
-    failed, and 107 documented skips; the failures are concentrated in late
-    Study Lab, Market Map/Instrument Report, promotion, Python Library, and
-    personal watchlist flows, with several `ERR_NETWORK_CHANGED` diagnostics
-    after the long run. A fresh-stack targeted retry passed all nine affected
-    scenarios after aligning the test selectors with the UI's explicit
-    accessible names; no product behavior changed. Teardown removed the stack and generated images. The
-    visual projects were skipped because the exact command did not enable the
-    approved visual flag; the separate visual replay still reproduces the known
-    approximately 45,932-pixel board text/font anti-aliasing mismatch. No
-    snapshots, masks, thresholds, skips, fallbacks, provider/ETF behavior, or
-    acceptance policy changed. Provider-platform and ETF consumer integration
-    remains a sequencing gate until both upstream branches reach staging; the
-    current audit observes staging `8b885a2f`, provider `39b42294`, and ETF
-    `97e8d395`, with neither upstream tip an ancestor of staging. Shared-path
-    reconciliation and the final post-staging exact gate remain pending.
+    The version-matched visual replay at `e52009bf9` passed 2/8 targeted cases.
+    Six failures are now explained by the expected images representing older
+    states: the editor image predates its visible readiness line, and the
+    floating image predates the test's intentional five-row hydration check.
+    A snapshot change requires human visual review; the six tests remain red
+    and no oracle was changed. The independent 10,000-row browser budget and
+    100-cycle pop-out resilience checks both pass at this tip. Upstream
+    integration is still waiting for provider `26e6dd5b` and ETF `4da62c54` to
+    reach staging `8b885a2f`; neither is currently included. No other worktree
+    was touched.
 historical_implementation_records:
   - "Product commit 507c6df42 gives TC-owned Market Map actions explicit contextual accessible names for saving explicit symbols, refreshing the map, saving/exporting/deleting snapshots, and saving selected members as a personal watchlist while preserving visible labels, state mutations, and visual styling. Focused MarketMapTool coverage passed 54/54; the full serial frontend suite passed 128 files and 1,167/1,167 tests; vue-tsc, the production build, git diff --check, TC scope self-tests, and workstream validation passed with the existing large-chunk warning. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit f85222610 gives TC-owned VirtualWatchlist editor actions contextual accessible names: selected-symbol comparison count, paste settings, stack/unstack and pin/unpin column state, Python-column addition, saved-set save, and saved-set apply name/version. Existing visible labels, state mutations, and visual styling remain unchanged. Focused VirtualWatchlistTool coverage passed 78/78; the full serial frontend suite passed 128 files and 1,167/1,167 tests; vue-tsc, the production build, git diff --check, TC scope self-tests, and workstream validation passed with the existing large-chunk warning. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."

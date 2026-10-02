@@ -1,5 +1,22 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-10-02 — Protected screenshot state mismatch diagnosis
+
+At feature tip `e52009bf9`, a version-matched Playwright 1.62.1 replay of the
+eight watchlist-column-editor and workspace-floating cases passed `2/8` and
+failed `6/8`. The editor images fail only at the 1080p projects (16,279 and
+16,128 pixels): current content includes the asserted all-family readiness
+line, while the saved images predate it. All four floating cases fail (9,591,
+10,384, 9,591, and 10,384 pixels): expected images show the benchmark table
+without rows, but the current test waits for and captures five hydrated seeded
+rows. The host-font mismatch created two additional host-only editor failures;
+the matching browser removed those two but not these six state differences.
+
+These remain protected failures, not approvals: this was a targeted eight-case
+replay, not the complete 104-case matrix. A snapshot change requires human
+review and a note tying it to an intentional plan or reference change. No
+baseline, mask, threshold, skip, or acceptance policy changed.
+
 ## 2026-09-05 — Generic history floors remain functional-only
 
 Market Map now labels provider-neutral D1/W1/MN analysis readiness using the declared 252/52/24

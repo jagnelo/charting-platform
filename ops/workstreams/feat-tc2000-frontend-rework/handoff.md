@@ -1,5 +1,40 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — R6 visual-state diagnosis and fresh resilience evidence
+
+At feature tip `e52009bf9`, the version-matched Playwright 1.62.1 image ran
+the eight protected watchlist-column-editor/floating cases: two passed and six
+failed. The two 1080p editor images show a current all-family readiness line
+that the expected snapshots do not contain (16,279 and 16,128 differing
+pixels). The four floating images expect an empty benchmark table, while the
+test now waits for the five seeded rows to hydrate before capture (9,591,
+10,384, 9,591, and 10,384 differing pixels). The host replay had two extra
+font-related editor failures; using the matching Playwright image cleared those
+two, not the six state mismatches. Existing test history confirms the floated
+row-preservation assertion was intentionally added in `4d448da2c` and the
+readiness assertion in `92876519f`. No screenshot was updated: the visual
+parity policy requires human review and an intentional-change note for every
+baseline update. No mask, threshold, skip, fallback, or acceptance rule
+changed. Artifacts remain outside Git in `/tmp/tc2000-font-parity.psmxb0`.
+
+The controlled 10,000-row network hydration test passed `1/1` in `20.2s`: the
+full input universe hydrated, fewer than 100 virtual rows were rendered, the
+row budget stayed within limits, and no critical browser diagnostics occurred.
+The 100-cycle pop-out churn test passed `1/1` in `4.3m`; each round opened two
+windows and returned page/tool/canvas counts to baseline, with heap limits
+asserted where Chromium exposed samples. The exact TC project was removed
+afterward, including its test-only Postgres/Redis/research volumes, network,
+containers, and local images. The post-cleanup audit confirmed zero resources
+remain under the exact project label. Those generated resources are
+reproducible from this branch; their temporary seeded database state was
+removed.
+
+The current local dependency audit observes staging at `8b885a2f`,
+provider-platform at `26e6dd5b`, and ETF holdings at `4da62c54`; neither
+upstream tip is an ancestor of staging. TC did not consume either branch or
+mutate another worktree. Continue independent TC-owned R1/R5/R6 work; retain the
+visual baseline review and staging integration gates.
+
 ## 2026-10-02 — Market Map spatial keyboard navigation
 
 Product commit `4a4b06e5d6dabfff4c75c1e2d70912f58ba2270e` gives TC-owned Market

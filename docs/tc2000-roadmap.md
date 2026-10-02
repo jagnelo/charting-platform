@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-02
 
+## 2026-10-02 — R6 visual-state diagnosis and resilience receipts
+
+At product/test tip `e52009bf9`, a version-matched Playwright 1.62.1 replay
+passed two of the eight targeted editor/floating screenshots. The remaining
+six now have a concrete state explanation: the 1080p editor images predate the
+visible all-family readiness line; the floating snapshots show no rows while
+the current browser test intentionally waits for five seeded rows. The
+unmodified 104-case visual policy still requires human review before any
+baseline update. The controlled 10,000-row network budget check passed `1/1`
+in `20.2s`, and the 100-cycle, two-popout endurance check passed `1/1` in
+`4.3m`. See the TC workstream handoff and validation ledger for exact results.
+
 ## 2026-10-02 — Market Map spatial keyboard navigation
 
 Product commit `4a4b06e5d6dabfff4c75c1e2d70912f58ba2270e` gives Market Map
