@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-current public/provider usage evidence refresh
+
+- [x] At exact source `52e24174b`, OpenFIGI passed `3/3` with 3 requests and
+      Binance passed `3/3` with 7 requests, including their account-usage and
+      history/profile paths.
+- [x] MarketData.app native account usage passed `1/1` with 1 request, and
+      Twelve Data native account usage passed `1/1` with 1 request. All four
+      redacted receipts are durable in `validation.jsonl`.
+- [x] The subsequent exact-source full preflight remained fail-closed at
+      `0/0` with zero additional provider requests; focused evidence does not
+      substitute for unresolved full-matrix quota, legal, or source gates.
+
 ### 2026-10-02 — Exact-current Alpaca focused live validation
 
 - [x] At exact source `aa8f3b899`, the manifest-driven Alpaca focused matrix

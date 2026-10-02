@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact source 52e24174b current-source focused live evidence
+    passed OpenFIGI 3/3 (3 requests), Binance 3/3 (7 requests), MarketData.app
+    native usage 1/1 (1 request), and Twelve Data native usage 1/1 (1 request).
+    Each receipt contains complete same-run operation evidence and is redacted
+    in validation.jsonl. The subsequent full preflight still stopped at 0/0;
+    these focused passes do not widen unrelated provider capability, quota,
+    legal, or source-admission gates.
+  - >-
     2026-10-02 exact source aa8f3b899 passed the current Alpaca focused live
     matrix 7/7 with 8 provider requests and complete same-run evidence for
     history, intraday history, latest price, native account usage, equity and

@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-current public/provider usage evidence refresh
+
+- Exact source `52e24174b` passed OpenFIGI `3/3` with 3 requests, Binance
+  `3/3` with 7 requests, MarketData.app native account usage `1/1` with 1
+  request, and Twelve Data native account usage `1/1` with 1 request.
+- Each focused run produced complete same-run redacted evidence in
+  `validation.jsonl`. The subsequent full preflight still stopped before
+  transport at `0/0` with zero additional requests; focused evidence does not
+  widen unrelated quota, legal, capability, or source-admission gates.
+
 ## 2026-10-02 exact-current Alpaca focused live validation
 
 - Exact source `aa8f3b899` passed the bounded Alpaca live matrix `7/7` with
