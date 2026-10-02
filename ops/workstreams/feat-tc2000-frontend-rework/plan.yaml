@@ -275,7 +275,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_indicator_panel_native_keyboard_slice_passed
+  current_phase: R1_primary_workstation_keyboard_focus_ring_passed
   next_action: >-
     Compare open V25 interaction requirements against the primary workstation
     views and browser evidence, then choose the next independent TC-owned
@@ -287,17 +287,19 @@ progress:
     post-staging gate. Do not push the updated local range under the private-
     origin safeguard without exact-payload authorization.
   current_blocker: >-
-    Completion still depends on review of the six explained protected visual
-    differences and on provider-platform plus ETF work reaching staging before
-    this branch can consume either contract. The latest local dependency tips
-    are provider `d7097860a05c` and ETF `4da62c54d146`, neither included in
-    staging `8b885a2ffd9c`. The native Indicator Panel slice is implemented in
-    `e48ef32d61ca`; its targeted Chromium scenario passed 1/1. The current
-    workstream/documentation edits still need a clean exact-tip validation and
-    commit. The private-origin safeguard also leaves local branch commits
-    unpushed until a push for the exact updated range is authorized. No
+    The six protected screenshot differences cannot be marked accepted or
+    overwritten without the human review required by
+    `docs/tc2000-visual-parity.md`. Provider-platform at `d7097860a05c` and ETF
+    holdings at `4da62c54d146` are still not ancestors of staging
+    `8b885a2ffd9c`, so their contracts cannot yet be consumed or reconciled.
+    These two gates do not block independent TC-owned frontend work. The
+    primary-workstation tab-focus slice is committed as `44b837a2bf54`; clean
+    frontend tests/build and an authenticated live browser check passed. The
+    updated local branch range remains unpushed under the private-origin
+    safeguard until exact-payload push authorization is supplied. No
     provider/ETF branch, staging branch, or other worktree was changed.
 historical_implementation_records:
+  - "Product commit 44b837a2 adds a white focus-visible outline to primary Workstation layout tabs without replacing the blue active-tab marker or gold drag-over marker. The existing roving-arrow/Enter/Space interaction remains unchanged; the authenticated browser check verified ArrowRight focus, the computed white ring, Enter selection, and retained active marker with zero console errors or warnings. The clean exact-commit serial frontend suite and production vue-tsc/Vite build passed; the four-service TC stack became healthy and scoped teardown/resource audit found zero retained resources. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 507c6df42 gives TC-owned Market Map actions explicit contextual accessible names for saving explicit symbols, refreshing the map, saving/exporting/deleting snapshots, and saving selected members as a personal watchlist while preserving visible labels, state mutations, and visual styling. Focused MarketMapTool coverage passed 54/54; the full serial frontend suite passed 128 files and 1,167/1,167 tests; vue-tsc, the production build, git diff --check, TC scope self-tests, and workstream validation passed with the existing large-chunk warning. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit f85222610 gives TC-owned VirtualWatchlist editor actions contextual accessible names: selected-symbol comparison count, paste settings, stack/unstack and pin/unpin column state, Python-column addition, saved-set save, and saved-set apply name/version. Existing visible labels, state mutations, and visual styling remain unchanged. Focused VirtualWatchlistTool coverage passed 78/78; the full serial frontend suite passed 128 files and 1,167/1,167 tests; vue-tsc, the production build, git diff --check, TC scope self-tests, and workstream validation passed with the existing large-chunk warning. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 4fde30261 keeps the TC-owned industry drill-down behavior and visual layout unchanged while exposing each industry row's selected state via aria-pressed and adding a contextual accessible label with resolution, verified-proxy, and classification provenance details. Focused authenticated Chromium top-down drill-down flow F8e.1 passed 1/1; the full serial frontend suite passed 128 files and 1,165/1,165 tests; vue-tsc, production build, and git diff --check passed. Teardown removed the assigned stack, volumes, network, four generated images, and test sessions. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."

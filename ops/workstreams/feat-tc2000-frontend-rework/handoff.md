@@ -1,5 +1,35 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Primary workstation workspace-tab focus visibility
+
+Product commit `44b837a2bf54450b269a3ad253fbef7851f67733` adds an explicit
+white `:focus-visible` outline to the primary workstation's layout tabs. It
+does not replace the blue active-tab marker or the gold drag-over marker, and
+does not change tab selection or keyboard-navigation behavior. The existing
+keyboard flow now asserts the focus outline after moving between tabs.
+
+The full serial frontend suite and clean-source `vue-tsc`/Vite production build
+passed; the build retains the existing large Workstation bundle warning. An
+authenticated live Firefox check on `/chart/SPY` moved focus with ArrowRight,
+verified the computed white outline, then selected the tab with Enter while
+retaining its blue active marker. The browser reported zero console errors or
+warnings. The TC branch Compose stack became healthy and was removed with its
+containers, test volumes, network, and four local images; resource accounting
+reported zero remaining branch containers, volumes, images, or test sessions.
+
+A separate exploratory replay of the earlier `/legacy/chart/SPY` Indicator
+Panel slice confirmed Enter/Space selection and its sibling More menu, but the
+optional options-exposure requests returned HTTP 504 and logged an
+`optionsExposure` console error. This is recorded as a non-clean auxiliary
+replay, not as a passing browser-diagnostics result; no provider or data code
+was changed in response.
+
+The six protected screenshot mismatches remain unchanged. Local refs remain
+staging `8b885a2ffd9c`, provider-platform `d7097860a05c`, and ETF holdings
+`4da62c54d146`; neither dependency tip is included in staging. Continue
+independent TC-owned frontend work and defer consumer reconciliation until both
+dependencies reach staging.
+
 ## 2026-10-02 — Native Indicator Panel selection controls
 
 Product commit `e48ef32d61cab0a37608ce5dbf605543ea73ff3b` gives the five
