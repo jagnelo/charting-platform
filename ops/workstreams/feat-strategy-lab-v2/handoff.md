@@ -6765,3 +6765,47 @@ stream results into the artifact path and convert native events to RC5 catalog
 chunks. Stable Nautilus v2 is not a blocker; full platform conformance still
 gates authoritative results, and prereleases remain barred from broker/live
 real-capital control.
+
+## 2026-10-02 - RC5 native-event sidecar and chunked catalog replay
+
+Completed the bounded handoff from frozen event tapes into the isolated runtime.
+Trial assembly now emits verified content-addressed strategy-context and native
+event sidecars; the worker plan binds and mounts the native sidecar read-only,
+and the CLI checks its regular-file type, exact length, and SHA-256 before
+streaming it to the adapter. The native sidecar has canonical event ordering,
+monotonic native init timestamps for deterministic same-time ordering, bounded
+row/stream sizes, record-count validation, and a records digest. The RC adapter
+converts records into bounded 10,000-event batches in Nautilus's Parquet catalog
+and executes them through `BacktestNode` with configurable replay chunking.
+Strategy contexts and invocation results remain streamed; callback context
+indexes are replayed from the authenticated rolling histories so two readers do
+not race on one file cursor.
+
+The exact pinned Nautilus 2.0.0rc5 image passed the hardened no-network runtime
+probe for 10,005 events across the 10,000-record input boundary and 1,000-event
+replay chunks. All 10,004 strategy invocation results succeeded. It also passed
+the two-event same-time baseline. Both results remain `authoritative: false`;
+the probe image ID was
+`sha256:775cb0b38fac096bd2058312e4194434f734ab9aa98080d1b0d93821f4491d98`,
+built with wheel digest
+`sha256:eab45fafd2312deda1236554c49a9798bfc76bc8465af864878e2f70189ebebe`.
+
+Validation at source commit `295262626a280604675ccf2d83f3c30d6013c784`:
+1,109 Strategy Lab v2 tests passed; Ruff passed; all 17 changed Python files
+passed format checks; MyPy passed across 327 source files; `git diff --check`
+passed; and both exact-image RC5 probes passed. Commits `52e7605` and
+`2952626` are synchronized with `origin/feat/strategy-lab-v2`.
+
+No external dependency blocks further implementation, and stable Nautilus v2
+is not required. AC-NAUTILUS conformance remains incomplete and therefore still
+gates authoritative result publication: expand checks for multi-instrument
+accounting, native order/fill/cost/report behavior, deterministic replay, and
+engine lifecycle. The full-stack-browser profile is a final acceptance gate.
+Provider-platform, ETF, and TC2000 contract consumption remains gated on their
+approved work reaching staging, but does not block the owned Strategy Lab
+runtime work. Pre-release builds remain forbidden from broker connections or
+real-capital control.
+
+Next: extend the RC5 conformance matrix and mixed quote/trade/bar catalog probes,
+preserving the same isolated, non-authoritative status until the full suite
+passes.
