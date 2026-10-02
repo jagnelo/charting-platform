@@ -802,9 +802,11 @@ progress:
     remain implementation work. Provider, ETF, and TC2000 staging boundaries
     apply only to their eventual shared-contract integration.
   next_action: >-
-    Hydrate the attempt/trial and fingerprint-linked experiment, portfolio,
+    Replace full in-memory tape/wire-bundle materialization with a bounded,
+    chunked content-addressed data-plane handoff suitable for long histories.
+    Then hydrate the attempt/trial and fingerprint-linked experiment, portfolio,
     snapshot, strategy, and package through owner-scoped typed resource reads;
-    inject canonical instrument and venue/account adapters; then assemble the
+    inject canonical instrument and venue/account adapters; assemble the
     runtime bundle and bind its reference into worker evidence and atomic search
     dispatch. Reconcile the injected Arrow decoder with the provider platform
     only after that shared contract reaches staging. Continue with event-aligned

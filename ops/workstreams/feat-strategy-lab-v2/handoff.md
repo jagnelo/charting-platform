@@ -6522,3 +6522,11 @@ resource hydration, canonical instrument/account adapter injection, runtime
 reference binding into worker evidence and atomic dispatch, then portfolio risk
 and full Nautilus v2 conformance. Exact-pinned 2.0.0rc5 remains eligible after
 that conformance; no stable release wait is required.
+
+Scale boundary still open: `FrozenEventTapeArtifactResolver` currently retains
+decoded rows and constructs an in-memory `FrozenEventTape`; the existing
+Nautilus runtime bundle serializes that tape into a single JSON input. Verified
+artifact reads are chunked, but end-to-end replay is not yet bounded-memory for
+very long histories. The next implementation slice must replace this with a
+chunked content-addressed runtime data-plane handoff before claiming broad
+history-scale readiness.
