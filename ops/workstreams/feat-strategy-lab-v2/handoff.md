@@ -2,6 +2,37 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-02 - Immutable Nautilus trial-input assembly
+
+Added a producer that binds one queued/running attempt to its immutable
+scientific trial, experiment, portfolio, snapshot, preflight report, frozen
+event tape, strategy package/SDK manifest/source, native instrument catalog,
+and venue cash account. It cross-checks their fingerprints and declared
+instrument/capital scope, combines strategy defaults with trial parameters,
+builds event-aligned SDK contexts and native engine input, then publishes the
+serialized bundle to the pinned content-addressed artifact store. Unsupported
+multi-component portfolios, rebalances, scenarios, and evaluation windows fail
+closed before publication. The producer does not access a database or dispatch
+a worker; host rehydration and atomic dispatch binding remain the next seam.
+
+At source SHA `58e2882d6820301db3eb579c712553606145bda9`, all 1,041
+Strategy Lab v2 tests passed, Ruff passed, MyPy passed across 320 source files,
+and both changed Python files passed the format check. This proves the local
+producer and its contracts, not the complete API-to-worker route. Nautilus
+2.0.0rc5 remains usable for isolated non-authoritative research runs; its
+upstream stable release is not a development blocker and still gates only the
+branch's stable-authority acceptance requirements.
+
+The next action is a trusted host resolver that rehydrates the persisted trial
+inputs and binds the resulting artifact reference into the existing atomic
+dispatch evidence. Target-position intents still need event-aligned
+allocation/risk integration, followed by broader native product, accounting,
+and report conformance. No provider-platform, ETF, or TC2000 worktree is being
+modified; only their eventual shared-contract integration depends on staging.
+This source context is committed as `58e2882d6820301db3eb579c712553606145bda9`
+and pushed to `origin/feat/strategy-lab-v2`; the verified local and remote
+source hashes matched at publication.
+
 ## 2026-10-02 - Nautilus same-time event-batch bridge
 
 The isolated Nautilus bridge now consumes the engine-neutral SDK's same-time
