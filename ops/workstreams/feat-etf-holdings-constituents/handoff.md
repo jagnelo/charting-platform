@@ -6042,3 +6042,8 @@ Read-only inspection now sees local `feat/market-data-provider-platform` at
 `origin/staging` at `8b885a2f`. Neither provider ref is an ancestor of staging,
 and both inspected `ProviderCapability` enums still lack `ETF_HOLDINGS`. AC10
 remains deferred; no provider-platform or staging worktree was modified.
+
+The exact-SHA deterministic run initially caught a runtime/YAML evidence parity
+drift for the new PIMCO/Pacific DNS-blocked receipt. Both MINT and BOND runtime
+tuples now include that receipt; all 705 ETF adapter/capability/refresh/task
+tests, Ruff, workstream validation, and diff-check pass.

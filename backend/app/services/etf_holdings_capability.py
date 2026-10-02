@@ -621,6 +621,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:pimco-mint-daily-disclosure-search-2026-10-01",
             "web:pimco-etf-suite-current-2026-10-02",
             "web:pimco-mint-product-shell-current-2026-10-02",
+            "live:pacific-pimco-route-recheck-2026-10-02-dns-failure",
         ),
     ),
     "BOND": ETFHoldingsSymbolAudit(
@@ -667,6 +668,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:pimco-bond-daily-disclosure-search-2026-10-01",
             "web:pimco-etf-suite-current-2026-10-02",
             "web:pimco-bond-product-shell-current-2026-10-02",
+            "live:pacific-pimco-route-recheck-2026-10-02-dns-failure",
         ),
     ),
     "GEME": ETFHoldingsSymbolAudit(

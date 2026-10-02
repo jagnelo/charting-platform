@@ -371,6 +371,7 @@ remaining_gaps:
   - "The 2026-10-02 PIMCO recheck used the current official ETF suite and linked MINT/BOND product shells: both symbols remain active U.S.-listed products with current catalogue/NAV context, but anonymous product pages expose no complete holdings rows or downloadable basket and the bounded direct routes remained DNS-blocked. MINT and BOND therefore remain explicitly unavailable; GEME evidence is not reused across the mixed Pacific/PIMCO identity."
   - "The 2026-10-02 PIMCO recheck is now aligned across the runtime tier-0 symbol audit, YAML ledger, tests, and handoff: MINT/BOND investigated_at is 2026-10-02 with explicit official-shell evidence, and the focused capability suite (91 tests), Ruff, workstream validation, and diff-check pass."
   - "The 2026-10-02 read-only provider ref refresh found origin/feat/market-data-provider-platform at a05d9f43, local provider at 5f6b1edf, and origin/staging at 8b885a2f; neither provider ref is an ancestor of staging and both inspected ProviderCapability enums still lack ETF_HOLDINGS. AC10 remains deferred and no cross-worktree mutation occurred."
+  - "The exact-SHA 2026-10-02 deterministic run exposed and fixed a runtime/YAML symbol-audit parity drift for the new PIMCO/Pacific DNS-blocked evidence reference; after adding the receipt to both MINT and BOND runtime tuples, all 705 ETF adapter/capability/refresh/task tests, Ruff, workstream validation, and diff-check pass."
 progress:
   completed:
     - AC1
