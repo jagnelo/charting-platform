@@ -23,6 +23,11 @@ describe('DrawingToolbar accessibility', () => {
     await trendline.trigger('click')
     await trigger.trigger('click')
     expect(wrapper.get('[role="menu"][aria-label="Lines drawing tools"] button[aria-label="Trend Line"]').attributes('aria-pressed')).toBe('true')
+
+    const avwap = wrapper.get('button[aria-label="Anchored VWAP — click on chart to set anchor"]')
+    expect(avwap.attributes('aria-pressed')).toBe('false')
+    await avwap.trigger('click')
+    expect(avwap.attributes('aria-pressed')).toBe('true')
     wrapper.unmount()
   })
 })

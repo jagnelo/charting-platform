@@ -54,6 +54,7 @@
       type="button"
       title="Anchored VWAP — click on chart to set anchor"
       aria-label="Anchored VWAP — click on chart to set anchor"
+      :aria-pressed="drawStore.avwapDropActive ? 'true' : 'false'"
       @click="toggleAvwapDrop"
     >
       <span class="tool-icon tool-icon--avwap" aria-hidden="true" />
