@@ -5697,3 +5697,16 @@ used.
 The runtime capability audit, symbol ledger, and provider ledger now carry the
 2026-10-02 evidence references. Focused validation is being rerun for this
 evidence-only checkpoint.
+
+## AAM route recheck — 2026-10-02
+
+Current indexed SPDV material shows top holdings as of 2026-09-30 and an
+Export to Excel affordance, but bounded symbol-scoped requests returned HTTP
+403 for SPDV and TLS EOF/empty responses for BDIV, TRFM, and PFLD. No complete
+executable artifact was retrieved; all four symbols remain
+`unavailable`/`issuer_route_access_blocked`. No indexed top-ten data, SEC
+reconstruction, parser promotion, or paid route was used.
+
+The runtime capability audit, symbol ledger, and provider ledger now carry the
+2026-10-02 AAM evidence references. Focused validation is being rerun for this
+evidence-only checkpoint.

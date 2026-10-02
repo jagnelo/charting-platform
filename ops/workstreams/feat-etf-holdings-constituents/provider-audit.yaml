@@ -349,32 +349,32 @@ symbol_audit_ledger:
       provider_identity: advisors_asset_management
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-25
-      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25]
+      investigated_at: 2026-10-02
+      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25, web:aam-spdv-indexed-top-holdings-2026-10-02, live:aam-symbol-routes-2026-10-02-403-or-ssl-eof]
       next_action: "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
     - symbol: BDIV
       tier: 1
       provider_identity: advisors_asset_management
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-25
-      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25]
+      investigated_at: 2026-10-02
+      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25, web:aam-spdv-indexed-top-holdings-2026-10-02, live:aam-symbol-routes-2026-10-02-403-or-ssl-eof]
       next_action: "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
     - symbol: TRFM
       tier: 1
       provider_identity: advisors_asset_management
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-25
-      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25]
+      investigated_at: 2026-10-02
+      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25, web:aam-spdv-indexed-top-holdings-2026-10-02, live:aam-symbol-routes-2026-10-02-403-or-ssl-eof]
       next_action: "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
     - symbol: PFLD
       tier: 1
       provider_identity: advisors_asset_management
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-25
-      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25]
+      investigated_at: 2026-10-02
+      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25, web:aam-spdv-indexed-top-holdings-2026-10-02, live:aam-symbol-routes-2026-10-02-403-or-ssl-eof]
       next_action: "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
     - symbol: ALFA
       tier: 1
@@ -2019,7 +2019,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-25
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - SPDV
@@ -2069,6 +2069,14 @@ providers:
         source: "https://www.aamlive.com/ETF/detail/SPDV"
         result: "The current indexed SPDV page still exposes only a top-holdings grid and an Export to Excel affordance; a direct fetch from the allowed browser path returned HTTP 403, so no complete executable artifact was captured and no route promotion is justified."
         evidence_ref: "web:aam-spdv-indexed-top-holdings-2026-09-25; live:aam-spdv-direct-open-403-2026-09-25"
+      - date: 2026-10-02
+        source: "https://www.aamlive.com/ETF/Detail/{symbol_upper}"
+        result: "Current indexed SPDV material shows top holdings as of 2026-09-30 and an Export to Excel affordance, but bounded requests returned HTTP 403 for SPDV and TLS EOF/empty responses for BDIV, TRFM, and PFLD; no complete executable artifact was retrieved."
+        evidence_ref: "web:aam-spdv-indexed-top-holdings-2026-10-02"
+      - date: 2026-10-02
+        source: "https://www.aamlive.com/ETF/Detail/{symbol_upper}"
+        result: "Application-equivalent requests returned HTTP 403 for SPDV and OpenSSL TLS unexpected EOF/empty responses for BDIV, TRFM, and PFLD."
+        evidence_ref: "live:aam-symbol-routes-2026-10-02-403-or-ssl-eof"
     disposition_reason: "advisors_asset_management: AAM publishes current symbol-scoped pages with a paginated 52-item SPDV holdings grid and Export to Excel affordance, but application-equivalent requests end in empty server replies and no complete executable artifact is proven for the four representatives."
     next_action: "advisors_asset_management: Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
     implementation_sha: null
