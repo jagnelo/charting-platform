@@ -172,8 +172,9 @@ remaining_gaps:
     requires strict provider pagination metadata and advances using raw page
     counts despite local quote-type filtering; missing or contradictory
     metadata fails closed instead of repeating or skipping instruments.
-    Focused coverage passed 21/21; branch-wide validation is pending at the
-    post-commit exact SHA.
+    Focused coverage passed 21/21; exact SHA af2d79d6 passed optional providers
+    121/121, branch units 1,946/1,946, Docker integration 386/386, and static
+    workstream validation.
   - >-
     2026-10-02 exact-current live preflight: the full manifest ran with the
     owner-managed environment at source 4a809bd and stopped before transport

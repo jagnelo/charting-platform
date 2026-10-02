@@ -16,11 +16,10 @@
   removes rows. It fails closed when metadata is missing or contradictory
   instead of inferring progress from filtered rows and risking repeated or
   permanently skipped instruments.
-- Focused Marketstack coverage passed `21/21`; exact SHA `e72c4368` then
-  passed optional providers `117/117`, branch-owned unit `1,942/1,942`, Docker
-  integration `386/386` in `731.98s`, Ruff, compile, diff, and workstream
-  validation. Receipts for the raw-page offset correction will be recorded at
-  its post-commit exact SHA.
+- Focused Marketstack coverage passed `21/21`; exact SHA `af2d79d6` then
+  passed optional providers `121/121`, branch-owned unit `1,946/1,946`, Docker
+  integration `386/386` in `734.56s`, Ruff, compile, diff, and workstream
+  validation. Receipts are recorded in `validation.jsonl`.
 
 ## 2026-10-02 Exact-current live preflight
 
