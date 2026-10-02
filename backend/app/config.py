@@ -3177,6 +3177,15 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         ).strip()
         contract = seed.get("quota_contract")
         if reviewed_limit is not None and isinstance(contract, dict):
+            if reviewed_limit > 1000:
+                # The current first-party limits page documents an all-plan
+                # ceiling of 1,000 requests/minute. A native response header
+                # reporting a higher value is retained as observation, but
+                # cannot widen the conservative documented admission ceiling.
+                contract["unknown_dimensions"] = [
+                    "account_minute_override_exceeds_documented_ceiling"
+                ]
+                return seed
             if not provider_quota_reset_is_admission_safe(reviewed_reset) or not quota_evidence:
                 contract["unknown_dimensions"] = ["operator_minute_override_incomplete"]
                 return seed

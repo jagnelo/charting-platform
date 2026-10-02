@@ -150,7 +150,7 @@
   "implementation_sha": "0a673255bc7765ff8660d7878011fcb35252a05e",
   "interrupted": true,
   "last_checkpoint": "2026-09-15T21:47:06.368545+00:00",
-  "last_human_progress_update": "2026-10-02T19:40:43.576656+00:00",
+  "last_human_progress_update": "2026-10-02T20:51:21.221498+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "resume from the durable handoff and inspect displaced session state",
   "parent_branch": "staging",
@@ -168,11 +168,11 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "The full-stack startup exposed a PostgreSQL 63-byte index-name failure; the migration is corrected and awaiting exact-source revalidation. Provider-specific quota/use-rights, complete venue evidence, and target secret stores remain separate open gates.",
-    "current_phase": "PostgreSQL migration correction and corrected-source acceptance",
-    "next_action": "Commit the migration fix with its branch-owned evidence; rerun unit, Docker integration, workflow, frontend, browser E2E, and actual research-runner resource gates at that exact source; then run bounded EODHD live validation and refresh the provider-wide preflight.",
+    "current_blocker": "none",
+    "current_phase": "EODHD quota preflight correction and exact-source acceptance rerun",
+    "next_action": "Commit the EODHD preflight correction and durable base-source receipts, rerun exact-source unit, PostgreSQL/Redis integration, workflow and frontend gates, rebuild the seeded stack and rerun the focused unresolved browser case/resource probes, then run bounded EODHD full live validation and refresh the provider-wide safety preflight. Continue closing repository-controlled provider contracts, universe and secret-workflow gaps; leave only owner-controlled rights, baseline, CI/deployment secret stores, deferred providers, and final shadow gates fail-closed.",
     "total": 22,
-    "updated_at": "2026-10-02T19:40:43.576638+00:00"
+    "updated_at": "2026-10-02T20:51:21.221479+00:00"
   },
   "remote": "88132e9145a08d1c935a0111b3dba0fbd88bdff1",
   "remote_sha": "0a673255bc7765ff8660d7878011fcb35252a05e",

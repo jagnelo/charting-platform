@@ -1005,6 +1005,43 @@ def test_finra_otc_live_admission_requires_source_evidence(monkeypatch):
     assert "FINRA_OTC_REVIEWED_SOURCE_URL" in result["finra otc directory"]
 
 
+def test_eodhd_live_admission_uses_documented_default_and_bounds_overrides(monkeypatch):
+    runner = _runner_module()
+    from app.config import settings
+
+    for name in (
+        "EODHD_REVIEWED_MINUTE_RESET",
+        "EODHD_MINUTE_QUOTA_EVIDENCE",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("EODHD_REVIEWED_MINUTE_LIMIT", "0")
+    monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 0)
+    result = runner.routing_safety_preflight()
+    assert result["eodhd"] == (
+        "routable: official all-plan 1,000-requests/minute ceiling enforced by a rolling 60-second envelope"
+    )
+
+    monkeypatch.setenv("EODHD_REVIEWED_MINUTE_LIMIT", "500")
+    monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 500)
+    result = runner.routing_safety_preflight()
+    assert "EODHD_REVIEWED_MINUTE_RESET" in result["eodhd"]
+    assert "EODHD_MINUTE_QUOTA_EVIDENCE" in result["eodhd"]
+
+    monkeypatch.setenv("EODHD_REVIEWED_MINUTE_RESET", "rolling")
+    monkeypatch.setenv("EODHD_MINUTE_QUOTA_EVIDENCE", "EODHD API limits documentation")
+    monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "rolling")
+    monkeypatch.setattr(
+        settings, "EODHD_MINUTE_QUOTA_EVIDENCE", "EODHD API limits documentation"
+    )
+    assert runner.routing_safety_preflight()["eodhd"] == (
+        "routable: lower account-specific minute override has reviewed reset/evidence"
+    )
+
+    monkeypatch.setenv("EODHD_REVIEWED_MINUTE_LIMIT", "1001")
+    monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 1001)
+    assert "EODHD_REVIEWED_MINUTE_LIMIT" in runner.routing_safety_preflight()["eodhd"]
+
+
 def test_staged_candidate_requires_clean_staging_and_returns_tree_identity():
     runner = _runner_module()
     candidate, error = runner._staged_candidate_from_git_state(

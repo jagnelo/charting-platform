@@ -1,5 +1,44 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 EODHD safety-preflight correction and complete local gate results
+
+- The live-runner safety report had drifted from the application’s EODHD
+  contract: the application already used the official all-plan 1,000 HTTP
+  requests/minute ceiling, but the runner still required an operator override
+  and described obsolete conflicting-source evidence. The runner now admits
+  the documented default with its rolling 60-second safety envelope; an
+  account-specific override must be lower than or equal to 1,000 and include
+  reset/evidence. A 1,200 value from a per-key response header is observation
+  only and cannot widen the documented cap. The same boundary is enforced in
+  provider registry policy and regression tests.
+- At exact source `313337668b28ec94b465d602f01c8d24564acf33`, EODHD’s native
+  `/api/user` account-usage case passed `1/1` (one request, 304 response bytes).
+  It costs zero daily API-call credits but uses one minute-request unit. The
+  full EODHD data/profile matrix will be rerun after the preflight correction
+  is committed, using its native daily balance and endpoint credit costs.
+- The seeded, exact-source full-stack browser run booted successfully and
+  completed `150 passed`, `105 skipped`, `5 failed` across 260 cases. Four of
+  the five failures passed on an isolated retry; three original failures were
+  transient local-browser `ERR_NETWORK_CHANGED`/login-navigation errors and
+  the chart-template pointer interception also passed on retry. One
+  heatmap-to-Study-Lab interaction failed again because the document overlay
+  intercepts the click. The branch-specific stack remained healthy throughout.
+  This is a frontend-only failure; frontend changes remain outside this
+  branch’s authorization and no frontend source was changed.
+- `make test-research-runner-probes` passed on the exact source in Docker: the
+  runner denied namespace/mount/ptrace/fork/network/subprocess/root-write
+  escapes, enforced its configured 768 MiB container / 512 MiB per-job memory
+  limits, contained a deliberate cgroup OOM (`137`), and kept concurrent work
+  healthy without restart.
+- The focused EODHD preflight correction suite passed `73/73` with Ruff and
+  `git diff --check` clean. Full exact-source backend, workflow, frontend,
+  Docker integration, bounded EODHD matrix, and provider-wide safety
+  preflight are pending on the correction commit.
+- No frontend or ETF adapter path changed. Provider-specific usage baselines,
+  byte/cost/reset and source/rights admission, complete venue reconciliation,
+  owner-only CI/deployment secret stores, deferred providers, and the final
+  separately authorized shadow phase remain open and fail-closed.
+
 ## 2026-10-02 EODHD quota contract and full-stack preflight corrections (acceptance rerun pending)
 
 - Re-audited EODHD's current first-party [API limits documentation](https://eodhd.com/financial-apis/api-limits). It states that every plan has a separate 1,000-HTTP-request/minute ceiling, while Free has 20 weighted API-call credits/day resetting at midnight GMT. Endpoint costs differ: EOD, search/list/calendar cost 1; intraday/news/technical cost 5; fundamentals/options cost 10; whole-exchange Bulk costs 100; `/api/user` costs zero daily credits.

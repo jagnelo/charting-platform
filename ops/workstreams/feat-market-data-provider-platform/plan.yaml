@@ -162,6 +162,28 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 EODHD policy/preflight drift was found and corrected: the
+    application already used the first-party all-plan 1,000-request/minute
+    ceiling, but the live safety reporter still required a custom account
+    override and described obsolete conflicting-source evidence. The reporter
+    now recognizes the documented default and only accepts a reviewed lower
+    account override with reset/evidence; custom values above 1,000 fail closed
+    and cannot widen the provider-published cap. Focused tests pass 73/73 and
+    EODHD account-usage live evidence passed 1/1 at exact base source
+    313337668b28ec94b465d602f01c8d24564acf33. The corrected exact-source full
+    EODHD matrix and full provider safety preflight remain pending.
+  - >-
+    2026-10-02 exact-source full-stack browser validation at base source
+    313337668b28ec94b465d602f01c8d24564acf33 booted the complete seeded Docker
+    stack and completed 150 passed, 105 skipped, and 5 failed of 260. Isolated
+    retry passed four failed cases (including transient local-browser network
+    and chart-template interaction errors); one frontend heatmap-to-Study-Lab
+    interaction reproducibly fails because a document overlay intercepts the
+    click. The stack stayed healthy; no frontend code was changed or authorized.
+    Exact-source research-runner isolation/resource probes passed. Browser gate
+    remains red pending explicit frontend-scope approval or independent
+    resolution; backend/provider work continues without frontend changes.
+  - >-
     2026-10-02 exact pushed source c4352c3d3 reran the full provider live
     preflight after the tokenized pagination correction. It stopped before
     transport at 0/0 with zero external requests and retained the same
@@ -5350,4 +5372,4 @@ progress:
       and Docker integration `386/386`. No identity-selection behavior or ETF
       adapter ownership changed; unresolved provider and owner-controlled gates
       remain fail-closed.
-  next_action: Commit the PostgreSQL-compatible identity-quarantine index-name fix alongside the optional-terms timestamp and Compose default-builder fixes. At the resulting exact source, rerun branch-owned unit, Docker PostgreSQL/Redis integration, workflow, frontend, full-stack browser, and research-runner resource gates; then run bounded EODHD live validation and refresh the complete provider safety preflight. Continue closing repository-controlled provider-contract and universe gaps. Stop only at genuine owner-controlled legal/account/target-secret decisions; keep routing fail-closed and do not integrate, deploy, activate routing, modify another worktree, or start the final 30-day shadow run.
+  next_action: Commit the EODHD safety-preflight correction and its regression coverage with the current exact-source browser/resource receipts. At the resulting clean SHA, rerun the full branch-owned non-ETF unit inventory, Docker PostgreSQL/Redis integration, workflow, frontend, and relevant browser/resource validation; run the bounded EODHD provider matrix (subject to its native 20 weighted-credit daily balance), then refresh the complete provider safety preflight. Continue resolving repository-controlled provider quota/contract/universe gaps. Stop only when remaining gates are genuinely owner-controlled legal/account/secret-store/scope decisions; keep routing fail-closed and do not integrate, deploy, activate routing, modify another worktree, or start the final 30-day shadow run.

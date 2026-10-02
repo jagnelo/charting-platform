@@ -1044,14 +1044,19 @@ def provider_missing_routing_controls(
             missing.append("MARKETSTACK_QUOTA_EVIDENCE")
         return list(dict.fromkeys(missing))
     if name == "eodhd":
+        configured_limit = getattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 0)
+        if isinstance(configured_limit, int) and not isinstance(configured_limit, bool) and configured_limit < 0:
+            return ["EODHD_REVIEWED_MINUTE_LIMIT"]
         reviewed_limit = provider_positive_integer(
-            getattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 0)
+            configured_limit
         )
         # The published 1,000/minute contract is active by default. Only an
         # explicitly configured future account/plan override needs its own
         # reset and evidence; a partial override fails closed.
         if reviewed_limit is None:
             return []
+        if reviewed_limit > 1000:
+            return ["EODHD_REVIEWED_MINUTE_LIMIT"]
         missing: list[str] = []
         if not provider_quota_reset_is_admission_safe(
             getattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "")

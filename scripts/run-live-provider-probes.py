@@ -1623,25 +1623,36 @@ def routing_safety_preflight() -> dict[str, str]:
         + ", ".join(finnhub_missing)
     )
 
+    eodhd_minute_limit_raw = os.getenv("EODHD_REVIEWED_MINUTE_LIMIT", "0").strip()
     try:
-        eodhd_minute_limit = int(
-            os.getenv("EODHD_REVIEWED_MINUTE_LIMIT", "0").strip() or "0"
-        )
+        eodhd_minute_limit = int(eodhd_minute_limit_raw or "0")
     except ValueError:
-        eodhd_minute_limit = 0
+        eodhd_minute_limit = None
     eodhd_minute_reset = os.getenv("EODHD_REVIEWED_MINUTE_RESET", "").strip()
     eodhd_minute_evidence = os.getenv("EODHD_MINUTE_QUOTA_EVIDENCE", "").strip()
     eodhd_missing: list[str] = []
-    if not 0 < eodhd_minute_limit <= 1000:
+    if eodhd_minute_limit is None or eodhd_minute_limit < 0 or eodhd_minute_limit > 1000:
         eodhd_missing.append("EODHD_REVIEWED_MINUTE_LIMIT")
-    if not provider_quota_reset_is_admission_safe(eodhd_minute_reset):
-        eodhd_missing.append("EODHD_REVIEWED_MINUTE_RESET")
-    if not eodhd_minute_evidence:
-        eodhd_missing.append("EODHD_MINUTE_QUOTA_EVIDENCE")
+    elif eodhd_minute_limit > 0:
+        # The official API limits page specifies 1,000 requests/minute on all
+        # plans, with a per-key X-RateLimit-Limit/Remaining header. A lower
+        # account-specific override remains available, but it must carry its
+        # own reviewed reset/evidence. Zero means use the documented ceiling.
+        if not provider_quota_reset_is_admission_safe(eodhd_minute_reset):
+            eodhd_missing.append("EODHD_REVIEWED_MINUTE_RESET")
+        if not eodhd_minute_evidence:
+            eodhd_missing.append("EODHD_MINUTE_QUOTA_EVIDENCE")
+    eodhd_safety_reset = _seed_safety_reset("eodhd", "requests_per_minute")
+    if not eodhd_safety_reset:
+        eodhd_missing.append("documented requests_per_minute reset")
     result["eodhd"] = (
-        "routable"
+        (
+            "routable: official all-plan 1,000-requests/minute ceiling enforced by a rolling 60-second envelope"
+            if eodhd_minute_limit == 0
+            else "routable: lower account-specific minute override has reviewed reset/evidence"
+        )
         if not eodhd_missing
-        else "non-routable: official EODHD minute-pool sources conflict; the lower published value is audit-only until the exact account limit/reset is reviewed; missing/invalid "
+        else "non-routable: invalid account-specific override or missing documented reset; "
         + ", ".join(eodhd_missing)
     )
 
