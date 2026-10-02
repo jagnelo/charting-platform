@@ -2985,6 +2985,14 @@ public-CUSIP requests to both `topTenHoldings` and `fund-info` routes
 export is proven, so no top-ten, factsheet, browser-only, or SEC artifact is
 promoted as current.
 
+## Pzena route recheck — 2026-10-02
+
+Current indexed PZIV/PZLV first-party pages still expose only a JavaScript
+Holdings shell without rows, date, or export. The ETF catalogue was inaccessible
+to the web fetcher, and direct application-equivalent requests failed DNS
+resolution for `www.pzena.com`. No complete current artifact was retrieved;
+Pzena remains `issuer_access_blocked`.
+
 ## Performance Trust STBF route recheck — 2026-10-02
 
 The current PTAM resources page still links a complete STBF monthly holdings
