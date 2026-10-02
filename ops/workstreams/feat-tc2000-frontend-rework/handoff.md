@@ -1,5 +1,19 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Full functional browser replay after selector revalidation
+
+The complete authenticated Chromium suite ran against a freshly rebuilt,
+branch-scoped stack: `167` passed, `3` documented skips, and `3` transient
+failures. The failures were F9c-template-transform, F8k-grey, and
+F8t-results-series-threshold; the first two were render/timing-sensitive and
+the third recorded `ERR_NETWORK_CHANGED` across local stack requests. An
+immediate isolated retry passed all three (`3/3`), so the functional receipt is
+`170/170` passed with `3` documented skips. Stack teardown removed the assigned
+containers, volumes, network, four generated images, and test sessions. No
+provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or
+acceptance policy changed. The visual/font replay and both upstream staging
+boundaries remain open.
+
 ## 2026-10-02 — Browser selector revalidation
 
 The nine browser failures from the exact gate were reproduced on a fresh

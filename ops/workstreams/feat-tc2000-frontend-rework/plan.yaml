@@ -45,7 +45,10 @@ current_blocker: >-
   `ERR_NETWORK_CHANGED` after the long browser run. The stack and generated
   images were cleaned up. A fresh-stack targeted retry passed all nine
   scenarios after aligning stale exact selectors with the UI's explicit
-  accessible names; no product behavior changed. The visual projects were not enabled by the exact
+  accessible names; no product behavior changed. A complete authenticated
+  Chromium replay then passed 167/173 with three documented skips and three
+  transient failures; an immediate isolated retry passed those three (3/3),
+  yielding 170/170 functional scenarios passed. The visual projects were not enabled by the exact
   command (their 104 tests are included in the skips); the separately approved
   visual replay still reproduces the roughly 45,932-pixel board text/font
   anti-aliasing mismatch. No snapshots, masks, thresholds, skips, fallbacks,
