@@ -5683,3 +5683,17 @@ support, and no parser or native route was added.
 The runtime capability audit, symbol ledger, and provider ledger now carry the
 2026-10-01 evidence ref. The focused adapter/capability suite passed 675
 tests, Ruff passed, workstream validation passed, and diff-check passed.
+
+## Westwood/MDST route recheck — 2026-10-02
+
+Current indexed Westwood material still identifies MDST, a 23-holding portfolio,
+and quarterly schedule resources, but it does not expose an executable complete
+current holdings artifact to the application client. Bounded requests to the
+official product page and declared CSV returned HTTP 403 Cloudflare challenge
+HTML. MDST therefore remains `unavailable`/`issuer_route_access_blocked`; no
+partial/indexed table, SEC reconstruction, parser promotion, or paid route was
+used.
+
+The runtime capability audit, symbol ledger, and provider ledger now carry the
+2026-10-02 evidence references. Focused validation is being rerun for this
+evidence-only checkpoint.
