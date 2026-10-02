@@ -5777,3 +5777,44 @@ The active operational context owns the following pending record files until
 the checkpoint commit closes them: `ops/workstreams/feat-strategy-lab-v2/handoff.md`,
 `ops/workstreams/feat-strategy-lab-v2/session.json`, and
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+## Active context - forward worker Compose entrypoint
+
+Intent: add the explicit opt-in local forward-worker entrypoint and Compose
+service, keeping host event/materializer and account/engine callbacks required
+and fail-closed. Add the forward payload-loader seam needed by that entrypoint.
+Owned paths: `backend/app/strategy_lab_v2/forward_worker_entrypoint.py`,
+`backend/app/strategy_lab_v2/postgres_forward_dispatch.py`, their focused tests,
+`docker-compose.yml`, and this handoff/validation record.
+
+## 2026-10-02 - Dedicated forward worker Compose boundary
+
+The local forward-testing boundary is now explicit and opt-in. The new
+`forward_worker_entrypoint` performs startup migration, builds the persistence
+adapter, loads a host-supplied materializer/handler callback factory, consumes
+the dedicated `forward-events` Redis queue, rehydrates payloads through the
+PostgreSQL forward-dispatch adapter, and shuts down the runtime and scheduler
+cleanly. Callback configuration is mandatory at runtime and fails closed; the
+entrypoint does not select a provider, broker, or Nautilus implementation.
+
+`docker-compose.yml` now declares a separate `strategy-lab-v2-forward-worker`
+service under the existing `strategy-lab-v2` profile with a read-only root,
+dropped capabilities, no-new-privileges, bounded temporary storage, an
+artifact volume, and PostgreSQL/Redis health dependencies. This is a local
+execution boundary only; host event resolution, account semantics, and engine
+callbacks remain an explicit deployment concern. `PostgresForwardDispatch` now
+exposes the content-addressed payload loader consumed by the worker.
+
+Validation for this slice: focused forward-entrypoint/dispatch/service/compose
+tests passed (17 tests); the complete Strategy Lab v2 package suite passed
+(960 tests); targeted Ruff, Ruff format checks, MyPy, and `make
+test-compose-contract` passed. `UV_CACHE_DIR=/tmp/strategy-lab-v2-uv-cache make
+validate-integration` reached the repository lint stage but stopped because
+the branch baseline reports 232 files requiring `ruff format --check`,
+including untouched files; no mass formatting was applied. This is a
+repository-wide validation baseline issue, not a failure in the focused slice.
+
+The implementation remains gated from authoritative activation by stable
+Nautilus v2 release/conformance evidence, host callback/event configuration,
+approved provider/ETF/TC2000 promotion to staging, and shared migration and
+application-path reconciliation. No other worktree was changed.

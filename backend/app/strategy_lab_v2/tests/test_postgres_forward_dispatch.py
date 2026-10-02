@@ -133,6 +133,9 @@ async def test_forward_dispatch_persists_payload_dispatch_and_outbox_then_replay
     loaded = await adapter.load_by_request_fingerprint(request.fingerprint)
     assert loaded is not None
     assert loaded.request == request
+    loaded_payload = await adapter.load_payload(request.payload_digest)
+    assert loaded_payload is not None
+    assert loaded_payload.payload_digest == request.payload_digest
 
     replay = await adapter.dispatch(
         principal="owner-1",
@@ -146,6 +149,16 @@ async def test_forward_dispatch_persists_payload_dispatch_and_outbox_then_replay
     assert len(session.payloads) == 1
     assert len(session.dispatches) == 1
     assert len(session.outboxes) == 1
+
+
+@pytest.mark.asyncio
+async def test_forward_dispatch_payload_loader_rejects_malformed_digest_and_missing_rows() -> None:
+    session = DispatchSession()
+    adapter = PostgresForwardEventDispatchAdapter(lambda: session)
+
+    assert await adapter.load_payload(content_digest("missing")) is None
+    with pytest.raises(ValueError, match="payload_digest"):
+        await adapter.load_payload("not-a-digest")
 
 
 def test_forward_dispatch_schema_is_safe_and_additive() -> None:

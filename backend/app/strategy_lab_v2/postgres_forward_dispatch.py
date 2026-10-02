@@ -252,6 +252,21 @@ class PostgresForwardEventDispatchAdapter:
                     return None
                 return _decode_dispatch_record(rows[0])
 
+    async def load_payload(self, payload_digest: str) -> DispatchPayload | None:
+        """Load one content-addressed forward dispatch payload for a worker.
+
+        The Redis entry is authenticated against :meth:`load_by_request_fingerprint`
+        before a forward worker consumes this payload.  Keeping the payload lookup
+        on the same adapter prevents the forward entrypoint from reaching into a
+        submission-owned table or inventing a second payload source.
+        """
+
+        require_sha256_digest(payload_digest, field_name="payload_digest")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                return await self._load_payload(session, payload_digest)
+
     async def _persist_state(
         self,
         session: AsyncSessionLike,

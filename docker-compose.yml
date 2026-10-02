@@ -266,6 +266,47 @@ services:
         condition: service_healthy
     networks: [charting]
 
+  # ── Strategy Lab v2 forward-event worker (explicit opt-in) ────────────────
+  # This service is intentionally separate from the backtest worker. It owns
+  # only Redis forward-event polling and durable handoff; the host must provide
+  # authenticated event/materializer and account/engine callbacks explicitly.
+  strategy-lab-v2-forward-worker:
+    profiles: ["strategy-lab-v2"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      labels:
+        charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    restart: unless-stopped
+    command: python -m app.strategy_lab_v2.forward_worker_entrypoint
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - "no-new-privileges:true"
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=64m"]
+    environment:
+      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      STRATEGY_LAB_V2_FORWARD_REDIS_URL: redis://redis:6379/0
+      STRATEGY_LAB_V2_FORWARD_CALLBACK_FACTORY: ${STRATEGY_LAB_V2_FORWARD_CALLBACK_FACTORY:-}
+      STRATEGY_LAB_V2_FORWARD_MIGRATIONS_ENABLED: ${STRATEGY_LAB_V2_FORWARD_MIGRATIONS_ENABLED:-true}
+      STRATEGY_LAB_V2_FORWARD_MIGRATION_TARGET: ${STRATEGY_LAB_V2_FORWARD_MIGRATION_TARGET:-head}
+      STRATEGY_LAB_V2_FORWARD_QUEUE: ${STRATEGY_LAB_V2_FORWARD_QUEUE:-forward-events}
+      STRATEGY_LAB_V2_FORWARD_GROUP: ${STRATEGY_LAB_V2_FORWARD_GROUP:-strategy-lab-v2-forward}
+      STRATEGY_LAB_V2_FORWARD_INTERVAL_SECONDS: ${STRATEGY_LAB_V2_FORWARD_INTERVAL_SECONDS:-1.0}
+      STRATEGY_LAB_V2_FORWARD_RECLAIM_IDLE_MS: ${STRATEGY_LAB_V2_FORWARD_RECLAIM_IDLE_MS:-30000}
+      STRATEGY_LAB_V2_FORWARD_BATCH_SIZE: ${STRATEGY_LAB_V2_FORWARD_BATCH_SIZE:-1}
+      STRATEGY_LAB_V2_FORWARD_BLOCK_MS: ${STRATEGY_LAB_V2_FORWARD_BLOCK_MS:-0}
+    volumes:
+      - strategy_lab_artifacts:/strategy-lab-artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [charting]
+
   # User code never runs in FastAPI or the general worker. This service has no
   # network, no provider credentials, a read-only root filesystem, dropped Linux
   # capabilities, and only the constrained job/result volume.
