@@ -1046,6 +1046,7 @@ async def reconcile_us_universe(
             rows: list[dict[str, Any]] = []
             offset = 0
             total: int | None = None
+            total_scope: str | None = None
             seen_next_urls: set[str] = set()
             seen_listing_keys: set[tuple[str, str | None, str]] = set()
             source_files: set[str] = set()
@@ -1132,6 +1133,13 @@ async def reconcile_us_universe(
                         seen_listing_keys.add(listing_key)
                     rows.extend(page_rows)
                     declared_total = page.get("total")
+                    declared_total_scope = page.get("total_scope", "filtered")
+                    if declared_total_scope not in {"filtered", "raw"}:
+                        raise ValueError("discovery provider returned an invalid total scope")
+                    if total_scope is None:
+                        total_scope = declared_total_scope
+                    elif total_scope != declared_total_scope:
+                        raise ValueError("discovery provider changed its declared total scope")
                     if declared_total is not None:
                         if isinstance(declared_total, bool) or not isinstance(declared_total, int):
                             raise ValueError("discovery provider returned an invalid total")
@@ -1179,6 +1187,12 @@ async def reconcile_us_universe(
                     if next_url:
                         offset += len(page_rows)
                         continue
+                    if total_scope == "raw":
+                        if page.get("complete") is not True:
+                            raise ValueError(
+                                "discovery provider omitted raw-total completion evidence"
+                            )
+                        break
                     offset += len(page_rows)
                     if total is not None:
                         if offset >= total:
@@ -1203,7 +1217,11 @@ async def reconcile_us_universe(
                         "nasdaq directory returned "
                         f"{len(rows)} rows but declared total {total}"
                     )
-                run.expected_count = total if total is not None else len(rows)
+                run.expected_count = (
+                    len(rows)
+                    if total_scope == "raw"
+                    else total if total is not None else len(rows)
+                )
                 if resolved.provider_name == "nasdaq" and quote_type.strip().upper() in {
                     "EQUITY",
                     "ETF",
@@ -1240,6 +1258,7 @@ async def reconcile_us_universe(
                     "snapshot_complete": True,
                     "source_files": sorted(source_files),
                     "absence_scope": absence_scope,
+                    "total_scope": total_scope or "filtered",
                 }
                 if absence_scope is not None:
                     await _mark_missing(

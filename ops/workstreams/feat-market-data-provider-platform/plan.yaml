@@ -170,8 +170,10 @@ remaining_gaps:
   - >-
     2026-10-02 Marketstack universe-pagination integrity: ticker discovery now
     requires strict provider pagination metadata and advances using raw page
-    counts despite local quote-type filtering; missing or contradictory
-    metadata fails closed instead of repeating or skipping instruments.
+    counts despite local quote-type filtering; `total_scope: raw` separates
+    pagination totals from filtered reconciliation counts, and missing or
+    contradictory metadata fails closed instead of repeating or skipping
+    instruments.
     Focused coverage passed 21/21; exact SHA af2d79d6 passed optional providers
     121/121, branch units 1,946/1,946, Docker integration 386/386, and static
     workstream validation.

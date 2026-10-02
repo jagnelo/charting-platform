@@ -1039,6 +1039,62 @@ async def test_universe_reconciliation_follows_cursor_until_explicit_completion(
 
 
 @pytest.mark.asyncio
+async def test_marketstack_raw_total_scope_reports_filtered_expected_count(db, monkeypatch):
+    from app.services import market_universe
+
+    source = DataSource(name="marketstack", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    provider = SimpleNamespace(supported_discovery_types=lambda: ["EQUITY"])
+    resolved = SimpleNamespace(provider_name="marketstack", data_source=source)
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return [resolved]
+
+    responses = iter(
+        [
+            SimpleNamespace(
+                result={
+                    "total": 3,
+                    "total_scope": "raw",
+                    "quotes": [{"symbol": "AAPL", "exchange": "XNAS"}],
+                    "next_offset": 2,
+                    "complete": False,
+                },
+                data_source=source,
+            ),
+            SimpleNamespace(
+                result={
+                    "total": 3,
+                    "total_scope": "raw",
+                    "quotes": [{"symbol": "MSFT", "exchange": "XNAS"}],
+                    "next_offset": None,
+                    "complete": True,
+                },
+                data_source=source,
+            ),
+        ]
+    )
+
+    async def raw_total_pages(*_args, **_kwargs):
+        return next(responses)
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda _name: provider)
+    monkeypatch.setattr(market_universe, "execute_provider_call", raw_total_pages)
+
+    result = await reconcile_us_universe(
+        AsyncSessionAdapter(db), provider_name="marketstack", quote_types=["EQUITY"]
+    )
+
+    assert result["status"] == "complete"
+    assert result["runs"][0]["observed"] == 2
+    assert result["runs"][0]["expected"] == 2
+    run = db.query(MarketUniverseReconciliationRun).one()
+    assert run.provenance["total_scope"] == "raw"
+
+
+@pytest.mark.asyncio
 async def test_universe_reconciliation_does_not_discard_valid_large_offsets(db, monkeypatch):
     """A valid provider continuation beyond the old arbitrary cap is retained."""
 

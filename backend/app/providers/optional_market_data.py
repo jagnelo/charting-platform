@@ -2431,7 +2431,13 @@ class MarketstackProvider(_RESTProvider):
                 "provider returned tickers pagination metadata beyond its declared total",
             )
         next_offset = page_offset + page_count if page_offset + page_count < total else None
-        return {"total": total, "quotes": quotes, "next_offset": next_offset}
+        return {
+            "total": total,
+            "total_scope": "raw",
+            "quotes": quotes,
+            "next_offset": next_offset,
+            "complete": next_offset is None,
+        }
 
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY", "ETF"]

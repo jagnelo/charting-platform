@@ -938,7 +938,9 @@ def test_marketstack_discovery_advances_by_raw_page_count_when_filtering_quote_t
 
     assert [quote["symbol"] for quote in page["quotes"]] == ["AAPL", "MSFT"]
     assert page["total"] == 5
+    assert page["total_scope"] == "raw"
     assert page["next_offset"] == 3
+    assert page["complete"] is False
 
 
 @pytest.mark.parametrize(

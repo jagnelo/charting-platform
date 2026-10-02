@@ -7,9 +7,12 @@ supplies, its priority level per capability, and where to configure its credenti
 
 Marketstack ticker discovery now requires strict provider pagination metadata
 and advances using the raw provider page count even when local quote-type
-filtering removes rows. It no longer substitutes the current page length when
-metadata is absent or malformed, preventing a partial universe page from being
-mistaken for a complete snapshot. Focused Marketstack coverage passed `21/21`.
+filtering removes rows. Its `total_scope: raw` marker drives pagination while
+completed reconciliation reports the filtered quote count. It no longer
+substitutes the current page length when metadata is absent or malformed,
+preventing a partial universe page from being mistaken for a complete snapshot.
+Focused Marketstack coverage passed `21/21` plus raw-total reconciliation
+coverage.
 
 ## 2026-10-02 — Tokenized event page validation
 

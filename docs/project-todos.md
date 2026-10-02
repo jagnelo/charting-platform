@@ -6,7 +6,9 @@
       ticker discovery and advance using raw page counts despite local
       quote-type filtering; missing, contradictory, negative, boolean, and
       non-integer metadata now fail closed instead of truncating or repeating
-      the universe. Focused Marketstack coverage passed `21/21`.
+      the universe. `total_scope: raw` keeps pagination totals separate from
+      filtered expected counts. Focused Marketstack coverage passed `21/21`
+      plus raw-total reconciliation coverage.
 
 ### 2026-10-02 — Tokenized event pages fail closed on malformed rows
 
