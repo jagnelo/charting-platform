@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-current safety preflight at pushed branch tip
+
+- [x] At exact pushed source `7527716ba`, the full provider manifest stopped
+      before provider transport with `0/0` cases and zero external requests.
+      The redacted receipt is appended to `validation.jsonl`.
+- [ ] Provider-specific active baselines/contracts, legal/source admission,
+      deferred capabilities, and the Nasdaq daily client-envelope exhaustion
+      remain explicit fail-closed gates. No generic limit or inferred usage was
+      introduced.
+
 ### 2026-10-02 — Exact-head cross-window market-event rotation validation
 
 - [x] At exact source `9a8b71f4d`, the complete branch-owned non-ETF unit

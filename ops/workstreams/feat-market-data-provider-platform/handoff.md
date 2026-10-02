@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-current safety preflight at pushed branch tip
+
+- At exact pushed source `7527716ba`, the full provider manifest stopped before
+  provider transport with `0/0` cases and zero external requests. The redacted
+  receipt is appended to `validation.jsonl`.
+- Provider-specific active baselines/contracts, legal/source admission,
+  deferred capabilities, and the Nasdaq daily client-envelope exhaustion
+  remain fail-closed. No generic limit or inferred usage was introduced.
+
 ## 2026-10-02 exact-head cross-window market-event rotation validation
 
 - At exact source `9a8b71f4d`, the complete branch-owned non-ETF unit inventory
