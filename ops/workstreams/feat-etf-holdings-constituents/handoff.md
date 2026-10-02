@@ -6349,3 +6349,15 @@ The native ACSI route now accepts the issuer or that explicitly declared asset
 host, while retaining symbol scoping and strict CSV/date parsing. The bounded
 live route and deterministic fixture pass; no fallback or third-party route was
 promoted.
+
+## Exact-SHA CI after narrative repair — 2026-10-02
+
+Run `37036231172` on `a600d30d` passed Backend Tests, Branch-declared Tests,
+and Frontend Unit Tests; the protected Exhaustive Integration Gate was skipped
+as designed for a feature branch. Playwright failed after 16m33s with only
+public exit code 1. The job log requires repository-admin rights and the
+uploaded `playwright-report` artifact is not publicly downloadable from this
+environment, so the failing browser case cannot be classified here. The local
+Docker socket is also unavailable. The branch remains clean and synchronized;
+AC7 is not called green until the browser failure is evidenced or rerun in an
+available Docker environment.
