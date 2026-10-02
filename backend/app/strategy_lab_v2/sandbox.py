@@ -39,6 +39,7 @@ _HARDENED_TMPFS = "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864"
 _HARDENED_PIDS_LIMIT = "--pids-limit=256"
 _ENGINE_ENV_PREFIX = "--env=STRATEGY_ENGINE_ID="
 _CONTEXT_STREAM_ENV_PREFIX = "--env=STRATEGY_CONTEXT_STREAM_DIGEST="
+_NATIVE_EVENT_STREAM_ENV_PREFIX = "--env=STRATEGY_NATIVE_EVENT_STREAM_DIGEST="
 NAUTILUS_RUNTIME_CLI_MODULE = "app.strategy_lab_v2.nautilus_runtime_cli"
 
 
@@ -130,8 +131,10 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
     _validate_mount(argv[input_mount_index], "/inputs/bundle", "readonly")
     _validate_mount(argv[output_mount_index], "/outputs/result", "rw")
     context_mount = _optional_mount_index(argv, "/inputs/contexts")
+    native_event_mount = _optional_mount_index(argv, "/inputs/native-events")
     invocation_result_mount = _optional_mount_index(argv, "/outputs/invocations")
     context_digest = _optional_argument_index(argv, _CONTEXT_STREAM_ENV_PREFIX)
+    native_event_digest = _optional_argument_index(argv, _NATIVE_EVENT_STREAM_ENV_PREFIX)
     if (context_mount is None) != (context_digest is None) or (context_mount is None) != (
         invocation_result_mount is None
     ):
@@ -143,6 +146,16 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
         require_sha256_digest(
             argv[context_digest].removeprefix(_CONTEXT_STREAM_ENV_PREFIX),
             field_name="context stream digest",
+        )
+    if (native_event_mount is None) != (native_event_digest is None):
+        raise ValueError("sandbox native event stream mount and digest must be bound together")
+    if native_event_mount is not None:
+        if context_mount is None:
+            raise ValueError("sandbox native event stream requires strategy context streaming")
+        _validate_mount(argv[native_event_mount], "/inputs/native-events", "readonly")
+        require_sha256_digest(
+            argv[native_event_digest].removeprefix(_NATIVE_EVENT_STREAM_ENV_PREFIX),
+            field_name="native event stream digest",
         )
     if invocation_result_mount is not None:
         _validate_mount(argv[invocation_result_mount], "/outputs/invocations", "rw")
@@ -166,6 +179,8 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
     expected_options = [argv[input_mount_index]]
     if context_mount is not None:
         expected_options.append(argv[context_mount])
+    if native_event_mount is not None:
+        expected_options.append(argv[native_event_mount])
     expected_options.extend(
         [
             argv[output_mount_index],
@@ -176,6 +191,8 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
     )
     if context_digest is not None:
         expected_options.append(argv[context_digest])
+    if native_event_digest is not None:
+        expected_options.append(argv[native_event_digest])
     if engine_index is not None:
         expected_options.append(argv[engine_index])
     if tuple(argv[15:image_index]) != tuple(expected_options):
@@ -294,6 +311,30 @@ def sandbox_context_stream_digest(plan: SandboxCommandPlan) -> str | None:
     return plan.argv[index].removeprefix(_CONTEXT_STREAM_ENV_PREFIX)
 
 
+def sandbox_native_event_stream_path(plan: SandboxCommandPlan) -> Path | None:
+    """Return the optional host path bound to the read-only native-event sidecar."""
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    index = _optional_mount_index(plan.argv, "/inputs/native-events")
+    if index is None:
+        return None
+    return Path(_mount_source(plan.argv[index], "/inputs/native-events", "readonly"))
+
+
+def sandbox_native_event_stream_digest(plan: SandboxCommandPlan) -> str | None:
+    """Return the optional native-event digest bound to the sandbox environment."""
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    index = _optional_argument_index(plan.argv, _NATIVE_EVENT_STREAM_ENV_PREFIX)
+    if index is None:
+        return None
+    return plan.argv[index].removeprefix(_NATIVE_EVENT_STREAM_ENV_PREFIX)
+
+
 def sandbox_invocation_result_stream_path(plan: SandboxCommandPlan) -> Path | None:
     """Return the optional host path bound to streamed invocation results."""
 
@@ -330,6 +371,7 @@ def nautilus_runtime_command(
     snapshot_fingerprint: str,
     max_input_bytes: int,
     context_stream_digest: str | None = None,
+    native_event_stream_digest: str | None = None,
     max_result_bytes: int | None = None,
 ) -> tuple[str, ...]:
     """Build the only supported command for an isolated Nautilus strategy run."""
@@ -344,6 +386,13 @@ def nautilus_runtime_command(
         raise ValueError("max_input_bytes must be a positive integer")
     if context_stream_digest is not None:
         require_sha256_digest(context_stream_digest, field_name="context_stream_digest")
+    if native_event_stream_digest is not None:
+        require_sha256_digest(
+            native_event_stream_digest,
+            field_name="native_event_stream_digest",
+        )
+        if context_stream_digest is None:
+            raise ValueError("native event streaming requires strategy context streaming")
     command = (
         "python",
         "-m",
@@ -373,6 +422,11 @@ def nautilus_runtime_command(
         *command,
         "--context-stream",
         "/inputs/contexts",
+        *(
+            ()
+            if native_event_stream_digest is None
+            else ("--native-event-stream", "/inputs/native-events")
+        ),
         "--invocation-results",
         "/outputs/invocations",
         "--max-result-bytes",
@@ -420,6 +474,7 @@ def _image_index(argv: tuple[str, ...]) -> int:
         "--env=STRATEGY_ATTEMPT_ID=",
         "--env=STRATEGY_INPUT_BUNDLE_DIGEST=",
         _CONTEXT_STREAM_ENV_PREFIX,
+        _NATIVE_EVENT_STREAM_ENV_PREFIX,
         _ENGINE_ENV_PREFIX,
     )
     indices = [
@@ -463,6 +518,8 @@ def build_sandbox_command(
     working_directory: str = "/workspace",
     context_stream_path: str | os.PathLike[str] | None = None,
     context_stream_digest: str | None = None,
+    native_event_stream_path: str | os.PathLike[str] | None = None,
+    native_event_stream_digest: str | None = None,
     invocation_result_stream_path: str | os.PathLike[str] | None = None,
 ) -> SandboxCommandPlan:
     """Build a shell-free Docker argv after enforcing the runtime preflight."""
@@ -499,12 +556,21 @@ def build_sandbox_command(
     result_path = _mount_path(output_path, "output_path")
     if (context_stream_path is None) != (context_stream_digest is None):
         raise ValueError("context stream path and digest must be provided together")
+    if (native_event_stream_path is None) != (native_event_stream_digest is None):
+        raise ValueError("native event stream path and digest must be provided together")
     if (context_stream_path is None) != (invocation_result_stream_path is None):
         raise ValueError("context and invocation-result stream paths must be provided together")
+    if native_event_stream_path is not None and context_stream_path is None:
+        raise ValueError("native event streaming requires strategy context streaming")
     context_path = (
         None
         if context_stream_path is None
         else _mount_path(context_stream_path, "context_stream_path")
+    )
+    native_event_path = (
+        None
+        if native_event_stream_path is None
+        else _mount_path(native_event_stream_path, "native_event_stream_path")
     )
     invocation_result_path = (
         None
@@ -513,6 +579,11 @@ def build_sandbox_command(
     )
     if context_stream_digest is not None:
         require_sha256_digest(context_stream_digest, field_name="context_stream_digest")
+    if native_event_stream_digest is not None:
+        require_sha256_digest(
+            native_event_stream_digest,
+            field_name="native_event_stream_digest",
+        )
     image = f"{image_name}@{profile.runtime_image_digest}"
     argv = (
         "docker",
@@ -536,6 +607,11 @@ def build_sandbox_command(
             if context_path is None
             else (f"--mount=type=bind,src={context_path},dst=/inputs/contexts,readonly",)
         ),
+        *(
+            ()
+            if native_event_path is None
+            else (f"--mount=type=bind,src={native_event_path},dst=/inputs/native-events,readonly",)
+        ),
         f"--mount=type=bind,src={result_path},dst=/outputs/result",
         *(
             ()
@@ -548,6 +624,11 @@ def build_sandbox_command(
             ()
             if context_stream_digest is None
             else (f"{_CONTEXT_STREAM_ENV_PREFIX}{context_stream_digest}",)
+        ),
+        *(
+            ()
+            if native_event_stream_digest is None
+            else (f"{_NATIVE_EVENT_STREAM_ENV_PREFIX}{native_event_stream_digest}",)
         ),
         image,
         *command_argv,
@@ -571,6 +652,8 @@ def build_nautilus_sandbox_command(
     command: Sequence[str],
     context_stream_path: str | os.PathLike[str] | None = None,
     context_stream_digest: str | None = None,
+    native_event_stream_path: str | os.PathLike[str] | None = None,
+    native_event_stream_digest: str | None = None,
     invocation_result_stream_path: str | os.PathLike[str] | None = None,
 ) -> SandboxCommandPlan:
     """Build a hardened command explicitly bound to the Nautilus engine."""
@@ -585,6 +668,8 @@ def build_nautilus_sandbox_command(
         working_directory="/opt/strategy-lab-v2",
         context_stream_path=context_stream_path,
         context_stream_digest=context_stream_digest,
+        native_event_stream_path=native_event_stream_path,
+        native_event_stream_digest=native_event_stream_digest,
         invocation_result_stream_path=invocation_result_stream_path,
     )
     image_index = _image_index(plan.argv)
@@ -603,6 +688,8 @@ def build_nautilus_runtime_sandbox_command(
     snapshot_fingerprint: str,
     context_stream_path: str | os.PathLike[str] | None = None,
     context_stream_digest: str | None = None,
+    native_event_stream_path: str | os.PathLike[str] | None = None,
+    native_event_stream_digest: str | None = None,
     invocation_result_stream_path: str | os.PathLike[str] | None = None,
 ) -> SandboxCommandPlan:
     """Build a hardened invocation bound to the runtime's fixed Nautilus CLI."""
@@ -618,12 +705,15 @@ def build_nautilus_runtime_sandbox_command(
             snapshot_fingerprint=snapshot_fingerprint,
             max_input_bytes=max(1, profile.memory_limit_bytes // 8),
             context_stream_digest=context_stream_digest,
+            native_event_stream_digest=native_event_stream_digest,
             max_result_bytes=(
                 profile.output_limit_bytes if context_stream_digest is not None else None
             ),
         ),
         context_stream_path=context_stream_path,
         context_stream_digest=context_stream_digest,
+        native_event_stream_path=native_event_stream_path,
+        native_event_stream_digest=native_event_stream_digest,
         invocation_result_stream_path=invocation_result_stream_path,
     )
 
@@ -641,6 +731,8 @@ __all__ = [
     "sandbox_invocation_result_stream_path",
     "sandbox_engine_id",
     "sandbox_memory_limit_bytes",
+    "sandbox_native_event_stream_digest",
+    "sandbox_native_event_stream_path",
     "sandbox_output_path",
     "sandbox_input_path",
     "sandbox_input_bundle_digest",

@@ -7,11 +7,13 @@ import hashlib
 import json
 import os
 import tempfile
+from collections import deque
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+from app.strategy_lab_v2 import nautilus_runtime_adapter
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capabilities import CapabilityRequirement
 from app.strategy_lab_v2.contracts import (
@@ -20,12 +22,21 @@ from app.strategy_lab_v2.contracts import (
     ProductClass,
     StrategyVersion,
 )
-from app.strategy_lab_v2.nautilus_runtime_adapter import run_native_backtest
+from app.strategy_lab_v2.nautilus_native_event_stream import (
+    serialize_nautilus_native_event_stream,
+)
+from app.strategy_lab_v2.nautilus_runtime_adapter import (
+    NAUTILUS_CATALOG_INPUT_CHUNK_SIZE,
+    NAUTILUS_CATALOG_REPLAY_CHUNK_SIZE,
+    run_native_backtest,
+)
 from app.strategy_lab_v2.nautilus_runtime_cli import main as runtime_cli_main
 from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
     NAUTILUS_CONTEXT_STREAM_SCHEMA,
-    NAUTILUS_RUNTIME_BUNDLE_SCHEMA,
+    NAUTILUS_NATIVE_EVENT_STREAM_MEDIA_TYPE,
+    NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA,
+    NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3,
 )
 from app.strategy_lab_v2.sdk import (
     MarketEvent,
@@ -125,7 +136,7 @@ def _payload() -> dict[str, object]:
         "venue": {
             "venue_id": "SIM",
             "oms_type": "netting",
-            "account_type": "cash",
+            "account_type": "margin",
             "base_currency": "USD",
             "cash": [{"currency": "USD", "amount": "100000"}],
         },
@@ -151,7 +162,7 @@ def _manifest() -> StrategySdkManifest:
         session="24x7",
         feed="consolidated",
         execution_model="market",
-        account_model="cash",
+        account_model="margin",
         corporate_action_semantics="raw-unadjusted-v1",
     )
     return StrategySdkManifest(
@@ -212,13 +223,84 @@ def _invocation_batch() -> str:
     )
 
 
-def run_context_stream_cli_probe() -> dict[str, Any]:
-    """Exercise the strict bundle/sidecar CLI path against the native engine."""
+def run_context_stream_cli_probe(
+    *,
+    event_count: int = 2,
+    replay_chunk_size: int | None = None,
+) -> dict[str, Any]:
+    """Exercise the strict stream/catalog CLI path against the native engine."""
 
     serialized_batch = _invocation_batch()
-    source, manifest, contexts, entrypoint, max_intents = deserialize_invocation_batch(
+    source, manifest, _contexts, entrypoint, max_intents = deserialize_invocation_batch(
         serialized_batch
     )
+    if not isinstance(event_count, int) or isinstance(event_count, bool) or event_count < 2:
+        raise ValueError("event_count must be an integer of at least two")
+    if replay_chunk_size is not None and (
+        not isinstance(replay_chunk_size, int)
+        or isinstance(replay_chunk_size, bool)
+        or replay_chunk_size < 1
+    ):
+        raise ValueError("replay_chunk_size must be a positive integer")
+    source_engine_input = _payload()
+    source_event_tape = source_engine_input["event_tape"]
+    if not isinstance(source_event_tape, dict):
+        raise RuntimeError("adapter probe event tape is invalid")
+    source_events = [
+        {
+            "dependency_id": "prices",
+            "event_id": f"adapter-event-{index + 1}",
+            "instrument_id": "EURUSD.SIM",
+            "event_type": "quote",
+            "event_time_ns": _EVENT_TIME_NS + max(0, index - 1) * 1_000_000_000,
+            "sequence": index + 1,
+            "values": {
+                "bid": f"1.{1000 + index % 100:04d}",
+                "ask": f"1.{1002 + index % 100:04d}",
+                "bid_size": "100000",
+                "ask_size": "100000",
+            },
+        }
+        for index in range(event_count)
+    ]
+    source_event_tape["events"] = source_events
+    source_event_tape["source_tape_fingerprint"] = content_digest(source_events)
+
+    def contexts():
+        history: deque[MarketEvent] = deque(maxlen=3)
+        position = 0
+        while position < len(source_events):
+            group_time_ns = source_events[position]["event_time_ns"]
+            group_time = _EVENT_TIME + timedelta(
+                seconds=(group_time_ns - _EVENT_TIME_NS) // 1_000_000_000
+            )
+            group: list[MarketEvent] = []
+            while (
+                position < len(source_events)
+                and source_events[position]["event_time_ns"] == group_time_ns
+            ):
+                event = source_events[position]
+                group.append(
+                    MarketEvent(
+                        event["dependency_id"],
+                        event["event_id"],
+                        event["instrument_id"],
+                        group_time,
+                        event["sequence"],
+                        event["values"],
+                    )
+                )
+                position += 1
+            history.extend(group)
+            yield StrategyContext(
+                group_time,
+                max(event.sequence for event in group),
+                17,
+                {"window": 20},
+                {"prices": tuple(history)},
+            )
+
+    contexts = contexts()
     context_wire = BytesIO()
     context_count = serialize_invocation_context_stream(
         context_wire,
@@ -230,9 +312,24 @@ def run_context_stream_cli_probe() -> dict[str, Any]:
     )
     context_bytes = context_wire.getvalue()
     context_digest = f"sha256:{hashlib.sha256(context_bytes).hexdigest()}"
+    native_event_wire = BytesIO()
+    native_event_summary = serialize_nautilus_native_event_stream(
+        native_event_wire,
+        source_events,
+        source_tape_fingerprint=source_event_tape["source_tape_fingerprint"],
+        adapter_version=source_event_tape["adapter_version"],
+        expected_event_count=len(source_events),
+    )
+    native_event_bytes = native_event_wire.getvalue()
+    native_event_digest = native_event_summary.content_digest
+    engine_input = dict(source_engine_input)
+    event_tape = dict(source_event_tape)
+    event_tape.pop("events")
+    event_tape["event_count"] = native_event_summary.event_count
+    engine_input["event_tape"] = event_tape
     bundle = {
-        "schema": NAUTILUS_RUNTIME_BUNDLE_SCHEMA,
-        "engine_input": _payload(),
+        "schema": NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3,
+        "engine_input": engine_input,
         "strategy_context_stream": {
             "artifact": {
                 "content_digest": context_digest,
@@ -244,6 +341,19 @@ def run_context_stream_cli_probe() -> dict[str, Any]:
             },
             "context_count": context_count,
         },
+        "native_event_stream": {
+            "artifact": {
+                "content_digest": native_event_digest,
+                "byte_length": len(native_event_bytes),
+                "media_type": NAUTILUS_NATIVE_EVENT_STREAM_MEDIA_TYPE,
+                "schema_version": NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA,
+                "storage_key": native_event_digest,
+                "retention_class": "pinned_input",
+            },
+            "source_tape_fingerprint": source_event_tape["source_tape_fingerprint"],
+            "adapter_version": source_event_tape["adapter_version"],
+            "event_count": native_event_summary.event_count,
+        },
     }
     previous = {
         name: os.environ.get(name)
@@ -251,13 +361,18 @@ def run_context_stream_cli_probe() -> dict[str, Any]:
             "STRATEGY_INPUT_BUNDLE_DIGEST",
             "STRATEGY_ATTEMPT_ID",
             "STRATEGY_CONTEXT_STREAM_DIGEST",
+            "STRATEGY_NATIVE_EVENT_STREAM_DIGEST",
         )
     }
+    previous_replay_chunk_size = NAUTILUS_CATALOG_REPLAY_CHUNK_SIZE
     try:
+        if replay_chunk_size is not None:
+            nautilus_runtime_adapter.NAUTILUS_CATALOG_REPLAY_CHUNK_SIZE = replay_chunk_size
         with tempfile.TemporaryDirectory(prefix="strategy-lab-context-probe-") as directory:
             root = Path(directory)
             bundle_path = root / "bundle.json"
             context_path = root / "contexts.ndjson"
+            native_event_path = root / "native-events.ndjson"
             result_stream_path = root / "invocations.ndjson"
             output_path = root / "result.json"
             bundle_path.write_text(
@@ -265,11 +380,13 @@ def run_context_stream_cli_probe() -> dict[str, Any]:
                 encoding="utf-8",
             )
             context_path.write_bytes(context_bytes)
+            native_event_path.write_bytes(native_event_bytes)
             result_stream_path.touch()
             output_path.touch()
             os.environ["STRATEGY_INPUT_BUNDLE_DIGEST"] = content_digest(bundle)
             os.environ["STRATEGY_ATTEMPT_ID"] = "attempt-adapter-probe"
             os.environ["STRATEGY_CONTEXT_STREAM_DIGEST"] = context_digest
+            os.environ["STRATEGY_NATIVE_EVENT_STREAM_DIGEST"] = native_event_digest
             runtime_cli_main(
                 [
                     "--input",
@@ -284,6 +401,8 @@ def run_context_stream_cli_probe() -> dict[str, Any]:
                     str(MAX_INVOCATION_CONTEXT_STREAM_BYTES),
                     "--context-stream",
                     str(context_path),
+                    "--native-event-stream",
+                    str(native_event_path),
                     "--invocation-results",
                     str(result_stream_path),
                     "--max-result-bytes",
@@ -298,11 +417,17 @@ def run_context_stream_cli_probe() -> dict[str, Any]:
                 os.environ.pop(name, None)
             else:
                 os.environ[name] = value
+        nautilus_runtime_adapter.NAUTILUS_CATALOG_REPLAY_CHUNK_SIZE = previous_replay_chunk_size
     if (
         result.get("strategy_invocation_input_protocol") != "context-stream"
         or result.get("authoritative") is not False
+        or result.get("input_event_count") != event_count
+        or result.get("native_data_source") != "parquet_catalog_chunks"
+        or result.get("catalog_input_chunk_size") != NAUTILUS_CATALOG_INPUT_CHUNK_SIZE
+        or result.get("catalog_replay_chunk_size")
+        != (replay_chunk_size or previous_replay_chunk_size)
     ):
-        raise RuntimeError("native context-stream CLI probe did not produce expected evidence")
+        raise RuntimeError("native catalog-stream CLI probe did not produce expected evidence")
     stream_receipt = result.get("strategy_invocation_result_stream")
     if not isinstance(stream_receipt, dict):
         raise RuntimeError("native context-stream CLI probe did not stream invocation results")
@@ -318,7 +443,7 @@ def run_context_stream_cli_probe() -> dict[str, Any]:
             expected_result_count=stream_receipt.get("result_count"),
         )
     )
-    if not decoded_results or not stream_receipt.get("all_succeeded"):
+    if len(decoded_results) != context_count or not stream_receipt.get("all_succeeded"):
         raise RuntimeError("native invocation result stream is empty or contains failures")
     return result
 
@@ -330,9 +455,19 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="exercise the runtime bundle and verified context-sidecar CLI path",
     )
+    parser.add_argument(
+        "--catalog-chunk-cli",
+        action="store_true",
+        help="cross the native-input writer boundary and multiple BacktestNode replay chunks",
+    )
     args = parser.parse_args(argv)
     if args.context_stream_cli:
         result = run_context_stream_cli_probe()
+    elif args.catalog_chunk_cli:
+        result = run_context_stream_cli_probe(
+            event_count=NAUTILUS_CATALOG_INPUT_CHUNK_SIZE + 5,
+            replay_chunk_size=1_000,
+        )
     else:
         result = run_native_backtest(
             _payload(),

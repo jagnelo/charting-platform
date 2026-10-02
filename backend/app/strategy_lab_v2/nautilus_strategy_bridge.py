@@ -9,15 +9,18 @@ its position snapshot with positions read from the running Nautilus portfolio.
 from __future__ import annotations
 
 import hashlib
-from collections import defaultdict
+from collections import defaultdict, deque
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from itertools import groupby
 from typing import Any, BinaryIO
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.nautilus_native_event_stream import (
+    deserialize_nautilus_native_event_stream,
+)
 from app.strategy_lab_v2.nautilus_runtime_data import NautilusRuntimeDataError
 
 
@@ -270,6 +273,191 @@ def _iter_context_trigger_indexes(
         context_group = next(context_groups, None)
 
 
+def _datetime_from_unix_nanos(value: int) -> datetime:
+    seconds, nanoseconds = divmod(value, 1_000_000_000)
+    return datetime(1970, 1, 1, tzinfo=UTC) + timedelta(
+        seconds=seconds,
+        microseconds=nanoseconds // 1_000,
+    )
+
+
+def _iter_stream_context_trigger_indexes(
+    contexts: Iterable[Any],
+    native_event_records: Iterable[Mapping[str, Any]],
+    manifest: Any,
+) -> Iterator[tuple[int, Any]]:
+    """Verify streamed SDK history against a rolling window of native events.
+
+    Unlike the legacy batch path, this retains only one same-time event group
+    and each declared dependency's bounded lookback. The authenticated native
+    stream is replayed for validation and callback-order verification rather
+    than expanded into an event-id dictionary proportional to history length.
+    """
+
+    from app.strategy_lab_v2.sdk import MarketEvent
+
+    dependencies = {item.dependency_id: item for item in manifest.data_dependencies}
+    if not dependencies:
+        raise NautilusRuntimeDataError("strategy manifest has no market-data dependencies")
+    histories = {
+        dependency_id: deque(maxlen=dependency.lookback_periods + 1)
+        for dependency_id, dependency in dependencies.items()
+    }
+    observed_dependencies: set[str] = set()
+    prior_by_dependency: dict[str, tuple[int, int]] = {}
+    event_iterator = iter(native_event_records)
+    context_iterator = iter(contexts)
+    current_record = next(event_iterator, None)
+    event_offset = 0
+    previous_context_key: tuple[datetime, int] | None = None
+    max_same_time_events = 100_000
+
+    while current_record is not None:
+        time_bucket = _record_time_bucket(current_record.get("event_time_ns"))
+        records: list[Mapping[str, Any]] = []
+        while (
+            current_record is not None
+            and _record_time_bucket(current_record.get("event_time_ns")) == time_bucket
+        ):
+            event_id = current_record.get("event_id")
+            dependency_id = current_record.get("dependency_id")
+            instrument_id = current_record.get("instrument_id")
+            event_time_ns = current_record.get("event_time_ns")
+            sequence = current_record.get("sequence")
+            event_type = current_record.get("event_type")
+            values = current_record.get("values")
+            if (
+                not isinstance(event_id, str)
+                or not event_id
+                or not isinstance(dependency_id, str)
+                or not isinstance(instrument_id, str)
+                or not isinstance(event_time_ns, int)
+                or isinstance(event_time_ns, bool)
+                or not isinstance(sequence, int)
+                or isinstance(sequence, bool)
+                or not isinstance(event_type, str)
+                or not isinstance(values, Mapping)
+            ):
+                raise NautilusRuntimeDataError("native event stream record fields are invalid")
+            dependency = dependencies.get(dependency_id)
+            if dependency is None:
+                raise NautilusRuntimeDataError(
+                    "native event stream contains an undeclared SDK dependency"
+                )
+            requirement = dependency.requirement
+            event_time = _datetime_from_unix_nanos(event_time_ns)
+            if (
+                instrument_id != requirement.instrument_id
+                or event_type != requirement.event_type
+                or set(values) != set(dependency.fields)
+                or not requirement.start <= event_time < requirement.end
+            ):
+                raise NautilusRuntimeDataError(
+                    "native event stream differs from its declared SDK dependency"
+                )
+            previous = prior_by_dependency.get(dependency_id)
+            if previous is not None and (sequence <= previous[1] or event_time_ns < previous[0]):
+                raise NautilusRuntimeDataError(
+                    "native dependency events must advance sequence and time"
+                )
+            prior_by_dependency[dependency_id] = (event_time_ns, sequence)
+            event = MarketEvent(
+                dependency_id,
+                event_id,
+                instrument_id,
+                event_time,
+                sequence,
+                values,
+            )
+            histories[dependency_id].append(event)
+            observed_dependencies.add(dependency_id)
+            records.append(current_record)
+            if len(records) > max_same_time_events:
+                raise NautilusRuntimeDataError(
+                    "same-time native event group exceeds its configured bound"
+                )
+            current_record = next(event_iterator, None)
+
+        context = next(context_iterator, None)
+        if context is None or _datetime_microsecond_bucket(context.event_time) != time_bucket:
+            raise NautilusRuntimeDataError("strategy contexts do not cover every native event time")
+        context_key = (context.event_time, context.event_sequence)
+        if previous_context_key is not None and context_key <= previous_context_key:
+            raise NautilusRuntimeDataError("strategy contexts must be strictly chronological")
+        previous_context_key = context_key
+        if set(context.market_events) != set(dependencies):
+            raise NautilusRuntimeDataError(
+                "strategy context dependencies differ from the native event stream"
+            )
+        current_ids = {record["event_id"] for record in records}
+        observed_current_ids: set[str] = set()
+        for dependency_id, market_events in context.market_events.items():
+            expected_history = tuple(histories[dependency_id])
+            if len(market_events) != len(expected_history):
+                raise NautilusRuntimeDataError(
+                    "strategy context history length differs from its declared lookback"
+                )
+            for actual, expected in zip(market_events, expected_history, strict=True):
+                if actual != expected:
+                    raise NautilusRuntimeDataError(
+                        "strategy history differs from its authenticated native event stream"
+                    )
+                if _datetime_microsecond_bucket(actual.event_time) == time_bucket:
+                    if actual.event_id in observed_current_ids:
+                        raise NautilusRuntimeDataError(
+                            "strategy context repeats a same-time native event"
+                        )
+                    observed_current_ids.add(actual.event_id)
+        if observed_current_ids != current_ids:
+            raise NautilusRuntimeDataError(
+                "batched strategy context must expose every same-time native event"
+            )
+        if context.event_sequence != max(record["sequence"] for record in records):
+            raise NautilusRuntimeDataError(
+                "strategy context sequence differs from its native event group"
+            )
+        yield event_offset + len(records) - 1, context
+        event_offset += len(records)
+
+    if next(context_iterator, None) is not None:
+        raise NautilusRuntimeDataError("strategy context stream contains an extra event group")
+    if observed_dependencies != set(dependencies):
+        raise NautilusRuntimeDataError(
+            "native event stream dependencies differ from the strategy manifest"
+        )
+
+
+def _iter_replayed_context_trigger_indexes(contexts: Iterable[Any]) -> Iterator[tuple[int, Any]]:
+    """Recreate validated native callback indexes from the authenticated contexts.
+
+    The first pass binds each context history to the native event sidecar. During
+    engine callbacks, the sidecar is also being consumed as the expected native
+    event sequence, so rereading it to advance contexts would interleave two
+    parsers over one seekable file descriptor. Context histories already contain
+    every event in their timestamp group; use that validated projection here.
+    """
+
+    event_offset = 0
+    previous_bucket: int | None = None
+    for context in contexts:
+        time_bucket = _datetime_microsecond_bucket(context.event_time)
+        if previous_bucket is not None and time_bucket <= previous_bucket:
+            raise NautilusRuntimeDataError("strategy contexts must be strictly chronological")
+        previous_bucket = time_bucket
+        current_event_count = sum(
+            1
+            for market_events in context.market_events.values()
+            for event in market_events
+            if _datetime_microsecond_bucket(event.event_time) == time_bucket
+        )
+        if current_event_count < 1:
+            raise NautilusRuntimeDataError(
+                "strategy context does not expose its current native event group"
+            )
+        event_offset += current_event_count
+        yield event_offset - 1, context
+
+
 @dataclass(frozen=True, slots=True)
 class NativeStrategyBridge:
     """Native strategy instance and its typed invocation-result wire output."""
@@ -287,6 +475,7 @@ def build_native_strategy_bridge(
     serialized_invocation_batch: str | None = None,
     *,
     invocation_context_stream: BinaryIO | None = None,
+    native_event_stream: BinaryIO | None = None,
     expected_context_count: int | None = None,
     invocation_result_stream: BinaryIO | None = None,
     max_invocation_result_bytes: int | None = None,
@@ -311,6 +500,10 @@ def build_native_strategy_bridge(
     if (serialized_invocation_batch is None) == (invocation_context_stream is None):
         raise NautilusRuntimeDataError(
             "provide exactly one strategy invocation batch or context stream"
+        )
+    if native_event_stream is not None and invocation_context_stream is None:
+        raise NautilusRuntimeDataError(
+            "native event streaming requires the authenticated strategy context stream"
         )
     if invocation_result_stream is not None and not callable(
         getattr(invocation_result_stream, "write", None)
@@ -344,6 +537,49 @@ def build_native_strategy_bridge(
             )
         )
 
+        event_tape = engine_input.get("event_tape")
+        if not isinstance(event_tape, Mapping):
+            raise NautilusRuntimeDataError("engine input event tape is invalid")
+        native_event_count = event_tape.get("event_count")
+        source_tape_fingerprint = event_tape.get("source_tape_fingerprint")
+        adapter_version = event_tape.get("adapter_version")
+        if native_event_stream is not None:
+            if (
+                not isinstance(native_event_count, int)
+                or isinstance(native_event_count, bool)
+                or native_event_count < 1
+                or not isinstance(source_tape_fingerprint, str)
+                or not isinstance(adapter_version, str)
+            ):
+                raise NautilusRuntimeDataError("native event stream binding is invalid")
+            if not callable(getattr(native_event_stream, "seek", None)):
+                raise NautilusRuntimeDataError("native event stream must be seekable")
+
+        def iter_native_event_records() -> Iterator[Mapping[str, Any]]:
+            if native_event_stream is None:
+                yield from event_definitions
+                return
+            assert isinstance(native_event_count, int)
+            assert isinstance(source_tape_fingerprint, str)
+            assert isinstance(adapter_version, str)
+            native_event_stream.seek(0)
+            yield from deserialize_nautilus_native_event_stream(
+                native_event_stream,
+                expected_source_tape_fingerprint=source_tape_fingerprint,
+                expected_adapter_version=adapter_version,
+                expected_event_count=native_event_count,
+            )
+
+        def iter_context_triggers(contexts: Iterable[Any]) -> Iterator[tuple[int, Any]]:
+            if native_event_stream is None:
+                yield from _iter_context_trigger_indexes(contexts, event_definitions)
+            else:
+                yield from _iter_stream_context_trigger_indexes(
+                    contexts,
+                    iter_native_event_records(),
+                    manifest,
+                )
+
         def validate_context_inputs(source_contexts: Iterable[Any]) -> Iterator[Any]:
             for context in source_contexts:
                 if context.parameters != engine_input["parameters"]:
@@ -357,10 +593,7 @@ def build_native_strategy_bridge(
                 yield context
 
         stream_context_count = sum(
-            1
-            for _trigger in _iter_context_trigger_indexes(
-                validate_context_inputs(stream_contexts), event_definitions
-            )
+            1 for _trigger in iter_context_triggers(validate_context_inputs(stream_contexts))
         )
         if expected_context_count is not None and stream_context_count != expected_context_count:
             raise NautilusRuntimeDataError(
@@ -381,7 +614,12 @@ def build_native_strategy_bridge(
         input_fingerprint = f"sha256:{raw_digest}"
         input_protocol = "context-stream"
         expected_contexts = stream_context_count
-        context_triggers = _iter_context_trigger_indexes(stream_contexts, event_definitions)
+        replay_contexts = validate_context_inputs(stream_contexts)
+        context_triggers = (
+            iter_context_triggers(replay_contexts)
+            if native_event_stream is None
+            else _iter_replayed_context_trigger_indexes(replay_contexts)
+        )
     else:
         if (
             not isinstance(serialized_invocation_batch, str)
@@ -410,8 +648,9 @@ def build_native_strategy_bridge(
             "strategy manifest instrument ids must match the native instrument catalog"
         )
 
-    ordered_records = event_definitions
+    expected_event_count = len(event_definitions)
     if invocation_context_stream is None:
+        ordered_records = event_definitions
         if any(context.parameters != engine_input["parameters"] for context in batch_contexts):
             raise NautilusRuntimeDataError("strategy batch parameters differ from engine input")
         if any(context.random_seed != engine_input["random_seed"] for context in batch_contexts):
@@ -424,6 +663,16 @@ def build_native_strategy_bridge(
         ) != (expected_contexts):
             raise NautilusRuntimeDataError("strategy context count differs from its native tape")
         context_triggers = _iter_context_trigger_indexes(batch_contexts, ordered_records)
+    else:
+        expected_event_count = (
+            native_event_count if native_event_stream is not None else len(event_definitions)
+        )
+
+    native_event_callbacks = (
+        iter_native_event_records()
+        if invocation_context_stream is not None
+        else iter(event_definitions)
+    )
 
     current_trigger = next(context_triggers, None)
     callback_index = 0
@@ -459,9 +708,16 @@ def build_native_strategy_bridge(
 
     class _InvocationStrategy(Strategy):
         def on_start(self) -> None:
-            subscriptions: set[tuple[str, str]] = set()
-            for record in event_definitions:
-                subscriptions.add((record["event_type"], record["instrument_id"]))
+            subscriptions: set[tuple[str, str]] = (
+                {
+                    (dependency.requirement.event_type, dependency.requirement.instrument_id)
+                    for dependency in manifest.data_dependencies
+                }
+                if native_event_stream is not None
+                else {
+                    (record["event_type"], record["instrument_id"]) for record in event_definitions
+                }
+            )
             for event_type, instrument_id in sorted(subscriptions):
                 native_id = InstrumentId.from_str(instrument_id)
                 if event_type == "quote":
@@ -481,21 +737,28 @@ def build_native_strategy_bridge(
                     )
 
         def on_quote(self, event: Any) -> None:
-            self._on_native_event("quote", event.instrument_id, event.ts_event)
+            self._on_native_event("quote", event.instrument_id, event.ts_event, event.ts_init)
 
         def on_trade(self, event: Any) -> None:
-            self._on_native_event("trade", event.instrument_id, event.ts_event)
+            self._on_native_event("trade", event.instrument_id, event.ts_event, event.ts_init)
 
         def on_bar(self, event: Any) -> None:
             self._on_native_event(
                 "ohlcv",
                 event.bar_type.instrument_id,
                 event.ts_event,
+                event.ts_init,
             )
 
-        def _on_native_event(self, event_type: str, instrument_id: Any, ts_event: int) -> None:
+        def _on_native_event(
+            self,
+            event_type: str,
+            instrument_id: Any,
+            ts_event: int,
+            ts_init: int,
+        ) -> None:
             try:
-                self._dispatch_native_event(event_type, instrument_id, ts_event)
+                self._dispatch_native_event(event_type, instrument_id, ts_event, ts_init)
             except Exception as error:
                 callback_failure_types.append(
                     f"{type(error).__module__}.{type(error).__qualname__}"
@@ -506,11 +769,13 @@ def build_native_strategy_bridge(
             event_type: str,
             instrument_id: Any,
             ts_event: int,
+            ts_init: int,
         ) -> None:
             nonlocal callback_index, current_trigger, invocation_result_count
-            if callback_index >= len(ordered_records):
+            try:
+                expected_record = next(native_event_callbacks)
+            except StopIteration:
                 raise NautilusRuntimeDataError("Nautilus emitted an unexpected extra event")
-            expected_record = ordered_records[callback_index]
             expected_key = (
                 expected_record["event_type"],
                 expected_record["instrument_id"],
@@ -520,6 +785,13 @@ def build_native_strategy_bridge(
             if observed_key != expected_key:
                 raise NautilusRuntimeDataError(
                     "Nautilus callback order differs from the authenticated event tape"
+                )
+            if (
+                native_event_stream is not None
+                and int(ts_init) != expected_record["native_init_time_ns"]
+            ):
+                raise NautilusRuntimeDataError(
+                    "Nautilus callback init order differs from the authenticated event stream"
                 )
             context = None
             if current_trigger is not None:
@@ -615,9 +887,13 @@ def build_native_strategy_bridge(
         if callback_failure_types:
             failure_types = ",".join(sorted(set(callback_failure_types)))
             raise NautilusRuntimeDataError(f"native strategy callback failed with {failure_types}")
-        if callback_index != len(ordered_records):
+        if callback_index != expected_event_count:
             raise NautilusRuntimeDataError(
                 "Nautilus did not invoke every event in the authenticated event tape"
+            )
+        if next(native_event_callbacks, None) is not None:
+            raise NautilusRuntimeDataError(
+                "native event stream contains records beyond the executed tape"
             )
         if current_trigger is not None:
             raise NautilusRuntimeDataError(

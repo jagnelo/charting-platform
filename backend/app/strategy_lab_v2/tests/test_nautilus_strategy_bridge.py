@@ -4,9 +4,16 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
+    _EVENT_TIME,
+    _EVENT_TIME_NS,
+    _manifest,
+)
 from app.strategy_lab_v2.nautilus_runtime_data import NautilusRuntimeDataError
 from app.strategy_lab_v2.nautilus_strategy_bridge import (
     _iter_context_trigger_indexes,
+    _iter_replayed_context_trigger_indexes,
+    _iter_stream_context_trigger_indexes,
     _match_contexts_to_events,
 )
 from app.strategy_lab_v2.sdk import MarketEvent, StrategyContext
@@ -112,6 +119,45 @@ def test_stream_trigger_indexes_bind_batches_to_the_last_same_time_callback() ->
     ]
 
 
+def test_replayed_stream_context_indexes_do_not_reopen_native_event_reader() -> None:
+    first = _quote_event("quote-1", 1)
+    second = _quote_event("quote-2", 2)
+    third = _quote_event("quote-3", 3, first.event_time + timedelta(seconds=1))
+    first_context = StrategyContext(
+        event_time=first.event_time,
+        event_sequence=2,
+        random_seed=17,
+        parameters={"window": 20},
+        market_events={"prices": (first, second)},
+    )
+    second_context = StrategyContext(
+        event_time=third.event_time,
+        event_sequence=3,
+        random_seed=17,
+        parameters={"window": 20},
+        market_events={"prices": (first, second, third)},
+    )
+
+    assert list(_iter_replayed_context_trigger_indexes((first_context, second_context))) == [
+        (1, first_context),
+        (2, second_context),
+    ]
+
+
+def test_replayed_stream_context_indexes_require_current_events() -> None:
+    prior = _quote_event("quote-1", 1)
+    context = StrategyContext(
+        event_time=prior.event_time + timedelta(seconds=1),
+        event_sequence=1,
+        random_seed=17,
+        parameters={"window": 20},
+        market_events={"prices": (prior,)},
+    )
+
+    with pytest.raises(NautilusRuntimeDataError, match="current native event group"):
+        list(_iter_replayed_context_trigger_indexes((context,)))
+
+
 def test_stream_trigger_indexes_bind_per_event_contexts_to_native_order() -> None:
     first = _event("event-1", "prices-a", "US.AAPL", 1)
     second = _event("event-2", "prices-b", "US.MSFT", 2)
@@ -174,3 +220,87 @@ def test_stream_trigger_indexes_consume_only_one_time_group_plus_lookahead() -> 
     second_trigger_index, _second_trigger_context = next(triggers)
     assert second_trigger_index == 1
     assert len(consumed) <= 3
+
+
+def _quote_event(event_id: str, sequence: int, event_time: datetime = _EVENT_TIME) -> MarketEvent:
+    return MarketEvent(
+        "prices",
+        event_id,
+        "EURUSD.SIM",
+        event_time,
+        sequence,
+        {
+            "bid": f"1.10{sequence:02d}",
+            "ask": f"1.10{sequence + 2:02d}",
+            "bid_size": "1000",
+            "ask_size": "1000",
+        },
+    )
+
+
+def _native_stream_record(event: MarketEvent, init_time_ns: int) -> dict[str, object]:
+    return {
+        "dependency_id": event.dependency_id,
+        "event_id": event.event_id,
+        "instrument_id": event.instrument_id,
+        "event_type": "quote",
+        "event_time_ns": (
+            _EVENT_TIME_NS + int((event.event_time - _EVENT_TIME).total_seconds() * 1_000_000_000)
+        ),
+        "sequence": event.sequence,
+        "values": dict(event.values),
+        "native_init_time_ns": init_time_ns,
+    }
+
+
+def test_native_stream_context_triggers_validate_rolling_history_without_event_index() -> None:
+    first = _quote_event("quote-1", 1)
+    second = _quote_event("quote-2", 2)
+    context = StrategyContext(
+        event_time=_EVENT_TIME,
+        event_sequence=2,
+        random_seed=17,
+        parameters={"window": 20},
+        market_events={"prices": (first, second)},
+    )
+
+    triggers = list(
+        _iter_stream_context_trigger_indexes(
+            (context,),
+            (
+                _native_stream_record(first, _EVENT_TIME_NS),
+                _native_stream_record(second, _EVENT_TIME_NS + 1),
+            ),
+            _manifest(),
+        )
+    )
+
+    assert triggers == [(1, context)]
+
+
+def test_native_stream_context_triggers_reject_history_drift() -> None:
+    event = _quote_event("quote-1", 1)
+    altered = MarketEvent(
+        "prices",
+        event.event_id,
+        event.instrument_id,
+        event.event_time,
+        event.sequence,
+        {**event.values, "bid": "9.99"},
+    )
+    context = StrategyContext(
+        event_time=_EVENT_TIME,
+        event_sequence=1,
+        random_seed=17,
+        parameters={"window": 20},
+        market_events={"prices": (altered,)},
+    )
+
+    with pytest.raises(NautilusRuntimeDataError, match="differs from its authenticated"):
+        list(
+            _iter_stream_context_trigger_indexes(
+                (context,),
+                (_native_stream_record(event, _EVENT_TIME_NS),),
+                _manifest(),
+            )
+        )

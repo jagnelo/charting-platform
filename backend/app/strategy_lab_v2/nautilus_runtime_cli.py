@@ -9,9 +9,12 @@ import os
 import stat
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.nautilus_native_event_stream import (
+    MAX_NAUTILUS_NATIVE_EVENT_STREAM_BYTES,
+)
 from app.strategy_lab_v2.nautilus_runtime_adapter import (
     run_native_backtest,
     runtime_package_version,
@@ -20,14 +23,20 @@ from app.strategy_lab_v2.nautilus_runtime_probe import probe_nautilus_runtime
 from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
     NAUTILUS_CONTEXT_STREAM_SCHEMA,
+    NAUTILUS_NATIVE_EVENT_STREAM_MEDIA_TYPE,
+    NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1,
+    NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3,
 )
 
 _LEGACY_BUNDLE_FIELDS = frozenset(
     {"schema", "engine_input", "serialized_strategy_invocation_batch"}
 )
 _STREAMING_BUNDLE_FIELDS = frozenset({"schema", "engine_input", "strategy_context_stream"})
+_NATIVE_STREAMING_BUNDLE_FIELDS = frozenset(
+    {"schema", "engine_input", "strategy_context_stream", "native_event_stream"}
+)
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -78,6 +87,10 @@ def _read_bundle(path_value: str, *, max_bytes: int) -> Mapping[str, Any]:
     elif schema == NAUTILUS_RUNTIME_BUNDLE_SCHEMA:
         if set(decoded) != _STREAMING_BUNDLE_FIELDS:
             raise ValueError("streaming runtime bundle fields are invalid")
+    elif schema == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3:
+        if set(decoded) != _NATIVE_STREAMING_BUNDLE_FIELDS:
+            raise ValueError("native streaming runtime bundle fields are invalid")
+        _native_event_stream_reference(decoded)
     else:
         raise ValueError("runtime bundle schema is unsupported")
     if not isinstance(decoded["engine_input"], Mapping):
@@ -130,6 +143,110 @@ def _context_stream_reference(bundle: Mapping[str, Any]) -> tuple[str, int, int]
     return digest, byte_length, context_count
 
 
+def _native_event_stream_reference(
+    bundle: Mapping[str, Any],
+) -> tuple[str, int, str, str, int]:
+    value = bundle.get("native_event_stream")
+    if not isinstance(value, Mapping) or set(value) != {
+        "artifact",
+        "source_tape_fingerprint",
+        "adapter_version",
+        "event_count",
+    }:
+        raise ValueError("runtime bundle native event stream reference is invalid")
+    artifact = value["artifact"]
+    if not isinstance(artifact, Mapping) or set(artifact) != {
+        "content_digest",
+        "byte_length",
+        "media_type",
+        "schema_version",
+        "storage_key",
+        "retention_class",
+    }:
+        raise ValueError("runtime bundle native event stream artifact is invalid")
+    if artifact["media_type"] != NAUTILUS_NATIVE_EVENT_STREAM_MEDIA_TYPE:
+        raise ValueError("runtime bundle native event stream media type is unsupported")
+    if artifact["schema_version"] != NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA:
+        raise ValueError("runtime bundle native event stream schema is unsupported")
+    if artifact["retention_class"] != "pinned_input":
+        raise ValueError("runtime bundle native event stream retention is unsupported")
+    digest = artifact["content_digest"]
+    storage_key = artifact["storage_key"]
+    require_sha256_digest(digest, field_name="native event stream content digest")
+    require_sha256_digest(storage_key, field_name="native event stream storage key")
+    if storage_key != digest:
+        raise ValueError("runtime bundle native event stream key differs from its digest")
+    byte_length = artifact["byte_length"]
+    if (
+        not isinstance(byte_length, int)
+        or isinstance(byte_length, bool)
+        or byte_length <= 0
+        or byte_length > MAX_NAUTILUS_NATIVE_EVENT_STREAM_BYTES
+    ):
+        raise ValueError("runtime bundle native event stream byte length is invalid")
+    source_fingerprint = value["source_tape_fingerprint"]
+    require_sha256_digest(source_fingerprint, field_name="native event source fingerprint")
+    adapter_version = value["adapter_version"]
+    if not isinstance(adapter_version, str) or not adapter_version.strip():
+        raise ValueError("runtime bundle native event adapter version is invalid")
+    event_count = value["event_count"]
+    if not isinstance(event_count, int) or isinstance(event_count, bool) or event_count < 1:
+        raise ValueError("runtime bundle native event count is invalid")
+    engine_input = bundle.get("engine_input")
+    if not isinstance(engine_input, Mapping):
+        raise ValueError("runtime bundle engine input is invalid")
+    engine_tape = engine_input.get("event_tape")
+    if not isinstance(engine_tape, Mapping) or set(engine_tape) != {
+        "source_tape_fingerprint",
+        "adapter_version",
+        "event_count",
+    }:
+        raise ValueError("runtime bundle must not inline its streamed native events")
+    if (
+        engine_tape["source_tape_fingerprint"] != source_fingerprint
+        or engine_tape["adapter_version"] != adapter_version
+        or not isinstance(engine_tape["event_count"], int)
+        or isinstance(engine_tape["event_count"], bool)
+        or engine_tape["event_count"] != event_count
+    ):
+        raise ValueError("runtime bundle native event stream differs from the engine input")
+    return digest, byte_length, source_fingerprint, adapter_version, event_count
+
+
+def _open_verified_native_event_stream(
+    path_value: str,
+    *,
+    expected_digest: str,
+    byte_length: int,
+) -> BinaryIO:
+    descriptor = os.open(
+        path_value,
+        os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0),
+    )
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise ValueError("runtime native event stream must be a regular file")
+        if metadata.st_size != byte_length:
+            raise ValueError("runtime native event stream byte length differs")
+        digest = hashlib.sha256()
+        stream = os.fdopen(descriptor, "rb")
+        descriptor = -1
+        try:
+            while chunk := stream.read(1024 * 1024):
+                digest.update(chunk)
+            if f"sha256:{digest.hexdigest()}" != expected_digest:
+                raise ValueError("runtime native event stream artifact digest differs")
+            stream.seek(0)
+            return stream
+        except BaseException:
+            stream.close()
+            raise
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+
 def _write_result(path_value: str, result: Mapping[str, Any]) -> None:
     path = Path(path_value)
     flags = os.O_WRONLY | os.O_TRUNC | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0)
@@ -177,6 +294,7 @@ def run_bundle(
     expected_snapshot_fingerprint: str,
     max_input_bytes: int,
     context_stream_path: str | None = None,
+    native_event_stream_path: str | None = None,
     invocation_result_stream_path: str | None = None,
     max_result_bytes: int | None = None,
 ) -> int:
@@ -201,9 +319,11 @@ def run_bundle(
     if bundle["schema"] == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1:
         if (
             context_stream_path is not None
+            or native_event_stream_path is not None
             or invocation_result_stream_path is not None
             or max_result_bytes is not None
             or os.environ.get("STRATEGY_CONTEXT_STREAM_DIGEST")
+            or os.environ.get("STRATEGY_NATIVE_EVENT_STREAM_DIGEST")
         ):
             raise ValueError("legacy runtime bundle cannot bind strategy streams")
         result = run_native_backtest(
@@ -211,6 +331,26 @@ def run_bundle(
             serialized_strategy_invocation_batch=bundle["serialized_strategy_invocation_batch"],
         )
     else:
+        native_stream_binding: tuple[str, int] | None = None
+        if bundle["schema"] == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3:
+            if native_event_stream_path is None:
+                raise ValueError(
+                    "native streaming runtime bundle requires its mounted event stream"
+                )
+            (
+                native_digest,
+                native_byte_length,
+                source_tape_fingerprint,
+                adapter_version,
+                native_event_count,
+            ) = _native_event_stream_reference(bundle)
+            if os.environ.get("STRATEGY_NATIVE_EVENT_STREAM_DIGEST") != native_digest:
+                raise ValueError("native event stream digest differs from the sandbox request")
+            native_stream_binding = (native_digest, native_byte_length)
+        elif native_event_stream_path is not None or os.environ.get(
+            "STRATEGY_NATIVE_EVENT_STREAM_DIGEST"
+        ):
+            raise ValueError("legacy event-tape runtime bundle cannot bind a native event stream")
         if context_stream_path is None:
             raise ValueError("streaming runtime bundle requires its mounted context stream")
         if invocation_result_stream_path is None or max_result_bytes is None:
@@ -249,19 +389,42 @@ def run_bundle(
                 if f"sha256:{stream_digest.hexdigest()}" != context_digest:
                     raise ValueError("runtime context stream artifact digest differs")
                 stream.seek(0)
-                with _open_result_stream(
-                    invocation_result_stream_path,
-                    max_bytes=max_result_bytes,
-                ) as result_stream:
-                    result = run_native_backtest(
-                        engine_input,
-                        invocation_context_stream=stream,
-                        expected_context_count=context_count,
-                        invocation_result_stream=result_stream,
-                        max_invocation_result_bytes=max_result_bytes,
+                native_event_stream = None
+                if native_stream_binding is not None:
+                    native_digest, native_byte_length = native_stream_binding
+                    native_event_stream = _open_verified_native_event_stream(
+                        native_event_stream_path,
+                        expected_digest=native_digest,
+                        byte_length=native_byte_length,
                     )
-                    result_stream.flush()
-                    os.fsync(result_stream.fileno())
+                try:
+                    with _open_result_stream(
+                        invocation_result_stream_path,
+                        max_bytes=max_result_bytes,
+                    ) as result_stream:
+                        if native_event_stream is None:
+                            result = run_native_backtest(
+                                engine_input,
+                                invocation_context_stream=stream,
+                                expected_context_count=context_count,
+                                invocation_result_stream=result_stream,
+                                max_invocation_result_bytes=max_result_bytes,
+                            )
+                        else:
+                            result = run_native_backtest(
+                                engine_input,
+                                invocation_context_stream=stream,
+                                native_event_stream=native_event_stream,
+                                native_event_stream_digest=native_digest,
+                                expected_context_count=context_count,
+                                invocation_result_stream=result_stream,
+                                max_invocation_result_bytes=max_result_bytes,
+                            )
+                        result_stream.flush()
+                        os.fsync(result_stream.fileno())
+                finally:
+                    if native_event_stream is not None:
+                        native_event_stream.close()
         finally:
             if descriptor >= 0:
                 os.close(descriptor)
@@ -281,6 +444,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--snapshot-fingerprint")
     parser.add_argument("--max-input-bytes", type=int)
     parser.add_argument("--context-stream")
+    parser.add_argument("--native-event-stream")
     parser.add_argument("--invocation-results")
     parser.add_argument("--max-result-bytes", type=int)
     args = parser.parse_args(argv)
@@ -292,6 +456,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.snapshot_fingerprint,
                 args.max_input_bytes,
                 args.context_stream,
+                args.native_event_stream,
                 args.invocation_results,
                 args.max_result_bytes,
             )
@@ -309,6 +474,7 @@ def main(argv: list[str] | None = None) -> int:
         expected_snapshot_fingerprint=args.snapshot_fingerprint,
         max_input_bytes=args.max_input_bytes,
         context_stream_path=args.context_stream,
+        native_event_stream_path=args.native_event_stream,
         invocation_result_stream_path=args.invocation_results,
         max_result_bytes=args.max_result_bytes,
     )

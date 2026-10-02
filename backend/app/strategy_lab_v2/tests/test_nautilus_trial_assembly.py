@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -36,6 +37,9 @@ from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusCashDefinition,
     NautilusInstrumentDefinition,
     NautilusVenueDefinition,
+)
+from app.strategy_lab_v2.nautilus_native_event_stream import (
+    deserialize_nautilus_native_event_stream,
 )
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     load_materialized_nautilus_runtime_bundle,
@@ -246,6 +250,20 @@ def test_trial_assembly_materializes_reproducible_pinned_bundle(tmp_path) -> Non
     assert len(contexts) == 2
     assert entrypoint == "strategy.main:Strategy"
     assert max_intents == 100
+    native_event_stream = assembly.runtime_input_artifact.native_event_stream
+    assert native_event_stream is not None
+    bundle_payload = json.loads(bundle.wire_bytes)
+    assert "events" not in bundle_payload["engine_input"]["event_tape"]
+    assert bundle_payload["engine_input"]["event_tape"]["event_count"] == 2
+    events = tuple(
+        deserialize_nautilus_native_event_stream(
+            BytesIO(store.read(native_event_stream.artifact.storage_key)),
+            expected_source_tape_fingerprint=native_event_stream.source_tape_fingerprint,
+            expected_adapter_version=native_event_stream.adapter_version,
+            expected_event_count=native_event_stream.event_count,
+        )
+    )
+    assert [event["sequence"] for event in events] == [1, 2]
 
 
 def test_trial_assembly_applies_immutable_strategy_defaults(tmp_path) -> None:

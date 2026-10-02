@@ -46,6 +46,10 @@ def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() ->
         "COPY app/strategy_lab_v2/nautilus_runtime_cli.py app/strategy_lab_v2/nautilus_runtime_cli.py"
         in source
     )
+    assert (
+        "COPY app/strategy_lab_v2/nautilus_native_event_stream.py app/strategy_lab_v2/nautilus_native_event_stream.py"
+        in source
+    )
 
 
 def test_rc_runtime_context_excludes_everything_outside_the_pinned_runtime_sources() -> None:
@@ -53,6 +57,7 @@ def test_rc_runtime_context_excludes_everything_outside_the_pinned_runtime_sourc
 
     assert "**" in source
     assert "!app/strategy_lab_v2/strategy_validation.py" in source
+    assert "!app/strategy_lab_v2/nautilus_native_event_stream.py" in source
     assert "!strategy_runtime/protocol.py" in source
     assert "!strategy_runtime/runner.py" in source
 

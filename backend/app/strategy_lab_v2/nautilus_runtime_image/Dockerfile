@@ -34,6 +34,7 @@ COPY app/strategy_lab_v2/nautilus_strategy_bridge.py app/strategy_lab_v2/nautilu
 COPY app/strategy_lab_v2/nautilus_runtime_adapter_probe.py app/strategy_lab_v2/nautilus_runtime_adapter_probe.py
 COPY app/strategy_lab_v2/nautilus_runtime_probe.py app/strategy_lab_v2/nautilus_runtime_probe.py
 COPY app/strategy_lab_v2/nautilus_runtime_protocol.py app/strategy_lab_v2/nautilus_runtime_protocol.py
+COPY app/strategy_lab_v2/nautilus_native_event_stream.py app/strategy_lab_v2/nautilus_native_event_stream.py
 COPY app/strategy_lab_v2/nautilus_runtime_cli.py app/strategy_lab_v2/nautilus_runtime_cli.py
 COPY app/strategy_lab_v2/nautilus_rc_fixture_probe.py app/strategy_lab_v2/nautilus_rc_fixture_probe.py
 COPY strategy_runtime/__init__.py strategy_runtime/__init__.py

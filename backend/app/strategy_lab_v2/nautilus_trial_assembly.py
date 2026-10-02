@@ -29,16 +29,25 @@ from app.strategy_lab_v2.contracts import (
     StrategyVersion,
 )
 from app.strategy_lab_v2.event_tape import FrozenEventTape
+from app.strategy_lab_v2.event_tape_artifacts import (
+    FrozenEventTapeStreamResolution,
+    iter_verified_event_tape_stream,
+)
 from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusInstrumentDefinition,
     NautilusVenueDefinition,
     build_nautilus_engine_input,
 )
-from app.strategy_lab_v2.nautilus_event_adapter import materialize_nautilus_event_tape
+from app.strategy_lab_v2.nautilus_event_adapter import (
+    NautilusEventTape,
+    iter_materialized_nautilus_event_records,
+    materialize_nautilus_event_tape,
+)
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     NautilusRuntimeInputArtifactReference,
     build_nautilus_runtime_bundle,
     materialize_nautilus_context_stream_artifact,
+    materialize_nautilus_native_event_stream_artifact,
     materialize_nautilus_runtime_bundle,
 )
 from app.strategy_lab_v2.replay import iter_event_tape_contexts
@@ -104,7 +113,7 @@ def assemble_nautilus_trial_runtime_input(
     experiment: ExperimentDefinition,
     portfolio: PortfolioComposition,
     snapshot: DataSnapshot,
-    event_tape: FrozenEventTape,
+    event_tape: FrozenEventTape | FrozenEventTapeStreamResolution,
     strategy_package: StrategyPackage,
     strategy_manifest: StrategySdkManifest,
     strategy_source: str,
@@ -127,7 +136,6 @@ def assemble_nautilus_trial_runtime_input(
         ("experiment", experiment, ExperimentDefinition),
         ("portfolio", portfolio, PortfolioComposition),
         ("snapshot", snapshot, DataSnapshot),
-        ("event_tape", event_tape, FrozenEventTape),
         ("strategy_package", strategy_package, StrategyPackage),
         ("strategy_manifest", strategy_manifest, StrategySdkManifest),
         ("venue", venue, NautilusVenueDefinition),
@@ -136,6 +144,15 @@ def assemble_nautilus_trial_runtime_input(
     for name, value, value_type in expected_types:
         if not isinstance(value, value_type):
             raise TypeError(f"{name} must be a {value_type.__name__}")
+    if not isinstance(event_tape, FrozenEventTape | FrozenEventTapeStreamResolution):
+        raise TypeError("event_tape must be a FrozenEventTape or FrozenEventTapeStreamResolution")
+    if isinstance(event_tape, FrozenEventTapeStreamResolution) and (
+        event_tape.snapshot_fingerprint != snapshot.fingerprint
+        or event_tape.manifest_fingerprint != strategy_manifest.fingerprint
+    ):
+        raise NautilusTrialAssemblyError(
+            "streamed event tape differs from the frozen snapshot or SDK manifest"
+        )
     if not isinstance(strategy_source, str):
         raise TypeError("strategy_source must be a string")
     if not isinstance(instruments, Sequence) or isinstance(instruments, str | bytes):
@@ -247,13 +264,34 @@ def assemble_nautilus_trial_runtime_input(
     effective_parameters = dict(strategy.default_parameters)
     effective_parameters.update(trial.parameter_set)
     try:
-        native_tape = materialize_nautilus_event_tape(
-            event_tape,
-            snapshot,
-            strategy_manifest,
+        if isinstance(event_tape, FrozenEventTape):
+            native_tape = materialize_nautilus_event_tape(
+                event_tape,
+                snapshot,
+                strategy_manifest,
+            )
+            native_records = native_tape.events
+            event_count = len(native_tape.events)
+            context_events = event_tape.events
+        else:
+            native_tape = NautilusEventTape(event_tape.tape_fingerprint, ())
+            native_records = iter_materialized_nautilus_event_records(
+                event_tape,
+                snapshot,
+                strategy_manifest,
+                artifact_store,
+            )
+            event_count = event_tape.event_count
+            context_events = iter_verified_event_tape_stream(event_tape, artifact_store)
+        native_event_stream = materialize_nautilus_native_event_stream_artifact(
+            artifact_store,
+            events=native_records,
+            source_tape_fingerprint=native_tape.source_tape_fingerprint,
+            adapter_version=native_tape.adapter_version,
+            event_count=event_count,
         )
         contexts = iter_event_tape_contexts(
-            event_tape.events,
+            context_events,
             strategy_manifest,
             random_seed=trial.seed,
             parameters=effective_parameters,
@@ -279,7 +317,11 @@ def assemble_nautilus_trial_runtime_input(
             parameters=effective_parameters,
             random_seed=trial.seed,
         )
-        bundle = build_nautilus_runtime_bundle(engine_input, context_stream=context_stream)
+        bundle = build_nautilus_runtime_bundle(
+            engine_input,
+            context_stream=context_stream,
+            native_event_stream=native_event_stream,
+        )
         artifact_reference = materialize_nautilus_runtime_bundle(bundle, artifact_store)
     except (TypeError, ValueError) as error:
         raise NautilusTrialAssemblyError(
@@ -293,7 +335,9 @@ def assemble_nautilus_trial_runtime_input(
         portfolio_fingerprint=portfolio.fingerprint,
         snapshot_fingerprint=snapshot.fingerprint,
         strategy_package_fingerprint=strategy_package.fingerprint,
-        engine_input_fingerprint=engine_input.fingerprint,
+        engine_input_fingerprint=content_digest(
+            {"engine_input": engine_input.fingerprint, "native_event_stream": native_event_stream}
+        ),
         invocation_input_digest=context_stream.artifact.content_digest,
         runtime_input_artifact=artifact_reference,
     )
@@ -306,7 +350,7 @@ def assemble_nautilus_trial_runtime_input_from_package(
     experiment: ExperimentDefinition,
     portfolio: PortfolioComposition,
     snapshot: DataSnapshot,
-    event_tape: FrozenEventTape,
+    event_tape: FrozenEventTape | FrozenEventTapeStreamResolution,
     strategy: StrategyVersion,
     strategy_package: StrategyPackage,
     strategy_package_resolver: StrategyPackageArtifactResolver,

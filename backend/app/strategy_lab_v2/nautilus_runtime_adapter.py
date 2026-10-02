@@ -3,8 +3,9 @@
 The backend owns the engine-neutral :class:`NautilusEngineInput` contract, but
 the legacy backend environment must never import Nautilus.  This module is
 copied into the exact RC image and is therefore the first runtime-local bridge:
-it validates the serialized input, materializes native instruments, venue, and
-market events, runs one native ``BacktestEngine``, and emits scalar evidence.
+it validates the serialized input, materializes native instruments and venue,
+then runs one ``BacktestEngine`` or a catalog-chunked ``BacktestNode`` and emits
+scalar evidence.
 
 The returned evidence is deliberately non-authoritative.  It proves that the
 isolated runtime executed the payload; result publication still requires the
@@ -15,9 +16,15 @@ from __future__ import annotations
 
 import importlib.metadata
 from collections.abc import Mapping
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, BinaryIO
+from uuid import NAMESPACE_URL, uuid5
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.nautilus_native_event_stream import (
+    deserialize_nautilus_native_event_stream,
+)
 from app.strategy_lab_v2.nautilus_runtime_data import (
     NautilusRuntimeDataError,
     materialize_native_event,
@@ -50,6 +57,9 @@ _ENGINE_INPUT_FIELDS = frozenset(
     }
 )
 _TAPE_FIELDS = frozenset({"source_tape_fingerprint", "events", "adapter_version"})
+_STREAM_TAPE_FIELDS = frozenset({"source_tape_fingerprint", "event_count", "adapter_version"})
+NAUTILUS_CATALOG_INPUT_CHUNK_SIZE = 10_000
+NAUTILUS_CATALOG_REPLAY_CHUNK_SIZE = 100_000
 
 
 def _mapping(value: Any, field_name: str) -> Mapping[str, Any]:
@@ -74,7 +84,13 @@ def _integer(value: Any, field_name: str) -> int:
 
 def _validate_engine_input(
     payload: Mapping[str, Any],
-) -> tuple[Mapping[str, Any], list[Mapping[str, Any]], list[Mapping[str, Any]]]:
+) -> tuple[
+    Mapping[str, Any],
+    list[Mapping[str, Any]],
+    list[Mapping[str, Any]],
+    int,
+    bool,
+]:
     item = _mapping(payload, "engine input")
     if set(item) != _ENGINE_INPUT_FIELDS:
         raise NautilusRuntimeDataError("engine input fields are invalid")
@@ -96,24 +112,137 @@ def _validate_engine_input(
         raise NautilusRuntimeDataError("engine input instrument ids must be unique")
     venue = _mapping(item["venue"], "venue definition")
     tape = _mapping(item["event_tape"], "event tape")
-    if set(tape) != _TAPE_FIELDS:
+    tape_fields = frozenset(tape)
+    if tape_fields not in {_TAPE_FIELDS, _STREAM_TAPE_FIELDS}:
         raise NautilusRuntimeDataError("event tape fields are invalid")
-    _text(tape["source_tape_fingerprint"], "source_tape_fingerprint")
+    require_sha256_digest(tape["source_tape_fingerprint"], field_name="source_tape_fingerprint")
     _text(tape["adapter_version"], "event tape adapter_version")
-    raw_events = tape["events"]
-    if not isinstance(raw_events, list):
-        raise NautilusRuntimeDataError("event tape events must be a list")
-    events = [_mapping(value, "event") for value in raw_events]
-    event_ids = [_text(value.get("event_id"), "event.event_id") for value in events]
-    if len(event_ids) != len(set(event_ids)):
-        raise NautilusRuntimeDataError("event ids must be unique")
     known_ids = set(instrument_ids)
-    if any(
-        _text(event.get("instrument_id"), "event.instrument_id") not in known_ids
-        for event in events
-    ):
-        raise NautilusRuntimeDataError("event tape contains an instrument without a definition")
-    return venue, instrument_items, events
+    if tape_fields == _TAPE_FIELDS:
+        raw_events = tape["events"]
+        if not isinstance(raw_events, list):
+            raise NautilusRuntimeDataError("event tape events must be a list")
+        events = [_mapping(value, "event") for value in raw_events]
+        event_ids = [_text(value.get("event_id"), "event.event_id") for value in events]
+        if len(event_ids) != len(set(event_ids)):
+            raise NautilusRuntimeDataError("event ids must be unique")
+        if any(
+            _text(event.get("instrument_id"), "event.instrument_id") not in known_ids
+            for event in events
+        ):
+            raise NautilusRuntimeDataError("event tape contains an instrument without a definition")
+        return venue, instrument_items, events, len(events), False
+    event_count = _integer(tape["event_count"], "event tape event_count")
+    if event_count < 1:
+        raise NautilusRuntimeDataError("streamed event tape must contain at least one event")
+    return venue, instrument_items, [], event_count, True
+
+
+def _write_native_event_catalog(
+    payload: Mapping[str, Any],
+    instrument_definitions: list[Mapping[str, Any]],
+    native_instruments: tuple[Any, ...],
+    native_event_stream: BinaryIO,
+    catalog_path: Path,
+    *,
+    event_count: int,
+) -> tuple[Any, list[Any]]:
+    """Decode the authenticated native stream into bounded Parquet catalog chunks."""
+
+    from nautilus_trader.config import BacktestDataConfig
+    from nautilus_trader.model import BarType, InstrumentId
+    from nautilus_trader.persistence import ParquetDataCatalog
+
+    tape = payload["event_tape"]
+    assert isinstance(tape, Mapping)
+    source_fingerprint = tape["source_tape_fingerprint"]
+    adapter_version = tape["adapter_version"]
+    assert isinstance(source_fingerprint, str)
+    assert isinstance(adapter_version, str)
+    instrument_by_id = {item["instrument_id"]: item for item in instrument_definitions}
+    catalog_path.mkdir(parents=True, exist_ok=True)
+    catalog = ParquetDataCatalog(str(catalog_path))
+    catalog.write_instruments(list(native_instruments))
+    pending: dict[tuple[str, str], list[Any]] = {}
+    observed_types: set[str] = set()
+    observed_instruments: dict[str, set[str]] = {
+        event_type: set() for event_type in ("quote", "trade", "ohlcv")
+    }
+    pending_count = 0
+
+    def flush() -> None:
+        nonlocal pending_count
+        for (event_type, _instrument_id), records in sorted(pending.items()):
+            if event_type == "quote":
+                catalog.write_quote_ticks(records)
+            elif event_type == "trade":
+                catalog.write_trade_ticks(records)
+            elif event_type == "ohlcv":
+                catalog.write_bars(records)
+            else:  # pragma: no cover - event protocol validation rejects this
+                raise NautilusRuntimeDataError("native event type has no catalog writer")
+        pending.clear()
+        pending_count = 0
+
+    native_event_stream.seek(0)
+    records = deserialize_nautilus_native_event_stream(
+        native_event_stream,
+        expected_source_tape_fingerprint=source_fingerprint,
+        expected_adapter_version=adapter_version,
+        expected_event_count=event_count,
+    )
+    observed_count = 0
+    for record in records:
+        instrument_id = record["instrument_id"]
+        definition = instrument_by_id.get(instrument_id)
+        if definition is None:
+            raise NautilusRuntimeDataError(
+                "native event stream contains an instrument without a definition"
+            )
+        event_type = record["event_type"]
+        native_event = materialize_native_event(
+            {key: value for key, value in record.items() if key != "native_init_time_ns"},
+            definition,
+            native_init_time_ns=record["native_init_time_ns"],
+        )
+        pending.setdefault((event_type, instrument_id), []).append(native_event)
+        pending_count += 1
+        observed_count += 1
+        observed_types.add(event_type)
+        observed_instruments[event_type].add(instrument_id)
+        if pending_count >= NAUTILUS_CATALOG_INPUT_CHUNK_SIZE:
+            flush()
+    flush()
+    if observed_count != event_count:
+        raise NautilusRuntimeDataError(
+            "native event count differs from its authenticated reference"
+        )
+
+    data_configs: list[Any] = []
+    for event_type, data_type in (("quote", "QuoteTick"), ("trade", "TradeTick")):
+        identifiers = observed_instruments[event_type]
+        if identifiers:
+            data_configs.append(
+                BacktestDataConfig(
+                    data_type=data_type,
+                    catalog_path=str(catalog_path),
+                    instrument_ids=tuple(
+                        InstrumentId.from_str(item) for item in sorted(identifiers)
+                    ),
+                )
+            )
+    if "ohlcv" in observed_types:
+        data_configs.append(
+            BacktestDataConfig(
+                data_type="Bar",
+                catalog_path=str(catalog_path),
+                bar_types=tuple(
+                    BarType.from_str(instrument_by_id[item]["bar_type"])
+                    for item in sorted(observed_instruments["ohlcv"])
+                ),
+            )
+        )
+    return catalog, data_configs
 
 
 def run_native_backtest(
@@ -121,13 +250,35 @@ def run_native_backtest(
     *,
     serialized_strategy_invocation_batch: str | None = None,
     invocation_context_stream: BinaryIO | None = None,
+    native_event_stream: BinaryIO | None = None,
+    native_event_stream_digest: str | None = None,
     expected_context_count: int | None = None,
     invocation_result_stream: BinaryIO | None = None,
     max_invocation_result_bytes: int = MAX_INVOCATION_RESULT_STREAM_BYTES,
 ) -> dict[str, Any]:
     """Run one validated engine input and SDK invocation input in the isolated image."""
 
-    venue_definition, instrument_definitions, event_definitions = _validate_engine_input(payload)
+    (
+        venue_definition,
+        instrument_definitions,
+        event_definitions,
+        event_count,
+        expects_native_event_stream,
+    ) = _validate_engine_input(payload)
+    if expects_native_event_stream != (native_event_stream is not None):
+        raise NautilusRuntimeDataError(
+            "native event stream does not match the engine input tape reference"
+        )
+    if native_event_stream is None:
+        if native_event_stream_digest is not None:
+            raise NautilusRuntimeDataError(
+                "native event stream digest requires the matching event stream"
+            )
+    else:
+        require_sha256_digest(
+            native_event_stream_digest,
+            field_name="native_event_stream_digest",
+        )
     if serialized_strategy_invocation_batch is None and invocation_context_stream is None:
         raise NautilusRuntimeDataError("serialized strategy invocation batch is required")
     strategy_bridge = build_native_strategy_bridge(
@@ -136,6 +287,7 @@ def run_native_backtest(
         event_definitions,
         serialized_strategy_invocation_batch,
         invocation_context_stream=invocation_context_stream,
+        native_event_stream=native_event_stream,
         expected_context_count=expected_context_count,
         invocation_result_stream=invocation_result_stream,
         max_invocation_result_bytes=max_invocation_result_bytes,
@@ -145,42 +297,19 @@ def run_native_backtest(
         materialize_native_instrument(definition) for definition in instrument_definitions
     )
     native_venue, oms_type, account_type, balances = materialize_native_venue(venue_definition)
-    native_events = [
-        materialize_native_event(
-            event,
-            instrument_definitions[
-                next(
-                    index
-                    for index, definition in enumerate(instrument_definitions)
-                    if definition["instrument_id"] == event["instrument_id"]
-                )
-            ],
-        )
-        for event in event_definitions
-    ]
     from nautilus_trader import __version__  # type: ignore[import-not-found,attr-defined]
     from nautilus_trader.backtest import (  # type: ignore[import-not-found,attr-defined]
         BacktestEngine,
-        BacktestEngineConfig,
+        BacktestNode,
     )
     from nautilus_trader.common import LoggerConfig  # type: ignore[import-not-found,attr-defined]
-
-    engine = BacktestEngine(
-        BacktestEngineConfig(
-            logging=LoggerConfig(bypass_logging=True),
-            bypass_logging=True,
-        )
+    from nautilus_trader.config import (
+        BacktestEngineConfig,
+        BacktestRunConfig,
+        BacktestVenueConfig,
     )
-    try:
-        engine.add_venue(native_venue, oms_type, account_type, balances)
-        for instrument in native_instruments:
-            engine.add_instrument(instrument)
-        engine.add_strategy(strategy_bridge.strategy)
-        if native_events:
-            engine.add_data(native_events, sort=True)
-        engine.run()
-        result = engine.get_result()
-        invocation_result_output = strategy_bridge.result_output()
+
+    def make_evidence(result: Any, invocation_result_output: Any) -> dict[str, Any]:
         summary = getattr(result, "summary", {})
         if not isinstance(summary, Mapping):
             raise NautilusRuntimeDataError("Nautilus result summary is not a mapping")
@@ -210,8 +339,27 @@ def run_native_backtest(
             "authoritative": False,
             "engine": "nautilus",
             "engine_version": __version__,
-            "input_fingerprint": content_digest(payload),
-            "input_event_count": len(native_events),
+            "input_fingerprint": (
+                content_digest(payload)
+                if native_event_stream_digest is None
+                else content_digest(
+                    {
+                        "engine_input": payload,
+                        "native_event_stream_digest": native_event_stream_digest,
+                    }
+                )
+            ),
+            "input_event_count": event_count,
+            **(
+                {
+                    "native_event_stream_digest": native_event_stream_digest,
+                    "native_data_source": "parquet_catalog_chunks",
+                    "catalog_input_chunk_size": NAUTILUS_CATALOG_INPUT_CHUNK_SIZE,
+                    "catalog_replay_chunk_size": NAUTILUS_CATALOG_REPLAY_CHUNK_SIZE,
+                }
+                if native_event_stream_digest is not None
+                else {}
+            ),
             "strategy_invocation_input_digest": strategy_bridge.input_fingerprint,
             "strategy_invocation_input_protocol": strategy_bridge.input_protocol,
             **(
@@ -229,6 +377,84 @@ def run_native_backtest(
         }
         evidence["execution_evidence_digest"] = content_digest(evidence)
         return evidence
+
+    if native_event_stream is not None:
+        from nautilus_trader.model import BookType, Currency
+
+        with TemporaryDirectory(prefix="strategy-lab-nautilus-catalog-") as temporary_root:
+            catalog_path = Path(temporary_root) / "catalog"
+            _catalog, data_configs = _write_native_event_catalog(
+                payload,
+                instrument_definitions,
+                native_instruments,
+                native_event_stream,
+                catalog_path,
+                event_count=event_count,
+            )
+            if not data_configs:
+                raise NautilusRuntimeDataError("native event stream contains no supported data")
+            venue_config = BacktestVenueConfig(
+                name=str(native_venue),
+                oms_type=oms_type,
+                account_type=account_type,
+                starting_balances=[str(balance) for balance in balances],
+                book_type=BookType.L1_MBP,
+                base_currency=Currency.from_str(venue_definition["base_currency"]),
+            )
+            run_config = BacktestRunConfig(
+                venues=[venue_config],
+                data=data_configs,
+                engine=BacktestEngineConfig(
+                    logging=LoggerConfig(bypass_logging=True),
+                    bypass_logging=True,
+                ),
+                id=str(uuid5(NAMESPACE_URL, content_digest(payload))),
+                chunk_size=NAUTILUS_CATALOG_REPLAY_CHUNK_SIZE,
+                raise_exception=True,
+                dispose_on_completion=False,
+            )
+            node = BacktestNode(configs=[run_config])
+            try:
+                node.build()
+                node.add_strategy(run_config.id, strategy_bridge.strategy)
+                results = node.run()
+                if not isinstance(results, list) or len(results) != 1:
+                    raise NautilusRuntimeDataError(
+                        "catalog-backed Nautilus node did not return exactly one run result"
+                    )
+                invocation_result_output = strategy_bridge.result_output()
+                return make_evidence(results[0], invocation_result_output)
+            finally:
+                node.dispose()
+
+    engine = BacktestEngine(
+        BacktestEngineConfig(
+            logging=LoggerConfig(bypass_logging=True),
+            bypass_logging=True,
+        )
+    )
+    try:
+        engine.add_venue(native_venue, oms_type, account_type, balances)
+        for instrument in native_instruments:
+            engine.add_instrument(instrument)
+        engine.add_strategy(strategy_bridge.strategy)
+        native_events = [
+            materialize_native_event(
+                event,
+                next(
+                    definition
+                    for definition in instrument_definitions
+                    if definition["instrument_id"] == event["instrument_id"]
+                ),
+            )
+            for event in event_definitions
+        ]
+        if native_events:
+            engine.add_data(native_events, sort=True)
+        engine.run()
+        result = engine.get_result()
+        invocation_result_output = strategy_bridge.result_output()
+        return make_evidence(result, invocation_result_output)
     finally:
         engine.dispose()
 

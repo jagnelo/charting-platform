@@ -24,11 +24,16 @@ from app.strategy_lab_v2.engine_execution import (
     EngineExecutionDecision,
     NautilusExecutionPlan,
 )
+from app.strategy_lab_v2.nautilus_native_event_stream import (
+    MAX_NAUTILUS_NATIVE_EVENT_STREAM_BYTES,
+)
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     NautilusInvocationResultStreamReference,
+    NautilusNativeEventStreamArtifactReference,
     NautilusRuntimeInputArtifactReference,
     verify_nautilus_context_stream_artifact_file,
     verify_nautilus_invocation_result_stream_file,
+    verify_nautilus_native_event_stream_artifact_file,
     verify_nautilus_runtime_artifact_file,
 )
 from app.strategy_lab_v2.nautilus_runtime_protocol import (
@@ -46,6 +51,8 @@ from app.strategy_lab_v2.sandbox import (
     sandbox_input_path,
     sandbox_invocation_result_stream_path,
     sandbox_memory_limit_bytes,
+    sandbox_native_event_stream_digest,
+    sandbox_native_event_stream_path,
     sandbox_output_path,
     sandbox_runtime_command,
 )
@@ -175,6 +182,8 @@ def run_nautilus_plan(
         input_digest = sandbox_input_bundle_digest(sandbox_plan)
         context_digest = sandbox_context_stream_digest(sandbox_plan)
         context_path = sandbox_context_stream_path(sandbox_plan)
+        native_event_digest = sandbox_native_event_stream_digest(sandbox_plan)
+        native_event_path = sandbox_native_event_stream_path(sandbox_plan)
         result_stream_path = sandbox_invocation_result_stream_path(sandbox_plan)
         memory_limit_bytes = sandbox_memory_limit_bytes(sandbox_plan)
     except (TypeError, ValueError):
@@ -202,6 +211,8 @@ def run_nautilus_plan(
                 if (
                     context_digest is not None
                     or context_path is not None
+                    or native_event_digest is not None
+                    or native_event_path is not None
                     or result_stream_path is not None
                 ):
                     reasons.append("nautilus_stream_artifact_unbound")
@@ -221,8 +232,32 @@ def run_nautilus_plan(
                         reasons.append("nautilus_context_stream_integrity_failed")
                 if result_stream_path is None:
                     reasons.append("nautilus_invocation_result_stream_mount_required")
+            native_event_reference = runtime_input_artifact.native_event_stream
+            if native_event_reference is None:
+                if native_event_digest is not None or native_event_path is not None:
+                    reasons.append("nautilus_native_event_stream_unbound")
+            else:
+                if not isinstance(
+                    native_event_reference, NautilusNativeEventStreamArtifactReference
+                ):
+                    reasons.append("nautilus_native_event_stream_reference_invalid")
+                if native_event_digest != native_event_reference.artifact.content_digest:
+                    reasons.append("nautilus_native_event_stream_digest_mismatch")
+                if native_event_path is None:
+                    reasons.append("nautilus_native_event_stream_mount_required")
+                else:
+                    try:
+                        verify_nautilus_native_event_stream_artifact_file(
+                            native_event_reference,
+                            native_event_path,
+                            max_input_bytes=MAX_NAUTILUS_NATIVE_EVENT_STREAM_BYTES,
+                        )
+                    except (OSError, TypeError, ValueError):
+                        reasons.append("nautilus_native_event_stream_integrity_failed")
         elif context_digest is not None or context_path is not None:
             reasons.append("nautilus_context_stream_reference_required")
+        elif native_event_digest is not None or native_event_path is not None:
+            reasons.append("nautilus_native_event_stream_reference_required")
         try:
             expected_command = nautilus_runtime_command(
                 expected_version=execution_plan.engine_version,
@@ -232,6 +267,12 @@ def run_nautilus_plan(
                     context_digest
                     if runtime_input_artifact is not None
                     and runtime_input_artifact.context_stream is not None
+                    else None
+                ),
+                native_event_stream_digest=(
+                    native_event_digest
+                    if runtime_input_artifact is not None
+                    and runtime_input_artifact.native_event_stream is not None
                     else None
                 ),
                 max_result_bytes=(

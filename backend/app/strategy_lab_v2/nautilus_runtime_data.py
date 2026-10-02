@@ -61,7 +61,9 @@ def _instrument_id(value: str) -> Any:
     try:
         return InstrumentId.from_str(value)
     except (TypeError, ValueError) as error:
-        raise NautilusRuntimeDataError("instrument_id is not a valid Nautilus identifier") from error
+        raise NautilusRuntimeDataError(
+            "instrument_id is not a valid Nautilus identifier"
+        ) from error
 
 
 def materialize_native_instrument(definition: Mapping[str, Any]) -> Any:
@@ -152,9 +154,7 @@ def materialize_native_instrument(definition: Mapping[str, Any]) -> Any:
         )
     if product_class == "equity":
         if multiplier != 1:
-            raise NautilusRuntimeDataError(
-                "equity multiplier requires an explicit native adapter"
-            )
+            raise NautilusRuntimeDataError("equity multiplier requires an explicit native adapter")
         return Equity(
             native_id,
             Symbol(raw_symbol),
@@ -247,10 +247,22 @@ def _event_values(event: Mapping[str, Any]) -> tuple[Any, str, int, Any]:
 def materialize_native_event(
     event: Mapping[str, Any],
     instrument_definition: Mapping[str, Any],
+    *,
+    native_init_time_ns: int | None = None,
 ) -> Any:
     """Convert one strict wire record into a Nautilus quote/trade/bar."""
 
     instrument_id, event_type, event_time_ns, values = _event_values(event)
+    if native_init_time_ns is None:
+        native_init_time_ns = event_time_ns
+    if (
+        not isinstance(native_init_time_ns, int)
+        or isinstance(native_init_time_ns, bool)
+        or native_init_time_ns < event_time_ns
+    ):
+        raise NautilusRuntimeDataError(
+            "native event init time must be an integer no earlier than event time"
+        )
     definition = _required_mapping(instrument_definition, "instrument definition")
     price_precision = _precision(definition.get("price_precision"), "price_precision")
     size_precision = _precision(definition.get("size_precision"), "size_precision")
@@ -272,7 +284,7 @@ def materialize_native_event(
             Quantity(_decimal(values["bid_size"], "quote.bid_size"), size_precision),
             Quantity(_decimal(values["ask_size"], "quote.ask_size"), size_precision),
             event_time_ns,
-            event_time_ns,
+            native_init_time_ns,
         )
     if event_type == "trade":
         required = {"price", "size", "aggressor_side"}
@@ -285,7 +297,10 @@ def materialize_native_event(
 
         trade_id = _required_text(event["event_id"], "event.event_id")
         try:
-            aggressor_side = getattr(AggressorSide, _required_text(values["aggressor_side"], "trade.aggressor_side").upper())
+            aggressor_side = getattr(
+                AggressorSide,
+                _required_text(values["aggressor_side"], "trade.aggressor_side").upper(),
+            )
         except AttributeError as error:
             raise NautilusRuntimeDataError("trade aggressor_side is unsupported") from error
         return TradeTick(
@@ -295,7 +310,7 @@ def materialize_native_event(
             aggressor_side,
             TradeId(trade_id),
             event_time_ns,
-            event_time_ns,
+            native_init_time_ns,
         )
     if event_type == "ohlcv":
         from nautilus_trader.model import Bar  # type: ignore[import-not-found,attr-defined]
@@ -313,7 +328,7 @@ def materialize_native_event(
                 "close": str(_decimal(values["close"], "ohlcv.close")),
                 "volume": str(_decimal(values["volume"], "ohlcv.volume")),
                 "ts_event": event_time_ns,
-                "ts_init": event_time_ns,
+                "ts_init": native_init_time_ns,
             }
         )
     raise NautilusRuntimeDataError(f"event_type {event_type!r} is unsupported")

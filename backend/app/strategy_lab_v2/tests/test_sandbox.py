@@ -17,6 +17,8 @@ from app.strategy_lab_v2.sandbox import (
     sandbox_engine_id,
     sandbox_invocation_result_stream_path,
     sandbox_memory_limit_bytes,
+    sandbox_native_event_stream_digest,
+    sandbox_native_event_stream_path,
     sandbox_runtime_command,
     sandbox_runtime_image_digest,
 )
@@ -153,7 +155,9 @@ def test_nautilus_runtime_builder_binds_fixed_cli_and_snapshot(tmp_path) -> None
 def test_nautilus_runtime_builder_binds_readonly_context_stream_sidecar(tmp_path) -> None:
     profile = _profile()
     context_digest = content_digest("context stream")
+    native_event_digest = content_digest("native event stream")
     context_path = tmp_path / "contexts.ndjson"
+    native_event_path = tmp_path / "native-events.ndjson"
     invocation_result_path = tmp_path / "invocations.ndjson"
     plan = build_nautilus_runtime_sandbox_command(
         _request(profile),
@@ -165,13 +169,17 @@ def test_nautilus_runtime_builder_binds_readonly_context_stream_sidecar(tmp_path
         snapshot_fingerprint=content_digest("snapshot"),
         context_stream_path=context_path,
         context_stream_digest=context_digest,
+        native_event_stream_path=native_event_path,
+        native_event_stream_digest=native_event_digest,
         invocation_result_stream_path=invocation_result_path,
     )
 
     command = sandbox_runtime_command(plan)
-    assert command[-6:] == (
+    assert command[-8:] == (
         "--context-stream",
         "/inputs/contexts",
+        "--native-event-stream",
+        "/inputs/native-events",
         "--invocation-results",
         "/outputs/invocations",
         "--max-result-bytes",
@@ -179,10 +187,16 @@ def test_nautilus_runtime_builder_binds_readonly_context_stream_sidecar(tmp_path
     )
     assert sandbox_context_stream_path(plan) == context_path
     assert sandbox_context_stream_digest(plan) == context_digest
+    assert sandbox_native_event_stream_path(plan) == native_event_path
+    assert sandbox_native_event_stream_digest(plan) == native_event_digest
     assert sandbox_invocation_result_stream_path(plan) == invocation_result_path
     assert f"--mount=type=bind,src={context_path},dst=/inputs/contexts,readonly" in plan.argv
+    assert (
+        f"--mount=type=bind,src={native_event_path},dst=/inputs/native-events,readonly" in plan.argv
+    )
     assert f"--mount=type=bind,src={invocation_result_path},dst=/outputs/invocations" in plan.argv
     assert f"--env=STRATEGY_CONTEXT_STREAM_DIGEST={context_digest}" in plan.argv
+    assert f"--env=STRATEGY_NATIVE_EVENT_STREAM_DIGEST={native_event_digest}" in plan.argv
 
 
 def test_paths_commands_and_image_references_are_validated(tmp_path) -> None:

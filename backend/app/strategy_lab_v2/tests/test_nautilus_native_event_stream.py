@@ -1,0 +1,137 @@
+from __future__ import annotations
+
+from decimal import Decimal
+from io import BytesIO
+
+import pytest
+
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.nautilus_event_adapter import NautilusEventRecord
+from app.strategy_lab_v2.nautilus_native_event_stream import (
+    deserialize_nautilus_native_event_stream,
+    serialize_nautilus_native_event_stream,
+)
+
+
+def _event(event_id: str, *, event_time_ns: int, sequence: int) -> NautilusEventRecord:
+    return NautilusEventRecord(
+        "quotes",
+        event_id,
+        "AAPL.SIM",
+        "quote",
+        event_time_ns,
+        sequence,
+        {
+            "bid": Decimal("100.00"),
+            "ask": Decimal("100.01"),
+            "bid_size": Decimal("10"),
+            "ask_size": Decimal("12"),
+        },
+    )
+
+
+def _wire(events: tuple[NautilusEventRecord, ...]) -> bytes:
+    output = BytesIO()
+    serialize_nautilus_native_event_stream(
+        output,
+        events,
+        source_tape_fingerprint=content_digest("source-tape"),
+        adapter_version="strategy-lab.nautilus-event-adapter.v1",
+        expected_event_count=len(events),
+    )
+    return output.getvalue()
+
+
+def _decode(wire: bytes, *, count: int = 2):
+    return tuple(
+        deserialize_nautilus_native_event_stream(
+            BytesIO(wire),
+            expected_source_tape_fingerprint=content_digest("source-tape"),
+            expected_adapter_version="strategy-lab.nautilus-event-adapter.v1",
+            expected_event_count=count,
+        )
+    )
+
+
+def test_native_event_stream_is_reproducible_and_preserves_same_time_order() -> None:
+    events = (
+        _event("event-1", event_time_ns=100, sequence=1),
+        _event("event-2", event_time_ns=100, sequence=2),
+    )
+
+    first = _wire(events)
+    second = _wire(events)
+
+    assert first == second
+    observed = _decode(first)
+    assert [event["event_id"] for event in observed] == ["event-1", "event-2"]
+    assert [event["native_init_time_ns"] for event in observed] == [100, 101]
+    assert [event["event_time_ns"] for event in observed] == [100, 100]
+
+
+def test_native_event_stream_rejects_wrong_source_and_missing_trailer() -> None:
+    wire = _wire(
+        (
+            _event("event-1", event_time_ns=100, sequence=1),
+            _event("event-2", event_time_ns=100, sequence=2),
+        )
+    )
+
+    with pytest.raises(ValueError, match="header differs"):
+        tuple(
+            deserialize_nautilus_native_event_stream(
+                BytesIO(wire),
+                expected_source_tape_fingerprint=content_digest("different"),
+                expected_adapter_version="strategy-lab.nautilus-event-adapter.v1",
+                expected_event_count=2,
+            )
+        )
+    with pytest.raises(ValueError, match="trailer is missing"):
+        _decode(wire.rsplit(b"{", 1)[0], count=2)
+
+
+def test_native_event_stream_rejects_order_digest_and_trailing_drift() -> None:
+    events = (
+        _event("event-1", event_time_ns=100, sequence=1),
+        _event("event-2", event_time_ns=100, sequence=2),
+    )
+    wire = _wire(events)
+
+    with pytest.raises(ValueError, match="record digest differs"):
+        _decode(wire.replace(b"100.00", b"100.02", 1))
+    with pytest.raises(ValueError, match="trailing bytes"):
+        _decode(wire + b"{}\n")
+    with pytest.raises(ValueError, match="canonical event order"):
+        _wire((events[1], events[0]))
+
+
+def test_native_event_stream_enforces_count_row_and_total_bounds() -> None:
+    events = (
+        _event("event-1", event_time_ns=100, sequence=1),
+        _event("event-2", event_time_ns=100, sequence=2),
+    )
+    with pytest.raises(ValueError, match="expected_event_count"):
+        serialize_nautilus_native_event_stream(
+            BytesIO(),
+            events,
+            source_tape_fingerprint=content_digest("source-tape"),
+            adapter_version="strategy-lab.nautilus-event-adapter.v1",
+            expected_event_count=3,
+        )
+    with pytest.raises(ValueError, match="byte bound"):
+        serialize_nautilus_native_event_stream(
+            BytesIO(),
+            events,
+            source_tape_fingerprint=content_digest("source-tape"),
+            adapter_version="strategy-lab.nautilus-event-adapter.v1",
+            expected_event_count=2,
+            max_stream_bytes=32,
+        )
+
+
+def test_native_event_stream_rejects_duplicate_json_keys() -> None:
+    with pytest.raises(ValueError, match="duplicate object fields"):
+        _decode(
+            b'{"protocol_version":"x","protocol_version":"y"}\n',
+            count=2,
+        )
