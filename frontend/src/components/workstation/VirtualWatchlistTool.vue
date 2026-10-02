@@ -61,7 +61,7 @@
           <button v-else type="button" :aria-label="sortButtonLabel(item.column.key, item.column.label)" :aria-pressed="sortKey === item.column.key ? 'true' : 'false'" @click="toggleSort(item.column.key)">
             <em v-if="columnGroups[item.column.key]">{{ columnGroups[item.column.key] }}</em>{{ item.column.label }}<small v-if="sortKey === item.column.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small>
           </button>
-          <span v-if="item.column.key !== stackedColumnKey" class="watchlist__column-resize-handle" role="separator" tabindex="0" :aria-label="`Resize ${item.column.label} column`" @mousedown.prevent.stop="beginColumnMouseResize($event, item)" />
+          <span v-if="item.column.key !== stackedColumnKey" class="watchlist__column-resize-handle" role="separator" tabindex="0" aria-orientation="horizontal" :aria-valuemin="48" :aria-valuemax="600" :aria-valuenow="columnWidths[item.index]" :aria-valuetext="`${columnWidths[item.index]} pixels`" :aria-label="`Resize ${item.column.label} column`" @mousedown.prevent.stop="beginColumnMouseResize($event, item)" @keydown.stop="handleColumnResizeKeydown($event, item)" />
         </div>
         </template>
       </div>
@@ -598,6 +598,19 @@ function beginColumnMouseResize(event: MouseEvent, item: ColumnRenderItem) {
   const target = event.currentTarget as HTMLElement
   const width = Math.max(48, Math.round(target.parentElement?.getBoundingClientRect().width ?? estimateColumnWidth(item.column)))
   resizingColumn.value = { key: item.column.key, startX: event.clientX, startWidth: width, width }
+}
+function handleColumnResizeKeydown(event: KeyboardEvent, item: ColumnRenderItem) {
+  if (item.column.key === stackedColumnKey) return
+  const step = event.shiftKey ? 32 : 8
+  const current = columnWidths.value[item.index] ?? estimateColumnWidth(item.column)
+  let next: number
+  if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = current + step
+  else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = current - step
+  else if (event.key === 'Home') next = 48
+  else if (event.key === 'End') next = 600
+  else return
+  event.preventDefault()
+  setColumnOverride(item.column.key, { width: `${Math.min(600, Math.max(48, next))}px` })
 }
 function handleColumnMouseDown(event: MouseEvent, item: ColumnRenderItem) {
   const cell = event.currentTarget as HTMLElement

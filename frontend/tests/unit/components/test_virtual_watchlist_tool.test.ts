@@ -595,6 +595,32 @@ describe('VirtualWatchlistTool', () => {
     expect(handle.attributes('tabindex')).toBe('0')
   })
 
+  it('resizes a focused column separator with keyboard controls and size semantics', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors', rows,
+        columns: [
+          { key: 'symbol', label: 'Symbol', width: '72px' },
+          { key: 'name', label: 'Name', width: '120px' },
+        ],
+      },
+    })
+    const handle = wrapper.get('[aria-label="Resize Symbol column"]')
+    expect(handle.attributes('role')).toBe('separator')
+    expect(handle.attributes('aria-orientation')).toBe('horizontal')
+    expect(handle.attributes('aria-valuemin')).toBe('48')
+    expect(handle.attributes('aria-valuemax')).toBe('600')
+    expect(handle.attributes('aria-valuenow')).toBe('72')
+    expect(handle.attributes('aria-valuetext')).toBe('72 pixels')
+
+    await handle.trigger('keydown', { key: 'ArrowRight' })
+    expect(wrapper.emitted('update:columnOverrides')?.at(-1)).toEqual([{ symbol: { width: '80px' } }])
+    await handle.trigger('keydown', { key: 'Home' })
+    expect(wrapper.emitted('update:columnOverrides')?.at(-1)).toEqual([{ symbol: { width: '48px' } }])
+    await handle.trigger('keydown', { key: 'End' })
+    expect(wrapper.emitted('update:columnOverrides')?.at(-1)).toEqual([{ symbol: { width: '600px' } }])
+  })
+
   it('keeps the dense header surface measurable so resize hit targets cannot collapse', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {
