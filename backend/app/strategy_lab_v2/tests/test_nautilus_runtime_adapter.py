@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from decimal import Decimal
+from io import BytesIO
 
 import pytest
 
@@ -134,8 +135,44 @@ def test_runtime_adapter_rejects_batch_source_mismatch_before_native_import() ->
     payload = _probe_payload()
     payload["strategy_source_digest"] = content_digest("different strategy source")
 
-    with pytest.raises(NautilusRuntimeDataError, match="batch source digest"):
+    with pytest.raises(NautilusRuntimeDataError, match="strategy source digest"):
         run_native_backtest(
             payload,
             serialized_strategy_invocation_batch=_invocation_batch(),
+        )
+
+
+def test_runtime_adapter_rejects_stream_source_mismatch_before_native_import() -> None:
+    from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
+        _invocation_batch,
+    )
+    from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
+        _payload as _probe_payload,
+    )
+    from strategy_runtime import (
+        deserialize_invocation_batch,
+        serialize_invocation_context_stream,
+    )
+
+    payload = _probe_payload()
+    payload["strategy_source_digest"] = content_digest("different strategy source")
+    source, manifest, contexts, entrypoint, max_intents = deserialize_invocation_batch(
+        _invocation_batch()
+    )
+    stream = BytesIO()
+    serialize_invocation_context_stream(
+        stream,
+        source=source,
+        manifest=manifest,
+        contexts=contexts,
+        entrypoint=entrypoint,
+        max_intents_per_event=max_intents,
+    )
+    stream.seek(0)
+
+    with pytest.raises(NautilusRuntimeDataError, match="strategy source digest"):
+        run_native_backtest(
+            payload,
+            invocation_context_stream=stream,
+            expected_context_count=1,
         )

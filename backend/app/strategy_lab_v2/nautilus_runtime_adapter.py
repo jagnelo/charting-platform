@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import importlib.metadata
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, BinaryIO
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.nautilus_runtime_data import (
@@ -115,20 +115,21 @@ def run_native_backtest(
     payload: Mapping[str, Any],
     *,
     serialized_strategy_invocation_batch: str | None = None,
+    invocation_context_stream: BinaryIO | None = None,
+    expected_context_count: int | None = None,
 ) -> dict[str, Any]:
-    """Run one validated engine input and SDK batch in the isolated image."""
+    """Run one validated engine input and SDK invocation input in the isolated image."""
 
     venue_definition, instrument_definitions, event_definitions = _validate_engine_input(payload)
-    if (
-        not isinstance(serialized_strategy_invocation_batch, str)
-        or not serialized_strategy_invocation_batch.strip()
-    ):
+    if serialized_strategy_invocation_batch is None and invocation_context_stream is None:
         raise NautilusRuntimeDataError("serialized strategy invocation batch is required")
     strategy_bridge = build_native_strategy_bridge(
         payload,
         instrument_definitions,
         event_definitions,
         serialized_strategy_invocation_batch,
+        invocation_context_stream=invocation_context_stream,
+        expected_context_count=expected_context_count,
     )
 
     native_instruments = tuple(
@@ -182,7 +183,13 @@ def run_native_backtest(
             "engine_version": __version__,
             "input_fingerprint": content_digest(payload),
             "input_event_count": len(native_events),
-            "strategy_invocation_batch_digest": strategy_bridge.input_fingerprint,
+            "strategy_invocation_input_digest": strategy_bridge.input_fingerprint,
+            "strategy_invocation_input_protocol": strategy_bridge.input_protocol,
+            **(
+                {"strategy_invocation_batch_digest": strategy_bridge.input_fingerprint}
+                if strategy_bridge.input_protocol == "batch"
+                else {}
+            ),
             "strategy_invocation_result_wire": invocation_result_wire,
             "strategy_invocation_result_digest": content_digest(invocation_result_wire),
             "strategy_invocation_count": result_invocation_count(invocation_result_wire),
