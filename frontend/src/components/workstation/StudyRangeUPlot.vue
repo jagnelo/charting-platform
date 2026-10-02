@@ -26,11 +26,14 @@ function drawBand(instance: uPlot) {
   // array inside both point loops turns a dense range render into quadratic
   // allocation work (100k points would otherwise map 20 billion timestamps).
   const timestamps = instance.data[0] as number[]
+  // The x coordinate is shared by the upper and lower paths. Resolve it once
+  // per point instead of asking uPlot for the same projection twice.
+  const xPositions = timestamps.map(timestamp => instance.valToPos(timestamp, 'x', true))
   context.save()
   context.fillStyle = 'rgba(119,195,238,.16)'
   context.beginPath()
-  props.upper.forEach((value, index) => { const x = instance.valToPos(timestamps[index], 'x', true); const y = instance.valToPos(value, 'y', true); if (index === 0) context.moveTo(x, y); else context.lineTo(x, y) })
-  for (let index = props.lower.length - 1; index >= 0; index -= 1) context.lineTo(instance.valToPos(timestamps[index], 'x', true), instance.valToPos(props.lower[index], 'y', true))
+  props.upper.forEach((value, index) => { const x = xPositions[index] ?? 0; const y = instance.valToPos(value, 'y', true); if (index === 0) context.moveTo(x, y); else context.lineTo(x, y) })
+  for (let index = props.lower.length - 1; index >= 0; index -= 1) context.lineTo(xPositions[index] ?? 0, instance.valToPos(props.lower[index], 'y', true))
   context.closePath()
   context.fill()
   context.restore()
