@@ -6123,3 +6123,8 @@ receipt.
 The focused conformance/event-adapter suites pass 33 tests; the complete
 package suite passes 999 tests, Ruff, MyPy across 305 source files, diff
 validation, and workstream validation.
+
+The exact-tip Docker-backed combined backend gate then passed 2,650 tests with
+83.77% total coverage against the 75% threshold, and the backend/RPI Compose
+contract rendered successfully. The gate emitted 86 dependency warnings but no
+test failures; resources were cleaned after completion.
