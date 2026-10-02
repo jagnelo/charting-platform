@@ -5818,3 +5818,21 @@ The implementation remains gated from authoritative activation by stable
 Nautilus v2 release/conformance evidence, host callback/event configuration,
 approved provider/ETF/TC2000 promotion to staging, and shared migration and
 application-path reconciliation. No other worktree was changed.
+
+## 2026-10-02 - Exact external blocker audit after forward-worker push
+
+At the post-push audit, `origin/staging` is still `8b885a2ffd9c`, while the
+current dependency refs are market-data `366fdd4f4276`, ETF
+`52814f95bd0e`, and TC2000 `63d64bfe95c9`; none is an ancestor of staging.
+Therefore shared provider, ETF, frontend, migration, and application-path
+reconciliation is not yet admissible under AC-UPSTREAM.
+
+The checked-out backend still pins `nautilus-trader==1.226.0`, while the
+Strategy Lab v2 conformance contract rejects release pins that do not start
+with `2.`. A stable Nautilus v2 package/build plus the required multi-account,
+native order/fill/cost, deterministic replay, lifecycle, and backtest/forward
+event-tape evidence is therefore still missing. The worker Compose boundary
+is intentionally unable to claim authoritative activation without that
+evidence. The remaining runtime-specific dependency is an explicitly
+configured host callback factory that resolves admitted canonical events and
+account/engine semantics; an empty Compose value fails closed by design.
