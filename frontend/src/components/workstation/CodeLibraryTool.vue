@@ -63,7 +63,7 @@
           <button v-if="asset.kind === 'study'" type="button" :aria-label="`Open ${asset.name} in Study Lab`" title="Open in Study Lab" @click="openStudy(asset)">Open in Study Lab</button>
           <button type="button" title="Export asset" @click="exportAsset(asset)">Export</button>
           <button type="button" title="Clone asset" @click="cloneAsset(asset)">Clone</button>
-          <button type="button" :title="asset.is_archived ? 'Unarchive asset' : 'Archive asset'" @click="toggleArchive(asset)">{{ asset.is_archived ? 'Unarchive' : 'Archive' }}</button>
+          <button type="button" :title="asset.is_archived ? 'Unarchive asset' : 'Archive asset'" :aria-label="asset.is_archived ? 'Unarchive asset' : 'Archive asset'" :aria-pressed="asset.is_archived ? 'true' : 'false'" @click="toggleArchive(asset)">{{ asset.is_archived ? 'Unarchive' : 'Archive' }}</button>
         </div>
       </article>
     </div>

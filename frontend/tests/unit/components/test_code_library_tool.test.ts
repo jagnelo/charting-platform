@@ -65,7 +65,10 @@ describe('CodeLibraryTool', () => {
     await wrapper.findAll('button').find(button => button.text() === 'Save as new version')!.trigger('click')
     await flushPromises()
     expect(apiPost).toHaveBeenCalledWith('/code/assets/4/versions', expect.objectContaining({ source: "output.scalar('n', 2)", output_contract: 'study' }))
-    await wrapper.findAll('button').find(button => button.text() === 'Archive')!.trigger('click')
+    const archive = wrapper.findAll('button').find(button => button.text() === 'Archive')!
+    expect(archive.attributes('aria-label')).toBe('Archive asset')
+    expect(archive.attributes('aria-pressed')).toBe('false')
+    await archive.trigger('click')
     await flushPromises()
     expect(apiPost).toHaveBeenCalledWith('/code/assets/4/archive', { is_archived: true })
   })
