@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 MarketData.app current account-pool reconciliation
+
+- At exact source `5d6069f2b`, the credentialed MarketData.app account-usage
+  case passed `1/1` with one upstream request. The owner-local durable quota
+  ledger accepted the native daily-credit observation.
+- The subsequent exact-head full preflight stopped before transport with `0/0`
+  cases and zero provider requests, but no longer reported MarketData.app's
+  ordinary `credits_per_day` pool as unknown. Its admitted account-plan and
+  option-chain paths are now routable; response-priced option-history remains
+  fail-closed because its result/credit ceiling is still unreviewed.
+
 ## 2026-10-02 exact-head full provider safety preflight after integration gate
 
 - At exact pushed source `a3fab38aa`, the complete provider manifest stopped

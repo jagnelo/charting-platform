@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-10-02 — MarketData.app current account-pool reconciliation
+
+- [x] The exact-source credentialed MarketData.app account-usage case passed
+      `1/1` with one request, and its native daily-credit observation was
+      accepted by the owner-local durable quota ledger.
+- [x] The subsequent full preflight no longer reports the ordinary
+      `credits_per_day` pool as unknown; the configured account-plan and option
+      chain paths are admitted without a generic fallback.
+- [ ] Option quote history remains non-routable until a reviewed hard
+      response/credit ceiling is configured; this is independent of the daily
+      account-pool reconciliation.
+
 ### 2026-10-02 — Exact-head full provider safety preflight after integration gate
 
 - [x] At exact pushed source `a3fab38aa`, the full provider manifest stopped

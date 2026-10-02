@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact source 5d6069f2b MarketData.app account-usage validation
+    passed 1/1 with one upstream request and reconciled the native daily-credit
+    observation into the owner-local durable quota ledger. The subsequent full
+    preflight no longer reports its ordinary credits_per_day pool as unknown;
+    the admitted account-plan and option-chain paths are routable. Response-
+    priced option history still requires a reviewed hard result/credit ceiling.
+  - >-
     2026-10-02 exact pushed source a3fab38aa full provider safety preflight
     stopped before transport with 0/0 cases and zero provider requests. The
     redacted receipt is appended to validation.jsonl; provider-specific active
