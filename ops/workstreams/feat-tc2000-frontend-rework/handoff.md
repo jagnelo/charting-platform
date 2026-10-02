@@ -1,5 +1,31 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Chart indicator settings use engine parameter constraints
+
+Product commit `aa6472fb3582d5d60d685e26f72f809b4397e5ef` fixes a chart-editor
+gap: numeric indicator fields previously accepted any finite number, including
+fractional periods and values below the engine's minimums. The settings dialog
+now reads the existing `/indicators/registry` contract, applies integer and
+min/max constraints to its inputs, and disables saving when the registry is
+unavailable or lacks a parameter definition. This keeps validation owned by
+the existing indicator engine instead of duplicating its limits in the UI.
+
+The focused ChartPlotLibrary suite passed `40/40`, covering integer periods,
+RSI's minimum period, Bollinger Bands' floating-point minimum, valid saves, and
+fail-closed registry errors. Frontend type-checking passed. The TC scope guard
+passed for `118` changed paths and all six ownership self-tests passed. Host
+Docker preflight is healthy with zero retained branch resources; the earlier
+default-sandbox socket denial was environmental and the authorized host-context
+retry succeeded. The complete exact-tip integration/browser gate remains
+pending. No visual baseline, mask, threshold, skip, fallback, provider/ETF
+ownership, or acceptance rule changed.
+
+Current refs: staging `8b885a2ffd9c`, provider-platform `65a467b43d78`, and ETF
+holdings `a13fccfd0b96`; neither upstream tip is in staging. Keep those consumer
+integrations and all shared-path reconciliation deferred until their prescribed
+staging sequence completes. Continue independent TC-owned V25 and
+Study/Strategy work in this worktree.
+
 ## 2026-10-02 — Primary workstation workspace-tab focus visibility
 
 Product commit `44b837a2bf54450b269a3ad253fbef7851f67733` adds an explicit

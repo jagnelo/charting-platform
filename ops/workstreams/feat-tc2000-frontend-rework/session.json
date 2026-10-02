@@ -49,7 +49,10 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
+    "frontend/src/components/workstation/IndicatorSettingsDialog.vue",
+    "frontend/tests/unit/components/test_chart_plot_library.test.ts",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -109,11 +112,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "bc90fda2c70e82d0f7ebe98c0e8d43414910449d",
+  "head": "79bad5f59547c36251020252bc643d2298ded191",
   "implementation_sha": "eddce5b9d988c055edd3f94955fa57bc7cca11a3",
   "interrupted": false,
   "last_checkpoint": "2026-10-02T21:38:46.042046+00:00",
-  "last_human_progress_update": "2026-10-02T21:33:44.529356+00:00",
+  "last_human_progress_update": "2026-10-02T21:54:16.032911+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue comparing mapped V25 chart interactions and TC-owned Study/Strategy behavior; implement the next independent gap, keep protected screenshot policies unchanged, and wait for provider/ETF changes to reach staging before integration.",
   "plan_hash": "fc44a7eaa17c18b730dc8ef458abb989b6e29dd9769032b41da2d5edef00196f",
@@ -129,11 +132,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "No blocker for independent TC frontend work. Six screenshot differences still need human review and provider/ETF consumer integration waits for staging; neither prevents unrelated UI or Study/Strategy work.",
-    "current_phase": "R6_primary_chart_indicator_settings_added",
-    "next_action": "Continue comparing mapped V25 chart interactions and TC-owned Study/Strategy behavior; implement the next independent gap, keep protected screenshot policies unchanged, and wait for provider/ETF changes to reach staging before integration.",
+    "current_blocker": "Six protected screenshot differences await review; provider/ETF integration awaits staging. Neither blocks independent TC frontend work.",
+    "current_phase": "R6_indicator_settings_registry_validation",
+    "next_action": "Continue mapped V25 chart-interaction and TC Study/Strategy promotion gaps; run the full gate at each clean exact tip; wait for both upstream branches to reach staging before consumer integration.",
     "total": 9,
-    "updated_at": "2026-10-02T21:33:44.529332+00:00"
+    "updated_at": "2026-10-02T21:54:16.032893+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
