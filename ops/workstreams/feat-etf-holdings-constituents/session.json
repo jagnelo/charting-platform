@@ -92,7 +92,7 @@
   "last_human_progress_update": "2026-09-25T00:46:26Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue branch-owned evidence reconciliation for the remaining fallback inventory, then re-check the provider-platform dependency; do not add a speculative ETF_HOLDINGS bridge or activate paid/direct-provider routes while awaiting staging.",
-  "plan_hash": "e55fa77558bb33a385233fdc575fc972476a876fd01fd7539480f0920f7a5357",
+  "plan_hash": "993ca9af88f4d8c08c6f4e26f1dda877c42841e0852d7832d6b3237f261cdfec",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
