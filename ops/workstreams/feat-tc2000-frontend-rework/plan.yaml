@@ -33,10 +33,10 @@ current_blocker: >-
   and Nimbus Sans), so a matching-font replay is required before attributing
   the mismatch to product pixels. The
   standard parallel frontend gate remains host-timing-sensitive on the
-  unrelated 100k-point uPlot benchmark; serial coverage passes 1,150/1,150.
+  unrelated 100k-point uPlot benchmark; serial coverage passes 1,152/1,152.
   Provider-platform and ETF consumer integration remains a sequencing gate
   until both upstream branches reach staging. On the resumed 2026-10-01 audit,
-  provider is at `ba3a9c53`, ETF is at `410bf3b2`, and staging remains
+  provider is at `e72c4368`, ETF is at `d2e123de`, and staging remains
   `8b885a2f`; neither dependency is an ancestor of staging. Shared-path reconciliation and
   the final post-staging exact gate remain pending. Origin synchronization
   remains a separate operational hold under the recorded private-origin

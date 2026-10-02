@@ -14876,3 +14876,14 @@ build retained the existing large-chunk warning and the suite retained its
 expected negative-path watchlist-store stderr. No provider-platform, ETF,
 visual baseline, threshold, mask, skip, fallback, or acceptance policy
 changed. No other worktree was mutated.
+
+## 2026-10-02 — Upstream staging boundary recheck
+
+A read-only dependency audit after the TC-owned checkpoints observed staging at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform at
+`e72c4368ef91fb3c8ccd3092d8e972799701e45b` (`fix(marketstack): require
+universe pagination totals`), and ETF holdings at
+`d2e123dee0b1149292e7f3c9a59148ea5bdb2d19` (`docs(etf): refresh pzena route
+evidence`). Neither upstream tip is an ancestor of staging. The TC branch did
+not consume either tip, reconcile shared paths, or mutate another worktree;
+consumer integration and the exact post-staging gate remain pending.
