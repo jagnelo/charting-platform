@@ -6160,3 +6160,14 @@ from selecting the narrower scope.
 The focused engine-execution suite passes 10 tests; the complete Strategy Lab v2
 package suite passes 1,001 tests, Ruff, MyPy across 305 source files, and diff
 validation.
+
+## 2026-10-02 - RC receipt-to-execution evidence bridge
+
+`resolve_nautilus_rc_conformance(...)` now turns the parsed exact-image RC
+fixture receipt plus runtime probe into the ordinary engine evidence/report
+pair consumed by the execution gate. The resolver authenticates runtime,
+probe, image, package, release-pin, build, and fixture identities, preserves
+the four passed checks and deferred forward-parity check, and cannot emit
+authoritative evidence. The focused conformance-fixture suite passes 18 tests;
+the complete Strategy Lab v2 package suite passes 1,003 tests, Ruff, MyPy
+across 305 source files, and diff validation.

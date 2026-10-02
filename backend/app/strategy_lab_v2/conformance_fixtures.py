@@ -130,6 +130,97 @@ class ConformanceExecutionResolution:
         return content_digest(self)
 
 
+@dataclass(frozen=True, slots=True)
+class NautilusRcConformanceResolution:
+    """Typed partial conformance evidence emitted by the exact RC image.
+
+    A release-candidate fixture deliberately omits forward event-tape parity.
+    This resolution keeps that omission explicit while producing the ordinary
+    engine evidence/report pair consumed by the non-authoritative backtest
+    execution gate.  It can never represent authoritative conformance.
+    """
+
+    runtime: NautilusRcCompatibilityRuntime
+    probe: NautilusRuntimeProbeEvidence
+    receipt: NautilusRcFixtureReceipt
+    evidence: EngineConformanceEvidence
+    report: EngineConformanceReport
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.runtime, NautilusRcCompatibilityRuntime):
+            raise TypeError("runtime must be a NautilusRcCompatibilityRuntime")
+        if not isinstance(self.probe, NautilusRuntimeProbeEvidence):
+            raise TypeError("probe must be a NautilusRuntimeProbeEvidence")
+        if not isinstance(self.receipt, NautilusRcFixtureReceipt):
+            raise TypeError("receipt must be a NautilusRcFixtureReceipt")
+        if not isinstance(self.evidence, EngineConformanceEvidence):
+            raise TypeError("evidence must be an EngineConformanceEvidence")
+        if not isinstance(self.report, EngineConformanceReport):
+            raise TypeError("report must be an EngineConformanceReport")
+        _require_rc_runtime_receipt_binding(self.runtime, self.probe, self.receipt)
+        if self.evidence.engine_id.lower() != "nautilus":
+            raise ValueError("RC conformance evidence must target Nautilus")
+        if self.evidence.engine_version != self.runtime.package_version:
+            raise ValueError("RC conformance evidence version does not match the runtime")
+        if self.evidence.release_channel is not self.runtime.release_channel:
+            raise ValueError("RC conformance evidence channel does not match the runtime")
+        if self.evidence.release_pin != self.runtime.release_pin:
+            raise ValueError("RC conformance evidence release pin does not match the runtime")
+        if self.evidence.fixture_digest != self.receipt.fixture_digest:
+            raise ValueError("RC conformance evidence must reference the fixture receipt")
+        if self.evidence.passed_checks != self.receipt.passed_checks:
+            raise ValueError("RC conformance evidence checks do not match the fixture receipt")
+        if self.report.evidence_fingerprint != self.evidence.fingerprint:
+            raise ValueError("RC conformance report must reference the evidence")
+        if self.report.missing_checks != self.receipt.deferred_checks:
+            raise ValueError("RC conformance report checks do not match the fixture receipt")
+        if self.report.authoritative or self.receipt.authoritative:
+            raise ValueError("RC conformance resolution cannot be authoritative")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+def resolve_nautilus_rc_conformance(
+    runtime: NautilusRcCompatibilityRuntime,
+    probe: NautilusRuntimeProbeEvidence,
+    receipt: NautilusRcFixtureReceipt,
+    *,
+    build_digest: str,
+    tested_at: datetime,
+) -> NautilusRcConformanceResolution:
+    """Bind a parsed RC image receipt to the engine execution gate.
+
+    The returned report intentionally fails the complete conformance decision
+    because forward parity is deferred, while its four passed checks remain
+    available to ``BACKTEST_COMPATIBILITY`` execution.  No caller can use this
+    helper to manufacture stable authority.
+    """
+
+    if not isinstance(runtime, NautilusRcCompatibilityRuntime):
+        raise TypeError("runtime must be a NautilusRcCompatibilityRuntime")
+    if not isinstance(probe, NautilusRuntimeProbeEvidence):
+        raise TypeError("probe must be a NautilusRuntimeProbeEvidence")
+    if not isinstance(receipt, NautilusRcFixtureReceipt):
+        raise TypeError("receipt must be a NautilusRcFixtureReceipt")
+    require_sha256_digest(build_digest, field_name="build_digest")
+    _aware(tested_at, "tested_at")
+    _require_rc_runtime_receipt_binding(runtime, probe, receipt)
+    evidence = EngineConformanceEvidence(
+        engine_id="nautilus",
+        engine_version=runtime.package_version,
+        build_digest=build_digest,
+        release_channel=runtime.release_channel,
+        fixture_digest=receipt.fixture_digest,
+        passed_checks=receipt.passed_checks,
+        tested_at=tested_at,
+        release_pin=runtime.release_pin,
+    )
+    report = evaluate_engine_conformance(evidence)
+    return NautilusRcConformanceResolution(runtime, probe, receipt, evidence, report)
+
+
 def require_runtime_probe_binding(
     resolution: ConformanceExecutionResolution,
     runtime: NautilusRcCompatibilityRuntime,
@@ -167,6 +258,25 @@ def require_runtime_probe_binding(
         raise ValueError("release-candidate probe evidence cannot be authoritative")
 
 
+def _require_rc_runtime_receipt_binding(
+    runtime: NautilusRcCompatibilityRuntime,
+    probe: NautilusRuntimeProbeEvidence,
+    receipt: NautilusRcFixtureReceipt,
+) -> None:
+    """Validate the image/probe/receipt identity shared by RC resolutions."""
+
+    if probe.runtime_fingerprint != runtime.fingerprint:
+        raise ValueError("probe evidence is not bound to the declared runtime")
+    if probe.runtime_image_digest != runtime.runtime_image_digest:
+        raise ValueError("probe image digest does not match the runtime release pin")
+    if receipt.runtime_fingerprint != runtime.fingerprint:
+        raise ValueError("fixture receipt is not bound to the declared runtime")
+    if receipt.runtime_image_digest != runtime.runtime_image_digest:
+        raise ValueError("fixture receipt image digest does not match the runtime release pin")
+    if receipt.authoritative:
+        raise ValueError("RC fixture evidence cannot be authoritative")
+
+
 def require_rc_fixture_binding(
     resolution: ConformanceExecutionResolution,
     runtime: NautilusRcCompatibilityRuntime,
@@ -190,14 +300,7 @@ def require_rc_fixture_binding(
         raise TypeError("probe must be a NautilusRuntimeProbeEvidence")
     if not isinstance(receipt, NautilusRcFixtureReceipt):
         raise TypeError("receipt must be a NautilusRcFixtureReceipt")
-    if probe.runtime_fingerprint != runtime.fingerprint:
-        raise ValueError("probe evidence is not bound to the declared runtime")
-    if probe.runtime_image_digest != runtime.runtime_image_digest:
-        raise ValueError("probe image digest does not match the runtime release pin")
-    if receipt.runtime_fingerprint != runtime.fingerprint:
-        raise ValueError("fixture receipt is not bound to the declared runtime")
-    if receipt.runtime_image_digest != runtime.runtime_image_digest:
-        raise ValueError("fixture receipt image digest does not match the runtime release pin")
+    _require_rc_runtime_receipt_binding(runtime, probe, receipt)
     evidence = resolution.evidence
     if evidence.engine_id.lower() != "nautilus":
         raise ValueError("RC fixture binding requires Nautilus evidence")
@@ -211,7 +314,7 @@ def require_rc_fixture_binding(
         raise ValueError("RC fixture passed checks do not match the conformance suite")
     if resolution.suite.missing_checks != receipt.deferred_checks:
         raise ValueError("RC fixture deferred checks do not match the conformance suite")
-    if resolution.report.authoritative or receipt.authoritative:
+    if resolution.report.authoritative:
         raise ValueError("RC fixture evidence cannot be authoritative")
 
 

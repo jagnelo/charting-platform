@@ -534,6 +534,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   checks plus one deferred forward-parity check, preserving the exact runtime,
   image, and fixture digests without creating `EngineConformanceEvidence` or
   authority prematurely.
+- `resolve_nautilus_rc_conformance(...)` is the typed bridge from that parsed
+  image receipt to the ordinary engine evidence/report pair. It verifies the
+  runtime, probe, image, package, and fixture identities, exposes the four
+  passed checks to `BACKTEST_COMPATIBILITY`, and preserves the missing
+  forward-parity check and non-authoritative label.
 - `nautilus_event_adapter.py` defines the provider-neutral canonical-event wire
   boundary for that future adapter. It binds an already verified frozen event
   tape to the SDK manifest, converts timestamps to exact UTC nanoseconds,

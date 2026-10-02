@@ -16,12 +16,14 @@ from app.strategy_lab_v2.conformance_fixtures import (
     ConformanceExecutionResolution,
     ConformanceFixtureObservation,
     ConformanceFixtureSuite,
+    NautilusRcConformanceResolution,
     build_conformance_evidence,
     build_event_tape_parity_observation,
     execute_conformance_suite,
     require_complete_conformance_suite,
     require_rc_fixture_binding,
     require_runtime_probe_binding,
+    resolve_nautilus_rc_conformance,
 )
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_event_adapter import (
@@ -474,3 +476,49 @@ def test_partial_rc_fixture_receipt_rejects_suite_check_drift() -> None:
 
     with pytest.raises(ValueError, match="passed checks"):
         require_rc_fixture_binding(resolution, runtime, _rc_probe(runtime), receipt)
+
+
+def test_rc_conformance_resolver_emits_non_authoritative_partial_evidence() -> None:
+    runtime = _rc_runtime()
+    probe = _rc_probe(runtime)
+    receipt = _rc_receipt(runtime)
+
+    result = resolve_nautilus_rc_conformance(
+        runtime,
+        probe,
+        receipt,
+        build_digest=content_digest("nautilus-v2-rc5-build"),
+        tested_at=NOW,
+    )
+
+    assert isinstance(result, NautilusRcConformanceResolution)
+    assert result.evidence.fixture_digest == receipt.fixture_digest
+    assert result.evidence.passed_checks == receipt.passed_checks
+    assert result.report.missing_checks == receipt.deferred_checks
+    assert result.report.release_pin_valid
+    assert not result.report.compatible
+    assert not result.report.authoritative
+    assert result.fingerprint.startswith("sha256:")
+
+
+def test_rc_conformance_resolver_rejects_probe_identity_drift() -> None:
+    runtime = _rc_runtime()
+    receipt = _rc_receipt(runtime)
+    drifted_probe = NautilusRuntimeProbeEvidence(
+        runtime_fingerprint=runtime.fingerprint,
+        runtime_image_digest=content_digest("different-image"),
+        package_version=runtime.package_version,
+        python_version=runtime.python_version,
+        platform="Linux-x86_64",
+        implementation="cpython",
+        engine_lifecycle="passed",
+    )
+
+    with pytest.raises(ValueError, match="image digest"):
+        resolve_nautilus_rc_conformance(
+            runtime,
+            drifted_probe,
+            receipt,
+            build_digest=content_digest("nautilus-v2-rc5-build"),
+            tested_at=NOW,
+        )
