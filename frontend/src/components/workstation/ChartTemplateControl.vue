@@ -1,7 +1,7 @@
 <template>
   <section class="chart-template" aria-label="Chart templates" @keydown.esc="closeToTrigger">
-    <button ref="trigger" type="button" title="Chart templates" aria-label="Chart templates" :aria-expanded="open" :aria-controls="templateMenuId" aria-haspopup="menu" @click="toggleOpen()" @keydown="handleTriggerKeydown">Templates</button>
-    <div v-if="open" :id="templateMenuId" ref="menuRoot" class="chart-template__menu" role="menu" :style="menuStyle" @keydown="handleMenuKeydown">
+    <button ref="trigger" type="button" title="Chart templates" aria-label="Chart templates" :aria-expanded="open" :aria-controls="templateMenuId" aria-haspopup="dialog" @click="toggleOpen()" @keydown="handleTriggerKeydown">Templates</button>
+    <div v-if="open" :id="templateMenuId" ref="menuRoot" class="chart-template__menu" role="dialog" aria-label="Chart templates panel" :style="menuStyle" @keydown="handleMenuKeydown">
       <header><b>Chart templates</b><button type="button" aria-label="Close chart templates" @click="closeToTrigger"><WorkstationGlyph kind="close" /></button></header>
       <div class="chart-template__save">
       <input ref="firstEditor" v-model.trim="name" aria-label="Chart template name" placeholder="Template name" @keydown.enter.prevent="save" />
