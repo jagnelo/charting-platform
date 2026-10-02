@@ -1,19 +1,19 @@
 <template>
   <main class="study-lab">
-    <header><strong>Study Lab</strong><span>Reproducible Python research</span><button @click="router.push('/')">Back to workstation</button></header>
-    <section class="study-lab__controls">
+    <header><strong>Study Lab</strong><span>Reproducible Python research</span><button type="button" aria-label="Back to workstation" @click="router.push('/')">Back to workstation</button></header>
+    <section class="study-lab__controls" aria-label="Study controls">
       <input v-model="name" aria-label="Study name" placeholder="Study name" />
       <input v-model="symbol" aria-label="Study symbol" placeholder="Symbol" />
-      <button @click="validate" :disabled="busy">Validate</button>
-      <button @click="saveAndRun" :disabled="busy || !validation?.valid">Save & Run</button>
+      <button type="button" aria-label="Validate study" @click="validate" :disabled="busy">Validate</button>
+      <button type="button" aria-label="Save and run study" @click="saveAndRun" :disabled="busy || !validation?.valid">Save & Run</button>
     </section>
     <textarea v-model="source" aria-label="Study Python source" spellcheck="false" />
-    <section v-if="validation" class="study-lab__diagnostics" :class="{ bad: !validation.valid }">
+    <section v-if="validation" class="study-lab__diagnostics" :class="{ bad: !validation.valid }" :role="validation.valid ? 'status' : 'alert'" aria-live="polite" aria-atomic="true">
       <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
       <pre v-if="validation.diagnostics.length">{{ validation.diagnostics }}</pre>
       <p v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</p>
     </section>
-    <section v-if="run" class="study-lab__run"><strong>Run #{{ run.id }}</strong><span>{{ run.status }}</span><button v-if="!['completed','failed','canceled'].includes(run.status)" @click="cancel">Cancel</button><pre v-if="run.diagnostics?.length">{{ run.diagnostics }}</pre><div v-for="artifact in run.artifacts ?? []" :key="artifact.id" class="study-lab__artifact"><strong>{{ artifact.name }}</strong><span>{{ artifact.artifact_type }}</span><pre>{{ artifact.payload.value }}</pre></div></section>
+    <section v-if="run" class="study-lab__run" aria-label="Study run" role="region"><strong>Run #{{ run.id }}</strong><span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Study run status: ${run.status}`">{{ run.status }}</span><button v-if="!['completed','failed','canceled'].includes(run.status)" type="button" aria-label="Cancel study run" @click="cancel">Cancel</button><pre v-if="run.diagnostics?.length">{{ run.diagnostics }}</pre><div v-for="artifact in run.artifacts ?? []" :key="artifact.id" class="study-lab__artifact"><strong>{{ artifact.name }}</strong><span>{{ artifact.artifact_type }}</span><pre>{{ artifact.payload.value }}</pre></div></section>
   </main>
 </template>
 
