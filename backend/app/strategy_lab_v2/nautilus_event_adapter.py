@@ -225,14 +225,31 @@ def materialize_nautilus_event_tape(
     if not isinstance(manifest, StrategySdkManifest):
         raise TypeError("manifest must be a StrategySdkManifest")
     bind_event_tape(tape, snapshot, manifest)
-    event_types = {
-        item.dependency_id: item.requirement.event_type for item in manifest.data_dependencies
-    }
+    event_types = _effective_event_types(snapshot, manifest)
     records = tuple(
         materialize_nautilus_event(event, event_type=event_types[event.dependency_id])
         for event in tape.events
     )
     return NautilusEventTape(tape.fingerprint, records)
+
+
+def _effective_event_types(
+    snapshot: DataSnapshot,
+    manifest: StrategySdkManifest,
+) -> dict[str, str]:
+    decisions = {decision.requirement: decision for decision in snapshot.preflight_report.decisions}
+    event_types: dict[str, str] = {}
+    for dependency in manifest.data_dependencies:
+        decision = decisions.get(dependency.requirement)
+        if decision is None:
+            raise ValueError(
+                f"snapshot preflight has no decision for dependency {dependency.dependency_id!r}"
+            )
+        replacements = {item.field: item.substituted_value for item in decision.degradations}
+        event_types[dependency.dependency_id] = replacements.get(
+            "event_type", dependency.requirement.event_type
+        )
+    return event_types
 
 
 def verify_nautilus_event_tape_parity(

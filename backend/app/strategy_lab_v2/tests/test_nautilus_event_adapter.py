@@ -6,6 +6,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.capabilities import CapabilityCell, Degradation, preflight_capabilities
+from app.strategy_lab_v2.contracts import AdjustmentMode, EventGranularity, ProductClass
 from app.strategy_lab_v2.event_tape import FrozenEventTape
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventRecord,
@@ -113,6 +115,63 @@ def test_materialize_event_tape_reuses_bound_snapshot_and_manifest_identity() ->
 
     assert materialized.source_tape_fingerprint == tape.fingerprint
     assert [event.event_id for event in materialized.events] == ["bar-1", "bar-2"]
+    assert all(event.event_type == "ohlcv" for event in materialized.events)
+
+
+def test_materialize_event_tape_uses_effective_degraded_event_type() -> None:
+    source_tape, snapshot, manifest = _binding_inputs()
+    dependency = manifest.data_dependencies[0]
+    requirement = replace(dependency.requirement, event_type="trade")
+    cell = CapabilityCell(
+        instrument_id="US.AAPL",
+        product_class=ProductClass.EQUITY,
+        event_granularities=frozenset({EventGranularity.BAR}),
+        event_types=frozenset({"ohlcv"}),
+        timeframes=frozenset({"1d"}),
+        adjustments=frozenset({AdjustmentMode.SPLIT_ADJUSTED}),
+        sessions=frozenset({"regular"}),
+        feeds=frozenset({"consolidated"}),
+        execution_models=frozenset({"bar-close-v1"}),
+        account_models=frozenset({"cash-equity-v1"}),
+        corporate_action_semantics=frozenset({"split-adjusted-v1"}),
+        history_start=BASE - timedelta(days=10),
+        history_end=BASE + timedelta(days=10),
+        evidence_digest=content_digest("capability"),
+    )
+    report = preflight_capabilities(
+        (requirement,),
+        (cell,),
+        allow_degraded=True,
+        degradations=(Degradation("US.AAPL", "event_type", "ohlcv", "bar evidence"),),
+    )
+    snapshot = replace(snapshot, preflight_report=report)
+    manifest = replace(
+        manifest,
+        data_dependencies=(
+            replace(
+                dependency,
+                requirement=requirement,
+                fields=("close", "high", "low", "open", "volume"),
+            ),
+        ),
+    )
+    events = tuple(
+        replace(
+            event,
+            values={
+                "close": event.values["close"],
+                "high": event.values["close"],
+                "low": event.values["close"],
+                "open": event.values["close"],
+                "volume": 1000,
+            },
+        )
+        for event in source_tape.events
+    )
+    tape = FrozenEventTape(snapshot.fingerprint, events)
+
+    materialized = materialize_nautilus_event_tape(tape, snapshot, manifest)
+
     assert all(event.event_type == "ohlcv" for event in materialized.events)
 
 

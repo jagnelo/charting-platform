@@ -541,6 +541,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   existing `FORWARD_EVENT_TAPE_PARITY` conformance check. Failed receipts are
   assigned a distinct failure digest, so expected-fixture configuration cannot
   manufacture a pass.
+- Materialization resolves the effective `event_type` from the bound snapshot
+  preflight, including explicitly recorded degraded substitutions, rather than
+  silently reverting to the requested manifest value.
 - `result_publication.py` composes conformance, runtime isolation, and exact
   result-artifact integrity into a storage-neutral publish plan. Only a stable
   authoritative build with matching evidence can publish; already-published

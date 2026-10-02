@@ -6014,3 +6014,12 @@ checks without claiming that the current RC fixture is authoritative.
 
 The complete package suite passes 987 tests, with package Ruff, targeted
 formatting, MyPy, diff, and workstream validation green.
+
+## 2026-10-02 - Effective event-type substitution binding
+
+`materialize_nautilus_event_tape(...)` now resolves each dependency's effective
+event type from the snapshot's verified preflight decision, including explicit
+degraded substitutions. The adapter therefore cannot silently label a
+materialized record with the requested event type when the bound snapshot used
+another supported type. A focused regression covers the degraded substitution
+path and the complete package suite passes 988 tests.
