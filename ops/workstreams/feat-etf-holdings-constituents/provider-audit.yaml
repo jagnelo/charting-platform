@@ -5400,7 +5400,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-07
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - MAVF
@@ -5427,6 +5427,8 @@ providers:
       - "web:matrix-mavf-official-page-2026-09-03"
       - "live:matrix-mavf-cloudflare-block-2026-09-03"
       - "live:matrix-mavf-page-recheck-2026-09-07-undated"
+      - "web:matrix-mavf-current-page-2026-10-02"
+      - "live:matrix-mavf-route-recheck-2026-10-02-dns-failure"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -5444,6 +5446,10 @@ providers:
         source: "https://matrixadvisorsvalueetf.com/"
         result: "Fresh retrieval returned a complete 27-row MAVF HTML table with ticker, name, CUSIP, shares, market value, and weight columns, but the page did not declare a holdings as-of date. The route is reachable, yet the missing freshness semantics prevent current-support promotion."
         evidence_ref: "live:matrix-mavf-page-recheck-2026-09-07-undated"
+      - date: 2026-10-02
+        source: "https://matrixadvisorsvalueetf.com/"
+        result: "Current indexed first-party material still exposes a complete 27-row MAVF holdings table with ticker, CUSIP, shares, market value, and weights. The page has fund-detail and pricing as-of dates (2026-08-31 and 2026-09-28) but no holdings-specific as-of date; direct application-equivalent retrieval failed DNS resolution for matrixadvisorsvalueetf.com. The route remains non-executable for current-support purposes."
+        evidence_ref: "web:matrix-mavf-current-page-2026-10-02"
     disposition_reason: "matrix: Matrix Asset Advisors' official MAVF page is now reachable and exposes a complete 27-row table, but it does not declare a holdings as-of date. Without freshness semantics the route cannot satisfy current-support criteria, so it remains fallback-only as a non_executable_public_source rather than being promoted or reconstructed through SEC data."
     next_action: "matrix: Re-test after the official page declares a stable holdings as-of date; promote only after complete table execution, identity/date semantics, deterministic parser fixtures, and bounded live coverage are proven."
     implementation_sha: null

@@ -5779,3 +5779,12 @@ application-equivalent requests failed DNS resolution for `www.highlandcap.com`.
 No complete ticker-bearing executable artifact was retrieved. Highland remains
 `non_executable_public_source`; no CUSIP reconstruction, SEC promotion, or paid
 route was used.
+
+## Matrix MAVF route recheck — 2026-10-02
+
+Current indexed Matrix first-party material still exposes a complete 27-row
+MAVF table with tickers, CUSIPs, shares, values, and weights. It provides
+fund-detail and pricing dates (2026-08-31 and 2026-09-28), but no
+holdings-specific as-of date; direct application-equivalent retrieval failed
+DNS resolution for `matrixadvisorsvalueetf.com`. Matrix remains
+`non_executable_public_source` until holdings freshness semantics are explicit.
