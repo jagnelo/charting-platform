@@ -276,7 +276,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_drawing_toolbar_checkpointed
+  current_phase: R6_drawing_avwap_toggle_checkpointed
   next_action: >-
     Verify the protected visual mismatch against the expected seeded baseline
     in a matching browser/font environment without changing snapshots or visual
@@ -291,13 +291,14 @@ progress:
     first capture and 45,932 after stability, distributed across board text and
     anti-aliasing rather than localized chart geometry. The parallel frontend
     timing guard remains host-sensitive on the unrelated 100k-point uPlot
-    benchmark, while serial coverage passes 1,157/1,157 at the current product
+    benchmark, while serial coverage passes 1,158/1,158 at the current product
     tip. Provider-platform and ETF consumer integration remains a sequencing
     gate until both upstream branches reach staging; shared-path reconciliation
     and the final post-staging exact gate remain pending. Origin synchronization
     remains a separate operational hold under the recorded private-origin
     safeguard.
 historical_implementation_records:
+  - "Product commit 989e7fdc7 exposes aria-pressed state for the TC-owned Anchored VWAP drop toggle, preserving the existing chart-click activation and visual styling. Focused DrawingToolbar accessibility coverage passed 1/1; the full serial frontend suite passed 128 files / 1,158 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit cb1e3e6a3 exposes aria-pressed state for the TC-owned Drawing Toolbar popup tools while preserving the existing single-tool selection, keyboard menu navigation, popup dismissal, and visual styling. Focused DrawingToolbar accessibility coverage passed 1/1; full frontend Vitest passed 128 files / 1,158 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. The scope guard also identified and the plan now records the pre-existing TC-owned DrawingToolbar path in the allowlist. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 39c14c38c gives the Chart Panel's single-choice symbol-link menu explicit menuitemradio semantics and aria-checked state for None and each link group while preserving the default Blue selection, link updates, dismissal behavior, and visual layout. Focused ChartPanel lifecycle coverage passed 4/4; full frontend Vitest passed 127 files / 1,157 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 31da94261 makes TC-owned chart membership entries keyboard-operable: watchlist and active-screener rows now expose button semantics, stable accessible names, and Enter/Space activation while preserving existing click navigation, focus requests, row content, and styling. Focused IndicatorPanel coverage passed 1/1; full frontend Vitest passed 127 files / 1,157 tests; frontend type-check and production build passed with the existing large-chunk warning; the TC scope guard, scope self-tests, workstream validation, and git diff --check passed. The scope guard also revealed and the plan now records the pre-existing TC-owned AlertForm path in the allowlist. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
