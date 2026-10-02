@@ -3,7 +3,7 @@
 ## 2026-10-02 Exact-head full safety preflight
 
 - The full manifest was re-run at source
-  `32f311524eefd9ef91d238950a5127d1d2bb2e0d` after the Kraken focused audit.
+  `1638244d8c6c6135e6527a56dd61b42ce38b4b2d` after the Kraken focused audit.
   It stopped before transport with `0/0` cases and zero provider requests.
 - The receipt records the remaining provider-specific active-baseline and
   byte/cost gaps, legal/venue controls, unresolved capability cases, complete

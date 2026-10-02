@@ -3,7 +3,7 @@
 ### 2026-10-02 — Exact-head full safety preflight
 
 - [x] The full manifest was re-run after the Kraken admission audit at source
-      `32f311524eefd9ef91d238950a5127d1d2bb2e0d`. It stopped before transport
+      `1638244d8c6c6135e6527a56dd61b42ce38b4b2d`. It stopped before transport
       with `0/0` cases and zero provider requests.
 - [ ] Remaining blockers are provider-specific active baselines or byte/cost
       contracts (including Kraken, SEC, FINRA, CoinGecko, Coinbase, EODHD,
