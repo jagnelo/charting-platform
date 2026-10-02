@@ -125,7 +125,7 @@
   "head": "aede5e8fda77939fe82a89e5b5b97210655d92b3",
   "implementation_sha": "8a54cf80ebfcaa5ad6304a0069880f2424b711e2",
   "last_checkpoint": "2026-10-02T11:21:38.515870+00:00",
-  "last_human_progress_update": "2026-10-02T11:20:27.965675+00:00",
+  "last_human_progress_update": "2026-10-02T13:29:26.891770+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -142,11 +142,11 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "Current refreshed audit: origin/staging 8b885a2ffd9c; market-data 1b51877881ce, ETF 52814f95bd0e, and TC2000 63d64bfe95c9 are not staged ancestors. Stable Nautilus v2/conformance, host canonical-event/account/engine evidence, shared migration reconciliation, and full repository integration remain open.",
-    "current_phase": "strategy-lab-v2-backtest-forward-worker-compose-boundaries-awaiting-authoritative-gates",
-    "next_action": "Keep both local worker services opt-in and fail-closed; after stable Nautilus v2 and approved dependency promotion reach staging, run exact-tip conformance and line-level shared-path reconciliation.",
+    "current_blocker": "RC compatibility execution is now unblocked by an exact isolated pin; authoritative publication/live shadow remain gated by stable Nautilus conformance, host canonical-event/account/engine evidence, staging promotion and shared-path reconciliation, and the repository-wide formatter baseline",
+    "current_phase": "strategy-lab-v2-nautilus-rc-compatibility-track-awaiting-authoritative-gates",
+    "next_action": "Build and validate the isolated 2.0.0rc5 runtime adapter and compatibility evidence; keep stable-only publication and all cross-worktree integration fail-closed",
     "total": 18,
-    "updated_at": "2026-10-02T11:20:27.965658+00:00"
+    "updated_at": "2026-10-02T13:29:26.891753+00:00"
   },
   "remote": "aede5e8fda77939fe82a89e5b5b97210655d92b3",
   "remote_sha": "8a54cf80ebfcaa5ad6304a0069880f2424b711e2",
