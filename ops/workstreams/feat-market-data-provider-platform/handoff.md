@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-source bounded live provider coverage after rotation
+
+- At exact source `3b2238d00`, the bounded manifest-driven live matrix passed
+  Alpaca `7/7` (8 requests), Binance `3/3` (7), OpenFIGI `3/3` (3), Nasdaq
+  Trader `1/1` (2), MarketData.app account usage `1/1` (1), EODHD account
+  usage `1/1` (1), Twelve Data account usage `1/1` (1), and the explicitly
+  authorized non-persisting Dinari Sandbox canary `1/1` (14).
+- Receipts are redacted and persisted in the durable validation ledger. No
+  secrets or provider payloads entered Git; the Dinari Sandbox payloads stayed
+  outside canonical, usage, alert, and analytics persistence.
+- This is bounded current-source evidence only. Providers whose active usage
+  baseline, cost/byte/reset contract, legal/source admission, or capability
+  evidence remains unresolved stayed fail-closed; no live skip is counted as a
+  pass.
+
 ## 2026-10-02 exact-current provider safety preflight after rotation
 
 - At exact pushed source `efffd8381`, the full provider manifest completed the

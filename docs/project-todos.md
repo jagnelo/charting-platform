@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-source bounded live provider coverage after rotation
+
+- [x] At exact source `3b2238d00`, bounded manifest-driven live coverage passed:
+      Alpaca `7/7` (8 requests), Binance `3/3` (7), OpenFIGI `3/3` (3),
+      Nasdaq Trader `1/1` (2), MarketData.app account usage `1/1` (1), EODHD
+      account usage `1/1` (1), Twelve Data account usage `1/1` (1), and the
+      explicitly authorized non-persisting Dinari Sandbox canary `1/1` (14).
+- [x] All receipts are redacted, serialized into the durable validation ledger,
+      and remain scoped to the current source; no provider payloads or secrets
+      were written to Git. Dinari Sandbox data remained outside canonical,
+      usage, alert, and analytics persistence.
+- [ ] Providers with unknown active baselines, unresolved cost/byte/reset or
+      legal/source controls, deferred capabilities, and the final shadow phase
+      remain fail-closed and were not represented as live passes.
+
 ### 2026-10-02 — Exact-current provider safety preflight after rotation
 
 - [x] At exact pushed source `efffd8381`, the full manifest completed its

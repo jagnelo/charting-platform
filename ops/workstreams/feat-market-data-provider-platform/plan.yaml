@@ -162,6 +162,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact source 3b2238d00 bounded manifest-driven live coverage
+    passed Alpaca 7/7 (8 requests), Binance 3/3 (7), OpenFIGI 3/3 (3), Nasdaq
+    Trader 1/1 (2), MarketData.app account usage 1/1 (1), EODHD account usage
+    1/1 (1), Twelve Data account usage 1/1 (1), and the explicitly authorized
+    non-persisting Dinari Sandbox canary 1/1 (14). Redacted receipts are in
+    validation.jsonl; no secrets or payloads were committed and Dinari Sandbox
+    data stayed outside canonical persistence. Other providers remain
+    fail-closed where active baselines, cost/byte/reset, legal/source, or
+    capability evidence is unresolved.
+  - >-
     2026-10-02 exact pushed source efffd8381 completed the provider safety
     preflight's durable-ledger admission path and stopped before provider
     transport with 0/0 cases and zero external requests. The redacted receipt
