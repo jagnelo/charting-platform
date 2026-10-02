@@ -39,21 +39,18 @@
       <Transition name="slide">
         <div class="section-content" v-if="watchlistsOpen" :id="`${sectionIdPrefix}-watchlists`">
           <div class="section-body">
-            <div
+            <button
               v-for="wl in membership!.watchlists"
               :key="wl.id"
               class="list-row membership-row"
-              role="button"
-              tabindex="0"
+              type="button"
               :aria-label="`Open watchlist ${wl.name}`"
               @click="onWatchlistClick(wl.id)"
-              @keydown.enter.prevent="onWatchlistClick(wl.id)"
-              @keydown.space.prevent="onWatchlistClick(wl.id)"
             >
               <WorkstationGlyph kind="list" />
               <span class="row-name">{{ wl.name }}</span>
               <span v-if="wl.is_managed" class="mem-badge">managed</span>
-            </div>
+            </button>
             <div v-if="!membership!.watchlists.length" class="empty-hint">Not in any watchlist</div>
           </div>
         </div>
@@ -76,20 +73,17 @@
       <Transition name="slide">
         <div class="section-content" v-if="screenersOpen" :id="`${sectionIdPrefix}-screeners`">
           <div class="section-body">
-            <div
+            <button
               v-for="sc in activeScreeners"
               :key="sc.id"
               class="list-row membership-row"
-              role="button"
-              tabindex="0"
+              type="button"
               :aria-label="`Open screener ${sc.name}`"
               @click="onScreenerClick(sc.id)"
-              @keydown.enter.prevent="onScreenerClick(sc.id)"
-              @keydown.space.prevent="onScreenerClick(sc.id)"
             >
               <WorkstationGlyph kind="scan" />
               <span class="row-name">{{ sc.name }}</span>
-            </div>
+            </button>
             <div v-if="!activeScreeners.length" class="empty-hint">No active screener matches</div>
           </div>
         </div>
@@ -1431,8 +1425,14 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
   display: flex;
   align-items: center;
   gap: 4px;
+  width: 100%;
   padding: 4px 8px;
   cursor: pointer;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
   transition: background 0.1s;
 }
 .list-row:hover { background: #1a1a1a; }

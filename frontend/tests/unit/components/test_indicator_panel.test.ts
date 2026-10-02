@@ -71,15 +71,17 @@ describe('IndicatorPanel section disclosures', () => {
 
     expect(api.get).toHaveBeenCalledWith('/instruments/7/membership')
     const watchlistRow = wrapper.get('.membership-row[aria-label="Open watchlist Core"]')
-    expect(watchlistRow.attributes('role')).toBe('button')
-    expect(watchlistRow.attributes('tabindex')).toBe('0')
-    await watchlistRow.trigger('keydown', { key: 'Enter' })
+    expect(watchlistRow.element.tagName).toBe('BUTTON')
+    expect(watchlistRow.attributes('type')).toBe('button')
+    expect(watchlistRow.attributes('role')).toBeUndefined()
+    await watchlistRow.trigger('click')
     expect(useWatchlistStore().focusRequest).toBe(1)
 
     const screenerRow = wrapper.get('.membership-row[aria-label="Open screener Momentum"]')
-    expect(screenerRow.attributes('role')).toBe('button')
-    expect(screenerRow.attributes('tabindex')).toBe('0')
-    await screenerRow.trigger('keydown', { key: ' ' })
+    expect(screenerRow.element.tagName).toBe('BUTTON')
+    expect(screenerRow.attributes('type')).toBe('button')
+    expect(screenerRow.attributes('role')).toBeUndefined()
+    await screenerRow.trigger('click')
     expect(routerPush).toHaveBeenCalledWith('/screener?selectedId=2')
 
     const headers = wrapper.findAll('.section-header')
