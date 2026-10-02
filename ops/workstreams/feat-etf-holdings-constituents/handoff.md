@@ -5726,6 +5726,25 @@ fallback-only. Focused validation passed 676 capability/adapter tests, Ruff,
 workstream validation, and diff-check. AC10 remains deferred because the
 shared provider-platform `ETF_HOLDINGS` capability is not yet in staging.
 
+## Discipline Funds route recheck — 2026-10-02
+
+Bounded application-equivalent requests to the official DDV, DDX, and DDXX data
+pages all returned HTTP 403 Cloudflare HTML. No current holdings rows, stable
+complete export, or independently callable endpoint was retrieved. Discipline
+Funds remains `non_executable_public_source`; no browser pagination, SEC
+reconstruction, parser promotion, or paid route was used.
+
+## First Manhattan route recheck — 2026-10-02
+
+Current indexed first-party material still identifies FMCX and FMCE as active
+products, while the FMCX page states that assets are not made public daily and
+are disclosed sixty days after quarter-end. The declared download route remains
+a prospectus PDF rather than a holdings export. Direct application-equivalent
+requests from this worker failed DNS resolution for `fmexcelsioretfs.com`, so no
+executable rows were retrieved. First Manhattan remains
+`non_executable_public_source`; no SEC reconstruction or native promotion was
+made.
+
 ## Arin/ATTR route recheck — 2026-10-02
 
 Current indexed Arin material exposes a complete 26-row ATTR holdings table
@@ -5750,3 +5769,13 @@ reconstruction, parser promotion, or paid route was used.
 The runtime capability audit, symbol ledger, and provider ledger now carry the
 2026-10-02 AAM evidence references. Focused validation is being rerun for this
 evidence-only checkpoint.
+
+## Highland AQLG route recheck — 2026-10-02
+
+Current indexed Highland first-party material identifies AQLG, reports holdings
+as of 2026-09-30, and exposes only a top-ten table plus a Current Holdings link.
+The linked CSV was unavailable from the web cache, and direct
+application-equivalent requests failed DNS resolution for `www.highlandcap.com`.
+No complete ticker-bearing executable artifact was retrieved. Highland remains
+`non_executable_public_source`; no CUSIP reconstruction, SEC promotion, or paid
+route was used.

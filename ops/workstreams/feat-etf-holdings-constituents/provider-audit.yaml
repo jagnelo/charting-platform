@@ -1550,7 +1550,7 @@ providers:
     starting_status: issuer_access_blocked
     current_status: inactive_or_successor_disposition
     disposition: inactive_or_successor_disposition
-    last_checked: 2026-09-07
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_adfi_product_page_declared_complete_holdings_csv
     representative_symbols: [ADFI]
     estimated_us_etf_count: null
@@ -2450,7 +2450,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: native_promoted
     disposition: native_promoted
-    last_checked: 2026-09-02
+    last_checked: 2026-10-02
     source_access_declared: ars_issuer_product_page_complete_holdings_table
     representative_symbols:
       - ACEP
@@ -3414,7 +3414,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-25
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
@@ -3440,6 +3440,7 @@ providers:
       - "live:discipline-funds-incomplete-holdings-route-2026-09-02"
       - "web:discipline-funds-current-ddv-ddx-ddxx-pages-2026-09-25"
       - "web:discipline-funds-current-holdings-pagination-2026-09-25"
+      - "live:discipline-funds-data-pages-2026-10-02-403-cloudflare"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -3461,6 +3462,10 @@ providers:
         source: "https://disciplinefunds.com/ddx-data/; https://disciplinefunds.com/ddxx-data/"
         result: "The current DDX and DDXX pages expose ten total table entries through the rendered pagination and current dates, but this browser evidence does not establish a stable machine-readable complete route for the adapter; no native promotion is made from rendered HTML alone."
         evidence_ref: "web:discipline-funds-current-holdings-pagination-2026-09-25"
+      - date: 2026-10-02
+        source: "https://disciplinefunds.com/ddv-data/; https://disciplinefunds.com/ddx-data/; https://disciplinefunds.com/ddxx-data/"
+        result: "Bounded application-equivalent requests to all three official data pages returned HTTP 403 Cloudflare HTML; no current holdings rows, stable export, or independently callable complete endpoint was retrieved."
+        evidence_ref: "live:discipline-funds-data-pages-2026-10-02-403-cloudflare"
     disposition_reason: "discipline_funds: Current DDV/DDX/DDXX pages now expose dated holdings views, but only through rendered paginated tables with no captured stable executable export or independently callable complete endpoint. The provider remains fallback-only and is not promoted from browser-rendered or potentially paginated evidence."
     next_action: "discipline_funds: Re-test only after the issuer exposes a stable complete holdings export or a reproducible public data endpoint; then prove DDV/DDX/DDXX identity, current date, all rows, parser fixture, and bounded live coverage before native promotion."
     implementation_sha: null
@@ -4069,6 +4074,8 @@ providers:
       - "web:first-manhattan-daily-holdings-disclosure-2026-09-02"
       - "web:first-manhattan-fmcx-prospectus-2026-09-02"
       - "live:first-manhattan-route-recheck-2026-09-07-non-executable"
+      - "web:first-manhattan-official-route-recheck-2026-10-02"
+      - "live:first-manhattan-route-recheck-2026-10-02-dns-failure"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -4090,6 +4097,10 @@ providers:
         source: "https://fmexcelsioretfs.com/, https://fmexcelsioretfs.com/fmcx/, https://fmexcelsioretfs.com/fmce/, and https://fmexcelsioretfs.com/download/1827/?tmstv=1751928122"
         result: "Fresh bounded retrieval reached the official catalogue and both product routes with HTTP 200 HTML, but the responses contained access-denied/CAPTCHA challenge markers; the declared download route returned a PDF prospectus rather than a holdings export. No complete current executable artifact was retrieved, so the existing non-transparent quarterly/sixty-day boundary remains unchanged."
         evidence_ref: "live:first-manhattan-route-recheck-2026-09-07-non-executable"
+      - date: 2026-10-02
+        source: "https://fmexcelsioretfs.com/; https://fmexcelsioretfs.com/fmcx/; https://fmexcelsioretfs.com/fmce/; https://fmexcelsioretfs.com/download/1827/?tmstv=1751928122"
+        result: "The official catalogue and FMCX/FMCE pages remain reachable in indexed first-party material and continue to identify the two ETFs; FMCX states that unlike traditional ETFs it does not make assets public daily and discloses them sixty days after quarter-end. The declared download remains a prospectus PDF, not a complete current holdings export. Direct application-equivalent curl attempts from this worker failed DNS resolution for fmexcelsioretfs.com, so no executable rows were retrieved."
+        evidence_ref: "web:first-manhattan-official-route-recheck-2026-10-02"
     disposition_reason: "first_manhattan: First Manhattan's official FMCX and FMCE pages identify two active U.S. ETFs but explicitly withhold daily holdings, providing positions only sixty days after each quarter-end. No complete current first-party holdings artifact or executable route is available for native ingestion, so this provider remains fallback-only as a non-executable public source."
     next_action: "first_manhattan: Re-test only if First Manhattan publishes a complete executable current holdings artifact (preferably daily) for FMCX and FMCE; then prove symbol mapping, current-date provenance, parser fixtures, and bounded live coverage before any native promotion."
     implementation_sha: null
@@ -4772,6 +4783,8 @@ providers:
       - "runtime:FALLBACK_ISSUER_AUDITS.highland_capital"
       - "runtime:ISSUER_ADAPTER_CONFIGS.highland_capital"
       - "live:highland-aqlg-page-and-csv-2026-09-07-non-executable"
+      - "web:highland-aqlg-current-page-2026-10-02"
+      - "live:highland-aqlg-route-recheck-2026-10-02-dns-cache-miss"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -4789,6 +4802,10 @@ providers:
         source: "https://www.highlandcap.com/etf/ and https://www.highlandcap.com/wp-content/uploads/etf-holdings/AQLG_holdings_current.csv"
         result: "Fresh retrieval returned the official AQLG page and its 130-row CSV. The page identifies AQLG and reports holdings as of 2026-08-25; the CSV contains names, CUSIPs, quantities, and weights but leaves every Ticker field blank. The artifact remains materially complete but cannot satisfy canonical symbol mapping without an issuer-declared mapping, so no native promotion is made."
         evidence_ref: "live:highland-aqlg-page-and-csv-2026-09-07-non-executable"
+      - date: 2026-10-02
+        source: "https://www.highlandcap.com/etf/ and https://www.highlandcap.com/wp-content/uploads/etf-holdings/AQLG_holdings_current.csv"
+        result: "Current indexed first-party material identifies AQLG, reports holdings as of 2026-09-30, and exposes only a top-ten table plus a Current Holdings link. The linked CSV could not be fetched from the web cache, while direct application-equivalent requests failed DNS resolution for www.highlandcap.com; no complete ticker-bearing executable artifact was retrieved. The provider remains non_executable_public_source."
+        evidence_ref: "web:highland-aqlg-current-page-2026-10-02"
     disposition_reason: "highland_capital: Highland's issuer-owned AQLG CSV is reachable and materially complete but omits all ticker symbols, while the second prospectus fund has no assigned ticker/current holdings route. Without provider-published symbol mapping, the artifact cannot satisfy the native constituent contract; it remains a dated non_executable_public_source rather than being reconstructed through SEC or third-party CUSIP lookups."
     next_action: "highland_capital: Re-test the official AQLG/AQLV pages for a ticker-bearing complete export or an issuer-declared mapping; promote only after symbol mapping, current-date semantics, parser fixtures, and bounded live evidence are all proven."
     implementation_sha: null
