@@ -6809,3 +6809,37 @@ real-capital control.
 Next: extend the RC5 conformance matrix and mixed quote/trade/bar catalog probes,
 preserving the same isolated, non-authoritative status until the full suite
 passes.
+
+## 2026-10-02 - Backtest authority separated from forward parity
+
+The execution gate now has an explicit `BACKTEST_AUTHORITATIVE` scope. It
+requires multi-instrument accounting, native order/fill/cost, deterministic
+replay, and lifecycle checks, exact isolated v2 pin validation, authorization,
+and a sandbox image digest matching the pinned image. It does not wait for
+`FORWARD_EVENT_TAPE_PARITY`; `FULL` and `FORWARD_COMPATIBILITY` still require
+all checks. Development builds remain ineligible, and release candidates remain
+local-only with no broker connection or real-capital control.
+
+The planner now recomputes the conformance report from its evidence before
+accepting it, preventing a caller-supplied report from overstating passed
+checks. Regression coverage verifies that a parsed RC5 four-check receipt may
+feed the backtest-authoritative scope while the global full-suite report remains
+incomplete, that a missing simulator check still rejects, that forward scope
+still requires parity, and that a forged report is rejected. This changes only
+the scope policy; runtime execution evidence remains non-authoritative until the
+actual simulator conformance and publication gates pass.
+
+Validation at source commit `881a77e3d4800c2c34ddec2598003fde6eaea7e8`:
+1,112 Strategy Lab v2 tests passed; Ruff passed; both changed Python files
+passed format checks; MyPy passed across 327 source files; and `git diff --check`
+passed. The source commit is pushed to `origin/feat/strategy-lab-v2`.
+
+No external release or workstream dependency blocks continued implementation.
+The remaining engine gate is evidence quality: the current image fixture proves
+multi-instrument replay and order/account changes but does not yet inspect native
+fills, explicit commission/slippage models, and reports with enough detail for
+the accepted four-check suite. Forward parity remains a separate forward-only
+gate; provider-platform, ETF, and TC2000 contracts remain staging-gated.
+
+Next: strengthen the exact-RC5 native fill/cost/report fixture and bind its
+durable receipt to the backtest authority and result-publication path.
