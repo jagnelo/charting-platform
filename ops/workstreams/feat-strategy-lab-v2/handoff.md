@@ -6064,3 +6064,9 @@ tests. Package-wide validation passed 991 tests, Ruff, MyPy across 305 source
 files, diff validation, and workstream validation. This makes the existing
 RC policy enforceable in result data rather than relying only on runtime
 documentation or the publication gate.
+
+The elevated combined backend gate subsequently passed 2,642 tests with
+83.77% total coverage against the repository's 75% threshold, and the backend
+and RPI Compose configuration contracts rendered successfully. This removes
+the earlier sandbox-only runtime-registry diagnostic from the validation
+picture; it was an execution-environment boundary, not a product failure.
