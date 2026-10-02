@@ -5935,3 +5935,29 @@ application-equivalent retrieval failed DNS resolution for
 retrieved; ETF Architect document links remain periodic artifacts. Suncoast
 remains `issuer_access_blocked` and no indexed table was promoted without
 executable transport proof.
+
+## Towle route recheck — 2026-10-02
+
+The current first-party Towle page identifies the renamed Towle Small-Cap Value
+ETF (TCV) and exposes a complete-looking holdings table dated 2026-10-01.
+Direct application-equivalent requests failed DNS resolution for both
+`towleetfs.com` and `www.towleetfs.com` after the prior Cloudflare HTTP 403
+evidence. Towle remains `issuer_access_blocked`; no indexed table was promoted
+without executable transport proof.
+
+## Tweedy Browne route recheck — 2026-10-02
+
+The current Tweedy Browne ETF overview identifies COPY and links the FilePoint
+allocation page. That page still reports Top 10 Equity Holdings as TBD and
+exposes only the stale COPY Holdings artifact dated 2024-12-27. Direct
+application-equivalent requests failed DNS resolution for both declared hosts.
+Tweedy Browne remains `non_executable_public_source`.
+
+## F/m US Benchmark Series route recheck — 2026-10-02
+
+Current F/m pages identify the ten US Benchmark Series ETFs and TBIL metadata,
+but the rendered holdings section contains headers without rows or an as-of
+value. Direct application-equivalent requests failed DNS resolution for
+`www.fminvest.com`. Existing executable API coverage remains owned by the
+separately tracked `fm_investments` identity; no duplicate native ownership or
+periodic-document promotion was made.
