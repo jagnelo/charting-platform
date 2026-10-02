@@ -52,6 +52,28 @@ def test_payload_capture_is_explicit_and_keeps_body_without_headers():
     assert measurement.as_dict()["response_payloads"] == measurement.response_payloads
 
 
+def test_payload_capture_does_not_mask_unread_streaming_response():
+    class _UnreadStream:
+        headers = {}
+
+        @staticmethod
+        def json():
+            raise RuntimeError("response body has not been read")
+
+        @property
+        def text(self):
+            raise RuntimeError("response body has not been read")
+
+    measurement, token = activate(capture_response_payloads=True)
+    try:
+        observe_response(_UnreadStream())
+    finally:
+        deactivate(token)
+
+    assert measurement.http_requests == 1
+    assert measurement.response_payloads == []
+
+
 def test_streaming_observation_accepts_explicit_measured_bytes_without_materializing_content():
     response = MagicMock()
     response.headers = {"record-total": "2"}

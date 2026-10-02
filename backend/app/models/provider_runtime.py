@@ -282,6 +282,10 @@ class ProviderRequestLog(Base, TimestampMixin):
     http_requests: Mapped[int | None] = mapped_column(Integer, nullable=True)
     response_bytes: Mapped[int | None] = mapped_column(BIGINT, nullable=True)
     response_headers: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    # Immutable ordered response-body evidence. Normalized projections remain
+    # convenient query surfaces, but this prevents adapter normalization from
+    # silently discarding fields that may become relevant later.
+    response_payloads: Mapped[list | None] = mapped_column(JSON, nullable=True)
     response_items: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

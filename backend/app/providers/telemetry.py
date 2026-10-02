@@ -91,11 +91,17 @@ class ProviderTransportMeasurement:
         if self.capture_response_payloads:
             try:
                 payload = response.json()
-            except (AttributeError, TypeError, ValueError):
+            except Exception:  # noqa: BLE001 - telemetry must never mask transport handling.
                 # The latest-price persistence path is JSON-first, but a
                 # provider may legitimately return text. Keep that body too
-                # rather than silently dropping the response.
-                payload = getattr(response, "text", None)
+                # rather than silently dropping the response. Streaming
+                # responses can legitimately reject both accessors until the
+                # adapter has consumed the body; telemetry must not turn that
+                # transport fact into a provider failure.
+                try:
+                    payload = getattr(response, "text", None)
+                except Exception:  # noqa: BLE001 - see the outer telemetry guard.
+                    payload = None
             if payload is not None:
                 self.response_payloads.append(payload)
 

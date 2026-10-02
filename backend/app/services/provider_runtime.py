@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+import json
 import logging
 import random
 import time
@@ -324,6 +325,31 @@ def _positive_integer_cost(value: Any) -> int | None:
     if not parsed.is_finite() or parsed <= 0 or parsed != parsed.to_integral_value():
         return None
     return int(parsed)
+
+
+def _json_safe_response_payload(value: Any) -> Any:
+    """Copy a decoded provider body into JSON-column-safe values."""
+
+    if value is None or isinstance(value, str | int | float | bool):
+        return value
+    if isinstance(value, dict):
+        return {str(key): _json_safe_response_payload(item) for key, item in value.items()}
+    if isinstance(value, list | tuple | set):
+        return [_json_safe_response_payload(item) for item in value]
+    try:
+        json.dumps(value)
+    except (TypeError, ValueError, OverflowError):
+        return str(value)
+    return value
+
+
+def _persist_response_payloads(log_row: ProviderRequestLog, payloads: list[Any]) -> None:
+    """Attach all ordered response bodies to the immutable request log."""
+
+    if payloads:
+        log_row.response_payloads = [
+            _json_safe_response_payload(payload) for payload in payloads
+        ]
 
 
 def _nonnegative_integer(value: Any) -> int | None:
@@ -2203,7 +2229,7 @@ async def execute_provider_call(
     invoke: Callable[[Any, str | None], T],
     response_items: Callable[[T], int | None] | None = None,
     treat_empty_as_failure: bool = False,
-    capture_response_payloads: bool = False,
+    capture_response_payloads: bool = True,
 ) -> ProviderExecutionResult:
     chain = await resolve_provider_chain(
         db,
@@ -2428,6 +2454,7 @@ async def execute_provider_call(
             log_row.http_requests = measurement.http_requests
             log_row.response_bytes = measurement.response_bytes
             log_row.response_headers = dict(measurement.response_headers)
+            _persist_response_payloads(log_row, measurement.response_payloads)
             await _settle_coordinator_best_effort(
                 coordinator_reservation,
                 policy=resolved.policy,
@@ -2489,6 +2516,7 @@ async def execute_provider_call(
             log_row.http_requests = measurement.http_requests
             log_row.response_bytes = measurement.response_bytes
             log_row.response_headers = dict(measurement.response_headers)
+            _persist_response_payloads(log_row, measurement.response_payloads)
             await _settle_coordinator_best_effort(
                 coordinator_reservation,
                 policy=resolved.policy,

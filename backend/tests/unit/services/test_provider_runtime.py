@@ -242,6 +242,7 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
             (),
             {
                 "content": b"measured-response",
+                "json": lambda _self: {"price": "123.45", "provider_field": "retained"},
                 "headers": {
                     "x-ratelimit-remaining": "9",
                     "api-credits-used": "3",
@@ -266,6 +267,7 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
         "api-credits-used": "3",
         "api-credits-left": "5",
     }
+    assert row.response_payloads == [{"price": "123.45", "provider_field": "retained"}]
     windows = {
         item.dimension: item for item in db.execute(select(ProviderQuotaWindow)).scalars().all()
     }
