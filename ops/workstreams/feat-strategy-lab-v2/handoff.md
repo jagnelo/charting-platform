@@ -5836,3 +5836,14 @@ is intentionally unable to claim authoritative activation without that
 evidence. The remaining runtime-specific dependency is an explicitly
 configured host callback factory that resolves admitted canonical events and
 account/engine semantics; an empty Compose value fails closed by design.
+
+## 2026-10-02 - Forward worker configuration isolation hardening
+
+The forward Compose service now uses the namespaced
+`STRATEGY_LAB_V2_FORWARD_DATABASE_URL_SYNC` variable rather than inheriting
+the generic worker database key, and its contract test asserts that the
+forward service has no Docker socket. Namespaced configuration keeps the
+forward boundary explicit and the absence of a Docker socket prevents a
+forward-event worker from acquiring backtest sandbox authority. Focused
+entrypoint/Compose coverage passes 5 tests and `make test-compose-contract`
+passes.

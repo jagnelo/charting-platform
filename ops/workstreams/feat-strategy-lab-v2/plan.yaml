@@ -763,7 +763,8 @@ progress:
     - strategy-lab-v2-forward-warmup-api
     - strategy-lab-v2-forward-lifecycle-api
     - strategy-lab-v2-forward-replay-observability
+    - strategy-lab-v2-forward-worker-compose-boundary-hardening
   total: 18
-  current_phase: strategy-lab-v2-forward-replay-observability-staging-ready-for-human-review
-  current_blocker: Stable Nautilus release, deployment-specific host evidence configuration, migration/schema reconciliation, upstream contract reconciliation, and full repository integration remain open
-  next_action: reconcile shared worker/database paths and bind host event resolution to admitted canonical events only after provider authorization and stable Nautilus v2 conformance
+  current_phase: strategy-lab-v2-forward-worker-compose-boundary-hardening-awaiting-authoritative-gates
+  current_blocker: Stable Nautilus v2 release/conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration remain open
+  next_action: keep the forward worker opt-in and fail-closed; once stable Nautilus v2 and approved staging promotion exist, run exact-tip conformance and line-level shared-path reconciliation

@@ -47,6 +47,7 @@ def test_forward_config_reads_namespaced_environment_and_requires_callback_at_ru
         {
             "REDIS_URL": "redis://legacy:6379/0",
             "DATABASE_URL_SYNC": "postgresql+psycopg2://legacy/chartingdb",
+            "STRATEGY_LAB_V2_FORWARD_DATABASE_URL_SYNC": "postgresql+psycopg2://forward/chartingdb",
             "STRATEGY_LAB_V2_FORWARD_CALLBACK_FACTORY": "callbacks:create",
             "STRATEGY_LAB_V2_FORWARD_QUEUE": "forward-test",
             "STRATEGY_LAB_V2_FORWARD_BATCH_SIZE": "3",
@@ -55,7 +56,7 @@ def test_forward_config_reads_namespaced_environment_and_requires_callback_at_ru
     )
 
     assert config.redis_url == "redis://legacy:6379/0"
-    assert config.database_url_sync.startswith("postgresql+")
+    assert config.database_url_sync == "postgresql+psycopg2://forward/chartingdb"
     assert config.callback_factory == "callbacks:create"
     assert config.queue_name == "forward-test"
     assert config.batch_size == 3
