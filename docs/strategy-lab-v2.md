@@ -513,6 +513,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   the installed package version, imports the v2 backtest bindings, constructs
   and disposes a `BacktestEngine`, and emits only structured lifecycle evidence;
   it cannot acquire data or publish results.
+- `NautilusRuntimeProbeEvidence` strictly parses that probe output against the
+  immutable runtime/image digest and Python/package declaration. It is a
+  compatibility receipt only and cannot authorize publication or live shadow.
 - `result_publication.py` composes conformance, runtime isolation, and exact
   result-artifact integrity into a storage-neutral publish plan. Only a stable
   authoritative build with matching evidence can publish; already-published

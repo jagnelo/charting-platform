@@ -5927,3 +5927,10 @@ capabilities dropped, `no-new-privileges`, and bounded tmpfs mounts; it emitted
 `engine_lifecycle=passed` for Python 3.12.4 / Nautilus `2.0.0rc5`. This proves
 isolated RC compatibility only; it does not grant authoritative publication or
 live-shadow status.
+
+The probe receipt is now parsed by `NautilusRuntimeProbeEvidence`, which binds
+the exact package/Python fields and image digest back to the immutable runtime
+fingerprint and rejects extra fields, version drift, failed lifecycle output,
+or any attempt to treat the RC receipt as authoritative. The focused runtime,
+probe, and fixture suite passes 16 tests with Ruff, MyPy, and diff validation
+green.

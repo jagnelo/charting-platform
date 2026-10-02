@@ -10,7 +10,9 @@ resolved/builds those artifacts.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.conformance import (
@@ -92,4 +94,80 @@ class NautilusRcCompatibilityRuntime:
         return content_digest(self)
 
 
-__all__ = ["NautilusRcCompatibilityRuntime"]
+@dataclass(frozen=True, slots=True)
+class NautilusRuntimeProbeEvidence:
+    """Typed, non-authoritative receipt emitted by the isolated image probe."""
+
+    runtime_fingerprint: str
+    runtime_image_digest: str
+    package_version: str
+    python_version: str
+    platform: str
+    implementation: str
+    engine_lifecycle: str
+
+    def __post_init__(self) -> None:
+        for name in ("runtime_fingerprint", "runtime_image_digest"):
+            require_sha256_digest(getattr(self, name), field_name=name)
+        for name in (
+            "package_version",
+            "python_version",
+            "platform",
+            "implementation",
+        ):
+            _nonempty(getattr(self, name), name)
+        if self.package_version != NAUTILUS_V2_RC_PACKAGE_VERSION:
+            raise ValueError("probe evidence must target the exact v2 RC package")
+        if self.engine_lifecycle != "passed":
+            raise ValueError("probe evidence requires a passed engine lifecycle")
+
+    @classmethod
+    def from_mapping(
+        cls,
+        payload: Mapping[str, Any],
+        runtime: NautilusRcCompatibilityRuntime,
+    ) -> NautilusRuntimeProbeEvidence:
+        """Parse one strict probe JSON object against its declared runtime."""
+
+        if not isinstance(payload, Mapping):
+            raise TypeError("probe payload must be a mapping")
+        if not isinstance(runtime, NautilusRcCompatibilityRuntime):
+            raise TypeError("runtime must be a NautilusRcCompatibilityRuntime")
+        required = {
+            "engine_lifecycle",
+            "implementation",
+            "nautilus_package_version",
+            "platform",
+            "python_version",
+        }
+        if set(payload) != required:
+            raise ValueError("probe payload fields must match the exact runtime schema")
+        values = {key: payload[key] for key in required}
+        if any(not isinstance(value, str) for value in values.values()):
+            raise TypeError("probe payload fields must be strings")
+        if values["nautilus_package_version"] != runtime.package_version:
+            raise ValueError("probe package version does not match the declared runtime")
+        if values["python_version"] != runtime.python_version:
+            raise ValueError("probe Python version does not match the declared runtime")
+        return cls(
+            runtime_fingerprint=runtime.fingerprint,
+            runtime_image_digest=runtime.runtime_image_digest,
+            package_version=values["nautilus_package_version"],
+            python_version=values["python_version"],
+            platform=values["platform"],
+            implementation=values["implementation"],
+            engine_lifecycle=values["engine_lifecycle"],
+        )
+
+    @property
+    def authoritative(self) -> bool:
+        """RC probe output can never authorize published or live results."""
+
+        return False
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+__all__ = ["NautilusRcCompatibilityRuntime", "NautilusRuntimeProbeEvidence"]

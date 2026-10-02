@@ -13,7 +13,10 @@ from app.strategy_lab_v2.conformance import (
     EngineReleaseChannel,
     evaluate_engine_conformance,
 )
-from app.strategy_lab_v2.nautilus_runtime import NautilusRcCompatibilityRuntime
+from app.strategy_lab_v2.nautilus_runtime import (
+    NautilusRcCompatibilityRuntime,
+    NautilusRuntimeProbeEvidence,
+)
 
 
 def _runtime() -> NautilusRcCompatibilityRuntime:
@@ -65,4 +68,46 @@ def test_rc_runtime_rejects_shared_legacy_environment() -> None:
             python_version="3.12.11",
             rust_version="1.88.0",
             legacy_runtime_isolated=False,
+        )
+
+
+def test_probe_evidence_binds_exact_runtime_and_is_non_authoritative() -> None:
+    runtime = _runtime()
+    evidence = NautilusRuntimeProbeEvidence.from_mapping(
+        {
+            "engine_lifecycle": "passed",
+            "implementation": "cpython",
+            "nautilus_package_version": "2.0.0rc5",
+            "platform": "Linux-x86_64",
+            "python_version": "3.12.11",
+        },
+        runtime,
+    )
+
+    assert evidence.runtime_fingerprint == runtime.fingerprint
+    assert evidence.runtime_image_digest == runtime.runtime_image_digest
+    assert evidence.authoritative is False
+    assert evidence.fingerprint == content_digest(evidence)
+
+
+def test_probe_evidence_rejects_schema_version_and_runtime_mismatches() -> None:
+    runtime = _runtime()
+    payload = {
+        "engine_lifecycle": "passed",
+        "implementation": "cpython",
+        "nautilus_package_version": "2.0.0rc5",
+        "platform": "Linux-x86_64",
+        "python_version": "3.12.11",
+    }
+    with pytest.raises(ValueError, match="exact runtime schema"):
+        NautilusRuntimeProbeEvidence.from_mapping({**payload, "unexpected": "x"}, runtime)
+    with pytest.raises(ValueError, match="package version"):
+        NautilusRuntimeProbeEvidence.from_mapping(
+            {**payload, "nautilus_package_version": "2.0.0rc4"}, runtime
+        )
+    with pytest.raises(ValueError, match="Python version"):
+        NautilusRuntimeProbeEvidence.from_mapping({**payload, "python_version": "3.13.0"}, runtime)
+    with pytest.raises(ValueError, match="lifecycle"):
+        NautilusRuntimeProbeEvidence.from_mapping(
+            {**payload, "engine_lifecycle": "failed"}, runtime
         )
