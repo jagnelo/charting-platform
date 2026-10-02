@@ -2985,6 +2985,15 @@ public-CUSIP requests to both `topTenHoldings` and `fund-info` routes
 export is proven, so no top-ten, factsheet, browser-only, or SEC artifact is
 promoted as current.
 
+## Performance Trust STBF route recheck — 2026-10-02
+
+The current PTAM resources page still links a complete STBF monthly holdings
+PDF, but the issuer artifact is dated August 31, 2026 and is stale for the
+October 2 observation. Direct application-equivalent retrieval failed DNS
+resolution for `ptam.com`, so no newer executable artifact was retrieved. STBF
+remains `non_executable_public_source`; stale holdings were not served as
+current.
+
 ## Parnassus route recheck — 2026-10-02
 
 Current indexed first-party material exposes a PRCS Daily Holdings view with

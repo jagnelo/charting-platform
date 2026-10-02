@@ -6600,7 +6600,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-03
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [STBF]
     estimated_us_etf_count: null
@@ -6624,6 +6624,8 @@ providers:
       - "web:performance-trust-ptam-resources-2026-09-03"
       - "web:performance-trust-current-holdings-pdf-2026-09-03"
       - "live:performance-trust-holdings-pdf-stale-2026-09-03"
+      - "web:performance-trust-current-monthly-pdf-2026-10-02"
+      - "live:performance-trust-route-recheck-2026-10-02-dns-failure"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -6641,6 +6643,10 @@ providers:
         source: "https://s3.amazonaws.com/ptam.com/documents/Fundholdings_stbf_monthly.pdf"
         result: "Backend-equivalent HEAD returned HTTP 200 and application/pdf, confirming access but not current freshness."
         evidence_ref: "live:performance-trust-holdings-pdf-stale-2026-09-03"
+      - date: 2026-10-02
+        source: "https://ptam.com/resources/; https://s3.amazonaws.com/ptam.com/documents/Fundholdings_stbf_monthly.pdf"
+        result: "The current PTAM resources page still links the STBF Monthly Fund Holdings PDF. The issuer PDF is a complete schedule as of August 31, 2026, which is not current enough for the October 2 observation; direct application-equivalent retrieval from this worker failed DNS resolution for ptam.com. No current executable artifact was retrieved."
+        evidence_ref: "web:performance-trust-current-monthly-pdf-2026-10-02"
     disposition_reason: "performance_trust: PT Asset Management publishes a complete STBF holdings PDF, but the latest issuer artifact is dated July 31, 2026 and the object was last modified August 7, 2026. It does not establish a current executable holdings route for September 3, 2026, so the provider remains non_executable_public_source without native promotion or SEC-derived reconstruction."
     next_action: "performance_trust: Recheck the PTAM resources page for a refreshed current STBF artifact; promote only after a current symbol-scoped route and parser/live proof are available."
     implementation_sha: null
