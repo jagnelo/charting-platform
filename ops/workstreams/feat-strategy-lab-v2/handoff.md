@@ -6141,3 +6141,8 @@ Remote refs were refreshed after the forward-parity implementation. `origin/stag
 remains `8b885a2ffd9c`; market-data `f9be6bfdb71d`, ETF `1a256e78d0d1`, and
 TC2000 `63d64bfe95c9` are still not staging ancestors. No shared-path
 reconciliation is admissible yet, and no parallel worktree was changed.
+
+The official Nautilus release list was also rechecked on 2026-10-02: the 2.x
+line still exposes `2.0.0rc5` as a pre-release and no stable 2.x release. The
+RC compatibility track therefore remains the correct local path; stable release
+authority is still fail-closed rather than inferred.
