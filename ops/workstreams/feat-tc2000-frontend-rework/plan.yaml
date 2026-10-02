@@ -35,8 +35,8 @@ current_blocker: >-
   standard parallel frontend gate remains host-timing-sensitive on the
   unrelated 100k-point uPlot benchmark; serial coverage passes 1,160/1,160.
   Provider-platform and ETF consumer integration remains a sequencing gate
-  until both upstream branches reach staging. On the resumed 2026-10-01 audit,
-  provider is at `5f6b1ede`, ETF is at `88664a14`, and staging remains
+  until both upstream branches reach staging. On the current 2026-10-02 audit,
+  provider is at `089de9e8`, ETF is at `6589fe2f`, and staging remains
   `8b885a2f`; neither dependency is an ancestor of staging. Shared-path reconciliation and
   the final post-staging exact gate remain pending. Origin synchronization
   remains a separate operational hold under the recorded private-origin
@@ -276,7 +276,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_strategy_run_selection_checkpointed
+  current_phase: R6_watchlist_sort_state_checkpointed
   next_action: >-
     Verify the protected visual mismatch against the expected seeded baseline
     in a matching browser/font environment without changing snapshots or visual
@@ -298,6 +298,7 @@ progress:
     remains a separate operational hold under the recorded private-origin
     safeguard.
 historical_implementation_records:
+  - "Product commit 5b4334529 gives TC-owned Virtual Watchlist sortable column controls state-aware accessible labels and aria-pressed values, including ascending/descending direction, while preserving sorting and row-selection behavior. Focused VirtualWatchlistTool coverage passed 75/75; the full serial frontend suite passed 128 files / 1,160 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 76aa0e1c0 exposes selected-state semantics for TC-owned Strategy Lab run-history batches and individual runs through aria-pressed, preserving the intentional no-preselection default and existing selection behavior. Focused Strategy Lab coverage passed 39/39; the full serial frontend suite passed 128 files / 1,160 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 868ed49a4 gives the TC-owned Python Library New/Close new control an explicit aria-expanded state and stable aria-controls relationship to the create form, preserving the existing create workflow and layout. Focused Code Library coverage passed 11/11; the full serial frontend suite passed 128 files / 1,159 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit a57993e7d gives the TC-owned Python Code Library archive/unarchive action a stable accessible name and aria-pressed state while preserving the immutable asset lifecycle and existing archive mutation API. Focused Code Library coverage passed 11/11; the full serial frontend suite passed 128 files / 1,159 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."

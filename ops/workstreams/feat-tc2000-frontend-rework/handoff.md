@@ -1,5 +1,24 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — R6 Watchlist sort-state semantics
+
+Product commit `5b4334529` gives TC-owned Virtual Watchlist sortable column
+controls state-aware accessible labels and `aria-pressed` values, including
+ascending/descending direction, while preserving sorting and row-selection
+behavior.
+
+Focused VirtualWatchlistTool coverage passed `75/75`; the full serial
+frontend suite passed `128/128` files and `1,160/1,160` tests; `vue-tsc` and
+the production build passed with the existing large-chunk warning; TC scope
+validation, scope self-tests, workstream validation, and `git diff --check`
+passed. No provider-platform, ETF, visual baseline, threshold, mask, skip,
+fallback, or acceptance policy changed. No other worktree was mutated.
+
+The broader goal remains active: provider/ETF consumer integration is still
+sequenced behind both branches reaching staging, followed by line-level
+shared path reconciliation and a clean exact-tip gate. The protected visual
+replay also remains pending in a matching browser/font environment.
+
 ## 2026-10-02 — R6 Strategy run-selection state semantics
 
 Product commit `76aa0e1c0` exposes selected-state semantics for TC-owned
