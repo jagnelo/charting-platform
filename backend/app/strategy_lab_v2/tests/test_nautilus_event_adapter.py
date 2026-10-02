@@ -14,9 +14,11 @@ from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventRecord,
     NautilusEventTape,
     NautilusForwardEventEnvelope,
+    NautilusForwardEventTape,
     materialize_nautilus_event,
     materialize_nautilus_event_tape,
     materialize_nautilus_forward_event,
+    materialize_nautilus_forward_tape,
     verify_nautilus_event_tape_parity,
 )
 from app.strategy_lab_v2.sdk import MarketEvent
@@ -258,6 +260,65 @@ def test_forward_event_envelope_rejects_identity_drift() -> None:
 
     with pytest.raises(ValueError, match="sequences must match"):
         materialize_nautilus_forward_event(canonical_event, market_event, event_type="ohlcv")
+
+
+def test_forward_event_tape_orders_envelopes_for_host_callback() -> None:
+    first_market = _event("bar-1", sequence=1)
+    second_market = _event(
+        "bar-2",
+        event_time=BASE + timedelta(minutes=1),
+        sequence=2,
+    )
+    first_canonical = CanonicalForwardEvent(
+        first_market.event_id,
+        first_market.sequence,
+        first_market.event_time,
+        first_market.event_time + timedelta(seconds=1),
+        content_digest("source-1"),
+    )
+    second_canonical = CanonicalForwardEvent(
+        second_market.event_id,
+        second_market.sequence,
+        second_market.event_time,
+        second_market.event_time + timedelta(seconds=1),
+        content_digest("source-2"),
+    )
+
+    tape = materialize_nautilus_forward_tape(
+        "forward-instance-1",
+        (second_canonical, first_canonical),
+        (second_market, first_market),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+    )
+    equivalent = materialize_nautilus_forward_tape(
+        "forward-instance-1",
+        (first_canonical, second_canonical),
+        (first_market, second_market),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+    )
+
+    assert isinstance(tape, NautilusForwardEventTape)
+    assert [item.record.event_id for item in tape.envelopes] == ["bar-1", "bar-2"]
+    assert tape.fingerprint == equivalent.fingerprint
+
+
+def test_forward_event_tape_rejects_dependency_mapping_drift() -> None:
+    market_event = _event()
+    canonical_event = CanonicalForwardEvent(
+        market_event.event_id,
+        market_event.sequence,
+        market_event.event_time,
+        market_event.event_time,
+        content_digest("provider-source"),
+    )
+
+    with pytest.raises(ValueError, match="unused dependency"):
+        materialize_nautilus_forward_tape(
+            "forward-instance-1",
+            (canonical_event,),
+            (market_event,),
+            event_type_by_dependency={"daily-bars": "ohlcv", "unused": "quote"},
+        )
 
 
 def test_record_constructor_rejects_negative_wire_time() -> None:

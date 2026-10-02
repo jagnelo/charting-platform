@@ -21,6 +21,7 @@ from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
 
 NAUTILUS_EVENT_ADAPTER_VERSION = "strategy-lab.nautilus-event-adapter.v1"
 NAUTILUS_EVENT_PARITY_VERSION = "strategy-lab.nautilus-event-parity.v1"
+NAUTILUS_FORWARD_TAPE_VERSION = "strategy-lab.nautilus-forward-tape.v1"
 
 _WIRE_FIELDS = frozenset(
     {
@@ -214,6 +215,50 @@ class NautilusForwardEventEnvelope:
         return content_digest(self)
 
 
+@dataclass(frozen=True, slots=True)
+class NautilusForwardEventTape:
+    """Ordered forward envelopes ready for a future host/Rust callback."""
+
+    instance_id: str
+    envelopes: tuple[NautilusForwardEventEnvelope, ...]
+    definition_version: str = NAUTILUS_FORWARD_TAPE_VERSION
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.instance_id, str) or not self.instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        if self.definition_version != NAUTILUS_FORWARD_TAPE_VERSION:
+            raise ValueError("unsupported Nautilus forward tape version")
+        envelopes = tuple(self.envelopes)
+        if not envelopes:
+            raise ValueError("Nautilus forward tapes require envelopes")
+        if any(not isinstance(item, NautilusForwardEventEnvelope) for item in envelopes):
+            raise TypeError("envelopes must contain NautilusForwardEventEnvelope values")
+        event_ids = [item.record.event_id for item in envelopes]
+        if len(event_ids) != len(set(event_ids)):
+            raise ValueError("Nautilus forward event ids must be unique")
+        sequences = [item.record.sequence for item in envelopes]
+        if len(sequences) != len(set(sequences)):
+            raise ValueError("Nautilus forward event sequences must be unique")
+        object.__setattr__(
+            self,
+            "envelopes",
+            tuple(
+                sorted(
+                    envelopes,
+                    key=lambda item: (
+                        item.record.sequence,
+                        item.record.event_time_ns,
+                        item.record.event_id,
+                    ),
+                )
+            ),
+        )
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
 def materialize_nautilus_event(
     event: MarketEvent,
     *,
@@ -258,6 +303,55 @@ def materialize_nautilus_forward_event(
         canonical_event,
         materialize_nautilus_event(market_event, event_type=event_type),
     )
+
+
+def materialize_nautilus_forward_tape(
+    instance_id: str,
+    canonical_events: Sequence[CanonicalForwardEvent],
+    market_events: Sequence[MarketEvent],
+    *,
+    event_type_by_dependency: Mapping[str, str],
+) -> NautilusForwardEventTape:
+    """Materialize an admitted forward batch without provider or engine I/O."""
+
+    if not isinstance(instance_id, str) or not instance_id.strip():
+        raise ValueError("instance_id must not be empty")
+    if not isinstance(canonical_events, Sequence) or isinstance(
+        canonical_events, str | bytes
+    ):
+        raise TypeError("canonical_events must be a sequence")
+    if not isinstance(market_events, Sequence) or isinstance(market_events, str | bytes):
+        raise TypeError("market_events must be a sequence")
+    if len(canonical_events) != len(market_events):
+        raise ValueError("canonical and market event batches must have equal length")
+    if not isinstance(event_type_by_dependency, Mapping):
+        raise TypeError("event_type_by_dependency must be a mapping")
+    if not event_type_by_dependency:
+        raise ValueError("event_type_by_dependency must not be empty")
+    envelopes: list[NautilusForwardEventEnvelope] = []
+    observed_dependencies: set[str] = set()
+    for canonical_event, market_event in zip(canonical_events, market_events, strict=True):
+        if not isinstance(canonical_event, CanonicalForwardEvent):
+            raise TypeError("canonical_events must contain CanonicalForwardEvent values")
+        if not isinstance(market_event, MarketEvent):
+            raise TypeError("market_events must contain MarketEvent values")
+        observed_dependencies.add(market_event.dependency_id)
+        try:
+            event_type = event_type_by_dependency[market_event.dependency_id]
+        except KeyError as error:
+            raise ValueError(
+                f"event type is missing for dependency {market_event.dependency_id!r}"
+            ) from error
+        envelopes.append(
+            materialize_nautilus_forward_event(
+                canonical_event,
+                market_event,
+                event_type=event_type,
+            )
+        )
+    if set(event_type_by_dependency) != observed_dependencies:
+        raise ValueError("event_type_by_dependency contains an unused dependency")
+    return NautilusForwardEventTape(instance_id, tuple(envelopes))
 
 
 def materialize_nautilus_event_tape(
@@ -393,12 +487,15 @@ def _parse_wire_event(payload: Mapping[str, Any]) -> NautilusEventRecord:
 __all__ = [
     "NAUTILUS_EVENT_ADAPTER_VERSION",
     "NAUTILUS_EVENT_PARITY_VERSION",
+    "NAUTILUS_FORWARD_TAPE_VERSION",
     "NautilusEventParityReceipt",
     "NautilusEventRecord",
     "NautilusEventTape",
     "NautilusForwardEventEnvelope",
+    "NautilusForwardEventTape",
     "materialize_nautilus_event",
     "materialize_nautilus_forward_event",
+    "materialize_nautilus_forward_tape",
     "materialize_nautilus_event_tape",
     "verify_nautilus_event_tape_parity",
 ]

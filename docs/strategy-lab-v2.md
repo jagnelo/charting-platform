@@ -535,6 +535,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   validates the event-type field contract, and content-addresses the ordered
   materialization. It deliberately imports neither Nautilus nor any provider;
   host callback/Rust implementation and forward-parity evidence remain gated.
+  `materialize_nautilus_forward_tape(...)` additionally binds a deterministic
+  instance-scoped batch of admitted canonical events to payload records for
+  that future callback, rejecting pair, dependency-map, and identity drift.
   `verify_nautilus_event_tape_parity(...)` provides the strict observed-wire
   schema and non-authoritative pass/fail receipt for that future adapter, with
   canonical ordering and field-level mismatch evidence.
@@ -542,6 +545,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   existing `FORWARD_EVENT_TAPE_PARITY` conformance check. Failed receipts are
   assigned a distinct failure digest, so expected-fixture configuration cannot
   manufacture a pass.
+- `require_rc_fixture_binding(...)` binds the parsed image-backed RC fixture
+  receipt to the runtime probe, release pin, and partial conformance suite,
+  while preserving the deferred forward-parity and non-authoritative labels.
 - Materialization resolves the effective `event_type` from the bound snapshot
   preflight, including explicitly recorded degraded substitutions, rather than
   silently reverting to the requested manifest value.

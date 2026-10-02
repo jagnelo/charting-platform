@@ -6083,3 +6083,17 @@ silently satisfying the stable or forward-parity authority gates.
 The focused RC fixture/probe suite passes 22 tests; the complete package suite
 passes 993 tests, Ruff, MyPy across 305 source files, diff validation, and
 workstream validation.
+
+## 2026-10-02 - Forward event-tape batch callback boundary
+
+`NautilusForwardEventTape` and `materialize_nautilus_forward_tape(...)` now
+bind an instance-scoped batch of admitted `CanonicalForwardEvent` values to
+their payload-bearing `MarketEvent` records. The boundary canonicalizes
+sequence order, rejects duplicate identities or sequences, requires an exact
+dependency-to-event-type map, and remains provider- and Nautilus-free. It is
+the batch seam a future host/Rust callback can consume; it does not claim that
+the callback or forward parity implementation exists.
+
+The focused event-adapter suite passes 14 tests; the complete package suite
+passes 995 tests, Ruff, MyPy across 305 source files, diff validation, and
+workstream validation.
