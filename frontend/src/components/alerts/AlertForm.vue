@@ -2,7 +2,7 @@
   <div class="alert-form">
     <div class="form-header">
       <span class="form-title">{{ isEditing ? 'Edit Alert' : 'New Alert' }} — {{ symbol }}</span>
-      <button class="form-close" @click="$emit('close')">✕</button>
+      <button class="form-close" type="button" aria-label="Close alert form" @click="$emit('close')">✕</button>
     </div>
 
     <!-- Live preview of what the alert will say -->
@@ -69,6 +69,9 @@
           v-for="c in conditions"
           :key="c.value"
           :class="['cond-btn', { active: condition === c.value }]"
+          type="button"
+          :aria-pressed="condition === c.value ? 'true' : 'false'"
+          :aria-label="`Alert condition: ${c.label}`"
           @click="condition = c.value"
         >{{ c.label }}</button>
       </div>
