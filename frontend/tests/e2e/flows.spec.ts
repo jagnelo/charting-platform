@@ -2882,6 +2882,52 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8e.native-indicator-selection — chart-item selection uses native keyboard controls without swallowing row actions', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
+    await page.goto('/legacy/chart/SPY')
+
+    const panelToggle = page.getByRole('button', { name: /^(Hide|Show) indicator panel$/ }).last()
+    await expect(panelToggle).toBeVisible()
+    if (await panelToggle.getAttribute('aria-expanded') === 'false') await panelToggle.click()
+    await expect(panelToggle).toHaveAttribute('aria-expanded', 'true')
+
+    const indicatorPanel = page.locator('.side-panel').last()
+    const indicatorsHeader = indicatorPanel.getByRole('button', { name: /Indicators/ })
+    if (await indicatorsHeader.getAttribute('aria-expanded') === 'false') await indicatorsHeader.click()
+
+    const addIndicator = indicatorPanel.getByRole('button', { name: /^\+ Add$/ })
+    for (const label of ['SMA - Simple Moving Average', 'EMA - Exponential Moving Average']) {
+      await addIndicator.click()
+      await indicatorPanel.getByRole('button', { name: label, exact: true }).click()
+    }
+
+    const selections = indicatorPanel.locator('.list-row__select[aria-label^="Select indicator "]')
+    await expect.poll(async () => selections.count()).toBeGreaterThanOrEqual(2)
+    const states = () => selections.evaluateAll(buttons => buttons.map(button => button.getAttribute('aria-pressed')))
+
+    const firstStates = await states()
+    const enterIndex = firstStates.findIndex(state => state === 'false')
+    expect(enterIndex).toBeGreaterThanOrEqual(0)
+    const enterSelection = selections.nth(enterIndex)
+    await enterSelection.focus()
+    await enterSelection.press('Enter')
+    await expect(enterSelection).toHaveAttribute('aria-pressed', 'true')
+
+    const secondStates = await states()
+    const spaceIndex = secondStates.findIndex((state, index) => state === 'false' && index !== enterIndex)
+    expect(spaceIndex).toBeGreaterThanOrEqual(0)
+    const spaceSelection = selections.nth(spaceIndex)
+    await spaceSelection.focus()
+    await spaceSelection.press('Space')
+    await expect(spaceSelection).toHaveAttribute('aria-pressed', 'true')
+
+    const selectedRow = spaceSelection.locator('xpath=..')
+    await selectedRow.getByRole('button', { name: /^More options for / }).click()
+    await expect(page.getByRole('group', { name: /^Actions for / }).last()).toBeVisible()
+    await expect(spaceSelection).toHaveAttribute('aria-pressed', 'true')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8g — Study Lab validates, runs an isolated Python study, and renders its result', async ({ page, browserDiagnostics }) => {
     test.setTimeout(120_000)
     const studyName = `E2E scalar study ${Date.now()}`

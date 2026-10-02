@@ -114,27 +114,29 @@
                 'row--selected': radarStore.focusedChartDetectionId === det.id,
                 'row--hidden': !radarStore.isChartDetectionActive(det.id),
               }"
-              role="button"
-              tabindex="0"
-              :aria-label="`Select ${formatRadarSetup(det.setup_type)} radar detection`"
-              :aria-pressed="radarStore.isChartDetectionActive(det.id) ? 'true' : 'false'"
-              @click="radarStore.toggleChartDetection(det.id)"
-              @keydown.stop="activateListRow($event, () => radarStore.toggleChartDetection(det.id))"
             >
-              <span class="radar-sequence-tag">{{ formatRadarSequenceBadge(det) }}</span>
-              <span class="radar-toggle-indicator"><WorkstationGlyph :kind="radarStore.isChartDetectionActive(det.id) ? 'visible' : 'hidden'" /></span>
-              <span class="row-name radar-row-main">
-                <span class="radar-row-title">{{ formatRadarSetup(det.setup_type) }}</span>
-                <span class="radar-row-meta">
-                  <span v-if="det.thread_event_index != null || det.thread?.detection_count" class="draw-pane-tag">
-                    {{ formatRadarThreadTag(det) }}
+              <button
+                type="button"
+                class="list-row__select radar-row__select"
+                :aria-label="`Select ${formatRadarSetup(det.setup_type)} radar detection`"
+                :aria-pressed="radarStore.isChartDetectionActive(det.id) ? 'true' : 'false'"
+                @click.stop="radarStore.toggleChartDetection(det.id)"
+              >
+                <span class="radar-sequence-tag">{{ formatRadarSequenceBadge(det) }}</span>
+                <span class="radar-toggle-indicator"><WorkstationGlyph :kind="radarStore.isChartDetectionActive(det.id) ? 'visible' : 'hidden'" /></span>
+                <span class="row-name radar-row-main">
+                  <span class="radar-row-title">{{ formatRadarSetup(det.setup_type) }}</span>
+                  <span class="radar-row-meta">
+                    <span v-if="det.thread_event_index != null || det.thread?.detection_count" class="draw-pane-tag">
+                      {{ formatRadarThreadTag(det) }}
+                    </span>
+                    <span :class="['draw-pane-tag', `draw-pane-tag--${det.state}`]">{{ formatRadarState(det.state) }}</span>
+                    <span class="draw-pane-tag">{{ det.score.toFixed(2) }}</span>
+                    <span class="draw-pane-tag draw-pane-tag--dim">{{ formatRadarSignalDate(det) }}</span>
+                    <span class="draw-pane-tag draw-pane-tag--dim">Recorded {{ formatRadarRecordedDate(det.created_at) }}</span>
                   </span>
-                  <span :class="['draw-pane-tag', `draw-pane-tag--${det.state}`]">{{ formatRadarState(det.state) }}</span>
-                  <span class="draw-pane-tag">{{ det.score.toFixed(2) }}</span>
-                  <span class="draw-pane-tag draw-pane-tag--dim">{{ formatRadarSignalDate(det) }}</span>
-                  <span class="draw-pane-tag draw-pane-tag--dim">Recorded {{ formatRadarRecordedDate(det.created_at) }}</span>
                 </span>
-              </span>
+              </button>
               <HoverTooltip :text="radarTooltipText(det)">
                 <button
                   type="button"
@@ -226,17 +228,20 @@
                   class="list-row"
                   :class="{ 'row--selected': i === chartStore.selectedIndicatorIndex, 'row--tf-inactive': !isActiveOnCurrentTf(ind) }"
                   :title="isActiveOnCurrentTf(ind) ? undefined : `Locked to: ${(ind.lockedTimeframes ?? []).join(', ')}`"
-                  role="button"
-                  tabindex="0"
-                  :aria-label="`Select indicator ${displayName(ind)}`"
-                  @click.stop="chartStore.selectIndicator(i)"
-                  @keydown.stop="activateListRow($event, () => chartStore.selectIndicator(i))"
-                  @dblclick.stop="openIndEditor(i)"
                 >
                   <span class="ind-drag-handle" title="Drag to reorder">⠿</span>
-                  <span class="color-dot" :style="{ background: ind.style.color }" />
-                  <span class="row-name">{{ displayName(ind) }}</span>
-                  <span v-if="ind.lockedTimeframes?.length" class="tf-lock-badge" title="Timeframe locked"><WorkstationGlyph kind="lock" /></span>
+                  <button
+                    type="button"
+                    class="list-row__select"
+                    :aria-label="`Select indicator ${displayName(ind)}`"
+                    :aria-pressed="i === chartStore.selectedIndicatorIndex ? 'true' : 'false'"
+                    @click.stop="chartStore.selectIndicator(i)"
+                    @dblclick.stop="openIndEditor(i)"
+                  >
+                    <span class="color-dot" :style="{ background: ind.style.color }" />
+                    <span class="row-name">{{ displayName(ind) }}</span>
+                    <span v-if="ind.lockedTimeframes?.length" class="tf-lock-badge" title="Timeframe locked"><WorkstationGlyph kind="lock" /></span>
+                  </button>
                   <div class="row-menu-wrap">
                     <button class="row-btn row-menu-btn" type="button" @click.stop="toggleMenu(`ind-${i}`, $event)" title="More" :aria-label="`More options for ${displayName(ind)}`" :aria-expanded="menuOpenId === `ind-${i}` ? 'true' : 'false'" :aria-controls="`${sectionIdPrefix}-ind-${i}-menu`"><WorkstationGlyph kind="more" /></button>
                     <Teleport to="body">
@@ -314,19 +319,22 @@
                 :key="d.id"
                 class="list-row"
                 :class="{ 'row--selected': d.id === drawStore.selectedId, 'row--hidden': !d.is_visible }"
-                role="button"
-                tabindex="0"
-                :aria-label="`Select drawing ${drawingLabel(d)}`"
-                @click="drawStore.selectDrawing(d.id)"
-                @keydown.stop="activateListRow($event, () => drawStore.selectDrawing(d.id))"
-                @dblclick.stop="openDrawEditor(d)"
               >
                 <span class="draw-drag-handle" title="Drag to reorder">⠿</span>
-                <span class="draw-icon">{{ drawingIcon(d.drawing_type) }}</span>
-                <span class="row-name">
-                  {{ drawingLabel(d) }}
-                  <span v-if="d.indicator_key" class="draw-pane-tag">{{ d.indicator_key.toUpperCase() }}</span>
-                </span>
+                <button
+                  type="button"
+                  class="list-row__select"
+                  :aria-label="`Select drawing ${drawingLabel(d)}`"
+                  :aria-pressed="d.id === drawStore.selectedId ? 'true' : 'false'"
+                  @click.stop="drawStore.selectDrawing(d.id)"
+                  @dblclick.stop="openDrawEditor(d)"
+                >
+                  <span class="draw-icon">{{ drawingIcon(d.drawing_type) }}</span>
+                  <span class="row-name">
+                    {{ drawingLabel(d) }}
+                    <span v-if="d.indicator_key" class="draw-pane-tag">{{ d.indicator_key.toUpperCase() }}</span>
+                  </span>
+                </button>
                 <div class="row-menu-wrap">
                   <button class="row-btn row-menu-btn" type="button" @click.stop="toggleMenu(`draw-${d.id}`, $event)" title="More" :aria-label="`More options for ${drawingLabel(d)}`" :aria-expanded="menuOpenId === `draw-${d.id}` ? 'true' : 'false'" :aria-controls="`${sectionIdPrefix}-draw-${d.id}-menu`"><WorkstationGlyph kind="more" /></button>
                   <Teleport to="body">
@@ -381,15 +389,18 @@
               :key="'p'+a.id"
               class="list-row alert-row"
               :class="[`alert-row--${a.status}`, { 'row--selected': a.id === alertsStore.selectedAlertId }]"
-              role="button"
-              tabindex="0"
-              :aria-label="`Select price alert ${a.condition.replace(/_/g, ' ')}`"
-              @click.stop="alertsStore.selectAlert(a.id)"
-              @keydown.stop="activateListRow($event, () => alertsStore.selectAlert(a.id))"
-              @dblclick.stop="openAlertEditor(a, null)"
             >
-              <span class="alert-icon"><WorkstationGlyph kind="currency" /></span>
-              <span class="row-name">{{ a.condition.replace(/_/g,' ') }} {{ formatMoney(Number(a.threshold_price), a.instrument_currency) }}</span>
+              <button
+                type="button"
+                class="list-row__select"
+                :aria-label="`Select price alert ${a.condition.replace(/_/g, ' ')}`"
+                :aria-pressed="a.id === alertsStore.selectedAlertId ? 'true' : 'false'"
+                @click.stop="alertsStore.selectAlert(a.id)"
+                @dblclick.stop="openAlertEditor(a, null)"
+              >
+                <span class="alert-icon"><WorkstationGlyph kind="currency" /></span>
+                <span class="row-name">{{ a.condition.replace(/_/g,' ') }} {{ formatMoney(Number(a.threshold_price), a.instrument_currency) }}</span>
+              </button>
               <div class="row-menu-wrap">
                 <button class="row-btn row-menu-btn" type="button" @click.stop="toggleMenu(`palert-${a.id}`, $event)" title="More" :aria-label="`More options for price alert ${a.condition.replace(/_/g, ' ')}`" :aria-expanded="menuOpenId === `palert-${a.id}` ? 'true' : 'false'" :aria-controls="`${sectionIdPrefix}-palert-${a.id}-menu`"><WorkstationGlyph kind="more" /></button>
                 <Teleport to="body">
@@ -420,15 +431,18 @@
               class="list-row alert-row"
               :class="[`alert-row--${a.status}`, { 'row--selected': a.id === alertsStore.selectedAlertId }]"
               :title="indAlertLabel(a)"
-              role="button"
-              tabindex="0"
-              :aria-label="`Select indicator alert ${indAlertLabel(a)}`"
-              @click.stop="alertsStore.selectAlert(a.id)"
-              @keydown.stop="activateListRow($event, () => alertsStore.selectAlert(a.id))"
-              @dblclick.stop="openAlertEditor(null, a)"
             >
-              <span class="alert-icon"><WorkstationGlyph kind="approx" /></span>
-              <span class="row-name">{{ indAlertLabel(a) }}</span>
+              <button
+                type="button"
+                class="list-row__select"
+                :aria-label="`Select indicator alert ${indAlertLabel(a)}`"
+                :aria-pressed="a.id === alertsStore.selectedAlertId ? 'true' : 'false'"
+                @click.stop="alertsStore.selectAlert(a.id)"
+                @dblclick.stop="openAlertEditor(null, a)"
+              >
+                <span class="alert-icon"><WorkstationGlyph kind="approx" /></span>
+                <span class="row-name">{{ indAlertLabel(a) }}</span>
+              </button>
               <div class="row-menu-wrap">
                 <button class="row-btn row-menu-btn" type="button" @click.stop="toggleMenu(`ialert-${a.id}`, $event)" title="More" :aria-label="`More options for ${indAlertLabel(a)}`" :aria-expanded="menuOpenId === `ialert-${a.id}` ? 'true' : 'false'" :aria-controls="`${sectionIdPrefix}-ialert-${a.id}-menu`"><WorkstationGlyph kind="more" /></button>
                 <Teleport to="body">
@@ -759,13 +773,6 @@ function toggleMenu(key: string, event: MouseEvent) {
 
 function closeMenu() {
   menuOpenId.value = null
-}
-
-function activateListRow(event: KeyboardEvent, action: () => void) {
-  if (event.target !== event.currentTarget) return
-  if (event.key !== 'Enter' && event.key !== ' ') return
-  event.preventDefault()
-  action()
 }
 
 function estimateMenuHeight(key: string): number {
@@ -1468,6 +1475,26 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
 .list-row.row--hidden { opacity: 0.45; }
 .list-row.row--tf-inactive { opacity: 0.35; }
 .list-row.row--tf-inactive .color-dot { filter: grayscale(1); }
+
+.list-row__select {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: inherit;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.list-row__select:focus-visible {
+  outline: 1px solid #6ea8fe;
+  outline-offset: -1px;
+}
 
 .radar-row {
   align-items: flex-start;

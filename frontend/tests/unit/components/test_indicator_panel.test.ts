@@ -125,7 +125,7 @@ describe('IndicatorPanel section disclosures', () => {
     wrapper.unmount()
   })
 
-  it('makes detection, chart-item, and alert rows keyboard-operable', async () => {
+  it('uses native selection buttons with separate row-action controls', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const chartStore = usePanelStore('p0')
@@ -156,6 +156,19 @@ describe('IndicatorPanel section disclosures', () => {
       status: 'active',
       repeat: false,
       show_projection: false,
+      trigger_count: 0,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    }] as any
+    alertsStore.indicatorAlerts = [{
+      id: 5,
+      instrument_id: 7,
+      indicator_a_type: 'rsi',
+      indicator_a_params: { period: 14 },
+      condition: 'crosses_above',
+      threshold_value: 70,
+      status: 'active',
+      repeat: false,
       trigger_count: 0,
       created_at: '2026-01-01T00:00:00Z',
       updated_at: '2026-01-01T00:00:00Z',
@@ -209,22 +222,28 @@ describe('IndicatorPanel section disclosures', () => {
       await nextTick()
     }
 
-    const rows = wrapper.findAll('.list-row[role="button"]')
-    expect(rows).toHaveLength(4)
+    const rows = wrapper.findAll('.list-row__select')
+    expect(rows).toHaveLength(5)
     for (const row of rows) {
-      expect(row.attributes('tabindex')).toBe('0')
+      expect(row.element.tagName).toBe('BUTTON')
+      expect(row.attributes('type')).toBe('button')
+      expect(row.attributes('role')).toBeUndefined()
+      expect(row.attributes('tabindex')).toBeUndefined()
       expect(row.attributes('aria-label')).toMatch(/^Select /)
+      expect(row.find('button').exists()).toBe(false)
     }
 
-    await wrapper.get('.radar-row').trigger('keydown', { key: 'Enter' })
-    await wrapper.find('.ind-list .list-row[aria-label^="Select indicator"]').trigger('keydown', { key: ' ' })
-    await wrapper.find('.ind-list .list-row[aria-label^="Select drawing"]').trigger('keydown', { key: 'Enter' })
-    await wrapper.find('.alert-row').trigger('keydown', { key: ' ' })
+    await wrapper.get('.radar-row__select').trigger('click')
+    await wrapper.find('.ind-list .list-row__select[aria-label^="Select indicator"]').trigger('click')
+    await wrapper.find('.ind-list .list-row__select[aria-label^="Select drawing"]').trigger('click')
+    await wrapper.find('.alert-row .list-row__select[aria-label^="Select price alert"]').trigger('click')
+    await wrapper.find('.alert-row .list-row__select[aria-label^="Select indicator alert"]').trigger('click')
 
     expect(toggleDetection).toHaveBeenCalledWith(9)
     expect(selectIndicator).toHaveBeenCalledWith(0)
     expect(selectDrawing).toHaveBeenCalledWith(3)
-    expect(selectAlert).toHaveBeenCalledWith(4)
+    expect(selectAlert).toHaveBeenNthCalledWith(1, 4)
+    expect(selectAlert).toHaveBeenNthCalledWith(2, 5)
     wrapper.unmount()
   })
 })
