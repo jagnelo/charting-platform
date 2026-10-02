@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 Exact-head full safety preflight
+
+- The full manifest was re-run at source
+  `32f311524eefd9ef91d238950a5127d1d2bb2e0d` after the Kraken focused audit.
+  It stopped before transport with `0/0` cases and zero provider requests.
+- The receipt records the remaining provider-specific active-baseline and
+  byte/cost gaps, legal/venue controls, unresolved capability cases, complete
+  OTC admission, and external deployment/CI secret stores. No generic limit,
+  zero usage, or prior usage was inferred.
+
 ## 2026-10-02 Kraken focused admission audit
 
 - The focused Kraken live runner was retried with the owner-local durable

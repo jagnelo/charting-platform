@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-head full safety preflight
+
+- [x] The full manifest was re-run after the Kraken admission audit at source
+      `32f311524eefd9ef91d238950a5127d1d2bb2e0d`. It stopped before transport
+      with `0/0` cases and zero provider requests.
+- [ ] Remaining blockers are provider-specific active baselines or byte/cost
+      contracts (including Kraken, SEC, FINRA, CoinGecko, Coinbase, EODHD,
+      Finnhub, Twelve Data, and tokenized feeds), unresolved legal/venue
+      admission, deferred capability cases, complete OTC admission, and
+      deployment/CI secret stores. No generic limit or prior usage was
+      inferred.
+
 ### 2026-10-02 — Current-source Kraken admission remains fail-closed
 
 - [x] A focused Kraken live attempt was executed through the owner-local

@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact-head full safety preflight at source
+    32f311524eefd9ef91d238950a5127d1d2bb2e0d stopped before transport with
+    0/0 cases and zero provider requests. The current receipt retains the
+    provider-specific active-baseline and byte/cost gaps (including Kraken,
+    SEC, FINRA, CoinGecko, Coinbase, EODHD, Finnhub, Twelve Data, and
+    tokenized feeds), unresolved legal/venue controls, deferred capability
+    cases, complete OTC admission, and external deployment/CI secret stores.
+    No generic limit or prior usage was inferred.
+  - >-
     2026-10-02 focused Kraken admission audit: the first sandboxed runner
     attempt could not write the owner-local durable quota ledger; the approved
     elevated retry reached provider-specific admission and stopped before
