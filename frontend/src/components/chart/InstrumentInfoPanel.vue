@@ -1,10 +1,10 @@
 <template>
   <section v-if="instrument" class="info-section" role="region" :aria-label="`${instrument.symbol} instrument report`" :class="{ collapsed: !isOpen }">
-    <div class="section-header" role="button" tabindex="0" :aria-expanded="isOpen" :aria-controls="`${reportBodyId}-body`" @click="toggleOpen" @keydown.enter.stop.prevent="toggleOpen" @keydown.space.stop.prevent="toggleOpen">
+    <button class="section-header" type="button" :aria-expanded="isOpen" :aria-controls="`${reportBodyId}-body`" @click="toggleOpen">
       <span class="section-title">{{ instrument.name }}</span>
       <span v-if="instrument.currency" class="info-currency">{{ instrument.currency }}</span>
       <span class="section-chevron"><WorkstationGlyph :kind="isOpen ? 'chevron-down' : 'chevron-right'" /></span>
-    </div>
+    </button>
 
     <Transition name="slide">
       <div v-if="isOpen" :id="`${reportBodyId}-body`" class="info-body">
@@ -277,8 +277,14 @@ function rangeOccurrenceTitle(
   display: flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
   padding: 7px 10px;
+  border: 0;
+  color: inherit;
+  background: transparent;
   cursor: pointer;
+  font: inherit;
+  text-align: left;
   user-select: none;
   transition: background 0.1s;
 }
