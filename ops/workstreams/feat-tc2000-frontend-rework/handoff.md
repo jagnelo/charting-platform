@@ -1,5 +1,18 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — VirtualWatchlist editor action names
+
+Product commit `f85222610` gives TC-owned VirtualWatchlist editor actions
+contextual accessible names: selected-symbol comparison count, paste settings,
+stack/unstack and pin/unpin column state, Python-column addition, saved-set
+save, and saved-set apply name/version. Visible labels, state mutations, and
+visual styling remain unchanged. Focused VirtualWatchlistTool coverage passed
+`78/78`; the full serial frontend suite passed `128/128` files and
+`1,167/1,167` tests; `vue-tsc`, the production build, `git diff --check`, TC
+scope self-tests, and workstream validation passed with the existing
+large-chunk warning. No provider-platform, ETF, visual baseline, threshold,
+mask, skip, fallback, or acceptance policy changed.
+
 ## 2026-10-02 — Industry drill-down selection semantics
 
 Product commit `4fde30261` keeps the TC-owned industry drill-down behavior and
