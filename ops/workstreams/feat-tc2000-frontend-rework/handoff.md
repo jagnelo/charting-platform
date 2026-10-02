@@ -1,5 +1,17 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Market Map action names
+
+Product commit `507c6df42` gives TC-owned Market Map actions explicit
+contextual accessible names for saving explicit symbols, refreshing the map,
+saving/exporting/deleting snapshots, and saving selected members as a personal
+watchlist. Visible labels, state mutations, and visual styling remain
+unchanged. Focused MarketMapTool coverage passed `54/54`; the full serial
+frontend suite passed `128/128` files and `1,167/1,167` tests; `vue-tsc`, the
+production build, and `git diff --check` passed with the existing large-chunk
+warning. No provider-platform, ETF, visual baseline, threshold, mask, skip,
+fallback, or acceptance policy changed.
+
 ## 2026-10-02 — Chart plot action names
 
 Product commit `77d7ff89a` gives the TC-owned chart plot library's Python and
