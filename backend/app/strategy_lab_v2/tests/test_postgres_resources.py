@@ -205,6 +205,22 @@ async def test_reader_rejects_drift_from_persisted_domain_fingerprint() -> None:
 
 
 @pytest.mark.asyncio
+async def test_reader_rejects_malformed_persisted_domain_fingerprint() -> None:
+    aggregate = _strategy("momentum")
+    state = dict(aggregate.state)
+    state["meta"] = {"domain_fingerprint": ["not-a-digest"]}
+    malformed = StoredAggregate(aggregate.key, aggregate.version, state)
+    reader = PostgresResourceReader(MemoryStore([malformed]))
+
+    with pytest.raises(ValueError, match="fingerprint is malformed"):
+        await reader.get_domain_contract(
+            principal="alice",
+            resource_type=ApiResourceType.STRATEGY,
+            resource_id="momentum",
+        )
+
+
+@pytest.mark.asyncio
 async def test_reader_rejects_cursor_for_different_or_changed_snapshot() -> None:
     store = MemoryStore([_trial("trial-1"), _trial("trial-2")])
     reader = PostgresResourceReader(store)

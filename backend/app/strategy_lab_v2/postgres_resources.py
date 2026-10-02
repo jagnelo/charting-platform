@@ -110,14 +110,14 @@ class PostgresResourceReader:
         if document is None:
             return None
         expected_domain_fingerprint = document.meta.get("domain_fingerprint")
+        if expected_domain_fingerprint is not None and not isinstance(
+            expected_domain_fingerprint, str
+        ):
+            raise ValueError("persisted resource domain fingerprint is malformed")
         return rehydrate_resource_contract(
             resource_type,
             document.attributes,
-            expected_domain_fingerprint=(
-                expected_domain_fingerprint
-                if isinstance(expected_domain_fingerprint, str)
-                else None
-            ),
+            expected_domain_fingerprint=expected_domain_fingerprint,
         )
 
     async def list_resources(
