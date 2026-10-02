@@ -11,15 +11,18 @@ from app.strategy_lab_v2.contracts import AdjustmentMode, EventGranularity, Prod
 from app.strategy_lab_v2.event_tape import FrozenEventTape
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_event_adapter import (
+    NAUTILUS_FORWARD_PARITY_VERSION,
     NautilusEventRecord,
     NautilusEventTape,
     NautilusForwardEventEnvelope,
+    NautilusForwardEventParityReceipt,
     NautilusForwardEventTape,
     materialize_nautilus_event,
     materialize_nautilus_event_tape,
     materialize_nautilus_forward_event,
     materialize_nautilus_forward_tape,
     verify_nautilus_event_tape_parity,
+    verify_nautilus_forward_event_tape_parity,
 )
 from app.strategy_lab_v2.sdk import MarketEvent
 from app.strategy_lab_v2.tests.test_event_tape import _binding_inputs
@@ -321,6 +324,48 @@ def test_forward_event_tape_rejects_dependency_mapping_drift() -> None:
         )
 
 
+def test_forward_event_tape_parity_accepts_permuted_equivalent_wire_records() -> None:
+    tape = _forward_tape_for_parity()
+    observed = tuple(_wire_payload(item.record) for item in reversed(tape.envelopes))
+
+    receipt = verify_nautilus_forward_event_tape_parity(tape, observed)
+
+    assert isinstance(receipt, NautilusForwardEventParityReceipt)
+    assert receipt.instance_id == "forward-instance-1"
+    assert receipt.forward_tape_fingerprint == tape.fingerprint
+    assert receipt.parity_version == NAUTILUS_FORWARD_PARITY_VERSION
+    assert receipt.passed is True
+    assert receipt.compatible is True
+    assert receipt.authoritative is False
+    assert receipt.mismatches == ()
+
+
+def test_forward_event_tape_parity_returns_failed_evidence_for_value_drift() -> None:
+    tape = _forward_tape_for_parity()
+    observed = [_wire_payload(item.record) for item in tape.envelopes]
+    observed[0] = {
+        **observed[0],
+        "values": {**tape.envelopes[0].record.values, "close": 999.0},
+    }
+
+    receipt = verify_nautilus_forward_event_tape_parity(tape, observed)
+
+    assert receipt.passed is False
+    assert receipt.compatible is False
+    assert receipt.mismatches == ("event[0].values",)
+    assert receipt.expected_wire_digest != receipt.observed_wire_digest
+
+
+def test_forward_event_tape_parity_rejects_malformed_or_duplicate_wire_records() -> None:
+    tape = _forward_tape_for_parity()
+    payload = _wire_payload(tape.envelopes[0].record)
+
+    with pytest.raises(ValueError, match="exact wire schema"):
+        verify_nautilus_forward_event_tape_parity(tape, ({**payload, "extra": True},))
+    with pytest.raises(ValueError, match="forward event ids must be unique"):
+        verify_nautilus_forward_event_tape_parity(tape, (payload, payload))
+
+
 def test_record_constructor_rejects_negative_wire_time() -> None:
     with pytest.raises(ValueError, match="non-negative"):
         NautilusEventRecord(
@@ -350,3 +395,32 @@ def _wire_payload(record: NautilusEventRecord) -> dict[str, object]:
         "sequence": record.sequence,
         "values": dict(record.values),
     }
+
+
+def _forward_tape_for_parity() -> NautilusForwardEventTape:
+    first_market = _event("bar-1", sequence=1)
+    second_market = _event(
+        "bar-2",
+        event_time=BASE + timedelta(minutes=1),
+        sequence=2,
+    )
+    first_canonical = CanonicalForwardEvent(
+        first_market.event_id,
+        first_market.sequence,
+        first_market.event_time,
+        first_market.event_time + timedelta(seconds=1),
+        content_digest("source-1"),
+    )
+    second_canonical = CanonicalForwardEvent(
+        second_market.event_id,
+        second_market.sequence,
+        second_market.event_time,
+        second_market.event_time + timedelta(seconds=1),
+        content_digest("source-2"),
+    )
+    return materialize_nautilus_forward_tape(
+        "forward-instance-1",
+        (first_canonical, second_canonical),
+        (first_market, second_market),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+    )

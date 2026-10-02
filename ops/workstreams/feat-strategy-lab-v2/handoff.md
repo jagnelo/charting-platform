@@ -6097,3 +6097,16 @@ the callback or forward parity implementation exists.
 The focused event-adapter suite passes 14 tests; the complete package suite
 passes 995 tests, Ruff, MyPy across 305 source files, diff validation, and
 workstream validation.
+
+## 2026-10-02 - Forward event-tape parity receipt
+
+`NautilusForwardEventParityReceipt` and
+`verify_nautilus_forward_event_tape_parity(...)` now verify the strict wire
+records emitted for an admitted forward batch against the instance-scoped
+canonical-event envelopes. The receipt preserves the forward-tape identity,
+canonicalizes callback order, reports field-level drift, and remains explicitly
+non-authoritative. It is the evidence seam a future host/Rust callback can
+produce without importing Nautilus or acquiring provider data.
+
+The focused event-adapter suite passes 17 tests; the complete package suite
+passes 998 tests, Ruff, MyPy, diff validation, and workstream validation.

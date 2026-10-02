@@ -22,6 +22,7 @@ from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
 NAUTILUS_EVENT_ADAPTER_VERSION = "strategy-lab.nautilus-event-adapter.v1"
 NAUTILUS_EVENT_PARITY_VERSION = "strategy-lab.nautilus-event-parity.v1"
 NAUTILUS_FORWARD_TAPE_VERSION = "strategy-lab.nautilus-forward-tape.v1"
+NAUTILUS_FORWARD_PARITY_VERSION = "strategy-lab.nautilus-forward-parity.v1"
 
 _WIRE_FIELDS = frozenset(
     {
@@ -176,6 +177,72 @@ class NautilusEventParityReceipt:
         )
         if self.passed != equivalent:
             raise ValueError("parity pass state does not match the observed evidence")
+        object.__setattr__(self, "mismatches", mismatches)
+
+    @property
+    def compatible(self) -> bool:
+        return self.passed
+
+    @property
+    def authoritative(self) -> bool:
+        return False
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
+class NautilusForwardEventParityReceipt:
+    """Evidence comparing a forward callback's wire output with its tape.
+
+    The canonical event identity is already bound to every envelope before a
+    callback receives it. This receipt therefore compares the callback's
+    observed wire records against those envelope records while retaining the
+    forward-instance and tape identities needed to audit the handoff. It is
+    compatibility evidence only and can never authorize publication or live
+    shadow execution.
+    """
+
+    instance_id: str
+    forward_tape_fingerprint: str
+    expected_event_count: int
+    observed_event_count: int
+    expected_wire_digest: str
+    observed_wire_digest: str
+    mismatches: tuple[str, ...] = ()
+    passed: bool = False
+    parity_version: str = NAUTILUS_FORWARD_PARITY_VERSION
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.instance_id, str) or not self.instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        require_sha256_digest(
+            self.forward_tape_fingerprint,
+            field_name="forward_tape_fingerprint",
+        )
+        require_sha256_digest(self.expected_wire_digest, field_name="expected_wire_digest")
+        require_sha256_digest(self.observed_wire_digest, field_name="observed_wire_digest")
+        for name in ("expected_event_count", "observed_event_count"):
+            value = getattr(self, name)
+            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                raise ValueError(f"{name} must be a non-negative integer")
+        mismatches = tuple(self.mismatches)
+        if any(not isinstance(item, str) or not item.strip() for item in mismatches):
+            raise ValueError("parity mismatches must contain non-empty strings")
+        if mismatches != tuple(sorted(set(mismatches))):
+            raise ValueError("parity mismatches must be unique and ordered")
+        if not isinstance(self.passed, bool):
+            raise TypeError("passed must be a boolean")
+        if self.parity_version != NAUTILUS_FORWARD_PARITY_VERSION:
+            raise ValueError("unsupported Nautilus forward parity version")
+        equivalent = (
+            self.expected_event_count == self.observed_event_count
+            and self.expected_wire_digest == self.observed_wire_digest
+            and not mismatches
+        )
+        if self.passed != equivalent:
+            raise ValueError("forward parity pass state does not match the observed evidence")
         object.__setattr__(self, "mismatches", mismatches)
 
     @property
@@ -452,6 +519,63 @@ def verify_nautilus_event_tape_parity(
     )
 
 
+def verify_nautilus_forward_event_tape_parity(
+    tape: NautilusForwardEventTape,
+    observed_events: Sequence[Mapping[str, Any]],
+) -> NautilusForwardEventParityReceipt:
+    """Compare a host/Rust forward callback output with its bound event tape.
+
+    The callback output uses the same strict wire schema as the historical
+    event-tape verifier. Forward canonical identity is represented by the
+    envelope that was handed to the callback, so matching event identity,
+    sequence, timestamp, dependency, and values proves that the callback did
+    not substitute or reorder the admitted forward batch.
+    """
+
+    if not isinstance(tape, NautilusForwardEventTape):
+        raise TypeError("tape must be a NautilusForwardEventTape")
+    if not isinstance(observed_events, Sequence) or isinstance(observed_events, str | bytes):
+        raise TypeError("observed_events must be a sequence of mappings")
+    observed = tuple(_parse_wire_event(item) for item in observed_events)
+    observed_ids = [item.event_id for item in observed]
+    if len(observed_ids) != len(set(observed_ids)):
+        raise ValueError("observed Nautilus forward event ids must be unique")
+    ordered_observed = tuple(sorted(observed, key=_event_order))
+    expected_records = tuple(item.record for item in tape.envelopes)
+    expected_payloads = tuple(_wire_payload(item) for item in expected_records)
+    observed_payloads = tuple(_wire_payload(item) for item in ordered_observed)
+    mismatches: list[str] = []
+    for index in range(max(len(expected_records), len(ordered_observed))):
+        if index >= len(expected_records) or index >= len(ordered_observed):
+            mismatches.append(f"event[{index}]")
+            continue
+        expected = expected_records[index]
+        observed_item = ordered_observed[index]
+        for field in (
+            "dependency_id",
+            "event_id",
+            "instrument_id",
+            "event_type",
+            "event_time_ns",
+            "sequence",
+        ):
+            if getattr(expected, field) != getattr(observed_item, field):
+                mismatches.append(f"event[{index}].{field}")
+        if expected.values != observed_item.values:
+            mismatches.append(f"event[{index}].values")
+    ordered_mismatches = tuple(sorted(set(mismatches)))
+    return NautilusForwardEventParityReceipt(
+        instance_id=tape.instance_id,
+        forward_tape_fingerprint=tape.fingerprint,
+        expected_event_count=len(expected_records),
+        observed_event_count=len(ordered_observed),
+        expected_wire_digest=content_digest(expected_payloads),
+        observed_wire_digest=content_digest(observed_payloads),
+        mismatches=ordered_mismatches,
+        passed=not ordered_mismatches,
+    )
+
+
 def _event_order(event: NautilusEventRecord) -> tuple[int, int, str, str]:
     return (event.event_time_ns, event.sequence, event.dependency_id, event.event_id)
 
@@ -487,15 +611,18 @@ def _parse_wire_event(payload: Mapping[str, Any]) -> NautilusEventRecord:
 __all__ = [
     "NAUTILUS_EVENT_ADAPTER_VERSION",
     "NAUTILUS_EVENT_PARITY_VERSION",
+    "NAUTILUS_FORWARD_PARITY_VERSION",
     "NAUTILUS_FORWARD_TAPE_VERSION",
     "NautilusEventParityReceipt",
     "NautilusEventRecord",
     "NautilusEventTape",
     "NautilusForwardEventEnvelope",
+    "NautilusForwardEventParityReceipt",
     "NautilusForwardEventTape",
     "materialize_nautilus_event",
     "materialize_nautilus_forward_event",
     "materialize_nautilus_forward_tape",
     "materialize_nautilus_event_tape",
     "verify_nautilus_event_tape_parity",
+    "verify_nautilus_forward_event_tape_parity",
 ]
