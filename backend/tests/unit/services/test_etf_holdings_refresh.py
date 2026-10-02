@@ -69,9 +69,10 @@ def _state(*, status="failure", extra_data=None):
 
 
 def _snapshot():
+    observed_at = datetime.now(UTC)
     return SimpleNamespace(
-        composition_date=date(2026, 9, 24),
-        published_at=datetime(2026, 9, 24, tzinfo=UTC),
+        composition_date=observed_at.date(),
+        published_at=observed_at,
         provenance="issuer_current_holdings",
         source_provider="wisdomtree",
         source_url="https://issuer.example/DXJ.csv",
