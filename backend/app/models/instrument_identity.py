@@ -71,6 +71,13 @@ class InstrumentProviderSymbol(Base, TimestampMixin):
     provider_instrument_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
     is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Provider symbols are lifecycle evidence too.  Keep the provider's
+    # effective/known/retired boundaries beside the binding rather than
+    # hiding them in ``extra_data`` so ticker changes and delistings remain
+    # queryable without replaying raw provider payloads.
+    effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    known_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     extra_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     instrument: Mapped["Instrument"] = relationship(back_populates="provider_symbols")

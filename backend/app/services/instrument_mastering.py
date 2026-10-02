@@ -476,8 +476,20 @@ async def register_provider_symbol(
     existing.provider_instrument_type = (
         provider_instrument_type or existing.provider_instrument_type
     )
-    if reactivate_existing:
+    if delisted_at is not None:
+        existing.is_active = False
+        existing.retired_at = delisted_at
+    elif reactivate_existing:
         existing.is_active = True
+        # A provider can re-list or restore a symbol after a prior observed
+        # retirement.  The append-only universe/lifecycle observations retain
+        # the earlier retirement evidence; this binding represents the
+        # currently active association again.
+        existing.retired_at = None
+    if effective_at is not None and existing.effective_at is None:
+        existing.effective_at = effective_at
+    if known_at is not None and existing.known_at is None:
+        existing.known_at = known_at
     existing.is_primary = is_primary or existing.is_primary
     existing.extra_data = {
         **(existing.extra_data or {}),

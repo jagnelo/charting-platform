@@ -22,7 +22,11 @@ from app.config import settings
 from app.models.asset_class import InstrumentType
 from app.models.exchange import Exchange
 from app.models.instrument import Instrument
-from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
+from app.models.instrument_identity import (
+    InstrumentIdentifier,
+    InstrumentIdentifierType,
+    InstrumentProviderSymbol,
+)
 from app.models.instrument_reconciliation import InstrumentReconciliationIssue
 from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import (
@@ -991,6 +995,32 @@ async def _mark_missing(
                         is_provisional=True,
                     )
                 )
+        # Keep the provider binding's current lifecycle state aligned with the
+        # listing evidence while retaining the row and its timestamps.  Match
+        # venue-qualified bindings conservatively: an unknown/raw provider
+        # venue may match this observation, but a different known MIC must not
+        # be retired as a side effect of another venue's absence.
+        if observation.instrument_id is not None:
+            bindings = (
+                await db.execute(
+                    select(InstrumentProviderSymbol).where(
+                        InstrumentProviderSymbol.instrument_id == observation.instrument_id,
+                        InstrumentProviderSymbol.data_source_id == observation.data_source_id,
+                        InstrumentProviderSymbol.provider_symbol == observation.provider_symbol,
+                        InstrumentProviderSymbol.is_active.is_(True),
+                    )
+                )
+            ).scalars().all()
+            for binding in bindings:
+                binding_mic = normalize_exchange_mic(binding.provider_exchange_code)
+                if (
+                    observation.exchange_mic is not None
+                    and binding_mic is not None
+                    and binding_mic != observation.exchange_mic
+                ):
+                    continue
+                binding.is_active = False
+                binding.retired_at = binding.retired_at or absence_observed_at
         if observation.instrument_id is not None and await _deactivate_if_unlisted(
             db, observation.instrument_id
         ):

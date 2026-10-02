@@ -8,6 +8,7 @@ import pytest
 from app.models.data_source import DataSource
 from app.models.exchange import Exchange
 from app.models.instrument import Instrument
+from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.instrument_reconciliation import InstrumentReconciliationIssueObservation
 from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import (
@@ -17,6 +18,7 @@ from app.models.market_data_foundation import (
     MarketUniverseReconciliationRun,
 )
 from app.services.exchange_catalog import ensure_exchange, upsert_instrument_listing
+from app.services.instrument_mastering import register_provider_symbol
 from app.services.market_universe import (
     _find_instrument,
     _mark_missing,
@@ -873,6 +875,111 @@ async def test_nms_snapshot_absence_does_not_touch_otc_venue_rows(db, instrument
     assert otc_observation.consecutive_missing == 0
     assert otc_listing.is_active is True
     assert run.missing_count == 1
+
+
+@pytest.mark.asyncio
+async def test_provider_symbol_binding_retains_lifecycle_timestamps_and_retires_on_relisting_gap(
+    db, instrument
+):
+    session = AsyncSessionAdapter(db)
+    effective_at = datetime(2024, 1, 2, tzinfo=UTC)
+    known_at = datetime(2024, 1, 3, tzinfo=UTC)
+    retired_at = datetime(2026, 9, 16, 21, tzinfo=UTC)
+
+    await register_provider_symbol(
+        session,
+        instrument,
+        "nasdaq",
+        instrument.symbol,
+        provider_exchange_code="XNAS",
+        effective_at=effective_at,
+        known_at=known_at,
+        delisted_at=retired_at,
+        reactivate_existing=True,
+    )
+
+    binding = db.query(InstrumentProviderSymbol).one()
+    assert binding.effective_at == effective_at.replace(tzinfo=None)
+    assert binding.known_at == known_at.replace(tzinfo=None)
+    assert binding.retired_at == retired_at.replace(tzinfo=None)
+    assert binding.is_active is False
+
+    # A later authoritative reappearance reactivates the same binding without
+    # losing the historical lifecycle observation rows.
+    await register_provider_symbol(
+        session,
+        instrument,
+        "nasdaq",
+        instrument.symbol,
+        provider_exchange_code="XNAS",
+        known_at=retired_at + timedelta(days=1),
+        reactivate_existing=True,
+    )
+    binding = db.query(InstrumentProviderSymbol).one()
+    assert binding.is_active is True
+    assert binding.retired_at is None
+    assert binding.known_at == known_at.replace(tzinfo=None)
+
+
+@pytest.mark.asyncio
+async def test_complete_nms_absence_retires_matching_provider_symbol_binding(
+    db, instrument
+):
+    source = DataSource(name="nasdaq", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    session = AsyncSessionAdapter(db)
+    exchange = await ensure_exchange(session, "XNAS")
+    observed_at = datetime(2026, 9, 16, 21, tzinfo=UTC)
+    listing = InstrumentListing(
+        instrument_id=instrument.id,
+        exchange_id=exchange.id,
+        ticker=instrument.symbol,
+        is_primary=True,
+        is_active=True,
+    )
+    binding = InstrumentProviderSymbol(
+        instrument_id=instrument.id,
+        data_source_id=source.id,
+        provider_symbol=instrument.symbol,
+        provider_exchange_code="XNAS",
+        is_primary=True,
+        is_active=True,
+    )
+    db.add_all([listing, binding])
+    db.flush()
+    observation = MarketUniverseLifecycleObservation(
+        data_source_id=source.id,
+        instrument_id=instrument.id,
+        listing_id=listing.id,
+        provider_symbol=instrument.symbol,
+        exchange_mic="XNAS",
+        quote_type="EQUITY",
+        observed_at=observed_at - timedelta(days=1),
+        present=False,
+        lifecycle_status="missing_pending",
+        first_seen_at=observed_at - timedelta(days=10),
+        last_missing_at=observed_at - timedelta(days=1),
+        consecutive_seen=0,
+        consecutive_missing=2,
+        payload={"symbol": instrument.symbol},
+    )
+    db.add(observation)
+    run = _make_authoritative_nasdaq_run(db, source, observed_at=observed_at)
+
+    await _mark_missing(
+        session,
+        run=run,
+        provider_name="nasdaq",
+        quote_type="EQUITY",
+        active_keys=set(),
+        observed_at=observed_at,
+        missing_confirmations=3,
+    )
+
+    assert binding.is_active is False
+    assert binding.retired_at.replace(tzinfo=None) == observed_at.replace(tzinfo=None)
+    assert listing.is_active is False
 
 
 @pytest.mark.asyncio
