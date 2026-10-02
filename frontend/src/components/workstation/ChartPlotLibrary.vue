@@ -22,7 +22,7 @@
       <section class="chart-plots__python" aria-label="Python plot assets">
         <button type="button" :disabled="pythonLoading" @click="loadPythonAssets">{{ pythonLoading ? 'Loading…' : 'Load Python plots' }}</button>
         <select v-if="pythonAssets.length" v-model="selectedPythonVersion" aria-label="Python plot asset"><option value="">Add Python plot…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select>
-        <button v-if="selectedPythonVersion" type="button" @click="addPythonPlot">Add</button>
+        <button v-if="selectedPythonVersion" type="button" aria-label="Add selected Python plot" @click="addPythonPlot">Add</button>
         <small v-if="pythonStatus" role="status" aria-live="polite" aria-atomic="true">{{ pythonStatus }}</small>
       </section>
       <section class="chart-plots__python chart-plots__scan" aria-label="EasyScan plot assets">
@@ -31,7 +31,7 @@
           <option value="">Add scan plot…</option>
           <option v-for="asset in scanAssets" :key="`${asset.screenerId}:${asset.metric}`" :value="`${asset.screenerId}:${asset.metric}`">{{ asset.name }} · {{ asset.metric }}</option>
         </select>
-        <button v-if="selectedScanAsset" type="button" @click="addScanPlot">Add</button>
+        <button v-if="selectedScanAsset" type="button" aria-label="Add selected EasyScan plot" @click="addScanPlot">Add</button>
         <small v-if="scanStatus" role="status" aria-live="polite" aria-atomic="true">{{ scanStatus }}</small>
       </section>
       <div v-if="selectedPromotionIndex !== ''" class="chart-plots__promotion">
@@ -40,7 +40,7 @@
         <select v-model="promotionOperator" aria-label="Plot promotion operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option></select>
         <input v-model.number="promotionThreshold" aria-label="Plot promotion threshold" type="number" step="any" />
         <input v-model.trim="promotionName" aria-label="Plot promotion name" placeholder="Name" />
-        <button type="button" :disabled="promotionBusy || !promotionName || !Number.isFinite(promotionThreshold) || ((promotionTarget === 'filter' || promotionTarget === 'column') && !selectedFilterTarget)" @click="promoteSelected">{{ promotionBusy ? 'Saving…' : 'Copy' }}</button>
+        <button type="button" aria-label="Copy plot to selected promotion target" :disabled="promotionBusy || !promotionName || !Number.isFinite(promotionThreshold) || ((promotionTarget === 'filter' || promotionTarget === 'column') && !selectedFilterTarget)" @click="promoteSelected">{{ promotionBusy ? 'Saving…' : 'Copy' }}</button>
       </div>
       <p v-if="promotionStatus" class="chart-plots__promotion-status" role="status" aria-live="polite" aria-atomic="true">{{ promotionStatus }}</p>
       <p>Price history <small>active</small></p>
