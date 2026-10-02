@@ -3012,6 +3012,54 @@ class TestCoinGeckoCredentialWarning:
             headers = provider._headers()
         assert headers == {"x-cg-demo-api-key": "demo-key-123"}
 
+    def test_account_usage_reads_native_monthly_credit_snapshot(self):
+        response = MagicMock(status_code=200)
+        response.headers = {}
+        response.raise_for_status.return_value = None
+        response.json.return_value = {
+            "plan": "Demo",
+            "rate_limit_request_per_minute": 100,
+            "monthly_call_credit": 10_000,
+            "current_total_monthly_calls": 321,
+            "current_remaining_monthly_calls": 9_679,
+        }
+        with (
+            patch("app.providers.coingecko.settings") as configured,
+            patch("app.providers.coingecko.httpx.get", return_value=response) as get,
+        ):
+            configured.COINGECKO_API_KEY = "demo-key-123"
+            usage = CoinGeckoProvider().fetch_account_usage()
+
+        assert get.call_count == 1
+        assert usage.account_plan == "Demo"
+        assert usage.limit == 10_000
+        assert usage.remaining == 9_679
+        dimensions = {dimension.name: dimension for dimension in usage.dimensions}
+        assert dimensions["calls_per_minute"].limit == 100
+        assert dimensions["calls_per_minute"].remaining is None
+        assert dimensions["calls_per_month"].consumed == 321
+        assert dimensions["calls_per_month"].reset_at is not None
+        assert dimensions["calls_per_month"].reset_at > usage.observed_at
+
+    def test_account_usage_rejects_non_reconciling_monthly_counters(self):
+        response = MagicMock(status_code=200)
+        response.headers = {}
+        response.raise_for_status.return_value = None
+        response.json.return_value = {
+            "plan": "Demo",
+            "rate_limit_request_per_minute": 100,
+            "monthly_call_credit": 10_000,
+            "current_total_monthly_calls": 321,
+            "current_remaining_monthly_calls": 9_678,
+        }
+        with (
+            patch("app.providers.coingecko.settings") as configured,
+            patch("app.providers.coingecko.httpx.get", return_value=response),
+        ):
+            configured.COINGECKO_API_KEY = "demo-key-123"
+            with pytest.raises(ProviderResponseError, match="do not reconcile"):
+                CoinGeckoProvider().fetch_account_usage()
+
     def test_profile_uses_ranked_symbol_search_before_metadata_fetch(self):
         provider = CoinGeckoProvider()
         search_response = MagicMock()

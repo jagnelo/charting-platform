@@ -248,6 +248,7 @@ def test_manifest_account_usage_providers_are_explicit():
     assert runner.account_usage_only_provider_set() == {
         "alpaca",
         "binance",
+        "coingecko",
         "eodhd",
         "marketdata_app",
         "openfigi",

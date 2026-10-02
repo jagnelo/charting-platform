@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-10-02 — CoinGecko native account-usage admission
+
+- [x] Implement `CoinGeckoProvider.fetch_account_usage()` against the
+      documented `/api/v3/key` endpoint. The adapter validates the plan,
+      per-minute limit, monthly limit, and monthly used/remaining arithmetic;
+      fixture coverage proves a successful native snapshot and malformed
+      counters fail closed.
+- [x] Add the usage operation to the provider quota contract and the
+      manifest-driven account-usage live matrix.
+- [x] The configured Demo key was checked live and returned HTTP 401
+      (`10005`) for `/key`; the runner records this as an expected entitlement
+      denial with one request and no reconciled baseline. This is not treated
+      as a successful provider pass, and no usage is inferred from it.
+- [ ] Re-run the same bounded probe after an authorized CoinGecko key/plan is
+      configured. Reconcile the native monthly pool before ordinary routing;
+      keep the minute pool non-routable unless native remaining/reset evidence
+      is actually returned or separately reviewed.
+
 ### 2026-10-02 — Exact-head full safety preflight
 
 - [x] The full manifest was re-run after the Kraken admission audit at source

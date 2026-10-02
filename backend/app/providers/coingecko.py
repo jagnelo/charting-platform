@@ -22,12 +22,19 @@ CoinGecko's role here is universe discovery and rich metadata.
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
 
 from app.config import settings
-from app.providers.base import InstrumentProfile, ListingRecord, ProviderSearchResult
+from app.providers.base import (
+    InstrumentProfile,
+    ListingRecord,
+    ProviderAccountUsage,
+    ProviderAccountUsageDimension,
+    ProviderSearchResult,
+)
 from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderRateLimitError,
@@ -95,6 +102,163 @@ class CoinGeckoProvider:
         if not isinstance(payload, dict | list):
             raise ProviderResponseError(self.name, "CoinGecko returned an invalid response container")
         return payload
+
+    def fetch_account_usage(self) -> ProviderAccountUsage:
+        """Read CoinGecko's native ``/key`` usage snapshot.
+
+        CoinGecko documents this endpoint as the authoritative account
+        introspection surface for the per-minute entitlement and current
+        monthly call-credit balance.  The monthly counter includes this
+        successful request, so the native observation is retained as the
+        durable post-request baseline; no prior usage is inferred locally.
+        The endpoint does not report current per-minute remaining calls, so
+        that limit is retained as observation-only until a response exposes a
+        matching remaining/reset pair.
+        """
+
+        try:
+            response = httpx.get(
+                f"{_BASE}/key",
+                headers=self._headers(),
+                timeout=20,
+            )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
+        observe_response(response)
+        response_headers = provider_response_headers(response)
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if response.status_code in {418, 429}:
+                raise ProviderRateLimitError(
+                    self.name,
+                    f"CoinGecko request rejected for capacity (HTTP {response.status_code})",
+                    status_code=response.status_code,
+                    headers=response_headers,
+                ) from exc
+            raise ProviderResponseError(
+                self.name,
+                f"CoinGecko request failed with HTTP {response.status_code}",
+                status_code=response.status_code,
+            ) from exc
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "CoinGecko returned invalid usage JSON") from exc
+        raise_for_provider_error_envelope(
+            self.name,
+            payload,
+            response.status_code,
+            headers=response_headers,
+        )
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(self.name, "CoinGecko usage returned an invalid object")
+
+        plan = payload.get("plan")
+        if plan is not None and not isinstance(plan, str):
+            raise ProviderResponseError(self.name, "CoinGecko usage returned an invalid plan")
+
+        def positive_integer(name: str) -> int:
+            value = payload.get(name)
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise ProviderResponseError(
+                    self.name,
+                    f"CoinGecko usage returned an invalid positive integer: {name}",
+                )
+            return value
+
+        def nonnegative_integer(name: str) -> int:
+            value = payload.get(name)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ProviderResponseError(
+                    self.name,
+                    f"CoinGecko usage returned an invalid non-negative integer: {name}",
+                )
+            return value
+
+        account_rate_limit = positive_integer("rate_limit_request_per_minute")
+        monthly_limit = positive_integer("monthly_call_credit")
+        monthly_used = nonnegative_integer("current_total_monthly_calls")
+        monthly_remaining = nonnegative_integer("current_remaining_monthly_calls")
+        if monthly_used + monthly_remaining != monthly_limit:
+            raise ProviderResponseError(
+                self.name,
+                "CoinGecko usage monthly counters do not reconcile to the declared limit",
+            )
+
+        key_rate_limit = payload.get("api_key_rate_limit_request_per_minute")
+        if key_rate_limit is not None:
+            if isinstance(key_rate_limit, bool) or not isinstance(key_rate_limit, int) or key_rate_limit <= 0:
+                raise ProviderResponseError(
+                    self.name,
+                    "CoinGecko usage returned an invalid API-key minute limit",
+                )
+            account_rate_limit = min(account_rate_limit, key_rate_limit)
+        key_monthly_limit = payload.get("api_key_monthly_call_credit")
+        if key_monthly_limit is not None and (
+            isinstance(key_monthly_limit, bool)
+            or not isinstance(key_monthly_limit, int)
+            or key_monthly_limit <= 0
+        ):
+            raise ProviderResponseError(
+                self.name,
+                "CoinGecko usage returned an invalid API-key monthly limit",
+            )
+
+        observed_at = datetime.now(UTC)
+        next_month = (observed_at.replace(day=28) + timedelta(days=4)).replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        minute_remaining = response_headers.get("x-ratelimit-remaining")
+        parsed_minute_remaining: int | None = None
+        if minute_remaining is not None:
+            try:
+                parsed_minute_remaining = int(minute_remaining)
+            except (TypeError, ValueError) as exc:
+                raise ProviderResponseError(
+                    self.name,
+                    "CoinGecko returned an invalid minute remaining header",
+                ) from exc
+            if parsed_minute_remaining < 0 or parsed_minute_remaining > account_rate_limit:
+                raise ProviderResponseError(
+                    self.name,
+                    "CoinGecko returned an invalid minute remaining header",
+                )
+
+        dimensions = (
+            ProviderAccountUsageDimension(
+                name="calls_per_minute",
+                unit="requests",
+                limit=account_rate_limit,
+                remaining=parsed_minute_remaining,
+                consumed=(
+                    account_rate_limit - parsed_minute_remaining
+                    if parsed_minute_remaining is not None
+                    else None
+                ),
+            ),
+            ProviderAccountUsageDimension(
+                name="calls_per_month",
+                unit="credits",
+                limit=monthly_limit,
+                remaining=monthly_remaining,
+                consumed=monthly_used,
+                reset_at=next_month,
+            ),
+        )
+        return ProviderAccountUsage(
+            provider=self.name,
+            observed_at=observed_at,
+            unit="credits",
+            limit=monthly_limit,
+            remaining=monthly_remaining,
+            consumed=monthly_used,
+            reset_at=next_month,
+            account_plan=plan.strip() if isinstance(plan, str) and plan.strip() else None,
+            dimensions=dimensions,
+            raw_payload=payload,
+            response_headers=response_headers,
+        )
 
     # ── Search ────────────────────────────────────────────────────────────────
 

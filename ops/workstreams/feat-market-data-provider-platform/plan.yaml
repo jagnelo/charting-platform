@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 CoinGecko native account-usage admission: the adapter and
+    manifest case are implemented, and fixture coverage proves valid `/key`
+    payload handling plus malformed-counter rejection. The configured Demo key
+    returned HTTP 401 (`10005`) during the bounded live check; this is recorded
+    as an expected entitlement denial with no reconciled baseline. An
+    authorized key/plan is still required to reconcile the native monthly pool;
+    the minute pool remains unknown unless native remaining/reset evidence is
+    returned or separately reviewed. No usage is inferred from the denial.
+  - >-
     2026-10-02 exact-head full safety preflight at source
     1638244d8c6c6135e6527a56dd61b42ce38b4b2d stopped before transport with
     0/0 cases and zero provider requests. The current receipt retains the

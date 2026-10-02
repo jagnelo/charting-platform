@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 CoinGecko native usage admission
+
+- `CoinGeckoProvider.fetch_account_usage()` now calls the documented `/key`
+  usage endpoint and validates the returned plan, per-minute entitlement,
+  monthly credit limit, and monthly used/remaining reconciliation. The native
+  monthly observation is persisted as the provider account baseline; no local
+  zero is fabricated. Fixture coverage includes a valid snapshot and malformed
+  counter rejection.
+- The operation is registered in the CoinGecko quota/cost contract and the
+  manifest-driven account-usage live matrix.
+- The configured Demo credential returned HTTP 401 (`10005`) during the
+  current bounded live check. The receipt records this as an expected
+  entitlement denial (one request, no reconciled baseline), not as successful
+  provider evidence. CoinGecko ordinary routing remains fail-closed until an
+  authorized key/plan returns native usage data; the minute dimension also
+  remains non-reconcilable unless the response provides remaining/reset data.
+
 ## 2026-10-02 Exact-head full safety preflight
 
 - The full manifest was re-run at source

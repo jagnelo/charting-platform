@@ -906,6 +906,24 @@ def test_coingecko_credentialed_profile_observes_id_resolution_request():
     assert measurement.http_requests >= 2
 
 
+def test_coingecko_credentialed_account_usage_snapshot():
+    """Exercise CoinGecko's native monthly-credit usage endpoint."""
+
+    _require("COINGECKO_API_KEY")
+    with pytest.raises(ProviderResponseError) as exc_info:
+        usage, measurement = _observed_read(
+            lambda: CoinGeckoProvider().fetch_account_usage(),
+            "coingecko",
+            "fetch_account_usage",
+            expected_http_statuses={401},
+        )
+    # The configured Demo key currently receives the provider's documented
+    # endpoint-entitlement response. The adapter remains ready for a plan/key
+    # that authorizes /key, but this live evidence must not be treated as an
+    # account baseline or a successful usage snapshot.
+    assert exc_info.value.status_code == 401
+
+
 def test_fred_series_requires_persisted_data_rights_before_network_access():
     """Avoid network access while FRED storage rights and quota scope are unresolved."""
 
