@@ -6054,3 +6054,8 @@ The provider-platform ref advanced to `3154c0f8` locally and on its origin
 tracking ref, while staging remains `8b885a2f`. The provider branch is still
 not an ancestor of staging and its `ProviderCapability` enum still lacks
 `ETF_HOLDINGS`; AC10 remains deferred and no protected worktree was modified.
+
+The provider workstream's current handoff remains human-review/owner-gated for
+its remaining provider/account, legal, source-completeness, deferred-provider,
+and final-shadow gates. This ETF branch therefore still cannot consume a
+staged shared holdings capability or add a speculative bridge.

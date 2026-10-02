@@ -105,11 +105,11 @@
   "goal_unavailable_reason": null,
   "head": "51d1c5958",
   "implementation_sha": "d770d92bb5a64224c8e05df6fc5bca9238dd84cb",
-  "last_checkpoint": "2026-10-02T11:58:02Z",
+  "last_checkpoint": "2026-10-02T12:00:24Z",
   "last_human_progress_update": "2026-09-25T00:46:26Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "reconcile stale fallback audit evidence where a current check is useful, then recheck the provider-platform dependency; after staging, reconcile only the narrow ETF bridge and run AC14",
-  "plan_hash": "d03b13256ddcd008d78e12fead9e2fd86eb01700621629f27bfd2e2f92c83467",
+  "plan_hash": "e0971cc18b9e2ec97dd892b047138225a7a0be12b101c221f062efd94beb0bcc",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -130,11 +130,11 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "Read-only refs now show local and fetched origin feat/market-data-provider-platform at 3154c0f8 and staging at 8b885a2f; the provider ref is not an ancestor of staging and its ProviderCapability definition still lacks ETF_HOLDINGS, so AC10 remains deferred. The 2026-10-02 PIMCO recheck is aligned across runtime/YAML/tests and leaves MINT/BOND unavailable; all 15 Tier-0 and 155 Tier-1 fallback representative symbols retain explicit outcomes, while the remaining 19 fallback identities have provider-level terminal or non-publisher dispositions. AC11 remains open for unresolved fallback evidence and AC14 remains post-integration.",
+    "current_blocker": "Read-only refs now show local and fetched origin feat/market-data-provider-platform at 354966b2 and staging at 8b885a2f; the provider ref is not an ancestor of staging and its ProviderCapability definition still lacks ETF_HOLDINGS, so AC10 remains deferred. The provider workstream handoff remains human-review/owner-gated. The 2026-10-02 PIMCO recheck is aligned across runtime/YAML/tests and leaves MINT/BOND unavailable; all 15 Tier-0 and 155 Tier-1 fallback representative symbols retain explicit outcomes, while the remaining 19 fallback identities have provider-level terminal or non-publisher dispositions. AC11 remains open for unresolved fallback evidence and AC14 remains post-integration.",
     "current_phase": "provider_evidence_reconciliation",
     "next_action": "Reconcile stale fallback audit evidence where a current check is useful, then recheck the provider-platform dependency; preserve the explicit fallback boundary and do not activate paid/direct-provider routes while awaiting provider-platform staging.",
     "total": 14,
-    "updated_at": "2026-10-02T11:58:02Z"
+    "updated_at": "2026-10-02T12:00:24Z"
   },
   "remote": "9bcfaa77ffc65d544be82d723305569ff799de4e",
   "remote_sha": "9bcfaa77ffc65d544be82d723305569ff799de4e",
