@@ -7327,7 +7327,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: native_promoted
     disposition: native_promoted
-    last_checked: 2026-09-04
+    last_checked: 2026-10-02
     source_access_declared: issuer_product_page_complete_holdings_html_table
     representative_symbols: [SQS]
     estimated_us_etf_count: null
@@ -7452,8 +7452,12 @@ providers:
         source: "CI SBH official ETF page and current public materials"
         result: "The official page identifies the USSE ETF and publishes prospectus/material links, but no complete current holdings table or executable holdings download is declared; SEC filings are historical and are not promoted as a current route."
         evidence_ref: "web:segall-bryant-hamill-current-etf-page-2026-09-04"
-    disposition_reason: "segall_bryant_hamill: CI SBH's official ETF page identifies USSE but exposes no complete current holdings table or executable holdings download. Preserve the fallback as non-executable public source and do not reconstruct current holdings from historical SEC filings."
-    next_action: "segall_bryant_hamill: Re-audit the official CI SBH page for a declared complete current holdings artifact; promote only after an executable route with proven mapping and freshness."
+      - date: 2026-10-02
+        source: "CI SBH official ETF page and bounded application-equivalent request"
+        result: "The current first-party page still identifies the Segall Bryant & Hamill Select Equity ETF (USSE) and exposes objective, risk, and prospectus/material content, but no complete current holdings table or executable holdings download is declared. Direct curl failed DNS resolution for cisbh.com, so no callable current artifact was retrieved; SEC filings remain historical and are not promoted."
+        evidence_ref: "web:ci-sbh-current-etf-page-2026-10-02;live:ci-sbh-route-recheck-2026-10-02-dns-failure"
+    disposition_reason: "segall_bryant_hamill: The current CI SBH page identifies USSE but still exposes no complete current holdings table or executable holdings download, and direct application-equivalent access failed DNS. Preserve the fallback as non_executable_public_source and do not reconstruct current holdings from historical SEC filings."
+    next_action: "segall_bryant_hamill: Periodically re-audit the official CI SBH page and any newly declared holdings artifact; promote only after executable transport, complete rows, proven mapping, and freshness are established."
     implementation_sha: null
     validation_refs: []
   - adapter_key: siren
@@ -7462,7 +7466,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-04
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
@@ -7491,8 +7495,12 @@ providers:
         source: "Siren ETFs official BLCN and LEAD product pages"
         result: "The official pages expose top-ten holdings and fiscal-year Q1/Q3 portfolio documents, but no complete current daily holdings table or executable current holdings download is declared; reports and SEC filings are periodic historical disclosures."
         evidence_ref: "web:siren-current-product-pages-2026-09-04"
-    disposition_reason: "siren: Siren's official BLCN and LEAD pages expose top-ten holdings and periodic fiscal-year portfolio documents, not a complete current executable holdings artifact. Preserve the fallback as non-executable public source and do not reconstruct current holdings from periodic SEC/report filings."
-    next_action: "siren: Re-audit the official BLCN and LEAD pages for a declared complete current holdings artifact; promote only after executable route, mapping, and freshness are proven."
+      - date: 2026-10-02
+        source: "Siren ETFs official BLCN and LEAD product pages and bounded application-equivalent requests"
+        result: "Current first-party BLCN and LEAD pages identify the funds and expose Top Ten Holdings sections plus fiscal-year Q1/Q3 portfolio documents, but no dated complete current holdings table or executable complete holdings download is declared. Direct curl failed DNS resolution for sirenetfs.com and dev.sirenetfs.com, so no callable current artifact was retrieved; periodic reports and SEC filings remain historical disclosures."
+        evidence_ref: "web:siren-current-product-pages-2026-10-02;live:siren-route-recheck-2026-10-02-dns-failure"
+    disposition_reason: "siren: Siren's current BLCN and LEAD pages expose top-ten sections and periodic fiscal-year portfolio documents, not a complete current executable holdings artifact; direct application-equivalent access also failed DNS. Preserve the fallback as non_executable_public_source and do not reconstruct current holdings from periodic SEC/report filings."
+    next_action: "siren: Periodically re-audit the official BLCN and LEAD pages and any newly declared holdings download; promote only after executable transport, complete rows, symbol mapping, and freshness are proven."
     implementation_sha: null
     validation_refs: []
   - adapter_key: smi_funds

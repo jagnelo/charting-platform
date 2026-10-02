@@ -105,11 +105,11 @@
   "goal_unavailable_reason": null,
   "head": "51d1c5958",
   "implementation_sha": "1faed1e93",
-  "last_checkpoint": "2026-10-02T11:15:47Z",
+  "last_checkpoint": "2026-10-02T11:18:30Z",
   "last_human_progress_update": "2026-09-25T00:46:26Z",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "continue symbol-level fallback rechecks in queue order (next Saturna, queue rank 111) while preserving the explicit fallback boundary; after staging, reconcile only the narrow ETF bridge and run AC14",
-  "plan_hash": "8b0355d8c58a16136b153be02decfbd887663167b41b9e9150d9bc9e8089a1c3",
+  "next_action": "continue symbol-level fallback rechecks in queue order (next Segall Bryant & Hamill, queue rank 112) while preserving the explicit fallback boundary; after staging, reconcile only the narrow ETF bridge and run AC14",
+  "plan_hash": "b60b57a3095fd8b7a436907dfc59dc583d6412b5379907321318facc0a0f1b16",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -130,11 +130,11 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The local and cached remote feat/market-data-provider-platform refs are both 366fdd4f and neither is an ancestor of staging 8b885a2f; all three inspected ProviderCapability definitions still lack ETF_HOLDINGS, so AC10 cannot be reconciled. Baillie Gifford is now native-promoted for BGGG, BGIA, BGEG, and BGUS through its complete dated fund-ID workbook routes. All 15 Tier-0 and 155 Tier-1 fallback representative symbols retain explicit outcomes; PIMCO MINT/BOND remain unavailable. The local checkpoint is not yet on the remote feature ref because GitHub rejected the available SSH credentials; AC8 remote synchronization therefore remains open. AC11 remains open for unresolved fallback evidence and AC14 remains post-integration.",
+    "current_blocker": "The local and cached remote feat/market-data-provider-platform refs are both 366fdd4f and neither is an ancestor of staging 8b885a2f; all three inspected ProviderCapability definitions still lack ETF_HOLDINGS, so AC10 cannot be reconciled. Baillie Gifford is now native-promoted for BGGG, BGIA, BGEG, and BGUS through its complete dated fund-ID workbook routes. Segall Bryant & Hamill and Siren were rechecked on 2026-10-02 and remain non-executable public-source fallbacks after first-party page review and direct DNS failures. All 15 Tier-0 and 155 Tier-1 fallback representative symbols retain explicit outcomes; PIMCO MINT/BOND remain unavailable. The local checkpoint is not yet on the remote feature ref because GitHub rejected the available SSH credentials; AC8 remote synchronization therefore remains open. AC11 remains open for unresolved fallback evidence and AC14 remains post-integration.",
     "current_phase": "provider_evidence_reconciliation",
-    "next_action": "Continue symbol-level fallback rechecks in queue order (next Saturna, queue rank 111); preserve the explicit fallback boundary and do not activate paid/direct-provider routes while awaiting provider-platform staging.",
+    "next_action": "Continue symbol-level fallback rechecks in queue order (next Segall Bryant & Hamill, queue rank 112); preserve the explicit fallback boundary and do not activate paid/direct-provider routes while awaiting provider-platform staging.",
     "total": 14,
-    "updated_at": "2026-10-02T11:15:47Z"
+    "updated_at": "2026-10-02T11:18:30Z"
   },
   "remote": "52814f95bd0ef62968ba1af4018ff9ef5049d3d6",
   "remote_sha": "52814f95bd0ef62968ba1af4018ff9ef5049d3d6",

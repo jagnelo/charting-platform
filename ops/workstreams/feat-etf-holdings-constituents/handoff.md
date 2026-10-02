@@ -5876,3 +5876,23 @@ resolution. The latest executable 14-symbol sweep remains authoritative: PFRX
 returned no rows and every other mapped representative was stale. Putnam
 remains `non_executable_public_source`; no stale or SEC-derived data was
 promoted as current.
+
+## Segall Bryant & Hamill route recheck — 2026-10-02
+
+The current CI SBH ETF page still identifies the Segall Bryant & Hamill Select
+Equity ETF (USSE) and exposes objective, risk, and prospectus/material content,
+but no complete current holdings table or executable holdings download. Direct
+application-equivalent retrieval failed DNS resolution for `cisbh.com`, so no
+callable current artifact was retrieved. Segall Bryant & Hamill remains
+`non_executable_public_source`; historical SEC filings are not reconstructed as
+current holdings.
+
+## Siren route recheck — 2026-10-02
+
+The current first-party BLCN and LEAD pages identify the funds and expose Top
+Ten Holdings sections plus fiscal-year Q1/Q3 portfolio documents, but no dated
+complete current holdings table or executable complete holdings download.
+Direct application-equivalent retrieval failed DNS resolution for
+`sirenetfs.com` and `dev.sirenetfs.com`, so no callable current artifact was
+retrieved. Siren remains `non_executable_public_source`; periodic reports and
+SEC filings are not reconstructed as current holdings.
