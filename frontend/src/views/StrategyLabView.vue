@@ -165,7 +165,7 @@
                 >
                   <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.profile }">▸</span>
                 </button>
-                <h3 class="panel-head-heading" role="button" tabindex="0" :aria-controls="sectionPanelIds.profile" :aria-expanded="sectionExpanded.profile ? 'true' : 'false'" @click="toggleSection('profile')" @keydown.enter.prevent="toggleSection('profile')" @keydown.space.prevent="toggleSection('profile')">Strategy profile</h3>
+                <h3 class="panel-head-heading"><button type="button" class="panel-head-heading__button" :aria-controls="sectionPanelIds.profile" :aria-expanded="sectionExpanded.profile ? 'true' : 'false'" @click="toggleSection('profile')">Strategy profile</button></h3>
               </div>
             </div>
 
@@ -443,7 +443,7 @@
               >
                 <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.entry }">▸</span>
               </button>
-              <h3 class="panel-head-heading" role="button" tabindex="0" :aria-controls="sectionPanelIds.entry" :aria-expanded="sectionExpanded.entry ? 'true' : 'false'" @click="toggleSection('entry')" @keydown.enter.prevent="toggleSection('entry')" @keydown.space.prevent="toggleSection('entry')">{{ sourceType === 'radar' ? 'Signal source' : 'Entry logic' }}</h3>
+              <h3 class="panel-head-heading"><button type="button" class="panel-head-heading__button" :aria-controls="sectionPanelIds.entry" :aria-expanded="sectionExpanded.entry ? 'true' : 'false'" @click="toggleSection('entry')">{{ sourceType === 'radar' ? 'Signal source' : 'Entry logic' }}</button></h3>
             </div>
           </div>
 
@@ -592,7 +592,7 @@
                 >
                   <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.risk }">▸</span>
                 </button>
-              <h3 class="panel-head-heading" role="button" tabindex="0" :aria-controls="sectionPanelIds.risk" :aria-expanded="sectionExpanded.risk ? 'true' : 'false'" @click="toggleSection('risk')" @keydown.enter.prevent="toggleSection('risk')" @keydown.space.prevent="toggleSection('risk')">Risk</h3>
+              <h3 class="panel-head-heading"><button type="button" class="panel-head-heading__button" :aria-controls="sectionPanelIds.risk" :aria-expanded="sectionExpanded.risk ? 'true' : 'false'" @click="toggleSection('risk')">Risk</button></h3>
               </div>
             </div>
 
@@ -744,7 +744,7 @@
                 >
                   <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.exits }">▸</span>
                 </button>
-              <h3 class="panel-head-heading" role="button" tabindex="0" :aria-controls="sectionPanelIds.exits" :aria-expanded="sectionExpanded.exits ? 'true' : 'false'" @click="toggleSection('exits')" @keydown.enter.prevent="toggleSection('exits')" @keydown.space.prevent="toggleSection('exits')">Exits</h3>
+              <h3 class="panel-head-heading"><button type="button" class="panel-head-heading__button" :aria-controls="sectionPanelIds.exits" :aria-expanded="sectionExpanded.exits ? 'true' : 'false'" @click="toggleSection('exits')">Exits</button></h3>
               </div>
             </div>
 
@@ -838,7 +838,7 @@
               >
                 <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.runs }">▸</span>
               </button>
-              <h3 class="panel-head-heading" role="button" tabindex="0" :aria-controls="sectionPanelIds.runs" :aria-expanded="sectionExpanded.runs ? 'true' : 'false'" @click="toggleSection('runs')" @keydown.enter.prevent="toggleSection('runs')" @keydown.space.prevent="toggleSection('runs')">Research runs</h3>
+              <h3 class="panel-head-heading"><button type="button" class="panel-head-heading__button" :aria-controls="sectionPanelIds.runs" :aria-expanded="sectionExpanded.runs ? 'true' : 'false'" @click="toggleSection('runs')">Research runs</button></h3>
             </div>
             <div class="panel-head-controls">
               <button
@@ -1137,7 +1137,7 @@
             >
               <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.results }">▸</span>
             </button>
-            <h3 class="panel-head-heading" role="button" tabindex="0" :aria-controls="sectionPanelIds.results" :aria-expanded="sectionExpanded.results ? 'true' : 'false'" @click="toggleSection('results')" @keydown.enter.prevent="toggleSection('results')" @keydown.space.prevent="toggleSection('results')">Results</h3>
+            <h3 class="panel-head-heading"><button type="button" class="panel-head-heading__button" :aria-controls="sectionPanelIds.results" :aria-expanded="sectionExpanded.results ? 'true' : 'false'" @click="toggleSection('results')">Results</button></h3>
           </div>
           <div class="panel-head-controls">
             <div v-if="selectedRunDetail" class="detail-actions">
@@ -5285,10 +5285,20 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
 }
 
 .panel-head-heading {
-  cursor: pointer;
+  margin: 0;
 }
 
-.panel-head-heading:hover {
+.panel-head-heading__button {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.panel-head-heading__button:hover {
   color: #f3f3f3;
 }
 

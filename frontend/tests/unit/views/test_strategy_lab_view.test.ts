@@ -561,7 +561,7 @@ describe('StrategyLabView', () => {
     )
     expect(panel).toBeTruthy()
     if (!panel!.find('.panel-body').exists()) {
-      await panel!.get('.panel-head-heading').trigger('click')
+      await panel!.get('.panel-head-heading__button').trigger('click')
       await flushPromises()
     }
     expect(panel!.find('.panel-body').exists()).toBe(true)
@@ -573,18 +573,20 @@ describe('StrategyLabView', () => {
     await flushPromises()
     const heading = wrapper.findAll('.panel-head-heading').find(node => node.text().trim() === 'Strategy profile')
     expect(heading).toBeTruthy()
-    expect(heading!.attributes('role')).toBe('button')
-    expect(heading!.attributes('tabindex')).toBe('0')
-    const profilePanelId = heading!.attributes('aria-controls')
+    const control = heading!.get('.panel-head-heading__button')
+    expect(control.element.tagName).toBe('BUTTON')
+    expect(control.attributes('type')).toBe('button')
+    expect(control.attributes('role')).toBeUndefined()
+    const profilePanelId = control.attributes('aria-controls')
     expect(profilePanelId).toMatch(/-profile-panel$/)
 
-    const initialExpanded = heading!.attributes('aria-expanded')
-    await heading!.trigger('keydown', { key: 'Enter' })
-    expect(heading!.attributes('aria-expanded')).toBe(initialExpanded === 'true' ? 'false' : 'true')
+    const initialExpanded = control.attributes('aria-expanded')
+    await control.trigger('click')
+    expect(control.attributes('aria-expanded')).toBe(initialExpanded === 'true' ? 'false' : 'true')
 
-    const afterEnter = heading!.attributes('aria-expanded')
-    await heading!.trigger('keydown', { key: ' ' })
-    expect(heading!.attributes('aria-expanded')).toBe(afterEnter === 'true' ? 'false' : 'true')
+    const afterClick = control.attributes('aria-expanded')
+    await control.trigger('click')
+    expect(control.attributes('aria-expanded')).toBe(afterClick === 'true' ? 'false' : 'true')
   })
 
   it('scopes strategy disclosure ids within the mounted view instance', async () => {
@@ -594,8 +596,8 @@ describe('StrategyLabView', () => {
     const profileHeading = wrapper.findAll('.panel-head-heading').find(node => node.text().trim() === 'Strategy profile')
     expect(profileHeading).toBeTruthy()
 
-    const profilePanelId = profileHeading!.attributes('aria-controls')
-    const disclosureIds = wrapper.findAll('.panel-head-heading')
+    const profilePanelId = profileHeading!.get('.panel-head-heading__button').attributes('aria-controls')
+    const disclosureIds = wrapper.findAll('.panel-head-heading__button')
       .map(node => node.attributes('aria-controls'))
       .filter((id): id is string => Boolean(id))
     expect(profilePanelId).toMatch(/-profile-panel$/)
@@ -926,7 +928,7 @@ describe('StrategyLabView', () => {
     const resultsPanel = wrapper.findAll('.panel')[5]
     expect(resultsPanel.find('.panel-body').exists()).toBe(true)
 
-    await resultsPanel.get('.panel-head-heading').trigger('click')
+    await resultsPanel.get('.panel-head-heading__button').trigger('click')
     await flushPromises()
 
     expect(resultsPanel.find('.panel-body').exists()).toBe(false)
@@ -940,7 +942,7 @@ describe('StrategyLabView', () => {
 
     const runsHeading = wrapper.findAll('.panel-head-heading').find(node => node.text().trim() === 'Research runs')
     expect(runsHeading).toBeTruthy()
-    await runsHeading!.trigger('click')
+    await runsHeading!.get('.panel-head-heading__button').trigger('click')
 
     const toggle = wrapper.get('.scroll-list-toggle')
     const runHistoryId = toggle.attributes('aria-controls')
