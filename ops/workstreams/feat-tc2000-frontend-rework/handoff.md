@@ -14860,3 +14860,19 @@ No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback,
 or acceptance policy changed. Provider-platform and ETF consumer integration
 remain deferred until their branches reach staging; no other worktree was
 mutated.
+
+## 2026-10-02 — Indicator Panel control naming slice
+
+Product commit `8511723bd` preserves the legacy chart Indicator Panel's
+collapse, row-menu, preset, and editor-close actions while making their
+accessible names explicit. The panel toggle now exposes its button type,
+expanded state, and Hide/Show label; indicator, drawing, and alert row menus
+identify the row they act on; preset and editor controls have stable names.
+
+Focused Indicator Panel coverage passed `1/1`; the full serial frontend suite
+passed `124/124` files and `1,152/1,152` tests; `vue-tsc` type-check,
+production build, workstream validation, and `git diff --check` passed. The
+build retained the existing large-chunk warning and the suite retained its
+expected negative-path watchlist-store stderr. No provider-platform, ETF,
+visual baseline, threshold, mask, skip, fallback, or acceptance policy
+changed. No other worktree was mutated.

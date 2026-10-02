@@ -274,7 +274,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_relative_rotation_accessibility_checkpointed
+  current_phase: R6_indicator_panel_accessibility_checkpointed
   next_action: >-
     Verify the protected visual mismatch against the expected seeded baseline
     in a matching browser/font environment without changing snapshots or visual
