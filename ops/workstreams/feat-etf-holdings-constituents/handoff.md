@@ -6564,3 +6564,14 @@ provider-platform merge into staging or explicit scope direction for the
 unrelated generic visual-gate failures. On the staging update, inspect the
 exact staged contracts and implement only the narrow ETF-owned ETF_HOLDINGS
 bridge.
+
+## Receipt-commit exact-SHA CI — 2026-10-02
+
+The receipt-only commit `a13fccfd0bf9666ff471aac566cf0bc4f367c4e1` was
+validated by exact-SHA Actions run `37067318436`. Backend Tests,
+Branch-declared Tests, Frontend Unit Tests, and E2E Tests (Playwright) all
+passed; the protected Exhaustive Integration Gate was skipped as designed on
+the feature branch. The feature branch worktree and origin ref are synchronized
+at that SHA. The full local Docker-backed visual gate remains separately
+non-green as described above, and the provider-platform prerequisite remains
+outside staging.
