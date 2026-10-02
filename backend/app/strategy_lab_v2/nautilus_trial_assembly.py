@@ -12,7 +12,7 @@ allocation/risk integration and authoritative publication remain separate gates.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -39,6 +39,7 @@ from app.strategy_lab_v2.nautilus_engine_input import (
     build_nautilus_engine_input,
 )
 from app.strategy_lab_v2.nautilus_event_adapter import (
+    NautilusEventRecord,
     NautilusEventTape,
     iter_materialized_nautilus_event_records,
     materialize_nautilus_event_tape,
@@ -51,7 +52,7 @@ from app.strategy_lab_v2.nautilus_runtime_bundle import (
     materialize_nautilus_runtime_bundle,
 )
 from app.strategy_lab_v2.replay import iter_event_tape_contexts
-from app.strategy_lab_v2.sdk import StrategySdkManifest
+from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 
 
@@ -264,6 +265,8 @@ def assemble_nautilus_trial_runtime_input(
     effective_parameters = dict(strategy.default_parameters)
     effective_parameters.update(trial.parameter_set)
     try:
+        native_records: Iterable[NautilusEventRecord]
+        context_events: Iterable[MarketEvent]
         if isinstance(event_tape, FrozenEventTape):
             native_tape = materialize_nautilus_event_tape(
                 event_tape,

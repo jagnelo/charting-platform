@@ -8,6 +8,7 @@ import json
 import os
 import tempfile
 from collections import deque
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
@@ -246,7 +247,7 @@ def run_context_stream_cli_probe(
     source_event_tape = source_engine_input["event_tape"]
     if not isinstance(source_event_tape, dict):
         raise RuntimeError("adapter probe event tape is invalid")
-    source_events = [
+    source_events: list[dict[str, Any]] = [
         {
             "dependency_id": "prices",
             "event_id": f"adapter-event-{index + 1}",
@@ -266,7 +267,7 @@ def run_context_stream_cli_probe(
     source_event_tape["events"] = source_events
     source_event_tape["source_tape_fingerprint"] = content_digest(source_events)
 
-    def contexts():
+    def contexts() -> Iterator[StrategyContext]:
         history: deque[MarketEvent] = deque(maxlen=3)
         position = 0
         while position < len(source_events):
@@ -300,13 +301,13 @@ def run_context_stream_cli_probe(
                 {"prices": tuple(history)},
             )
 
-    contexts = contexts()
+    context_iter = contexts()
     context_wire = BytesIO()
     context_count = serialize_invocation_context_stream(
         context_wire,
         source=source,
         manifest=manifest,
-        contexts=contexts,
+        contexts=context_iter,
         entrypoint=entrypoint,
         max_intents_per_event=max_intents,
     )

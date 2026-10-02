@@ -299,7 +299,7 @@ def _iter_stream_context_trigger_indexes(
     dependencies = {item.dependency_id: item for item in manifest.data_dependencies}
     if not dependencies:
         raise NautilusRuntimeDataError("strategy manifest has no market-data dependencies")
-    histories = {
+    histories: dict[str, deque[MarketEvent]] = {
         dependency_id: deque(maxlen=dependency.lookback_periods + 1)
         for dependency_id, dependency in dependencies.items()
     }
@@ -664,9 +664,16 @@ def build_native_strategy_bridge(
             raise NautilusRuntimeDataError("strategy context count differs from its native tape")
         context_triggers = _iter_context_trigger_indexes(batch_contexts, ordered_records)
     else:
-        expected_event_count = (
-            native_event_count if native_event_stream is not None else len(event_definitions)
-        )
+        if native_event_stream is None:
+            expected_event_count = len(event_definitions)
+        else:
+            if (
+                not isinstance(native_event_count, int)
+                or isinstance(native_event_count, bool)
+                or native_event_count < 1
+            ):
+                raise NautilusRuntimeDataError("native event stream count is invalid")
+            expected_event_count = native_event_count
 
     native_event_callbacks = (
         iter_native_event_records()

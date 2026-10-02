@@ -152,6 +152,8 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
     if native_event_mount is not None:
         if context_mount is None:
             raise ValueError("sandbox native event stream requires strategy context streaming")
+        if native_event_digest is None:
+            raise ValueError("sandbox native event stream digest is required")
         _validate_mount(argv[native_event_mount], "/inputs/native-events", "readonly")
         require_sha256_digest(
             argv[native_event_digest].removeprefix(_NATIVE_EVENT_STREAM_ENV_PREFIX),

@@ -151,7 +151,7 @@ def _write_native_event_catalog(
 
     from nautilus_trader.config import BacktestDataConfig
     from nautilus_trader.model import BarType, InstrumentId
-    from nautilus_trader.persistence import ParquetDataCatalog
+    from nautilus_trader.persistence import ParquetDataCatalog  # type: ignore[attr-defined]
 
     tape = payload["event_tape"]
     assert isinstance(tape, Mapping)
@@ -224,22 +224,22 @@ def _write_native_event_catalog(
         if identifiers:
             data_configs.append(
                 BacktestDataConfig(
-                    data_type=data_type,
+                    data_type=data_type,  # type: ignore[call-arg]
                     catalog_path=str(catalog_path),
                     instrument_ids=tuple(
                         InstrumentId.from_str(item) for item in sorted(identifiers)
-                    ),
+                    ),  # type: ignore[arg-type]
                 )
             )
     if "ohlcv" in observed_types:
         data_configs.append(
             BacktestDataConfig(
-                data_type="Bar",
+                data_type="Bar",  # type: ignore[call-arg]
                 catalog_path=str(catalog_path),
-                bar_types=tuple(
-                    BarType.from_str(instrument_by_id[item]["bar_type"])
+                bar_types=[
+                    str(BarType.from_str(instrument_by_id[item]["bar_type"]))
                     for item in sorted(observed_instruments["ohlcv"])
-                ),
+                ],
             )
         )
     return catalog, data_configs
@@ -275,6 +275,8 @@ def run_native_backtest(
                 "native event stream digest requires the matching event stream"
             )
     else:
+        if not isinstance(native_event_stream_digest, str):
+            raise NautilusRuntimeDataError("native event stream digest is required")
         require_sha256_digest(
             native_event_stream_digest,
             field_name="native_event_stream_digest",
@@ -379,7 +381,7 @@ def run_native_backtest(
         return evidence
 
     if native_event_stream is not None:
-        from nautilus_trader.model import BookType, Currency
+        from nautilus_trader.model import BookType, Currency  # type: ignore[attr-defined]
 
         with TemporaryDirectory(prefix="strategy-lab-nautilus-catalog-") as temporary_root:
             catalog_path = Path(temporary_root) / "catalog"
@@ -406,9 +408,9 @@ def run_native_backtest(
                 data=data_configs,
                 engine=BacktestEngineConfig(
                     logging=LoggerConfig(bypass_logging=True),
-                    bypass_logging=True,
+                    bypass_logging=True,  # type: ignore[call-arg]
                 ),
-                id=str(uuid5(NAMESPACE_URL, content_digest(payload))),
+                id=str(uuid5(NAMESPACE_URL, content_digest(payload))),  # type: ignore[call-arg]
                 chunk_size=NAUTILUS_CATALOG_REPLAY_CHUNK_SIZE,
                 raise_exception=True,
                 dispose_on_completion=False,
@@ -430,7 +432,7 @@ def run_native_backtest(
     engine = BacktestEngine(
         BacktestEngineConfig(
             logging=LoggerConfig(bypass_logging=True),
-            bypass_logging=True,
+            bypass_logging=True,  # type: ignore[call-arg]
         )
     )
     try:

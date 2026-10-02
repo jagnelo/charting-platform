@@ -392,6 +392,8 @@ def run_bundle(
                 native_event_stream = None
                 if native_stream_binding is not None:
                     native_digest, native_byte_length = native_stream_binding
+                    if native_event_stream_path is None:
+                        raise ValueError("runtime native event stream path is required")
                     native_event_stream = _open_verified_native_event_stream(
                         native_event_stream_path,
                         expected_digest=native_digest,

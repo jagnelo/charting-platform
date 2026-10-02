@@ -124,6 +124,7 @@ def _validate_event(value: Any) -> Mapping[str, Any]:
 
 
 def _event_wire(event: Any) -> Mapping[str, Any]:
+    value: Mapping[str, Any]
     try:
         value = {
             name: getattr(event, name)
