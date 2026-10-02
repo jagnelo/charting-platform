@@ -30,6 +30,7 @@ from app.strategy_lab_v2.event_tape import (
 from app.strategy_lab_v2.replay import (
     ReplayStatus,
     build_event_tape_contexts,
+    iter_event_tape_contexts,
     replay_event_tape,
 )
 from app.strategy_lab_v2.sdk import (
@@ -83,9 +84,10 @@ def test_tape_fingerprint_is_stable_for_permuted_input() -> None:
         _event("a-1", "alpha", 1, offset=1),
         _event("b-0", "beta", 0),
     )
-    assert FrozenEventTape(SNAPSHOT, events).fingerprint == FrozenEventTape(
-        SNAPSHOT, tuple(reversed(events))
-    ).fingerprint
+    assert (
+        FrozenEventTape(SNAPSHOT, events).fingerprint
+        == FrozenEventTape(SNAPSHOT, tuple(reversed(events))).fingerprint
+    )
     assert FrozenEventTape(SNAPSHOT, events).definition_version == EVENT_TAPE_DEFINITION_VERSION
 
 
@@ -127,12 +129,13 @@ def test_slice_and_boundary_iteration_are_explicit_and_non_interpolating() -> No
     tape = FrozenEventTape(SNAPSHOT, events)
 
     assert tuple(tape.iter_events_until(BASE + timedelta(minutes=1))) == events[:2]
-    assert tuple(
-        tape.iter_events_until(BASE + timedelta(minutes=1), include_boundary=False)
-    ) == events[:1]
-    assert tape.slice(BASE, BASE + timedelta(minutes=2), include_start=False, include_end=False) == (
-        events[1],
+    assert (
+        tuple(tape.iter_events_until(BASE + timedelta(minutes=1), include_boundary=False))
+        == events[:1]
     )
+    assert tape.slice(
+        BASE, BASE + timedelta(minutes=2), include_start=False, include_end=False
+    ) == (events[1],)
     assert tape.slice(BASE + timedelta(minutes=1), BASE + timedelta(minutes=1)) == (events[1],)
     assert tape.slice() == events
 
@@ -246,7 +249,14 @@ def test_binding_rejects_snapshot_drift_and_dependency_or_field_mismatch() -> No
             FrozenEventTape(
                 snapshot.fingerprint,
                 tuple(
-                    MarketEvent("other", event.event_id, event.instrument_id, event.event_time, event.sequence, event.values)
+                    MarketEvent(
+                        "other",
+                        event.event_id,
+                        event.instrument_id,
+                        event.event_time,
+                        event.sequence,
+                        event.values,
+                    )
                     for event in tape.events
                 ),
             ),
@@ -367,6 +377,64 @@ def test_replay_contexts_group_same_time_events_and_bound_lookback() -> None:
         "bar-0b",
         "bar-2",
     ]
+    assert (
+        tuple(
+            iter_event_tape_contexts(
+                iter(tape.events),
+                manifest,
+                random_seed=19,
+                parameters={"threshold": 1},
+            )
+        )
+        == contexts
+    )
+
+
+def test_event_tape_context_iterator_is_lazy_and_keeps_only_bounded_batches() -> None:
+    _tape, _snapshot, manifest = _binding_inputs()
+    consumed = 0
+
+    def events():
+        nonlocal consumed
+        for sequence in range(100):
+            consumed += 1
+            yield _event(
+                f"bar-{sequence}",
+                "daily-bars",
+                sequence,
+                offset=sequence,
+                instrument_id="US.AAPL",
+            )
+
+    contexts = iter_event_tape_contexts(
+        events(),
+        manifest,
+        random_seed=19,
+        parameters={"threshold": 1},
+        max_events_per_batch=1,
+    )
+
+    first = next(contexts)
+    assert first.event_sequence == 0
+    assert consumed == 2  # One next-timestamp event closes the first batch.
+    assert len(tuple(contexts)) == 99
+    assert consumed == 100
+
+
+def test_event_tape_context_iterator_rejects_oversized_same_time_batch() -> None:
+    _tape, _snapshot, manifest = _binding_inputs()
+    first = _event("bar-0", "daily-bars", 0, instrument_id="US.AAPL")
+    same_time = _event("bar-1", "daily-bars", 1, instrument_id="US.AAPL")
+    iterator = iter_event_tape_contexts(
+        (first, same_time),
+        manifest,
+        random_seed=1,
+        parameters={},
+        max_events_per_batch=1,
+    )
+
+    with pytest.raises(ValueError, match="in-memory bound"):
+        next(iterator)
 
 
 def test_replay_uses_one_stateful_strategy_and_returns_binding_provenance() -> None:

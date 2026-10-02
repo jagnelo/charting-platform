@@ -10,8 +10,10 @@ owner of those concerns.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections import deque
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
@@ -102,9 +104,7 @@ def build_event_tape_contexts(
             histories[event.dependency_id].append(event)
 
         market_events = {
-            dependency_id: tuple(
-                history[-(declared[dependency_id].lookback_periods + 1) :]
-            )
+            dependency_id: tuple(history[-(declared[dependency_id].lookback_periods + 1) :])
             for dependency_id, history in histories.items()
         }
         positions = (
@@ -125,6 +125,148 @@ def build_event_tape_contexts(
             )
         )
     return tuple(contexts)
+
+
+def iter_event_tape_contexts(
+    events: Iterable[MarketEvent],
+    manifest: StrategySdkManifest,
+    *,
+    random_seed: int,
+    parameters: Mapping[str, Any],
+    positions_by_batch: Mapping[int, Mapping[str, PositionSnapshot]] | None = None,
+    max_events_per_batch: int = 100_000,
+) -> Iterator[StrategyContext]:
+    """Yield SDK contexts from canonical events with bounded rolling history.
+
+    The source must be in frozen event-tape order. Only one timestamp batch and
+    each dependency's declared ``lookback_periods + 1`` history are retained;
+    a single-event lookahead closes each timestamp group. Same-time events stay
+    atomic to strategies, while position snapshots retain the legacy batch
+    index. The explicit batch bound prevents a pathological timestamp from
+    defeating the streaming memory contract.
+    """
+
+    if not isinstance(events, Iterable) or isinstance(events, str | bytes):
+        raise TypeError("events must be an iterable of MarketEvent values")
+    if not isinstance(manifest, StrategySdkManifest):
+        raise TypeError("manifest must use StrategySdkManifest")
+    if not isinstance(random_seed, int) or isinstance(random_seed, bool):
+        raise TypeError("random_seed must be an integer")
+    if not isinstance(parameters, Mapping):
+        raise TypeError("parameters must be a mapping")
+    if positions_by_batch is not None and not isinstance(positions_by_batch, Mapping):
+        raise TypeError("positions_by_batch must be a mapping or None")
+    if (
+        not isinstance(max_events_per_batch, int)
+        or isinstance(max_events_per_batch, bool)
+        or max_events_per_batch < 1
+    ):
+        raise ValueError("max_events_per_batch must be a positive integer")
+
+    declared = {item.dependency_id: item for item in manifest.data_dependencies}
+    if positions_by_batch is not None:
+        for batch_sequence, positions in positions_by_batch.items():
+            if (
+                not isinstance(batch_sequence, int)
+                or isinstance(batch_sequence, bool)
+                or batch_sequence < 0
+            ):
+                raise ValueError("positions_by_batch contains an invalid batch sequence")
+            if not isinstance(positions, Mapping):
+                raise TypeError("positions_by_batch values must be mappings")
+            if any(
+                not isinstance(instrument_id, str) or not instrument_id.strip()
+                for instrument_id in positions
+            ):
+                raise ValueError("position map keys must be non-empty strings")
+            if any(not isinstance(position, PositionSnapshot) for position in positions.values()):
+                raise TypeError("positions_by_batch values must contain PositionSnapshot records")
+
+    histories: dict[str, deque[MarketEvent]] = {
+        dependency_id: deque(maxlen=dependency.lookback_periods + 1)
+        for dependency_id, dependency in declared.items()
+    }
+    observed_dependencies: set[str] = set()
+    previous_sort_key: tuple[datetime, int, str, str] | None = None
+    previous_by_dependency: dict[str, tuple[datetime, int]] = {}
+    current_time: datetime | None = None
+    current_events: list[MarketEvent] = []
+    batch_sequence = 0
+    saw_events = False
+
+    def context_for_batch(
+        event_time: datetime,
+        batch_events: list[MarketEvent],
+        sequence: int,
+    ) -> StrategyContext:
+        for item in batch_events:
+            histories[item.dependency_id].append(item)
+        market_events = {
+            dependency_id: tuple(history) for dependency_id, history in histories.items()
+        }
+        positions = positions_by_batch.get(sequence, {}) if positions_by_batch is not None else {}
+        return build_strategy_context(
+            manifest,
+            event_time=event_time,
+            event_sequence=max(item.sequence for item in batch_events),
+            random_seed=random_seed,
+            parameters=parameters,
+            market_events=market_events,
+            positions=positions,
+        )
+
+    for event in events:
+        if not isinstance(event, MarketEvent):
+            raise TypeError("events must contain MarketEvent values")
+        dependency = declared.get(event.dependency_id)
+        if dependency is None:
+            raise ValueError("event tape dependencies do not match the SDK manifest")
+        if event.instrument_id != dependency.requirement.instrument_id:
+            raise ValueError(
+                f"dependency {event.dependency_id!r} contains an undeclared instrument"
+            )
+        if set(event.values) != set(dependency.fields):
+            raise ValueError(
+                f"dependency {event.dependency_id!r} event fields do not match its declaration"
+            )
+        if not dependency.requirement.start <= event.event_time < dependency.requirement.end:
+            raise ValueError(
+                f"dependency {event.dependency_id!r} event falls outside its declared interval"
+            )
+
+        observed_dependencies.add(event.dependency_id)
+        sort_key = (event.event_time, event.sequence, event.dependency_id, event.event_id)
+        if previous_sort_key is not None and sort_key < previous_sort_key:
+            raise ValueError("event iterable is not in canonical event-tape order")
+        previous_sort_key = sort_key
+        previous = previous_by_dependency.get(event.dependency_id)
+        if previous is not None and (
+            event.sequence <= previous[1] or event.event_time < previous[0]
+        ):
+            raise ValueError(
+                f"dependency {event.dependency_id!r} events must advance sequence and time"
+            )
+        previous_by_dependency[event.dependency_id] = (event.event_time, event.sequence)
+
+        if current_time is not None and event.event_time != current_time:
+            yield context_for_batch(current_time, current_events, batch_sequence)
+            batch_sequence += 1
+            current_events = []
+        current_time = event.event_time
+        current_events.append(event)
+        if len(current_events) > max_events_per_batch:
+            raise ValueError("same-time event batch exceeds its configured in-memory bound")
+        saw_events = True
+
+    if current_events and current_time is not None:
+        yield context_for_batch(current_time, current_events, batch_sequence)
+        batch_sequence += 1
+    if not saw_events:
+        raise ValueError("event tape cannot replay an empty event set")
+    if observed_dependencies != set(declared):
+        raise ValueError("event tape dependencies do not match the SDK manifest")
+    if positions_by_batch is not None and set(positions_by_batch) - set(range(batch_sequence)):
+        raise ValueError("positions_by_batch contains an unknown batch sequence")
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,7 +328,10 @@ class StrategyReplayResult:
 
         last = invocations[-1]
         if self.status is ReplayStatus.SUCCEEDED:
-            if self.processed_batches != self.batch_count or self.stopped_batch_sequence is not None:
+            if (
+                self.processed_batches != self.batch_count
+                or self.stopped_batch_sequence is not None
+            ):
                 raise ValueError("successful replays must process every batch")
             if any(item.status is not InvocationStatus.SUCCEEDED for item in invocations):
                 raise ValueError("successful replays cannot contain rejected or failed invocations")
@@ -257,9 +402,7 @@ def replay_event_tape(
         )
     )
     stopped_batch_sequence: int | None = (
-        len(invocations) - 1
-        if invocations[-1].status is not InvocationStatus.SUCCEEDED
-        else None
+        len(invocations) - 1 if invocations[-1].status is not InvocationStatus.SUCCEEDED else None
     )
 
     last = invocations[-1]
@@ -289,5 +432,6 @@ __all__ = [
     "ReplayStatus",
     "StrategyReplayResult",
     "build_event_tape_contexts",
+    "iter_event_tape_contexts",
     "replay_event_tape",
 ]

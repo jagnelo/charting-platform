@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
+from io import BytesIO
 
 import pytest
 
@@ -29,17 +30,21 @@ from app.strategy_lab_v2.sdk import (
 )
 from strategy_runtime import (
     BATCH_WIRE_PROTOCOL_VERSION,
+    INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION,
+    MAX_INVOCATION_CONTEXT_STREAM_BYTES,
     MAX_WIRE_PAYLOAD_BYTES,
     InvocationStatus,
     deserialize_invocation,
     deserialize_invocation_batch,
     deserialize_invocation_batch_result,
+    deserialize_invocation_context_stream,
     deserialize_invocation_result,
     main,
     run_strategy_events,
     serialize_invocation,
     serialize_invocation_batch,
     serialize_invocation_batch_result,
+    serialize_invocation_context_stream,
     serialize_invocation_result,
 )
 from strategy_runtime.runner import run_strategy_event
@@ -69,9 +74,7 @@ def _manifest(source: str) -> StrategySdkManifest:
             "version-1",
             "2.0",
             content_digest(source),
-            dependencies=(
-                StrategyDependency("example-model", "1.2.3", content_digest("wheel")),
-            ),
+            dependencies=(StrategyDependency("example-model", "1.2.3", content_digest("wheel")),),
             parameter_schema={"threshold": {"type": "number"}},
             default_parameters={"threshold": Decimal("1.5000")},
         ),
@@ -98,9 +101,7 @@ def _context() -> StrategyContext:
             )
         },
         positions={
-            "US.AAPL": PositionSnapshot(
-                "US.AAPL", Decimal("2"), Decimal("180"), Decimal("380")
-            )
+            "US.AAPL": PositionSnapshot("US.AAPL", Decimal("2"), Decimal("180"), Decimal("380"))
         },
     )
 
@@ -115,7 +116,9 @@ def test_invocation_wire_round_trip_is_canonical_and_typed() -> None:
         entrypoint="strategy.main:Strategy",
         max_intents_per_event=7,
     )
-    decoded_source, decoded_manifest, decoded_context, entrypoint, limit = deserialize_invocation(encoded)
+    decoded_source, decoded_manifest, decoded_context, entrypoint, limit = deserialize_invocation(
+        encoded
+    )
     assert deserialize_invocation(encoded)[0] == decoded_source
     assert decoded_source == source
     assert decoded_manifest == manifest
@@ -200,8 +203,8 @@ class Strategy:
         entrypoint="strategy.main:Strategy",
         max_intents_per_event=7,
     )
-    decoded_source, decoded_manifest, decoded_contexts, entrypoint, limit = deserialize_invocation_batch(
-        encoded
+    decoded_source, decoded_manifest, decoded_contexts, entrypoint, limit = (
+        deserialize_invocation_batch(encoded)
     )
     assert decoded_source == source
     assert decoded_manifest == manifest
@@ -227,11 +230,124 @@ class Strategy:
     assert all(item.status is InvocationStatus.SUCCEEDED for item in results)
     result_payload = serialize_invocation_batch_result(results)
     assert deserialize_invocation_batch_result(result_payload) == results
-    tampered = result_payload.replace(
-        '"fingerprint":"', '"fingerprint":"sha256:tampered', 1
-    )
+    tampered = result_payload.replace('"fingerprint":"', '"fingerprint":"sha256:tampered', 1)
     with pytest.raises(ValueError, match="fingerprint"):
         deserialize_invocation_batch_result(tampered)
+
+
+def test_context_stream_wire_round_trip_consumes_contexts_incrementally() -> None:
+    source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
+    manifest = _manifest(source)
+    first = _context()
+    second_event = MarketEvent(
+        "daily-bars",
+        "bar-2",
+        "US.AAPL",
+        NOW + timedelta(days=1),
+        2,
+        {"close": Decimal("191")},
+    )
+    second = replace(
+        first,
+        event_time=NOW + timedelta(days=1),
+        event_sequence=2,
+        market_events={"daily-bars": (second_event,)},
+    )
+    yielded: list[StrategyContext] = []
+
+    def contexts():
+        for context in (first, second):
+            yielded.append(context)
+            yield context
+
+    payload = BytesIO()
+    assert (
+        serialize_invocation_context_stream(
+            payload,
+            source=source,
+            manifest=manifest,
+            contexts=contexts(),
+            entrypoint="strategy.main:Strategy",
+            max_intents_per_event=7,
+        )
+        == 2
+    )
+    assert yielded == [first, second]
+    assert (
+        f'"protocol_version":"{INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION}"'.encode()
+        in payload.getvalue()
+    )
+
+    payload.seek(0)
+    decoded_source, decoded_manifest, decoded_contexts, entrypoint, limit = (
+        deserialize_invocation_context_stream(payload, expected_context_count=2)
+    )
+    assert decoded_source == source
+    assert decoded_manifest == manifest
+    assert entrypoint == "strategy.main:Strategy"
+    assert limit == 7
+    header_offset = payload.tell()
+    assert next(decoded_contexts) == first
+    assert payload.tell() > header_offset
+    assert next(decoded_contexts) == second
+    with pytest.raises(StopIteration):
+        next(decoded_contexts)
+
+
+def test_context_stream_wire_rejects_count_order_and_index_drift() -> None:
+    source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
+    manifest = _manifest(source)
+    first = _context()
+    second = replace(first, event_time=NOW + timedelta(minutes=1), event_sequence=2)
+    encoded = BytesIO()
+    serialize_invocation_context_stream(
+        encoded,
+        source=source,
+        manifest=manifest,
+        contexts=(first, second),
+        entrypoint="strategy.main:Strategy",
+    )
+    wire = encoded.getvalue()
+
+    with pytest.raises(ValueError, match="strictly chronological"):
+        serialize_invocation_context_stream(
+            BytesIO(),
+            source=source,
+            manifest=manifest,
+            contexts=(second, first),
+            entrypoint="strategy.main:Strategy",
+        )
+
+    _, _, incomplete, _, _ = deserialize_invocation_context_stream(
+        BytesIO(wire), expected_context_count=3
+    )
+    assert next(incomplete) == first
+    assert next(incomplete) == second
+    with pytest.raises(ValueError, match="count differs"):
+        next(incomplete)
+
+    tampered = wire.replace(b'"index":1', b'"index":2', 1)
+    _, _, invalid_indexes, _, _ = deserialize_invocation_context_stream(BytesIO(tampered))
+    assert next(invalid_indexes) == first
+    with pytest.raises(ValueError, match="index is not contiguous"):
+        next(invalid_indexes)
+
+    stream_limit = len(wire.split(b"\n", 1)[0]) + 1
+    with pytest.raises(ValueError, match="configured byte bound"):
+        serialize_invocation_context_stream(
+            BytesIO(),
+            source=source,
+            manifest=manifest,
+            contexts=(first,),
+            entrypoint="strategy.main:Strategy",
+            max_stream_bytes=stream_limit,
+        )
+    with pytest.raises(ValueError, match="configured byte bound"):
+        _, _, bounded_contexts, _, _ = deserialize_invocation_context_stream(
+            BytesIO(wire), max_stream_bytes=stream_limit
+        )
+        next(bounded_contexts)
+    assert MAX_INVOCATION_CONTEXT_STREAM_BYTES > MAX_WIRE_PAYLOAD_BYTES
 
 
 def test_wire_datetimes_normalize_equivalent_offsets_to_utc() -> None:
@@ -290,9 +406,9 @@ def test_batch_wire_rejects_empty_contexts_unknown_fields_and_versions() -> None
     with pytest.raises(ValueError, match="unsupported"):
         deserialize_invocation_batch(encoded.replace(BATCH_WIRE_PROTOCOL_VERSION, "old"))
     with pytest.raises(ValueError, match="duplicate"):
-        deserialize_invocation_batch(encoded.replace(
-            '"source":', '"source":"duplicate", "source":', 1
-        ))
+        deserialize_invocation_batch(
+            encoded.replace('"source":', '"source":"duplicate", "source":', 1)
+        )
 
 
 def test_batch_wire_rejects_non_chronological_contexts_before_execution() -> None:
@@ -318,9 +434,7 @@ def test_batch_wire_rejects_non_chronological_contexts_before_execution() -> Non
         ),
         entrypoint="strategy.main:Strategy",
     )
-    tampered = valid_payload.replace(
-        '"event_sequence":2', '"event_sequence":0', 1
-    )
+    tampered = valid_payload.replace('"event_sequence":2', '"event_sequence":0', 1)
     with pytest.raises(ValueError, match="strictly chronological"):
         deserialize_invocation_batch(tampered)
 
@@ -379,13 +493,11 @@ def test_protocol_rejects_unknown_fields_and_versions() -> None:
     with pytest.raises(ValueError, match="unsupported"):
         deserialize_invocation(encoded.replace("strategy-lab.strategy-runtime.v1", "old"))
     with pytest.raises(ValueError, match="duplicate"):
-        deserialize_invocation(encoded.replace(
-            '"source":', '"source":"duplicate", "source":', 1
-        ))
+        deserialize_invocation(encoded.replace('"source":', '"source":"duplicate", "source":', 1))
     with pytest.raises(ValueError, match="non-finite"):
-        deserialize_invocation(encoded.replace(
-            '"max_intents_per_event":100', '"max_intents_per_event":NaN', 1
-        ))
+        deserialize_invocation(
+            encoded.replace('"max_intents_per_event":100', '"max_intents_per_event":NaN', 1)
+        )
 
 
 def test_protocol_rejects_oversized_inbound_payload_before_json_decode() -> None:

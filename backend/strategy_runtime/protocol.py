@@ -10,10 +10,10 @@ result envelope contains only typed intents and digest-bound evidence.
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, BinaryIO
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capabilities import CapabilityRequirement
@@ -40,8 +40,10 @@ from app.strategy_lab_v2.sdk import (
 
 WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.v1"
 BATCH_WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.batch.v1"
+INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.context-stream.v1"
 STRATEGY_MANIFEST_WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-manifest.v1"
 MAX_WIRE_PAYLOAD_BYTES = 16 * 1024 * 1024
+MAX_INVOCATION_CONTEXT_STREAM_BYTES = 16 * 1024 * 1024 * 1024
 
 
 class _DuplicateFieldError(ValueError):
@@ -663,6 +665,191 @@ def deserialize_invocation_batch(
     return source, manifest, contexts, entrypoint, max_intents
 
 
+def _write_context_stream_record(stream: BinaryIO, wire: bytes) -> None:
+    offset = 0
+    while offset < len(wire):
+        written = stream.write(wire[offset:])
+        if not isinstance(written, int) or written <= 0:
+            raise OSError("invocation context stream writer made no progress")
+        offset += written
+
+
+def _read_context_stream_record(
+    stream: BinaryIO,
+    field_name: str,
+) -> tuple[Any, int] | None:
+    wire = stream.readline(MAX_WIRE_PAYLOAD_BYTES + 2)
+    if not wire:
+        return None
+    if not wire.endswith(b"\n") or len(wire) > MAX_WIRE_PAYLOAD_BYTES + 1:
+        raise ValueError(f"{field_name} is overlong or unterminated")
+    try:
+        payload = wire[:-1].decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError(f"{field_name} is not valid UTF-8") from error
+    return _load_json(payload, field_name), len(wire)
+
+
+def serialize_invocation_context_stream(
+    stream: BinaryIO,
+    *,
+    source: str,
+    manifest: StrategySdkManifest,
+    contexts: Iterable[StrategyContext],
+    entrypoint: str,
+    max_intents_per_event: int = 100,
+    max_stream_bytes: int = MAX_INVOCATION_CONTEXT_STREAM_BYTES,
+) -> int:
+    """Write a one-pass, line-framed context stream without materializing a batch."""
+
+    if not callable(getattr(stream, "write", None)):
+        raise TypeError("stream must provide write(bytes)")
+    if not isinstance(source, str):
+        raise TypeError("stream invocation source must be a string")
+    _validate_source_manifest_binding(source, manifest)
+    if not isinstance(contexts, Iterable) or isinstance(contexts, str | bytes):
+        raise TypeError("stream invocation contexts must be iterable")
+    if not isinstance(entrypoint, str) or not entrypoint.strip():
+        raise ValueError("invocation stream entrypoint must not be empty")
+    if (
+        not isinstance(max_intents_per_event, int)
+        or isinstance(max_intents_per_event, bool)
+        or max_intents_per_event < 1
+    ):
+        raise ValueError("invocation stream max_intents_per_event must be positive")
+    if (
+        not isinstance(max_stream_bytes, int)
+        or isinstance(max_stream_bytes, bool)
+        or max_stream_bytes < 1
+    ):
+        raise ValueError("invocation stream byte bound must be a positive integer")
+
+    header = {
+        "protocol_version": INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION,
+        "source": source,
+        "manifest": _encode_manifest(manifest),
+        "entrypoint": entrypoint,
+        "max_intents_per_event": max_intents_per_event,
+    }
+    header_wire = (_dump_json(header, "invocation context stream header") + "\n").encode("utf-8")
+    observed_bytes = len(header_wire)
+    if observed_bytes > max_stream_bytes:
+        raise ValueError("invocation context stream exceeds its configured byte bound")
+    _write_context_stream_record(stream, header_wire)
+    previous_key: tuple[datetime, int] | None = None
+    count = 0
+    for context in contexts:
+        if not isinstance(context, StrategyContext):
+            raise TypeError("invocation stream contexts must use StrategyContext values")
+        context_key = (context.event_time, context.event_sequence)
+        if previous_key is not None and context_key <= previous_key:
+            raise ValueError(
+                "invocation stream contexts must be strictly chronological by event_time and event_sequence"
+            )
+        previous_key = context_key
+        record = {"index": count, "context": _encode_context(context)}
+        record_wire = (_dump_json(record, "invocation context stream record") + "\n").encode(
+            "utf-8"
+        )
+        observed_bytes += len(record_wire)
+        if observed_bytes > max_stream_bytes:
+            raise ValueError("invocation context stream exceeds its configured byte bound")
+        _write_context_stream_record(stream, record_wire)
+        count += 1
+    if count == 0:
+        raise ValueError("invocation context stream must not be empty")
+    return count
+
+
+def deserialize_invocation_context_stream(
+    stream: BinaryIO,
+    *,
+    expected_context_count: int | None = None,
+    max_stream_bytes: int = MAX_INVOCATION_CONTEXT_STREAM_BYTES,
+) -> tuple[str, StrategySdkManifest, Iterator[StrategyContext], str, int]:
+    """Read stream metadata now and decode one strict context per iteration."""
+
+    if not callable(getattr(stream, "readline", None)):
+        raise TypeError("stream must provide readline(size)")
+    if expected_context_count is not None and (
+        not isinstance(expected_context_count, int)
+        or isinstance(expected_context_count, bool)
+        or expected_context_count < 1
+    ):
+        raise ValueError("expected_context_count must be a positive integer or None")
+    if (
+        not isinstance(max_stream_bytes, int)
+        or isinstance(max_stream_bytes, bool)
+        or max_stream_bytes < 1
+    ):
+        raise ValueError("invocation stream byte bound must be a positive integer")
+
+    header_record = _read_context_stream_record(stream, "invocation context stream header")
+    if header_record is None:
+        raise ValueError("invocation context stream header is missing")
+    header, observed_bytes = header_record
+    if observed_bytes > max_stream_bytes:
+        raise ValueError("invocation context stream exceeds its configured byte bound")
+    header = _mapping(header, "header")
+    if set(header) != {
+        "protocol_version",
+        "source",
+        "manifest",
+        "entrypoint",
+        "max_intents_per_event",
+    }:
+        raise ValueError("invocation context stream header fields are invalid")
+    if header["protocol_version"] != INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION:
+        raise ValueError("unsupported invocation context stream protocol version")
+    source = header["source"]
+    entrypoint = header["entrypoint"]
+    max_intents = header["max_intents_per_event"]
+    if not isinstance(source, str):
+        raise TypeError("invocation context stream source must be a string")
+    if not isinstance(entrypoint, str) or not entrypoint.strip():
+        raise ValueError("invocation context stream entrypoint must not be empty")
+    if not isinstance(max_intents, int) or isinstance(max_intents, bool) or max_intents < 1:
+        raise ValueError("invocation context stream max_intents_per_event must be positive")
+    manifest = _decode_manifest(header["manifest"])
+    _validate_source_manifest_binding(source, manifest)
+
+    def decoded_contexts() -> Iterator[StrategyContext]:
+        nonlocal observed_bytes
+        previous_key: tuple[datetime, int] | None = None
+        index = 0
+        while record_line := _read_context_stream_record(
+            stream, "invocation context stream record"
+        ):
+            record, line_bytes = record_line
+            observed_bytes += line_bytes
+            if observed_bytes > max_stream_bytes:
+                raise ValueError("invocation context stream exceeds its configured byte bound")
+            record = _mapping(record, "invocation context stream record")
+            if set(record) != {"index", "context"}:
+                raise ValueError("invocation context stream record fields are invalid")
+            if (
+                not isinstance(record["index"], int)
+                or isinstance(record["index"], bool)
+                or record["index"] != index
+            ):
+                raise ValueError("invocation context stream record index is not contiguous")
+            context = _decode_context(record["context"])
+            context_key = (context.event_time, context.event_sequence)
+            if previous_key is not None and context_key <= previous_key:
+                raise ValueError(
+                    "invocation context stream is not strictly chronological by event_time and event_sequence"
+                )
+            previous_key = context_key
+            index += 1
+            yield context
+        if index == 0:
+            raise ValueError("invocation context stream must not be empty")
+        if expected_context_count is not None and index != expected_context_count:
+            raise ValueError("invocation context stream count differs from its artifact reference")
+
+    return source, manifest, decoded_contexts(), entrypoint, max_intents
+
+
 def _encode_intent(intent: StrategyIntent) -> dict[str, Any]:
     if isinstance(intent, OrderIntent):
         return {
@@ -836,15 +1023,19 @@ def deserialize_invocation_batch_result(payload: str) -> tuple[Any, ...]:
 
 __all__ = [
     "BATCH_WIRE_PROTOCOL_VERSION",
+    "INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION",
+    "MAX_INVOCATION_CONTEXT_STREAM_BYTES",
     "MAX_WIRE_PAYLOAD_BYTES",
     "STRATEGY_MANIFEST_WIRE_PROTOCOL_VERSION",
     "WIRE_PROTOCOL_VERSION",
     "deserialize_invocation_batch",
     "deserialize_invocation_batch_result",
+    "deserialize_invocation_context_stream",
     "deserialize_invocation",
     "deserialize_invocation_result",
     "serialize_invocation_batch",
     "serialize_invocation_batch_result",
+    "serialize_invocation_context_stream",
     "serialize_invocation",
     "serialize_invocation_result",
     "deserialize_strategy_manifest",
