@@ -23,7 +23,7 @@ goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
   persistent broker-free shadow testing. Keep the strategy SDK engine-neutral,
-  use Nautilus as the only authoritative simulator after stable v2 conformance,
+  use Nautilus as the authoritative simulator after exact-pinned v2 conformance,
   and respect provider-platform, ETF, and TC2000 workstream ownership.
 scope:
   - >-
@@ -43,12 +43,13 @@ scope:
     TC2000 CodeVersion/Study Lab outputs. Do not duplicate provider governance,
     data acquisition, membership history, code authoring, or research execution.
   - >-
-    Add authoritative Nautilus BacktestNode execution only when a stable
-    Nautilus v2 release passes the platform conformance suite. Keep its version,
-    Python environment, and runtime image isolated from the legacy Nautilus
-    1.226 installation. The current exact v2 release candidate may run in that
-    isolated environment for non-authoritative local compatibility, replay, and
-    event-tape evidence; stable remains mandatory for published authority.
+    Add authoritative local Nautilus BacktestNode execution when an exact-pinned
+    Nautilus v2 build passes the platform conformance suite; stable or
+    pre-release builds are eligible. Keep its version, Python environment, and
+    runtime image isolated from legacy Nautilus 1.226. Record exact version,
+    release channel, wheel digest, and image digest in every result. A
+    pre-release must never control real capital or connect to a broker, and
+    forward-shadow qualification additionally requires event-tape parity.
   - >-
     Add isolated serial backtest workers and separately reserved persistent
     forward workers; PostgreSQL metadata/state, Redis durable dispatch and
@@ -119,10 +120,12 @@ execution_plan:
       services.
     - >-
       Add the isolated Rust canonical-data adapter and a separate exact-pinned
-      Nautilus v2 release-candidate runtime for non-authoritative compatibility,
-      replay, and event-tape evidence. Once stable v2 is published, rerun the
-      same conformance suite and promote that isolated runtime to authoritative
-      serial backtest/forward execution only after every check passes.
+      Nautilus v2 runtime. The current release candidate may be exercised now;
+      qualify that exact build with the full platform conformance suite before
+      authoritative local backtests. Stable releases are eligible but not a
+      prerequisite and must pass the same suite before replacing the pin.
+      Broker-free forward-shadow execution additionally requires forward
+      event-tape parity and remains barred from real-capital broker use.
     - >-
       Complete full branch integration/security/reproducibility validation and
       hand off at ready_for_human_review. The UI and any deployed shadow soak
@@ -143,10 +146,12 @@ dependencies:
     staged code/output contracts; do not edit its active files before staging or
     create a parallel editor/research runner.
   - >-
-    Nautilus stable v2 is the authoritative publication/live-shadow gate. The
-    current exact 2.0.0rc5 release candidate may be pinned in a separate Python/
-    Rust/runtime-image environment for compatibility execution now; it must be
-    labelled non-authoritative and excluded from official rankings.
+    No upstream stability label is required. The current exact 2.0.0rc5 build
+    may be pinned in a separate Python/Rust/runtime-image environment now;
+    qualify it against the complete platform conformance suite before treating
+    its local backtests as authoritative. Preserve pre-release provenance in
+    every result and never use a pre-release to control real capital. Each
+    later engine build must independently pass the same suite.
 acceptance_criteria:
   - id: AC-DOMAIN
     text: >-
@@ -213,12 +218,15 @@ acceptance_criteria:
       worker.
   - id: AC-NAUTILUS
     text: >-
-      A pinned stable Nautilus v2 release passes a platform conformance suite for
-      multi-instrument accounting, native order/fill/cost models, reports,
-      deterministic replay, engine lifecycle, and backtest/forward event-tape
-      parity before it can publish authoritative results. The platform owns a
-      Rust data adapter for canonical forward events; provider adapters are not
-      used as a second data source.
+      An exact-pinned Nautilus v2 build (stable or pre-release) passes a platform
+      conformance suite for multi-instrument accounting, native order/fill/cost
+      models, reports, deterministic replay, and engine lifecycle before it can
+      publish authoritative local backtest results. Every result records exact
+      engine version/channel and wheel/image digests. Pre-releases never control
+      real capital or connect to a broker; broker-free forward-shadow execution
+      additionally passes backtest/forward event-tape parity. The platform owns
+      a Rust data adapter for canonical forward events; provider adapters are
+      not used as a second data source.
   - id: AC-FORWARD
     text: >-
       Persistent broker-free shadow instances use immutable historical warm-up
@@ -777,7 +785,8 @@ progress:
     - strategy-lab-v2-nautilus-time-batched-event-context-bridge
     - strategy-lab-v2-nautilus-immutable-trial-input-assembly
     - strategy-lab-v2-owner-scoped-typed-resource-rehydration
+    - strategy-lab-v2-exact-pinned-prerelease-authority-gate
   total: 18
-  current_phase: strategy-lab-v2-owner-scoped-typed-resource-rehydration-proven
-  current_blocker: No external blocker prevents isolated RC implementation. Stable Nautilus v2 is only the current authority/conformance gate; provider, ETF, and TC2000 staging boundaries apply only to their shared-contract integrations. The PostgreSQL reader can now return validated owner-scoped typed resource records, but package/source and event-tape artifact resolution, provider-derived instrument metadata, trusted dispatch-evidence composition, and worker handoff binding remain implementation work. Target-position routing and broader native product/accounting/report conformance also remain open.
-  next_action: define verified local artifact resolvers for strategy-package archive/manifest and frozen event-tape inputs, then compose them with owner-scoped typed resource reads plus injected instrument-catalog and venue/account adapters to produce the runtime bundle. Bind its compact reference into worker execution evidence and atomic search dispatch. Keep provider-native adapters behind the approved shared contracts until that work reaches staging; then implement event-aligned target-position allocation/risk and broaden native product/accounting/report conformance. Preserve pinned RC results as non-authoritative until the recorded conformance/authority policy is satisfied.
+  current_phase: strategy-lab-v2-exact-pinned-prerelease-authority-gate
+  current_blocker: No external blocker prevents isolated v2 implementation or local backtest qualification. The exact pinned 2.0.0rc5 build must still pass the full platform conformance suite before its results are treated as authoritative; that is implementation and validation work, not a wait for an upstream stable tag. Provider, ETF, and TC2000 staging boundaries apply only to their shared-contract integrations. Package/source and event-tape artifact resolution, provider-derived instrument metadata, trusted dispatch-evidence composition, and worker handoff binding remain implementation work. Target-position routing and broader native product/accounting/report conformance also remain open.
+  next_action: define verified local artifact resolvers for strategy-package archive/manifest and frozen event-tape inputs, then compose them with owner-scoped typed resource reads plus injected instrument-catalog and venue/account adapters to produce the runtime bundle. Bind its compact reference into worker execution evidence and atomic search dispatch. Keep provider-native adapters behind the approved shared contracts until that work reaches staging; then implement event-aligned target-position allocation/risk and broaden native product/accounting/report conformance. Qualify the exact pinned Nautilus v2 build against the complete suite; stable upstream publication is not a prerequisite.

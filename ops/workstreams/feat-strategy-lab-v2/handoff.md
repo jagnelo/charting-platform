@@ -2,6 +2,30 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-02 - Pinned Nautilus v2 qualification policy
+
+The Strategy Lab does not wait for an upstream stable 2.x tag. An exact-pinned
+Nautilus v2 build, including the current `2.0.0rc5`, is eligible for local
+backtests after it passes the full platform conformance suite. Results retain
+the exact package version/channel and wheel/image digests. A pre-release may
+not connect to a broker or control real capital; broker-free forward-shadow
+qualification separately requires event-tape parity. This converts the former
+stable-tag dependency into a measurable local qualification gate while keeping
+the research sandbox local and fail-closed.
+
+Upstream currently documents v2 wheels as release candidates, requires
+pre-release installation, and advises against using them in production to
+control real capital: [NautilusTrader installation guidance](https://nautilustrader.io/docs/nightly/getting_started/installation/)
+and [official releases](https://github.com/nautechsystems/nautilus_trader/releases).
+The branch has already built and exercised its digest-pinned RC5 image in the
+isolated sandbox. At source SHA
+`443a692bfde9113579f35bb60c028e2b9c6d6730`, the exact Strategy Lab v2 suite
+passed 1,047 tests, Ruff passed, MyPy passed across 320 source files, all eight
+changed Python files passed formatting, and the whitespace check was clean.
+The partial RC fixture remains non-authoritative; full multi-instrument,
+accounting, reporting, replay, lifecycle, and forward-parity evidence remains
+implementation work, not an upstream release wait.
+
 ## 2026-10-02 - Fail-closed persisted domain fingerprint validation
 
 The owner-scoped typed resource reader now rejects a present-but-malformed
