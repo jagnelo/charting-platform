@@ -40,6 +40,16 @@
       capability, and deployment-secret gaps. No generic limit, prior usage,
       or local zero was inferred.
 
+### 2026-10-02 — Pushed-head full safety preflight receipt
+
+- [x] Re-ran the same full safety preflight at the pushed branch tip
+      `dfa4adb7a5a3895c5655141ae162e06aef74f00c`; it again stopped before
+      transport with `0/0` cases and zero provider requests.
+- [ ] The unresolved admissions are unchanged: CoinGecko per-minute baseline,
+      provider-specific quota/cost/byte contracts, legal/venue/capability
+      controls, and target deployment/CI secret stores. No unsafe fallback or
+      prior-usage inference was introduced.
+
 ### 2026-10-02 — Exact-head full safety preflight
 
 - [x] The full manifest was re-run after the Kraken admission audit at source

@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 pushed-head full safety preflight at source
+    dfa4adb7a5a3895c5655141ae162e06aef74f00c stopped before transport with
+    0/0 cases and zero provider requests. Unresolved admissions are unchanged:
+    CoinGecko per-minute baseline, provider-specific quota/cost/byte
+    contracts, legal/venue/capability controls, and target deployment/CI
+    secret stores. No unsafe fallback or prior-usage inference was introduced.
+  - >-
     2026-10-02 exact-head full safety preflight after CoinGecko admission at
     source 60abc3ea07d0da8e356e36b809f5efe4d93ab42d stopped before transport
     with 0/0 cases and zero provider requests. It records CoinGecko's

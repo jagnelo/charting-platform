@@ -44,6 +44,16 @@
   existing provider-specific quota/cost/byte, legal, venue, capability, and
   deployment-secret gaps. No generic limit or prior usage was inferred.
 
+## 2026-10-02 Pushed-head full safety preflight receipt
+
+- The same full manifest was re-run at the pushed branch tip
+  `dfa4adb7a5a3895c5655141ae162e06aef74f00c`; it again stopped before
+  transport with `0/0` cases and zero provider requests.
+- Unresolved admissions are unchanged: CoinGecko per-minute baseline,
+  provider-specific quota/cost/byte contracts, legal/venue/capability
+  controls, and target deployment/CI secret stores. No unsafe fallback or
+  prior-usage inference was introduced.
+
 ## 2026-10-02 Exact-head full safety preflight
 
 - The full manifest was re-run at source
