@@ -146,6 +146,55 @@ async def _tokenized_event_state(
     return state
 
 
+async def _fair_tokenized_event_provider_order(
+    db: AsyncSession,
+    providers: list[Any],
+) -> list[Any]:
+    """Order action-feed providers so a per-job provider cap cannot starve one.
+
+    ``max_providers`` is a per-invocation fairness budget, not a permanent
+    allow-list. Providers with an incomplete/failed feed state (or no state
+    yet) are preferred first; completed providers are then rotated by their
+    oldest successful observation. The provider-chain order remains the final
+    deterministic tie-breaker, so normal capability/health ranking still
+    influences equal-age choices.
+    """
+
+    if len(providers) < 2:
+        return providers
+    names = [str(item.provider_name).strip().lower() for item in providers]
+    rows = (
+        await db.execute(
+            select(ProviderPaginationState).where(
+                ProviderPaginationState.provider.in_(names),
+                ProviderPaginationState.capability
+                == ProviderCapability.TOKENIZED_CORPORATE_ACTIONS.value,
+                ProviderPaginationState.operation == "fetch_tokenized_corporate_actions",
+            )
+        )
+    ).scalars().all()
+    by_provider: dict[str, list[ProviderPaginationState]] = {}
+    for row in rows:
+        by_provider.setdefault(str(row.provider).strip().lower(), []).append(row)
+
+    def fairness_key(indexed: tuple[int, Any]) -> tuple[int, float, int]:
+        index, provider = indexed
+        provider_name = str(provider.provider_name).strip().lower()
+        states = by_provider.get(provider_name, [])
+        incomplete = not states or any(state.status != "complete" for state in states)
+        successful_times = [
+            state.last_success_at.timestamp()
+            for state in states
+            if state.last_success_at is not None
+        ]
+        # Missing/incomplete state must be selected before a completed feed;
+        # among completed feeds, the oldest successful provider goes first.
+        oldest_success = min(successful_times) if successful_times else float("-inf")
+        return (0 if incomplete else 1, oldest_success, index)
+
+    return [item for _, item in sorted(enumerate(providers), key=fairness_key)]
+
+
 def _ensure_provider_data_may_be_persisted(provider_name: str) -> None:
     if str(provider_name or "").strip().lower() in _NON_PERSISTING_TOKENIZED_CANARIES:
         raise ProviderNotConfiguredError(
@@ -815,7 +864,11 @@ async def refresh_tokenized_events(
         for item in chain
         if callable(getattr(item.provider, "fetch_tokenized_corporate_actions", None))
         or callable(getattr(item.provider, "fetch_tokenized_corporate_actions_page", None))
-    ][:bounded_providers]
+    ]
+    # The provider cap is a per-job budget. Rotate from durable per-provider
+    # action-feed state before applying it so later eligible providers are
+    # eventually queried rather than being excluded forever by chain order.
+    supported = (await _fair_tokenized_event_provider_order(db, supported))[:bounded_providers]
     unsupported = [
         item.provider_name
         for item in catalog_chain

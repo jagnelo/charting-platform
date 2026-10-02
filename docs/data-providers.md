@@ -794,6 +794,11 @@ is rejected rather than guessed. Every request uses the exact
 Rows are persisted as provisional `MarketEvent` records with the complete raw
 provider payload. Per-job page limits persist the exact numeric page or opaque
 cursor and resume it on later runs; they never discard later action pages. A
+`TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS` is a per-run fairness budget, not a
+permanent provider allow-list: when more providers are eligible than the
+budget, durable action-feed state prioritizes providers with no/incomplete
+state and then rotates completed providers by oldest successful observation.
+This prevents a stable provider-chain order from starving later providers. A
 token is linked only when an explicit provider asset ID or
 unique token symbol matches the stored token detail; otherwise the event is
 retained unlinked for later reconciliation rather than guessed onto an

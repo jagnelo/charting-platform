@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-10-02 — Tokenized provider fairness rotation
+
+- [x] Prevent `TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS` from permanently
+      selecting only the first providers in the runtime chain. Durable action
+      pagination state now rotates no/incomplete/failed providers first, then
+      completed providers by oldest successful observation before applying the
+      per-job cap. Focused tokenized coverage passes `35/35`.
+- [ ] Provider-specific quota, terms, and deployment admission still govern
+      whether each tokenized provider is eligible; rotation does not override
+      fail-closed routing or the Dinari Sandbox non-persistence boundary.
+
 ### 2026-10-02 — Non-ETF unit inventory validation
 
 - [x] At exact pushed source `29a6560da4e69db30d5940a7bb4d1cbbfd8b2d61`, run

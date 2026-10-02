@@ -1164,6 +1164,51 @@ async def test_refresh_tokenized_events_runs_bounded_global_split_feed(
 
 
 @pytest.mark.asyncio
+async def test_refresh_tokenized_events_rotates_providers_across_fairness_budget(
+    db, monkeypatch
+):
+    calls: list[str] = []
+    providers = {
+        name: SimpleNamespace(
+            name=name,
+            fetch_tokenized_corporate_actions=lambda _name=name: [
+                {"id": f"{_name}-event", "effectiveDate": "2026-09-11"}
+            ],
+        )
+        for name in ("alpha_tokens", "beta_tokens")
+    }
+    chain = [
+        SimpleNamespace(provider_name=name, provider=provider)
+        for name, provider in providers.items()
+    ]
+
+    async def fake_chain(*_args, **_kwargs):
+        return chain
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        provider_name = kwargs["provider_name"]
+        calls.append(provider_name)
+        return SimpleNamespace(
+            provider_name=provider_name,
+            result=kwargs["invoke"](providers[provider_name], None),
+        )
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+
+    first = await refresh_tokenized_events(
+        AsyncSessionAdapter(db), max_providers=1, include_upcoming=False
+    )
+    second = await refresh_tokenized_events(
+        AsyncSessionAdapter(db), max_providers=1, include_upcoming=False
+    )
+
+    assert first["status"] == "refreshed"
+    assert second["status"] == "refreshed"
+    assert calls == ["alpha_tokens", "beta_tokens"]
+
+
+@pytest.mark.asyncio
 async def test_refresh_tokenized_events_resumes_numeric_pages_after_fairness_budget(
     db, monkeypatch
 ):

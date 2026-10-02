@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 tokenized provider fairness rotation
+
+- Tokenized corporate-action refresh now treats `max_providers` as a
+  per-invocation budget rather than a permanent first-N allow-list. Durable
+  `ProviderPaginationState` action-feed rows prioritize providers with no,
+  incomplete, or failed state and rotate completed providers by oldest
+  successful observation before applying the budget. This prevents later
+  eligible providers from being starved indefinitely while preserving exact
+  per-provider page/cursor continuation.
+- Focused tokenized asset coverage passes `35/35` after the regression test;
+  Ruff and diff checks pass. No ETF or frontend path changed.
+
 ## 2026-10-02 non-ETF unit inventory validation
 
 - At exact pushed source `29a6560da4e69db30d5940a7bb4d1cbbfd8b2d61`, the

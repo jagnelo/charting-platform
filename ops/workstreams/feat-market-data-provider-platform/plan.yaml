@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 tokenized event-provider fairness correction: the corporate
+    action refresh now rotates eligible providers using durable action-feed
+    pagination state before applying the per-job max_providers budget, so a
+    stable provider-chain order cannot starve later providers indefinitely.
+    Focused tokenized coverage passes 35/35. Provider-specific quota, terms,
+    and deployment admission remain independently fail-closed.
+  - >-
     2026-10-02 exact pushed source
     29a6560da4e69db30d5940a7bb4d1cbbfd8b2d61 passed the complete branch-owned
     non-ETF unit inventory: 1908/1908 cases in 147.06s with 37 existing
