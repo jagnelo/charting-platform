@@ -1,4 +1,4 @@
-"""Engine conformance evidence and authoritative-release gating."""
+"""Engine conformance evidence and exact-build authority gating."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ class EngineReleaseChannel(StrEnum):
 
 NAUTILUS_RELEASE_PIN_VERSION = "strategy-lab.nautilus-release-pin.v1"
 # The current v2 release-candidate track is intentionally exact rather than a
-# floating ``--pre`` install.  Runtime/source/image digests are still supplied
+# floating ``--pre`` install. Runtime/source/image digests are still supplied
 # by the isolated deployment adapter when it constructs NautilusReleasePin.
 NAUTILUS_V2_RC_PACKAGE_VERSION = "2.0.0rc5"
 NAUTILUS_V2_RC_RELEASE_TAG = "v2.0.0rc5"
@@ -34,10 +34,9 @@ class NautilusReleasePin:
     """Exact, isolated runtime material used for one Nautilus build.
 
     The release pin is evidence supplied by the deployment/runtime adapter; it
-    never discovers packages or starts an engine.  A stable authoritative run
-    needs both this identity and a complete fixture pass.  Release candidates
-    may carry the same pin for compatibility evidence, but can never become
-    authoritative solely by changing the channel label.
+    never discovers packages or starts an engine. An authoritative local run
+    needs this identity and a complete fixture pass. Stable or release-candidate
+    builds may qualify; development builds cannot be authoritative.
     """
 
     package_version: str
@@ -157,13 +156,13 @@ class EngineConformanceReport:
             raise TypeError("release_pin_valid must be a boolean")
         if self.authoritative and (
             self.decision is not ConformanceDecision.PASS
-            or self.release_channel is not EngineReleaseChannel.STABLE
+            or self.release_channel is EngineReleaseChannel.DEVELOPMENT
             or missing
             or not self.release_pin_valid
         ):
             raise ValueError(
-                "only a complete stable conformance pass with a valid isolated release pin "
-                "can be authoritative"
+                "only a complete stable or release-candidate conformance pass with a "
+                "valid isolated release pin can be authoritative"
             )
         object.__setattr__(self, "missing_checks", missing)
 
@@ -207,7 +206,7 @@ def evaluate_engine_conformance(
         missing_checks=missing,
         authoritative=(
             decision is ConformanceDecision.PASS
-            and evidence.release_channel is EngineReleaseChannel.STABLE
+            and evidence.release_channel is not EngineReleaseChannel.DEVELOPMENT
             and release_pin_valid
         ),
         release_pin_valid=release_pin_valid,
@@ -218,6 +217,18 @@ def _release_pin_valid(evidence: EngineConformanceEvidence) -> bool:
     pin = evidence.release_pin
     if pin is None or not pin.legacy_runtime_isolated:
         return False
+    if pin.release_tag.removeprefix("v") != pin.package_version:
+        return False
     if evidence.release_channel is EngineReleaseChannel.STABLE:
         return _stable_release_version(pin.package_version, pin.release_tag)
-    return True
+    if evidence.release_channel is EngineReleaseChannel.RELEASE_CANDIDATE:
+        prerelease = re.compile(r"(?:alpha|beta|rc|pre)(?:[-._]?\d+)?", re.IGNORECASE)
+        return bool(
+            prerelease.search(pin.package_version)
+            and prerelease.search(pin.release_tag)
+            and not re.search(r"dev", pin.package_version, re.IGNORECASE)
+        )
+    return bool(
+        re.search(r"dev", pin.package_version, re.IGNORECASE)
+        and re.search(r"dev", pin.release_tag, re.IGNORECASE)
+    )

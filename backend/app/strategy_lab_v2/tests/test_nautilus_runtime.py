@@ -41,7 +41,7 @@ def test_rc_runtime_declaration_binds_exact_pin_and_non_authority() -> None:
     assert runtime.fingerprint.startswith("sha256:")
 
 
-def test_rc_runtime_pin_produces_compatible_non_authoritative_evidence() -> None:
+def test_complete_rc_conformance_can_qualify_a_pinned_build() -> None:
     runtime = _runtime()
     evidence = EngineConformanceEvidence(
         engine_id="nautilus",
@@ -58,7 +58,7 @@ def test_rc_runtime_pin_produces_compatible_non_authoritative_evidence() -> None
 
     assert report.compatible
     assert report.execution_eligible
-    assert not report.authoritative
+    assert report.authoritative
 
 
 def test_rc_runtime_rejects_shared_legacy_environment() -> None:

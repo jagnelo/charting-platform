@@ -168,7 +168,7 @@ def test_authoritative_nautilus_gate_rejects_runtime_image_drift() -> None:
     assert "nautilus_runtime_image_mismatch" in result.rejection_reasons
 
 
-def test_release_candidate_or_non_nautilus_is_rejected_for_authoritative_runs() -> None:
+def test_qualified_release_candidate_can_be_authoritative_but_other_engines_cannot() -> None:
     trial, attempt, source, capability, lease = _execution_fixture(authoritative=True)
     from app.strategy_lab_v2.execution import authorize_execution
 
@@ -185,8 +185,24 @@ def test_release_candidate_or_non_nautilus_is_rejected_for_authoritative_runs() 
         _plan(request),
         data_snapshot_fingerprint=content_digest("snapshot"),
     )
-    assert candidate.decision is EngineExecutionDecision.REJECT
-    assert "stable_authoritative_conformance_required" in candidate.rejection_reasons
+    assert candidate.decision is EngineExecutionDecision.READY
+    assert candidate.authoritative
+
+    partial_evidence, partial_report = _conformance(
+        channel=EngineReleaseChannel.RELEASE_CANDIDATE,
+        checks=NautilusExecutionScope.BACKTEST_COMPATIBILITY.required_checks,
+    )
+    partial = plan_nautilus_execution(
+        authorization,
+        runtime,
+        partial_evidence,
+        partial_report,
+        _plan(request),
+        data_snapshot_fingerprint=content_digest("snapshot"),
+    )
+    assert partial.decision is EngineExecutionDecision.REJECT
+    assert "required_engine_conformance_failed" in partial.rejection_reasons
+    assert "authoritative_conformance_required" in partial.rejection_reasons
 
     foreign, foreign_report = _conformance(engine_id="other-engine")
     non_nautilus = plan_nautilus_execution(

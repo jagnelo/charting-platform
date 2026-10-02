@@ -442,7 +442,7 @@ def test_executable_rc_suite_binds_to_the_probed_runtime_image() -> None:
     require_runtime_probe_binding(resolution, runtime, _rc_probe(runtime))
 
     assert resolution.report.execution_eligible
-    assert not resolution.report.authoritative
+    assert resolution.report.authoritative
 
 
 def test_runtime_probe_binding_rejects_a_different_image_digest() -> None:

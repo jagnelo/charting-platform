@@ -1,4 +1,4 @@
-"""Nautilus-only execution planning after all authoritative release gates."""
+"""Nautilus-only execution planning after exact-build conformance gates."""
 
 from __future__ import annotations
 
@@ -121,8 +121,9 @@ def plan_nautilus_execution(
     The backtest-compatibility scope intentionally excludes forward event-tape
     parity, allowing the exact-pinned RC runtime to execute local backtest or
     replay work while that host/Rust parity adapter is unavailable. Forward
-    compatibility and every authoritative request still require the complete
-    conformance suite.
+    compatibility requests can run with their declared check subset. Every
+    authoritative request still requires the complete conformance suite and an
+    exact isolated release pin; stable release status is not itself a gate.
     """
 
     if not isinstance(authorization, ExecutionAuthorization):
@@ -169,13 +170,11 @@ def plan_nautilus_execution(
     if requested_authoritative and execution_scope is not NautilusExecutionScope.FULL:
         reasons.append("authoritative_full_execution_scope_required")
     if requested_authoritative and not conformance_report.authoritative:
-        reasons.append("stable_authoritative_conformance_required")
-    if requested_authoritative and conformance_evidence.release_channel.value != "stable":
-        reasons.append("stable_engine_release_required")
+        reasons.append("authoritative_conformance_required")
     if requested_authoritative and conformance_report.authoritative:
         release_pin = conformance_evidence.release_pin
         if release_pin is None:
-            reasons.append("stable_release_pin_missing")
+            reasons.append("isolated_release_pin_missing")
         else:
             try:
                 runtime_image_digest = sandbox_runtime_image_digest(sandbox_plan)

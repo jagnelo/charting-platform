@@ -274,9 +274,9 @@ def require_runtime_probe_binding(
 ) -> None:
     """Require complete RC fixture evidence to bind to its probed image.
 
-    The fixture harness is engine-injected by design. This boundary therefore
-    verifies identity and release eligibility only; it does not turn a
-    synthetic fixture runner into real Nautilus authority.
+    A complete fixture suite may qualify the exact pinned release candidate
+    for local backtests. The probe alone does not: the complete observations,
+    engine identity, package version, and pinned image must all agree.
     """
 
     if not isinstance(resolution, ConformanceExecutionResolution):
@@ -300,8 +300,6 @@ def require_runtime_probe_binding(
         raise ValueError("probe image digest does not match the runtime release pin")
     if not resolution.report.execution_eligible:
         raise ValueError("complete execution-eligible conformance evidence is required")
-    if resolution.report.authoritative:
-        raise ValueError("release-candidate probe evidence cannot be authoritative")
 
 
 def _require_rc_runtime_receipt_binding(
@@ -379,8 +377,7 @@ def build_event_tape_parity_observation(
     require_sha256_digest(expected_digest, field_name="expected_digest")
     if not isinstance(receipt, NautilusEventParityReceipt | NautilusForwardEventParityReceipt):
         raise TypeError(
-            "receipt must be a NautilusEventParityReceipt or "
-            "NautilusForwardEventParityReceipt"
+            "receipt must be a NautilusEventParityReceipt or " "NautilusForwardEventParityReceipt"
         )
     observed_digest = receipt.fingerprint
     if not receipt.passed:

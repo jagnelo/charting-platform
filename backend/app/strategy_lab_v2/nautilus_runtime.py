@@ -71,7 +71,7 @@ class NautilusRcCompatibilityRuntime:
 
     @property
     def authoritative(self) -> bool:
-        """RC output is never authoritative, even after complete fixtures."""
+        """A runtime pin declaration alone does not authorize any output."""
 
         return False
 

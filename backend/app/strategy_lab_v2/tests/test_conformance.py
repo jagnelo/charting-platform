@@ -37,15 +37,29 @@ def _evidence(
     channel: EngineReleaseChannel = EngineReleaseChannel.STABLE,
     checks: frozenset[ConformanceCheck] = frozenset(ConformanceCheck),
 ) -> EngineConformanceEvidence:
+    version = (
+        "2.0.0"
+        if channel is EngineReleaseChannel.STABLE
+        else NAUTILUS_V2_RC_PACKAGE_VERSION
+        if channel is EngineReleaseChannel.RELEASE_CANDIDATE
+        else "2.0.0.dev1"
+    )
+    release_tag = (
+        "v2.0.0"
+        if channel is EngineReleaseChannel.STABLE
+        else NAUTILUS_V2_RC_RELEASE_TAG
+        if channel is EngineReleaseChannel.RELEASE_CANDIDATE
+        else "v2.0.0.dev1"
+    )
     return EngineConformanceEvidence(
         engine_id="nautilus",
-        engine_version="2.0.0",
+        engine_version=version,
         build_digest=BUILD,
         release_channel=channel,
         fixture_digest=FIXTURE,
         passed_checks=checks,
         tested_at=NOW,
-        release_pin=PIN,
+        release_pin=replace(PIN, package_version=version, release_tag=release_tag),
     )
 
 
@@ -75,14 +89,14 @@ def test_conformance_evidence_normalizes_offset_equivalent_test_times() -> None:
     assert equivalent.tested_at.tzinfo is UTC
 
 
-def test_release_candidate_can_be_compatible_but_never_authoritative() -> None:
+def test_complete_release_candidate_conformance_can_be_authoritative() -> None:
     report = evaluate_engine_conformance(_evidence(channel=EngineReleaseChannel.RELEASE_CANDIDATE))
     assert report.compatible
-    assert not report.authoritative
+    assert report.authoritative
     assert report.release_channel is EngineReleaseChannel.RELEASE_CANDIDATE
 
 
-def test_current_rc5_pin_is_execution_eligible_but_never_authoritative() -> None:
+def test_current_rc5_pin_can_qualify_only_with_all_conformance_checks() -> None:
     pin = replace(
         PIN,
         package_version=NAUTILUS_V2_RC_PACKAGE_VERSION,
@@ -101,8 +115,23 @@ def test_current_rc5_pin_is_execution_eligible_but_never_authoritative() -> None
     report = evaluate_engine_conformance(evidence)
     assert report.compatible
     assert report.execution_eligible
-    assert not report.authoritative
+    assert report.authoritative
     assert report.release_pin_valid
+
+    partial_checks: frozenset[ConformanceCheck] = frozenset(
+        check
+        for check in ConformanceCheck
+        if check is not ConformanceCheck.FORWARD_EVENT_TAPE_PARITY
+    )
+    partial = evaluate_engine_conformance(
+        replace(
+            evidence,
+            passed_checks=partial_checks,
+        )
+    )
+    assert not partial.compatible
+    assert not partial.authoritative
+    assert partial.missing_checks == frozenset({ConformanceCheck.FORWARD_EVENT_TAPE_PARITY})
 
 
 def test_missing_conformance_checks_fail_closed() -> None:
@@ -140,7 +169,7 @@ def test_conformance_contract_rejects_invalid_evidence_and_manual_authority() ->
         )
 
 
-def test_stable_authority_requires_an_isolated_v2_release_pin() -> None:
+def test_authority_requires_an_isolated_v2_release_pin_and_matching_channel() -> None:
     missing = evaluate_engine_conformance(
         EngineConformanceEvidence(
             "nautilus",
@@ -171,7 +200,7 @@ def test_stable_authority_requires_an_isolated_v2_release_pin() -> None:
     assert not shared.authoritative
     assert not shared.release_pin_valid
 
-    prerelease_pin = replace(PIN, release_tag="v2.0.0-rc5")
+    prerelease_pin = replace(PIN, release_tag="v2.0.0rc5")
     prerelease = evaluate_engine_conformance(
         EngineConformanceEvidence(
             "nautilus",
@@ -186,6 +215,11 @@ def test_stable_authority_requires_an_isolated_v2_release_pin() -> None:
     )
     assert not prerelease.authoritative
     assert not prerelease.release_pin_valid
+
+    development = evaluate_engine_conformance(_evidence(channel=EngineReleaseChannel.DEVELOPMENT))
+    assert development.compatible
+    assert not development.authoritative
+    assert development.release_pin_valid
 
 
 def test_release_pin_rejects_non_v2_and_engine_version_drift() -> None:
