@@ -1,5 +1,24 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Chart plot action names
+
+Product commit `77d7ff89a` gives the TC-owned chart plot library's Python and
+EasyScan Add controls and plot-promotion Copy control explicit contextual
+accessible names while preserving their visible labels, plot mutations, and
+layout. Focused ChartPlotLibrary coverage passed `34/34`; the full serial
+frontend suite passed `128/128` files and `1,167/1,167` tests; `vue-tsc`, the
+production build, and `git diff --check` passed with the existing large-chunk
+warning. No provider-platform, ETF, visual baseline, threshold, mask, skip,
+fallback, or acceptance policy changed.
+
+## 2026-10-02 — Upstream staging boundary recheck
+
+The current read-only audit observes `staging` at `8b885a2f`,
+`feat/market-data-provider-platform` at `39b42294`, and
+`feat/etf-holdings-constituents` at `97e8d395`; neither dependency tip is an
+ancestor of staging. TC did not consume either tip, reconcile shared paths, or
+mutate another worktree. Consumer integration remains correctly deferred.
+
 ## 2026-10-02 — VirtualWatchlist editor action names
 
 Product commit `f85222610` gives TC-owned VirtualWatchlist editor actions

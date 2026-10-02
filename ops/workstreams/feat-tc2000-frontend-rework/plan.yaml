@@ -326,8 +326,8 @@ progress:
     snapshots, masks, thresholds, skips, fallbacks, provider/ETF behavior, or
     acceptance policy changed. Provider-platform and ETF consumer integration
     remains a sequencing gate until both upstream branches reach staging; the
-    current audit observes staging `8b885a2f`, provider `6eb7ab27`, and ETF
-    `082a9b28`, with neither upstream tip an ancestor of staging. Shared-path
+    current audit observes staging `8b885a2f`, provider `39b42294`, and ETF
+    `97e8d395`, with neither upstream tip an ancestor of staging. Shared-path
     reconciliation and the final post-staging exact gate remain pending.
 historical_implementation_records:
   - "Product commit f85222610 gives TC-owned VirtualWatchlist editor actions contextual accessible names: selected-symbol comparison count, paste settings, stack/unstack and pin/unpin column state, Python-column addition, saved-set save, and saved-set apply name/version. Existing visible labels, state mutations, and visual styling remain unchanged. Focused VirtualWatchlistTool coverage passed 78/78; the full serial frontend suite passed 128 files and 1,167/1,167 tests; vue-tsc, the production build, git diff --check, TC scope self-tests, and workstream validation passed with the existing large-chunk warning. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
