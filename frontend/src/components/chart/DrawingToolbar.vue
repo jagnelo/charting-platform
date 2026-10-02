@@ -38,7 +38,7 @@
             :title="tool.label"
             :aria-label="tool.label"
             :aria-pressed="activeToolType === tool.type ? 'true' : 'false'"
-            @click="selectTool(tool.type)"
+            @click="selectTool(tool.type, group.id)"
           >
             <span class="tool-icon" :class="`tool-icon--${tool.icon}`" aria-hidden="true" />
             <span class="popup-label">{{ tool.label }}</span>
@@ -229,9 +229,9 @@ function handlePopupKeydown(id: string, event: KeyboardEvent) {
   }
 }
 
-function selectTool(type: DrawingType) {
+function selectTool(type: DrawingType, groupId: string) {
   drawStore.setActiveTool(activeToolType.value === type ? null : type)
-  setPopup(null)
+  closePopupToTrigger(groupId)
 }
 
 function toggleAvwapDrop() {

@@ -6025,6 +6025,7 @@ test.describe('Drawing tools', () => {
     await menu.getByRole('menuitem', { name: 'Horizontal Line' }).press('Enter')
     await expect(menu).toHaveCount(0)
     await expect(linesButton).toHaveClass(/active/)
+    await expect(linesButton).toBeFocused()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

@@ -9,6 +9,29 @@ import { useDrawingsStore } from '@/stores/drawings'
 describe('DrawingToolbar accessibility', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
+  it('returns keyboard focus to the group trigger after selecting a drawing tool', async () => {
+    const wrapper = mount(DrawingToolbar, {
+      attachTo: document.body,
+      global: {
+        stubs: { WorkstationGlyph: { template: '<span />' } },
+      },
+    })
+
+    const trigger = wrapper.get('button[aria-label="Lines"]')
+    ;(trigger.element as HTMLButtonElement).focus()
+    await trigger.trigger('keydown', { key: 'ArrowDown' })
+    await nextTick()
+
+    const trendline = wrapper.get('[role="menuitem"][aria-label="Trend Line"]')
+    expect(document.activeElement).toBe(trendline.element)
+    await trendline.trigger('keydown', { key: 'Enter' })
+    await nextTick()
+
+    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(document.activeElement).toBe(trigger.element)
+    wrapper.unmount()
+  })
+
   it('exposes the active drawing tool through aria-pressed', async () => {
     const wrapper = mount(DrawingToolbar, {
       global: {
