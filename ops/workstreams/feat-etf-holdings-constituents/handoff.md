@@ -6002,3 +6002,12 @@ Read-only ref inspection found local `feat/market-data-provider-platform` at
 `8b885a2f`. Neither provider-platform ref is an ancestor of staging, and the
 staging plus both provider refs still lack `ProviderCapability.ETF_HOLDINGS`.
 AC10 remains deferred. No provider-platform or staging worktree was modified.
+
+## Deterministic freshness-fixture repair — 2026-10-02
+
+The fresh ETF unit run exposed a date-drift failure in the refresh canary test:
+its hard-coded 2026-09-24 daily snapshot correctly evaluated as stale on the
+current date while the test expected `current`. The fixture now uses the
+execution date; production freshness logic is unchanged. The full 705-test
+adapter/capability/refresh/task suite, Ruff, workstream validation, and
+diff-check pass at implementation checkpoint `5fc1a1f2`.
