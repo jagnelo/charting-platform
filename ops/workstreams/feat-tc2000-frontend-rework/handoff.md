@@ -1,5 +1,23 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — R6 alert repeat-state semantics
+
+Product commit `625c505a2` gives price, indicator, and scan alert repeat
+actions explicit `aria-pressed` state while preserving dynamic Enable/Disable
+labels and existing mutation behavior.
+
+Focused alert-race coverage passed `15/15`; the full serial frontend suite
+passed `128/128` files and `1,158/1,158` tests; `vue-tsc` and the production
+build passed with the existing large-chunk warning; TC scope validation, scope
+self-tests, workstream validation, and `git diff --check` passed. No
+provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or
+acceptance policy changed. No other worktree was mutated.
+
+The broader goal remains active: provider/ETF consumer integration is still
+sequenced behind both branches reaching staging, followed by line-level shared
+path reconciliation and a clean exact-tip gate. The protected visual replay
+also remains pending in a matching browser/font environment.
+
 ## 2026-10-02 — R6 Chart Plot Library visibility state semantics
 
 Product commit `cddabbcb5` gives indicator, Python plot, and EasyScan plot

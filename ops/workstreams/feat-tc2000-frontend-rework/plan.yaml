@@ -276,7 +276,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_chart_plot_visibility_checkpointed
+  current_phase: R6_alert_repeat_state_checkpointed
   next_action: >-
     Verify the protected visual mismatch against the expected seeded baseline
     in a matching browser/font environment without changing snapshots or visual
@@ -298,6 +298,7 @@ progress:
     remains a separate operational hold under the recorded private-origin
     safeguard.
 historical_implementation_records:
+  - "Product commit 625c505a2 gives TC-owned price, indicator, and scan alert repeat actions explicit aria-pressed state while preserving dynamic Enable/Disable labels and existing mutation behavior. Focused alert-race coverage passed 15/15; the full serial frontend suite passed 128 files / 1,158 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit cddabbcb5 gives TC-owned Chart Plot Library indicator, Python plot, and EasyScan plot visibility actions explicit aria-pressed state while preserving state-aware labels, parent-controlled update events, visual styling, and existing plot management behavior. Focused ChartPlotLibrary coverage passed 34/34; the full serial frontend suite passed 128 files / 1,158 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 0d9c49ff5 makes the TC-owned Drawing Toolbar visibility and lock actions expose state-aware labels and aria-pressed values for the selected drawing, preserving the existing actions, disabled state, and visual styling. Focused DrawingToolbar accessibility coverage passed 1/1; the full serial frontend suite passed 128 files / 1,158 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 989e7fdc7 exposes aria-pressed state for the TC-owned Anchored VWAP drop toggle, preserving the existing chart-click activation and visual styling. Focused DrawingToolbar accessibility coverage passed 1/1; the full serial frontend suite passed 128 files / 1,158 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
