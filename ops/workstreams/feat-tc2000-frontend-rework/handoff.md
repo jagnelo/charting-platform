@@ -1,5 +1,24 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — R6 Chart Panel link-menu selection semantics
+
+Product commit `39c14c38c` gives the Chart Panel's single-choice symbol-link
+menu explicit `menuitemradio` semantics and `aria-checked` state for `None`
+and each link group. The default Blue selection, link updates, dismissal
+behavior, and visual layout are unchanged.
+
+Focused ChartPanel lifecycle coverage passed `4/4`; the full serial frontend
+suite passed `127/127` files and `1,157/1,157` tests; `vue-tsc` and the
+production build passed with the existing large-chunk warning; TC scope
+validation, scope self-tests, workstream validation, and `git diff --check`
+passed. No provider-platform, ETF, visual baseline, threshold, mask, skip,
+fallback, or acceptance policy changed. No other worktree was mutated.
+
+The broader goal remains active: provider/ETF consumer integration is still
+sequenced behind both branches reaching staging, followed by line-level shared
+path reconciliation and a clean exact-tip gate. The protected visual replay
+also remains pending in a matching browser/font environment.
+
 ## 2026-10-02 — R6 chart membership keyboard semantics
 
 Product commit `31da94261` makes chart-side watchlist and active-screener
