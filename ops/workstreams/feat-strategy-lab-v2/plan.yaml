@@ -770,7 +770,8 @@ progress:
     - strategy-lab-v2-forward-replay-observability
     - strategy-lab-v2-forward-worker-compose-boundary-hardening
     - strategy-lab-v2-backtest-worker-compose-boundary-hardening
+    - strategy-lab-v2-nautilus-serialized-strategy-invocation-bridge
   total: 18
-  current_phase: strategy-lab-v2-nautilus-rc-compatibility-track-awaiting-authoritative-gates
-  current_blocker: RC compatibility execution can proceed in an isolated exact-pinned runtime; authoritative publication/live shadow remain gated by stable Nautilus conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration
-  next_action: when the host/Rust canonical-event callback and approved staging contracts become available, invoke the completed NautilusForwardEventTape materializer, forward-parity receipt verifier, and conformance projection at that adapter boundary; until then continue engine-neutral and isolated RC work while keeping worker activation, publication, and live shadow fail-closed
+  current_phase: strategy-lab-v2-nautilus-rc-compatibility-track-serialized-strategy-bridge-proven
+  current_blocker: No external blocker prevents isolated RC implementation. Stable Nautilus v2 remains an authority/conformance gate; provider, ETF, and TC2000 staging boundaries block only their respective shared-contract integrations. Local implementation gaps remain in binding the validated worker handoff to this adapter, routing target-position intents through allocation/risk, and broadening native product, portfolio, metric, and conformance coverage.
+  next_action: bind the validated worker handoff and result/artifact lifecycle to the isolated Nautilus strategy adapter; then route target-position intents through the existing allocation/risk contracts and expand native product/accounting/report conformance. Preserve RC output as non-authoritative and keep activation/publication/live shadow fail-closed.

@@ -14,7 +14,7 @@ existing conformance, artifact, and worker gates.
 from __future__ import annotations
 
 import importlib.metadata
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from typing import Any
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -24,6 +24,7 @@ from app.strategy_lab_v2.nautilus_runtime_data import (
     materialize_native_instrument,
     materialize_native_venue,
 )
+from app.strategy_lab_v2.nautilus_strategy_bridge import build_native_strategy_bridge
 
 NAUTILUS_RUNTIME_ADAPTER_VERSION = "strategy-lab.nautilus-runtime-adapter.v1"
 
@@ -66,7 +67,9 @@ def _integer(value: Any, field_name: str) -> int:
     return value
 
 
-def _validate_engine_input(payload: Mapping[str, Any]) -> tuple[Mapping[str, Any], list[Mapping[str, Any]], list[Mapping[str, Any]]]:
+def _validate_engine_input(
+    payload: Mapping[str, Any],
+) -> tuple[Mapping[str, Any], list[Mapping[str, Any]], list[Mapping[str, Any]]]:
     item = _mapping(payload, "engine input")
     if set(item) != _ENGINE_INPUT_FIELDS:
         raise NautilusRuntimeDataError("engine input fields are invalid")
@@ -100,7 +103,10 @@ def _validate_engine_input(payload: Mapping[str, Any]) -> tuple[Mapping[str, Any
     if len(event_ids) != len(set(event_ids)):
         raise NautilusRuntimeDataError("event ids must be unique")
     known_ids = set(instrument_ids)
-    if any(_text(event.get("instrument_id"), "event.instrument_id") not in known_ids for event in events):
+    if any(
+        _text(event.get("instrument_id"), "event.instrument_id") not in known_ids
+        for event in events
+    ):
         raise NautilusRuntimeDataError("event tape contains an instrument without a definition")
     return venue, instrument_items, events
 
@@ -108,16 +114,23 @@ def _validate_engine_input(payload: Mapping[str, Any]) -> tuple[Mapping[str, Any
 def run_native_backtest(
     payload: Mapping[str, Any],
     *,
-    strategy_factory: Callable[[tuple[Any, ...], Mapping[str, Any]], Any] | None = None,
+    serialized_strategy_invocation_batch: str | None = None,
 ) -> dict[str, Any]:
-    """Run one validated payload inside the isolated Nautilus image.
-
-    ``strategy_factory`` is intentionally an in-process callback.  The future
-    worker will provide the already validated engine-neutral strategy adapter;
-    this slice only establishes the native engine/data/account boundary.
-    """
+    """Run one validated engine input and SDK batch in the isolated image."""
 
     venue_definition, instrument_definitions, event_definitions = _validate_engine_input(payload)
+    if (
+        not isinstance(serialized_strategy_invocation_batch, str)
+        or not serialized_strategy_invocation_batch.strip()
+    ):
+        raise NautilusRuntimeDataError("serialized strategy invocation batch is required")
+    strategy_bridge = build_native_strategy_bridge(
+        payload,
+        instrument_definitions,
+        event_definitions,
+        serialized_strategy_invocation_batch,
+    )
+
     native_instruments = tuple(
         materialize_native_instrument(definition) for definition in instrument_definitions
     )
@@ -135,7 +148,6 @@ def run_native_backtest(
         )
         for event in event_definitions
     ]
-
     from nautilus_trader import __version__  # type: ignore[import-not-found,attr-defined]
     from nautilus_trader.backtest import (  # type: ignore[import-not-found,attr-defined]
         BacktestEngine,
@@ -153,15 +165,12 @@ def run_native_backtest(
         engine.add_venue(native_venue, oms_type, account_type, balances)
         for instrument in native_instruments:
             engine.add_instrument(instrument)
-        if strategy_factory is not None:
-            strategy = strategy_factory(native_instruments, payload["parameters"])
-            if strategy is None:
-                raise NautilusRuntimeDataError("strategy_factory returned no strategy")
-            engine.add_strategy(strategy)
+        engine.add_strategy(strategy_bridge.strategy)
         if native_events:
-            engine.add_data(native_events)
+            engine.add_data(native_events, sort=True)
         engine.run()
         result = engine.get_result()
+        invocation_result_wire = strategy_bridge.result_wire()
         summary = getattr(result, "summary", {})
         if not isinstance(summary, Mapping):
             raise NautilusRuntimeDataError("Nautilus result summary is not a mapping")
@@ -173,6 +182,10 @@ def run_native_backtest(
             "engine_version": __version__,
             "input_fingerprint": content_digest(payload),
             "input_event_count": len(native_events),
+            "strategy_invocation_batch_digest": strategy_bridge.input_fingerprint,
+            "strategy_invocation_result_wire": invocation_result_wire,
+            "strategy_invocation_result_digest": content_digest(invocation_result_wire),
+            "strategy_invocation_count": result_invocation_count(invocation_result_wire),
             "iterations": int(result.iterations),
             "total_events": int(result.total_events),
             "total_orders": int(result.total_orders),
@@ -184,6 +197,14 @@ def run_native_backtest(
         return evidence
     finally:
         engine.dispose()
+
+
+def result_invocation_count(result_wire: str) -> int:
+    """Validate and count the emitted invocation batch for summary evidence."""
+
+    from strategy_runtime import deserialize_invocation_batch_result
+
+    return len(deserialize_invocation_batch_result(result_wire))
 
 
 def runtime_package_version() -> str:

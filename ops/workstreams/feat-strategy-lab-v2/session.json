@@ -125,7 +125,7 @@
   "head": "c4495ed37be18816206dd72c2f542f5f1d5b5020",
   "implementation_sha": "5ca8250726dd9a88f660b4470007de78daf6a614",
   "last_checkpoint": "2026-10-02T16:39:48.221556+00:00",
-  "last_human_progress_update": "2026-10-02T16:38:54.779560+00:00",
+  "last_human_progress_update": "2026-10-02T17:06:30.853708+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -142,11 +142,11 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "RC execution is locally unblocked; authoritative publication/live shadow still require stable Nautilus conformance, host canonical-event/account/engine integration, approved dependency promotion to staging, shared-path reconciliation, and full repository integration",
-    "current_phase": "strategy-lab-v2-nautilus-rc-compatibility-track-runtime-adapter-proven",
-    "next_action": "bind the isolated adapter to the worker serialized strategy invocation/result protocol; keep RC output non-authoritative and keep worker activation/publication/live shadow fail-closed",
+    "current_blocker": "No external blocker prevents isolated RC implementation. Stable Nautilus v2 gates authority/conformance; provider, ETF, and TC2000 staging boundaries apply only to those shared-contract integrations. Local worker binding, target-position allocation/risk, and broader native conformance remain implementation work.",
+    "current_phase": "strategy-lab-v2-nautilus-rc-compatibility-track-serialized-strategy-bridge-proven",
+    "next_action": "bind the validated worker handoff and result/artifact lifecycle to the isolated Nautilus adapter; route target-position intents through allocation/risk; broaden native product/accounting/report conformance while keeping RC results non-authoritative",
     "total": 18,
-    "updated_at": "2026-10-02T16:38:54.779542+00:00"
+    "updated_at": "2026-10-02T17:06:30.853690+00:00"
   },
   "remote": "c4495ed37be18816206dd72c2f542f5f1d5b5020",
   "remote_sha": "5ca8250726dd9a88f660b4470007de78daf6a614",

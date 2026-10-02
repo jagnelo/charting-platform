@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 DOCKERFILE = Path(__file__).parents[1] / "nautilus_runtime_image" / "Dockerfile"
+DOCKERIGNORE = DOCKERFILE.with_name("Dockerfile.dockerignore")
 
 
 def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() -> None:
@@ -18,21 +19,38 @@ def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() ->
     assert "ADD --checksum=sha256:${NAUTILUS_WHEEL_SHA256}" in source
     assert "pyproject.toml" not in source
     assert "backend/.venv" not in source
+    assert "COPY app/strategy_lab_v2/__init__.py app/strategy_lab_v2/__init__.py" in source
+    assert "COPY strategy_runtime/protocol.py strategy_runtime/protocol.py" in source
+    assert "COPY strategy_runtime/runner.py strategy_runtime/runner.py" in source
     assert (
-        "COPY nautilus_rc_fixture_probe.py app/strategy_lab_v2/nautilus_rc_fixture_probe.py"
+        "COPY app/strategy_lab_v2/nautilus_strategy_bridge.py app/strategy_lab_v2/nautilus_strategy_bridge.py"
         in source
     )
     assert (
-        "COPY nautilus_runtime_data.py app/strategy_lab_v2/nautilus_runtime_data.py" in source
-    )
-    assert (
-        "COPY nautilus_runtime_adapter.py app/strategy_lab_v2/nautilus_runtime_adapter.py"
+        "COPY app/strategy_lab_v2/nautilus_rc_fixture_probe.py app/strategy_lab_v2/nautilus_rc_fixture_probe.py"
         in source
     )
     assert (
-        "COPY nautilus_runtime_adapter_probe.py app/strategy_lab_v2/nautilus_runtime_adapter_probe.py"
+        "COPY app/strategy_lab_v2/nautilus_runtime_data.py app/strategy_lab_v2/nautilus_runtime_data.py"
         in source
     )
+    assert (
+        "COPY app/strategy_lab_v2/nautilus_runtime_adapter.py app/strategy_lab_v2/nautilus_runtime_adapter.py"
+        in source
+    )
+    assert (
+        "COPY app/strategy_lab_v2/nautilus_runtime_adapter_probe.py app/strategy_lab_v2/nautilus_runtime_adapter_probe.py"
+        in source
+    )
+
+
+def test_rc_runtime_context_excludes_everything_outside_the_pinned_runtime_sources() -> None:
+    source = DOCKERIGNORE.read_text(encoding="utf-8")
+
+    assert "**" in source
+    assert "!app/strategy_lab_v2/strategy_validation.py" in source
+    assert "!strategy_runtime/protocol.py" in source
+    assert "!strategy_runtime/runner.py" in source
 
 
 def test_rc_runtime_image_is_probe_only_and_defaults_to_non_authoritative_rc5() -> None:

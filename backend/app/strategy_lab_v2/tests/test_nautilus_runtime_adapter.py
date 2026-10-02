@@ -117,3 +117,25 @@ def test_runtime_adapter_rejects_event_without_catalog_definition() -> None:
     with pytest.raises(NautilusRuntimeDataError, match="without a definition"):
         run_native_backtest(payload)
 
+
+def test_runtime_adapter_requires_serialized_strategy_batch_before_native_import() -> None:
+    with pytest.raises(NautilusRuntimeDataError, match="serialized strategy invocation batch"):
+        run_native_backtest(_payload())
+
+
+def test_runtime_adapter_rejects_batch_source_mismatch_before_native_import() -> None:
+    from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
+        _invocation_batch,
+    )
+    from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
+        _payload as _probe_payload,
+    )
+
+    payload = _probe_payload()
+    payload["strategy_source_digest"] = content_digest("different strategy source")
+
+    with pytest.raises(NautilusRuntimeDataError, match="batch source digest"):
+        run_native_backtest(
+            payload,
+            serialized_strategy_invocation_batch=_invocation_batch(),
+        )

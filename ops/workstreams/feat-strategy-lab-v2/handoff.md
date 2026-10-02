@@ -6227,3 +6227,34 @@ RC lifecycle and fixture probes remain green. Focused adapter/image tests pass
 6 tests; Ruff, MyPy, and diff validation pass. The next slice is to bind this
 runtime adapter to the worker's serialized strategy invocation/result protocol
 without changing the generic Compose worker or claiming RC authority.
+
+## 2026-10-02 - RC5 serialized strategy invocation bridge
+
+The isolated adapter now consumes the existing serialized strategy invocation
+batch instead of an in-process strategy factory. `nautilus_strategy_bridge.py`
+authenticates the batch source/manifest/entrypoint/parameters/seed against the
+engine input, binds each SDK context to exactly one canonical tape event, and
+invokes the existing `StrategyInvocationSession` from native quote/trade/bar
+callbacks. Position snapshots come from the native portfolio; supported
+`OrderIntent` values are converted to native orders, and the typed batch result
+is returned with input/result digests and invocation count. Missing and
+source-mismatched batches fail before native engine imports. Target-position
+intents deliberately fail closed until the platform allocator/risk bridge is
+connected.
+
+The exact pinned RC5 image (`sha256:725c63134aa77fd53d58ac73153ab9bf93377cd0b9c0e550b152c6578782ec88`)
+was rebuilt from this source and passed the hardened no-network, read-only,
+capability-dropped probe. Two quote events invoked two SDK contexts and
+produced two successful serialized results, one native order, and one open
+position. The receipt remains `authoritative: false`; forward parity remains
+deferred. Focused runtime/image tests pass 9 tests, the complete package suite
+passes 1,018 tests, Ruff and MyPy across 312 source files pass, and the
+workstream validator accepts all 30 records.
+
+Stable Nautilus v2 is not blocking further isolated implementation. The live
+release line is still pre-release `2.0.0rc5`; stable conformance remains an
+authority gate. The next local seam is to connect the validated worker handoff
+and result/artifact lifecycle to this adapter, then route target-position
+intents through allocation/risk and broaden product/accounting/report tests.
+Provider, ETF, and TC2000 contracts remain gated only for their respective
+shared-path integrations until those branches reach staging.

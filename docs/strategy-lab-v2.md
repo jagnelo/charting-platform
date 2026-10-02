@@ -569,13 +569,20 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   into the exact isolated RC image. They strictly validate the serialized
   engine-input payload, materialize native FX/crypto/equity, venue/account, and
   quote/trade/bar values, invoke `BacktestEngine`, and emit digest-bound scalar
-  execution evidence. The adapter accepts an already validated strategy
-  factory, but every RC result remains explicitly non-authoritative and keeps
-  forward parity deferred until the host/Rust canonical-event callback exists.
+  execution evidence. `nautilus_strategy_bridge.py` validates the existing
+  serialized SDK invocation batch, binds each context to exactly one tape event,
+  refreshes position snapshots from the native portfolio, invokes the existing
+  strategy session from native callbacks, and serializes the invocation result
+  batch through the existing protocol. Supported `OrderIntent` values become
+  native orders; `TargetPositionIntent` remains fail-closed until the platform
+  allocation/risk handoff is wired. Every RC result remains non-authoritative,
+  with forward parity deferred until the host/Rust canonical-event callback
+  exists.
 - `nautilus_runtime_adapter_probe.py` is the image-local end-to-end fixture for
-  that bridge. It runs two native quote events through a buy-once strategy and
-  verifies native order, fill, position, cost, and deterministic result fields
-  under the hardened network-disabled/read-only container boundary.
+  that bridge. It runs two native quote events through a buy-once strategy,
+  verifies two serialized SDK results plus a native order, fill, position, cost,
+  and deterministic evidence under the hardened network-disabled/read-only
+  container boundary.
 - `build_event_tape_parity_observation(...)` projects that receipt into the
   existing `FORWARD_EVENT_TAPE_PARITY` conformance check. Failed receipts are
   assigned a distinct failure digest, so expected-fixture configuration cannot
