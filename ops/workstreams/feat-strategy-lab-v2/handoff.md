@@ -5934,3 +5934,16 @@ fingerprint and rejects extra fields, version drift, failed lifecycle output,
 or any attempt to treat the RC receipt as authoritative. The focused runtime,
 probe, and fixture suite passes 16 tests with Ruff, MyPy, and diff validation
 green.
+
+## 2026-10-02 - RC probe/conformance identity binding
+
+`require_runtime_probe_binding(...)` now joins a complete executable fixture
+resolution to the exact `NautilusRuntimeProbeEvidence` receipt. It requires
+Nautilus identity, the RC package/channel, the exact release pin, matching image
+digest, and execution-eligible fixture evidence, while explicitly rejecting
+authority claims. This is an identity/reproducibility gate around the injected
+fixture harness; it does not claim that synthetic fixtures are real Nautilus
+multi-instrument or event-tape conformance.
+
+The full Strategy Lab v2 package suite passes 974 tests, with Ruff, targeted
+formatting, MyPy across 302 files, and diff validation green.

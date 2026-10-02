@@ -516,6 +516,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `NautilusRuntimeProbeEvidence` strictly parses that probe output against the
   immutable runtime/image digest and Python/package declaration. It is a
   compatibility receipt only and cannot authorize publication or live shadow.
+- `require_runtime_probe_binding(...)` joins a complete fixture resolution to
+  that probe receipt and rejects package/channel/pin/image mismatches. The
+  harness remains engine-injected and therefore cannot be mistaken for actual
+  Nautilus conformance or authority.
 - `result_publication.py` composes conformance, runtime isolation, and exact
   result-artifact integrity into a storage-neutral publish plan. Only a stable
   authoritative build with matching evidence can publish; already-published

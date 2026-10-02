@@ -16,6 +16,10 @@ from app.strategy_lab_v2.conformance import (
     NautilusReleasePin,
     evaluate_engine_conformance,
 )
+from app.strategy_lab_v2.nautilus_runtime import (
+    NautilusRcCompatibilityRuntime,
+    NautilusRuntimeProbeEvidence,
+)
 
 
 def _nonempty(value: str, field_name: str) -> None:
@@ -121,6 +125,43 @@ class ConformanceExecutionResolution:
         return content_digest(self)
 
 
+def require_runtime_probe_binding(
+    resolution: ConformanceExecutionResolution,
+    runtime: NautilusRcCompatibilityRuntime,
+    probe: NautilusRuntimeProbeEvidence,
+) -> None:
+    """Require complete RC fixture evidence to bind to its probed image.
+
+    The fixture harness is engine-injected by design. This boundary therefore
+    verifies identity and release eligibility only; it does not turn a
+    synthetic fixture runner into real Nautilus authority.
+    """
+
+    if not isinstance(resolution, ConformanceExecutionResolution):
+        raise TypeError("resolution must be a ConformanceExecutionResolution")
+    if not isinstance(runtime, NautilusRcCompatibilityRuntime):
+        raise TypeError("runtime must be a NautilusRcCompatibilityRuntime")
+    if not isinstance(probe, NautilusRuntimeProbeEvidence):
+        raise TypeError("probe must be a NautilusRuntimeProbeEvidence")
+    if probe.runtime_fingerprint != runtime.fingerprint:
+        raise ValueError("probe evidence is not bound to the declared runtime")
+    evidence = resolution.evidence
+    if evidence.engine_id.lower() != "nautilus":
+        raise ValueError("runtime probe binding requires Nautilus evidence")
+    if evidence.engine_version != runtime.package_version:
+        raise ValueError("conformance evidence version does not match the runtime")
+    if evidence.release_channel is not runtime.release_channel:
+        raise ValueError("conformance evidence channel does not match the runtime")
+    if evidence.release_pin != runtime.release_pin:
+        raise ValueError("conformance evidence release pin does not match the runtime")
+    if probe.runtime_image_digest != runtime.runtime_image_digest:
+        raise ValueError("probe image digest does not match the runtime release pin")
+    if not resolution.report.execution_eligible:
+        raise ValueError("complete execution-eligible conformance evidence is required")
+    if resolution.report.authoritative:
+        raise ValueError("release-candidate probe evidence cannot be authoritative")
+
+
 def execute_conformance_suite(
     expected_digests: Mapping[ConformanceCheck, str],
     runner: Callable[[ConformanceCheck], Any],
@@ -151,9 +192,7 @@ def execute_conformance_suite(
     raw_keys = tuple(expected_digests.keys())
     if any(not isinstance(key, ConformanceCheck) for key in raw_keys):
         raise TypeError("expected conformance checks must be ConformanceCheck values")
-    keys: frozenset[ConformanceCheck] = frozenset(
-        cast(tuple[ConformanceCheck, ...], raw_keys)
-    )
+    keys: frozenset[ConformanceCheck] = frozenset(cast(tuple[ConformanceCheck, ...], raw_keys))
     if keys != required:
         missing = sorted((required - keys), key=lambda item: item.value)
         extra = sorted((keys - required), key=lambda item: str(item))
@@ -250,9 +289,7 @@ def require_complete_conformance_suite(
 
     if not isinstance(suite, ConformanceFixtureSuite):
         raise TypeError("suite must be a ConformanceFixtureSuite")
-    observed: frozenset[ConformanceCheck] = frozenset(
-        item.check for item in suite.observations
-    )
+    observed: frozenset[ConformanceCheck] = frozenset(item.check for item in suite.observations)
     required: frozenset[ConformanceCheck] = frozenset(ConformanceCheck.__members__.values())
     missing = required - observed
     if missing:

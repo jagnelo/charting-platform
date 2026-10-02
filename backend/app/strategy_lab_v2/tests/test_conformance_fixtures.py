@@ -19,6 +19,11 @@ from app.strategy_lab_v2.conformance_fixtures import (
     build_conformance_evidence,
     execute_conformance_suite,
     require_complete_conformance_suite,
+    require_runtime_probe_binding,
+)
+from app.strategy_lab_v2.nautilus_runtime import (
+    NautilusRcCompatibilityRuntime,
+    NautilusRuntimeProbeEvidence,
 )
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
@@ -37,7 +42,11 @@ def _suite(*, failed: ConformanceCheck | None = None) -> ConformanceFixtureSuite
     observations = []
     for check in ConformanceCheck:
         expected = content_digest({"check": check.value, "expected": True})
-        observed = expected if check is not failed else content_digest({"check": check.value, "observed": False})
+        observed = (
+            expected
+            if check is not failed
+            else content_digest({"check": check.value, "observed": False})
+        )
         observations.append(
             ConformanceFixtureObservation(
                 check, expected, observed, check is not failed, "fixture evidence"
@@ -50,8 +59,12 @@ def test_complete_suite_builds_evidence_and_authoritative_report_when_stable() -
     suite = _suite()
     require_complete_conformance_suite(suite)
     evidence = build_conformance_evidence(
-        "nautilus", "2.0.0", content_digest("build"),
-        EngineReleaseChannel.STABLE, suite, tested_at=NOW,
+        "nautilus",
+        "2.0.0",
+        content_digest("build"),
+        EngineReleaseChannel.STABLE,
+        suite,
+        tested_at=NOW,
         release_pin=PIN,
     )
     report = evaluate_engine_conformance(evidence)
@@ -63,8 +76,12 @@ def test_complete_suite_builds_evidence_and_authoritative_report_when_stable() -
 def test_failed_fixture_is_compatible_evidence_but_not_a_pass() -> None:
     suite = _suite(failed=ConformanceCheck.NATIVE_ORDER_FILL_COST)
     evidence = build_conformance_evidence(
-        "nautilus", "2.0.0-rc1", content_digest("build"),
-        EngineReleaseChannel.RELEASE_CANDIDATE, suite, tested_at=NOW,
+        "nautilus",
+        "2.0.0-rc1",
+        content_digest("build"),
+        EngineReleaseChannel.RELEASE_CANDIDATE,
+        suite,
+        tested_at=NOW,
     )
     report = evaluate_engine_conformance(evidence)
     assert report.authoritative is False
@@ -75,10 +92,14 @@ def test_failed_fixture_is_compatible_evidence_but_not_a_pass() -> None:
 def test_incomplete_suite_fails_closed_before_evidence_creation() -> None:
     suite = ConformanceFixtureSuite(
         "partial",
-        (ConformanceFixtureObservation(
-            ConformanceCheck.DETERMINISTIC_REPLAY,
-            content_digest("expected"), content_digest("expected"), True,
-        ),),
+        (
+            ConformanceFixtureObservation(
+                ConformanceCheck.DETERMINISTIC_REPLAY,
+                content_digest("expected"),
+                content_digest("expected"),
+                True,
+            ),
+        ),
     )
     with pytest.raises(ValueError, match="incomplete"):
         require_complete_conformance_suite(suite)
@@ -97,12 +118,16 @@ def test_fixture_observation_rejects_untruthful_pass_claims() -> None:
     with pytest.raises(ValueError, match="matching"):
         ConformanceFixtureObservation(
             ConformanceCheck.ENGINE_LIFECYCLE,
-            content_digest("expected"), content_digest("observed"), True,
+            content_digest("expected"),
+            content_digest("observed"),
+            True,
         )
     with pytest.raises(ValueError, match="differing"):
         ConformanceFixtureObservation(
             ConformanceCheck.ENGINE_LIFECYCLE,
-            content_digest("same"), content_digest("same"), False,
+            content_digest("same"),
+            content_digest("same"),
+            False,
         )
 
 
@@ -118,15 +143,28 @@ def test_suite_order_and_identity_are_deterministic() -> None:
 
 def test_invalid_types_and_timestamp_fail_closed() -> None:
     with pytest.raises(TypeError, match="suite"):
-        build_conformance_evidence("nautilus", "2", content_digest("build"), EngineReleaseChannel.STABLE, "bad", tested_at=NOW)  # type: ignore[arg-type]
+        build_conformance_evidence(
+            "nautilus",
+            "2",
+            content_digest("build"),
+            EngineReleaseChannel.STABLE,
+            "bad",  # type: ignore[arg-type]
+            tested_at=NOW,
+        )
     with pytest.raises(ValueError, match="timezone-aware"):
-        build_conformance_evidence("nautilus", "2", content_digest("build"), EngineReleaseChannel.STABLE, _suite(), tested_at=datetime(2024, 1, 1))
+        build_conformance_evidence(
+            "nautilus",
+            "2",
+            content_digest("build"),
+            EngineReleaseChannel.STABLE,
+            _suite(),
+            tested_at=datetime(2024, 1, 1),
+        )
 
 
 def test_executable_suite_runs_all_checks_and_binds_the_report() -> None:
     expected = {
-        check: content_digest({"check": check.value, "fixture": "ok"})
-        for check in ConformanceCheck
+        check: content_digest({"check": check.value, "fixture": "ok"}) for check in ConformanceCheck
     }
     calls: list[ConformanceCheck] = []
 
@@ -154,8 +192,7 @@ def test_executable_suite_runs_all_checks_and_binds_the_report() -> None:
 
 def test_executable_suite_reduces_runner_errors_to_failed_digest_evidence() -> None:
     expected = {
-        check: content_digest({"check": check.value, "fixture": "ok"})
-        for check in ConformanceCheck
+        check: content_digest({"check": check.value, "fixture": "ok"}) for check in ConformanceCheck
     }
 
     def runner(check: ConformanceCheck):
@@ -184,10 +221,7 @@ def test_executable_suite_reduces_runner_errors_to_failed_digest_evidence() -> N
 
 
 def test_executable_suite_requires_exact_expected_checks() -> None:
-    expected = {
-        check: content_digest({"check": check.value})
-        for check in ConformanceCheck
-    }
+    expected = {check: content_digest({"check": check.value}) for check in ConformanceCheck}
     expected.pop(ConformanceCheck.ENGINE_LIFECYCLE)
     with pytest.raises(ValueError, match="exact"):
         execute_conformance_suite(
@@ -200,3 +234,70 @@ def test_executable_suite_requires_exact_expected_checks() -> None:
             release_channel=EngineReleaseChannel.STABLE,
             tested_at=NOW,
         )
+
+
+def _rc_runtime() -> NautilusRcCompatibilityRuntime:
+    return NautilusRcCompatibilityRuntime(
+        source_digest=content_digest("nautilus-v2-rc5-source"),
+        runtime_image_digest=content_digest("nautilus-v2-rc5-image"),
+        python_version="3.12.11",
+        rust_version="1.88.0",
+    )
+
+
+def _rc_resolution(runtime: NautilusRcCompatibilityRuntime) -> ConformanceExecutionResolution:
+    expected = {
+        check: content_digest({"check": check.value, "fixture": "rc5"})
+        for check in ConformanceCheck
+    }
+    return execute_conformance_suite(
+        expected,
+        lambda check: {"check": check.value, "fixture": "rc5"},
+        suite_id="rc5-probed-runtime",
+        engine_id="nautilus",
+        engine_version=runtime.package_version,
+        build_digest=content_digest("nautilus-v2-rc5-build"),
+        release_channel=runtime.release_channel,
+        tested_at=NOW,
+        release_pin=runtime.release_pin,
+    )
+
+
+def _rc_probe(runtime: NautilusRcCompatibilityRuntime) -> NautilusRuntimeProbeEvidence:
+    return NautilusRuntimeProbeEvidence.from_mapping(
+        {
+            "engine_lifecycle": "passed",
+            "implementation": "cpython",
+            "nautilus_package_version": "2.0.0rc5",
+            "platform": "Linux-x86_64",
+            "python_version": "3.12.11",
+        },
+        runtime,
+    )
+
+
+def test_executable_rc_suite_binds_to_the_probed_runtime_image() -> None:
+    runtime = _rc_runtime()
+    resolution = _rc_resolution(runtime)
+
+    require_runtime_probe_binding(resolution, runtime, _rc_probe(runtime))
+
+    assert resolution.report.execution_eligible
+    assert not resolution.report.authoritative
+
+
+def test_runtime_probe_binding_rejects_a_different_image_digest() -> None:
+    runtime = _rc_runtime()
+    resolution = _rc_resolution(runtime)
+    probe = NautilusRuntimeProbeEvidence(
+        runtime_fingerprint=runtime.fingerprint,
+        runtime_image_digest=content_digest("different-image"),
+        package_version=runtime.package_version,
+        python_version=runtime.python_version,
+        platform="Linux-x86_64",
+        implementation="cpython",
+        engine_lifecycle="passed",
+    )
+
+    with pytest.raises(ValueError, match="image digest"):
+        require_runtime_probe_binding(resolution, runtime, probe)
