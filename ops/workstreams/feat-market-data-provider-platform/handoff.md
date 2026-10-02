@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 Exact-current live safety preflight after lifecycle completion
+
+- At source `168611166e6ce3e6f9904f0b90f7ae2d30d7ca41`, the full manifest
+  stopped before external transport: `0/0` cases and zero provider requests
+  (`incomplete_preflight`, exit `2`). The receipt records the remaining
+  provider-specific usage baselines/cost/byte bounds, capability cases,
+  legal/automated-use controls, FINRA/SEC/venue admission, and target secret
+  stores. No generic limit was inferred and no configured key was spent.
+- This is the authoritative current safety boundary after the provider-symbol
+  lifecycle implementation. The repository-controlled implementation and
+  tests are green; further progress now requires resolving the explicitly
+  listed external account/terms/secret-store controls rather than weakening
+  admission.
+
 ## 2026-10-02 Provider-symbol lifecycle history completion
 
 - Provider-symbol bindings now retain first-class `effective_at`, `known_at`,
