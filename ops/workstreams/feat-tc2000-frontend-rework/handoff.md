@@ -1,5 +1,23 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Indicator Panel native disclosure semantics
+
+Product commit `1c6c225d0` converts all six TC-owned Indicator Panel section
+disclosures from scripted `div[role="button"]` controls into native
+buttons, preserving their `aria-expanded`/`aria-controls` relationships,
+keyboard activation, section state, and visual styling. Focused IndicatorPanel
+coverage passed `1/1`; the full serial frontend suite passed `128/128` files
+and `1,161/1,161` tests; `vue-tsc` and the production build passed with the
+existing large-chunk warning; TC scope validation, scope self-tests,
+workstream validation, and `git diff --check` passed. No provider-platform,
+ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy
+changed. No other worktree was mutated.
+
+The broader goal remains active: provider/ETF consumer integration is still
+sequenced behind both branches reaching staging, followed by line-level shared
+path reconciliation and a clean exact-tip gate. The protected visual replay
+also remains pending in a matching browser/font environment.
+
 ## 2026-10-02 — Instrument Report native disclosure semantics
 
 Product commit `11650aba5` converts the TC-owned Instrument Report disclosure

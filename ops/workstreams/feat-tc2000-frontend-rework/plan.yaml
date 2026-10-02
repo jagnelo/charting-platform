@@ -276,7 +276,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_instrument_report_native_disclosure_checkpointed
+  current_phase: R6_indicator_panel_native_disclosure_checkpointed
   next_action: >-
     Verify the protected visual mismatch against the expected seeded baseline
     in a matching browser/font environment without changing snapshots or visual
@@ -298,6 +298,7 @@ progress:
     remains a separate operational hold under the recorded private-origin
     safeguard.
 historical_implementation_records:
+  - "Product commit 1c6c225d0 converts all six TC-owned Indicator Panel section disclosures from scripted div[role=button] controls into native buttons while preserving their aria-expanded/aria-controls relationships, keyboard activation, state, and visual styling. Focused IndicatorPanel coverage passed 1/1; the full serial frontend suite passed 128 files and 1,161/1,161 tests; vue-tsc and the production build passed with the existing large-chunk warning; TC scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 11650aba5 converts the TC-owned Instrument Report disclosure from a scripted div[role=button] into a native button while preserving the existing report layout, expanded state, controls, and disclosure body. The focused InstrumentInfoPanel suite passed 6/6; the full serial frontend suite passed 128 files and 1,161/1,161 tests; vue-tsc and the production build passed with the existing large-chunk warning; TC scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 080153ddb gives TC-owned price, indicator, and scan alert rearm actions alert-type-specific accessible names while preserving the existing rearm mutation behavior. Focused linked instrument alert coverage passed 16/16; the full serial frontend suite passed 128 files / 1,161 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 5b4334529 gives TC-owned Virtual Watchlist sortable column controls state-aware accessible labels and aria-pressed values, including ascending/descending direction, while preserving sorting and row-selection behavior. Focused VirtualWatchlistTool coverage passed 75/75; the full serial frontend suite passed 128 files / 1,160 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
