@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
@@ -7,6 +8,7 @@ import pytest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.conformance import (
     ConformanceCheck,
+    ConformanceDecision,
     EngineConformanceEvidence,
     EngineReleaseChannel,
     NautilusReleasePin,
@@ -217,6 +219,103 @@ def test_qualified_release_candidate_can_be_authoritative_but_other_engines_cann
     assert "only_nautilus_engine_is_supported" in non_nautilus.rejection_reasons
 
 
+def test_backtest_authority_does_not_wait_for_forward_event_tape_parity() -> None:
+    trial, attempt, source, capability, lease = _execution_fixture(authoritative=True)
+    from app.strategy_lab_v2.execution import authorize_execution
+
+    authorization = authorize_execution(
+        trial, attempt, source, capability, lease, now=NOW.replace(second=3)
+    )
+    request, runtime = _runtime()
+    checks = NautilusExecutionScope.BACKTEST_AUTHORITATIVE.required_checks
+    evidence, report = _conformance(
+        channel=EngineReleaseChannel.RELEASE_CANDIDATE,
+        checks=checks,
+    )
+
+    result = plan_nautilus_execution(
+        authorization,
+        runtime,
+        evidence,
+        report,
+        _plan(request),
+        data_snapshot_fingerprint=content_digest("snapshot"),
+        execution_scope=NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
+    )
+
+    assert report.compatible is False
+    assert report.authoritative is False
+    assert report.missing_checks == {ConformanceCheck.FORWARD_EVENT_TAPE_PARITY}
+    assert result.decision is EngineExecutionDecision.READY
+    assert result.authoritative is True
+    assert result.execution_scope is NautilusExecutionScope.BACKTEST_AUTHORITATIVE
+
+
+def test_backtest_authority_still_requires_every_simulator_check() -> None:
+    trial, attempt, source, capability, lease = _execution_fixture(authoritative=True)
+    from app.strategy_lab_v2.execution import authorize_execution
+
+    authorization = authorize_execution(
+        trial, attempt, source, capability, lease, now=NOW.replace(second=3)
+    )
+    request, runtime = _runtime()
+    checks = NautilusExecutionScope.BACKTEST_AUTHORITATIVE.required_checks - {
+        ConformanceCheck.NATIVE_ORDER_FILL_COST
+    }
+    evidence, report = _conformance(
+        channel=EngineReleaseChannel.RELEASE_CANDIDATE,
+        checks=frozenset(checks),
+    )
+
+    result = plan_nautilus_execution(
+        authorization,
+        runtime,
+        evidence,
+        report,
+        _plan(request),
+        data_snapshot_fingerprint=content_digest("snapshot"),
+        execution_scope=NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
+    )
+
+    assert result.decision is EngineExecutionDecision.REJECT
+    assert result.authoritative is False
+    assert "required_engine_conformance_failed" in result.rejection_reasons
+
+
+def test_execution_gate_rejects_conformance_report_not_derived_from_evidence() -> None:
+    trial, attempt, source, capability, lease = _execution_fixture(authoritative=True)
+    from app.strategy_lab_v2.execution import authorize_execution
+
+    authorization = authorize_execution(
+        trial, attempt, source, capability, lease, now=NOW.replace(second=3)
+    )
+    request, runtime = _runtime()
+    checks = NautilusExecutionScope.BACKTEST_AUTHORITATIVE.required_checks
+    evidence, report = _conformance(
+        channel=EngineReleaseChannel.RELEASE_CANDIDATE,
+        checks=checks,
+    )
+    forged_report = replace(
+        report,
+        decision=ConformanceDecision.PASS,
+        missing_checks=frozenset(),
+        authoritative=True,
+    )
+
+    result = plan_nautilus_execution(
+        authorization,
+        runtime,
+        evidence,
+        forged_report,
+        _plan(request),
+        data_snapshot_fingerprint=content_digest("snapshot"),
+        execution_scope=NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
+    )
+
+    assert result.decision is EngineExecutionDecision.REJECT
+    assert "conformance_evidence_report_mismatch" in result.rejection_reasons
+
+
 def test_non_authoritative_compatible_run_can_be_ready_but_is_not_authoritative() -> None:
     trial, attempt, source, capability, lease = _execution_fixture(authoritative=False)
     from app.strategy_lab_v2.execution import authorize_execution
@@ -306,7 +405,7 @@ def test_rc_forward_scope_still_requires_forward_parity() -> None:
 
 
 def test_parsed_rc_receipt_can_feed_backtest_execution_scope() -> None:
-    trial, attempt, source, capability, lease = _execution_fixture(authoritative=False)
+    trial, attempt, source, capability, lease = _execution_fixture(authoritative=True)
     from app.strategy_lab_v2.execution import authorize_execution
 
     authorization = authorize_execution(
@@ -315,7 +414,7 @@ def test_parsed_rc_receipt_can_feed_backtest_execution_scope() -> None:
     request, runtime_preflight = _runtime()
     runtime = NautilusRcCompatibilityRuntime(
         source_digest=content_digest("nautilus-v2-rc5-source"),
-        runtime_image_digest=content_digest("nautilus-v2-rc5-image"),
+        runtime_image_digest=content_digest("runtime-image"),
         python_version="3.12.11",
         rust_version="1.88.0",
     )
@@ -361,6 +460,21 @@ def test_parsed_rc_receipt_can_feed_backtest_execution_scope() -> None:
 
     assert result.decision is EngineExecutionDecision.READY
     assert result.execution_scope is NautilusExecutionScope.BACKTEST_COMPATIBILITY
+
+    authoritative_backtest = plan_nautilus_execution(
+        authorization,
+        runtime_preflight,
+        conformance.evidence,
+        conformance.report,
+        _plan(request),
+        data_snapshot_fingerprint=content_digest("snapshot"),
+        execution_scope=NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
+    )
+
+    assert conformance.report.authoritative is False
+    assert authoritative_backtest.decision is EngineExecutionDecision.READY
+    assert authoritative_backtest.authoritative is True
+    assert authoritative_backtest.execution_scope is NautilusExecutionScope.BACKTEST_AUTHORITATIVE
 
 
 def test_compatible_evidence_without_an_isolated_pin_cannot_execute() -> None:

@@ -10,6 +10,8 @@ from app.strategy_lab_v2.conformance import (
     ConformanceCheck,
     EngineConformanceEvidence,
     EngineConformanceReport,
+    EngineReleaseChannel,
+    evaluate_engine_conformance,
 )
 from app.strategy_lab_v2.execution import ExecutionAuthorization
 from app.strategy_lab_v2.runtime_execution import StrategyRuntimePreflight
@@ -30,11 +32,15 @@ class NautilusExecutionScope(StrEnum):
 
     FULL = "full"
     BACKTEST_COMPATIBILITY = "backtest_compatibility"
+    BACKTEST_AUTHORITATIVE = "backtest_authoritative"
     FORWARD_COMPATIBILITY = "forward_compatibility"
 
     @property
     def required_checks(self) -> frozenset[ConformanceCheck]:
-        if self is NautilusExecutionScope.BACKTEST_COMPATIBILITY:
+        if self in {
+            NautilusExecutionScope.BACKTEST_COMPATIBILITY,
+            NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
+        }:
             return frozenset(
                 {
                     ConformanceCheck.MULTI_INSTRUMENT_ACCOUNTING,
@@ -96,8 +102,11 @@ class NautilusExecutionPlan:
             raise ValueError("rejected engine plans require rejection reasons")
         if self.authoritative and self.decision is not EngineExecutionDecision.READY:
             raise ValueError("rejected engine plans cannot be authoritative")
-        if self.authoritative and self.execution_scope is not NautilusExecutionScope.FULL:
-            raise ValueError("authoritative engine plans require the full execution scope")
+        if self.authoritative and self.execution_scope not in {
+            NautilusExecutionScope.FULL,
+            NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
+        }:
+            raise ValueError("authoritative engine plans require an authoritative execution scope")
         object.__setattr__(self, "rejection_reasons", reasons)
 
     @property
@@ -118,12 +127,12 @@ def plan_nautilus_execution(
 ) -> NautilusExecutionPlan:
     """Resolve the final engine invocation gate without starting Nautilus.
 
-    The backtest-compatibility scope intentionally excludes forward event-tape
-    parity, allowing the exact-pinned RC runtime to execute local backtest or
-    replay work while that host/Rust parity adapter is unavailable. Forward
-    compatibility requests can run with their declared check subset. Every
-    authoritative request still requires the complete conformance suite and an
-    exact isolated release pin; stable release status is not itself a gate.
+    Backtest scopes intentionally exclude forward event-tape parity. This lets
+    an exact-pinned runtime publish authoritative local backtests after the
+    simulator checks pass, without waiting for the separate forward adapter.
+    Forward compatibility and full-scope requests still require parity. An RC
+    can authorize local backtest results after the backtest suite passes, but
+    never broker connections or real-capital control.
     """
 
     if not isinstance(authorization, ExecutionAuthorization):
@@ -153,7 +162,11 @@ def plan_nautilus_execution(
         reasons.append("runtime_isolation_not_accepted")
     if sandbox_plan.request_fingerprint != runtime_preflight.request_fingerprint:
         reasons.append("sandbox_runtime_request_mismatch")
-    if conformance_evidence.fingerprint != conformance_report.evidence_fingerprint:
+    expected_conformance_report = evaluate_engine_conformance(conformance_evidence)
+    if (
+        conformance_evidence.fingerprint != conformance_report.evidence_fingerprint
+        or expected_conformance_report.fingerprint != conformance_report.fingerprint
+    ):
         reasons.append("conformance_evidence_report_mismatch")
     if conformance_evidence.engine_id.lower() != "nautilus":
         reasons.append("only_nautilus_engine_is_supported")
@@ -167,11 +180,24 @@ def plan_nautilus_execution(
         reasons.append("engine_conformance_failed")
     if requested_authoritative and not authorization.authoritative:
         reasons.append("authorization_is_not_authoritative")
-    if requested_authoritative and execution_scope is not NautilusExecutionScope.FULL:
-        reasons.append("authoritative_full_execution_scope_required")
-    if requested_authoritative and not conformance_report.authoritative:
+    if requested_authoritative and execution_scope not in {
+        NautilusExecutionScope.FULL,
+        NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
+    }:
+        reasons.append("authoritative_execution_scope_required")
+    if (
+        requested_authoritative
+        and execution_scope is NautilusExecutionScope.FULL
+        and not conformance_report.authoritative
+    ):
         reasons.append("authoritative_conformance_required")
-    if requested_authoritative and conformance_report.authoritative:
+    if (
+        requested_authoritative
+        and execution_scope is NautilusExecutionScope.BACKTEST_AUTHORITATIVE
+        and conformance_evidence.release_channel is EngineReleaseChannel.DEVELOPMENT
+    ):
+        reasons.append("authoritative_release_channel_not_supported")
+    if requested_authoritative:
         release_pin = conformance_evidence.release_pin
         if release_pin is None:
             reasons.append("isolated_release_pin_missing")
