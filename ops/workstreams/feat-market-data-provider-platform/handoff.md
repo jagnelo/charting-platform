@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 non-ETF unit inventory validation
+
+- At exact pushed source `29a6560da4e69db30d5940a7bb4d1cbbfd8b2d61`, the
+  branch-owned non-ETF unit inventory passed `1,908/1,908` in `147.06s` with
+  37 existing dependency warnings. The command excluded only
+  `backend/tests/unit/providers/test_etf_holdings_*.py`, which remains owned by
+  the parallel `feat/etf-holdings-constituents` worktree.
+- This is a complete validation receipt for this branch's non-ETF ownership
+  surface, not a claim that the parallel ETF adapter test file passed. The
+  repository-wide `2,453`-case command remains unaccepted because the ETF
+  adapter file is outside this branch's ownership and previously exceeded the
+  hard timeout.
+
 ## 2026-10-02 CoinGecko native usage admission
 
 - `CoinGeckoProvider.fetch_account_usage()` now calls the documented `/key`

@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-10-02 — Non-ETF unit inventory validation
+
+- [x] At exact pushed source `29a6560da4e69db30d5940a7bb4d1cbbfd8b2d61`, run
+      the complete branch-owned non-ETF unit inventory. All `1,908/1,908`
+      cases passed in `147.06s` with 37 existing dependency warnings.
+- [ ] Do not represent the repository-wide `2,453`-case command as a pass:
+      only the parallel ETF adapter test file was excluded from this receipt;
+      that file remains owned by `feat/etf-holdings-constituents` and its
+      hard-timeout behavior is a separate integration concern.
+
 ### 2026-10-02 — CoinGecko native account-usage admission
 
 - [x] Implement `CoinGeckoProvider.fetch_account_usage()` against the
