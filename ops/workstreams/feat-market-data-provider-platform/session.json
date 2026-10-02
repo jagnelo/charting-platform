@@ -150,7 +150,7 @@
   "implementation_sha": "0a673255bc7765ff8660d7878011fcb35252a05e",
   "interrupted": true,
   "last_checkpoint": "2026-09-15T21:47:06.368545+00:00",
-  "last_human_progress_update": "2026-10-02T17:19:43.198633+00:00",
+  "last_human_progress_update": "2026-10-02T19:40:43.576656+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "resume from the durable handoff and inspect displaced session state",
   "parent_branch": "staging",
@@ -168,11 +168,11 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "CoinGecko Demo monthly usage cannot be read via Pro-only /key; current monthly account balance needs an owner dashboard attestation before routing, but this does not block other providers.",
-    "current_phase": "CoinGecko Demo capability correction and exact quota evidence",
-    "next_action": "Commit this correction, run full non-ETF unit and Docker integration gates, then continue exact-SHA provider live preflight/probes and locally resolvable contract work.",
+    "current_blocker": "The full-stack startup exposed a PostgreSQL 63-byte index-name failure; the migration is corrected and awaiting exact-source revalidation. Provider-specific quota/use-rights, complete venue evidence, and target secret stores remain separate open gates.",
+    "current_phase": "PostgreSQL migration correction and corrected-source acceptance",
+    "next_action": "Commit the migration fix with its branch-owned evidence; rerun unit, Docker integration, workflow, frontend, browser E2E, and actual research-runner resource gates at that exact source; then run bounded EODHD live validation and refresh the provider-wide preflight.",
     "total": 22,
-    "updated_at": "2026-10-02T17:19:43.198613+00:00"
+    "updated_at": "2026-10-02T19:40:43.576638+00:00"
   },
   "remote": "88132e9145a08d1c935a0111b3dba0fbd88bdff1",
   "remote_sha": "0a673255bc7765ff8660d7878011fcb35252a05e",

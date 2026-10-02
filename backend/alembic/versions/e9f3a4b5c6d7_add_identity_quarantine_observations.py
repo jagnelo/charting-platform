@@ -52,7 +52,11 @@ def upgrade() -> None:
             ["quarantine_id", "observed_at"],
         ),
     ):
-        op.create_index(name, "instrument_identity_quarantine_observation", columns)
+        # `proposed_domain_key` pushes the generated name past PostgreSQL's
+        # 63-byte identifier limit. Mark names as naming-convention values so
+        # SQLAlchemy applies its deterministic dialect truncation, matching the
+        # metadata-generated index name instead of failing the migration.
+        op.create_index(op.f(name), "instrument_identity_quarantine_observation", columns)
 
 
 def downgrade() -> None:
@@ -75,5 +79,5 @@ def downgrade() -> None:
         "ix_instrument_identity_quarantine_observation_instrument_id",
         "ix_instrument_identity_quarantine_observation_quarantine_id",
     ):
-        op.drop_index(name, table_name="instrument_identity_quarantine_observation")
+        op.drop_index(op.f(name), table_name="instrument_identity_quarantine_observation")
     op.drop_table("instrument_identity_quarantine_observation")
