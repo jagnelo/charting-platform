@@ -489,6 +489,7 @@ async def seed_universe(db: AsyncSession) -> dict:
             type_id = type_id_map[quote_type]
             offset = 0
             total = None
+            seen_next_urls: set[str] = set()
 
             logger.info("seed_universe: scanning %s via %s…", quote_type, discovery.provider_name)
 
@@ -520,7 +521,50 @@ async def seed_universe(db: AsyncSession) -> dict:
                 # snapshot is immutable evidence and the next invocation
                 # replays the provider's exact pagination contract.
                 await db.commit()
-                quotes = page.get("quotes") or []
+                raw_quotes = page.get("quotes")
+                if raw_quotes is None:
+                    raw_quotes = []
+                if not isinstance(raw_quotes, list) or any(
+                    not isinstance(quote, dict) for quote in raw_quotes
+                ):
+                    raise ValueError("discovery provider returned a malformed quotes page")
+                quotes = list(raw_quotes)
+
+                declared_total = page.get("total")
+                if declared_total is not None:
+                    if (
+                        isinstance(declared_total, bool)
+                        or not isinstance(declared_total, int)
+                        or declared_total < 0
+                    ):
+                        raise ValueError("discovery provider returned an invalid total")
+                    if total is None:
+                        total = declared_total
+                    elif total != declared_total:
+                        raise ValueError("discovery provider changed its declared total")
+
+                raw_next_offset = page.get("next_offset")
+                if raw_next_offset is not None and (
+                    isinstance(raw_next_offset, bool)
+                    or not isinstance(raw_next_offset, int)
+                    or raw_next_offset < 0
+                ):
+                    raise ValueError("discovery provider returned an invalid next_offset")
+                if isinstance(raw_next_offset, int) and raw_next_offset <= offset:
+                    raise ValueError("discovery provider returned a non-progressing next_offset")
+
+                raw_next_url = page.get("next_url")
+                if raw_next_url is not None and not isinstance(raw_next_url, str):
+                    raise ValueError("discovery provider returned an invalid next_url")
+                if isinstance(raw_next_url, str) and raw_next_url:
+                    if raw_next_url in seen_next_urls:
+                        raise ValueError("discovery provider repeated a pagination next_url")
+                    seen_next_urls.add(raw_next_url)
+                has_next_url = isinstance(raw_next_url, str) and bool(raw_next_url)
+                complete = page.get("complete") is True
+                if complete and (raw_next_offset is not None or has_next_url):
+                    raise ValueError("discovery provider marked a page complete with continuation")
+
                 await record_discovery_ambiguities(
                     db,
                     data_source_id=execution.data_source.id,
@@ -531,16 +575,17 @@ async def seed_universe(db: AsyncSession) -> dict:
                 )
 
                 if total is None:
-                    total = page.get("total", 0)
                     logger.info(
-                        "seed_universe: %s via %s total=%d",
+                        "seed_universe: %s via %s total=%s",
                         quote_type,
                         discovery.provider_name,
                         total,
                     )
 
-                if not quotes:
-                    break
+                if not quotes and not complete and raw_next_offset is None and not has_next_url:
+                    raise ValueError(
+                        "discovery provider returned an empty page without completion evidence"
+                    )
 
                 fetched_at = datetime.now(UTC)
                 for q in quotes:
@@ -894,7 +939,7 @@ async def seed_universe(db: AsyncSession) -> dict:
 
                 await db.commit()
                 logger.info(
-                    "seed_universe: %s via %s offset=%d/%d created=%d updated=%d",
+                    "seed_universe: %s via %s offset=%d/%s created=%d updated=%d",
                     quote_type,
                     page_provider_name,
                     offset + len(quotes),
@@ -903,11 +948,32 @@ async def seed_universe(db: AsyncSession) -> dict:
                     updated,
                 )
 
-                offset += len(quotes)
-                if offset >= (total or 0):
+                page_end_offset = offset + len(quotes)
+                continue_after_page = False
+                if isinstance(raw_next_offset, int):
+                    if raw_next_offset > page_end_offset:
+                        raise ValueError("discovery provider pagination skipped rows between pages")
+                    offset = raw_next_offset
+                    continue_after_page = True
+                elif has_next_url:
+                    if not quotes:
+                        raise ValueError(
+                            "discovery provider returned a continuation after an empty page"
+                        )
+                    offset = page_end_offset
+                    continue_after_page = True
+                elif total is not None:
+                    if page_end_offset >= total:
+                        break
+                    raise ValueError("discovery provider omitted pagination before declared total")
+                elif complete:
                     break
+                else:
+                    raise ValueError("discovery provider omitted total and completion evidence")
 
-                await asyncio.sleep(settings.INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS)
+                if continue_after_page:
+                    await asyncio.sleep(settings.INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS)
+                    continue
 
     logger.info("seed_universe complete: created=%d  updated=%d", created, updated)
     return {"created": created, "updated": updated, "total": created + updated}

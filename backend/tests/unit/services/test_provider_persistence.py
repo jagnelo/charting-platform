@@ -526,6 +526,84 @@ async def test_seed_universe_persists_discovery_snapshots(db, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_seed_universe_honors_provider_continuation_metadata(db, monkeypatch):
+    """A valid continuation must not be truncated after the first discovery page."""
+
+    async_db = AsyncSessionAdapter(db)
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    massive = _resolved_provider(
+        db,
+        provider_name="massive",
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        provider=_DiscoveryProvider(),
+    )
+
+    pages = [
+        {
+            "total": 3,
+            "quotes": [
+                {
+                    "symbol": "FIRST",
+                    "longName": "First Corp",
+                    "currency": "USD",
+                    "exchange": "NASDAQ",
+                },
+                {
+                    "symbol": "SECOND",
+                    "longName": "Second Corp",
+                    "currency": "USD",
+                    "exchange": "NASDAQ",
+                },
+            ],
+            "next_offset": 2,
+        },
+        {
+            "total": 3,
+            "quotes": [
+                {
+                    "symbol": "THIRD",
+                    "longName": "Third Corp",
+                    "currency": "USD",
+                    "exchange": "NASDAQ",
+                }
+            ],
+        },
+    ]
+    calls: list[int] = []
+
+    async def _fake_resolve(*args, **kwargs):
+        return [massive]
+
+    async def _fake_execute(*args, **kwargs):
+        offset = len(calls) * 2
+        calls.append(offset)
+        return ProviderExecutionResult(
+            provider_name="massive",
+            data_source=massive.data_source,
+            policy=massive.policy,
+            health=massive.health,
+            result=pages[len(calls) - 1],
+        )
+
+    monkeypatch.setattr(instrument_sync, "resolve_provider_chain", _fake_resolve)
+    monkeypatch.setattr(instrument_sync, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(instrument_sync.settings, "INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS", 0)
+
+    result = await instrument_sync.seed_universe(async_db)
+
+    assert result["created"] == 3
+    assert calls == [0, 2]
+    assert (
+        db.query(Instrument).filter(Instrument.symbol.in_(["FIRST", "SECOND", "THIRD"])).count()
+        == 3
+    )
+
+
+@pytest.mark.asyncio
 async def test_seed_universe_does_not_merge_same_ticker_across_venues(db, monkeypatch):
     """A ticker collision across known venues creates two canonical securities."""
 
