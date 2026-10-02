@@ -1099,7 +1099,17 @@ async def refresh_tokenized_events(
                         state.status = "partial"
                         phase_truncated = True
                         continue
-                    if not cursor_page_provider and len(rows) >= bounded_page_size:
+                    # xStocks exposes numeric pages without a separate page
+                    # method, so an exactly-full page requires a durable
+                    # numeric continuation. Robinhood's feed is explicitly
+                    # non-paginated and complete; treating an exactly-full
+                    # Robinhood response as partial would replay the same
+                    # complete payload forever across scheduled jobs.
+                    if (
+                        not cursor_page_provider
+                        and resolved.provider_name == "xstocks"
+                        and len(rows) >= bounded_page_size
+                    ):
                         state.page_number = requested_page + 1
                         state.cursor = None
                         state.status = "partial"

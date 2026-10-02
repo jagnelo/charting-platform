@@ -1213,6 +1213,57 @@ async def test_refresh_tokenized_events_runs_bounded_global_split_feed(
 
 
 @pytest.mark.asyncio
+async def test_refresh_tokenized_events_treats_full_robinhood_feed_as_complete(
+    db, monkeypatch
+):
+    page_size = 25
+    rows = [
+        {"id": f"robinhood-event-{index}", "effectiveDate": "2026-09-11"}
+        for index in range(page_size)
+    ]
+    calls: list[dict[str, object]] = []
+
+    def fetch_actions(**kwargs):
+        calls.append(dict(kwargs))
+        return rows
+
+    provider = SimpleNamespace(
+        name="robinhood_tokens",
+        fetch_tokenized_corporate_actions=fetch_actions,
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="robinhood_tokens", provider=provider)]
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        result = kwargs["invoke"](provider, None)
+        return SimpleNamespace(provider_name="robinhood_tokens", result=result)
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+
+    result = await refresh_tokenized_events(
+        AsyncSessionAdapter(db), max_pages=3, page_size=page_size, include_upcoming=True
+    )
+
+    assert result["status"] == "refreshed"
+    assert result["complete"] is True
+    assert result["truncated"] is False
+    assert result["providers"] == [
+        {
+            "provider": "robinhood_tokens",
+            "events": page_size,
+            "linked": 0,
+            "unlinked": page_size,
+            "pages_fetched": 1,
+            "truncated": False,
+            "complete": True,
+        }
+    ]
+    assert calls == [{}]
+
+
+@pytest.mark.asyncio
 async def test_refresh_tokenized_events_rotates_providers_across_fairness_budget(
     db, monkeypatch
 ):
