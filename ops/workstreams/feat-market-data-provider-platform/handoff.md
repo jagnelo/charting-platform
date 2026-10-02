@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 Current live preflight after Marketstack hardening
+
+- At source `982fa996`, the full live manifest again stopped before transport:
+  `0/0` cases and zero provider requests (`incomplete_preflight`). The same
+  provider-specific quota/cost/byte, legal-use, FINRA/SEC admission, and
+  unresolved capability controls remain explicit in the appended receipt.
+- This confirms the Marketstack implementation change did not bypass safety
+  admission or spend any configured provider key.
+
 ## 2026-10-02 Marketstack universe-total integrity
 
 - Marketstack ticker discovery now requires a non-negative integer provider

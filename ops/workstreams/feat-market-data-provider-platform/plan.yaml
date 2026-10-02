@@ -162,6 +162,12 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact-current live preflight after Marketstack hardening: source
+    982fa996 stopped before transport (0/0 cases, zero provider requests).
+    Provider-specific quota/cost/byte, legal-use, FINRA/SEC admission, and
+    unresolved capability controls remain explicit in validation.jsonl; no
+    safety admission was bypassed and no key was spent.
+  - >-
     2026-10-02 Marketstack universe-total integrity: ticker discovery now
     requires a provider-declared non-negative integer pagination total and
     fails closed when absent or malformed, rather than inferring the total from
