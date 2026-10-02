@@ -15764,3 +15764,48 @@ removed; the repository resource audit found zero containers, volumes, images,
 or unknown owned resources. No provider-platform, ETF, visual baseline,
 threshold, mask, skip, fallback, or acceptance policy changed; no other
 worktree was mutated.
+
+## 2026-10-02 — Active-chart timeframe keyboard shortcuts
+
+This changeset is limited to `frontend/src/views/WorkstationView.vue`,
+`frontend/tests/unit/views/test_workstation_popout_bindings.test.ts`, and
+`frontend/tests/e2e/flows.spec.ts`. TC2000 documents `=` and `-` as direct
+chart-timeframe controls; the workstation already handled chart Ctrl+wheel but
+did not implement these keys. The active chart now steps through the existing
+timeframe order, publishes through its existing link-group behavior, and leaves
+text editors and non-chart focus behavior alone. Clicking a docked tool now
+marks it as the active window; a pop-out routes the shortcut to its own chart.
+The Help menu lists the shortcuts. Product commits are `64cbfa4c67559cc40e69c233cf2748b13f96eb2b`
+and `75b3e0048d8cb40dd24b21afd73c1c7078dbc69`.
+
+At exact product tip `75b3e004`, the authenticated F8k Chromium flow passed
+`1/1`: `=` advanced both linked charts from D1 to W1, `-` returned both to D1,
+and the existing Ctrl+wheel traversal still passed. Browser diagnostic
+assertions passed. The full serial frontend suite passed `128/128` files and
+`1,169/1,169` tests. `npm run build` passed, including `vue-tsc`, with only the
+existing Workstation bundle-over-500-kB warning. The focused WorkstationView
+suite passed `34/34` during implementation.
+
+Two early authenticated-browser attempts failed before the final fix: the
+first clicked a plot during its timeframe reload, when the plot was briefly
+unmounted; the second showed that clicking a plot did not update the stored
+active-window key. The test now exercises the hotkeys while the chart is
+visible, and pointer capture now sets the docked active tool. No test oracle
+was weakened. The repository `make test-stack-up` stopped at the host's missing
+Docker Buildx plugin; ordinary Compose built and started only the named TC
+project, and all six services reached healthy status. Frontend-only rebuild and
+the F8k test passed; `make test-stack-down` and its resource cleanup removed
+the project's containers, test volumes, network, and four generated images.
+The cleanup receipt reported no retained images, volumes, or test sessions.
+
+Fresh refs are staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`,
+provider-platform `313337668b28ec94b465d602f01c8d24564acf33`, and ETF holdings
+`be38c21fca2a0ef0310f41e11189d756ff952fe7`; neither dependency tip is in
+staging. The feature branch is clean apart from this operational checkpoint,
+with HEAD `75b3e0048d8c` and local origin `63d64bfe95c9` (1,599 commits ahead).
+No push was attempted under the existing private-origin safeguard. This is a
+transport hold, not a product blocker. The six protected screenshot differences
+still require visual-policy review; no baseline, mask, threshold, skip, or
+acceptance rule changed. Continue independent TC-owned workstation and
+Study/Strategy work; do not consume provider/ETF tips before they reach
+staging, and do not mutate another branch or worktree.

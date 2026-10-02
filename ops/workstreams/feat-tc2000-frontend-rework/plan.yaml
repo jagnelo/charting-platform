@@ -26,15 +26,18 @@ current_blocker: >-
   rule may change without that review. A fresh local-ref audit sees staging at
   `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform at
   `313337668b28ec94b465d602f01c8d24564acf33`, and ETF holdings at
-  `b309afe42ef8d8d3835cb045c06a88f81f3491c5`; neither dependency tip is an
+  `be38c21fca2a0ef0310f41e11189d756ff952fe7`; neither dependency tip is an
   ancestor of staging, so consumer integration and shared-path reconciliation
   must wait. These gates do not prevent independent TC-owned frontend work.
-  The latest product slice, `7e927a1f03d7`, exposes the Chart Templates
-  controls as a dialog; its 15 focused tests, the exact-tip full serial suite
-  (128 files, 1,168 tests), production build, and authenticated keyboard
-  browser check passed. The wider R1/R5/R6 work and
-  exact post-staging gate remain open. Local commits remain unpushed under the
-  private-origin safeguard; that transport hold does not prevent local work.
+  Product commits `64cbfa4c` and `75b3e004` add `=` / `-` timeframe stepping
+  for the active chart, pointer-based active-window tracking, and pop-out target
+  selection. At exact tip `75b3e004`, the authenticated F8k Chromium flow passed
+  1/1, the serial frontend suite passed 128 files / 1,169 tests, and the
+  production build passed with the existing large-chunk warning. The six
+  screenshot differences, wider R1/R5/R6 work, and exact post-staging gate
+  remain open. HEAD `75b3e0048d8c` is unpushed; the local origin is at
+  `63d64bfe95c9`, and the existing private-origin safeguard remains a
+  transport hold, not a product blocker.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -270,27 +273,25 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_chart_templates_panel_dialog_semantics_passed
+  current_phase: R1_active_chart_timeframe_keyboard_shortcuts_passed
   next_action: >-
-    Compare open V25 interaction requirements against the primary workstation
-    views and browser evidence, then choose the next independent TC-owned
-    Workstation or Study/Strategy gap. Do not duplicate provider or ETF work.
-    Keep the six protected screenshot mismatches visible and do not change
-    their baselines, masks, thresholds, skips, or acceptance rules without the
-    visual review required by docs/tc2000-visual-parity.md. After both upstream
-    tips reach staging, reconcile shared paths semantically and run the exact
-    post-staging gate. Do not push the updated local range under the private-
-    origin safeguard without exact-payload authorization.
+    Compare the remaining mapped V25 interaction requirements against current
+    workstation behavior and browser evidence; then pick and implement the next
+    independent TC-owned workstation or Study/Strategy gap. Keep the protected
+    screenshot baselines and policies unchanged, do not duplicate provider or
+    ETF work, and defer consumer integration until both dependency tips reach
+    staging.
   current_blocker: >-
-    Six protected screenshot differences await the visual-policy review.
-    Provider-platform `313337668b28` and ETF `b309afe42ef8` are not ancestors of
-    staging `8b885a2ffd9c`, so TC cannot consume or reconcile those contracts
-    yet. Neither gate blocks independent TC frontend work. The Chart Templates
-    dialog slice is committed as `7e927a1f03d7`; its focused/full frontend
-    tests, build, and authenticated keyboard check passed. The private-origin
-    push safeguard still holds the local range, but does not stop local work.
-    No provider/ETF branch, staging branch, or other worktree was changed.
+    No external dependency blocks independent TC frontend work. The six
+    screenshot differences await the visual-policy review specified by
+    `docs/tc2000-visual-parity.md`; provider/ETF consumer work waits until
+    both tips reach staging. Neither prevents other TC-owned UI and
+    Study/Strategy slices. The active chart timeframe slice passed its
+    authenticated browser flow, full serial frontend suite, production build,
+    and scoped Docker cleanup. Local commits are unpushed under the existing
+    private-origin safeguard; no push was attempted for this slice.
 historical_implementation_records:
+  - "Product commits 64cbfa4c and 75b3e004 add TC2000 `=` / `-` timeframe stepping for the active chart, publish changes through existing timeframe link groups, update the active workstation window when a docked tool is clicked, and target the corresponding chart in a pop-out. The authenticated F8k Chromium flow passed 1/1 at exact product tip 75b3e0048d8cb40dd24b21afd73c1c7078dbc69; the serial frontend suite passed 128 files / 1,169 tests; vue-tsc and the production build passed with the existing large-chunk warning. The six-service branch Compose stack became healthy through ordinary Compose after the host's Make target failed on missing Docker Buildx; scoped teardown/resource cleanup removed containers, volumes, network, and four generated images, leaving zero owned resources. Two earlier F8k candidate failures exposed test timing during chart reload and missing pointer-based active-window selection; both were corrected without weakening assertions. No provider/ETF behavior or visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 44b837a2 adds a white focus-visible outline to primary Workstation layout tabs without replacing the blue active-tab marker or gold drag-over marker. The existing roving-arrow/Enter/Space interaction remains unchanged; the authenticated browser check verified ArrowRight focus, the computed white ring, Enter selection, and retained active marker with zero console errors or warnings. The clean exact-commit serial frontend suite and production vue-tsc/Vite build passed; the four-service TC stack became healthy and scoped teardown/resource audit found zero retained resources. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 507c6df42 gives TC-owned Market Map actions explicit contextual accessible names for saving explicit symbols, refreshing the map, saving/exporting/deleting snapshots, and saving selected members as a personal watchlist while preserving visible labels, state mutations, and visual styling. Focused MarketMapTool coverage passed 54/54; the full serial frontend suite passed 128 files and 1,167/1,167 tests; vue-tsc, the production build, git diff --check, TC scope self-tests, and workstream validation passed with the existing large-chunk warning. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit f85222610 gives TC-owned VirtualWatchlist editor actions contextual accessible names: selected-symbol comparison count, paste settings, stack/unstack and pin/unpin column state, Python-column addition, saved-set save, and saved-set apply name/version. Existing visible labels, state mutations, and visual styling remain unchanged. Focused VirtualWatchlistTool coverage passed 78/78; the full serial frontend suite passed 128 files and 1,167/1,167 tests; vue-tsc, the production build, git diff --check, TC scope self-tests, and workstream validation passed with the existing large-chunk warning. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."

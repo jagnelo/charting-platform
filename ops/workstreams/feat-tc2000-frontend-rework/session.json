@@ -48,7 +48,12 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -107,14 +112,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "36937133b00607ada164fe768d99f446853abc47",
+  "head": "75b3e0048d8cb40dd24b21afd73c1c7078dbc69d",
   "implementation_sha": "075a733bef7f259cea8abcf1335c9051f6cd0cd6",
   "interrupted": false,
   "last_checkpoint": "2026-10-02T00:16:00+01:00",
-  "last_human_progress_update": "2026-10-02T20:03:41.074023+00:00",
+  "last_human_progress_update": "2026-10-02T20:42:35.842422+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue independent TC workstation UI and Study/Strategy slices while preserving the protected visual policy; keep provider/ETF consumer integration deferred until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
-  "plan_hash": "d2c1fa0ab75584c7d0b421e65ca50c2b9443ecf6e2c2024c49b662242664442a",
+  "plan_hash": "47c02e077a4a11cc09bee270f31f0da90b8af5a11269185a7489fc727f68ce71",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -127,11 +132,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Six protected screenshot differences await the visual-policy review, and the provider/ETF branch tips are not in staging. Neither stops independent TC frontend work. The private-origin push safeguard is a transport hold only.",
-    "current_phase": "R1_chart_templates_panel_dialog_semantics_passed",
-    "next_action": "Compare remaining V25 interaction requirements with workstation and browser evidence; implement the next independent TC-owned UI or Study/Strategy gap, keep visual oracles unchanged, and defer provider/ETF integration until both branches reach staging.",
+    "current_blocker": "No external blocker for independent TC work. Six screenshot differences await visual review; provider and ETF consumer work waits for staging.",
+    "current_phase": "R1_active_chart_timeframe_keyboard_shortcuts_passed",
+    "next_action": "Compare the remaining mapped V25 interaction requirements against current workstation behavior and browser evidence; then pick and implement the next independent TC-owned workstation or Study/Strategy gap. Keep protected screenshot baselines and policies unchanged, do not duplicate provider or ETF work, and defer consumer integration until both dependency tips reach staging.",
     "total": 9,
-    "updated_at": "2026-10-02T20:03:41.073852+00:00"
+    "updated_at": "2026-10-02T20:42:35.842405+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
