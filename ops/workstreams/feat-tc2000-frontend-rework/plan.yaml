@@ -33,7 +33,7 @@ current_blocker: >-
   and Nimbus Sans), so a matching-font replay is required before attributing
   the mismatch to product pixels. The
   standard parallel frontend gate remains host-timing-sensitive on the
-  unrelated 100k-point uPlot benchmark; serial coverage passes 1,158/1,158.
+  unrelated 100k-point uPlot benchmark; serial coverage passes 1,159/1,159.
   Provider-platform and ETF consumer integration remains a sequencing gate
   until both upstream branches reach staging. On the resumed 2026-10-01 audit,
   provider is at `5f6b1ede`, ETF is at `88664a14`, and staging remains
@@ -276,7 +276,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_research_comparison_checkpointed
+  current_phase: R5_code_library_archive_checkpointed
   next_action: >-
     Verify the protected visual mismatch against the expected seeded baseline
     in a matching browser/font environment without changing snapshots or visual
@@ -291,13 +291,14 @@ progress:
     first capture and 45,932 after stability, distributed across board text and
     anti-aliasing rather than localized chart geometry. The parallel frontend
     timing guard remains host-sensitive on the unrelated 100k-point uPlot
-    benchmark, while serial coverage passes 1,158/1,158 at the current product
+    benchmark, while serial coverage passes 1,159/1,159 at the current product
     tip. Provider-platform and ETF consumer integration remains a sequencing
     gate until both upstream branches reach staging; shared-path reconciliation
     and the final post-staging exact gate remain pending. Origin synchronization
     remains a separate operational hold under the recorded private-origin
     safeguard.
 historical_implementation_records:
+  - "Product commit a57993e7d gives the TC-owned Python Code Library archive/unarchive action a stable accessible name and aria-pressed state while preserving the immutable asset lifecycle and existing archive mutation API. Focused Code Library coverage passed 11/11; the full serial frontend suite passed 128 files / 1,159 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 289135c43 exposes the TC-owned Research Results two-run comparison control's open/closed state through aria-pressed while preserving comparison selection, labels, and rendered comparison content. Focused Research Results coverage passed 50/50; the full serial frontend suite passed 128 files / 1,159 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 625c505a2 gives TC-owned price, indicator, and scan alert repeat actions explicit aria-pressed state while preserving dynamic Enable/Disable labels and existing mutation behavior. Focused alert-race coverage passed 15/15; the full serial frontend suite passed 128 files / 1,158 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit cddabbcb5 gives TC-owned Chart Plot Library indicator, Python plot, and EasyScan plot visibility actions explicit aria-pressed state while preserving state-aware labels, parent-controlled update events, visual styling, and existing plot management behavior. Focused ChartPlotLibrary coverage passed 34/34; the full serial frontend suite passed 128 files / 1,158 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."

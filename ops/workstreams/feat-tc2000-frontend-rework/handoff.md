@@ -1,5 +1,23 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — R5 Python Code Library archive state semantics
+
+Product commit `a57993e7d` gives the TC-owned Python Code Library
+archive/unarchive action a stable accessible name and `aria-pressed` state,
+preserving the immutable asset lifecycle and existing archive mutation API.
+
+Focused Code Library coverage passed `11/11`; the full serial frontend suite
+passed `128/128` files and `1,159/1,159` tests; `vue-tsc` and the production
+build passed with the existing large-chunk warning; TC scope validation,
+scope self-tests, workstream validation, and `git diff --check` passed. No
+provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or
+acceptance policy changed. No other worktree was mutated.
+
+The broader goal remains active: provider/ETF consumer integration is still
+sequenced behind both branches reaching staging, followed by line-level
+shared path reconciliation and a clean exact-tip gate. The protected visual
+replay also remains pending in a matching browser/font environment.
+
 ## 2026-10-02 — R6 Research Results comparison state semantics
 
 Product commit `289135c43` exposes the two-run Research Results comparison
