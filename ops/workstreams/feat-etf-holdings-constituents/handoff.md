@@ -6030,3 +6030,7 @@ requests to PIMCO and Pacific routes failed DNS in this environment. MINT and
 BOND therefore remain explicitly `unavailable`, while GEME evidence remains
 symbol-scoped and is not reused for the mixed Pacific/PIMCO identity. No SEC,
 top-ten, creation-basket, or paid candidate was promoted.
+
+The runtime tier-0 symbol audit and deterministic capability tests now carry the
+same 2026-10-02 investigated-at date and official-shell evidence for MINT/BOND;
+the focused 91-test capability suite and Ruff pass.

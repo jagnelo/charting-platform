@@ -522,7 +522,7 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
         assert result.tier == 0
         assert result.outcome == UNAVAILABLE
         assert result.evidence_state == "no_complete_executable_public_artifact"
-        assert result.investigated_at == date(2026, 10, 1)
+        assert result.investigated_at == date(2026, 10, 2)
         assert evidence_refs <= set(result.evidence_refs)
         assert "requires authentication" in result.next_action
 
@@ -533,7 +533,19 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
         ).evidence_refs
     )
     assert (
+        "web:pimco-etf-suite-current-2026-10-02"
+        in symbol_audit_for_profile(
+            profile_with_symbol("MINT", "pacific_investments")
+        ).evidence_refs
+    )
+    assert (
         "web:pimco-core-bond-strategies-current-2026-10-01"
+        in symbol_audit_for_profile(
+            profile_with_symbol("BOND", "pacific_investments")
+        ).evidence_refs
+    )
+    assert (
+        "web:pimco-bond-product-shell-current-2026-10-02"
         in symbol_audit_for_profile(
             profile_with_symbol("BOND", "pacific_investments")
         ).evidence_refs
