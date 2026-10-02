@@ -1,5 +1,27 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 Provider-symbol lifecycle history completion
+
+- Provider-symbol bindings now retain first-class `effective_at`, `known_at`,
+  and `retired_at` timestamps through additive migration
+  `fa1b2c3d4e5f`; the registration path no longer discards provider lifecycle
+  arguments. A delisted binding is retained but inactive, and a later
+  authoritative reappearance can reactivate it without deleting the durable
+  lifecycle observations.
+- Complete authoritative NMS absence reconciliation now retires only the
+  matching provider/venue binding after the configured three confirmations;
+  a different known venue is not retired as a side effect. Focused lifecycle
+  and migration coverage passed `40/40`.
+- Exact implementation SHA `0e34424d27ec8b631548a144bebb251561786230`
+  passed branch-owned units `1,950/1,950`, Docker PostgreSQL/Redis
+  integration `386/386` in `738.46s`, Ruff, compile, workstream validation,
+  and diff checks. Alembic reports the single head `fa1b2c3d4e5f`.
+- This closes the repository-controlled provider-symbol timestamp gap. The
+  remaining blockers are still external/admission gates recorded below: the
+  exact-current live preflight stops before transport on unresolved
+  provider-specific quota/byte/legal/venue controls and target secret stores;
+  no provider key was spent by this validation.
+
 ## 2026-10-02 Current live preflight after raw-total scope handling
 
 - At source `3154c0f8`, the full live manifest again stopped before transport:

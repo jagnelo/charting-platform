@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-10-02 — Provider-symbol lifecycle history completion
+
+- [x] Persist provider-symbol `effective_at`, `known_at`, and `retired_at`
+      as first-class nullable columns through additive migration
+      `fa1b2c3d4e5f`; registration now preserves lifecycle arguments instead
+      of leaving them only in transient/provider payload metadata.
+- [x] Retire only the matching provider/venue binding after complete NMS
+      absence reaches the configured three confirmations, while retaining
+      the binding and allowing authoritative reactivation. Focused lifecycle
+      and migration coverage passed `40/40`; exact branch gates are recorded
+      in the feature workstream handoff.
+
 ### 2026-10-02 — Marketstack universe totals fail closed
 
 - [x] Require strict provider-declared pagination metadata for Marketstack
