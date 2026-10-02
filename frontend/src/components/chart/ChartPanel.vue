@@ -106,15 +106,17 @@
           @click.stop
           @keydown.esc.stop.prevent="linkMenuOpen = false"
         >
-          <button type="button" class="plm-item" :class="{ active: !linkGroup }" @click="setLinkGroup(null)">
+          <button type="button" role="menuitemradio" class="plm-item" :class="{ active: !linkGroup }" :aria-checked="!linkGroup ? 'true' : 'false'" @click="setLinkGroup(null)">
             <span class="plm-dot plm-dot--none" /> None
           </button>
           <button
             v-for="group in PANEL_LINK_GROUPS"
             :key="group.id"
             type="button"
+            role="menuitemradio"
             class="plm-item"
             :class="{ active: linkGroup === group.id }"
+            :aria-checked="linkGroup === group.id ? 'true' : 'false'"
             @click="setLinkGroup(group.id)"
           >
             <span class="plm-dot" :style="{ background: group.color }" /> {{ group.label }}

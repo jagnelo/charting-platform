@@ -145,7 +145,11 @@ describe('ChartPanel lifecycle fencing', () => {
     expect(trigger.attributes('aria-expanded')).toBe('true')
     expect(menu.attributes('role')).toBe('menu')
     expect(menu.attributes('aria-label')).toBe('Symbol link group')
-    expect(menu.findAll('button[type="button"]').length).toBe(5)
+    const options = menu.findAll('button[role="menuitemradio"]')
+    expect(options).toHaveLength(5)
+    expect(options[0].attributes('aria-checked')).toBe('false')
+    expect(options[1].attributes('aria-checked')).toBe('true')
+    expect(options.slice(2).every(option => option.attributes('aria-checked') === 'false')).toBe(true)
 
     await menu.trigger('keydown', { key: 'Escape' })
     expect(trigger.attributes('aria-expanded')).toBe('false')
