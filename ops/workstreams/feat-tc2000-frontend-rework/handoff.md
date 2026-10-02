@@ -1,5 +1,23 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Optimization leaderboard keyboard semantics
+
+Product commit `7e49c955f` makes TC-owned Strategy Lab optimization
+leaderboard rows keyboard-operable with Enter/Space activation and exposes
+active-row `aria-selected` state while preserving click pinning, hover/focus
+detail behavior, sorting, table structure, and visual styling. Focused
+OptimizationLeaderboard coverage passed `2/2`; the full serial frontend suite
+passed `128/128` files and `1,161/1,161` tests with Vitest file parallelism
+disabled and one worker; `vue-tsc` passed; TC scope validation, scope
+self-tests, workstream validation, and `git diff --check` passed. No
+provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or
+acceptance policy changed. No other worktree was mutated.
+
+The broader goal remains active: provider/ETF consumer integration is still
+sequenced behind both branches reaching staging, followed by line-level shared
+path reconciliation and a clean exact-tip gate. The protected visual replay
+also remains pending in a matching browser/font environment.
+
 ## 2026-10-02 — Upstream staging boundary recheck
 
 The post-slice read-only dependency audit observes `staging` at `8b885a2f`,
