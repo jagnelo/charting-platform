@@ -2,6 +2,31 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-02 - Streaming Strategy SDK runtime consumer
+
+Connected the context-stream protocol to the engine-neutral runtime CLI. It
+validates the complete source/manifest/context stream before invoking strategy
+code, then runs one persistent SDK session while pulling one context at a time.
+Typed invocation results are written incrementally to a versioned JSONL stream
+with contiguous indexes, a record digest/count trailer, and atomic file
+publication. The context stream now also carries a trailer so truncation and
+record drift are detected. Existing one-event and batch CLI inputs/outputs
+remain compatible.
+
+At clean source SHA `1018c65cf5fe8969bf53add492ebe180e88c7eb2`, all 1,083
+Strategy Lab v2 tests passed; Ruff and MyPy across 325 source files passed;
+all four changed Python files passed formatting checks; and whitespace
+validation was clean. The implementation commit is pushed and local `HEAD`
+matches `origin/feat/strategy-lab-v2`.
+
+This materially reduces SDK replay serialization/runtime memory, but does not
+yet make the Nautilus backtest end-to-end bounded. Trial assembly and the
+Nautilus CLI/bridge still use the old in-memory event tape and batch path. Next
+bind content-addressed context and native-event stream artifacts into the
+compact runtime manifest and worker handoff, verify/mount them read-only, and
+consume the native data through exact-pinned RC5 catalog chunks. Preserve
+same-time ordering and full conformance as gates for authoritative results.
+
 ## 2026-10-02 - Bounded SDK invocation-context stream protocol
 
 Added `iter_event_tape_contexts`, which yields one same-time SDK context at a

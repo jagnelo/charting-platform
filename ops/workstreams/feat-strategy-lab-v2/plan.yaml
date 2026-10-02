@@ -791,8 +791,9 @@ progress:
     - strategy-lab-v2-experiment-strategy-package-identity-binding
     - strategy-lab-v2-disk-spooled-event-tape-artifact
     - strategy-lab-v2-bounded-invocation-context-stream-protocol
+    - strategy-lab-v2-streaming-strategy-runtime-consumer
   total: 18
-  current_phase: strategy-lab-v2-bounded-invocation-context-stream-protocol
+  current_phase: strategy-lab-v2-streaming-strategy-runtime-consumer
   current_blocker: >-
     No external product, market-data, or Nautilus release dependency blocks
     isolated implementation. Docker is currently ready through the authorized
@@ -800,27 +801,26 @@ progress:
     yet been run and remains a final validation gate, not a development blocker.
     Exact-pinned Nautilus v2 conformance is still required before results become
     authoritative local backtests.
-    The disk-spooled event-tape resolver, streaming Nautilus-neutral event
-    conversion, bounded replay-context iterator, and bounded JSONL context
-    protocol are implemented. The new context stream is not yet connected to
-    trial assembly or the isolated Nautilus runtime: assembly still requires
-    an in-memory frozen tape, materializes native events and context batches,
-    and embeds the full inputs in the bundle. Owner-scoped trial-input
-    hydration, injected instrument/venue/account adapters, and atomic worker
-    dispatch composition also remain implementation work. Provider, ETF, and
-    TC2000 staging boundaries apply only to their eventual shared-contract
-    integration.
+    The engine-neutral SDK worker now verifies and consumes the bounded
+    context stream and atomically emits a checksummed result stream, while
+    retaining the single-event and in-memory batch wire contracts. This path
+    is not yet connected to Nautilus trial assembly or the isolated Nautilus
+    runtime: assembly still requires an in-memory frozen tape, materializes
+    native events and context batches, and embeds the full inputs in the
+    bundle. Owner-scoped trial-input hydration, injected instrument/venue/
+    account adapters, and atomic worker dispatch composition also remain
+    implementation work. Provider, ETF, and TC2000 staging boundaries apply
+    only to their eventual shared-contract integration.
   next_action: >-
-    Connect frozen event-tape and SDK context streams to a compact runtime
-    manifest, verify their content-addressed artifacts before launch, and make
-    the isolated worker consume bounded records through Nautilus catalog
-    chunks without recreating full tape/context collections. Qualify
-    exact-pinned RC5 BacktestNode/catalog chunking and same-time event ordering
-    against the native probe before enabling authoritative output. Then
-    hydrate fingerprint-linked resources through owner-scoped reads, inject
-    canonical instrument and venue/account adapters, and bind runtime
-    references into atomic dispatch. Reconcile the injected Arrow decoder only
-    after the provider contract reaches staging. Continue target-position
-    allocation, broader native product/accounting/report conformance, and full
-    validation. Do not wait for a stable upstream tag or modify parallel
-    worktrees.
+    Bind the bounded context stream as a verified content-addressed sidecar to
+    a compact Nautilus runtime manifest and worker request; make the isolated
+    Nautilus CLI/bridge consume and persist it without constructing complete
+    context/result collections. Replace full native event-tape bundle
+    materialization with verified stream artifacts and RC5 catalog chunks;
+    test same-time ordering before enabling authoritative output. Then hydrate
+    fingerprint-linked resources through owner-scoped reads, inject canonical
+    instrument and venue/account adapters, and bind runtime references into
+    atomic dispatch. Reconcile the injected Arrow decoder only after the
+    provider contract reaches staging. Continue target-position allocation,
+    broader native product/accounting/report conformance, and full validation.
+    Do not wait for a stable upstream tag or modify parallel worktrees.
