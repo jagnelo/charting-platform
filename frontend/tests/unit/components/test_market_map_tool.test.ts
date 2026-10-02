@@ -810,6 +810,38 @@ describe('MarketMapTool', () => {
     expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ sort_by: 'symbol_asc' }))
   })
 
+  it('moves keyboard focus between Market Map tiles without selecting them', async () => {
+    const wrapper = mount(MarketMapTool, { attachTo: document.body })
+    await flushPromises()
+
+    const tiles = wrapper.findAll<HTMLButtonElement>('.market-map-tool__tile')
+    expect(tiles).toHaveLength(2)
+    const center = (tile: typeof tiles[number]) => ({
+      x: Number.parseFloat(tile.element.style.left) + Number.parseFloat(tile.element.style.width) / 2,
+      y: Number.parseFloat(tile.element.style.top) + Number.parseFloat(tile.element.style.height) / 2,
+    })
+    const firstTile = tiles[0]!
+    const secondTile = tiles[1]!
+    const firstCenter = center(firstTile)
+    const secondCenter = center(secondTile)
+    const deltaX = secondCenter.x - firstCenter.x
+    const deltaY = secondCenter.y - firstCenter.y
+    const key = Math.abs(deltaX) >= Math.abs(deltaY)
+      ? deltaX > 0 ? 'ArrowRight' : 'ArrowLeft'
+      : deltaY > 0 ? 'ArrowDown' : 'ArrowUp'
+
+    firstTile.element.focus()
+    const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+    firstTile.element.dispatchEvent(event)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(document.activeElement).toBe(secondTile.element)
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(firstTile.attributes('aria-pressed')).toBe('false')
+    expect(secondTile.attributes('aria-pressed')).toBe('false')
+    wrapper.unmount()
+  })
+
   it('switches a 10,000-member arbitrary universe to one canvas without proportional tile DOM', async () => {
     const largeResponse = {
       ...response,

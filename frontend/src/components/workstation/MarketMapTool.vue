@@ -276,7 +276,7 @@
           @mouseleave="hoveredCell = null"
           @click="selectCanvasCell"
         />
-        <button v-else v-for="cell in visibleLayoutCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="[tileClass(cell.color_value), { 'market-map-tool__tile--selected': selectedIds.includes(cell.instrument_id) }]" :aria-pressed="selectedIds.includes(cell.instrument_id) ? 'true' : 'false'" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @pointerdown.stop @mouseenter="hoveredCell = cell" @mouseleave="hoveredCell = null" @click="selectCell($event, cell)">
+        <button v-else v-for="cell in visibleLayoutCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="[tileClass(cell.color_value), { 'market-map-tool__tile--selected': selectedIds.includes(cell.instrument_id) }]" :data-market-map-instrument-id="cell.instrument_id" :aria-pressed="selectedIds.includes(cell.instrument_id) ? 'true' : 'false'" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @pointerdown.stop @mouseenter="hoveredCell = cell" @mouseleave="hoveredCell = null" @keydown="focusAdjacentMarketMapTile($event, cell)" @click="selectCell($event, cell)">
           <strong>{{ cell.symbol }}</strong><span>{{ formatMetric(cell.color_value) }}</span><small>{{ cell.group_path.join(' · ') || 'All members' }}</small>
         </button>
         <div v-if="!useCanvasTiles" v-for="group in visibleLayoutGroups" :key="`group-${group.key}`" class="market-map-tool__group-frame" :style="groupFrameStyle(group)" :data-group-level="group.level" aria-hidden="true">
@@ -1036,6 +1036,36 @@ function tileClass(value: number | null | undefined) {
 }
 function tileStyle(cell: MarketMapLayoutCell) {
   return { left: `${cell.x}%`, top: `${cell.y}%`, width: `${cell.width}%`, height: `${cell.height}%` }
+}
+function focusAdjacentMarketMapTile(event: KeyboardEvent, cell: MarketMapLayoutCell) {
+  const direction = ({
+    ArrowLeft: { primary: 'x', sign: -1 },
+    ArrowRight: { primary: 'x', sign: 1 },
+    ArrowUp: { primary: 'y', sign: -1 },
+    ArrowDown: { primary: 'y', sign: 1 },
+  } as const)[event.key as 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown']
+  if (!direction) return
+  event.preventDefault()
+  event.stopPropagation()
+
+  const originX = cell.x + cell.width / 2
+  const originY = cell.y + cell.height / 2
+  const candidates = visibleLayoutCells.value.flatMap(candidate => {
+    if (candidate.instrument_id === cell.instrument_id) return []
+    const centerX = candidate.x + candidate.width / 2
+    const centerY = candidate.y + candidate.height / 2
+    const primaryDistance = direction.primary === 'x' ? (centerX - originX) * direction.sign : (centerY - originY) * direction.sign
+    if (primaryDistance <= 0) return []
+    const secondaryDistance = direction.primary === 'x' ? Math.abs(centerY - originY) : Math.abs(centerX - originX)
+    return [{ candidate, primaryDistance, secondaryDistance }]
+  }).sort((left, right) =>
+    (left.primaryDistance + left.secondaryDistance * 2) - (right.primaryDistance + right.secondaryDistance * 2)
+      || left.primaryDistance - right.primaryDistance
+      || left.candidate.instrument_id - right.candidate.instrument_id,
+  )
+  const next = candidates[0]?.candidate
+  if (!next) return
+  viewportRef.value?.querySelector<HTMLButtonElement>(`[data-market-map-instrument-id="${next.instrument_id}"]`)?.focus()
 }
 function groupFrameStyle(group: MarketMapLayoutGroup) {
   return { left: `${group.x}%`, top: `${group.y}%`, width: `${group.width}%`, height: `${group.height}%`, zIndex: 3 + group.level }
