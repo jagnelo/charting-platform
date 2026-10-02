@@ -505,6 +505,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   exact-pinned release candidate is eligible for isolated compatibility,
   replay, and event-tape execution, but remains non-authoritative; only a
   complete stable release can be marked authoritative.
+- `nautilus_runtime.py` defines the exact `2.0.0rc5` compatibility-runtime
+  declaration. It binds source and runtime-image digests, Python/Rust versions,
+  legacy-runtime isolation, and the release pin consumed by conformance; it
+  never imports Nautilus or discovers packages.
+- `nautilus_runtime_probe.py` is the isolated-image smoke entrypoint. It checks
+  the installed package version, imports the v2 backtest bindings, constructs
+  and disposes a `BacktestEngine`, and emits only structured lifecycle evidence;
+  it cannot acquire data or publish results.
 - `result_publication.py` composes conformance, runtime isolation, and exact
   result-artifact integrity into a storage-neutral publish plan. Only a stable
   authoritative build with matching evidence can publish; already-published

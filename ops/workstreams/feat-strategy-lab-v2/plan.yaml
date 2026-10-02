@@ -773,4 +773,4 @@ progress:
   total: 18
   current_phase: strategy-lab-v2-nautilus-rc-compatibility-track-awaiting-authoritative-gates
   current_blocker: RC compatibility execution can proceed in an isolated exact-pinned runtime; authoritative publication/live shadow remain gated by stable Nautilus conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration
-  next_action: record and validate the exact 2.0.0rc5 isolated runtime contract, then run non-authoritative replay/conformance evidence while keeping worker activation and publication fail-closed
+  next_action: bind the captured RC image digest into a non-authoritative conformance/replay evidence run; keep worker activation, publication, and live shadow fail-closed while host event/account/engine callbacks and approved staging reconciliation remain unavailable

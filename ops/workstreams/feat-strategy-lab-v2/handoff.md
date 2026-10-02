@@ -5902,3 +5902,28 @@ repository-wide formatter baseline still prevents the full integration gate.
 None of these blocks pure contracts, RC conformance fixtures, or isolated
 compatibility-run plumbing. Stable Nautilus remains only the blocker for
 authoritative publication/live shadow, not for continued implementation.
+
+## 2026-10-02 - Exact RC runtime declaration
+
+`nautilus_runtime.py` now provides the immutable
+`NautilusRcCompatibilityRuntime` adapter contract. It hard-codes the current
+`2.0.0rc5` package/tag, requires source and runtime-image SHA-256 digests,
+records Python/Rust versions, rejects any attempt to share the legacy runtime,
+and produces the `NautilusReleasePin` consumed by conformance evidence. It
+does not import Nautilus or install/discover packages.
+
+The focused runtime/conformance/engine suite passes 21 tests, and Ruff plus
+MyPy pass for the new adapter and probe. The exact x86_64 CPython 3.12 wheel
+was verified against PyPI's published SHA-256
+`eab45fafd2312deda1236554c49a9798bfc76bc8465af864878e2f70189ebebe`; the
+probe then constructed and disposed a real `BacktestEngine` from
+`2.0.0rc5`, yielding `engine_lifecycle=passed`. The complete package suite
+passes 970 tests at this checkpoint. The exact isolated runtime image was then
+built from `python:3.12.4-slim@sha256:a3e58f9399353be051735f09be0316bfdeab571a5c6a24fd78b92df85bcb2d85`
+with the verified x86_64 wheel and published checksum, producing image digest
+`sha256:94d1bedef43b8b627b68ae8d4f43a79e47be635c7cd61fa9ddf8508d3b89b22e`.
+The image probe passed with network disabled, read-only root, all Linux
+capabilities dropped, `no-new-privileges`, and bounded tmpfs mounts; it emitted
+`engine_lifecycle=passed` for Python 3.12.4 / Nautilus `2.0.0rc5`. This proves
+isolated RC compatibility only; it does not grant authoritative publication or
+live-shadow status.
