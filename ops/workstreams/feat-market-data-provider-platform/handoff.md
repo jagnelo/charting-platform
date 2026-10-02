@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-head full provider safety preflight after integration gate
+
+- At exact pushed source `a3fab38aa`, the complete provider manifest stopped
+  before transport with `0/0` cases and zero provider requests. The redacted
+  receipt is appended to `validation.jsonl`.
+- The receipt confirms the remaining blockers are provider-specific active
+  baselines/contracts, unresolved capability and legal/use admission, FINRA
+  OTC/source controls, and deployment secret stores. No generic limit, local
+  zero, or prior usage was inferred.
+
 ## 2026-10-02 exact-head Docker integration validation after provider rotation
 
 - At exact pushed source `51465c701`, the Docker PostgreSQL/Redis integration

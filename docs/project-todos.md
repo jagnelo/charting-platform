@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-head full provider safety preflight after integration gate
+
+- [x] At exact pushed source `a3fab38aa`, the full provider manifest stopped
+      before transport with `0/0` cases and zero provider requests. The
+      redacted receipt is appended to `validation.jsonl`.
+- [ ] Provider-specific active baselines/contracts, capability/legal/source
+      admission, FINRA OTC controls, deployment secret stores, deferred
+      providers, and the final shadow phase remain open; no generic limit or
+      inferred usage was introduced.
+
 ### 2026-10-02 — Exact-head Docker integration validation after provider rotation
 
 - [x] At exact pushed source `51465c701`, Docker PostgreSQL/Redis integration

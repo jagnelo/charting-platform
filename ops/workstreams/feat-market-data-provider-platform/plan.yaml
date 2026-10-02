@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact pushed source a3fab38aa full provider safety preflight
+    stopped before transport with 0/0 cases and zero provider requests. The
+    redacted receipt is appended to validation.jsonl; provider-specific active
+    baselines/contracts, capability/legal/source admission, FINRA OTC controls,
+    deployment secret stores, deferred providers, and the final shadow phase
+    remain open. No generic limit, local zero, or prior usage was inferred.
+  - >-
     2026-10-02 exact pushed source 51465c701 passed the Docker PostgreSQL/Redis
     integration gate: 386/386 in 729.17s with 57 existing dependency
     warnings. Test resources were cleaned without a host-wide Docker prune;
