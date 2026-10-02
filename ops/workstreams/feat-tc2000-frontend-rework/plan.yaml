@@ -46,6 +46,13 @@ current_blocker: >-
   dependency is an ancestor of staging. Shared-path reconciliation and the
   final post-staging exact gate remain pending. Origin synchronization remains
   a separate operational hold under the recorded private-origin safeguard.
+  Product tip `db0783e24` adds a white keyboard-focus ring to Market Map tiles,
+  distinct from the gold selection ring. Its focused browser test, frontend
+  test suite, type-check, and production build pass. A pre-commit diagnostic of
+  the longer watchlist-to-Study-Lab flow reached tile selection but the handoff
+  button detached before Playwright could click it. That assertion has since
+  been isolated into its own passing test; the longer flow has not been rerun
+  on this exact tip and remains an open follow-up, not a green gate.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -283,8 +290,10 @@ progress:
   total: 9
   current_phase: R6_latest_resilience_evidence_visual_state_review_open
   next_action: >-
-    Continue independent TC-owned workstation and Study/Strategy work while
-    provider/ETF consumer integration waits for both branches to reach staging.
+    Re-run the longer Market Map watchlist-to-Study-Lab browser handoff on the
+    exact product tip. Continue independent TC-owned workstation and
+    Study/Strategy work while provider/ETF consumer integration waits for both
+    branches to reach staging.
     Keep the six explained screenshot state mismatches visible; do not rewrite
     baselines, masks, thresholds, skips, or acceptance rules without the visual
     review required by docs/tc2000-visual-parity.md. After both upstream tips
@@ -302,7 +311,11 @@ progress:
     100-cycle pop-out resilience checks both pass at this tip. Upstream
     integration is still waiting for provider `26e6dd5b` and ETF `4da62c54` to
     reach staging `8b885a2f`; neither is currently included. No other worktree
-    was touched.
+    was touched. The Market Map focus-ring slice passed its focused browser,
+    unit, serial frontend, type-check, and build checks at `db0783e24`. A
+    pre-commit diagnostic of the longer watchlist-to-Study-Lab flow detached
+    its action button; that flow has not been rerun after the focus assertion
+    was isolated, so exact-tip status remains unknown.
 historical_implementation_records:
   - "Product commit 507c6df42 gives TC-owned Market Map actions explicit contextual accessible names for saving explicit symbols, refreshing the map, saving/exporting/deleting snapshots, and saving selected members as a personal watchlist while preserving visible labels, state mutations, and visual styling. Focused MarketMapTool coverage passed 54/54; the full serial frontend suite passed 128 files and 1,167/1,167 tests; vue-tsc, the production build, git diff --check, TC scope self-tests, and workstream validation passed with the existing large-chunk warning. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit f85222610 gives TC-owned VirtualWatchlist editor actions contextual accessible names: selected-symbol comparison count, paste settings, stack/unstack and pin/unpin column state, Python-column addition, saved-set save, and saved-set apply name/version. Existing visible labels, state mutations, and visual styling remain unchanged. Focused VirtualWatchlistTool coverage passed 78/78; the full serial frontend suite passed 128 files and 1,167/1,167 tests; vue-tsc, the production build, git diff --check, TC scope self-tests, and workstream validation passed with the existing large-chunk warning. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
@@ -585,7 +598,10 @@ historical_implementation_records_continued:
   - "Product commit 0ffecbc8 makes synthetic instrument constituent chips keyboard-operable buttons with stable accessible names and gives the long-description disclosure explicit button type and context while preserving constituent selection events, description expansion, and report layout. Focused InstrumentInfoPanel coverage passed 6/6; the full serial frontend suite passed 127/127 files and 1,158/1,158 tests; vue-tsc and production build passed with the existing large-chunk warning; TC scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "The current atomic read-only dependency audit observes staging at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform at 5f6b1edef67b4ee209404bea05f57e5fdab7471a (fix(marketstack): scope raw pagination totals), and ETF holdings at 88664a143531a2d45dbc03b006555eca62a100d0 (docs(etf): record dependency checkpoint push). Neither upstream tip is an ancestor of staging, so TC consumer integration and shared-path reconciliation remain deferred."
 
+  - "Product commit db0783e24 adds a white :focus-visible ring to Market Map tiles, distinct from selection styling. The focused F8s-family-map-drilldown browser test passed 1/1; MarketMapTool unit coverage passed 55/55; the exact-tip serial frontend suite passed 128/128 files and 1,168/1,168 tests; type-check and production build passed with the existing large-chunk warning. A pre-commit diagnostic of F8s-market-map-watchlist reached tile selection but its Study Lab handoff button detached; rerun that longer workflow on the exact tip. No visual baseline, mask, threshold, skip, fallback, provider, ETF, or acceptance policy changed."
+
 remaining_gaps:
+  - "Re-run F8s-market-map-watchlist on db0783e24; its pre-commit diagnostic detached the Study Lab action button after tile selection, and its current exact-tip status is unknown."
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."
   - "Path intersections are not proof of duplicate behavior; line-level semantics remain pending after staging. The 93-commit TC etf_holdings_adapters.py history is explicitly flagged for ETF-owner reconciliation/transfer."

@@ -32,6 +32,24 @@ fallback, or acceptance policy changed. The six protected visual mismatches
 and upstream staging boundary remain open; this is not an exact-tip integration
 or four-project visual-gate pass.
 
+## 2026-10-02 — Market Map keyboard-focus visibility
+
+Product commit `db0783e24567cd89b87c51567c7c4444674db98f` adds a white inset
+focus ring to keyboard-focused Market Map tiles, distinct from the gold ring
+used for selected tiles. The focused `F8s-family-map-drilldown` Chromium test
+passed `1/1`, including keyboard focus, visible focus styling, and click
+selection. The focused MarketMapTool suite passed `55/55`; the exact-tip serial
+frontend suite passed `128/128` files and `1,168/1,168` tests; type-check and
+production build passed with the existing large-chunk warning. No screenshot
+baseline or visual acceptance rule changed.
+
+A pre-commit diagnostic of the longer watchlist-to-Study-Lab flow reached tile
+selection but the handoff button detached before Playwright could click it.
+The keyboard-focus assertion has been isolated into the smaller passing
+browser test; the longer flow still needs to be rerun on this exact tip. The
+six protected visual mismatches and upstream staging boundary remain open, so
+this slice is not a full browser or visual-gate pass.
+
 ## 2026-09-15 - Preserve promoted Python signal lineage in Strategy Lab
 
 Product checkpoint `7c4bd3ba494706b517d496ca63770055b88f9b3e` keeps the

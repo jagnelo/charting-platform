@@ -15627,3 +15627,23 @@ discovery pages`), and ETF holdings at
 `82247df4e1272c08ca68d13d4bbeef108e668ff3` (`docs(etf): align audit freshness
 checkpoints`). Neither upstream tip is an ancestor of staging; TC consumer
 integration and shared-path reconciliation remain deferred.
+
+## 2026-10-02 — Market Map keyboard-focus visibility
+
+Product commit `db0783e24567cd89b87c51567c7c4444674db98f` adds a white inset
+`:focus-visible` ring to Market Map tiles, separate from the existing gold
+selection ring. It does not change selection behavior or screenshot baselines.
+The authenticated Chromium `F8s-family-map-drilldown` check passed `1/1`,
+verifying keyboard focus, the computed focus ring, click selection, and browser
+diagnostics. Focused MarketMapTool coverage passed `55/55`; the exact-tip full
+serial frontend suite passed `128/128` files and `1,168/1,168` tests; frontend
+type-check and production build passed with the existing large-chunk warning.
+
+A pre-commit diagnostic of the longer `F8s-market-map-watchlist` flow reached
+tile selection but later failed at the Study Lab handoff: the selected-members
+button detached before Playwright could click it. The focus assertion was
+isolated into the smaller passing browser test; the broader flow has not been
+rerun on the exact product tip, so its current status is unknown. Rerun that
+workflow before calling the exact browser gate green. The six protected visual
+state mismatches and provider/ETF staging boundary remain open; no visual
+baseline, mask, threshold, skip, or acceptance rule was changed.
