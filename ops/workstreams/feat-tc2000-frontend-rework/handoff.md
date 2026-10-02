@@ -1,5 +1,19 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Market Map spatial keyboard navigation
+
+Product commit `4a4b06e5d6dabfff4c75c1e2d70912f58ba2270e` gives TC-owned Market
+Map treemap tiles spatial arrow-key focus. Navigation selects the nearest tile
+in the requested direction and does not change selected members; native button
+activation remains responsible for selection. Focused MarketMapTool coverage
+passed `55/55`; full serial frontend
+coverage passed `128/128` files and `1,168/1,168` tests; `vue-tsc`, production
+build, `git diff --check`, TC scope self-tests, and workstream validation
+passed. The build reports the existing large-chunk warning. No browser replay
+was run for this slice. No visual oracle, provider/ETF behavior, fallback, or
+acceptance policy changed. The protected visual mismatches and upstream
+staging boundary remain open.
+
 ## 2026-10-02 — Market Map action names
 
 Product commit `507c6df42` gives TC-owned Market Map actions explicit

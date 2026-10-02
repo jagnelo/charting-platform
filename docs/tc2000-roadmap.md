@@ -3,7 +3,22 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-09-15
+Last reconciled: 2026-10-02
+
+## 2026-10-02 — Market Map spatial keyboard navigation
+
+Product commit `4a4b06e5d6dabfff4c75c1e2d70912f58ba2270e` gives Market Map
+treemap tiles arrow-key focus to the nearest tile in the requested direction.
+Navigation prevents page scrolling but does not change selection; Enter, Space,
+and click retain the native button activation path.
+Focused MarketMapTool coverage passed `55/55`; full serial frontend Vitest
+passed `128/128` files and `1,168/1,168` tests; `vue-tsc`, production build,
+`git diff --check`, TC scope self-tests, and workstream validation passed. The
+production build reports only the existing large-chunk warning. No browser
+replay, provider-platform, ETF, visual baseline, threshold, mask, skip,
+fallback, or acceptance policy changed. The six protected visual mismatches
+and upstream staging boundary remain open; this is not an exact-tip integration
+or four-project visual-gate pass.
 
 ## 2026-09-15 - Preserve promoted Python signal lineage in Strategy Lab
 
