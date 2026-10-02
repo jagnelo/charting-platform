@@ -6086,3 +6086,12 @@ shared provider-platform dependency remains outside staging: its current ref
 is still not an ancestor of staging and still does not expose
 `ProviderCapability.ETF_HOLDINGS`; AC10 therefore remains deferred. AC14 is
 still the post-integration 30-day production shadow gate.
+
+## Provider-platform dependency recheck — 2026-10-02 (latest)
+
+Read-only refs now show local `feat/market-data-provider-platform` at
+`0e34424d`, its origin-tracking ref at `354966b2`, and `staging` at
+`8b885a2f`. The provider ref is not an ancestor of staging, and both inspected
+provider definitions still lack `ProviderCapability.ETF_HOLDINGS`. This remains
+the only external dependency preventing AC10; no provider-platform or staging
+worktree was modified.
