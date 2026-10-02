@@ -1,5 +1,22 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Indicator Panel row keyboard semantics
+
+Product commit `096a5d015` makes TC-owned Radar detection, indicator, drawing,
+price-alert, and indicator-alert rows keyboard-operable. Each row now has an
+explicit button role, stable focus target, accessible name, and Enter/Space
+activation; Radar rows also expose their active state through `aria-pressed`.
+Nested action menus remain isolated from row activation. Focused IndicatorPanel
+coverage passed `2/2`; the full serial frontend suite passed `128/128` files and
+`1,164/1,164` tests; `vue-tsc`, the production build, and `git diff --check`
+passed. Rebuilt-stack authenticated Chromium passed `3/3` related chart,
+indicator, drawing, and alert workflows (`F8e.swing-analysis`, `F8u-boolean`,
+and `F8u-alert`). The initial stack-up attempt stopped before Docker because of
+the read-only default UV cache; the writable-cache retry passed. Teardown
+removed the assigned containers, volumes, network, four generated images, and
+test sessions. No provider-platform, ETF, visual baseline, threshold, mask,
+skip, fallback, or acceptance policy changed.
+
 ## 2026-10-02 — Layout Picker keyboard navigation
 
 Product commit `c5d270413` makes the TC-owned Layout Picker's custom grid and
