@@ -17,14 +17,21 @@ from app.strategy_lab_v2.conformance_fixtures import (
     ConformanceFixtureObservation,
     ConformanceFixtureSuite,
     build_conformance_evidence,
+    build_event_tape_parity_observation,
     execute_conformance_suite,
     require_complete_conformance_suite,
     require_runtime_probe_binding,
+)
+from app.strategy_lab_v2.nautilus_event_adapter import (
+    NautilusEventTape,
+    materialize_nautilus_event,
+    verify_nautilus_event_tape_parity,
 )
 from app.strategy_lab_v2.nautilus_runtime import (
     NautilusRcCompatibilityRuntime,
     NautilusRuntimeProbeEvidence,
 )
+from app.strategy_lab_v2.sdk import MarketEvent
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 PIN = NautilusReleasePin(
@@ -218,6 +225,63 @@ def test_executable_suite_reduces_runner_errors_to_failed_digest_evidence() -> N
     )
     assert not failed.passed
     assert failed.detail == "runner failed: RuntimeError"
+
+
+def test_event_tape_parity_receipt_projects_into_conformance_observation() -> None:
+    event = MarketEvent(
+        "daily-bars",
+        "bar-1",
+        "US.AAPL",
+        NOW,
+        0,
+        {"open": 100, "high": 101, "low": 99, "close": 100, "volume": 10},
+    )
+    record = materialize_nautilus_event(event, event_type="ohlcv")
+    tape = NautilusEventTape(content_digest("source"), (record,))
+    observed = {
+        "dependency_id": record.dependency_id,
+        "event_id": record.event_id,
+        "instrument_id": record.instrument_id,
+        "event_type": record.event_type,
+        "event_time_ns": record.event_time_ns,
+        "sequence": record.sequence,
+        "values": dict(record.values),
+    }
+    receipt = verify_nautilus_event_tape_parity(tape, (observed,))
+    expected = content_digest(receipt)
+
+    observation = build_event_tape_parity_observation(expected, receipt)
+
+    assert observation.check is ConformanceCheck.FORWARD_EVENT_TAPE_PARITY
+    assert observation.passed is True
+    assert observation.observed_digest == expected
+
+
+def test_failed_event_tape_parity_receipt_cannot_become_a_pass() -> None:
+    event = MarketEvent(
+        "daily-bars",
+        "bar-1",
+        "US.AAPL",
+        NOW,
+        0,
+        {"open": 100, "high": 101, "low": 99, "close": 100, "volume": 10},
+    )
+    record = materialize_nautilus_event(event, event_type="ohlcv")
+    tape = NautilusEventTape(content_digest("source"), (record,))
+    observed = {
+        "dependency_id": record.dependency_id,
+        "event_id": record.event_id,
+        "instrument_id": record.instrument_id,
+        "event_type": record.event_type,
+        "event_time_ns": record.event_time_ns,
+        "sequence": record.sequence,
+        "values": {**record.values, "close": 999},
+    }
+    receipt = verify_nautilus_event_tape_parity(tape, (observed,))
+
+    observation = build_event_tape_parity_observation(receipt.fingerprint, receipt)
+
+    assert observation.passed is False
 
 
 def test_executable_suite_requires_exact_expected_checks() -> None:

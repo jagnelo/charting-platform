@@ -6001,3 +6001,16 @@ synthetic adapter claim stable Nautilus authority.
 
 The focused adapter suite now passes 9 tests; package-wide validation follows
 after the documentation and workstream receipt are committed.
+
+## 2026-10-02 - Event parity conformance projection
+
+`build_event_tape_parity_observation(...)` now converts a
+`NautilusEventParityReceipt` into the existing
+`FORWARD_EVENT_TAPE_PARITY` conformance observation. Successful receipts use
+their content fingerprint; failed receipts receive a distinct failure digest,
+so an expected-digest configuration cannot manufacture a pass. This keeps the
+future real host/Rust callback on the same conformance path as the other engine
+checks without claiming that the current RC fixture is authoritative.
+
+The complete package suite passes 987 tests, with package Ruff, targeted
+formatting, MyPy, diff, and workstream validation green.

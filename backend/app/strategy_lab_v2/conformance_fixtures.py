@@ -16,6 +16,7 @@ from app.strategy_lab_v2.conformance import (
     NautilusReleasePin,
     evaluate_engine_conformance,
 )
+from app.strategy_lab_v2.nautilus_event_adapter import NautilusEventParityReceipt
 from app.strategy_lab_v2.nautilus_runtime import (
     NautilusRcCompatibilityRuntime,
     NautilusRuntimeProbeEvidence,
@@ -160,6 +161,41 @@ def require_runtime_probe_binding(
         raise ValueError("complete execution-eligible conformance evidence is required")
     if resolution.report.authoritative:
         raise ValueError("release-candidate probe evidence cannot be authoritative")
+
+
+def build_event_tape_parity_observation(
+    expected_digest: str,
+    receipt: NautilusEventParityReceipt,
+) -> ConformanceFixtureObservation:
+    """Project one adapter parity receipt into the required fixture check.
+
+    A passed receipt uses its fingerprint as the observed fixture value. A
+    failed receipt derives a distinct failure digest, so it can never be turned
+    into a passed conformance observation by choosing a matching expected
+    digest; the receipt's own pass bit remains part of the gate.
+    """
+
+    require_sha256_digest(expected_digest, field_name="expected_digest")
+    if not isinstance(receipt, NautilusEventParityReceipt):
+        raise TypeError("receipt must be a NautilusEventParityReceipt")
+    observed_digest = receipt.fingerprint
+    if not receipt.passed:
+        observed_digest = content_digest(
+            {"parity_receipt": receipt.fingerprint, "status": "failed"}
+        )
+        if observed_digest == expected_digest:
+            observed_digest = content_digest(
+                {"parity_receipt": receipt.fingerprint, "status": "failed", "variant": 1}
+            )
+    passed = receipt.passed and observed_digest == expected_digest
+    detail = "event-tape parity receipt matched" if passed else "event-tape parity receipt failed"
+    return ConformanceFixtureObservation(
+        ConformanceCheck.FORWARD_EVENT_TAPE_PARITY,
+        expected_digest,
+        observed_digest,
+        passed,
+        detail,
+    )
 
 
 def execute_conformance_suite(

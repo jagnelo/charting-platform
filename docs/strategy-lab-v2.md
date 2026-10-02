@@ -537,6 +537,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `verify_nautilus_event_tape_parity(...)` provides the strict observed-wire
   schema and non-authoritative pass/fail receipt for that future adapter, with
   canonical ordering and field-level mismatch evidence.
+- `build_event_tape_parity_observation(...)` projects that receipt into the
+  existing `FORWARD_EVENT_TAPE_PARITY` conformance check. Failed receipts are
+  assigned a distinct failure digest, so expected-fixture configuration cannot
+  manufacture a pass.
 - `result_publication.py` composes conformance, runtime isolation, and exact
   result-artifact integrity into a storage-neutral publish plan. Only a stable
   authoritative build with matching evidence can publish; already-published
