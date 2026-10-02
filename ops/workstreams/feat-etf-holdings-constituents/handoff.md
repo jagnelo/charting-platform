@@ -6107,3 +6107,20 @@ or non-portfolio-publisher (`inactive_or_successor_disposition`,
 `non_executable_public_source`, or `provider_not_a_portfolio_publisher`).
 Together with the 15 Tier-0 records and the current Amplify successor bridge,
 this satisfies AC11 without promoting SEC, stale, partial, or unverified data.
+
+## Exact-SHA CI M.D. Sass transport classification — 2026-10-02
+
+Exact-SHA CI run `37005871977` on `957d9139` passed Backend Tests, Frontend
+Unit Tests, and Playwright E2E. Its Branch-declared Tests job failed in the
+opt-in live matrix at the bespoke M.D. Sass SASS route. The GitHub job log was
+not downloadable from this environment, so the failure was reproduced locally
+at the exact tip with `-x`: the first selected live case raised
+`httpx.ConnectError: [Errno -3] Temporary failure in name resolution` while
+retrieving the issuer CSV. The strict parser and adapter remain unchanged.
+
+The live test now catches only the existing transport/access exception classes
+and invokes `_is_external_live_access_failure`, recording issuer-edge or
+runner-network outages as skips without weakening identity, schema, completeness,
+or freshness assertions. The bounded SASS case is skipped in the current DNS-
+blocked environment; the complete deterministic ETF suite still passes 706
+tests. A fresh exact-SHA CI run is required to validate the correction.

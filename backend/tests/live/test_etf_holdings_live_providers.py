@@ -635,7 +635,12 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
 async def test_live_m_d_sass_issuer_csv_route_preserves_dated_rows():
     adapter = get_holdings_adapter("m_d_sass")
     assert adapter is not None
-    result = await adapter.fetch_latest(symbol="SASS")
+    try:
+        result = await adapter.fetch_latest(symbol="SASS")
+    except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
+        if _is_external_live_access_failure(exc):
+            pytest.skip(str(exc))
+        raise
     _assert_live_holdings_result(result, adapter_key="m_d_sass", min_rows=10)
     assert result.legal_metadata["route_resolution"] == "md_sass_issuer_declared_daily_holdings_csv"
     assert result.legal_metadata["composition_date"]
