@@ -6019,3 +6019,14 @@ but the provider-platform branch remains at `1b518778` while staging remains at
 `8b885a2f`. The provider branch is not an ancestor of staging, and both fetched
 `ProviderCapability` definitions still lack `ETF_HOLDINGS`. AC10 remains
 deferred; no provider-platform or staging worktree was modified.
+
+## PIMCO MINT/BOND Tier-0 recheck — 2026-10-02
+
+The current official PIMCO ETF suite lists BOND and MINT as active U.S.-listed
+products with current catalogue/NAV context, and the linked product-detail
+shells were inspected for a complete holdings artifact. The anonymous shells
+exposed no complete holdings rows or downloadable basket; the bounded direct
+requests to PIMCO and Pacific routes failed DNS in this environment. MINT and
+BOND therefore remain explicitly `unavailable`, while GEME evidence remains
+symbol-scoped and is not reused for the mixed Pacific/PIMCO identity. No SEC,
+top-ten, creation-basket, or paid candidate was promoted.
