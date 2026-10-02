@@ -731,6 +731,43 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('compare')?.[0]?.[0]).toEqual(['XLE', 'XLK'])
   })
 
+  it('gives watchlist editor actions contextual accessible names', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors', rows,
+        columns: [
+          { key: 'symbol', label: 'Symbol' },
+          { key: 'relative_1m', label: '1M' },
+          { key: 'signal', label: 'Signal', kind: 'boolean' },
+        ],
+        stackedColumnKeys: ['relative_1m'],
+        pinnedBooleanKeys: ['signal'],
+      },
+    })
+    const selectRow = (wrapper.vm as unknown as { selectRow: (row: typeof rows[number], event: MouseEvent) => void }).selectRow
+    selectRow(rows[0], new MouseEvent('click'))
+    selectRow(rows[1], new MouseEvent('click', { ctrlKey: true }))
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('.watchlist__compare-button').attributes('aria-label')).toBe('Compare 2 selected symbols')
+    await wrapper.get('button[aria-label="Columns"]').trigger('click')
+    expect(wrapper.get('button[aria-label="Paste column settings"]').exists()).toBe(true)
+    expect(wrapper.get('button[aria-label="Stack Symbol column"]').exists()).toBe(true)
+    expect(wrapper.get('button[aria-label="Unstack 1M column"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.get('button[aria-label="Unpin Signal column"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.get('button[aria-label="Add selected Python column"]').exists()).toBe(true)
+  })
+
+  it('gives saved column-set actions names that include the set and version', async () => {
+    const saved = { stable_key: 'technical-1', name: 'Technical', version: 3, payload: { configuration: {} } }
+    apiGet.mockImplementation((path: string, params?: { kind?: string }) => params?.kind === 'column_set' ? Promise.resolve([saved]) : Promise.resolve([]))
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    await wrapper.get('button[aria-label="Column sets"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Technical'))
+    expect(wrapper.get('button[aria-label="Save column set"]').exists()).toBe(true)
+    expect(wrapper.get('button[aria-label="Apply column set Technical version 3"]').exists()).toBe(true)
+  })
+
   it('emits the selected canonical rows for batch membership actions only', async () => {
     const selectedRows = rows.map((row, index) => ({ ...row, itemId: index + 10, sourceWatchlistId: 3 }))
     const wrapper = mount(VirtualWatchlistTool, {
