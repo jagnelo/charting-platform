@@ -12,10 +12,16 @@ from app.strategy_lab_v2.conformance import (
     NautilusReleasePin,
     evaluate_engine_conformance,
 )
+from app.strategy_lab_v2.conformance_fixtures import resolve_nautilus_rc_conformance
 from app.strategy_lab_v2.engine_execution import (
     EngineExecutionDecision,
     NautilusExecutionScope,
     plan_nautilus_execution,
+)
+from app.strategy_lab_v2.nautilus_runtime import (
+    NautilusRcCompatibilityRuntime,
+    NautilusRcFixtureReceipt,
+    NautilusRuntimeProbeEvidence,
 )
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolationRequest
 from app.strategy_lab_v2.runtime_execution import (
@@ -281,6 +287,64 @@ def test_rc_forward_scope_still_requires_forward_parity() -> None:
 
     assert result.decision is EngineExecutionDecision.REJECT
     assert "required_engine_conformance_failed" in result.rejection_reasons
+
+
+def test_parsed_rc_receipt_can_feed_backtest_execution_scope() -> None:
+    trial, attempt, source, capability, lease = _execution_fixture(authoritative=False)
+    from app.strategy_lab_v2.execution import authorize_execution
+
+    authorization = authorize_execution(
+        trial, attempt, source, capability, lease, now=NOW.replace(second=3)
+    )
+    request, runtime_preflight = _runtime()
+    runtime = NautilusRcCompatibilityRuntime(
+        source_digest=content_digest("nautilus-v2-rc5-source"),
+        runtime_image_digest=content_digest("nautilus-v2-rc5-image"),
+        python_version="3.12.11",
+        rust_version="1.88.0",
+    )
+    probe = NautilusRuntimeProbeEvidence.from_mapping(
+        {
+            "engine_lifecycle": "passed",
+            "implementation": "cpython",
+            "nautilus_package_version": runtime.package_version,
+            "platform": "Linux-x86_64",
+            "python_version": runtime.python_version,
+        },
+        runtime,
+    )
+    receipt = NautilusRcFixtureReceipt.from_mapping(
+        {
+            "authoritative": False,
+            "deterministic_replay": {"equal": True},
+            "engine_lifecycle": "passed",
+            "forward_event_tape_parity": "deferred_authoritative_fixture",
+            "multi_instrument_accounting": {"instrument_count": 2},
+            "native_order_fill_cost": {"total_orders": 1},
+        },
+        runtime,
+    )
+    conformance = resolve_nautilus_rc_conformance(
+        runtime,
+        probe,
+        receipt,
+        build_digest=content_digest("nautilus-v2-rc5-build"),
+        tested_at=NOW,
+    )
+
+    result = plan_nautilus_execution(
+        authorization,
+        runtime_preflight,
+        conformance.evidence,
+        conformance.report,
+        _plan(request),
+        data_snapshot_fingerprint=content_digest("snapshot"),
+        requested_authoritative=False,
+        execution_scope=NautilusExecutionScope.BACKTEST_COMPATIBILITY,
+    )
+
+    assert result.decision is EngineExecutionDecision.READY
+    assert result.execution_scope is NautilusExecutionScope.BACKTEST_COMPATIBILITY
 
 
 def test_compatible_evidence_without_an_isolated_pin_cannot_execute() -> None:

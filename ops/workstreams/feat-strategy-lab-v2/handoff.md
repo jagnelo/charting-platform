@@ -6168,6 +6168,8 @@ fixture receipt plus runtime probe into the ordinary engine evidence/report
 pair consumed by the execution gate. The resolver authenticates runtime,
 probe, image, package, release-pin, build, and fixture identities, preserves
 the four passed checks and deferred forward-parity check, and cannot emit
-authoritative evidence. The focused conformance-fixture suite passes 18 tests;
-the complete Strategy Lab v2 package suite passes 1,003 tests, Ruff, MyPy
-across 305 source files, and diff validation.
+authoritative evidence. The focused conformance-fixture and engine-gate suites
+pass 29 tests; the complete Strategy Lab v2 package suite passes 1,004 tests,
+Ruff, MyPy across 305 source files, and diff validation. The engine-gate test
+now consumes the resolver output directly through the backtest-compatible
+execution scope.
