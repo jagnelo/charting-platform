@@ -33,10 +33,10 @@ current_blocker: >-
   and Nimbus Sans), so a matching-font replay is required before attributing
   the mismatch to product pixels. The
   standard parallel frontend gate remains host-timing-sensitive on the
-  unrelated 100k-point uPlot benchmark; serial coverage passes 1,161/1,161.
+  unrelated 100k-point uPlot benchmark; serial coverage passes 1,165/1,165.
   A Buildx-assisted exact gate reached the branch-scoped stack and completed
   backend unit/integration coverage (1,621/1,621 and 408/408, 82.26%), frontend
-  tests (128 files, 1,161/1,161), type-check, build, Compose contracts, and
+  tests (128 files, 1,165/1,165), type-check, build, Compose contracts, and
   research-runner probes. The full authenticated browser stage then reported
   161 passed, 9 failed, and 107 documented skips. The nine failures are in
   late Study Lab cancellation/failure recovery, Market Map Python lineage,
@@ -312,7 +312,7 @@ progress:
     study; the selectors were corrected and the affected seven browser tests
     passed. The Buildx-assisted exact gate passed backend unit/integration
     coverage (1,621/1,621 and 408/408, 82.26%), frontend tests (128 files,
-    1,161/1,161), type-check, build, contracts, policy checks, and branch-scoped
+    1,165/1,165), type-check, build, contracts, policy checks, and branch-scoped
     stack startup. The authenticated browser stage reported 161 passed, 9
     failed, and 107 documented skips; the failures are concentrated in late
     Study Lab, Market Map/Instrument Report, promotion, Python Library, and
@@ -330,6 +330,7 @@ progress:
     `1a256e78`, with neither upstream tip an ancestor of staging. Shared-path
     reconciliation and the final post-staging exact gate remain pending.
 historical_implementation_records:
+  - "Product commit 1700f0813 makes TC-owned VirtualWatchlist column separators keyboard-resizable with horizontal separator semantics, a bounded 48-600 pixel size range, current size text, and Arrow/Home/End controls while preserving mouse resize behavior. Focused VirtualWatchlistTool coverage passed 76/76; the serial frontend suite passed 128 files and 1,165/1,165 tests; vue-tsc, the production build, and git diff --check passed with the existing large-chunk warning. A fresh branch-scoped authenticated Chromium replay of F9e-resize passed 1/1. Teardown removed the assigned stack, volumes, network, four generated images, and test sessions. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 096a5d015 makes TC-owned Radar detection, indicator, drawing, price-alert, and indicator-alert rows keyboard-operable with explicit button roles, stable focus targets, accessible names, and Enter/Space activation; Radar rows also expose active state through aria-pressed while nested action menus remain isolated. Focused IndicatorPanel coverage passed 2/2; the full serial frontend suite passed 128 files and 1,164/1,164 tests; vue-tsc, production build, and git diff --check passed. Rebuilt-stack authenticated Chromium passed 3/3 related chart, indicator, drawing, and alert workflows (F8e.swing-analysis, F8u-boolean, F8u-alert). Teardown removed the assigned stack, volumes, network, four images, and test sessions. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "The current atomic read-only dependency audit observes staging at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform at f9be6bfdb71d0b8476fae49717cf4d96bea0ddeb, and ETF holdings at 1a256e78d0d1dcd63c86101cbdc878c8dc35f765. Neither upstream tip is an ancestor of staging, so TC consumer integration and shared-path reconciliation remain deferred."
   - "Product commit c5d270413 makes the TC-owned Layout Picker custom grid and profile menus keyboard-operable with Arrow/Home/End navigation and trigger-edge focus recovery while preserving click behavior, layout persistence, and visual styling. Focused LayoutPicker coverage passed 6/6; vue-tsc, the production build, and git diff --check passed. A fresh branch-scoped Chromium replay of the related F9c/F9d/F9e-keyboard chart and workspace flows passed 12/12 after an environment-only in-sandbox Chromium launch failure; teardown removed the assigned stack, volumes, network, four images, and test sessions. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."

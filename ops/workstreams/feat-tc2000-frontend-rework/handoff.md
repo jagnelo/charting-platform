@@ -1,5 +1,19 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — VirtualWatchlist keyboard column resizing
+
+Product commit `1700f0813` makes TC-owned VirtualWatchlist column separators
+keyboard-resizable. Focused separators now expose horizontal separator
+semantics, a bounded 48–600 pixel range, current size text, and Arrow/Home/End
+keyboard controls while preserving the existing mouse resize path. Focused
+VirtualWatchlistTool coverage passed `76/76`; the full serial frontend suite
+passed `128/128` files and `1,165/1,165` tests; `vue-tsc`, the production build,
+and `git diff --check` passed with the existing large-chunk warning. A fresh
+branch-scoped authenticated Chromium replay of `F9e-resize` passed `1/1`.
+Teardown removed the assigned stack, volumes, network, four generated images,
+and test sessions. No provider-platform, ETF, visual baseline, threshold,
+mask, skip, fallback, or acceptance policy changed.
+
 ## 2026-10-02 — Indicator Panel row keyboard semantics
 
 Product commit `096a5d015` makes TC-owned Radar detection, indicator, drawing,
