@@ -28,7 +28,8 @@
         :aria-expanded="showGrid"
         :aria-controls="gridMenuId"
         aria-haspopup="menu"
-        @click="toggleGrid"
+        @click="toggleGrid()"
+        @keydown="handleGridTriggerKeydown"
       >
         <svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor">
           <rect x="1"  y="1"  width="5" height="5" rx="1" />
@@ -41,7 +42,7 @@
       </button>
 
       <Transition name="grid-popup">
-        <div v-if="showGrid" :id="gridMenuId" class="grid-popup" role="menu" aria-label="Custom grid layout" :aria-labelledby="gridTriggerId" :style="gridPopupStyle" @mouseleave="hoverCell = null">
+        <div v-if="showGrid" :id="gridMenuId" class="grid-popup" role="menu" aria-label="Custom grid layout" :aria-labelledby="gridTriggerId" :style="gridPopupStyle" @mouseleave="hoverCell = null" @keydown="handleGridMenuKeydown">
           <div class="grid-cells">
             <template v-for="row in MAX_ROWS" :key="row">
               <button
@@ -85,8 +86,8 @@
     </button>
 
     <div class="profile-wrap">
-      <button :id="profileTriggerId" ref="profileTrigger" type="button" class="lp-btn" title="Layout profiles" aria-label="Layout profiles" aria-haspopup="menu" :aria-expanded="showProfiles" :aria-controls="profileMenuId" @click="toggleProfiles">P</button>
-      <div v-if="showProfiles" :id="profileMenuId" class="profile-menu" role="menu" aria-label="Layout profiles" :aria-labelledby="profileTriggerId" :style="profileMenuStyle" @click.stop>
+      <button :id="profileTriggerId" ref="profileTrigger" type="button" class="lp-btn" title="Layout profiles" aria-label="Layout profiles" aria-haspopup="menu" :aria-expanded="showProfiles" :aria-controls="profileMenuId" @click="toggleProfiles()" @keydown="handleProfileTriggerKeydown">P</button>
+      <div v-if="showProfiles" :id="profileMenuId" class="profile-menu" role="menu" aria-label="Layout profiles" :aria-labelledby="profileTriggerId" :style="profileMenuStyle" @click.stop @keydown="handleProfileMenuKeydown">
         <button type="button" role="menuitem" class="profile-action" @click="saveProfile">Save current layout</button>
         <div class="profile-empty" v-if="!layoutStore.profiles.length">No saved profiles</div>
         <div v-for="profile in layoutStore.profiles" :key="profile.id" class="profile-row">
@@ -214,17 +215,74 @@ function removeDismissListener() {
   document.removeEventListener('keydown', dismissOnEscape, true)
 }
 
-function toggleGrid() {
+function focusMenuItem(rootElement: HTMLElement | null, index: number) {
+  const items = Array.from(rootElement?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])
+  if (!items.length) return
+  const targetIndex = index < 0 ? items.length - 1 : Math.min(index, items.length - 1)
+  items[Math.max(0, targetIndex)]?.focus()
+}
+
+function gridItems() {
+  return Array.from(document.getElementById(gridMenuId)?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])
+}
+
+function profileItems() {
+  return Array.from(document.getElementById(profileMenuId)?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])
+}
+
+function moveMenuFocus(event: KeyboardEvent, items: HTMLButtonElement[], delta: number) {
+  const target = event.target instanceof HTMLButtonElement ? event.target : null
+  const current = target ? items.indexOf(target) : -1
+  if (current < 0) return
+  event.preventDefault()
+  const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : Math.max(0, Math.min(items.length - 1, current + delta))
+  items[next]?.focus()
+}
+
+function handleGridTriggerKeydown(event: KeyboardEvent) {
+  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+  event.preventDefault()
+  const last = MAX_COLS * MAX_ROWS - 1
+  if (!showGrid.value) toggleGrid(event.key === 'ArrowUp' ? last : 0)
+  else focusMenuItem(document.getElementById(gridMenuId), event.key === 'ArrowUp' ? last : 0)
+}
+
+function handleProfileTriggerKeydown(event: KeyboardEvent) {
+  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+  event.preventDefault()
+  if (!showProfiles.value) toggleProfiles(event.key === 'ArrowUp' ? -1 : 0)
+  else focusMenuItem(document.getElementById(profileMenuId), event.key === 'ArrowUp' ? -1 : 0)
+}
+
+function handleGridMenuKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') return
+  const items = gridItems()
+  if (event.key === 'ArrowRight') moveMenuFocus(event, items, 1)
+  else if (event.key === 'ArrowLeft') moveMenuFocus(event, items, -1)
+  else if (event.key === 'ArrowDown') moveMenuFocus(event, items, MAX_COLS)
+  else if (event.key === 'ArrowUp') moveMenuFocus(event, items, -MAX_COLS)
+  else if (event.key === 'Home' || event.key === 'End') moveMenuFocus(event, items, 0)
+}
+
+function handleProfileMenuKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') return
+  const items = profileItems()
+  if (event.key === 'ArrowDown') moveMenuFocus(event, items, 1)
+  else if (event.key === 'ArrowUp') moveMenuFocus(event, items, -1)
+  else if (event.key === 'Home' || event.key === 'End') moveMenuFocus(event, items, 0)
+}
+
+function toggleGrid(focusIndex?: number) {
   showProfiles.value = false
   showGrid.value = !showGrid.value
-  if (showGrid.value) void nextTick(() => { positionOpenPopups(); addViewportListeners(); addDismissListener() })
+  if (showGrid.value) void nextTick(() => { positionOpenPopups(); addViewportListeners(); addDismissListener(); if (focusIndex !== undefined) focusMenuItem(document.getElementById(gridMenuId), focusIndex) })
   else { removeViewportListeners(); removeDismissListener() }
 }
 
-function toggleProfiles() {
+function toggleProfiles(focusIndex?: number) {
   showGrid.value = false
   showProfiles.value = !showProfiles.value
-  if (showProfiles.value) void nextTick(() => { positionOpenPopups(); addViewportListeners(); addDismissListener() })
+  if (showProfiles.value) void nextTick(() => { positionOpenPopups(); addViewportListeners(); addDismissListener(); if (focusIndex !== undefined) focusMenuItem(document.getElementById(profileMenuId), focusIndex) })
   else { removeViewportListeners(); removeDismissListener() }
 }
 
