@@ -1,5 +1,20 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Layout Picker keyboard navigation
+
+Product commit `c5d270413` makes the TC-owned Layout Picker's custom grid and
+profile menus keyboard-operable: Arrow/Home/End movement is supported inside
+the menus, ArrowUp/ArrowDown from each trigger opens at the corresponding edge,
+and focus returns to the active menu item without changing the existing click,
+layout, persistence, or visual behavior. Focused LayoutPicker coverage passed
+`6/6`; `vue-tsc`, the production build, and `git diff --check` passed. A fresh
+branch-scoped Chromium replay of the related chart/workspace flows passed
+`12/12` (`F9c`, `F9d`, and `F9e-keyboard`). The first in-sandbox browser attempt
+was an environment-only Chromium sandbox launch failure; the approved browser
+retry passed. Teardown removed the assigned containers, volumes, network, four
+generated images, and test sessions. No provider-platform, ETF, visual baseline,
+threshold, mask, skip, fallback, or acceptance policy changed.
+
 ## 2026-10-02 — Full functional browser replay after selector revalidation
 
 The complete authenticated Chromium suite ran against a freshly rebuilt,
