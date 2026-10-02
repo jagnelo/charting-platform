@@ -1,5 +1,40 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Browser selector revalidation
+
+The nine browser failures from the exact gate were reproduced on a fresh
+branch-scoped stack and classified as stale exact selectors against the UI's
+explicit accessible names, not product regressions. Study Lab cancellation and
+rerun, Instrument Report disclosure, Python Library archive, personal
+watchlist, and combo-list selectors were aligned with their existing labels.
+The targeted retry passed all `9/9` affected scenarios. The full serial
+frontend suite passed `128/128` files and `1,161/1,161` tests; `vue-tsc` and
+the production build passed. No product behavior, visual baseline, policy,
+provider, or ETF work changed. The temporary stack, volumes, and four images
+were removed.
+
+## 2026-10-02 — Buildx-assisted exact gate reaches browser stage
+
+The exact gate was rerun with a temporary Buildx CLI plugin supplied from
+`/tmp` because the host Docker installation does not provide Buildx. Backend
+unit/integration coverage passed `1,621/1,621` and `408/408` with `82.26%`
+combined coverage; all `128` frontend files and `1,161/1,161` tests passed;
+type-check, production build, Compose contracts, and research-runner probes also
+passed. The authenticated Chromium stage then reported `161` passed, `9`
+failed, and `107` documented skips. The failures were F8t-cancel, F8t-failed,
+F8s-market-map-python-output, F8s-report, F8u-signal, F8v, F8x-library, F8y,
+and F8y-combo. Several late failures reported `ERR_NETWORK_CHANGED`, so this
+is not yet a clean browser receipt. The branch-scoped stack and four generated
+images were removed during teardown.
+
+The visual projects were skipped because the exact command did not enable the
+approved visual flag. The separate approved visual replay still reproduces the
+roughly `45,932`-pixel board text/font anti-aliasing mismatch. No snapshots,
+masks, thresholds, skips, fallbacks, provider/ETF behavior, or acceptance
+policy changed. Provider and ETF consumer integration remains deferred until
+both branches reach staging; the current audit is staging `8b885a2f`, provider
+`51465c70`, ETF `1a256e78`, with neither upstream tip an ancestor of staging.
+
 ## 2026-10-02 — Browser gate revalidated with Compose fallback
 
 Product tip `94abc240f` reuses one projected x-coordinate array for both paths
