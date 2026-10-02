@@ -114,7 +114,12 @@
                 'row--selected': radarStore.focusedChartDetectionId === det.id,
                 'row--hidden': !radarStore.isChartDetectionActive(det.id),
               }"
+              role="button"
+              tabindex="0"
+              :aria-label="`Select ${formatRadarSetup(det.setup_type)} radar detection`"
+              :aria-pressed="radarStore.isChartDetectionActive(det.id) ? 'true' : 'false'"
               @click="radarStore.toggleChartDetection(det.id)"
+              @keydown.stop="activateListRow($event, () => radarStore.toggleChartDetection(det.id))"
             >
               <span class="radar-sequence-tag">{{ formatRadarSequenceBadge(det) }}</span>
               <span class="radar-toggle-indicator"><WorkstationGlyph :kind="radarStore.isChartDetectionActive(det.id) ? 'visible' : 'hidden'" /></span>
@@ -221,7 +226,11 @@
                   class="list-row"
                   :class="{ 'row--selected': i === chartStore.selectedIndicatorIndex, 'row--tf-inactive': !isActiveOnCurrentTf(ind) }"
                   :title="isActiveOnCurrentTf(ind) ? undefined : `Locked to: ${(ind.lockedTimeframes ?? []).join(', ')}`"
+                  role="button"
+                  tabindex="0"
+                  :aria-label="`Select indicator ${displayName(ind)}`"
                   @click.stop="chartStore.selectIndicator(i)"
+                  @keydown.stop="activateListRow($event, () => chartStore.selectIndicator(i))"
                   @dblclick.stop="openIndEditor(i)"
                 >
                   <span class="ind-drag-handle" title="Drag to reorder">⠿</span>
@@ -305,7 +314,11 @@
                 :key="d.id"
                 class="list-row"
                 :class="{ 'row--selected': d.id === drawStore.selectedId, 'row--hidden': !d.is_visible }"
+                role="button"
+                tabindex="0"
+                :aria-label="`Select drawing ${drawingLabel(d)}`"
                 @click="drawStore.selectDrawing(d.id)"
+                @keydown.stop="activateListRow($event, () => drawStore.selectDrawing(d.id))"
                 @dblclick.stop="openDrawEditor(d)"
               >
                 <span class="draw-drag-handle" title="Drag to reorder">⠿</span>
@@ -368,7 +381,11 @@
               :key="'p'+a.id"
               class="list-row alert-row"
               :class="[`alert-row--${a.status}`, { 'row--selected': a.id === alertsStore.selectedAlertId }]"
+              role="button"
+              tabindex="0"
+              :aria-label="`Select price alert ${a.condition.replace(/_/g, ' ')}`"
               @click.stop="alertsStore.selectAlert(a.id)"
+              @keydown.stop="activateListRow($event, () => alertsStore.selectAlert(a.id))"
               @dblclick.stop="openAlertEditor(a, null)"
             >
               <span class="alert-icon"><WorkstationGlyph kind="currency" /></span>
@@ -403,7 +420,11 @@
               class="list-row alert-row"
               :class="[`alert-row--${a.status}`, { 'row--selected': a.id === alertsStore.selectedAlertId }]"
               :title="indAlertLabel(a)"
+              role="button"
+              tabindex="0"
+              :aria-label="`Select indicator alert ${indAlertLabel(a)}`"
               @click.stop="alertsStore.selectAlert(a.id)"
+              @keydown.stop="activateListRow($event, () => alertsStore.selectAlert(a.id))"
               @dblclick.stop="openAlertEditor(null, a)"
             >
               <span class="alert-icon"><WorkstationGlyph kind="approx" /></span>
@@ -738,6 +759,13 @@ function toggleMenu(key: string, event: MouseEvent) {
 
 function closeMenu() {
   menuOpenId.value = null
+}
+
+function activateListRow(event: KeyboardEvent, action: () => void) {
+  if (event.target !== event.currentTarget) return
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  event.preventDefault()
+  action()
 }
 
 function estimateMenuHeight(key: string): number {

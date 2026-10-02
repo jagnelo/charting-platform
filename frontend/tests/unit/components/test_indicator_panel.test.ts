@@ -124,4 +124,107 @@ describe('IndicatorPanel section disclosures', () => {
     expect(wrapper.find(`[id="${indicatorBodyId}"]`).exists()).toBe(false)
     wrapper.unmount()
   })
+
+  it('makes detection, chart-item, and alert rows keyboard-operable', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const chartStore = usePanelStore('p0')
+    chartStore.instrument = { id: 7, symbol: 'SPY', name: 'SPDR S&P 500 ETF', currency: 'USD', is_active: true }
+    chartStore.indicators = [{ type: 'rsi', params: { period: 14 }, style: { color: '#fff', lineWidth: 1 }, pane: 'separate' }] as any
+    const drawingsStore = useDrawingsStore()
+    drawingsStore.drawings = [{
+      id: 3,
+      instrument_id: 7,
+      drawing_type: 'trendline',
+      data: { points: [] },
+      style: {},
+      is_visible: true,
+      is_locked: false,
+      pin_to_all: false,
+      position: 0,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    }] as any
+    const alertsStore = useAlertsStore()
+    alertsStore.alerts = [{
+      id: 4,
+      instrument_id: 7,
+      instrument_currency: 'USD',
+      instrument_symbol: 'SPY',
+      condition: 'crosses_above',
+      threshold_price: 200,
+      status: 'active',
+      repeat: false,
+      show_projection: false,
+      trigger_count: 0,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    }] as any
+    const radarStore = useRadarStore()
+    radarStore.chartDetections = [{
+      id: 9,
+      instrument_id: 7,
+      setup_type: 'rejection',
+      state: 'confirmed',
+      score: 0.8,
+      signal_at: '2026-01-01T00:00:00Z',
+      observed_at: '2026-01-01T00:00:00Z',
+      created_at: '2026-01-01T00:00:00Z',
+      summary: 'Rejected resistance',
+      score_factors: {},
+      evidence: { metrics: {}, structures: [] },
+    }] as any
+    radarStore.activeChartDetectionIds = []
+    radarStore.focusedChartDetectionId = null
+
+    const selectIndicator = vi.spyOn(chartStore, 'selectIndicator')
+    const selectDrawing = vi.spyOn(drawingsStore, 'selectDrawing')
+    const selectAlert = vi.spyOn(alertsStore, 'selectAlert')
+    const toggleDetection = vi.spyOn(radarStore, 'toggleChartDetection')
+    vi.spyOn(api, 'get').mockResolvedValue({ watchlists: [], screeners: [] } as never)
+
+    const wrapper = mount(IndicatorPanel, {
+      props: { panelId: 'p0' },
+      global: {
+        plugins: [pinia],
+        stubs: {
+          AlertForm: { template: '<div />' },
+          HoverTooltip: { template: '<span><slot /></span>' },
+          InstrumentInfoPanel: { template: '<div />' },
+          TextPromptModal: { template: '<div />' },
+          VueDraggable: { template: '<div><slot /></div>' },
+          WorkstationGlyph: { template: '<span />' },
+        },
+      },
+    })
+    await nextTick()
+    const radarHeader = wrapper.findAll('.section-header').find(header => header.text().includes('Radar'))!
+    if (radarHeader.attributes('aria-expanded') === 'false') {
+      await radarHeader.trigger('click')
+      await nextTick()
+    }
+    const drawingsHeader = wrapper.findAll('.section-header').find(header => header.text().includes('Drawings'))!
+    if (drawingsHeader.attributes('aria-expanded') === 'false') {
+      await drawingsHeader.trigger('click')
+      await nextTick()
+    }
+
+    const rows = wrapper.findAll('.list-row[role="button"]')
+    expect(rows).toHaveLength(4)
+    for (const row of rows) {
+      expect(row.attributes('tabindex')).toBe('0')
+      expect(row.attributes('aria-label')).toMatch(/^Select /)
+    }
+
+    await wrapper.get('.radar-row').trigger('keydown', { key: 'Enter' })
+    await wrapper.find('.ind-list .list-row[aria-label^="Select indicator"]').trigger('keydown', { key: ' ' })
+    await wrapper.find('.ind-list .list-row[aria-label^="Select drawing"]').trigger('keydown', { key: 'Enter' })
+    await wrapper.find('.alert-row').trigger('keydown', { key: ' ' })
+
+    expect(toggleDetection).toHaveBeenCalledWith(9)
+    expect(selectIndicator).toHaveBeenCalledWith(0)
+    expect(selectDrawing).toHaveBeenCalledWith(3)
+    expect(selectAlert).toHaveBeenCalledWith(4)
+    wrapper.unmount()
+  })
 })
