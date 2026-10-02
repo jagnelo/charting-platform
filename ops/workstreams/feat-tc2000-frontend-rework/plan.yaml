@@ -29,9 +29,10 @@ current_blocker: >-
   `b309afe42ef8d8d3835cb045c06a88f81f3491c5`; neither dependency tip is an
   ancestor of staging, so consumer integration and shared-path reconciliation
   must wait. These gates do not prevent independent TC-owned frontend work.
-  The latest product slice, `a5af29f59464`, exposes the chart plot controls as
-  a dialog; focused and full serial frontend tests, production build, and the
-  authenticated keyboard browser check passed. The wider R1/R5/R6 work and
+  The latest product slice, `7e927a1f03d7`, exposes the Chart Templates
+  controls as a dialog; its 15 focused tests, the exact-tip full serial suite
+  (128 files, 1,168 tests), production build, and authenticated keyboard
+  browser check passed. The wider R1/R5/R6 work and
   exact post-staging gate remain open. Local commits remain unpushed under the
   private-origin safeguard; that transport hold does not prevent local work.
 planning_state: ready
@@ -269,7 +270,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_primary_chart_plot_panel_dialog_semantics_passed
+  current_phase: R1_chart_templates_panel_dialog_semantics_passed
   next_action: >-
     Compare open V25 interaction requirements against the primary workstation
     views and browser evidence, then choose the next independent TC-owned
@@ -284,8 +285,8 @@ progress:
     Six protected screenshot differences await the visual-policy review.
     Provider-platform `313337668b28` and ETF `b309afe42ef8` are not ancestors of
     staging `8b885a2ffd9c`, so TC cannot consume or reconcile those contracts
-    yet. Neither gate blocks independent TC frontend work. The chart plot
-    dialog slice is committed as `a5af29f59464`; its focused/full frontend
+    yet. Neither gate blocks independent TC frontend work. The Chart Templates
+    dialog slice is committed as `7e927a1f03d7`; its focused/full frontend
     tests, build, and authenticated keyboard check passed. The private-origin
     push safeguard still holds the local range, but does not stop local work.
     No provider/ETF branch, staging branch, or other worktree was changed.
@@ -574,6 +575,7 @@ historical_implementation_records_continued:
   - "The 2026-10-02 fresh local-ref audit observes staging at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform at 313337668b28ec94b465d602f01c8d24564acf33 (fix(db): truncate identity observation index name), and ETF holdings at b309afe42ef8d8d3835cb045c06a88f81f3491c5 (docs(etf): record validation gate results). Neither dependency tip is an ancestor of staging; consumer integration and shared-path reconciliation remain deferred."
   - "Product commit a5af29f59464 converts the chart plot library popup from a menu to a named dialog because it contains form controls. The trigger announces aria-haspopup=dialog; opening focuses the plot selector, ArrowUp opens with focus on the last enabled control, and Escape restores trigger focus. Focused/full serial frontend tests, production build, and authenticated browser verification passed without changing layout or visual policy."
 
+  - "Product commit 7e927a1f03d7 converts the Chart Templates popup from a menu to a named dialog because it contains a text field and dropdown. The trigger announces aria-haspopup=dialog; ArrowDown focuses the name field, ArrowUp focuses Import, and Escape restores trigger focus. Focused tests passed 15/15; the full serial frontend suite passed 128 files and 1,168/1,168 tests; type-check/build passed with the existing chunk warning. Authenticated Firefox browser verification confirmed dialog semantics and focus recovery."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."

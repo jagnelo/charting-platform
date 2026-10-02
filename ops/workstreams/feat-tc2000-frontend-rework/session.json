@@ -48,7 +48,13 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [],
+  "dirty_paths": [
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -107,14 +113,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b3754791dc46e4a5e129990f801cfe9538c4f262",
+  "head": "7e927a1f03d72720dab9abb9842ecb7352729b96",
   "implementation_sha": "075a733bef7f259cea8abcf1335c9051f6cd0cd6",
   "interrupted": false,
   "last_checkpoint": "2026-10-02T00:16:00+01:00",
-  "last_human_progress_update": "2026-10-02T19:48:01.088736+00:00",
+  "last_human_progress_update": "2026-10-02T20:03:41.074023+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue independent TC workstation UI and Study/Strategy slices while preserving the protected visual policy; keep provider/ETF consumer integration deferred until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
-  "plan_hash": "bbd47c2b84506a4e76f2a448aabe78fcad968888961fd92f9e25bbf262152b25",
+  "plan_hash": "d2c1fa0ab75584c7d0b421e65ca50c2b9443ecf6e2c2024c49b662242664442a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -127,20 +133,20 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Six visual diffs await the review required by the visual policy, and the provider/ETF branch tips are not in staging; neither stops independent TC frontend work. The private-origin push safeguard is a transport hold only.",
-    "current_phase": "R1_primary_chart_plot_panel_dialog_semantics_passed",
+    "current_blocker": "Six protected screenshot differences await the visual-policy review, and the provider/ETF branch tips are not in staging. Neither stops independent TC frontend work. The private-origin push safeguard is a transport hold only.",
+    "current_phase": "R1_chart_templates_panel_dialog_semantics_passed",
     "next_action": "Compare remaining V25 interaction requirements with workstation and browser evidence; implement the next independent TC-owned UI or Study/Strategy gap, keep visual oracles unchanged, and defer provider/ETF integration until both branches reach staging.",
     "total": 9,
-    "updated_at": "2026-10-02T19:48:01.088717+00:00"
+    "updated_at": "2026-10-02T20:03:41.073852+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "b3754791dc46e4a5e129990f801cfe9538c4f262",
-    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..b3754791dc46e4a5e129990f801cfe9538c4f262",
+    "current_local_head": "7e927a1f03d72720dab9abb9842ecb7352729b96",
+    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..7e927a1f03d72720dab9abb9842ecb7352729b96",
     "failure_category": "A previous exact payload was rejected by the private-origin safeguard; this current pending range has not been pushed and remains held without exact-payload authorization; read-only remote lookup succeeds",
-    "head_at_product_checkpoint": "b3754791dc46e4a5e129990f801cfe9538c4f262",
-    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..b3754791dc46e4a5e129990f801cfe9538c4f262",
+    "head_at_product_checkpoint": "7e927a1f03d72720dab9abb9842ecb7352729b96",
+    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..7e927a1f03d72720dab9abb9842ecb7352729b96",
     "remote": "origin",
     "remote_tracking_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
     "status": "committed_locally_pending_push"

@@ -15743,3 +15743,24 @@ A fresh read-only local-ref audit observed staging at
 `b309afe42ef8d8d3835cb045c06a88f81f3491c5`. Neither dependency tip is an
 ancestor of staging; consumer integration and shared-path reconciliation
 remain deferred.
+
+## 2026-10-02 — Chart Templates dialog semantics
+
+Product commit `7e927a1f03d72720dab9abb9842ecb7352729b96` changes the Chart
+Templates popup from a menu to a named dialog because it contains a text field,
+dropdown, and actions. The trigger now announces `aria-haspopup="dialog"`;
+ArrowDown opens with focus on the template-name field, ArrowUp opens with focus
+on Import, and Escape restores focus to the trigger. Existing actions and
+visual styling are unchanged.
+
+Focused ChartTemplateControl coverage passed `15/15`; the exact-tip full serial
+frontend suite passed `128/128` files and `1,168/1,168` tests; `vue-tsc` and the
+Vite production build passed with the existing Workstation bundle warning. An
+authenticated Firefox Playwright CLI check confirmed the named dialog, both
+keyboard entry points, and Escape focus recovery. Browser console had zero
+errors and one expected password-on-HTTP warning from the isolated test login.
+The six-service branch-scoped Compose stack reached healthy status, then was
+removed; the repository resource audit found zero containers, volumes, images,
+or unknown owned resources. No provider-platform, ETF, visual baseline,
+threshold, mask, skip, fallback, or acceptance policy changed; no other
+worktree was mutated.

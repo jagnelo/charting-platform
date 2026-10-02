@@ -5,6 +5,24 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-02
 
+## 2026-10-02 — Current workstation interaction receipts
+
+The primary workstation now shows a visible focus ring on keyboard-selected
+workspace tabs (`44b837a2`) without replacing the active-tab marker. The Chart
+plot library (`a5af29f5`) and Chart Templates (`7e927a1f`) are each exposed as
+named dialogs rather than menus because their panels contain form controls.
+Component tests cover keyboard entry, Escape focus recovery, and trigger
+semantics; the E2E flows now query the dialog role, and authenticated Firefox
+browser checks verified both panels.
+ChartTemplateControl passed `15/15` focused tests; the exact-tip serial
+frontend suite passed `128/128` files and `1,168/1,168` tests; type-check and
+production build passed with the existing large Workstation bundle warning.
+The branch-local Compose stack was healthy and then cleaned to zero owned
+resources. These are focused R1/R6 interaction receipts only: all six
+protected visual diffs remain under the existing human-review policy, and
+provider/ETF consumers remain deferred until their branch tips reach staging.
+No visual oracle or upstream behavior changed.
+
 ## 2026-10-02 — Native Indicator Panel selection controls
 
 Product commit `e48ef32d61cab0a37608ce5dbf605543ea73ff3b` converts the five
