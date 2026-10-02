@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-10-02 — Tokenized per-asset refresh fairness
+
+- [x] Add durable numeric asset cursors to tokenized quote and aggregate-
+      history batches. Per-job caps now rotate through active token IDs even
+      when a provider repeatedly fails one asset; that asset remains retryable
+      after the rest of the active set has had a turn. Focused coverage passes
+      `36/36`.
+- [ ] Provider-specific quota, terms, and deployment admission still govern
+      whether each tokenized refresh can execute; cursor rotation does not
+      override fail-closed routing or the Dinari Sandbox non-persistence rule.
+
 ### 2026-10-02 — MarketData.app current account-pool reconciliation
 
 - [x] The exact-source credentialed MarketData.app account-usage case passed

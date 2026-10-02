@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 tokenized per-asset refresh fairness
+
+- Tokenized quote and aggregate-history refreshes now use durable numeric
+  `ProviderPaginationState` cursors over active token-detail IDs. A bounded
+  batch advances after caught per-asset failures, so one repeatedly failing
+  token cannot starve later active tokens; the failed token remains eligible
+  and is retried after rotation. A process failure before commit leaves the
+  prior cursor intact for safe retry.
+- Focused tokenized asset coverage passes `36/36`; Ruff and diff checks pass.
+  No ETF or frontend path changed.
+
 ## 2026-10-02 MarketData.app current account-pool reconciliation
 
 - At exact source `5d6069f2b`, the credentialed MarketData.app account-usage

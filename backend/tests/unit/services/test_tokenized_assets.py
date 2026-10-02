@@ -429,6 +429,55 @@ async def test_refresh_tokenized_prices_routes_by_provider_asset_id_and_persists
 
 
 @pytest.mark.asyncio
+async def test_refresh_tokenized_prices_rotates_past_repeated_asset_failure(
+    db, instrument, monkeypatch
+):
+    for asset_id in ("rh-failing", "rh-next"):
+        await upsert_tokenized_asset(
+            AsyncSessionAdapter(db),
+            TokenizedAssetRecord(
+                provider="robinhood_tokens",
+                asset_id=asset_id,
+                symbol=asset_id,
+                name=asset_id,
+                underlying_symbol=instrument.symbol,
+                raw_payload={"id": asset_id},
+            ),
+        )
+    calls: list[str] = []
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        identifier = kwargs["provider_symbol"]
+        calls.append(identifier)
+        if identifier == "rh-failing":
+            raise RuntimeError("temporary provider failure")
+        return SimpleNamespace(
+            provider_name="robinhood_tokens",
+            result=TokenizedAssetRecord(
+                provider="robinhood_tokens",
+                asset_id=identifier,
+                symbol=identifier,
+                name=identifier,
+                price=Decimal("100.00"),
+                underlying_symbol=instrument.symbol,
+                observed_at=datetime.now(UTC),
+                raw_payload={"id": identifier},
+            ),
+        )
+
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+
+    first = await refresh_tokenized_prices(AsyncSessionAdapter(db), max_assets=1)
+    second = await refresh_tokenized_prices(AsyncSessionAdapter(db), max_assets=1)
+
+    assert first["status"] == "failed"
+    assert first["requested"] == 1
+    assert second["status"] == "refreshed"
+    assert second["requested"] == 1
+    assert calls == ["rh-failing", "rh-next"]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("timespan", "expected_timeframe"),
     [

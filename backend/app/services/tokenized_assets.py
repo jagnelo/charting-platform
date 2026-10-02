@@ -34,6 +34,76 @@ from app.services.provider_runtime import execute_provider_call, resolve_provide
 _NON_PERSISTING_TOKENIZED_CANARIES = frozenset({"dinari"})
 
 
+async def _tokenized_asset_refresh_batch(
+    db: AsyncSession,
+    *,
+    capability: str,
+    operation: str,
+    provider_name: str | None,
+    max_assets: int,
+) -> tuple[list[tuple[TokenizedAssetDetail, Instrument]], ProviderPaginationState | None]:
+    """Select a durable rotating asset batch for bounded per-asset refreshes.
+
+    A failed asset must not remain permanently at the head of an
+    ``updated_at``-ordered query. The cursor is only committed with the
+    refresh transaction, so a process failure before commit retries the same
+    batch; caught per-asset failures still advance the cursor and are retried
+    after the rest of the active universe has had a turn.
+    """
+
+    scope = str(provider_name or "*").strip().lower()
+    state_key = f"tokenized-refresh:{operation}:{scope}"
+    state = (
+        await db.execute(
+            select(ProviderPaginationState).where(
+                ProviderPaginationState.state_key == state_key
+            )
+        )
+    ).scalar_one_or_none()
+    if state is None:
+        state = ProviderPaginationState(
+            state_key=state_key,
+            provider=scope,
+            capability=capability,
+            operation=operation,
+            page_number=0,
+            cursor=None,
+            page_size=max_assets,
+            status="pending",
+            pages_fetched=0,
+            last_page_count=0,
+            cursor_history=[],
+            metadata_payload={"scope": scope},
+        )
+        db.add(state)
+        await db.flush()
+
+    query = (
+        select(TokenizedAssetDetail, Instrument)
+        .join(Instrument, Instrument.id == TokenizedAssetDetail.instrument_id)
+        .where(Instrument.is_active.is_(True))
+        .order_by(TokenizedAssetDetail.id.asc())
+    )
+    if provider_name:
+        query = query.where(TokenizedAssetDetail.provider_name == provider_name)
+    rows = list((await db.execute(query)).all())
+    if not rows:
+        return [], state
+
+    cursor_id = 0
+    if state.cursor is not None:
+        try:
+            cursor_id = max(0, int(state.cursor))
+        except (TypeError, ValueError):
+            state.last_error = "invalid persisted tokenized refresh cursor"
+            state.status = "failed"
+            cursor_id = 0
+    after_cursor = [row for row in rows if int(row[0].id) > cursor_id]
+    before_cursor = [row for row in rows if int(row[0].id) <= cursor_id]
+    selected = (after_cursor + before_cursor)[:max_assets]
+    return selected, state
+
+
 def _tokenized_catalog_state_key(provider_name: str, page_size: int) -> str:
     """Scope continuation by provider instance and the provider page size."""
 
@@ -1110,17 +1180,13 @@ async def refresh_tokenized_prices(
     """
 
     limit = max(1, min(int(max_assets), 1000))
-    query = (
-        select(TokenizedAssetDetail, Instrument)
-        .join(Instrument, Instrument.id == TokenizedAssetDetail.instrument_id)
-        .where(Instrument.is_active.is_(True))
-        .order_by(TokenizedAssetDetail.updated_at.asc(), TokenizedAssetDetail.id.asc())
-        .limit(limit)
+    rows, refresh_state = await _tokenized_asset_refresh_batch(
+        db,
+        capability=ProviderCapability.TOKENIZED_ASSETS.value,
+        operation="get_tokenized_price",
+        provider_name=provider_name,
+        max_assets=limit,
     )
-    if provider_name:
-        query = query.where(TokenizedAssetDetail.provider_name == provider_name)
-
-    rows = (await db.execute(query)).all()
     refreshed: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
     for detail, instrument in rows:
@@ -1183,6 +1249,16 @@ async def refresh_tokenized_prices(
                 }
             )
 
+    if refresh_state is not None and rows:
+        refresh_state.cursor = str(rows[-1][0].id)
+        refresh_state.page_number = int(refresh_state.page_number or 0) + 1
+        refresh_state.pages_fetched = int(refresh_state.pages_fetched or 0) + 1
+        refresh_state.page_size = limit
+        refresh_state.last_page_count = len(rows)
+        refresh_state.last_success_at = datetime.now(UTC)
+        refresh_state.last_failure_at = None
+        refresh_state.last_error = None
+        refresh_state.status = "partial"
     await db.commit()
     return {
         "status": "refreshed" if refreshed else ("failed" if failures else "no_assets"),
@@ -1271,16 +1347,13 @@ async def refresh_tokenized_historical_prices(
             "unsupported": [],
         }
     limit = max(1, min(int(max_assets), 1000))
-    query = (
-        select(TokenizedAssetDetail, Instrument)
-        .join(Instrument, Instrument.id == TokenizedAssetDetail.instrument_id)
-        .where(Instrument.is_active.is_(True))
-        .order_by(TokenizedAssetDetail.updated_at.asc(), TokenizedAssetDetail.id.asc())
-        .limit(limit)
+    rows, refresh_state = await _tokenized_asset_refresh_batch(
+        db,
+        capability=ProviderCapability.TOKENIZED_HISTORICAL_PRICES.value,
+        operation=f"fetch_tokenized_historical_prices:{normalized_timespan}",
+        provider_name=provider_name,
+        max_assets=limit,
     )
-    if provider_name:
-        query = query.where(TokenizedAssetDetail.provider_name == provider_name)
-    rows = (await db.execute(query)).all()
     chain = await resolve_provider_chain(db, ProviderCapability.TOKENIZED_HISTORICAL_PRICES)
     resolved_by_provider = {
         item.provider_name: item
@@ -1362,6 +1435,16 @@ async def refresh_tokenized_historical_prices(
                     "error": bounded_redact_provider_message(exc, max_length=500),
                 }
             )
+    if refresh_state is not None and rows:
+        refresh_state.cursor = str(rows[-1][0].id)
+        refresh_state.page_number = int(refresh_state.page_number or 0) + 1
+        refresh_state.pages_fetched = int(refresh_state.pages_fetched or 0) + 1
+        refresh_state.page_size = limit
+        refresh_state.last_page_count = len(rows)
+        refresh_state.last_success_at = datetime.now(UTC)
+        refresh_state.last_failure_at = None
+        refresh_state.last_error = None
+        refresh_state.status = "partial"
     await db.commit()
     return {
         "status": "refreshed" if refreshed else ("failed" if failures else "no_assets"),

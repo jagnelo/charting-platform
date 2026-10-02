@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 tokenized per-asset refresh fairness correction: quote and
+    aggregate-history batches now advance durable numeric cursors across active
+    token-detail IDs, including caught per-asset failures, so repeated failures
+    cannot starve later tokens. Failed assets remain retryable after rotation;
+    process failure before commit leaves the prior cursor. Focused coverage
+    passes 36/36; provider-specific quota/terms/deployment admission remains
+    independently fail-closed.
+  - >-
     2026-10-02 exact source 5d6069f2b MarketData.app account-usage validation
     passed 1/1 with one upstream request and reconciled the native daily-credit
     observation into the owner-local durable quota ledger. The subsequent full

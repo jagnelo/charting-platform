@@ -805,6 +805,14 @@ retained unlinked for later reconciliation rather than guessed onto an
 underlying ticker. Exchange token adapters without an action endpoint are
 reported as unsupported and never invoked.
 
+Tokenized quote and aggregate-history batches use the same lossless fairness
+principle at the asset level. A durable numeric asset cursor advances after
+each bounded batch, including batches containing caught provider failures, so
+one repeatedly failing token cannot occupy every run's first slot and starve
+later active tokens. The failed asset remains eligible and is retried after
+the active set rotates; a process failure before commit leaves the cursor at
+the prior batch for safe retry.
+
 Market-wide event feeds use the separate `market_events` capability. The
 backend service `app.services.market_events.refresh_market_events` fans out a
 bounded window to selected providers that advertise this capability and
