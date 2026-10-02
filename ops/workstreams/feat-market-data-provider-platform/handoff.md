@@ -6,8 +6,10 @@
   `pagination.total`; it fails closed when the total is missing or malformed
   instead of inferring the total from the current page length and risking
   permanent universe truncation.
-- Focused Marketstack coverage passed `17/17`; branch-wide validation is
-  required at the post-commit exact SHA.
+- Focused Marketstack coverage passed `17/17`; exact SHA `e72c4368` then
+  passed optional providers `117/117`, branch-owned unit `1,942/1,942`, Docker
+  integration `386/386` in `731.98s`, Ruff, compile, diff, and workstream
+  validation. Receipts are recorded in `validation.jsonl`.
 
 ## 2026-10-02 Exact-current live preflight
 
