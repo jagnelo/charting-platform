@@ -37,6 +37,7 @@
             tabindex="-1"
             :title="tool.label"
             :aria-label="tool.label"
+            :aria-pressed="activeToolType === tool.type ? 'true' : 'false'"
             @click="selectTool(tool.type)"
           >
             <span class="tool-icon" :class="`tool-icon--${tool.icon}`" aria-hidden="true" />
