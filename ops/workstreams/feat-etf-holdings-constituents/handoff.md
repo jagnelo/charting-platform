@@ -5994,3 +5994,11 @@ only, so the mixed provider remains non-executable.
 
 PlanRock routes were inaccessible and direct DNS failed; the previously observed
 opaque 48-byte Holdings.csv remains unresolved and no promotion was made.
+
+## Provider-platform dependency recheck — 2026-10-02
+
+Read-only ref inspection found local `feat/market-data-provider-platform` at
+`af2d79d6`, cached remote provider-platform at `1b518778`, and `staging` at
+`8b885a2f`. Neither provider-platform ref is an ancestor of staging, and the
+staging plus both provider refs still lack `ProviderCapability.ETF_HOLDINGS`.
+AC10 remains deferred. No provider-platform or staging worktree was modified.

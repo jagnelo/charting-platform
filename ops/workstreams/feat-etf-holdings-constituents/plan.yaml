@@ -365,6 +365,7 @@ remaining_gaps:
   - "The 2026-10-01 provider-platform ref refresh found local and cached remote feat/market-data-provider-platform at 366fdd4f, staging at 8b885a2f, neither provider ref an ancestor of staging, and no ETF_HOLDINGS member in the inspected ProviderCapability definitions. AC10 remains deferred and no cross-worktree mutation occurred."
   - "The 2026-10-01 Manulife recheck found current official catalogue material identifying UDIV, UDEF, and GEDG but no complete executable holdings artifact; the bounded application-equivalent request returned HTTP 403. All three remain unavailable/issuer_access_blocked, with runtime/symbol/provider ledgers refreshed and the focused 675-test adapter/capability suite, Ruff, workstream validation, and diff-check passing."
   - "The 2026-10-01 Aegon/Transamerica recheck found the official fund-center endpoint returning only an Incapsula challenge placeholder (HTTP 200, robots noindex, no holdings content). TALV/TABD remain unavailable/issuer_access_blocked; runtime/symbol/provider ledgers were refreshed, the focused 675-test adapter/capability suite and Ruff passed, and no SEC/third-party route was promoted."
+  - "The 2026-10-02 provider-platform dependency recheck found local feat/market-data-provider-platform at af2d79d6, cached remote at 1b518778, and staging at 8b885a2f. Neither provider-platform ref is an ancestor of staging, and staging plus both provider refs still lack ProviderCapability.ETF_HOLDINGS. AC10 remains deferred; no cross-worktree mutation occurred."
 progress:
   completed:
     - AC1
