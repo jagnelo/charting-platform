@@ -482,36 +482,36 @@ symbol_audit_ledger:
       next_action: "Keep fallback-only as a non-publisher identity; resolve USSE references to the separately tracked Segall Bryant & Hamill/CI SBH identity and do not create a duplicate route."
     - symbol: AIEQ
       tier: 1
-      provider_identity: etf_managers_group
-      current_outcome: not_applicable
-      evidence_state: inactive_or_successor_disposition
-      investigated_at: 2026-09-02
-      evidence_refs: [web:amplify-etfmg-acquisition-complete-2026-09-02, web:etfmg-domain-unreachable-successor-amplify-2026-09-02]
-      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical ETFMG symbols to their Amplify successor or actual current sponsor and reopen only if ETFMG resumes a distinct U.S.-listed ETF portfolio with an executable first-party route."
+      provider_identity: amplify
+      current_outcome: current
+      evidence_state: successor_issuer_route
+      investigated_at: 2026-10-02
+      evidence_refs: [web:amplify-aieq-current-holdings-2026-10-02, live:amplify-aieq-holdings-csv-2026-10-02, web:amplify-etfmg-acquisition-complete-2026-09-02]
+      next_action: "Keep AIEQ on the native Amplify route while the complete, identity-scoped CSV remains current; retain ETFMG only as historical ownership context."
     - symbol: AWAY
       tier: 1
-      provider_identity: etf_managers_group
-      current_outcome: not_applicable
-      evidence_state: inactive_or_successor_disposition
-      investigated_at: 2026-09-02
-      evidence_refs: [web:amplify-etfmg-acquisition-complete-2026-09-02, web:etfmg-domain-unreachable-successor-amplify-2026-09-02]
-      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical ETFMG symbols to their Amplify successor or actual current sponsor and reopen only if ETFMG resumes a distinct U.S.-listed ETF portfolio with an executable first-party route."
+      provider_identity: amplify
+      current_outcome: current
+      evidence_state: successor_issuer_route
+      investigated_at: 2026-10-02
+      evidence_refs: [web:amplify-away-current-holdings-2026-10-02, live:amplify-away-holdings-csv-2026-10-02, web:amplify-etfmg-acquisition-complete-2026-09-02]
+      next_action: "Keep AWAY on the native Amplify route while the complete, identity-scoped CSV remains current; retain ETFMG only as historical ownership context."
     - symbol: BDRY
       tier: 1
-      provider_identity: etf_managers_group
-      current_outcome: not_applicable
-      evidence_state: inactive_or_successor_disposition
-      investigated_at: 2026-09-02
-      evidence_refs: [web:amplify-etfmg-acquisition-complete-2026-09-02, web:etfmg-domain-unreachable-successor-amplify-2026-09-02]
-      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical ETFMG symbols to their Amplify successor or actual current sponsor and reopen only if ETFMG resumes a distinct U.S.-listed ETF portfolio with an executable first-party route."
+      provider_identity: amplify
+      current_outcome: current
+      evidence_state: successor_issuer_route
+      investigated_at: 2026-10-02
+      evidence_refs: [web:amplify-bdry-current-holdings-2026-10-02, live:amplify-bdry-holdings-csv-2026-10-02, web:amplify-etfmg-acquisition-complete-2026-09-02]
+      next_action: "Keep BDRY on the native Amplify route while the complete, identity-scoped CSV remains current; retain ETFMG only as historical ownership context."
     - symbol: BWET
       tier: 1
-      provider_identity: etf_managers_group
-      current_outcome: not_applicable
-      evidence_state: inactive_or_successor_disposition
-      investigated_at: 2026-09-02
-      evidence_refs: [web:amplify-etfmg-acquisition-complete-2026-09-02, web:etfmg-domain-unreachable-successor-amplify-2026-09-02]
-      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical ETFMG symbols to their Amplify successor or actual current sponsor and reopen only if ETFMG resumes a distinct U.S.-listed ETF portfolio with an executable first-party route."
+      provider_identity: amplify
+      current_outcome: current
+      evidence_state: successor_issuer_route
+      investigated_at: 2026-10-02
+      evidence_refs: [web:amplify-bwet-current-holdings-2026-10-02, live:amplify-bwet-holdings-csv-2026-10-02, web:amplify-etfmg-acquisition-complete-2026-09-02]
+      next_action: "Keep BWET on the native Amplify route while the complete, identity-scoped CSV remains current; retain ETFMG only as historical ownership context."
     - symbol: ABFL
       tier: 1
       provider_identity: fcf_advisors
@@ -3805,8 +3805,12 @@ providers:
         source: "https://www.etfmg.com/"
         result: "The historical ETFMG domain was not reachable during the bounded public check, while the successor Amplify domain is the active public ETF publisher; no current ETFMG-owned holdings route was identified."
         evidence_ref: "web:etfmg-domain-unreachable-successor-amplify-2026-09-02"
-    disposition_reason: "etf_managers_group: ETF Managers Group is an inactive/successor identity for current holdings coverage. Amplify's official completion notice documents the acquisition and fund reorganizations/sponsor transfer, so current portfolio routes belong to Amplify or each successor manager rather than a distinct ETFMG publisher; do not create a duplicate native ETFMG route."
-    next_action: "etf_managers_group: Keep fallback-only as inactive_or_successor_disposition; resolve historical ETFMG symbols to their Amplify successor or actual current sponsor and reopen only if ETFMG resumes a distinct U.S.-listed ETF portfolio with an executable first-party route."
+      - date: 2026-10-02
+        source: "https://amplifyetfs.com/wp-content/uploads/feeds/AmplifyWeb.40XL.XL_Holdings.csv"
+        result: "Amplify's active successor product pages identify AIEQ, AWAY, BDRY, and BWET, and the shared first-party CSV returned complete symbol-scoped rows dated 2026-10-02 (164, 30, 11, and 8 rows respectively). The existing native Amplify adapter owns these routes; ETFMG remains historical context only."
+        evidence_ref: "live:amplify-etfmg-successor-csv-2026-10-02"
+    disposition_reason: "etf_managers_group: ETF Managers Group is an inactive/successor identity for current holdings coverage. Amplify's official completion notice documents the acquisition and fund reorganizations/sponsor transfer, and the 2026-10-02 native Amplify route check proves current symbol-scoped holdings for AIEQ/AWAY/BDRY/BWET; do not create a duplicate native ETFMG route."
+    next_action: "etf_managers_group: Keep the historical identity fallback-only while AIEQ/AWAY/BDRY/BWET use the separately audited native Amplify route; reopen ETFMG only if it resumes a distinct U.S.-listed ETF portfolio with an executable first-party route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: even_herd

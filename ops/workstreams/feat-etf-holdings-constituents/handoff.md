@@ -6059,3 +6059,30 @@ The provider workstream's current handoff remains human-review/owner-gated for
 its remaining provider/account, legal, source-completeness, deferred-provider,
 and final-shadow gates. This ETF branch therefore still cannot consume a
 staged shared holdings capability or add a speculative bridge.
+
+## ETFMG successor-route reconciliation — 2026-10-02
+
+The historical ETFMG symbol records contained a concrete gap: current profiles
+that already route through the native `amplify` adapter were being returned as
+provider-identity mismatches and therefore `unknown`. Amplify's official AIEQ,
+AWAY, BDRY, and BWET pages identify active U.S.-listed products, and the
+first-party multi-account CSV returned complete symbol-scoped rows dated
+2026-10-02: AIEQ 164, AWAY 30, BDRY 11, and BWET 8. The existing strict parser
+and the five-case Amplify live contract (BLOK plus these four symbols) passed.
+
+Runtime and YAML symbol evidence now agree on `current` /
+`successor_issuer_route` under `amplify`, with dated web and live references.
+The capability resolver has a narrow historical bridge: an explicitly
+historical `etf_managers_group` profile remains `not_applicable` and retains
+the acquisition evidence, while a current `amplify` profile receives only the
+newly proven symbol-scoped evidence. This avoids silently attributing current
+holdings to ETFMG and avoids creating a duplicate provider route.
+
+Focused capability coverage (92 tests), the selected adapter/ledger parity
+slice (4 tests), the complete deterministic ETF suite (706 passed), default
+live contracts (2 passed/534 opt-in skipped), the five opt-in Amplify live
+cases (5 passed), Ruff, workstream validation, and diff-check all pass. The
+shared provider-platform dependency remains outside staging: its current ref
+is still not an ancestor of staging and still does not expose
+`ProviderCapability.ETF_HOLDINGS`; AC10 therefore remains deferred. AC14 is
+still the post-integration 30-day production shadow gate.

@@ -164,11 +164,13 @@ is recorded.
 
 The fourth cohort covers CHRG (Elements), USSE (the misattributed Emirate of
 Abu Dhabi identity), and AIEQ/AWAY/BDRY/BWET (the historical ETF Managers Group
-identity). These are `not_applicable`: CHRG is liquidated without a current
-successor route, USSE belongs to the separately tracked Segall Bryant & Hamill/
-CI SBH publisher, and ETFMG's portfolios transferred to Amplify or other
-successor sponsors. These identity dispositions do not mark the actual current
-publisher routes as supported.
+identity). CHRG remains `not_applicable` because it is liquidated without a
+current successor route, and USSE remains `not_applicable` because it belongs to
+the separately tracked Segall Bryant & Hamill/CI SBH publisher. Amplify's
+successor pages and its complete symbol-scoped holdings CSV now prove current
+routes for AIEQ/AWAY/BDRY/BWET; those four symbols are `current` under the
+native `amplify` adapter while ETFMG remains historical context only. No
+duplicate ETFMG route or SEC-derived promotion was introduced.
 
 The fifth cohort covers ABFL/ABLG/ABLD/ABOT/ABLS/ABXB (the historical FCF
 Advisors identity), FMCX/FMCE (First Manhattan), FFHG/FFSG/FFTG/FFTI
@@ -2357,6 +2359,19 @@ The current code-derived split is 496 registered / 419 native-live-backed / 77
 fallback-only providers; runtime fallback statuses are 8 issuer-access-blocked,
 56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.
+
+## Current audit checkpoint — ETFMG symbols reconciled to Amplify — 2026-10-02
+
+Amplify's current AIEQ, AWAY, BDRY, and BWET pages identify the four active
+U.S.-listed products, and the shared first-party `AmplifyWeb.40XL.XL_Holdings.csv`
+returned complete symbol-scoped rows dated `2026-10-02` (164, 30, 11, and 8
+rows respectively). The existing strict Amplify adapter passed deterministic
+filter/parser coverage and five bounded opt-in live cases (including BLOK).
+The four symbols are now explicitly `current` under `amplify` with
+`successor_issuer_route` evidence; an ETFMG profile remains explicitly
+`not_applicable` so historical ownership is not confused with the current
+publisher. The provider count is unchanged because this is a successor route
+reconciliation, not a new provider registration or duplicate ETFMG promotion.
 
 ## Current audit checkpoint — AlphaMark SMCP liquidation reconciliation — 2026-09-25
 

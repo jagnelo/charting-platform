@@ -1036,20 +1036,78 @@ _register_non_tier_0_audits(
         "separately tracked Segall Bryant & Hamill/CI SBH identity and do not create a duplicate route."
     ),
 )
+_AMPLIFY_ETFMG_HISTORICAL_EVIDENCE_REFS = (
+    "web:amplify-etfmg-acquisition-complete-2026-09-02",
+    "web:etfmg-domain-unreachable-successor-amplify-2026-09-02",
+)
+_AMPLIFY_ETFMG_HISTORICAL_PROVIDER_BY_SYMBOL = {
+    "AIEQ": "etf_managers_group",
+    "AWAY": "etf_managers_group",
+    "BDRY": "etf_managers_group",
+    "BWET": "etf_managers_group",
+}
 _register_non_tier_0_audits(
-    ("AIEQ", "AWAY", "BDRY", "BWET"),
-    outcome=NOT_APPLICABLE,
-    evidence_state="inactive_or_successor_disposition",
-    provider_identity="etf_managers_group",
-    investigated_at=date(2026, 9, 2),
+    ("AIEQ",),
+    outcome=CURRENT,
+    evidence_state="successor_issuer_route",
+    provider_identity="amplify",
+    investigated_at=date(2026, 10, 2),
     evidence_refs=(
+        "web:amplify-aieq-current-holdings-2026-10-02",
+        "live:amplify-aieq-holdings-csv-2026-10-02",
         "web:amplify-etfmg-acquisition-complete-2026-09-02",
-        "web:etfmg-domain-unreachable-successor-amplify-2026-09-02",
     ),
     next_action=(
-        "Keep fallback-only as an inactive_or_successor_disposition; resolve historical ETFMG "
-        "symbols to their Amplify successor or actual current sponsor and reopen only if ETFMG "
-        "resumes a distinct U.S.-listed ETF portfolio with an executable first-party route."
+        "Keep AIEQ on the native Amplify route while the complete, identity-scoped CSV remains "
+        "current; retain ETFMG only as historical ownership context."
+    ),
+)
+_register_non_tier_0_audits(
+    ("AWAY",),
+    outcome=CURRENT,
+    evidence_state="successor_issuer_route",
+    provider_identity="amplify",
+    investigated_at=date(2026, 10, 2),
+    evidence_refs=(
+        "web:amplify-away-current-holdings-2026-10-02",
+        "live:amplify-away-holdings-csv-2026-10-02",
+        "web:amplify-etfmg-acquisition-complete-2026-09-02",
+    ),
+    next_action=(
+        "Keep AWAY on the native Amplify route while the complete, identity-scoped CSV remains "
+        "current; retain ETFMG only as historical ownership context."
+    ),
+)
+_register_non_tier_0_audits(
+    ("BDRY",),
+    outcome=CURRENT,
+    evidence_state="successor_issuer_route",
+    provider_identity="amplify",
+    investigated_at=date(2026, 10, 2),
+    evidence_refs=(
+        "web:amplify-bdry-current-holdings-2026-10-02",
+        "live:amplify-bdry-holdings-csv-2026-10-02",
+        "web:amplify-etfmg-acquisition-complete-2026-09-02",
+    ),
+    next_action=(
+        "Keep BDRY on the native Amplify route while the complete, identity-scoped CSV remains "
+        "current; retain ETFMG only as historical ownership context."
+    ),
+)
+_register_non_tier_0_audits(
+    ("BWET",),
+    outcome=CURRENT,
+    evidence_state="successor_issuer_route",
+    provider_identity="amplify",
+    investigated_at=date(2026, 10, 2),
+    evidence_refs=(
+        "web:amplify-bwet-current-holdings-2026-10-02",
+        "live:amplify-bwet-holdings-csv-2026-10-02",
+        "web:amplify-etfmg-acquisition-complete-2026-09-02",
+    ),
+    next_action=(
+        "Keep BWET on the native Amplify route while the complete, identity-scoped CSV remains "
+        "current; retain ETFMG only as historical ownership context."
     ),
 )
 _register_non_tier_0_audits(
@@ -1748,6 +1806,21 @@ def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:
         provider_identity = (explicit.provider_identity or "").strip().lower()
         if adapter_key == provider_identity:
             return explicit
+        historical_provider = _AMPLIFY_ETFMG_HISTORICAL_PROVIDER_BY_SYMBOL.get(symbol)
+        if historical_provider == adapter_key:
+            return ETFHoldingsSymbolAudit(
+                tier=explicit.tier,
+                outcome=NOT_APPLICABLE,
+                evidence_state="inactive_or_successor_disposition",
+                provider_identity=historical_provider,
+                investigated_at=date(2026, 9, 2),
+                next_action=(
+                    f"Retain the historical {historical_provider} identity for {symbol} as "
+                    "not applicable; use the explicitly audited current successor route "
+                    f"through {provider_identity}."
+                ),
+                evidence_refs=_AMPLIFY_ETFMG_HISTORICAL_EVIDENCE_REFS,
+            )
         return ETFHoldingsSymbolAudit(
             tier=explicit.tier,
             outcome=UNKNOWN,

@@ -3586,3 +3586,23 @@ Playwright E2E all passed. The protected staging/master-only Exhaustive
 Integration Gate was skipped as designed for this feature branch. CI emitted
 only the existing non-blocking Node.js 20 action deprecation annotations.
 Provider-platform staging, AC10, unresolved MINT/BOND, and AC14 remain open.
+
+## ETFMG successor-route reconciliation — 2026-10-02
+
+The prior fourth-ranked symbol cohort conservatively recorded AIEQ, AWAY, BDRY,
+and BWET only under historical `etf_managers_group` and therefore returned
+`not_applicable`. A bounded current recheck proved that this was incomplete:
+Amplify's official product pages identify all four active U.S.-listed funds, and
+the existing native Amplify multi-account CSV returned complete, symbol-scoped
+rows dated 2026-10-02 (AIEQ 164, AWAY 30, BDRY 11, BWET 8). The strict adapter
+already had deterministic parser/filter coverage and its bounded live route
+contract now covers all four symbols in addition to BLOK.
+
+The runtime and YAML symbol ledgers now mark these four symbols `current` under
+`amplify` with `successor_issuer_route` evidence. A controlled historical
+identity bridge keeps an `etf_managers_group` profile explicitly
+`not_applicable`, preserving the acquisition/disposition evidence and avoiding
+duplicate ETFMG ownership. No SEC reconstruction, paid source, or generic
+fallback promotion was introduced. Provider counts remain 496 registered,
+421 native/live-backed, and 75 fallback-only because this is a symbol-level
+successor reconciliation against an already-native adapter.

@@ -731,6 +731,23 @@ def test_third_ranked_fallback_successor_symbols_preserve_etfmg_evidence():
     )
 
 
+def test_amplify_successor_symbols_use_the_current_native_route():
+    for symbol, evidence_ref in (
+        ("AIEQ", "live:amplify-aieq-holdings-csv-2026-10-02"),
+        ("AWAY", "live:amplify-away-holdings-csv-2026-10-02"),
+        ("BDRY", "live:amplify-bdry-holdings-csv-2026-10-02"),
+        ("BWET", "live:amplify-bwet-holdings-csv-2026-10-02"),
+    ):
+        result = symbol_audit_for_profile(profile_with_symbol(symbol, "amplify"))
+
+        assert result.tier == 1
+        assert result.outcome == CURRENT
+        assert result.evidence_state == "successor_issuer_route"
+        assert result.provider_identity == "amplify"
+        assert result.investigated_at == date(2026, 10, 2)
+        assert evidence_ref in result.evidence_refs
+
+
 def test_fifth_ranked_fallback_first_manhattan_symbols_remain_unavailable():
     result = symbol_audit_for_profile(profile_with_symbol("FMCX", "first_manhattan"))
 
