@@ -14959,6 +14959,28 @@ discovery pages`), and ETF holdings at
 route evidence`). Neither upstream tip is an ancestor of staging; TC consumer
 integration and shared-path reconciliation remain deferred.
 
+## 2026-10-02 — Instrument Report constituent-accessibility slice
+
+Product commit `0ffecbc8` makes synthetic instrument constituent chips
+keyboard-operable buttons with stable accessible names and gives the long
+description disclosure explicit button type and context. Constituent selection
+events, description expansion, report layout, and data behavior are unchanged.
+
+Focused InstrumentInfoPanel coverage passed `6/6`; the full serial frontend
+suite passed `127/127` files and `1,158/1,158` tests; `vue-tsc` and the
+production build passed with the existing large-chunk warning; TC scope
+self-tests, workstream validation, and `git diff --check` passed. No
+provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or
+acceptance policy changed. No other worktree was mutated.
+
+The current atomic read-only dependency audit observes staging at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform at
+`5f6b1edef67b4ee209404bea05f57e5fdab7471a` (`fix(marketstack): scope raw
+pagination totals`), and ETF holdings at
+`88664a143531a2d45dbc03b006555eca62a100d0` (`docs(etf): record dependency
+checkpoint push`). Neither upstream tip is an ancestor of staging; TC consumer
+integration and shared-path reconciliation remain deferred.
+
 ## 2026-10-02 — Chart Panel symbol-picker accessibility slice
 
 Product commit `28574a5b` converts the chart-panel symbol picker into an

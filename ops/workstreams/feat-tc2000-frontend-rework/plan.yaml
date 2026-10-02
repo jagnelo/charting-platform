@@ -33,10 +33,10 @@ current_blocker: >-
   and Nimbus Sans), so a matching-font replay is required before attributing
   the mismatch to product pixels. The
   standard parallel frontend gate remains host-timing-sensitive on the
-  unrelated 100k-point uPlot benchmark; serial coverage passes 1,157/1,157.
+  unrelated 100k-point uPlot benchmark; serial coverage passes 1,158/1,158.
   Provider-platform and ETF consumer integration remains a sequencing gate
   until both upstream branches reach staging. On the resumed 2026-10-01 audit,
-  provider is at `5f6b1ede`, ETF is at `5eb2f55d`, and staging remains
+  provider is at `5f6b1ede`, ETF is at `88664a14`, and staging remains
   `8b885a2f`; neither dependency is an ancestor of staging. Shared-path reconciliation and
   the final post-staging exact gate remain pending. Origin synchronization
   remains a separate operational hold under the recorded private-origin
@@ -274,7 +274,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_chart_symbol_search_checkpointed
+  current_phase: R6_instrument_report_constituent_checkpointed
   next_action: >-
     Verify the protected visual mismatch against the expected seeded baseline
     in a matching browser/font environment without changing snapshots or visual
@@ -289,7 +289,7 @@ progress:
     first capture and 45,932 after stability, distributed across board text and
     anti-aliasing rather than localized chart geometry. The parallel frontend
     timing guard remains host-sensitive on the unrelated 100k-point uPlot
-    benchmark, while serial coverage passes 1,157/1,157 at the current product
+    benchmark, while serial coverage passes 1,158/1,158 at the current product
     tip. Provider-platform and ETF consumer integration remains a sequencing
     gate until both upstream branches reach staging; shared-path reconciliation
     and the final post-staging exact gate remain pending. Origin synchronization
@@ -542,6 +542,8 @@ historical_implementation_records_continued:
   - "The current atomic read-only dependency audit observes staging at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform at 5f6b1edef67b4ee209404bea05f57e5fdab7471a (fix(marketstack): scope raw pagination totals), and ETF holdings at 0709577bcaeedf7875352bc63cbe96a156648b91 (docs(etf): record provider ref refresh). Neither upstream tip is an ancestor of staging, so TC consumer integration and shared-path reconciliation remain deferred."
   - "Product commit 28574a5b converts the chart-panel symbol picker into an accessible combobox/listbox relationship with keyboard-targetable result buttons, active-option semantics, explicit trigger type, and stable ids while preserving the existing debounce, expression handling, selection fencing, linked-panel updates, and visual styling. Focused ChartPanel coverage passed 4/4; the full serial frontend suite passed 127/127 files and 1,157/1,157 tests; vue-tsc and production build passed with the existing large-chunk warning; TC scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "The current atomic read-only dependency audit observes staging at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform at 5f6b1edef67b4ee209404bea05f57e5fdab7471a (fix(marketstack): scope raw pagination totals), and ETF holdings at 5eb2f55df5053a49958db1b19e456c9385ededa4 (docs(etf): recheck pimco tier zero coverage). Neither upstream tip is an ancestor of staging, so TC consumer integration and shared-path reconciliation remain deferred."
+  - "Product commit 0ffecbc8 makes synthetic instrument constituent chips keyboard-operable buttons with stable accessible names and gives the long-description disclosure explicit button type and context while preserving constituent selection events, description expansion, and report layout. Focused InstrumentInfoPanel coverage passed 6/6; the full serial frontend suite passed 127/127 files and 1,158/1,158 tests; vue-tsc and production build passed with the existing large-chunk warning; TC scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
+  - "The current atomic read-only dependency audit observes staging at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform at 5f6b1edef67b4ee209404bea05f57e5fdab7471a (fix(marketstack): scope raw pagination totals), and ETF holdings at 88664a143531a2d45dbc03b006555eca62a100d0 (docs(etf): record dependency checkpoint push). Neither upstream tip is an ancestor of staging, so TC consumer integration and shared-path reconciliation remain deferred."
 
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
