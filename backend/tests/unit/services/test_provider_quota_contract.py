@@ -2257,6 +2257,7 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     assert [item["reset"] for item in coingecko["dimensions"]] == [
         "rolling",
         "calendar_month_utc",
+        "rolling",
     ]
     assert "unknown_dimensions" not in coingecko
 
@@ -2406,6 +2407,7 @@ def test_coingecko_profile_usage_profile_covers_id_resolution_and_metadata():
         "search_instruments": 1,
         "discover_universe_page": 1,
         "get_instrument_profile": 2,
+        "fetch_account_usage": 1,
     }
 
 

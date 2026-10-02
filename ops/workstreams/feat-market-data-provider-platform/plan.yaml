@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 validation status: the provider/configuration-focused unit
+    matrix passed 955/955 without coverage reporting and Docker PostgreSQL/
+    Redis integration passed 386/386 in 756.15s at the current implementation
+    source. The repository-wide 2453-case unit command was attempted with and
+    without coverage, but both attempts remained in the large ETF adapter test
+    file until the hard timeout; this is not counted as a full-suite pass. The
+    prior exact-head complete unit receipt remains the last full-suite evidence.
+  - >-
     2026-10-02 CoinGecko native account-usage admission: the adapter and
     manifest case are implemented, and fixture coverage proves valid `/key`
     payload handling plus malformed-counter rejection. The configured Demo key

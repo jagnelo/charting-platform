@@ -17,6 +17,22 @@
   authorized key/plan returns native usage data; the minute dimension also
   remains non-reconcilable unless the response provides remaining/reset data.
 
+## 2026-10-02 Provider-platform validation after CoinGecko admission
+
+- The provider/configuration-focused unit matrix passed `955/955` with
+  coverage reporting disabled (provider adapters, provider runtime/quota/
+  routing/usage services, and live-runner contract tests).
+- The Docker PostgreSQL/Redis integration gate passed `386/386` in `756.15s`
+  at the same implementation source. Docker cleanup retained no containers
+  or images and did not perform a host-wide prune.
+- Ruff, Python compile, workstream validation, and diff checks passed. The
+  repository-wide `2,453`-case unit command was also attempted, but its
+  coverage-enabled and no-coverage runs remained inside the large parallel
+  ETF adapter test file until the hard timeout; that partial run is not
+  counted as a full-suite pass. The provider-focused matrix above is the
+  current exact implementation evidence; the existing prior exact-head
+  branch receipts remain the last complete all-unit evidence.
+
 ## 2026-10-02 Exact-head full safety preflight
 
 - The full manifest was re-run at source

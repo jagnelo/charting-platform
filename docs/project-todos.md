@@ -18,6 +18,17 @@
       keep the minute pool non-routable unless native remaining/reset evidence
       is actually returned or separately reviewed.
 
+### 2026-10-02 — Provider-platform validation receipt
+
+- [x] Provider/configuration-focused unit matrix passed `955/955` without
+      coverage reporting, and Docker PostgreSQL/Redis integration passed
+      `386/386` in `756.15s` at the current implementation source.
+- [ ] The repository-wide `2,453`-case unit run is not yet a pass receipt:
+      both coverage-enabled and no-coverage attempts reached the large ETF
+      adapter test file and hit the hard timeout. This remains a validation
+      gap, not a provider failure; the prior exact-head complete unit receipt
+      is retained separately in the handoff.
+
 ### 2026-10-02 — Exact-head full safety preflight
 
 - [x] The full manifest was re-run after the Kraken admission audit at source
