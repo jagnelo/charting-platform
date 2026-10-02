@@ -102,8 +102,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `420`
-- Audited fallback-only providers: `76`
+- Native/live-backed providers: `421`
+- Audited fallback-only providers: `75`
 
 This is the current branch-derived split after the VistaShares RTOO, AIS, AMMO,
 QUSA, OMAH, ACKY, and DRKY official product-page-declared complete CSV routes,
@@ -116,7 +116,7 @@ Vident issuer route returns a Cloudflare challenge to the application client.
 Current fallback status counts are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `55`
+- `needs_first_party_route_discovery`: `54`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `8`
 - `inactive_or_successor_disposition`: `2`

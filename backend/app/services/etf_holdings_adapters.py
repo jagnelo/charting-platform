@@ -21944,7 +21944,11 @@ class AotHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return HoldingsAdapterProbe(
             adapter_key=self.adapter_key,
             confidence=Decimal("0.9000"),
-            status="ready" if source_url else "needs_issuer_route",
+            status=(
+                "ready"
+                if source_url or identifiers.get("sec_cik")
+                else "needs_issuer_route"
+            ),
             reason=(
                 "AOT Invest publishes this ETF's complete current holdings table on its public "
                 "fund page."
@@ -70480,6 +70484,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "through its public ETF product page and declared holdings feed."
         ),
     ),
+    "baillie_gifford": IssuerCsvAdapterConfig(
+        adapter_key="baillie_gifford",
+        source_provider="baillie_gifford",
+        source_access="baillie_gifford_daily_complete_holdings_xlsx",
+        url_templates=(
+            "https://www.bailliegifford.com/api/top-holdings/?fundId=61715",
+            "https://www.bailliegifford.com/api/top-holdings/?fundId=61877",
+            "https://www.bailliegifford.com/api/top-holdings/?fundId=61881",
+            "https://www.bailliegifford.com/api/top-holdings/?fundId=66675",
+        ),
+        live_tested_default_route=True,
+        terms_note="Baillie Gifford public daily holdings workbooks may be subject to issuer terms.",
+    ),
     "bancreek": IssuerCsvAdapterConfig(
         adapter_key="bancreek",
         source_provider="bancreek_capital_advisors",
@@ -70947,7 +70964,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
     "needs_first_party_route_discovery": (
         "advisors_asset_management",
         "azimut",
-        "baillie_gifford",
         "credit_suisse",
         "desjardins",
         "discipline_funds",
@@ -72545,8 +72561,141 @@ class AzimutReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETFDB issuer-league fallback adapter pending Azimut route discovery."""
 
 
-class BaillieGiffordReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """ETFDB issuer-league fallback adapter pending Baillie Gifford discovery."""
+class BaillieGiffordHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Baillie Gifford's complete daily second-sheet ETF workbook."""
+
+    _FUND_IDS = {
+        "BGGG": "61715",
+        "BGIA": "61877",
+        "BGEG": "61881",
+        "BGUS": "66675",
+    }
+    _URL_TEMPLATE = "https://www.bailliegifford.com/api/top-holdings/?fundId={fund_id}"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        source_url = self._source_url(normalized_symbol) or identifiers.get("holdings_url")
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9700"),
+            status=(
+                "ready"
+                if source_url or identifiers.get("sec_cik")
+                else "needs_issuer_route"
+            ),
+            reason=(
+                "Baillie Gifford publishes a complete dated workbook with identifiers and weights."
+                if source_url
+                else "Baillie Gifford requires one of its mapped ETF symbols."
+            ),
+            source_url=source_url,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_source_url = source_url or self._source_url(normalized_symbol)
+        if not resolved_source_url:
+            raise ValueError(f"Baillie Gifford does not map ETF symbol {normalized_symbol}.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_holdings_request_headers(
+                    accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,*/*"
+                ),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_workbook(response.content, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Baillie Gifford workbook did not expose holdings for {normalized_symbol}.")
+        workbook_rows = parse_xlsx_table(response.content, worksheet_index=2)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={"source_format": "xlsx", "workbook_rows": workbook_rows},
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=issuer_product_id,
+            legal_metadata={
+                "source_access": "baillie_gifford_daily_complete_holdings_xlsx",
+                "source_provider": "baillie_gifford",
+                "adapter_key": self.adapter_key,
+                "source_format": "xlsx",
+                "route_resolution": "baillie_gifford_fund_id_workbook",
+                "snapshot_provenance": "baillie_gifford_native_daily_holdings_workbook",
+                "composition_date": composition_date.isoformat(),
+            },
+        )
+
+    @classmethod
+    def _source_url(cls, symbol: str) -> str | None:
+        fund_id = cls._FUND_IDS.get(symbol)
+        return cls._URL_TEMPLATE.format(fund_id=fund_id) if fund_id else None
+
+    @classmethod
+    def _parse_workbook(
+        cls,
+        raw_workbook: bytes,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date]:
+        workbook_rows = parse_xlsx_table(raw_workbook, worksheet_index=2)
+        if not workbook_rows or len(workbook_rows[0]) < 7:
+            raise ValueError("Baillie Gifford workbook did not expose its complete holdings sheet.")
+        title = _clean(workbook_rows[0][0]) or ""
+        composition_date = _parse_issuer_date(title.rsplit(" - ", 1)[-1])
+        if composition_date is None:
+            raise ValueError("Baillie Gifford workbook omitted a parseable composition date.")
+        header = workbook_rows[0]
+        expected = {"CUSIP", "Ticker", "Instrument Name", "Quantity", "Weight", "Currency"}
+        if not expected.issubset({_clean(value) or "" for value in header}):
+            raise ValueError("Baillie Gifford workbook schema changed.")
+        rows: list[CanonicalHoldingRow] = []
+        for position, raw_row in enumerate(workbook_rows[1:], start=1):
+            raw = _row_dict(header, raw_row)
+            name = _clean(raw.get("Instrument Name"))
+            ticker = _clean(raw.get("Ticker"))
+            cusip = _clean(raw.get("CUSIP"))
+            quantity = _decimal(raw.get("Quantity"))
+            weight = _decimal_percent_points(raw.get("Weight"))
+            currency = _clean(raw.get("Currency"))
+            if not any((name, ticker, cusip)):
+                continue
+            text = " ".join(value.upper() for value in (name, ticker) if value)
+            is_cash = not ticker and not cusip and any(
+                marker in text for marker in ("CASH", "DOLLAR", "EURO", "POUND", "FRANC", "KRONE")
+            )
+            is_derivative = any(marker in text for marker in ("OPTION", "FUTURE", "SWAP", "FORWARD"))
+            row_type = "cash" if is_cash else "other" if is_derivative else "security"
+            holding_type = "cash" if is_cash else "derivative" if is_derivative else "equity"
+            source_symbol = None
+            if ticker and ticker.upper().endswith(" US"):
+                source_symbol = ticker.rsplit(" ", 1)[0]
+            elif ticker and not is_cash:
+                source_symbol = ticker
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=source_symbol,
+                    name=name,
+                    cusip=cusip if row_type == "security" and _looks_like_cusip(cusip) else None,
+                    weight=weight,
+                    shares=quantity,
+                    currency=currency,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"baillie-gifford-{symbol}-{position}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+        if len(rows) < 10:
+            raise ValueError("Baillie Gifford workbook did not expose a complete holdings universe.")
+        return rows, composition_date
 
 
 class BancreekReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -75745,7 +75894,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "avory": AvoryHoldingsAdapter,
         "avos": AvosReconciledFallbackHoldingsAdapter,
         "azimut": AzimutReconciledFallbackHoldingsAdapter,
-        "baillie_gifford": BaillieGiffordReconciledFallbackHoldingsAdapter,
+        "baillie_gifford": BaillieGiffordHoldingsAdapter,
         "ballast": BallastHoldingsAdapter,
         "bancreek": BancreekHoldingsAdapter,
         "beehive": BeeHiveHoldingsAdapter,

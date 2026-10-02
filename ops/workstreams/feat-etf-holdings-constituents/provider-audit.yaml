@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 420
-current_fallback_count: 76
+current_native_count: 421
+current_fallback_count: 75
 generated_at: 2026-09-25T00:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -464,38 +464,6 @@ symbol_audit_ledger:
       investigated_at: 2026-10-02
       evidence_refs: [web:avos-current-holdings-page-2026-09-04, live:avos-current-holdings-page-2026-09-04-blocked, live:avos-html-holdings-future-effective-date-2026-09-07, web:avos-current-holdings-page-2026-09-25, live:avos-direct-route-dns-failure-2026-09-25, web:avos-current-holdings-page-2026-10-02, live:avos-direct-route-403-cloudflare-2026-10-02]
       next_action: "Re-test the official AVOS page from an allowed network path; promote only after the current issuer table is executable and parser, identity, freshness, and bounded live evidence pass."
-    - symbol: BGGG
-      tier: 1
-      provider_identity: baillie_gifford
-      current_outcome: unavailable
-      evidence_state: non_executable_public_source
-      investigated_at: 2026-09-25
-      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02, live:baillie-gifford-top-holdings-xlsx-2026-09-07, web:baillie-gifford-bggg-current-page-2026-09-25, web:baillie-gifford-bgia-current-page-2026-09-25, web:baillie-gifford-bgeg-current-page-2026-09-25, web:baillie-gifford-bgus-current-page-2026-09-25]
-      next_action: "Locate and execute the complete issuer spreadsheet for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
-    - symbol: BGIA
-      tier: 1
-      provider_identity: baillie_gifford
-      current_outcome: unavailable
-      evidence_state: non_executable_public_source
-      investigated_at: 2026-09-25
-      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02, live:baillie-gifford-top-holdings-xlsx-2026-09-07, web:baillie-gifford-bggg-current-page-2026-09-25, web:baillie-gifford-bgia-current-page-2026-09-25, web:baillie-gifford-bgeg-current-page-2026-09-25, web:baillie-gifford-bgus-current-page-2026-09-25]
-      next_action: "Locate and execute the complete issuer spreadsheet for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
-    - symbol: BGEG
-      tier: 1
-      provider_identity: baillie_gifford
-      current_outcome: unavailable
-      evidence_state: non_executable_public_source
-      investigated_at: 2026-09-25
-      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02, live:baillie-gifford-top-holdings-xlsx-2026-09-07, web:baillie-gifford-bggg-current-page-2026-09-25, web:baillie-gifford-bgia-current-page-2026-09-25, web:baillie-gifford-bgeg-current-page-2026-09-25, web:baillie-gifford-bgus-current-page-2026-09-25]
-      next_action: "Locate and execute the complete issuer spreadsheet for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
-    - symbol: BGUS
-      tier: 1
-      provider_identity: baillie_gifford
-      current_outcome: unavailable
-      evidence_state: non_executable_public_source
-      investigated_at: 2026-09-25
-      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02, live:baillie-gifford-top-holdings-xlsx-2026-09-07, web:baillie-gifford-bggg-current-page-2026-09-25, web:baillie-gifford-bgia-current-page-2026-09-25, web:baillie-gifford-bgeg-current-page-2026-09-25, web:baillie-gifford-bgus-current-page-2026-09-25]
-      next_action: "Locate and execute the complete issuer spreadsheet for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
     - symbol: CHRG
       tier: 1
       provider_identity: elements
@@ -2706,10 +2674,10 @@ providers:
     display_name: baillie_gifford
     queue_rank: 21
     starting_status: needs_first_party_route_discovery
-    current_status: non_executable_public_source
-    disposition: non_executable_public_source
-    last_checked: 2026-09-25
-    source_access_declared: issuer_public_holdings_file
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-10-02
+    source_access_declared: baillie_gifford_daily_complete_holdings_xlsx
     representative_symbols:
       - BGGG
       - BGIA
@@ -2718,7 +2686,7 @@ providers:
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: daily_top_ten_only
+    source_freshness: daily
     first_party_domains:
       - www.bailliegifford.com
     candidate_routes:
@@ -2727,16 +2695,17 @@ providers:
       - https://www.bailliegifford.com/api/top-holdings?fundId=61881
       - https://www.bailliegifford.com/api/top-holdings?fundId=66675
     source_format: xlsx
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_m_d_sass_adapter_parses_complete_issuer_csv_and_preserves_future_date
-    live_test: null
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_baillie_gifford_adapter_parses_complete_daily_workbook
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_baillie_gifford_live_workbooks
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.baillie_gifford"
       - "runtime:ISSUER_ADAPTER_CONFIGS.baillie_gifford"
       - "live:baillie-gifford-top-holdings-xlsx-2026-09-07"
+      - "live:baillie-gifford-complete-workbooks-2026-10-02"
       - "web:baillie-gifford-bggg-current-page-2026-09-25"
       - "web:baillie-gifford-bgia-current-page-2026-09-25"
       - "web:baillie-gifford-bgeg-current-page-2026-09-25"
@@ -2758,8 +2727,12 @@ providers:
         source: "Baillie Gifford official BGGG/BGIA/BGEG/BGUS product pages"
         result: "Current first-party pages continue to advertise daily all-holdings spreadsheets, but executable page content exposes only top-ten or summary tables; no complete machine-readable artifact was captured for the four symbols."
         evidence_ref: "web:baillie-gifford-bggg-current-page-2026-09-25"
-    disposition_reason: "baillie_gifford: The official pages advertise daily all-holdings spreadsheets, but bounded executable content remains limited to top-ten or summary data without a complete constituent universe and stable identifiers for BGGG, BGIA, BGEG, or BGUS."
-    next_action: "baillie_gifford: Locate and execute the complete issuer spreadsheet for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
+      - date: 2026-10-02
+        source: "https://www.bailliegifford.com/api/top-holdings/?fundId={fund_id}"
+        result: "All four official workbooks returned HTTP 200 XLSX artifacts dated October 1, 2026. The second worksheet contains complete rows with CUSIP, ticker, instrument name, quantity, weight, and currency; the strict provider parser and bounded live matrix now cover BGGG, BGIA, BGEG, and BGUS."
+        evidence_ref: "live:baillie-gifford-complete-workbooks-2026-10-02"
+    disposition_reason: "baillie_gifford: The official fund pages declare daily all-holdings workbooks; the fund-ID routes now expose complete dated second-sheet workbooks with identifiers and weights for all four representatives, covered by a strict parser and bounded live evidence."
+    next_action: "baillie_gifford: Monitor the four fund-ID workbooks and retain native status while they remain complete, identity-valid, dated, and executable; add future products only after equivalent first-party evidence."
     implementation_sha: null
     validation_refs: []
   - adapter_key: ballast

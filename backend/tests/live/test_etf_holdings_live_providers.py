@@ -12,6 +12,7 @@ from app.services.etf_holdings_adapters import (
 )
 
 LIVE_BACKED_ISSUER_ADAPTERS = {
+    "baillie_gifford",
     "amplius",
     "argent",
     "m_d_sass",
@@ -4389,6 +4390,27 @@ async def test_live_anydrus_ndow_page_declared_filepoint_holdings_json():
     assert metadata["composition_date"]
     assert any(row.row_type == "cash" for row in result.rows)
     assert any(row.symbol == "SCHO" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("baillie_gifford")
+async def test_baillie_gifford_live_workbooks():
+    adapter = get_holdings_adapter("baillie_gifford")
+    assert adapter is not None
+    for symbol in ("BGGG", "BGIA", "BGEG", "BGUS"):
+        try:
+            result = await adapter.fetch_latest(symbol=symbol)
+        except (httpx.HTTPError, requests.RequestException, TimeoutError, ValueError) as exc:
+            if _is_external_live_access_failure(exc):
+                pytest.skip(str(exc))
+            raise
+        _assert_live_holdings_result(result, adapter_key="baillie_gifford", min_rows=10)
+        assert result.legal_metadata["source_format"] == "xlsx"
+        assert result.legal_metadata["snapshot_provenance"] == (
+            "baillie_gifford_native_daily_holdings_workbook"
+        )
+        assert result.legal_metadata["composition_date"] == "2026-10-01"
 
 
 def _parametrized_live_provider_keys(*tests) -> set[str]:

@@ -574,19 +574,10 @@ def test_tier_zero_geme_uses_pacific_asset_management_current_route_evidence():
 def test_ranked_fallback_non_executable_symbols_remain_unavailable():
     result = symbol_audit_for_profile(profile_with_symbol("BGGG", "baillie_gifford"))
 
-    assert result.tier == 1
-    assert result.outcome == UNAVAILABLE
-    assert result.evidence_state == "non_executable_public_source"
+    assert result.tier == 2
+    assert result.outcome == UNKNOWN
+    assert result.evidence_state == "no_symbol_audit_record"
     assert result.provider_identity == "baillie_gifford"
-    assert result.investigated_at == date(2026, 9, 25)
-    assert result.evidence_refs == (
-        "web:baillie-gifford-top-ten-only-2026-09-02",
-        "live:baillie-gifford-top-holdings-xlsx-2026-09-07",
-        "web:baillie-gifford-bggg-current-page-2026-09-25",
-        "web:baillie-gifford-bgia-current-page-2026-09-25",
-        "web:baillie-gifford-bgeg-current-page-2026-09-25",
-        "web:baillie-gifford-bgus-current-page-2026-09-25",
-    )
 
 
 def test_ranked_fallback_symbol_audit_uses_explicit_issuer_evidence():
@@ -1217,7 +1208,7 @@ def test_all_symbolless_fallback_identities_remain_non_current_at_capability_bou
 
 def test_every_fallback_identity_rejects_unreviewed_synthetic_symbols():
     """A complete snapshot cannot turn an unreviewed fallback identity current."""
-    assert len(FALLBACK_ISSUER_AUDITS) == 76
+    assert len(FALLBACK_ISSUER_AUDITS) == 75
 
     for adapter_key in sorted(FALLBACK_ISSUER_AUDITS):
         profile_value = profile_with_symbol(f"SYNTHETIC_{adapter_key}", adapter_key)

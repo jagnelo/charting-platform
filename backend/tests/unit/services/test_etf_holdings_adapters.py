@@ -1906,6 +1906,50 @@ async def test_m_d_sass_adapter_parses_complete_current_issuer_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_baillie_gifford_adapter_parses_complete_daily_workbook(monkeypatch):
+    adapter = get_holdings_adapter("baillie_gifford")
+    assert adapter is not None
+    assert type(adapter).__name__ == "BaillieGiffordHoldingsAdapter"
+    assert adapter.probe(symbol="BGGG", name="Baillie Gifford Long Term Global Growth ETF", identifiers={}).status == "ready"
+
+    workbook = _xlsx_workbook_sheets(
+        [
+            [["Baillie Gifford Long Term Global Growth ETF - October 1, 2026", "Holding Name", "Fund %"]],
+            [
+                ["Baillie Gifford Long Term Global Growth ETF - October 1, 2026", "CUSIP", "Ticker", "Instrument Name", "Quantity", "Weight", "Currency"],
+                ["1", "67066G104", "NVDA US", "NVIDIA CORP USD 0.001", "100,928", "8.10", "USD"],
+                ["2", "", "2330 TT", "TAIWAN SEMICONDUCTOR MANUF TWD 10.0", "266,480", "6.39", "TWD"],
+                ["3", "", "", "Euro", "8,391", "0.00", "EUR"],
+                *[
+                    [str(index), "", f"{index} LN", f"Foreign Holding {index}", "100", "1.00", "GBP"]
+                    for index in range(4, 12)
+                ],
+            ],
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url="https://www.bailliegifford.com/api/top-holdings/?fundId=61715",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BGGG")
+
+    assert len(result.rows) == 11
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.0810")
+    assert result.rows[1].symbol == "2330 TT"
+    assert result.rows[2].holding_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-10-01"
+    assert result.legal_metadata["route_resolution"] == "baillie_gifford_fund_id_workbook"
+
+
+@pytest.mark.asyncio
 async def test_kensington_adapter_filters_account_validates_identity_and_preserves_non_tradable_rows(
     monkeypatch,
 ):
@@ -23381,6 +23425,7 @@ def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
         "milliman",
         "moonvest",
         "nestyield",
+        "baillie_gifford",
     }
 
     assert expected
@@ -28657,14 +28702,15 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 420
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 76
+    assert ledger["current_native_count"] == 421
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 75
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
         record["adapter_key"] for record in records if record["disposition"] == "native_promoted"
     }
     assert native_promoted == {
+        "baillie_gifford",
         "ars",
         "avory",
         "anydrus",

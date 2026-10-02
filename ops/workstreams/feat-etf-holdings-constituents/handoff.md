@@ -99,14 +99,14 @@ symbols are now native-promoted and covered by deterministic plus opt-in live te
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 420 native/live-backed, 76
+- Current code-derived state: 496 registered, 421 native/live-backed, 75
   fallback-only.
-- Current fallback status split: 8 issuer-access-blocked, 55
+- Current fallback status split: 8 issuer-access-blocked, 54
   needs-first-party-route-discovery, 3 non-executable public source, 8
   non-portfolio-publisher, and 2 inactive-or-successor-disposition. The ledger retains dated terminal dispositions for
   every fallback key; all 140 historical records are represented exactly once.
 - `docs/etf-provider-universe.md` is reconciled from code to the current
-  496/420/76 snapshot; future updates must remain code-derived.
+  496/421/75 snapshot; future updates must remain code-derived.
 - The symbol capability boundary now maps provider identities already audited
   as `issuer_access_blocked` or `non_executable_public_source` to explicit
   `unavailable` outcomes; unresolved route discovery remains `unknown`.
@@ -4884,7 +4884,7 @@ DXJ/NTSX/MINT/BOND remain unavailable for current analysis.
 ## Current ledger count reconciliation — 2026-09-06
 
 The branch-local runtime and YAML ledger were recounted after the final
-transport evidence update. Both now contain 15 Tier-0 and 159 Tier-1 symbol
+transport evidence update. Both now contain 15 Tier-0 and 155 Tier-1 symbol
 records, with 81 fallback identities and 140 provider-audit records. Earlier
 checkpoint entries that reported 160 Tier-1 records are retained as historical
 receipts; the current blocker, session state, and next-action records now use
@@ -5709,6 +5709,22 @@ parser promotion, or paid route was used.
 The runtime capability audit, symbol ledger, and provider ledger now carry the
 2026-10-02 AVOS evidence references. Focused validation is being rerun for this
 evidence-only checkpoint.
+
+## Baillie Gifford native promotion — 2026-10-02
+
+All four official Baillie Gifford fund-ID workbook routes returned HTTP 200
+dated October 1, 2026. Their complete second worksheets contained BGGG 45,
+BGIA 93, BGEG 86, and BGUS 48 holdings rows with CUSIP/ticker, instrument name,
+quantity, weight, and currency fields. The strict provider adapter validates
+the workbook schema, composition date, identifiers, cash/derivative rows, and
+minimum completeness; the deterministic fixture and opt-in live route test are
+registered. BGGG, BGIA, BGEG, and BGUS are now native-promoted, removed from the
+fallback symbol/provider ledgers, and remain free first-party coverage.
+
+The code-derived split is now 496 registered / 421 native-live-backed / 75
+fallback-only. Focused validation passed 676 capability/adapter tests, Ruff,
+workstream validation, and diff-check. AC10 remains deferred because the
+shared provider-platform `ETF_HOLDINGS` capability is not yet in staging.
 
 ## Arin/ATTR route recheck — 2026-10-02
 

@@ -1000,25 +1000,6 @@ _register_non_tier_0_audits(
     ),
 )
 _register_non_tier_0_audits(
-    ("BGGG", "BGIA", "BGEG", "BGUS"),
-    outcome=UNAVAILABLE,
-    evidence_state="non_executable_public_source",
-    provider_identity="baillie_gifford",
-    investigated_at=date(2026, 9, 25),
-    evidence_refs=(
-        "web:baillie-gifford-top-ten-only-2026-09-02",
-        "live:baillie-gifford-top-holdings-xlsx-2026-09-07",
-        "web:baillie-gifford-bggg-current-page-2026-09-25",
-        "web:baillie-gifford-bgia-current-page-2026-09-25",
-        "web:baillie-gifford-bgeg-current-page-2026-09-25",
-        "web:baillie-gifford-bgus-current-page-2026-09-25",
-    ),
-    next_action=(
-        "Locate and execute the complete issuer spreadsheet for each U.S. ETF, prove symbol "
-        "mapping and identifiers, then add a provider-specific parser and live route test."
-    ),
-)
-_register_non_tier_0_audits(
     ("CHRG",),
     outcome=NOT_APPLICABLE,
     evidence_state="inactive_or_successor_disposition",
