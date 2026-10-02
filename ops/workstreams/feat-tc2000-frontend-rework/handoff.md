@@ -1,5 +1,35 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Native Indicator Panel selection controls
+
+Product commit `e48ef32d61cab0a37608ce5dbf605543ea73ff3b` gives the five
+TC-owned selection rows in `IndicatorPanel` native button semantics: radar
+detections, indicators, drawings, price alerts, and indicator alerts. The
+selection buttons are separate from row menus and drag handles; selected state
+is exposed with `aria-pressed`, and keyboard focus is visible without changing
+the non-focused row layout. This component is exercised through the retained
+single-chart route `/legacy/chart/SPY`; this receipt does not claim that the
+primary `/chart` workstation's Technicals surface has been reconciled to the
+same interaction.
+
+Focused IndicatorPanel coverage passed `2/2`; the serial frontend suite passed
+`128/128` files and `1,168/1,168` tests; type-check and production build passed
+with the existing large-chunk warning. The authenticated Chromium case
+`F8e.native-indicator-selection` passed `1/1`, using Enter and Space to select
+rows and verifying the sibling action menu remains independent. The standard
+stack target stopped at the host's missing Docker Buildx option; ordinary
+Compose started only this TC project. `make test-stack-down` and the resource
+audit removed the exact project's test resources and reported zero remaining
+containers, volumes, images, or unknown components. These are slice receipts,
+not the full exact-tip or visual gate.
+
+The last protected visual replay remains `2/8` with the same six understood
+state mismatches; no baseline or visual acceptance policy changed. Local refs
+remain staging `8b885a2ffd9c`, provider-platform `d7097860a05c`, and ETF
+holdings `4da62c54d146`; neither dependency tip is included in staging. Continue
+independent TC work, and focus the next comparison on the primary workstation
+surface rather than assuming the retained single-chart route closes it.
+
 ## 2026-10-02 — R6 visual-state diagnosis and fresh resilience evidence
 
 At feature tip `e52009bf9`, the version-matched Playwright 1.62.1 image ran
@@ -15639,11 +15669,18 @@ diagnostics. Focused MarketMapTool coverage passed `55/55`; the exact-tip full
 serial frontend suite passed `128/128` files and `1,168/1,168` tests; frontend
 type-check and production build passed with the existing large-chunk warning.
 
-A pre-commit diagnostic of the longer `F8s-market-map-watchlist` flow reached
-tile selection but later failed at the Study Lab handoff: the selected-members
-button detached before Playwright could click it. The focus assertion was
-isolated into the smaller passing browser test; the broader flow has not been
-rerun on the exact product tip, so its current status is unknown. Rerun that
-workflow before calling the exact browser gate green. The six protected visual
-state mismatches and provider/ETF staging boundary remain open; no visual
-baseline, mask, threshold, skip, or acceptance rule was changed.
+The longer `F8s-market-map-watchlist` flow was rerun on branch tip
+`157f41c1272ce9ed8d56e8677273c8377cd878bb` and passed `1/1`, including the
+watchlist selection and Study Lab handoff. The earlier detached-button result
+was resolved by aligning the test with the button's accessible name and waiting
+for refresh completion. The normal `make test-stack-up` target encountered a
+missing Buildx option; ordinary Compose built and started only this TC project.
+`make test-stack-down` and the branch resource helper then removed the stack;
+the follow-up audit found zero containers, volumes, images, or unknown owned
+resources. No other project was touched.
+
+The six protected visual state mismatches and provider/ETF staging boundary
+remain open; no visual baseline, mask, threshold, skip, or acceptance rule was
+changed. Next: compare the still-open V25 interaction requirements with the
+current workstation views and tests, then choose the next independent
+TC-owned frontend or Study/Strategy gap.

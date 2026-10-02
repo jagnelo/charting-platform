@@ -20,39 +20,26 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  At feature tip `e52009bf9`, the latest version-matched Playwright 1.62.1
-  visual replay covered eight protected cases: two passed and six failed.
-  Pixel review identifies state divergence, not only font noise. The two
-  1080p watchlist-column-editor screenshots contain the current all-family
-  readiness line, which is absent from the saved images. The four
-  workspace-floating saved images contain the benchmark header but no rows;
-  the current test waits for post-float hydration and captures the five seeded
-  benchmark rows. The 1080p editor diffs were 16,279 and 16,128 pixels; the
-  floating diffs were 9,591, 10,384, 9,591, and 10,384 pixels across the four
-  projects. The host's font substitutions caused two additional editor
-  failures in the host replay; the matching image removed those, but not these
-  six state mismatches. `docs/tc2000-visual-parity.md` requires human review
-  and a linked intentional change for every snapshot update, so no baseline,
-  mask, threshold, skip, fallback, or acceptance rule changed. This targeted
-  replay is not a full 104-case pass. The 10,000-row network hydration check
-  passed 1/1 in 20.2 seconds with fewer than 100 rendered rows and the row
-  budget within limits. The 100-cycle two-popout churn check passed 1/1 in
-  4.3 minutes, returning the page, tool, and canvas counts to baseline each
-  round; memory ceilings were asserted where Chromium exposed heap samples.
-  The branch-scoped Docker stack, seeded test volumes, network, and local test
-  images were removed after these checks. Provider-platform and ETF consumer
-  integration remains a sequencing gate: current local refs are staging
-  `8b885a2f`, provider-platform `26e6dd5b`, and ETF holdings `4da62c54`; neither
-  dependency is an ancestor of staging. Shared-path reconciliation and the
-  final post-staging exact gate remain pending. Origin synchronization remains
-  a separate operational hold under the recorded private-origin safeguard.
-  Product tip `db0783e24` adds a white keyboard-focus ring to Market Map tiles,
-  distinct from the gold selection ring. Its focused browser test, frontend
-  test suite, type-check, and production build pass. A pre-commit diagnostic of
-  the longer watchlist-to-Study-Lab flow reached tile selection but the handoff
-  button detached before Playwright could click it. That assertion has since
-  been isolated into its own passing test; the longer flow has not been rerun
-  on this exact tip and remains an open follow-up, not a green gate.
+  The last controlled, version-matched visual replay at `e52009bf9` covered
+  eight protected cases: two passed and six failed for understood state
+  differences. The 1080p watchlist-editor references predate the all-family
+  readiness line; the floating references show an empty table while the current
+  test waits for five hydrated rows. `docs/tc2000-visual-parity.md` requires
+  human review and a linked intentional change before snapshots may change, so
+  no baseline, mask, threshold, skip, fallback, or acceptance rule changed.
+  The 10,000-row hydration and 100-cycle pop-out checks passed; their exact
+  branch-scoped Docker resources were removed and audited.
+  Provider-platform and ETF integration is still deferred: current local refs
+  are staging `8b885a2ffd9c`, provider-platform `d7097860a05c`, and ETF
+  holdings `4da62c54d146`; neither dependency tip is an ancestor of staging.
+  Shared-path reconciliation and the post-staging exact gate remain pending.
+  Product commit `e48ef32d61ca` makes the five TC-owned Indicator Panel
+  selection targets native buttons; the focused unit test, full serial
+  frontend suite, production type/build, and targeted authenticated Chromium
+  flow have passed. Clean exact-tip workstream validation and the wider R1/R5/R6
+  gates remain open. Local branch commits are not pushed: the existing
+  private-origin safeguard requires exact-payload authorization before another
+  push, and none was supplied for this updated range.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -288,34 +275,28 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_latest_resilience_evidence_visual_state_review_open
+  current_phase: R1_indicator_panel_native_keyboard_slice_passed
   next_action: >-
-    Re-run the longer Market Map watchlist-to-Study-Lab browser handoff on the
-    exact product tip. Continue independent TC-owned workstation and
-    Study/Strategy work while provider/ETF consumer integration waits for both
-    branches to reach staging.
-    Keep the six explained screenshot state mismatches visible; do not rewrite
-    baselines, masks, thresholds, skips, or acceptance rules without the visual
-    review required by docs/tc2000-visual-parity.md. After both upstream tips
-    are in staging, synchronize through the prescribed workflow, reconcile
-    shared paths semantically, and rerun the exact-tip gate. Do not retry origin
-    synchronization under the private-origin safeguard without newly accepted
-    exact-payload authorization.
+    Compare open V25 interaction requirements against the primary workstation
+    views and browser evidence, then choose the next independent TC-owned
+    Workstation or Study/Strategy gap. Do not duplicate provider or ETF work.
+    Keep the six protected screenshot mismatches visible and do not change
+    their baselines, masks, thresholds, skips, or acceptance rules without the
+    visual review required by docs/tc2000-visual-parity.md. After both upstream
+    tips reach staging, reconcile shared paths semantically and run the exact
+    post-staging gate. Do not push the updated local range under the private-
+    origin safeguard without exact-payload authorization.
   current_blocker: >-
-    The version-matched visual replay at `e52009bf9` passed 2/8 targeted cases.
-    Six failures are now explained by the expected images representing older
-    states: the editor image predates its visible readiness line, and the
-    floating image predates the test's intentional five-row hydration check.
-    A snapshot change requires human visual review; the six tests remain red
-    and no oracle was changed. The independent 10,000-row browser budget and
-    100-cycle pop-out resilience checks both pass at this tip. Upstream
-    integration is still waiting for provider `26e6dd5b` and ETF `4da62c54` to
-    reach staging `8b885a2f`; neither is currently included. No other worktree
-    was touched. The Market Map focus-ring slice passed its focused browser,
-    unit, serial frontend, type-check, and build checks at `db0783e24`. A
-    pre-commit diagnostic of the longer watchlist-to-Study-Lab flow detached
-    its action button; that flow has not been rerun after the focus assertion
-    was isolated, so exact-tip status remains unknown.
+    Completion still depends on review of the six explained protected visual
+    differences and on provider-platform plus ETF work reaching staging before
+    this branch can consume either contract. The latest local dependency tips
+    are provider `d7097860a05c` and ETF `4da62c54d146`, neither included in
+    staging `8b885a2ffd9c`. The native Indicator Panel slice is implemented in
+    `e48ef32d61ca`; its targeted Chromium scenario passed 1/1. The current
+    workstream/documentation edits still need a clean exact-tip validation and
+    commit. The private-origin safeguard also leaves local branch commits
+    unpushed until a push for the exact updated range is authorized. No
+    provider/ETF branch, staging branch, or other worktree was changed.
 historical_implementation_records:
   - "Product commit 507c6df42 gives TC-owned Market Map actions explicit contextual accessible names for saving explicit symbols, refreshing the map, saving/exporting/deleting snapshots, and saving selected members as a personal watchlist while preserving visible labels, state mutations, and visual styling. Focused MarketMapTool coverage passed 54/54; the full serial frontend suite passed 128 files and 1,167/1,167 tests; vue-tsc, the production build, git diff --check, TC scope self-tests, and workstream validation passed with the existing large-chunk warning. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit f85222610 gives TC-owned VirtualWatchlist editor actions contextual accessible names: selected-symbol comparison count, paste settings, stack/unstack and pin/unpin column state, Python-column addition, saved-set save, and saved-set apply name/version. Existing visible labels, state mutations, and visual styling remain unchanged. Focused VirtualWatchlistTool coverage passed 78/78; the full serial frontend suite passed 128 files and 1,167/1,167 tests; vue-tsc, the production build, git diff --check, TC scope self-tests, and workstream validation passed with the existing large-chunk warning. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
@@ -598,10 +579,7 @@ historical_implementation_records_continued:
   - "Product commit 0ffecbc8 makes synthetic instrument constituent chips keyboard-operable buttons with stable accessible names and gives the long-description disclosure explicit button type and context while preserving constituent selection events, description expansion, and report layout. Focused InstrumentInfoPanel coverage passed 6/6; the full serial frontend suite passed 127/127 files and 1,158/1,158 tests; vue-tsc and production build passed with the existing large-chunk warning; TC scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "The current atomic read-only dependency audit observes staging at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform at 5f6b1edef67b4ee209404bea05f57e5fdab7471a (fix(marketstack): scope raw pagination totals), and ETF holdings at 88664a143531a2d45dbc03b006555eca62a100d0 (docs(etf): record dependency checkpoint push). Neither upstream tip is an ancestor of staging, so TC consumer integration and shared-path reconciliation remain deferred."
 
-  - "Product commit db0783e24 adds a white :focus-visible ring to Market Map tiles, distinct from selection styling. The focused F8s-family-map-drilldown browser test passed 1/1; MarketMapTool unit coverage passed 55/55; the exact-tip serial frontend suite passed 128/128 files and 1,168/1,168 tests; type-check and production build passed with the existing large-chunk warning. A pre-commit diagnostic of F8s-market-map-watchlist reached tile selection but its Study Lab handoff button detached; rerun that longer workflow on the exact tip. No visual baseline, mask, threshold, skip, fallback, provider, ETF, or acceptance policy changed."
-
 remaining_gaps:
-  - "Re-run F8s-market-map-watchlist on db0783e24; its pre-commit diagnostic detached the Study Lab action button after tile selection, and its current exact-tip status is unknown."
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."
   - "Path intersections are not proof of duplicate behavior; line-level semantics remain pending after staging. The 93-commit TC etf_holdings_adapters.py history is explicitly flagged for ETF-owner reconciliation/transfer."

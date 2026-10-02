@@ -5,6 +5,26 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-02
 
+## 2026-10-02 — Native Indicator Panel selection controls
+
+Product commit `e48ef32d61cab0a37608ce5dbf605543ea73ff3b` converts the five
+TC-owned Indicator Panel selection rows—radar detections, indicators, drawings,
+price alerts, and indicator alerts—to native buttons. The selected state is
+announced and keyboard focus is visible; row menus and drag handles remain
+separate controls. Focused unit coverage passed `2/2`, the full serial frontend
+suite passed `128/128` files and `1,168/1,168` tests, type-check and production
+build passed, and authenticated Chromium `F8e.native-indicator-selection`
+passed `1/1` on `/legacy/chart/SPY` for Enter/Space selection and independent
+row actions. The ordinary Buildx-enabled stack target is unavailable on this
+host, so the TC project was built and run with ordinary Compose, then removed
+and audited to zero resources.
+
+This closes only the existing single-chart `IndicatorPanel` interaction. It
+does not claim parity for the primary `/chart` workstation's Technicals tool,
+and it does not close the six protected visual differences, the upstream
+staging boundary, or the overall frontend rework. No visual baseline or
+acceptance policy changed.
+
 ## 2026-10-02 — R6 visual-state diagnosis and resilience receipts
 
 At product/test tip `e52009bf9`, a version-matched Playwright 1.62.1 replay
@@ -43,12 +63,16 @@ frontend suite passed `128/128` files and `1,168/1,168` tests; type-check and
 production build passed with the existing large-chunk warning. No screenshot
 baseline or visual acceptance rule changed.
 
-A pre-commit diagnostic of the longer watchlist-to-Study-Lab flow reached tile
-selection but the handoff button detached before Playwright could click it.
-The keyboard-focus assertion has been isolated into the smaller passing
-browser test; the longer flow still needs to be rerun on this exact tip. The
-six protected visual mismatches and upstream staging boundary remain open, so
-this slice is not a full browser or visual-gate pass.
+The longer `F8s-market-map-watchlist` flow was rerun on branch tip
+`157f41c1272ce9ed8d56e8677273c8377cd878bb` and passed `1/1`, including the
+watchlist selection and Study Lab handoff. The earlier detached-button result
+was resolved by aligning the test with the button's accessible name and waiting
+for refresh completion. `make test-stack-up` could not use its configured
+Buildx option on this host, so ordinary Compose built and started only the TC
+project; the repository cleanup helper then removed its resources and the
+follow-up resource audit found zero containers, volumes, or images. The six
+protected visual mismatches and upstream staging boundary remain open; this
+does not constitute a full browser or visual-gate pass.
 
 ## 2026-09-15 - Preserve promoted Python signal lineage in Strategy Lab
 
