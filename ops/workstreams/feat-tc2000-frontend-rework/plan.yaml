@@ -33,7 +33,7 @@ current_blocker: >-
   and Nimbus Sans), so a matching-font replay is required before attributing
   the mismatch to product pixels. The
   standard parallel frontend gate remains host-timing-sensitive on the
-  unrelated 100k-point uPlot benchmark; serial coverage passes 1,159/1,159.
+  unrelated 100k-point uPlot benchmark; serial coverage passes 1,160/1,160.
   Provider-platform and ETF consumer integration remains a sequencing gate
   until both upstream branches reach staging. On the resumed 2026-10-01 audit,
   provider is at `5f6b1ede`, ETF is at `88664a14`, and staging remains
@@ -276,7 +276,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R5_code_library_form_state_checkpointed
+  current_phase: R6_strategy_run_selection_checkpointed
   next_action: >-
     Verify the protected visual mismatch against the expected seeded baseline
     in a matching browser/font environment without changing snapshots or visual
@@ -291,13 +291,14 @@ progress:
     first capture and 45,932 after stability, distributed across board text and
     anti-aliasing rather than localized chart geometry. The parallel frontend
     timing guard remains host-sensitive on the unrelated 100k-point uPlot
-    benchmark, while serial coverage passes 1,159/1,159 at the current product
+    benchmark, while serial coverage passes 1,160/1,160 at the current product
     tip. Provider-platform and ETF consumer integration remains a sequencing
     gate until both upstream branches reach staging; shared-path reconciliation
     and the final post-staging exact gate remain pending. Origin synchronization
     remains a separate operational hold under the recorded private-origin
     safeguard.
 historical_implementation_records:
+  - "Product commit 76aa0e1c0 exposes selected-state semantics for TC-owned Strategy Lab run-history batches and individual runs through aria-pressed, preserving the intentional no-preselection default and existing selection behavior. Focused Strategy Lab coverage passed 39/39; the full serial frontend suite passed 128 files / 1,160 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 868ed49a4 gives the TC-owned Python Library New/Close new control an explicit aria-expanded state and stable aria-controls relationship to the create form, preserving the existing create workflow and layout. Focused Code Library coverage passed 11/11; the full serial frontend suite passed 128 files / 1,159 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit a57993e7d gives the TC-owned Python Code Library archive/unarchive action a stable accessible name and aria-pressed state while preserving the immutable asset lifecycle and existing archive mutation API. Focused Code Library coverage passed 11/11; the full serial frontend suite passed 128 files / 1,159 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 289135c43 exposes the TC-owned Research Results two-run comparison control's open/closed state through aria-pressed while preserving comparison selection, labels, and rendered comparison content. Focused Research Results coverage passed 50/50; the full serial frontend suite passed 128 files / 1,159 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
