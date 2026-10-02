@@ -105,11 +105,11 @@
   "goal_unavailable_reason": null,
   "head": "51d1c5958",
   "implementation_sha": "5fc1a1f275eab70615e6dd6beb4d75d5eb064760",
-  "last_checkpoint": "2026-10-02T11:48:40Z",
+  "last_checkpoint": "2026-10-02T11:52:27Z",
   "last_human_progress_update": "2026-09-25T00:46:26Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "reconcile stale fallback audit evidence where a current check is useful, then recheck the provider-platform dependency; after staging, reconcile only the narrow ETF bridge and run AC14",
-  "plan_hash": "b365438760b54ec09628ac0fb2e38597df60369844ae76d3af8ba9a121287181",
+  "plan_hash": "681724799649d1bdfa5ab27171c46a30517c3903ad9ea6bbd9635c976916b47e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,11 +134,11 @@
     "current_phase": "provider_evidence_reconciliation",
     "next_action": "Reconcile stale fallback audit evidence where a current check is useful, then recheck the provider-platform dependency; preserve the explicit fallback boundary and do not activate paid/direct-provider routes while awaiting provider-platform staging.",
     "total": 14,
-    "updated_at": "2026-10-02T11:48:40Z"
+    "updated_at": "2026-10-02T11:52:27Z"
   },
   "remote": "e2810197c07b47da9c7dba61d8dfdcffcb190053",
   "remote_sha": "e2810197c07b47da9c7dba61d8dfdcffcb190053",
-  "remote_synchronized": true,
+  "remote_synchronized": false,
   "schema": 2,
   "session_id": "e83b4e4f-2c58-4ace-949e-cbd7155927e5",
   "state": "checkpointed",
