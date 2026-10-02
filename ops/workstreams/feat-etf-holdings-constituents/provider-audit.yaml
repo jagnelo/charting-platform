@@ -7683,7 +7683,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-04
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [GOLY, HNDL, MPLY, ROMO]
     estimated_us_etf_count: null
@@ -7715,8 +7715,12 @@ providers:
         source: "Strategy Shares official GOLY, HNDL, MPLY, and ROMO product pages"
         result: "The official pages publish top-ten holdings tables and top-holdings CSV links, but no complete current daily holdings artifact is exposed; remaining portfolio documents are periodic reports."
         evidence_ref: "web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04"
-    disposition_reason: "strategy_shares: Strategy Shares' official product pages expose only top-ten holdings and top-holdings CSV artifacts for GOLY, HNDL, MPLY, and ROMO; no complete current executable holdings feed is available. Do not reconstruct current holdings from periodic SEC or shareholder reports."
-    next_action: "strategy_shares: Re-audit the official GOLY, HNDL, MPLY, and ROMO pages for a declared complete current holdings artifact; promote only after executable route, mapping, and freshness are proven."
+      - date: 2026-10-02
+        source: "Strategy Shares official GOLY, HNDL, MPLY, and ROMO product pages and bounded application-equivalent requests"
+        result: "Current indexed pages expose holdings sections dated October 1/2, 2026 and Download All Holdings controls; GOLY, HNDL, and MPLY expose top-ten-oriented content while ROMO exposes a partial visible table. The indexed GOLY download resolves to a GLDB top-holdings CSV and the other download artifacts were not independently retrieved. Direct curl failed DNS resolution for strategysharesetfs.com across all four routes, so no callable complete current feed was proven; periodic shareholder reports remain historical."
+        evidence_ref: "web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-10-02;web:strategy-shares-goly-download-content-type-2026-10-02;live:strategy-shares-route-recheck-2026-10-02-dns-failure"
+    disposition_reason: "strategy_shares: Current indexed product pages expose dated holdings sections and download controls, but no independently callable complete current holdings feed was proven: direct transport failed DNS, GOLY's indexed download points to a GLDB CSV, and other pages expose top-ten or partial tables. Preserve the fallback as non_executable_public_source and do not reconstruct current holdings from periodic SEC or shareholder reports."
+    next_action: "strategy_shares: Re-audit the official GOLY, HNDL, MPLY, and ROMO pages and resolve each declared download independently; promote only after executable transport returns complete current rows with proven mapping and freshness."
     implementation_sha: null
     validation_refs: []
   - adapter_key: stratified

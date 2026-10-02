@@ -5905,3 +5905,14 @@ and direct application-equivalent requests failed DNS resolution for
 rows were retrieved; the prior issuer HTTP 403/challenge evidence remains
 unresolved. Sophus remains `issuer_access_blocked`; no challenge page or SEC
 reconstruction was promoted.
+
+## Strategy Shares route recheck — 2026-10-02
+
+Current indexed GOLY, HNDL, MPLY, and ROMO pages expose October 1/2 holdings
+dates and Download All Holdings controls. GOLY's indexed download resolved to a
+GLDB top-holdings CSV, while the other download artifacts were not independently
+retrieved; the visible pages otherwise expose top-ten or partial tables. Direct
+application-equivalent requests failed DNS resolution for
+`strategysharesetfs.com` across all four routes. Strategy Shares remains
+`non_executable_public_source`; periodic shareholder reports are not promoted
+as current holdings.
