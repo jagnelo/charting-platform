@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-current provider safety preflight after market-event rotation
+
+- At exact source `07d2b1e05`, the full provider manifest stopped before
+  provider transport with `0/0` cases and zero external requests. The redacted
+  receipt is appended to `validation.jsonl`.
+- Provider-specific baseline/cost/byte/reset gaps, legal/source admission, and
+  deferred capabilities remain fail-closed. The bounded Nasdaq snapshot used
+  the reviewed two-request daily client envelope; the current preflight
+  correctly reports that headroom as exhausted until the next window.
+
 ## 2026-10-02 exact-head market-event rotation validation
 
 - At exact source `8d4a765e2`, the complete branch-owned non-ETF unit inventory

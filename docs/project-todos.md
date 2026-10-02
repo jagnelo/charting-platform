@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-current provider safety preflight after market-event rotation
+
+- [x] At exact source `07d2b1e05`, the full provider manifest stopped before
+      provider transport with `0/0` cases and zero external requests. The
+      redacted receipt is appended to `validation.jsonl`.
+- [ ] The receipt retains provider-specific baseline/cost/byte/reset gaps,
+      legal/source admission, and deferred capabilities. Nasdaq's two-request
+      daily client envelope is also correctly exhausted by today's bounded
+      snapshot and therefore remains blocked until its next reviewed window.
+
 ### 2026-10-02 — Exact-head market-event rotation validation
 
 - [x] At exact source `8d4a765e2`, the complete branch-owned non-ETF unit

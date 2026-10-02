@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact source 07d2b1e05 full provider safety preflight stopped
+    before transport with 0/0 cases and zero external requests. The receipt is
+    appended to validation.jsonl. Provider-specific baseline/cost/byte/reset,
+    legal/source, and deferred capability gaps remain fail-closed. Nasdaq's
+    reviewed two-request daily client envelope is exhausted by today's bounded
+    snapshot and is correctly blocked until the next reviewed window.
+  - >-
     2026-10-02 exact source 8d4a765e2 passed the complete branch-owned non-ETF
     unit inventory (1911/1911 in 150.01s, 37 warnings) and Docker PostgreSQL/
     Redis integration (386/386 in 764.43s, 57 warnings). The durable
