@@ -47,6 +47,77 @@ current ingestion. The parent `azimut` identity remains
 `provider_not_a_portfolio_publisher`; no parent-level or SEC-derived route is
 promoted.
 
+## Fitzgerald FIZY live-composition floor — 2026-10-02
+
+The next complete-matrix pass reached Fitzgerald/Nicholas Wealth and found 88
+complete current FIZY rows against the stale 100-row floor; FITZ remained above
+its floor. Identity, disclosure date, schema, derivative classification, and
+row parsing remained valid. The live contract now uses an 80-row FIZY floor;
+the bounded route and diff check pass without weakening adapter behavior.
+
+## Shelton SEPI dated-file refresh — 2026-10-02
+
+The next complete-matrix pass observed a one-day dated-CSV race: the product
+page briefly declared a prior-day URL that returned 404 while a cache-busted
+refresh exposed the current declared file. The adapter now performs exactly one
+page refresh only after an HTTP 404 and follows the newly declared URL without
+guessing filenames. The bounded route, Ruff, and strict identity/date/schema/
+row checks pass.
+
+## MAX JETU live-composition floor — 2026-10-02
+
+The matrix found 19 complete current ETN index constituents against the stale
+20-row floor. Identity, as-of date, weights, and disclosure classification
+remained valid. The live contract now uses a conservative 15-row floor; the
+bounded route passes and no parser or capability behavior was weakened.
+
+## SynthEquity SNTH live-composition floor — 2026-10-02
+
+The matrix found 13 complete current fixed-income/option/cash rows against the
+stale 15-row floor. Identity, disclosure date, schema, option and cash
+classification remained valid. The live contract now uses a conservative
+10-row floor; the bounded route passes and no parser or capability behavior was
+weakened.
+
+## Baillie Gifford workbook date drift — 2026-10-02
+
+The native BGGG/BGIA/BGEG/BGUS workbooks advanced from the stale fixture date
+to the execution date. The live assertion now compares the disclosed
+composition date to the execution date; all four routes pass with strict
+workbook parsing and no route or classification change.
+
+## Final live and deterministic validation checkpoint — 2026-10-02
+
+The complete opt-in ETF holdings matrix collected 534 cases and finished with
+524 passes and 10 narrowly evidenced external/access skips. No parser, identity,
+schema, completeness, freshness, or route-regression failure remained after
+the current route and composition reconciliations. The complete deterministic
+ETF adapter/capability/refresh/task suite passed 712 tests; Ruff, workstream
+validation, and diff-check passed. Docker is unavailable in this environment
+because the Docker socket is permission denied, so the Docker-backed gate is
+not represented as green.
+
+## Exact-SHA CI and narrative-invariant repair — 2026-10-02
+
+The route-reconciliation implementation checkpoint `082a9b283` and durable
+receipt checkpoint `97e8d3950` were pushed to the feature branch. Exact-SHA CI
+run `37034597490` on the receipt tip passed Frontend Unit Tests but failed
+Backend Tests and Branch-declared Tests; public annotations exposed only exit
+codes and the job-log endpoint returned HTTP 403 because admin rights are
+required. Local reproduction identified the failure as the workstream session
+blocker narrative omitting the required `15 Tier-0 and 156 Tier-1` invariant
+phrase. The phrase and terminal/non-publisher count were restored, the focused
+invariant passed, and the complete deterministic ETF suite passed 712 tests.
+A new exact-SHA CI run is required after this repair.
+
+## Provider-platform dependency — current read-only state
+
+Local and origin `feat/market-data-provider-platform` are at `aa8f3b89` while
+`staging` is `8b885a2f`; the provider ref is not an ancestor of staging, and
+neither inspected `ProviderCapability` enum contains `ETF_HOLDINGS`. No
+provider-platform or staging worktree was modified. AC10 remains an external
+staging dependency and AC14 remains the post-integration 30-day shadow gate.
+
 ## Shelton SEPI dated-file refresh — 2026-10-02
 
 The next complete-matrix pass reached Shelton SEPI after 478 passes and 11
