@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 CoinGecko key-pool live validation at source
+    0dd2b9e56a354d26c0c716b05f1a2c2ceb17b520 passed the corrected account-usage
+    case with one request. The configured Demo key returned HTTP 401 (`10005`),
+    recorded as an expected entitlement denial; no baseline was reconciled or
+    inferred. An authorized key/plan remains required to validate the
+    API-key-specific counters through a successful native payload.
+  - >-
     2026-10-02 pushed-head full safety preflight at source
     dfa4adb7a5a3895c5655141ae162e06aef74f00c stopped before transport with
     0/0 cases and zero provider requests. Unresolved admissions are unchanged:

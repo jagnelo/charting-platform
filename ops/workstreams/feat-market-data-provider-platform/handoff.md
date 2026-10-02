@@ -20,6 +20,15 @@
   authorized key/plan returns native usage data; the minute dimension also
   remains non-reconcilable unless the response provides remaining/reset data.
 
+## 2026-10-02 CoinGecko key-pool live validation
+
+- The corrected `fetch_account_usage()` case passed at source
+  `0dd2b9e56a354d26c0c716b05f1a2c2ceb17b520` with one request. The configured
+  Demo key still returned HTTP 401 (`10005`), recorded as an expected
+  entitlement denial; no baseline was reconciled or inferred.
+- A key/plan authorized for `/key` is still required to validate the
+  API-key-specific counters against a successful native payload.
+
 ## 2026-10-02 Provider-platform validation after CoinGecko admission
 
 - The provider/configuration-focused unit matrix passed `955/955` with

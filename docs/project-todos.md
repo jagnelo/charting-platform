@@ -18,6 +18,15 @@
       keep the minute pool non-routable unless native remaining/reset evidence
       is actually returned or separately reviewed.
 
+### 2026-10-02 — CoinGecko key-pool live validation
+
+- [x] The corrected adapter's bounded account-usage case passed at source
+      `0dd2b9e56a354d26c0c716b05f1a2c2ceb17b520` with one request. The current
+      Demo key still returned HTTP 401 (`10005`), recorded as an expected
+      entitlement denial; no baseline was reconciled or inferred.
+- [ ] A key/plan authorized for `/key` is still required to validate the new
+      API-key-specific counters against a successful native payload.
+
 ### 2026-10-02 — Provider-platform validation receipt
 
 - [x] Provider/configuration-focused unit matrix passed `955/955` without
