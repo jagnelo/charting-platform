@@ -5970,3 +5970,21 @@ The typed receipt records passed checks for engine lifecycle, native
 order/fill/cost, multi-instrument accounting, and deterministic replay, with
 only `forward_event_tape_parity` deferred. It remains compatible evidence and
 is explicitly non-authoritative.
+
+## 2026-10-02 - Provider-neutral canonical-event materialization boundary
+
+Added `nautilus_event_adapter.py` and focused tests for the next safe slice of
+the RC compatibility track. `NautilusEventRecord` converts validated
+engine-neutral `MarketEvent` values into an immutable wire record with exact
+UTC nanosecond timestamps, required OHLCV/quote/trade fields, and content
+fingerprints. `NautilusEventTape` preserves the source frozen-tape identity,
+canonicalizes deterministic replay order, and rejects duplicate identities.
+`materialize_nautilus_event_tape(...)` reuses the existing snapshot/manifest
+binding before materializing records, so no provider fetch, inference, or
+Nautilus import is introduced. This is the host/Rust adapter contract only;
+forward event-tape parity, account callbacks, stable-release authority, and
+shared-path integration remain explicitly gated.
+
+The focused adapter suite passes 6 tests with package-local Ruff, formatting,
+MyPy, and diff checks as the next validation receipt; the complete package
+suite and repository integration checks are rerun at the checkpoint commit.

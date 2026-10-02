@@ -528,6 +528,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   checks plus one deferred forward-parity check, preserving the exact runtime,
   image, and fixture digests without creating `EngineConformanceEvidence` or
   authority prematurely.
+- `nautilus_event_adapter.py` defines the provider-neutral canonical-event wire
+  boundary for that future adapter. It binds an already verified frozen event
+  tape to the SDK manifest, converts timestamps to exact UTC nanoseconds,
+  validates the event-type field contract, and content-addresses the ordered
+  materialization. It deliberately imports neither Nautilus nor any provider;
+  host callback/Rust implementation and forward-parity evidence remain gated.
 - `result_publication.py` composes conformance, runtime isolation, and exact
   result-artifact integrity into a storage-neutral publish plan. Only a stable
   authoritative build with matching evidence can publish; already-published
