@@ -14,7 +14,7 @@ import asyncio
 import multiprocessing
 import threading
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from math import isfinite
@@ -26,12 +26,13 @@ from app.strategy_lab_v2.engine_execution import NautilusExecutionPlan
 from app.strategy_lab_v2.execution import ExecutionAuthorization
 from app.strategy_lab_v2.execution_orchestration import ExecutionOrchestrationPlan
 from app.strategy_lab_v2.lease_observations import LeaseObservationState
+from app.strategy_lab_v2.nautilus_runtime_bundle import NautilusRuntimeInputArtifactReference
 from app.strategy_lab_v2.runtime_execution import (
     RuntimeExecutionState,
     StrategyRuntimePreflight,
     StrategyRuntimeRequest,
 )
-from app.strategy_lab_v2.sandbox import SandboxCommandPlan
+from app.strategy_lab_v2.sandbox import SandboxCommandPlan, sandbox_memory_limit_bytes
 from app.strategy_lab_v2.worker_execution import (
     WorkerExecutionResolution,
     execute_worker_handoff,
@@ -55,6 +56,7 @@ class WorkerExecutionRequest:
     lease_state: LeaseObservationState
     started_at: datetime
     observed_at: datetime
+    runtime_input_artifact: NautilusRuntimeInputArtifactReference = field(kw_only=True)
     docker_binary: str = "docker"
 
     def __post_init__(self) -> None:
@@ -81,6 +83,21 @@ class WorkerExecutionRequest:
             raise ValueError("docker_binary must not be empty")
         if any(character in self.docker_binary for character in "\x00\r\n"):
             raise ValueError("docker_binary must not contain control characters")
+        if not isinstance(self.runtime_input_artifact, NautilusRuntimeInputArtifactReference):
+            raise TypeError(
+                "runtime_input_artifact must be a NautilusRuntimeInputArtifactReference"
+            )
+        if self.runtime_input_artifact.attempt_id != self.runtime_request.attempt_id:
+            raise ValueError("runtime input artifact must reference the runtime attempt")
+        if (
+            self.runtime_input_artifact.input_bundle_digest
+            != self.runtime_request.input_bundle_digest
+        ):
+            raise ValueError("runtime input artifact must match the runtime request digest")
+        if self.runtime_input_artifact.artifact.byte_length > max(
+            1, sandbox_memory_limit_bytes(self.sandbox_plan) // 8
+        ):
+            raise ValueError("runtime input artifact exceeds the worker memory-derived bound")
 
     @property
     def request_fingerprint(self) -> str:
@@ -121,9 +138,7 @@ class WorkerProcessResolution:
                 raise ValueError("completed worker processes require execution evidence only")
         elif self.execution is not None or self.error_digest is None:
             raise ValueError("failed worker processes require an error digest only")
-        if self.execution is not None and not isinstance(
-            self.execution, WorkerExecutionResolution
-        ):
+        if self.execution is not None and not isinstance(self.execution, WorkerExecutionResolution):
             raise TypeError("execution must be a WorkerExecutionResolution")
 
     @property
@@ -427,6 +442,7 @@ def _child_main(request: WorkerExecutionRequest, sender: Any) -> None:
             lease_state=request.lease_state,
             started_at=request.started_at,
             observed_at=request.observed_at,
+            runtime_input_artifact=request.runtime_input_artifact,
             docker_binary=request.docker_binary,
         )
         sender.send(("completed", result))

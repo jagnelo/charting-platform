@@ -6,9 +6,16 @@ from pathlib import Path
 
 import pytest
 
+from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
 from app.strategy_lab_v2.engine_execution import EngineExecutionDecision, NautilusExecutionPlan
 from app.strategy_lab_v2.nautilus_runner import NautilusRunStatus, run_nautilus_plan
+from app.strategy_lab_v2.nautilus_runtime_bundle import (
+    NAUTILUS_RUNTIME_ARTIFACT_MEDIA_TYPE,
+    NAUTILUS_RUNTIME_ARTIFACT_SCHEMA,
+    NautilusRuntimeInputArtifactReference,
+)
 from app.strategy_lab_v2.sandbox import SandboxCommandPlan, nautilus_runtime_command
 
 
@@ -192,6 +199,42 @@ def test_runner_rejects_unbound_command_and_attempt_before_spawn(tmp_path: Path)
     )
     assert attempt_result.status is NautilusRunStatus.REJECTED
     assert "nautilus_sandbox_attempt_mismatch" in attempt_result.rejection_reasons
+
+
+def test_runner_rejects_runtime_input_artifact_byte_drift_before_spawn(tmp_path: Path) -> None:
+    expected_bytes = b"expected bundle"
+    mounted_bytes = b"x" * len(expected_bytes)
+    assert len(expected_bytes) == len(mounted_bytes)
+    input_path = tmp_path / "bundle.json"
+    input_path.write_bytes(mounted_bytes)
+    sandbox = _sandbox()
+    sandbox_argv = list(sandbox.argv)
+    sandbox_argv[15] = f"--mount=type=bind,src={input_path},dst=/inputs/bundle,readonly"
+    sandbox = replace(sandbox, argv=tuple(sandbox_argv))
+    digest = artifact_content_digest(expected_bytes)
+    reference = NautilusRuntimeInputArtifactReference(
+        "attempt-1",
+        content_digest("inputs"),
+        ArtifactManifest(
+            digest,
+            len(expected_bytes),
+            NAUTILUS_RUNTIME_ARTIFACT_MEDIA_TYPE,
+            NAUTILUS_RUNTIME_ARTIFACT_SCHEMA,
+            digest,
+            ArtifactRetention.PINNED_INPUT,
+        ),
+    )
+
+    result = run_nautilus_plan(
+        _engine_plan(sandbox),
+        sandbox,
+        docker_binary=os.fspath(tmp_path / "missing"),
+        runtime_input_artifact=reference,
+    )
+
+    assert result.status is NautilusRunStatus.REJECTED
+    assert "nautilus_input_artifact_integrity_failed" in result.rejection_reasons
+    assert result.sandbox_result is None
 
     wrong_snapshot_command = nautilus_runtime_command(
         expected_version="2.0.0",

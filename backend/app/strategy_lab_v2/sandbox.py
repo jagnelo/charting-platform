@@ -171,6 +171,24 @@ def sandbox_output_path(plan: SandboxCommandPlan) -> Path:
     return Path(_mount_source(plan.argv[16], "/outputs/result", "rw"))
 
 
+def sandbox_input_path(plan: SandboxCommandPlan) -> Path:
+    """Return the host path bound to the read-only input bundle mount."""
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    return Path(_mount_source(plan.argv[15], "/inputs/bundle", "readonly"))
+
+
+def sandbox_input_bundle_digest(plan: SandboxCommandPlan) -> str:
+    """Return the semantic digest bound to the sandbox input mount."""
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    return plan.argv[18].removeprefix("--env=STRATEGY_INPUT_BUNDLE_DIGEST=")
+
+
 def sandbox_runtime_image_digest(plan: SandboxCommandPlan) -> str:
     """Return the exact pinned runtime image digest from a validated plan."""
 
@@ -420,6 +438,8 @@ __all__ = [
     "sandbox_engine_id",
     "sandbox_memory_limit_bytes",
     "sandbox_output_path",
+    "sandbox_input_path",
+    "sandbox_input_bundle_digest",
     "sandbox_runtime_command",
     "sandbox_runtime_image_digest",
     "validate_sandbox_command_plan",

@@ -29,6 +29,7 @@ from app.strategy_lab_v2.nautilus_runner import (
     NautilusRunStatus,
     run_nautilus_plan,
 )
+from app.strategy_lab_v2.nautilus_runtime_bundle import NautilusRuntimeInputArtifactReference
 from app.strategy_lab_v2.runtime_execution import (
     RuntimeExecutionState,
     StrategyRuntimePreflight,
@@ -65,9 +66,13 @@ class WorkerExecutionResolution:
             raise TypeError("decision must be a WorkerExecutionDecision")
         if not isinstance(self.orchestration_plan, ExecutionOrchestrationPlan):
             raise TypeError("orchestration_plan must be an ExecutionOrchestrationPlan")
-        if self.nautilus_result is not None and not isinstance(self.nautilus_result, NautilusRunResult):
+        if self.nautilus_result is not None and not isinstance(
+            self.nautilus_result, NautilusRunResult
+        ):
             raise TypeError("nautilus_result must be a NautilusRunResult")
-        if self.runtime_result is not None and not isinstance(self.runtime_result, RuntimeResultResolution):
+        if self.runtime_result is not None and not isinstance(
+            self.runtime_result, RuntimeResultResolution
+        ):
             raise TypeError("runtime_result must be a RuntimeResultResolution")
         if self.decision is WorkerExecutionDecision.REJECTED and not self.rejection_reason:
             raise ValueError("rejected worker executions require a reason")
@@ -82,10 +87,15 @@ class WorkerExecutionResolution:
         if self.decision is not WorkerExecutionDecision.REJECTED:
             assert self.runtime_result is not None
             if self.runtime_result.decision is RuntimeResultDecision.REJECT:
-                raise ValueError("completed worker executions cannot contain rejected runtime evidence")
+                raise ValueError(
+                    "completed worker executions cannot contain rejected runtime evidence"
+                )
             if self.runtime_result.decision.value != self.decision.value:
                 raise ValueError("worker execution decision must match runtime result decision")
-        elif self.runtime_result is not None and self.runtime_result.decision is not RuntimeResultDecision.REJECT:
+        elif (
+            self.runtime_result is not None
+            and self.runtime_result.decision is not RuntimeResultDecision.REJECT
+        ):
             raise ValueError("rejected worker executions require rejected runtime evidence")
 
     @property
@@ -116,6 +126,7 @@ def execute_worker_handoff(
     started_at: datetime,
     observed_at: datetime,
     docker_binary: str = "docker",
+    runtime_input_artifact: NautilusRuntimeInputArtifactReference | None = None,
 ) -> WorkerExecutionResolution:
     """Revalidate and execute one immutable handoff through Nautilus only."""
 
@@ -226,6 +237,7 @@ def execute_worker_handoff(
         execution_plan,
         sandbox_plan,
         docker_binary=docker_binary,
+        runtime_input_artifact=runtime_input_artifact,
     )
     if nautilus_result.status is NautilusRunStatus.REJECTED:
         return WorkerExecutionResolution(

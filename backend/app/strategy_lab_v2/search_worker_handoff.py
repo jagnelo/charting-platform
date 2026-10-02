@@ -73,9 +73,7 @@ class AuthenticatedSearchDispatchMaterializer:
             raise TypeError("entry must be a RedisStreamEntry")
         if not isinstance(payload, DispatchPayload):
             raise TypeError("payload must be a DispatchPayload")
-        record = await self._dispatch_store.load_by_request_fingerprint(
-            entry.request_fingerprint
-        )
+        record = await self._dispatch_store.load_by_request_fingerprint(entry.request_fingerprint)
         if record is None:
             raise ValueError("search dispatch record is not available")
         if not isinstance(record, SearchDispatchRecord):
@@ -110,6 +108,7 @@ def _require_attempt_binding(request: WorkerExecutionRequest, attempt_id: str) -
         request.lease_state.lease.attempt_id,
         request.execution_plan.attempt_id,
         request.orchestration_plan.attempt_id,
+        request.runtime_input_artifact.attempt_id,
     )
     if any(value != attempt_id for value in bindings):
         raise ValueError("decoded worker handoff is bound to a different attempt")
@@ -117,13 +116,26 @@ def _require_attempt_binding(request: WorkerExecutionRequest, attempt_id: str) -
         raise ValueError("decoded worker runtime preflight is bound to different request bytes")
     if request.runtime_state.request_fingerprint != request.runtime_request.fingerprint:
         raise ValueError("decoded worker runtime state is bound to different request bytes")
+    if (
+        request.runtime_input_artifact.input_bundle_digest
+        != request.runtime_request.input_bundle_digest
+    ):
+        raise ValueError(
+            "decoded worker runtime input artifact is bound to different request bytes"
+        )
     if request.sandbox_plan.request_fingerprint != request.runtime_request.fingerprint:
         raise ValueError("decoded worker sandbox plan is bound to different request bytes")
     expected_fingerprints = (
         (request.orchestration_plan.authorization_fingerprint, request.authorization.fingerprint),
         (request.orchestration_plan.admission_fingerprint, request.admission.fingerprint),
-        (request.orchestration_plan.runtime_request_fingerprint, request.runtime_request.fingerprint),
-        (request.orchestration_plan.runtime_preflight_fingerprint, request.runtime_preflight.fingerprint),
+        (
+            request.orchestration_plan.runtime_request_fingerprint,
+            request.runtime_request.fingerprint,
+        ),
+        (
+            request.orchestration_plan.runtime_preflight_fingerprint,
+            request.runtime_preflight.fingerprint,
+        ),
         (request.orchestration_plan.runtime_state_fingerprint, request.runtime_state.fingerprint),
         (request.orchestration_plan.sandbox_plan_fingerprint, request.sandbox_plan.fingerprint),
         (request.orchestration_plan.execution_plan_fingerprint, request.execution_plan.fingerprint),
@@ -143,9 +155,7 @@ def create_authenticated_search_dispatch_materializer(
     """Create the explicit worker callback used for search dispatch queues."""
 
     if not callable(getattr(dispatch_store, "load_by_request_fingerprint", None)):
-        raise TypeError(
-            "dispatch_store must expose an async load_by_request_fingerprint method"
-        )
+        raise TypeError("dispatch_store must expose an async load_by_request_fingerprint method")
     return AuthenticatedSearchDispatchMaterializer(
         dispatch_store,
         queue_name=queue_name,

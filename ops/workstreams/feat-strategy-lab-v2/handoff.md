@@ -2,6 +2,26 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-02 - Content-addressed Nautilus runtime-input handoff
+
+Added a typed pinned-input artifact reference that keeps the Nautilus bundle's
+semantic input digest distinct from the raw-byte SHA-256 used by the shared
+artifact store. Bundle materialization is idempotent; reloading cross-checks
+the schema, attempt identity, semantic digest, raw byte integrity, and an
+explicit input-size bound. `WorkerExecutionRequest` now carries only this
+compact reference, and its canonical durable envelope is versioned as v2.
+Before launching Docker, the serial worker verifies the exact mounted regular
+file against the artifact manifest, request digest, attempt, and memory-derived
+size limit. The isolated CLI continues to recheck the semantic bundle digest.
+Bad or drifted inputs are rejected before a container starts.
+
+The complete Strategy Lab v2 package suite passed 1,031 tests; Ruff passed and
+MyPy passed across 311 source files. Production assembly of the bundle from
+frozen trial/snapshot/portfolio inputs and the dispatch producer remains the
+next seam. Nautilus 2.0.0rc5 remains a local non-authoritative compatibility
+runtime; stable v2 remains the gate for authority, published rankings, and
+deployed shadow activation.
+
 ## 2026-09-25 - Account-settling forward-worker pipeline checkpoint
 
 Added `RedisDispatchRuntime.account_settling_forward_worker_service()`, an

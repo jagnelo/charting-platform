@@ -10,7 +10,7 @@ from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.postgres_result_materialization import decode_canonical_contract
 from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
 
-WORKER_HANDOFF_SCHEMA = "strategy-lab.worker-execution-request.v1"
+WORKER_HANDOFF_SCHEMA = "strategy-lab.worker-execution-request.v2"
 
 
 def encode_worker_handoff(request: WorkerExecutionRequest) -> Mapping[str, str]:

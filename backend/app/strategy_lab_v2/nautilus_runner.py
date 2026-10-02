@@ -17,11 +17,17 @@ from app.strategy_lab_v2.engine_execution import (
     EngineExecutionDecision,
     NautilusExecutionPlan,
 )
+from app.strategy_lab_v2.nautilus_runtime_bundle import (
+    NautilusRuntimeInputArtifactReference,
+    verify_nautilus_runtime_artifact_file,
+)
 from app.strategy_lab_v2.sandbox import (
     SandboxCommandPlan,
     nautilus_runtime_command,
     sandbox_attempt_id,
     sandbox_engine_id,
+    sandbox_input_bundle_digest,
+    sandbox_input_path,
     sandbox_memory_limit_bytes,
     sandbox_runtime_command,
 )
@@ -100,6 +106,7 @@ def run_nautilus_plan(
     sandbox_plan: SandboxCommandPlan,
     *,
     docker_binary: str = "docker",
+    runtime_input_artifact: NautilusRuntimeInputArtifactReference | None = None,
 ) -> NautilusRunResult:
     """Execute only a ready, Nautilus-bound plan through the sandbox adapter."""
 
@@ -114,9 +121,14 @@ def run_nautilus_plan(
         reasons.append("only_nautilus_engine_is_supported")
     if execution_plan.sandbox_plan_fingerprint != sandbox_plan.fingerprint:
         reasons.append("sandbox_plan_identity_mismatch")
+    if runtime_input_artifact is not None and not isinstance(
+        runtime_input_artifact, NautilusRuntimeInputArtifactReference
+    ):
+        raise TypeError("runtime_input_artifact must be a NautilusRuntimeInputArtifactReference")
     try:
         engine_marker = sandbox_engine_id(sandbox_plan)
         attempt_id = sandbox_attempt_id(sandbox_plan)
+        input_digest = sandbox_input_bundle_digest(sandbox_plan)
         memory_limit_bytes = sandbox_memory_limit_bytes(sandbox_plan)
     except (TypeError, ValueError):
         reasons.append("sandbox_plan_not_hardened")
@@ -125,6 +137,19 @@ def run_nautilus_plan(
             reasons.append("nautilus_sandbox_engine_marker_required")
         if attempt_id != execution_plan.attempt_id:
             reasons.append("nautilus_sandbox_attempt_mismatch")
+        if runtime_input_artifact is not None:
+            if runtime_input_artifact.attempt_id != execution_plan.attempt_id:
+                reasons.append("nautilus_input_artifact_attempt_mismatch")
+            if runtime_input_artifact.input_bundle_digest != input_digest:
+                reasons.append("nautilus_input_artifact_digest_mismatch")
+            try:
+                verify_nautilus_runtime_artifact_file(
+                    runtime_input_artifact,
+                    sandbox_input_path(sandbox_plan),
+                    max_input_bytes=max(1, memory_limit_bytes // 8),
+                )
+            except (OSError, TypeError, ValueError):
+                reasons.append("nautilus_input_artifact_integrity_failed")
         try:
             expected_command = nautilus_runtime_command(
                 expected_version=execution_plan.engine_version,

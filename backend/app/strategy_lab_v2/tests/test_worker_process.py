@@ -8,7 +8,14 @@ from pathlib import Path
 
 import pytest
 
+from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
+from app.strategy_lab_v2.nautilus_runtime_bundle import (
+    NAUTILUS_RUNTIME_ARTIFACT_MEDIA_TYPE,
+    NAUTILUS_RUNTIME_ARTIFACT_SCHEMA,
+    NautilusRuntimeInputArtifactReference,
+)
 from app.strategy_lab_v2.tests.test_execution_orchestration import _fixtures
 from app.strategy_lab_v2.tests.test_worker_execution import _lease, _plan, _pool
 from app.strategy_lab_v2.worker_process import (
@@ -21,7 +28,31 @@ NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
 
 def _request(tmp_path: Path, *, body: str = "printf 'ok'") -> WorkerExecutionRequest:
-    values = _fixtures()
+    mutable_values = list(_fixtures())
+    input_path = tmp_path / "runtime-input.json"
+    input_bytes = b"worker-process-fixture"
+    input_path.write_bytes(input_bytes)
+    input_digest = artifact_content_digest(input_bytes)
+    artifact = ArtifactManifest(
+        content_digest=input_digest,
+        byte_length=len(input_bytes),
+        media_type=NAUTILUS_RUNTIME_ARTIFACT_MEDIA_TYPE,
+        schema_version=NAUTILUS_RUNTIME_ARTIFACT_SCHEMA,
+        storage_key=input_digest,
+        retention_class=ArtifactRetention.PINNED_INPUT,
+    )
+    input_artifact = NautilusRuntimeInputArtifactReference(
+        mutable_values[2].attempt_id,
+        mutable_values[2].input_bundle_digest,
+        artifact,
+    )
+    sandbox_argv = list(mutable_values[5].argv)
+    sandbox_argv[15] = f"--mount=type=bind,src={input_path},dst=/inputs/bundle,readonly"
+    mutable_values[5] = replace(mutable_values[5], argv=tuple(sandbox_argv))
+    mutable_values[6] = replace(
+        mutable_values[6], sandbox_plan_fingerprint=mutable_values[5].fingerprint
+    )
+    values = tuple(mutable_values)
     return WorkerExecutionRequest(
         _plan(values),
         values[0],
@@ -35,7 +66,8 @@ def _request(tmp_path: Path, *, body: str = "printf 'ok'") -> WorkerExecutionReq
         _lease(values),
         NOW,
         NOW,
-        _fake_binary(tmp_path, body),
+        runtime_input_artifact=input_artifact,
+        docker_binary=_fake_binary(tmp_path, body),
     )
 
 
@@ -87,8 +119,21 @@ def test_worker_process_runs_one_handoff_in_a_spawned_child(tmp_path: Path) -> N
     assert result.fingerprint.startswith("sha256:")
 
 
+def test_worker_request_rejects_an_artifact_for_different_input_bytes(tmp_path: Path) -> None:
+    request = _request(tmp_path)
+    drifted_artifact = replace(
+        request.runtime_input_artifact,
+        input_bundle_digest=content_digest("different inputs"),
+    )
+
+    with pytest.raises(ValueError, match="must match the runtime request digest"):
+        replace(request, runtime_input_artifact=drifted_artifact)
+
+
 @pytest.mark.asyncio
-async def test_worker_process_async_runs_spawned_child_without_thread_bootstrap(tmp_path: Path) -> None:
+async def test_worker_process_async_runs_spawned_child_without_thread_bootstrap(
+    tmp_path: Path,
+) -> None:
     result = await SerialWorkerProcessExecutor(timeout_seconds=10).run_async(_request(tmp_path))
 
     assert result.decision is WorkerProcessDecision.COMPLETED
@@ -98,9 +143,7 @@ async def test_worker_process_async_runs_spawned_child_without_thread_bootstrap(
 
 
 def test_worker_process_preserves_typed_child_failure(tmp_path: Path) -> None:
-    result = SerialWorkerProcessExecutor(timeout_seconds=10).run(
-        _request(tmp_path, body="exit 7")
-    )
+    result = SerialWorkerProcessExecutor(timeout_seconds=10).run(_request(tmp_path, body="exit 7"))
 
     assert result.decision is WorkerProcessDecision.COMPLETED
     assert result.execution is not None
