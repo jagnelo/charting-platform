@@ -42,6 +42,7 @@
               <div><dt>Space</dt><dd>Next symbol in the focused list</dd></div>
               <div><dt>Shift+Space</dt><dd>Previous symbol in the focused list</dd></div>
               <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
+              <div><dt>= / -</dt><dd>Over the active chart: change timeframe</dd></div>
               <div><dt>F1 or ?</dt><dd>Show this help</dd></div>
               <div><dt>Escape</dt><dd>Close search and menus</dd></div>
             </dl>
@@ -1902,6 +1903,16 @@ function handleKeydown(event: KeyboardEvent) {
     return
   }
   if (workspaceStore.isEditorTarget(event.target) || isInteractiveTarget(event.target)) return
+  if (!event.ctrlKey && !event.metaKey && !event.altKey && (event.key === '=' || event.key === '-')) {
+    const activeTab = workspaceStore.activeTab
+    const activeWindowKey = activeTab?.active_window_key
+    const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
+    const direction = event.key === '=' ? 1 : -1
+    if (activeWindow?.tool_type === 'chart' && activeWindowKey && cycleChartTimeframe(activeWindowKey, direction)) {
+      event.preventDefault()
+      return
+    }
+  }
   if (event.key === 'F1' || event.key === '?') {
     event.preventDefault()
     closeShellMenus('help')
@@ -1973,20 +1984,26 @@ function handleWheel(event: WheelEvent) {
   if (!plot || !windowKey) return
   const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === windowKey)
   if (!tool || tool.tool_type !== 'chart') return
-  const currentTimeframe = workspaceStore.timeframeForTool(windowKey)
-  const currentIndex = CHART_TIMEFRAME_ORDER.indexOf(currentTimeframe as Timeframe)
-  if (currentIndex < 0) return
   // The V25 help defines the chart gesture but not its direction. Follow the
   // selector's ascending interval order: wheel down moves to a longer interval.
   const direction = event.deltaY > 0 ? 1 : -1
-  const nextIndex = (currentIndex + direction + CHART_TIMEFRAME_ORDER.length) % CHART_TIMEFRAME_ORDER.length
-  const nextTimeframe = CHART_TIMEFRAME_ORDER[nextIndex]
-  if (!nextTimeframe || !workspaceStore.updateToolTimeframe(windowKey, nextTimeframe)) return
+  if (!cycleChartTimeframe(windowKey, direction)) return
   // Window capture runs before uPlot and its subpane handlers; consume the
   // modifier gesture here so the same wheel event cannot also pinch-zoom or
   // redispatch through another chart layer.
   event.preventDefault()
   event.stopPropagation()
+}
+
+function cycleChartTimeframe(windowKey: string, direction: 1 | -1) {
+  const currentTimeframe = workspaceStore.timeframeForTool(windowKey)
+  const currentIndex = CHART_TIMEFRAME_ORDER.indexOf(currentTimeframe as Timeframe)
+  if (currentIndex < 0) return false
+  // The V25 help lists `=` / `-` but does not specify direction. Follow the
+  // selector's ascending interval order: `=` moves longer, `-` moves shorter.
+  const nextIndex = (currentIndex + direction + CHART_TIMEFRAME_ORDER.length) % CHART_TIMEFRAME_ORDER.length
+  const nextTimeframe = CHART_TIMEFRAME_ORDER[nextIndex]
+  return nextTimeframe ? workspaceStore.updateToolTimeframe(windowKey, nextTimeframe) : false
 }
 
 watch(activeSymbol, symbol => {

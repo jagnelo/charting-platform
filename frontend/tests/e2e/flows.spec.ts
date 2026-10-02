@@ -2254,6 +2254,18 @@ test.describe('TC2000 workstation', () => {
     await expect(activeSymbol).toHaveValue('SPY')
     expect(await page.evaluate(() => (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot)).toBe(false)
 
+    // TC2000 also offers direct timeframe stepping; the focused chart remains
+    // the owner while the shell receives the documented global key.
+    await plot.click()
+    const workstation = page.locator('.workstation').last()
+    await workstation.focus()
+    await page.keyboard.press('=')
+    await expect(dailyTimeframe).toHaveValue('MN', { timeout: 15_000 })
+    await expect(monthlyTimeframe).toHaveValue('MN', { timeout: 15_000 })
+    await page.keyboard.press('-')
+    await expect(dailyTimeframe).toHaveValue('W1', { timeout: 15_000 })
+    await expect(monthlyTimeframe).toHaveValue('W1', { timeout: 15_000 })
+
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -2449,6 +2461,7 @@ test.describe('TC2000 workstation', () => {
     await expect(helpMenu).toContainText('Shift+Space')
     await expect(helpMenu).toContainText('Over a chart: change timeframe')
     await expect(helpMenu).toContainText('over a WatchList: move through symbols')
+    await expect(helpMenu).toContainText('= / -')
 
     // Shell menus are mutually exclusive so a fixed popover cannot cover the
     // next menu or intercept a dock interaction underneath it.

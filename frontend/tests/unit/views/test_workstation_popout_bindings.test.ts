@@ -763,6 +763,36 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('cycles only the active chart timeframe with equals and minus', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    harness.workspace.timeframeForTool.mockReturnValueOnce('D1').mockReturnValueOnce('W1')
+    harness.workspace.updateToolTimeframe.mockReturnValue(true)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    const next = new KeyboardEvent('keydown', { key: '=', bubbles: true, cancelable: true })
+    wrapper.element.dispatchEvent(next)
+    expect(next.defaultPrevented).toBe(true)
+    expect(harness.workspace.updateToolTimeframe).toHaveBeenNthCalledWith(1, 'chart-main', 'W1')
+
+    const previous = new KeyboardEvent('keydown', { key: '-', bubbles: true, cancelable: true })
+    wrapper.element.dispatchEvent(previous)
+    expect(previous.defaultPrevented).toBe(true)
+    expect(harness.workspace.updateToolTimeframe).toHaveBeenNthCalledWith(2, 'chart-main', 'D1')
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const watchlistShortcut = new KeyboardEvent('keydown', { key: '=', bubbles: true, cancelable: true })
+    wrapper.element.dispatchEvent(watchlistShortcut)
+    expect(harness.workspace.updateToolTimeframe).toHaveBeenCalledTimes(2)
+    expect(watchlistShortcut.defaultPrevented).toBe(true)
+
+    wrapper.unmount()
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+  })
+
   it('leaves Ctrl+wheel on non-chart surfaces to their local owner', async () => {
     routeState.path = '/'
     routeState.params = {}
