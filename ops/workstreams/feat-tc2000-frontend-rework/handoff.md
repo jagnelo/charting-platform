@@ -14959,6 +14959,29 @@ discovery pages`), and ETF holdings at
 route evidence`). Neither upstream tip is an ancestor of staging; TC consumer
 integration and shared-path reconciliation remain deferred.
 
+## 2026-10-02 — Chart Panel symbol-picker accessibility slice
+
+Product commit `28574a5b` converts the chart-panel symbol picker into an
+accessible combobox/listbox relationship with keyboard-targetable result
+buttons, active-option semantics, explicit trigger type, and stable ids. The
+existing debounce, expression handling, selection fencing, linked-panel
+updates, and visual styling are unchanged.
+
+Focused ChartPanel lifecycle coverage passed `4/4`; the full serial frontend
+suite passed `127/127` files and `1,157/1,157` tests; `vue-tsc` and the
+production build passed with the existing large-chunk warning; TC scope
+self-tests, workstream validation, and `git diff --check` passed. No
+provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or
+acceptance policy changed. No other worktree was mutated.
+
+The current atomic read-only dependency audit observes staging at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform at
+`5f6b1edef67b4ee209404bea05f57e5fdab7471a` (`fix(marketstack): scope raw
+pagination totals`), and ETF holdings at
+`5eb2f55df5053a49958db1b19e456c9385ededa4` (`docs(etf): recheck pimco tier
+zero coverage`). Neither upstream tip is an ancestor of staging; TC consumer
+integration and shared-path reconciliation remain deferred.
+
 ## 2026-10-02 — Indicator Panel action-semantics slice
 
 Product commit `261ed6ba` exposes Indicator Panel row-menu disclosure state
