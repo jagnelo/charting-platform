@@ -86,7 +86,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-a4470b6785"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-strategy-lab-v2/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -122,10 +124,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "aead27a0fd296498ac80464ebe416590257b36ee",
+  "head": "255bca9cda37bc43d5ca00f7e23edbf0e83f3559",
   "implementation_sha": "5ca8250726dd9a88f660b4470007de78daf6a614",
-  "last_checkpoint": "2026-10-02T16:06:11.815056+00:00",
-  "last_human_progress_update": "2026-10-02T14:01:34.697180+00:00",
+  "last_checkpoint": "2026-10-02T16:07:03.418185+00:00",
+  "last_human_progress_update": "2026-10-02T16:06:53.887038+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -142,13 +144,13 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "RC compatibility is unblocked by exact isolated 2.0.0rc5 runtime; authoritative publication/live shadow remain gated by stable Nautilus conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration",
+    "current_blocker": "RC compatibility is unblocked by exact isolated 2.0.0rc5 runtime and typed receipt-to-execution evidence; authoritative publication/live shadow remain gated by stable Nautilus conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration",
     "current_phase": "strategy-lab-v2-nautilus-rc-compatibility-track-awaiting-authoritative-gates",
-    "next_action": "execute parser-bound RC receipts through non-authoritative replay/conformance fixtures; keep worker activation, publication, and live shadow fail-closed while host event/account/engine callbacks and approved staging reconciliation remain unavailable",
+    "next_action": "when the host/Rust canonical-event callback and approved staging contracts become available, invoke the completed NautilusForwardEventTape materializer, forward-parity receipt verifier, and conformance projection at that adapter boundary; until then continue engine-neutral and isolated RC work while keeping worker activation, publication, and live shadow fail-closed",
     "total": 18,
-    "updated_at": "2026-10-02T14:01:34.697162+00:00"
+    "updated_at": "2026-10-02T16:06:53.887016+00:00"
   },
-  "remote": "aead27a0fd296498ac80464ebe416590257b36ee",
+  "remote": "255bca9cda37bc43d5ca00f7e23edbf0e83f3559",
   "remote_sha": "5ca8250726dd9a88f660b4470007de78daf6a614",
   "remote_synchronized": true,
   "retained_docker_resources": [],
