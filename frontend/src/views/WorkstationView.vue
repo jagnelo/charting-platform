@@ -2222,6 +2222,7 @@ onBeforeUnmount(() => {
 .workstation__tabs > button:not(.workstation__tab-add):active { cursor: grabbing; }
 .workstation__tabs > button.workstation__tab--active { background: #28333b; color: #eaf2f6; box-shadow: inset 0 2px #68b6e9; }
 .workstation__tabs > button.workstation__tab--drag-over { box-shadow: inset 2px 0 #f0c66d, inset -2px 0 #f0c66d; }
+.workstation__tabs > button[role="tab"]:focus-visible { position: relative; z-index: 1; outline: 2px solid #eef3fb; outline-offset: -3px; }
 .workstation__workspace-name { margin-left: auto; padding: 7px 9px; color: #697782; font-size: 10px; }
 .workstation__layout-state { display: grid; min-height: 0; place-content: center; gap: 9px; padding: 20px; background: #090c0f; color: #9baab4; font: 12px "Segoe UI", Arial, sans-serif; text-align: center; }
 .workstation__layout-state button { justify-self: center; border: 1px solid #43525d; background: #1a242c; color: #c5d8e4; cursor: pointer; font: inherit; padding: 4px 10px; }

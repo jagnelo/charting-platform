@@ -530,6 +530,10 @@ test.describe('Chart', () => {
     await expect(first).toHaveAttribute('tabindex', '0')
     await first.press('ArrowRight')
     await expect(second).toBeFocused()
+    await expect.poll(() => second.evaluate(tab => {
+      const style = getComputedStyle(tab)
+      return { outlineStyle: style.outlineStyle, outlineColor: style.outlineColor }
+    })).toEqual({ outlineStyle: 'solid', outlineColor: 'rgb(238, 243, 251)' })
     await second.press('Enter')
     await expect(second).toHaveAttribute('aria-selected', 'true')
     await second.press('Home')
