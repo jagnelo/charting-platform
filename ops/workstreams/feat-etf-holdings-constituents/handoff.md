@@ -5961,3 +5961,12 @@ value. Direct application-equivalent requests failed DNS resolution for
 `www.fminvest.com`. Existing executable API coverage remains owned by the
 separately tracked `fm_investments` identity; no duplicate native ownership or
 periodic-document promotion was made.
+
+## VegaShares route recheck — 2026-10-02
+
+Current first-party ODTE, VAIE, XSPC, CGPT, and COOL pages identify the five
+representative ETFs and expose dated product metadata and top-ten holdings
+sections. No independently callable complete current artifact was retrieved;
+direct application-equivalent requests failed DNS resolution for
+`vegasharesetfs.com` across all five routes. VegaShares remains
+`non_executable_public_source`; no top-ten or SEC reconstruction was promoted.

@@ -105,11 +105,11 @@
   "goal_unavailable_reason": null,
   "head": "51d1c5958",
   "implementation_sha": "1faed1e93",
-  "last_checkpoint": "2026-10-02T11:26:08Z",
+  "last_checkpoint": "2026-10-02T11:27:44Z",
   "last_human_progress_update": "2026-09-25T00:46:26Z",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "continue symbol-level fallback rechecks in queue order (next Towle, queue rank 123) while preserving the explicit fallback boundary; after staging, reconcile only the narrow ETF bridge and run AC14",
-  "plan_hash": "40b2193d35fd2bf6c46c776be96cff8b04667ab76c8d2f29ab8e70b44a60ebb0",
+  "next_action": "continue symbol-level fallback rechecks in queue order (next VegaShares, queue rank 127) while preserving the explicit fallback boundary; after staging, reconcile only the narrow ETF bridge and run AC14",
+  "plan_hash": "a9b823fa37fd143affbb47289bd74be5b61e395557f21c08bf28a2f63c31a396",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -130,11 +130,11 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The local and cached remote feat/market-data-provider-platform refs are both 366fdd4f and neither is an ancestor of staging 8b885a2f; all three inspected ProviderCapability definitions still lack ETF_HOLDINGS, so AC10 cannot be reconciled. Baillie Gifford is now native-promoted for BGGG, BGIA, BGEG, and BGUS through its complete dated fund-ID workbook routes. Segall Bryant & Hamill and Siren were rechecked on 2026-10-02 and remain non-executable public-source fallbacks; Sophus was rechecked the same day and remains issuer-access-blocked after page timeouts and direct DNS failure; Strategy Shares was rechecked the same day and remains non-executable despite indexed dated holdings sections because no independently callable complete feed was proven; Subversive remains issuer-access-blocked and Suncoast remains issuer-access-blocked despite indexed current-looking content because direct transport failed DNS; Towle remains issuer-access-blocked despite a current-looking indexed TCV table; Tweedy Browne remains non-executable with a stale artifact; and us_benchmark_series remains non-executable with separate fm_investments ownership preserved. All 15 Tier-0 and 155 Tier-1 fallback representative symbols retain explicit outcomes; PIMCO MINT/BOND remain unavailable. The local checkpoint is not yet on the remote feature ref because GitHub rejected the available SSH credentials; AC8 remote synchronization therefore remains open. AC11 remains open for unresolved fallback evidence and AC14 remains post-integration.",
+    "current_blocker": "The local and cached remote feat/market-data-provider-platform refs are both 366fdd4f and neither is an ancestor of staging 8b885a2f; all three inspected ProviderCapability definitions still lack ETF_HOLDINGS, so AC10 cannot be reconciled. Baillie Gifford is now native-promoted for BGGG, BGIA, BGEG, and BGUS through its complete dated fund-ID workbook routes. Segall Bryant & Hamill and Siren were rechecked on 2026-10-02 and remain non-executable public-source fallbacks; Sophus was rechecked the same day and remains issuer-access-blocked after page timeouts and direct DNS failure; Strategy Shares was rechecked the same day and remains non-executable despite indexed dated holdings sections because no independently callable complete feed was proven; Subversive remains issuer-access-blocked and Suncoast remains issuer-access-blocked despite indexed current-looking content because direct transport failed DNS; Towle remains issuer-access-blocked despite a current-looking indexed TCV table; Tweedy Browne remains non-executable with a stale artifact; us_benchmark_series remains non-executable with separate fm_investments ownership preserved; and VegaShares remains non-executable because only top-ten/full-holdings affordances were observed and all direct routes failed DNS. All 15 Tier-0 and 155 Tier-1 fallback representative symbols retain explicit outcomes; PIMCO MINT/BOND remain unavailable. The local checkpoint is not yet on the remote feature ref because GitHub rejected the available SSH credentials; AC8 remote synchronization therefore remains open. AC11 remains open for unresolved fallback evidence and AC14 remains post-integration.",
     "current_phase": "provider_evidence_reconciliation",
-    "next_action": "Continue symbol-level fallback rechecks in queue order (next Towle, queue rank 123); preserve the explicit fallback boundary and do not activate paid/direct-provider routes while awaiting provider-platform staging.",
+    "next_action": "Continue symbol-level fallback rechecks in queue order (next VegaShares, queue rank 127); preserve the explicit fallback boundary and do not activate paid/direct-provider routes while awaiting provider-platform staging.",
     "total": 14,
-    "updated_at": "2026-10-02T11:26:08Z"
+    "updated_at": "2026-10-02T11:27:44Z"
   },
   "remote": "52814f95bd0ef62968ba1af4018ff9ef5049d3d6",
   "remote_sha": "52814f95bd0ef62968ba1af4018ff9ef5049d3d6",

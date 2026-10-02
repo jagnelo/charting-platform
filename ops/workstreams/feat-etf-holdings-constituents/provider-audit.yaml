@@ -8075,7 +8075,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-04
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [ODTE, VAIE, XSPC, CGPT, COOL]
     estimated_us_etf_count: null
@@ -8105,8 +8105,12 @@ providers:
         source: "VegaShares official product pages"
         result: "Official pages publish current top-ten holdings and expose a full-holdings affordance, but the bounded page response does not declare a resolvable complete holdings artifact for execution."
         evidence_ref: "web:vega-shares-current-product-pages-2026-09-04"
-    disposition_reason: "vega_financial: VegaShares pages expose current top-ten data but no resolvable complete executable holdings artifact in the bounded route, so native promotion is not justified."
-    next_action: "vega_financial: Re-test VegaShares product pages and resolve the full-holdings download/API before considering native promotion."
+      - date: 2026-10-02
+        source: "VegaShares official ODTE, VAIE, XSPC, CGPT, and COOL product pages and bounded application-equivalent requests"
+        result: "Current first-party pages identify all five representative ETFs and expose dated product metadata and top-ten holdings sections; ODTE's indexed page shows top-ten data as of 2026-10-02 but no complete current artifact. Direct curl failed DNS resolution for vegasharesetfs.com across all five routes, and no independently callable full-holdings download/API was retrieved."
+        evidence_ref: "web:vega-shares-current-product-pages-2026-10-02;live:vega-shares-route-recheck-2026-10-02-dns-failure"
+    disposition_reason: "vega_financial: Current VegaShares pages expose top-ten data and full-holdings affordances, but no independently callable complete current holdings artifact was retrieved and direct transport failed DNS. Preserve the fallback as non_executable_public_source."
+    next_action: "vega_financial: Re-test the five representative product pages and resolve each full-holdings download/API; promote only after executable transport returns complete current rows with proven mapping and freshness."
     implementation_sha: null
     validation_refs: []
   - adapter_key: vistashares
