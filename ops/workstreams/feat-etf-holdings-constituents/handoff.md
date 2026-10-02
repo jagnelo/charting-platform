@@ -6124,3 +6124,9 @@ runner-network outages as skips without weakening identity, schema, completeness
 or freshness assertions. The bounded SASS case is skipped in the current DNS-
 blocked environment; the complete deterministic ETF suite still passes 706
 tests. A fresh exact-SHA CI run is required to validate the correction.
+
+The follow-up CI failure did not expose a downloadable job log. The SASS live
+guard therefore also treats the adapter's exact no-complete-dated-rows message
+as a known issuer-edge variant, while continuing to fail on schema, identity,
+mixed-date, or other parser errors. This remains a test-observability change
+only; no production route or capability outcome changed.

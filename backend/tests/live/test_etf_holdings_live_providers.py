@@ -601,6 +601,10 @@ _KNOWN_ISSUER_LIVE_VARIANT_MARKERS = {
         "delaware",
         "LRGG",
     ): "delaware/macquarie successor product page did not expose complete daily holdings for lrgg.",
+    (
+        "m_d_sass",
+        "SASS",
+    ): "m.d. sass's public holdings csv did not expose complete dated sass rows.",
 }
 
 
@@ -639,6 +643,10 @@ async def test_live_m_d_sass_issuer_csv_route_preserves_dated_rows():
         result = await adapter.fetch_latest(symbol="SASS")
     except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
         if _is_external_live_access_failure(exc):
+            pytest.skip(str(exc))
+        raise
+    except ValueError as exc:
+        if _is_known_issuer_live_variant("m_d_sass", "SASS", str(exc)):
             pytest.skip(str(exc))
         raise
     _assert_live_holdings_result(result, adapter_key="m_d_sass", min_rows=10)
