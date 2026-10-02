@@ -22,7 +22,8 @@ from app.strategy_lab_v2.sdk import (
 )
 from strategy_runtime import serialize_invocation_batch
 
-_EVENT_TIME = datetime(1970, 1, 1, tzinfo=UTC)
+_EVENT_TIME = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
+_EVENT_TIME_NS = 1_704_205_800_000_000_000
 _SOURCE = """
 class Strategy:
     def __init__(self):
@@ -56,7 +57,7 @@ def _payload() -> dict[str, object]:
                     "event_id": "adapter-event-1",
                     "instrument_id": "EURUSD.SIM",
                     "event_type": "quote",
-                    "event_time_ns": 1,
+                    "event_time_ns": _EVENT_TIME_NS,
                     "sequence": 1,
                     "values": {
                         "bid": "1.1000",
@@ -70,7 +71,7 @@ def _payload() -> dict[str, object]:
                     "event_id": "adapter-event-2",
                     "instrument_id": "EURUSD.SIM",
                     "event_type": "quote",
-                    "event_time_ns": 2,
+                    "event_time_ns": _EVENT_TIME_NS,
                     "sequence": 2,
                     "values": {
                         "bid": "1.1001",
@@ -175,13 +176,6 @@ def _invocation_batch() -> str:
         },
     )
     contexts = (
-        StrategyContext(
-            _EVENT_TIME,
-            1,
-            17,
-            {"window": 20},
-            {"prices": (first,)},
-        ),
         StrategyContext(
             _EVENT_TIME,
             2,

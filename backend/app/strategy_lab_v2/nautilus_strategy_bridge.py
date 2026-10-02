@@ -26,6 +26,12 @@ def _datetime_microsecond_ns(value: datetime) -> int:
     return (delta.days * 86_400 + delta.seconds) * 1_000_000_000 + delta.microseconds * 1_000
 
 
+def _datetime_microsecond_bucket(value: datetime) -> int:
+    """Return the event-time bucket used by the SDK's microsecond timestamps."""
+
+    return _datetime_microsecond_ns(value) // 1_000
+
+
 def _record_time_bucket(value: Any) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value < 0:
         raise NautilusRuntimeDataError("event.event_time_ns must be a non-negative integer")
@@ -39,61 +45,85 @@ def _match_contexts_to_events(
     records_by_id = {record["event_id"]: record for record in event_definitions}
     if len(records_by_id) != len(event_definitions):
         raise NautilusRuntimeDataError("event ids must be unique")
-    matched: dict[str, Any] = {}
+    records_by_time: dict[int, list[Mapping[str, Any]]] = defaultdict(list)
+    contexts_by_time: dict[int, list[Any]] = defaultdict(list)
+    for record in event_definitions:
+        records_by_time[_record_time_bucket(record["event_time_ns"])].append(record)
     for context in contexts:
-        current: list[tuple[Any, Any]] = []
-        for dependency_id, market_events in context.market_events.items():
-            for market_event in market_events:
-                if (
-                    market_event.event_time == context.event_time
-                    and market_event.sequence == context.event_sequence
-                ):
-                    record = records_by_id.get(market_event.event_id)
-                    if record is None:
-                        raise NautilusRuntimeDataError(
-                            "strategy context references an event outside the native tape"
-                        )
-                    if (
-                        record["dependency_id"] != dependency_id
-                        or record["instrument_id"] != market_event.instrument_id
-                        or record["sequence"] != market_event.sequence
-                        or _record_time_bucket(record["event_time_ns"])
-                        != _datetime_microsecond_ns(market_event.event_time)
+        contexts_by_time[_datetime_microsecond_bucket(context.event_time)].append(context)
+
+    if set(contexts_by_time) != set(records_by_time):
+        raise NautilusRuntimeDataError("strategy contexts do not cover every native event time")
+
+    matched: dict[str, Any] = {}
+    for time_bucket, records in records_by_time.items():
+        time_contexts = contexts_by_time[time_bucket]
+        ordered_records = sorted(
+            records,
+            key=lambda item: (item["sequence"], item["dependency_id"], item["event_id"]),
+        )
+        batch_context = len(time_contexts) == 1
+        event_contexts = len(time_contexts) == len(ordered_records)
+        if not batch_context and not event_contexts:
+            raise NautilusRuntimeDataError(
+                "same-time strategy contexts must use one batch or one context per native event"
+            )
+
+        selected: list[tuple[Any, Mapping[str, Any]]] = []
+        for context in time_contexts:
+            current: list[tuple[Any, Mapping[str, Any]]] = []
+            for dependency_id, market_events in context.market_events.items():
+                for market_event in market_events:
+                    history_record = records_by_id.get(market_event.event_id)
+                    if history_record is None or (
+                        history_record["dependency_id"] != dependency_id
+                        or history_record["instrument_id"] != market_event.instrument_id
+                        or history_record["sequence"] != market_event.sequence
+                        or _record_time_bucket(history_record["event_time_ns"])
+                        != _datetime_microsecond_bucket(market_event.event_time)
                     ):
                         raise NautilusRuntimeDataError(
-                            "strategy context event identity differs from the native tape"
+                            "strategy history contains an event outside its authenticated tape"
                         )
-                    current.append((market_event, record))
-        if len(current) != 1:
-            raise NautilusRuntimeDataError(
-                "each strategy context must identify exactly one current native event"
-            )
-        market_event, record = current[0]
-        if record is None:
-            raise NautilusRuntimeDataError("strategy context event is absent from the native tape")
-        event_id = record["event_id"]
-        if event_id in matched:
-            raise NautilusRuntimeDataError("multiple strategy contexts map to one native event")
-        matched[event_id] = context
+                    if _datetime_microsecond_bucket(market_event.event_time) == time_bucket:
+                        current.append((market_event, history_record))
 
-        for dependency_id, market_events in context.market_events.items():
-            for history_event in market_events:
-                history_record = records_by_id.get(history_event.event_id)
-                if history_record is None or (
-                    history_record["dependency_id"] != dependency_id
-                    or history_record["instrument_id"] != history_event.instrument_id
-                    or history_record["sequence"] != history_event.sequence
-                    or _record_time_bucket(history_record["event_time_ns"])
-                    != _datetime_microsecond_ns(history_event.event_time)
-                ):
+            if not current:
+                raise NautilusRuntimeDataError(
+                    "strategy context does not identify a current native event"
+                )
+            current_ids = [record["event_id"] for _event, record in current]
+            if len(current_ids) != len(set(current_ids)):
+                raise NautilusRuntimeDataError("strategy context repeats a current native event")
+            if batch_context:
+                expected_ids = {record["event_id"] for record in ordered_records}
+                if set(current_ids) != expected_ids:
                     raise NautilusRuntimeDataError(
-                        "strategy history contains an event outside its authenticated tape"
+                        "batched strategy context must expose every same-time native event"
                     )
+                if context.event_sequence != max(record["sequence"] for record in ordered_records):
+                    raise NautilusRuntimeDataError(
+                        "batched strategy context sequence differs from its native events"
+                    )
+                # Nautilus emits same-time records in canonical order. Invoke once,
+                # on the final callback, after every event in the SDK batch is visible.
+                selected.append((context, ordered_records[-1]))
+            else:
+                current_at_sequence = [
+                    pair for pair in current if pair[0].sequence == context.event_sequence
+                ]
+                if len(current_at_sequence) != 1:
+                    raise NautilusRuntimeDataError(
+                        "event strategy context must identify exactly one current native event"
+                    )
+                selected.append((context, current_at_sequence[0][1]))
 
-    if set(matched) != set(records_by_id):
-        raise NautilusRuntimeDataError(
-            "serialized strategy batch must cover every native event exactly once"
-        )
+        for context, record in selected:
+            event_id = record["event_id"]
+            if event_id in matched:
+                raise NautilusRuntimeDataError("multiple strategy contexts map to one native event")
+            matched[event_id] = context
+
     return matched
 
 
@@ -167,7 +197,7 @@ def build_native_strategy_bridge(
     for record in event_definitions:
         native_by_event_key[
             (record["event_type"], record["instrument_id"], record["event_time_ns"])
-        ].append(contexts_by_event[record["event_id"]])
+        ].append(contexts_by_event.get(record["event_id"]))
 
     invocation_session = StrategyInvocationSession(
         source,
@@ -253,6 +283,8 @@ def build_native_strategy_bridge(
             if not contexts_for_key:
                 raise NautilusRuntimeDataError("Nautilus callback has no bound strategy context")
             context = contexts_for_key.popleft()
+            if context is None:
+                return
             positions: dict[str, Any] = {}
             for requirement in manifest.capability_requirements:
                 sdk_instrument_id = requirement.instrument_id
@@ -326,6 +358,10 @@ def build_native_strategy_bridge(
         if any(queue for queue in native_by_event_key.values()):
             raise NautilusRuntimeDataError(
                 "Nautilus did not invoke the strategy for every serialized event context"
+            )
+        if len(invocation_results) != len(contexts):
+            raise NautilusRuntimeDataError(
+                "Nautilus did not invoke every serialized strategy context"
             )
         return serialize_invocation_batch_result(invocation_results)
 
