@@ -506,7 +506,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(study).toBeVisible({ timeout: 10_000 })
     await expect(study.getByRole('textbox', { name: 'Study Python source' })).toBeVisible()
     await expect(study.getByRole('button', { name: 'Validate' })).toBeVisible()
-    await expect(study.getByRole('button', { name: 'Run', exact: true })).toBeVisible()
+    await expect(study.getByRole('button', { name: 'Run study', exact: true })).toBeVisible()
     const overlapIssues = await study.evaluate((root) => {
       const header = root.querySelector('.study-lab-tool__header')?.getBoundingClientRect()
       const editor = root.querySelector('.study-lab-tool__editor-shell')?.getBoundingClientRect()
@@ -704,7 +704,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validation errors', { timeout: 10_000 })
     await expect(study.locator('.study-lab-tool__validation--bad pre')).toBeVisible()
-    await expect(study.getByRole('button', { name: 'Run', exact: true })).toBeDisabled()
+    await expect(study.getByRole('button', { name: 'Run study', exact: true })).toBeDisabled()
     await expect(page).toHaveScreenshot('study-lab-validation-error-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -753,7 +753,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('running', 1)")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--running')).toBeVisible({ timeout: 10_000 })
     await expect(study).toContainText('running 12/100')
     await expect(study.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible()
@@ -819,7 +819,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('event_count', 4)\noutput.bar('monthly_frequency', ['2026-01', '2026-02'], [2, 2])\noutput.histogram('streak_distribution', [1, 2, 2, 3], 2, 2)\noutput.table('summary', [{'state': 'positive_close', 'count': 4}])\noutput.events('occurrences', [{'symbol': 'SPY', 'timestamp': '2026-01-02T00:00:00+00:00', 'kind': 'positive_close'}])")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 10_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'event_count' })).toContainText('4')
     await expect(study.locator('.study-bars-uplot, [class*="study-bars"]').first()).toBeVisible()
@@ -875,7 +875,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('sandbox_error', 1)")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--failed')).toBeVisible({ timeout: 10_000 })
     await expect(study).toContainText('Run #780')
     const diagnostics = study.locator('.study-lab-tool__run-details').filter({ hasText: 'Diagnostics (1)' })

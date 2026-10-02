@@ -276,28 +276,37 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_optimization_row_keyboard_checkpointed
+  current_phase: R6_browser_gate_revalidated_host_visual_open
   next_action: >-
-    Verify the protected visual mismatch against the expected seeded baseline
-    in a matching browser/font environment without changing snapshots or visual
-    policy. Keep provider/ETF consumer integration deferred until both upstream
-    branches reach staging, then reconcile shared paths and rerun the exact-tip
-    gate. Continue bounded TC-owned R1/R5/R6 work while that sequencing gate is
-    open. Do not retry origin synchronization under the existing private-origin
-    safeguard without newly accepted exact-payload authorization.
+    Re-run the protected visual mismatch in a matching browser/font environment
+    without changing snapshots or visual policy. Keep provider/ETF consumer
+    integration deferred until both upstream branches reach staging, then
+    reconcile shared paths and rerun the exact-tip gate. The host lacks Docker
+    Buildx, so the standard stack-up target needs a Buildx-capable runner; the
+    manually started ordinary-Compose stack already proved functional browser
+    coverage. Continue bounded TC-owned R1/R5/R6 work while that sequencing
+    gate is open. Do not retry origin synchronization under the existing
+    private-origin safeguard without newly accepted exact-payload authorization.
   current_blocker: >-
-    The two reproducible TC-owned browser regressions are fixed and validated;
-    an isolated seeded visual rerun reproduced 43,091 differing pixels on the
-    first capture and 45,932 after stability, distributed across board text and
-    anti-aliasing rather than localized chart geometry. The parallel frontend
-    timing guard remains host-sensitive on the unrelated 100k-point uPlot
-    benchmark, while serial coverage passes 1,161/1,161 at the current product
-    tip. Provider-platform and ETF consumer integration remains a sequencing
-    gate until both upstream branches reach staging; shared-path reconciliation
-    and the final post-staging exact gate remain pending. Origin synchronization
-    remains a separate operational hold under the recorded private-origin
-    safeguard.
+    The Study Lab browser tests initially failed only because stale E2E selectors
+    asked for an exact accessible name Run while the UI correctly exposes Run
+    study; the selectors were corrected and the affected seven browser tests
+    passed. The exact gate then passed backend unit/integration coverage
+    (1,621/1,621 and 408/408, 82.26%), frontend tests (128 files, 1,161/1,161),
+    type-check, build, contracts, and policy checks, but its prescribed stack-up
+    stopped because this host has Docker Compose without the Docker Buildx
+    plugin. A manually built and started branch-scoped ordinary-Compose stack
+    reached authenticated browser tests; the visual suite reproduced the known
+    45,932-pixel host-font mismatch. No snapshots, masks, thresholds, skips, or
+    visual policy changed. Provider-platform and ETF consumer integration remains
+    a sequencing gate until both upstream branches reach staging; shared-path
+    reconciliation and the final post-staging exact gate remain pending. Origin
+    synchronization remains a separate operational hold under the recorded
+    private-origin safeguard.
 historical_implementation_records:
+  - "Product tip 94abc240f reuses one projected x-coordinate array for both paths of each TC-owned StudyRangeUPlot band, preserving the numerical renderer output while removing duplicate timestamp-to-pixel projection work. The focused 100k-point range-band benchmark passed; the full serial frontend suite passed 128 files and 1,161/1,161 tests; vue-tsc and the production build passed with the existing large-chunk warning; TC scope validation, workstream validation, and git diff --check passed."
+  - "The exact integration gate rerun at product tip 94abc240f passed workstream/dependency/migration checks, lint/format/type-check, backend unit coverage 1,621/1,621, backend integration coverage 408/408, 82.26% combined coverage, frontend tests 128 files and 1,161/1,161, frontend build, Compose/provider/policy checks, and branch-scoped cleanup. The prescribed stack-up stopped only because this host lacks the Docker Buildx plugin; ordinary Compose built and started the same branch-scoped stack manually. Authenticated Study Lab/EasyScan browser coverage passed the seven affected tests, while the visual suite reproduced the known approximately 45,932-pixel board text/font anti-aliasing mismatch. No visual baseline, threshold, mask, skip, fallback, provider, ETF, or acceptance policy changed."
+  - "The TC-owned Study Lab E2E selectors now use the component's explicit accessible name Run study instead of an exact Run match; EasyScan Run selectors were left unchanged. The targeted F9g/F9i/F9j browser slice passed 7/7 against the manually started stack, confirming the change is test-semantic alignment rather than a product behavior change."
   - "The exact full-stack/browser gate at documentation/product tip eb548fd0b/7e49c955f passed workstream validation, dependency/migration checks, lint/format/type-check, backend unit coverage 1,621/1,621, backend integration coverage 408/408, and 82.26% combined coverage with branch-scoped cleanup. It stopped at frontend-tests because the unrelated 100k-point uPlot range-band benchmark measured 1,167.9ms against its 1,000ms host-sensitive threshold; 127 frontend files and 1,160/1,161 tests passed. No visual stage ran, and no provider/ETF or visual policy changed."
   - "Product commit 7e49c955f makes TC-owned Strategy Lab optimization leaderboard rows keyboard-operable with Enter/Space activation and exposes active-row aria-selected state while preserving click pinning, hover/focus detail behavior, sorting, table structure, and visual styling. Focused OptimizationLeaderboard coverage passed 2/2; the full serial frontend suite passed 128 files and 1,161/1,161 tests with Vitest file parallelism disabled and one worker; vue-tsc passed; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "The 2026-10-02 post-slice dependency audit observes staging at 8b885a2f, provider-platform at d371de644d5e8849a4c547bb16debae8e4d2c8e4 (test(live): record coingecko usage denial), and ETF holdings at 1a256e78d0d1dcd63c86101cbdc878c8dc35f765 (test(etf): guard sass empty live payload). Neither dependency tip is an ancestor of staging; TC did not consume either feature tip, reconcile shared paths, or mutate another worktree."

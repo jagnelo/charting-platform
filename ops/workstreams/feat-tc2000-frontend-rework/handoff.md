@@ -1,5 +1,26 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Browser gate revalidated with Compose fallback
+
+Product tip `94abc240f` reuses one projected x-coordinate array for both paths
+of each TC-owned `StudyRangeUPlot` band. The focused 100k-point benchmark
+passed; the serial frontend suite passed `128/128` files and `1,161/1,161`
+tests; `vue-tsc`, the production build, TC scope checks, workstream validation,
+and `git diff --check` passed.
+
+The exact gate also passed backend unit/integration coverage (`1,621/1,621`,
+`408/408`, `82.26%`), frontend tests/build, and contract/policy checks. Its
+prescribed stack-up stopped because this host has Compose but no Docker Buildx
+plugin. Ordinary Compose built and started the exact branch-scoped stack
+manually; the seven affected Study Lab/EasyScan browser tests then passed after
+their stale exact `Run` selectors were aligned with the UI's explicit
+accessible name `Run study`. The visual suite reproduced the known roughly
+`45,932`-pixel board text/font anti-aliasing mismatch. No snapshots, masks,
+thresholds, skips, fallbacks, provider/ETF behavior, or acceptance policy
+changed. The broader goal remains active pending a matching-font visual replay,
+both upstream branches reaching staging, shared-path reconciliation, and the
+final exact-tip gate.
+
 ## 2026-10-02 — Exact gate stopped at host-sensitive frontend benchmark
 
 The exact full-stack/browser gate at documentation/product tip
