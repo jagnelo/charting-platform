@@ -11,7 +11,7 @@
           <strong>{{ hovered.symbol }}</strong><span>{{ hovered.point.timestamp }}</span><span>Trend {{ percent(hovered.point.trend) }} · Momentum {{ percent(hovered.point.momentum) }}</span>
         </div>
       </div>
-      <div class="rotation-tool__table"><div class="rotation-tool__head"><button type="button" @click="setSort('symbol')">{{ isFamily ? 'Leg' : 'Sector' }}{{ sortMark('symbol') }}</button><button type="button" @click="setSort('state')">State{{ sortMark('state') }}</button><button type="button" @click="setSort('trend')">Trend{{ sortMark('trend') }}</button><button type="button" @click="setSort('momentum')">Momentum{{ sortMark('momentum') }}</button><button type="button" @click="setSort('heading')">Heading{{ sortMark('heading') }}</button><button type="button" @click="setSort('distance')">Distance{{ sortMark('distance') }}</button><button type="button" @click="setSort('velocity')">Velocity{{ sortMark('velocity') }}</button><button type="button" @click="setSort('transition')">Transition{{ sortMark('transition') }}</button><button type="button" @click="setSort('time_in_state')">Time{{ sortMark('time_in_state') }}</button><button type="button" @click="setSort('coverage')">Coverage{{ sortMark('coverage') }}</button><button type="button" @click="setSort('tail')">Tail{{ sortMark('tail') }}</button></div><button v-for="row in sortedRows" :key="row.role ?? row.instrument_id ?? row.symbol" type="button" class="rotation-tool__row" @click="emit('select', row.symbol, row.instrument_id)"><strong>{{ row.symbol }}</strong><span :class="`rotation-tool__state-${row.state}`">{{ row.state ?? 'Unavailable' }}</span><span v-if="row.warnings?.length" class="rotation-tool__warning" :title="row.warnings.map(warning => warning.message).join('\n')"><WorkstationGlyph kind="warning" /> {{ row.warnings.length }}</span><span v-else class="rotation-tool__warning-placeholder" aria-hidden="true" /><span>{{ percent(row.trend) }}</span><span>{{ percent(row.momentum) }}</span><span>{{ row.heading == null ? '—' : `${row.heading.toFixed(0)}°` }}</span><span>{{ percent(row.distance) }}</span><span>{{ percent(row.velocity) }}</span><span>{{ row.transition ?? '—' }}</span><span>{{ row.time_in_state ?? '—' }}</span><span>{{ percent(row.coverage) }}</span><span>{{ row.tail.length }}</span></button></div>
+      <div class="rotation-tool__table" role="region" aria-label="Relative rotation rows"><div class="rotation-tool__head" role="group" aria-label="Sort relative rotation rows"><button type="button" :aria-label="sortLabel('symbol')" @click="setSort('symbol')">{{ isFamily ? 'Leg' : 'Sector' }}{{ sortMark('symbol') }}</button><button type="button" :aria-label="sortLabel('state')" @click="setSort('state')">State{{ sortMark('state') }}</button><button type="button" :aria-label="sortLabel('trend')" @click="setSort('trend')">Trend{{ sortMark('trend') }}</button><button type="button" :aria-label="sortLabel('momentum')" @click="setSort('momentum')">Momentum{{ sortMark('momentum') }}</button><button type="button" :aria-label="sortLabel('heading')" @click="setSort('heading')">Heading{{ sortMark('heading') }}</button><button type="button" :aria-label="sortLabel('distance')" @click="setSort('distance')">Distance{{ sortMark('distance') }}</button><button type="button" :aria-label="sortLabel('velocity')" @click="setSort('velocity')">Velocity{{ sortMark('velocity') }}</button><button type="button" :aria-label="sortLabel('transition')" @click="setSort('transition')">Transition{{ sortMark('transition') }}</button><button type="button" :aria-label="sortLabel('time_in_state')" @click="setSort('time_in_state')">Time{{ sortMark('time_in_state') }}</button><button type="button" :aria-label="sortLabel('coverage')" @click="setSort('coverage')">Coverage{{ sortMark('coverage') }}</button><button type="button" :aria-label="sortLabel('tail')" @click="setSort('tail')">Tail{{ sortMark('tail') }}</button></div><button v-for="row in sortedRows" :key="row.role ?? row.instrument_id ?? row.symbol" type="button" class="rotation-tool__row" :aria-label="rotationRowLabel(row)" @click="emit('select', row.symbol, row.instrument_id)"><strong>{{ row.symbol }}</strong><span :class="`rotation-tool__state-${row.state}`">{{ row.state ?? 'Unavailable' }}</span><span v-if="row.warnings?.length" class="rotation-tool__warning" :title="row.warnings.map(warning => warning.message).join('\n')"><WorkstationGlyph kind="warning" /> {{ row.warnings.length }}</span><span v-else class="rotation-tool__warning-placeholder" aria-hidden="true" /><span>{{ percent(row.trend) }}</span><span>{{ percent(row.momentum) }}</span><span>{{ row.heading == null ? '—' : `${row.heading.toFixed(0)}°` }}</span><span>{{ percent(row.distance) }}</span><span>{{ percent(row.velocity) }}</span><span>{{ row.transition ?? '—' }}</span><span>{{ row.time_in_state ?? '—' }}</span><span>{{ percent(row.coverage) }}</span><span>{{ row.tail.length }}</span></button></div>
     </template>
   </section>
 </template>
@@ -88,6 +88,27 @@ function setSort(key: SortKey) {
   else { sortKey.value = key; sortDirection.value = key === 'symbol' || key === 'state' || key === 'transition' ? 1 : -1 }
 }
 function sortMark(key: SortKey) { return sortKey.value === key ? (sortDirection.value === 1 ? ' ▲' : ' ▼') : '' }
+function sortLabel(key: SortKey) {
+  const labels: Record<SortKey, string> = {
+    symbol: isFamily.value ? 'leg' : 'sector',
+    state: 'state',
+    trend: 'trend',
+    momentum: 'momentum',
+    heading: 'heading',
+    distance: 'distance',
+    velocity: 'velocity',
+    transition: 'transition',
+    time_in_state: 'time in state',
+    coverage: 'coverage',
+    tail: 'tail length',
+  }
+  if (sortKey.value !== key) return `Sort by ${labels[key]}`
+  return `Sort by ${labels[key]}, currently ${sortDirection.value === 1 ? 'ascending' : 'descending'}`
+}
+function rotationRowLabel(row: Row) {
+  const warning = row.warnings?.length ? `, ${row.warnings.length} warning${row.warnings.length === 1 ? '' : 's'}` : ''
+  return `${row.symbol}, ${row.state ?? 'unavailable'}, trend ${percent(row.trend)}, momentum ${percent(row.momentum)}, coverage ${percent(row.coverage)}${warning}. Select row for details.`
+}
 function onPlotMove(event: MouseEvent) {
   if (!plot || !plotHost.value || !points.length) return
   const bounds = plotHost.value.getBoundingClientRect()

@@ -102,6 +102,30 @@ describe('RelativeRotationTool', () => {
     expect(rowSymbols).toEqual(['XLE', 'XLK'])
   })
 
+  it('exposes sortable headers and row context to assistive technology', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
+      { instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, distance: 0.14, coverage: 1, tail: [] },
+    ] })
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLK'))
+
+    expect(wrapper.get('.rotation-tool__table').attributes('role')).toBe('region')
+    expect(wrapper.get('.rotation-tool__head').attributes('aria-label')).toBe('Sort relative rotation rows')
+    const distanceHeader = wrapper.get('.rotation-tool__head button[aria-label="Sort by distance, currently descending"]')
+    expect(distanceHeader.exists()).toBe(true)
+    const symbolHeader = wrapper.get('.rotation-tool__head button[aria-label="Sort by sector"]')
+
+    const row = wrapper.get('.rotation-tool__row')
+    expect(row.attributes('aria-label')).toContain('XLK, leading, trend 10.00%')
+    expect(row.attributes('aria-label')).toContain('coverage 100.00%')
+
+    await symbolHeader.trigger('click')
+    expect(symbolHeader.attributes('aria-label')).toBe('Sort by sector, currently ascending')
+    expect(wrapper.get('.rotation-tool__head button[aria-label="Sort by distance"]').exists()).toBe(true)
+    await symbolHeader.trigger('click')
+    expect(symbolHeader.attributes('aria-label')).toBe('Sort by sector, currently descending')
+  })
+
   it('shows a plot-level tail tooltip and selects the hovered symbol', async () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
       { instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, distance: 0.22, coverage: 1, tail: [{ timestamp: '2026-01-02', trend: 0.1, momentum: 0.2 }] },
