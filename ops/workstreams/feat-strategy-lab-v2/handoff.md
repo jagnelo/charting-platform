@@ -2,6 +2,41 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-02 - Bounded Nautilus invocation-result artifact handoff
+
+The invocation-result side of the Nautilus worker handoff is now streamed to a
+bounded JSONL sidecar and published as a content-addressed artifact. The native
+bridge writes each callback result incrementally; the runtime adapter returns
+only a compact descriptor; and the host verifies the exact bytes, digest,
+length, count, protocol, trailer, and status before artifact publication.
+Output byte limits are enforced inside the isolated worker. Legacy batch
+compatibility remains available.
+
+At source SHA `adbf408e19169dd1a40087b69c30f36b74f25678`, all 1,098 Strategy Lab
+v2 tests passed; Ruff and format checks for the 19 changed Python files passed;
+MyPy passed across 325 source files; and `git diff --check` was clean. The
+exact-pinned Nautilus `2.0.0rc5` image
+(`sha256:00b866abd2d4f5fa858999ebec6a6d2a7f0e66912561b4f4f570bdffea68f76c`)
+ran the real CLI and engine with networking disabled, a read-only root,
+capabilities dropped, no-new-privileges, unprivileged UID, and bounded CPU,
+memory, file size, PIDs, and temporary storage. It processed two native events,
+invoked the SDK once, produced one native order and one open position, verified
+the streamed result artifact (one record, 1,016 bytes), and remained
+`authoritative=false`. Runtime evidence digest:
+`sha256:47ed789b76c6c48293174b08caa4b5b01be7aa3378e8be655c5f750b3963e6a3`.
+
+This closes the bounded invocation-result artifact seam only. Source and native
+market-event tapes are still materialized before runtime launch; next replace
+the full native-event tape with verified, content-addressed stream/catalog
+chunks consumed incrementally by exact-pinned RC5, preserving same-time order
+and deterministic replay. RC5 is usable for local testing after conformance;
+it remains barred from broker/real-capital use, and full conformance—not a
+stable upstream tag—gates authoritative results. No external dependency blocks
+the next implementation slice.
+
+The source commit is pushed to `origin/feat/strategy-lab-v2`; local `HEAD` and
+the tracked remote are both `adbf408e19169dd1a40087b69c30f36b74f25678`.
+
 ## 2026-10-02 - End-to-end pinned context-stream handoff
 
 Trial assembly no longer builds a full SDK context tuple or serialized batch.
