@@ -10936,9 +10936,7 @@ class BeaconCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     ) -> tuple[list[CanonicalHoldingRow], date | None]:
         lines = raw_csv.splitlines()
         recognized_names = (expected_fund_name, *fund_name_aliases)
-        if len(lines) < 3 or not any(
-            name.lower() in lines[0].lower() for name in recognized_names
-        ):
+        if len(lines) < 3 or not any(name.lower() in lines[0].lower() for name in recognized_names):
             return [], None
         date_match = re.search(r"as\s+of\s+(\d{2}/\d{2}/\d{4})", lines[1], flags=re.IGNORECASE)
         composition_date = _parse_issuer_date(date_match.group(1)) if date_match else None
@@ -21961,11 +21959,7 @@ class AotHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return HoldingsAdapterProbe(
             adapter_key=self.adapter_key,
             confidence=Decimal("0.9000"),
-            status=(
-                "ready"
-                if source_url or identifiers.get("sec_cik")
-                else "needs_issuer_route"
-            ),
+            status=("ready" if source_url or identifiers.get("sec_cik") else "needs_issuer_route"),
             reason=(
                 "AOT Invest publishes this ETF's complete current holdings table on its public "
                 "fund page."
@@ -24566,9 +24560,7 @@ class TidalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         ]
         table_rows = [
             [
-                "SecurityName"
-                if cell.strip().lstrip("\ufeff").lower() == "secuirtyname"
-                else cell
+                "SecurityName" if cell.strip().lstrip("\ufeff").lower() == "secuirtyname" else cell
                 for cell in row
             ]
             for row in table_rows
@@ -42457,9 +42449,7 @@ class YorkvilleHoldingsAdapter(GoogleSheetsHoldingsAdapter):
 class TrueSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch TrueShares holdings from ETF product pages and linked Google CSV exports."""
 
-    PUBLIC_FUND_API_URL = (
-        "https://jdkfnvgkfwotjlyovbrk.supabase.co/functions/v1/fund-public-api"
-    )
+    PUBLIC_FUND_API_URL = "https://jdkfnvgkfwotjlyovbrk.supabase.co/functions/v1/fund-public-api"
 
     def resolve_product_page_url(
         self,
@@ -53571,9 +53561,9 @@ class LoganHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
     @staticmethod
     def _is_verified_product_page(page_text: str) -> bool:
-        explicit_lclg_identity = re.search(
-            r"data-ticker=[\"']LCLG[\"']", page_text, flags=re.IGNORECASE
-        ) is not None
+        explicit_lclg_identity = (
+            re.search(r"data-ticker=[\"']LCLG[\"']", page_text, flags=re.IGNORECASE) is not None
+        )
         return (
             "Logan Capital" in page_text
             and (
@@ -72764,11 +72754,7 @@ class BaillieGiffordHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return HoldingsAdapterProbe(
             adapter_key=self.adapter_key,
             confidence=Decimal("0.9700"),
-            status=(
-                "ready"
-                if source_url or identifiers.get("sec_cik")
-                else "needs_issuer_route"
-            ),
+            status=("ready" if source_url or identifiers.get("sec_cik") else "needs_issuer_route"),
             reason=(
                 "Baillie Gifford publishes a complete dated workbook with identifiers and weights."
                 if source_url
@@ -72800,7 +72786,9 @@ class BaillieGiffordHoldingsAdapter(IssuerCsvHoldingsAdapter):
         response.raise_for_status()
         rows, composition_date = self._parse_workbook(response.content, symbol=normalized_symbol)
         if not rows:
-            raise ValueError(f"Baillie Gifford workbook did not expose holdings for {normalized_symbol}.")
+            raise ValueError(
+                f"Baillie Gifford workbook did not expose holdings for {normalized_symbol}."
+            )
         workbook_rows = parse_xlsx_table(response.content, worksheet_index=2)
         return HoldingsFetchResult(
             rows=rows,
@@ -72854,10 +72842,17 @@ class BaillieGiffordHoldingsAdapter(IssuerCsvHoldingsAdapter):
             if not any((name, ticker, cusip)):
                 continue
             text = " ".join(value.upper() for value in (name, ticker) if value)
-            is_cash = not ticker and not cusip and any(
-                marker in text for marker in ("CASH", "DOLLAR", "EURO", "POUND", "FRANC", "KRONE")
+            is_cash = (
+                not ticker
+                and not cusip
+                and any(
+                    marker in text
+                    for marker in ("CASH", "DOLLAR", "EURO", "POUND", "FRANC", "KRONE")
+                )
             )
-            is_derivative = any(marker in text for marker in ("OPTION", "FUTURE", "SWAP", "FORWARD"))
+            is_derivative = any(
+                marker in text for marker in ("OPTION", "FUTURE", "SWAP", "FORWARD")
+            )
             row_type = "cash" if is_cash else "other" if is_derivative else "security"
             holding_type = "cash" if is_cash else "derivative" if is_derivative else "equity"
             source_symbol = None
@@ -72876,11 +72871,15 @@ class BaillieGiffordHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     holding_type=holding_type,
                     row_type=row_type,
                     source_row_id=f"baillie-gifford-{symbol}-{position}",
-                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                    extra_data={
+                        key: value for key, value in raw.items() if _clean(value) is not None
+                    },
                 )
             )
         if len(rows) < 10:
-            raise ValueError("Baillie Gifford workbook did not expose a complete holdings universe.")
+            raise ValueError(
+                "Baillie Gifford workbook did not expose a complete holdings universe."
+            )
         return rows, composition_date
 
 

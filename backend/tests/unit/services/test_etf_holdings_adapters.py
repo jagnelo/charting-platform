@@ -1921,18 +1921,53 @@ async def test_baillie_gifford_adapter_parses_complete_daily_workbook(monkeypatc
     adapter = get_holdings_adapter("baillie_gifford")
     assert adapter is not None
     assert type(adapter).__name__ == "BaillieGiffordHoldingsAdapter"
-    assert adapter.probe(symbol="BGGG", name="Baillie Gifford Long Term Global Growth ETF", identifiers={}).status == "ready"
+    assert (
+        adapter.probe(
+            symbol="BGGG", name="Baillie Gifford Long Term Global Growth ETF", identifiers={}
+        ).status
+        == "ready"
+    )
 
     workbook = _xlsx_workbook_sheets(
         [
-            [["Baillie Gifford Long Term Global Growth ETF - October 1, 2026", "Holding Name", "Fund %"]],
             [
-                ["Baillie Gifford Long Term Global Growth ETF - October 1, 2026", "CUSIP", "Ticker", "Instrument Name", "Quantity", "Weight", "Currency"],
+                [
+                    "Baillie Gifford Long Term Global Growth ETF - October 1, 2026",
+                    "Holding Name",
+                    "Fund %",
+                ]
+            ],
+            [
+                [
+                    "Baillie Gifford Long Term Global Growth ETF - October 1, 2026",
+                    "CUSIP",
+                    "Ticker",
+                    "Instrument Name",
+                    "Quantity",
+                    "Weight",
+                    "Currency",
+                ],
                 ["1", "67066G104", "NVDA US", "NVIDIA CORP USD 0.001", "100,928", "8.10", "USD"],
-                ["2", "", "2330 TT", "TAIWAN SEMICONDUCTOR MANUF TWD 10.0", "266,480", "6.39", "TWD"],
+                [
+                    "2",
+                    "",
+                    "2330 TT",
+                    "TAIWAN SEMICONDUCTOR MANUF TWD 10.0",
+                    "266,480",
+                    "6.39",
+                    "TWD",
+                ],
                 ["3", "", "", "Euro", "8,391", "0.00", "EUR"],
                 *[
-                    [str(index), "", f"{index} LN", f"Foreign Holding {index}", "100", "1.00", "GBP"]
+                    [
+                        str(index),
+                        "",
+                        f"{index} LN",
+                        f"Foreign Holding {index}",
+                        "100",
+                        "1.00",
+                        "GBP",
+                    ]
                     for index in range(4, 12)
                 ],
             ],
