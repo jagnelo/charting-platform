@@ -66,10 +66,26 @@
     <button class="tool-btn" type="button" title="Delete selected" aria-label="Delete selected" @click="deleteSelected" :disabled="!selectedId">
       <span class="tool-icon tool-icon--delete" aria-hidden="true" />
     </button>
-    <button class="tool-btn" type="button" title="Toggle visibility" aria-label="Toggle visibility" @click="toggleVisibility" :disabled="!selectedId">
+    <button
+      class="tool-btn"
+      type="button"
+      :title="selectedDrawing ? (selectedDrawing.is_visible ? 'Hide drawing' : 'Show drawing') : 'Toggle visibility'"
+      :aria-label="selectedDrawing ? (selectedDrawing.is_visible ? 'Hide drawing' : 'Show drawing') : 'Toggle visibility'"
+      :aria-pressed="selectedDrawing ? (selectedDrawing.is_visible ? 'true' : 'false') : undefined"
+      @click="toggleVisibility"
+      :disabled="!selectedId"
+    >
       <span class="tool-icon tool-icon--visibility" aria-hidden="true" />
     </button>
-    <button class="tool-btn" type="button" title="Lock / Unlock drawing" aria-label="Lock / Unlock drawing" @click="lockDrawing" :disabled="!selectedId">
+    <button
+      class="tool-btn"
+      type="button"
+      :title="selectedDrawing ? (selectedDrawing.is_locked ? 'Unlock drawing' : 'Lock drawing') : 'Lock / Unlock drawing'"
+      :aria-label="selectedDrawing ? (selectedDrawing.is_locked ? 'Unlock drawing' : 'Lock drawing') : 'Lock / Unlock drawing'"
+      :aria-pressed="selectedDrawing ? (selectedDrawing.is_locked ? 'true' : 'false') : undefined"
+      @click="lockDrawing"
+      :disabled="!selectedId"
+    >
       <span class="tool-icon tool-icon--lock" aria-hidden="true" />
     </button>
 
@@ -89,6 +105,7 @@ import type { DrawingType } from '@/types'
 const drawStore      = useDrawingsStore()
 const activeToolType = computed(() => drawStore.activeToolType)
 const selectedId     = computed(() => drawStore.selectedId)
+const selectedDrawing = computed(() => drawStore.drawings.find(drawing => drawing.id === selectedId.value) ?? null)
 
 const toolbarRef = ref<HTMLElement | null>(null)
 const openPopup = ref<string | null>(null)
