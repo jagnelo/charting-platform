@@ -236,8 +236,13 @@ test-stack-up:
 	@set -e; \
 	status=0; \
 	trap 'status=$$?; if test "$$status" -ne 0; then $(MAKE) test-stack-down || true; fi; exit $$status' EXIT INT TERM; \
-	$(RUNTIME_ENV) docker buildx inspect $$WORKTREE_BUILDER >/dev/null 2>&1 || $(RUNTIME_ENV) docker buildx create --name $$WORKTREE_BUILDER --use; \
-	$(RUNTIME_ENV) docker compose -p $$STACK_COMPOSE_PROJECT build --builder $$WORKTREE_BUILDER; \
+	if docker buildx version >/dev/null 2>&1; then \
+	  $(RUNTIME_ENV) docker buildx inspect $$WORKTREE_BUILDER >/dev/null 2>&1 || $(RUNTIME_ENV) docker buildx create --name $$WORKTREE_BUILDER --use; \
+	  $(RUNTIME_ENV) docker compose -p $$STACK_COMPOSE_PROJECT build --builder $$WORKTREE_BUILDER; \
+	else \
+	  echo "Docker Buildx CLI plugin is unavailable; using Docker Compose's default builder."; \
+	  $(RUNTIME_ENV) docker compose -p $$STACK_COMPOSE_PROJECT build; \
+	fi; \
 	$(RUNTIME_ENV) E2E_SEED_INSTRUMENTS=$${E2E_SEED_INSTRUMENTS:-true} E2E_SEED_MARKET_DATA=$${E2E_SEED_MARKET_DATA:-false} COMPOSE_PROJECT_NAME=$$STACK_COMPOSE_PROJECT POSTGRES_HOST_PORT=$$POSTGRES_HOST_PORT BACKEND_HOST_PORT=$$BACKEND_HOST_PORT FRONTEND_HOST_PORT=$$FRONTEND_HOST_PORT docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --no-build --force-recreate --wait
 
 test-stack-down:

@@ -2531,10 +2531,12 @@ class Settings(BaseSettings):
         "XSTOCKS_MARKET_DATA_USE_EXPIRES_AT",
         "BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
         "BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT",
+        "MASSIVE_MARKET_DATA_USE_REVIEWED_AT",
+        "MASSIVE_MARKET_DATA_USE_EXPIRES_AT",
         mode="before",
     )
     @classmethod
-    def parse_optional_coinbase_authority_timestamps(cls, v):
+    def parse_optional_market_data_use_authority_timestamps(cls, v):
         if isinstance(v, str) and not v.strip():
             return None
         return v

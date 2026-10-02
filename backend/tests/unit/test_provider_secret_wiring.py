@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from app.config import provider_required_operation_byte_bounds
+from app.config import Settings, provider_required_operation_byte_bounds
 from app.providers.registry import _PROVIDERS
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -693,6 +693,17 @@ def test_dinari_compose_and_live_workflow_defaults_use_documented_sandbox_host()
     workflow = (ROOT / ".github/workflows/provider-live.yml").read_text()
     assert sandbox_host in workflow
     assert retired_host not in workflow
+
+
+def test_optional_market_data_use_review_timestamps_accept_blank_compose_values():
+    configured = Settings(
+        _env_file=None,
+        MASSIVE_MARKET_DATA_USE_REVIEWED_AT="",
+        MASSIVE_MARKET_DATA_USE_EXPIRES_AT="",
+    )
+
+    assert configured.MASSIVE_MARKET_DATA_USE_REVIEWED_AT is None
+    assert configured.MASSIVE_MARKET_DATA_USE_EXPIRES_AT is None
 
 
 def test_live_preflight_reports_non_routable_safety_controls_without_guessing(monkeypatch):
