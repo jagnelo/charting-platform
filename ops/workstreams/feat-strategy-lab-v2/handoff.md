@@ -6036,3 +6036,14 @@ forward parity.
 
 The focused adapter suite passes 12 tests with Ruff, formatting, and MyPy
 green; package-wide validation is rerun for the checkpoint.
+
+## 2026-10-02 - Feature-ref/session receipt alignment
+
+The checkout's Git upstream metadata was pointing at the legacy hyphenated
+`origin/feat-strategy-lab-v2` ref instead of the actual slash-named
+`origin/feat/strategy-lab-v2` feature ref. This made a synchronized checkout
+appear 297 commits ahead and left the session receipt at the prior
+implementation tip. Upstream tracking now resolves to the slash-named feature
+ref, the branch is exactly synchronized, and the session checkpoint records
+the current forward-envelope checkpoint. This was workflow metadata drift, not
+a Strategy Lab product or Nautilus dependency failure.
