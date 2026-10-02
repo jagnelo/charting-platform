@@ -1,5 +1,18 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Industry drill-down selection semantics
+
+Product commit `4fde30261` keeps the TC-owned industry drill-down behavior and
+visual layout unchanged while exposing each industry row's selected state via
+`aria-pressed` and adding a contextual accessible label with resolution,
+verified-proxy, and classification provenance details. The focused authenticated
+Chromium top-down drill-down flow (`F8e.1`) passed `1/1`; the full serial
+frontend suite passed `128/128` files and `1,165/1,165` tests; `vue-tsc`, the
+production build, and `git diff --check` passed. Teardown removed the assigned
+stack, volumes, network, four generated images, and test sessions. No
+provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or
+acceptance policy changed.
+
 ## 2026-10-02 — VirtualWatchlist keyboard column resizing
 
 Product commit `1700f0813` makes TC-owned VirtualWatchlist column separators
