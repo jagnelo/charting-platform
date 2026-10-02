@@ -2219,6 +2219,17 @@ test.describe('TC2000 workstation', () => {
 
     const plot = daily.locator('.uplot').first()
     await expect(plot).toBeVisible({ timeout: 20_000 })
+    await plot.click()
+    const workstation = page.locator('.workstation').last()
+    await workstation.focus()
+    await page.keyboard.press('=')
+    await expect(dailyTimeframe).toHaveValue('W1', { timeout: 15_000 })
+    await expect(monthlyTimeframe).toHaveValue('W1', { timeout: 15_000 })
+    await page.keyboard.press('-')
+    await expect(dailyTimeframe).toHaveValue('D1', { timeout: 15_000 })
+    await expect(monthlyTimeframe).toHaveValue('D1', { timeout: 15_000 })
+    await expect(plot).toBeVisible({ timeout: 20_000 })
+
     const box = await plot.boundingBox()
     expect(box).not.toBeNull()
     await plot.evaluate(element => {
@@ -2253,18 +2264,6 @@ test.describe('TC2000 workstation', () => {
     await expect(monthlyTimeframe).toHaveValue('W1', { timeout: 15_000 })
     await expect(activeSymbol).toHaveValue('SPY')
     expect(await page.evaluate(() => (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot)).toBe(false)
-
-    // TC2000 also offers direct timeframe stepping; the focused chart remains
-    // the owner while the shell receives the documented global key.
-    await plot.click()
-    const workstation = page.locator('.workstation').last()
-    await workstation.focus()
-    await page.keyboard.press('=')
-    await expect(dailyTimeframe).toHaveValue('MN', { timeout: 15_000 })
-    await expect(monthlyTimeframe).toHaveValue('MN', { timeout: 15_000 })
-    await page.keyboard.press('-')
-    await expect(dailyTimeframe).toHaveValue('W1', { timeout: 15_000 })
-    await expect(monthlyTimeframe).toHaveValue('W1', { timeout: 15_000 })
 
     await browserDiagnostics.expectNoCriticalIssues()
   })

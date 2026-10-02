@@ -766,12 +766,15 @@ describe('WorkstationView pop-out bindings', () => {
   it('cycles only the active chart timeframe with equals and minus', async () => {
     routeState.path = '/'
     routeState.params = {}
-    harness.workspace.activeTab.active_window_key = 'chart-main'
     harness.workspace.timeframeForTool.mockReturnValueOnce('D1').mockReturnValueOnce('W1')
     harness.workspace.updateToolTimeframe.mockReturnValue(true)
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
+    const chart = appendChartPlotTarget(wrapper.element, 'chart-main')
+    chart.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    expect(harness.workspace.setActiveWindow).toHaveBeenCalledWith('chart-main')
+    harness.workspace.activeTab.active_window_key = 'chart-main'
 
     const next = new KeyboardEvent('keydown', { key: '=', bubbles: true, cancelable: true })
     wrapper.element.dispatchEvent(next)

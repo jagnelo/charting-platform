@@ -640,6 +640,14 @@ function preserveActiveUserSymbolDraft(symbol: string) {
 // search control are stopped at the wrapper and retain normal list interaction.
 function handleWorkstationPointerDown(event: PointerEvent) {
   const target = event.target
+  const clickedTool = target instanceof Element
+    ? target.closest<HTMLElement>('.tool-window[data-window-key]')
+    : null
+  const clickedWindowKey = clickedTool?.dataset.windowKey
+  if (!isPopout.value && clickedWindowKey
+    && workspaceStore.activeTab?.active_window_key !== clickedWindowKey) {
+    workspaceStore.setActiveWindow(clickedWindowKey)
+  }
   const insideSearch = target instanceof Element && target.closest('.workstation__search')
   if (insideSearch) {
     // Search controls retain their own listbox/history state, but any other
@@ -1905,7 +1913,9 @@ function handleKeydown(event: KeyboardEvent) {
   if (workspaceStore.isEditorTarget(event.target) || isInteractiveTarget(event.target)) return
   if (!event.ctrlKey && !event.metaKey && !event.altKey && (event.key === '=' || event.key === '-')) {
     const activeTab = workspaceStore.activeTab
-    const activeWindowKey = activeTab?.active_window_key
+    const activeWindowKey = isPopout.value
+      ? String(route.params.windowKey ?? '')
+      : activeTab?.active_window_key
     const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
     const direction = event.key === '=' ? 1 : -1
     if (activeWindow?.tool_type === 'chart' && activeWindowKey && cycleChartTimeframe(activeWindowKey, direction)) {
