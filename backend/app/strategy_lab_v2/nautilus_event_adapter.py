@@ -16,6 +16,7 @@ from typing import Any
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
 from app.strategy_lab_v2.contracts import DataSnapshot
 from app.strategy_lab_v2.event_tape import FrozenEventTape, bind_event_tape
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
 
 NAUTILUS_EVENT_ADAPTER_VERSION = "strategy-lab.nautilus-event-adapter.v1"
@@ -189,6 +190,30 @@ class NautilusEventParityReceipt:
         return content_digest(self)
 
 
+@dataclass(frozen=True, slots=True)
+class NautilusForwardEventEnvelope:
+    """Canonical forward metadata bound to one Nautilus wire record."""
+
+    canonical_event: CanonicalForwardEvent
+    record: NautilusEventRecord
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.canonical_event, CanonicalForwardEvent):
+            raise TypeError("canonical_event must be a CanonicalForwardEvent")
+        if not isinstance(self.record, NautilusEventRecord):
+            raise TypeError("record must be a NautilusEventRecord")
+        if self.canonical_event.event_id != self.record.event_id:
+            raise ValueError("canonical and Nautilus event ids must match")
+        if self.canonical_event.sequence != self.record.sequence:
+            raise ValueError("canonical and Nautilus event sequences must match")
+        if _event_time_ns(self.canonical_event.event_time) != self.record.event_time_ns:
+            raise ValueError("canonical and Nautilus event times must match")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
 def materialize_nautilus_event(
     event: MarketEvent,
     *,
@@ -208,6 +233,30 @@ def materialize_nautilus_event(
         event_time_ns=_event_time_ns(event.event_time),
         sequence=event.sequence,
         values=event.values,
+    )
+
+
+def materialize_nautilus_forward_event(
+    canonical_event: CanonicalForwardEvent,
+    market_event: MarketEvent,
+    *,
+    event_type: str,
+) -> NautilusForwardEventEnvelope:
+    """Bind admitted forward metadata and payload before engine handoff."""
+
+    if not isinstance(canonical_event, CanonicalForwardEvent):
+        raise TypeError("canonical_event must be a CanonicalForwardEvent")
+    if not isinstance(market_event, MarketEvent):
+        raise TypeError("market_event must be a MarketEvent")
+    if canonical_event.event_id != market_event.event_id:
+        raise ValueError("canonical and market event ids must match")
+    if canonical_event.sequence != market_event.sequence:
+        raise ValueError("canonical and market event sequences must match")
+    if canonical_event.event_time != market_event.event_time:
+        raise ValueError("canonical and market event times must match")
+    return NautilusForwardEventEnvelope(
+        canonical_event,
+        materialize_nautilus_event(market_event, event_type=event_type),
     )
 
 
@@ -347,7 +396,9 @@ __all__ = [
     "NautilusEventParityReceipt",
     "NautilusEventRecord",
     "NautilusEventTape",
+    "NautilusForwardEventEnvelope",
     "materialize_nautilus_event",
+    "materialize_nautilus_forward_event",
     "materialize_nautilus_event_tape",
     "verify_nautilus_event_tape_parity",
 ]

@@ -544,6 +544,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - Materialization resolves the effective `event_type` from the bound snapshot
   preflight, including explicitly recorded degraded substitutions, rather than
   silently reverting to the requested manifest value.
+- `NautilusForwardEventEnvelope` binds an admitted `CanonicalForwardEvent` to
+  its payload-bearing `MarketEvent` and wire record, rejecting ID, sequence, or
+  timestamp drift before a future live adapter can hand data to the engine.
 - `result_publication.py` composes conformance, runtime isolation, and exact
   result-artifact integrity into a storage-neutral publish plan. Only a stable
   authoritative build with matching evidence can publish; already-published

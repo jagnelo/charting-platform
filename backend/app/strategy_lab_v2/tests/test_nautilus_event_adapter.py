@@ -9,11 +9,14 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capabilities import CapabilityCell, Degradation, preflight_capabilities
 from app.strategy_lab_v2.contracts import AdjustmentMode, EventGranularity, ProductClass
 from app.strategy_lab_v2.event_tape import FrozenEventTape
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventRecord,
     NautilusEventTape,
+    NautilusForwardEventEnvelope,
     materialize_nautilus_event,
     materialize_nautilus_event_tape,
+    materialize_nautilus_forward_event,
     verify_nautilus_event_tape_parity,
 )
 from app.strategy_lab_v2.sdk import MarketEvent
@@ -218,6 +221,43 @@ def test_event_tape_parity_rejects_malformed_or_duplicate_wire_records() -> None
         verify_nautilus_event_tape_parity(tape, ({**payload, "extra": True},))
     with pytest.raises(ValueError, match="ids must be unique"):
         verify_nautilus_event_tape_parity(tape, (payload, payload))
+
+
+def test_forward_event_envelope_binds_canonical_identity_to_wire_payload() -> None:
+    market_event = _event()
+    canonical_event = CanonicalForwardEvent(
+        market_event.event_id,
+        market_event.sequence,
+        market_event.event_time,
+        market_event.event_time + timedelta(seconds=1),
+        content_digest("provider-source"),
+    )
+
+    envelope = materialize_nautilus_forward_event(
+        canonical_event,
+        market_event,
+        event_type="ohlcv",
+    )
+
+    assert isinstance(envelope, NautilusForwardEventEnvelope)
+    assert envelope.record.event_id == canonical_event.event_id
+    assert envelope.record.sequence == canonical_event.sequence
+    assert envelope.record.event_time_ns == 1_704_205_800_123_456_000
+    assert envelope.fingerprint.startswith("sha256:")
+
+
+def test_forward_event_envelope_rejects_identity_drift() -> None:
+    market_event = _event()
+    canonical_event = CanonicalForwardEvent(
+        market_event.event_id,
+        market_event.sequence + 1,
+        market_event.event_time,
+        market_event.event_time,
+        content_digest("provider-source"),
+    )
+
+    with pytest.raises(ValueError, match="sequences must match"):
+        materialize_nautilus_forward_event(canonical_event, market_event, event_type="ohlcv")
 
 
 def test_record_constructor_rejects_negative_wire_time() -> None:

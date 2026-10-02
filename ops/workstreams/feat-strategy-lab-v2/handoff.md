@@ -6023,3 +6023,16 @@ degraded substitutions. The adapter therefore cannot silently label a
 materialized record with the requested event type when the bound snapshot used
 another supported type. A focused regression covers the degraded substitution
 path and the complete package suite passes 988 tests.
+
+## 2026-10-02 - Forward canonical-event envelope
+
+Added `NautilusForwardEventEnvelope` and
+`materialize_nautilus_forward_event(...)`. The envelope binds the admitted
+`CanonicalForwardEvent` stream identity to the payload-bearing `MarketEvent`
+and resulting Nautilus wire record, rejecting event-ID, sequence, or timestamp
+drift before a host/Rust live adapter can invoke the engine. This closes the
+identity seam without inventing provider/account callbacks or claiming RC
+forward parity.
+
+The focused adapter suite passes 12 tests with Ruff, formatting, and MyPy
+green; package-wide validation is rerun for the checkpoint.
