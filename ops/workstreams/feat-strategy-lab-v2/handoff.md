@@ -2,6 +2,17 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-02 - Fail-closed persisted domain fingerprint validation
+
+The owner-scoped typed resource reader now rejects a present-but-malformed
+persisted `domain_fingerprint` instead of treating it as absent and skipping
+the identity comparison. The malformed-type regression test is included in the
+full package suite. At exact source SHA
+`badee4d716345258a8393833969f765de5576bed`, all 1,047 Strategy Lab v2 tests
+passed, Ruff passed, MyPy passed across 320 source files, the four changed
+Python files passed format checks, and whitespace validation was clean. This
+source commit is pushed and the local/remote hashes match.
+
 ## 2026-10-02 - Owner-scoped typed resource rehydration
 
 `ResourceDomainNormalization` now retains the typed domain contract it already
