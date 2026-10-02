@@ -15836,3 +15836,32 @@ or acceptance policy changed. A fresh dependency audit found provider-platform
 and ETF tips still outside staging, so consumer integration remains deferred.
 Continue the next independent TC-owned workstation or Study/Strategy gap; do
 not mutate another worktree or push under the private-origin safeguard.
+
+## 2026-10-02 — Primary workstation indicator settings
+
+Product commit `eddce5b9d988c055edd3f94955fa57bc7cca11a3` closes a primary
+workstation chart interaction gap: double-clicking an indicator could request
+an edit, but the primary Chart Plot Library did not handle that request or
+offer its own settings editor. The plot label is now an accessible settings
+button. The dialog edits catalog-defined parameters, line color/width, and
+timeframe applicability; retains additional existing parameters; saves through
+the instrument-indicator store; and returns focus to the plot-library trigger.
+This is TC-owned chart UI only; no provider, ETF, backend, data-ownership, or
+visual-policy changes were made.
+
+At the clean exact product commit, the serial frontend suite passed `128/128`
+files and `1,173/1,173` tests, including `37/37` ChartPlotLibrary tests.
+`npm run build` passed `vue-tsc` and Vite with the existing large-workstation
+chunk warning. An authenticated local Chromium interaction added SMA(20),
+opened settings, changed its period to 50, applied, and confirmed the visible
+plot as SMA(50). TC scope validation passed for 118 changed paths, all six
+scope self-tests passed, the workstream validator passed, and `git diff
+--check` passed.
+
+The branch-scoped six-service Compose stack was removed after the browser
+check, along with its temporary test volumes and four generated images. The
+resource audit found zero containers, volumes, images, test sessions, or
+unknown resources. The provider-platform and ETF tips still have not reached
+staging, and six protected screenshot differences still await the review
+specified by `docs/tc2000-visual-parity.md`; neither blocks independent TC UI
+and Study/Strategy work. No push or branch integration was attempted.

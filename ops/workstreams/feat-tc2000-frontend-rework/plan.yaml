@@ -277,23 +277,21 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_drawing_flyout_keyboard_selection_focus_passed
+  current_phase: R6_primary_chart_indicator_settings_added
   next_action: >-
-    Compare the remaining mapped V25 interaction requirements and TC-owned
-    Study/Strategy behavior against current implementation and browser evidence;
-    then implement the next independent gap. Keep protected screenshot
-    baselines and policies unchanged, do not duplicate provider or ETF work,
-    and defer consumer integration until both dependency tips reach staging.
+    Continue comparing mapped V25 chart interactions and TC-owned
+    Study/Strategy behavior; implement the next independent gap, keep protected
+    screenshot policies unchanged, and wait for provider/ETF changes to reach
+    staging before integration.
   current_blocker: >-
-    No external dependency blocks independent TC frontend work. The six
-    screenshot differences await the visual-policy review specified by
-    `docs/tc2000-visual-parity.md`; provider/ETF consumer work waits until
-    both tips reach staging. Neither prevents other TC-owned UI and
-    Study/Strategy slices. The drawing flyout focus-recovery slice passed its
-    focused unit test, authenticated browser flow, full serial frontend suite,
-    production build, and scoped Docker cleanup. Local commits are unpushed
-    under the existing private-origin safeguard; no push was attempted for this
-    slice.
+    No external dependency blocks independent TC frontend work. Six protected
+    screenshot differences await the review required by
+    `docs/tc2000-visual-parity.md`; provider/ETF consumer integration waits for
+    both tips to reach staging. Neither prevents independent TC UI or
+    Study/Strategy work. Product commit eddce5b9 added primary-chart indicator
+    settings and passed focused/full frontend tests, production build,
+    authenticated browser interaction, ownership checks, and scoped Docker
+    cleanup. The commit remains local; no push was attempted.
 historical_implementation_records:
   - "Product commit 7dcde92c21cc6ab26d721a82059e91b62eab1408 restores focus to the owning Drawing Toolbar group button after a keyboard selection closes its menu, avoiding focus loss to document body while preserving active drawing mode and appearance. The focused unit suite passed 2/2; authenticated Chromium F14-keyboard passed 1/1; the full serial frontend suite passed 128 files / 1,170 tests; vue-tsc and production build passed with the existing large-chunk warning. The branch-scoped six-service Compose stack became healthy using the standard builder despite the host's Buildx warning, then scoped cleanup removed four generated images and all containers, volumes, and network; resource accounting reported zero remaining resources. No visual oracle, provider/ETF behavior, or acceptance policy changed."
   - "Product commits 64cbfa4c and 75b3e004 add TC2000 `=` / `-` timeframe stepping for the active chart, publish changes through existing timeframe link groups, update the active workstation window when a docked tool is clicked, and target the corresponding chart in a pop-out. The authenticated F8k Chromium flow passed 1/1 at exact product tip 75b3e0048d8cb40dd24b21afd73c1c7078dbc69; the serial frontend suite passed 128 files / 1,169 tests; vue-tsc and the production build passed with the existing large-chunk warning. The six-service branch Compose stack became healthy through ordinary Compose after the host's Make target failed on missing Docker Buildx; scoped teardown/resource cleanup removed containers, volumes, network, and four generated images, leaving zero owned resources. Two earlier F8k candidate failures exposed test timing during chart reload and missing pointer-based active-window selection; both were corrected without weakening assertions. No provider/ETF behavior or visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
@@ -582,6 +580,7 @@ historical_implementation_records_continued:
   - "Product commit a5af29f59464 converts the chart plot library popup from a menu to a named dialog because it contains form controls. The trigger announces aria-haspopup=dialog; opening focuses the plot selector, ArrowUp opens with focus on the last enabled control, and Escape restores trigger focus. Focused/full serial frontend tests, production build, and authenticated browser verification passed without changing layout or visual policy."
 
   - "Product commit 7e927a1f03d7 converts the Chart Templates popup from a menu to a named dialog because it contains a text field and dropdown. The trigger announces aria-haspopup=dialog; ArrowDown focuses the name field, ArrowUp focuses Import, and Escape restores trigger focus. Focused tests passed 15/15; the full serial frontend suite passed 128 files and 1,168/1,168 tests; type-check/build passed with the existing chunk warning. Authenticated Firefox browser verification confirmed dialog semantics and focus recovery."
+  - "Product commit eddce5b9d988 adds editable indicator parameters, line styling, and timeframe applicability to the primary workstation Chart Plot Library; chart edit requests now open the same accessible settings dialog, which validates inputs, retains custom parameters, saves against the active instrument, and restores focus. Focused ChartPlotLibrary tests passed 37/37; the clean exact-commit serial frontend suite passed 128/128 files and 1,173/1,173 tests; vue-tsc/Vite build, TC scope guard (118 changed paths), six scope self-tests, workstream validation, and git diff --check passed. An authenticated local Chromium interaction changed SMA(20) to SMA(50). The branch-scoped six-service Compose stack was removed with its temporary volumes and generated images; resource accounting found zero remaining containers, volumes, images, test sessions, or unknown resources. No provider/ETF behavior, screenshot oracle, baseline, mask, threshold, skip, fallback, or acceptance policy changed."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."

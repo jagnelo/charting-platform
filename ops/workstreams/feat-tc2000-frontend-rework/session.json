@@ -116,10 +116,10 @@
   "implementation_sha": "075a733bef7f259cea8abcf1335c9051f6cd0cd6",
   "interrupted": false,
   "last_checkpoint": "2026-10-02T00:16:00+01:00",
-  "last_human_progress_update": "2026-10-02T20:58:48.534148+00:00",
+  "last_human_progress_update": "2026-10-02T21:33:44.529356+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue independent TC workstation UI and Study/Strategy slices while preserving the protected visual policy; keep provider/ETF consumer integration deferred until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
-  "plan_hash": "1ec005b49681f9a7c3952ab382eb0011c8b11846b13b41d83d8ba2166865432c",
+  "plan_hash": "fc44a7eaa17c18b730dc8ef458abb989b6e29dd9769032b41da2d5edef00196f",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -132,11 +132,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "No external blocker for independent TC work. Six screenshot differences await visual review; provider and ETF consumer work waits for staging.",
-    "current_phase": "R6_drawing_flyout_keyboard_selection_focus_passed",
-    "next_action": "Compare the remaining mapped V25 interaction requirements and TC-owned Study/Strategy behavior against current implementation and browser evidence; then implement the next independent gap. Keep protected screenshot baselines and policies unchanged, do not duplicate provider or ETF work, and defer consumer integration until both dependency tips reach staging.",
+    "current_blocker": "No blocker for independent TC frontend work. Six screenshot differences still need human review and provider/ETF consumer integration waits for staging; neither prevents unrelated UI or Study/Strategy work.",
+    "current_phase": "R6_primary_chart_indicator_settings_added",
+    "next_action": "Continue comparing mapped V25 chart interactions and TC-owned Study/Strategy behavior; implement the next independent gap, keep protected screenshot policies unchanged, and wait for provider/ETF changes to reach staging before integration.",
     "total": 9,
-    "updated_at": "2026-10-02T20:58:48.534130+00:00"
+    "updated_at": "2026-10-02T21:33:44.529332+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
