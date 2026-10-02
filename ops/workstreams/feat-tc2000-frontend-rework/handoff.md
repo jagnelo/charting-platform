@@ -1,5 +1,17 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Exact gate stopped at host-sensitive frontend benchmark
+
+The exact full-stack/browser gate at documentation/product tip
+`eb548fd0b`/`7e49c955f` passed workstream validation, dependency/migration
+checks, lint/format/type-check, backend unit coverage `1,621/1,621`, backend
+integration coverage `408/408`, and `82.26%` combined coverage with
+branch-scoped cleanup. It stopped at frontend-tests because the unrelated
+100k-point uPlot range-band benchmark measured `1,167.9ms` against its
+`1,000ms` host-sensitive threshold; `127` frontend files and `1,160/1,161`
+tests passed. No visual stage ran, and no provider/ETF or visual policy
+changed. The serial frontend suite remains green at `1,161/1,161`.
+
 ## 2026-10-02 — Optimization leaderboard keyboard semantics
 
 Product commit `7e49c955f` makes TC-owned Strategy Lab optimization
