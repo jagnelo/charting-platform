@@ -1,7 +1,7 @@
 <template>
   <section class="chart-plots" aria-label="Chart plot library" @pointerdown.stop @mousedown.stop @keydown.esc="closeToTrigger">
-    <button ref="toggleButton" type="button" aria-label="Chart plot library" :aria-expanded="open" :aria-controls="plotLibraryMenuId" aria-haspopup="menu" @click="toggleOpen()" @keydown="handleTriggerKeydown">Plots {{ chartStore.indicators.length + (pythonPlots?.length ?? 0) + (scanPlots?.length ?? 0) }}</button>
-    <div v-if="open" :id="plotLibraryMenuId" ref="menuRoot" class="chart-plots__menu" role="menu" aria-label="Chart plot library menu" :style="menuStyle" @keydown="handleMenuKeydown">
+    <button ref="toggleButton" type="button" aria-label="Chart plot library" :aria-expanded="open" :aria-controls="plotLibraryMenuId" aria-haspopup="dialog" @click="toggleOpen()" @keydown="handleTriggerKeydown">Plots {{ chartStore.indicators.length + (pythonPlots?.length ?? 0) + (scanPlots?.length ?? 0) }}</button>
+    <div v-if="open" :id="plotLibraryMenuId" ref="menuRoot" class="chart-plots__menu" role="dialog" aria-label="Chart plot library panel" :style="menuStyle" @keydown="handleMenuKeydown">
       <header><b>Chart plots</b><button type="button" aria-label="Close chart plot library" @click="closeToTrigger"><WorkstationGlyph kind="close" /></button></header>
       <select ref="firstControl" aria-label="Add indicator plot" :value="''" @change="add(($event.target as HTMLSelectElement).value)">
         <option value="" disabled>Add indicator plot…</option>

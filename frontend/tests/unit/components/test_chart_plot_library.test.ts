@@ -61,10 +61,10 @@ describe('ChartPlotLibrary', () => {
     const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-keyboard-test' } }, attachTo: document.body })
     const trigger = wrapper.get('button[aria-label="Chart plot library"]')
     await trigger.trigger('keydown', { key: 'ArrowDown' })
-    expect(wrapper.get('[role="menu"]').exists()).toBe(true)
+    expect(wrapper.get('[role="dialog"]').exists()).toBe(true)
     expect(document.activeElement).toBe(wrapper.get('[aria-label="Add indicator plot"]').element)
-    await wrapper.get('[role="menu"]').trigger('keydown', { key: 'Escape' })
-    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    await wrapper.get('[role="dialog"]').trigger('keydown', { key: 'Escape' })
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
     expect(document.activeElement).toBe(trigger.element)
     wrapper.unmount()
   })
@@ -80,9 +80,11 @@ describe('ChartPlotLibrary', () => {
     expect(secondId).toBeTruthy()
     expect(firstId).not.toBe(secondId)
     expect(firstTrigger.attributes('aria-expanded')).toBe('false')
+    expect(firstTrigger.attributes('aria-haspopup')).toBe('dialog')
 
     await firstTrigger.trigger('click')
-    expect(first.get(`#${firstId}`).attributes('role')).toBe('menu')
+    expect(first.get(`#${firstId}`).attributes('role')).toBe('dialog')
+    expect(first.get(`#${firstId}`).attributes('aria-label')).toBe('Chart plot library panel')
     expect(firstTrigger.attributes('aria-expanded')).toBe('true')
     expect(second.find(`#${secondId}`).exists()).toBe(false)
     first.unmount()
@@ -120,7 +122,7 @@ describe('ChartPlotLibrary', () => {
     const trigger = wrapper.get('button[aria-label="Chart plot library"]')
     await trigger.trigger('keydown', { key: 'ArrowUp' })
 
-    expect(wrapper.get('[role="menu"]').exists()).toBe(true)
+    expect(wrapper.get('[role="dialog"]').exists()).toBe(true)
     await vi.waitFor(() => expect(document.activeElement).toBe(wrapper.get('[aria-label="Delete SMA(20)"]').element))
     wrapper.unmount()
   })
@@ -130,7 +132,7 @@ describe('ChartPlotLibrary', () => {
     const trigger = wrapper.get('button[aria-label="Chart plot library"]')
     await trigger.trigger('click')
     await wrapper.get('button[aria-label="Close chart plot library"]').trigger('click')
-    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
     expect(document.activeElement).toBe(trigger.element)
     wrapper.unmount()
   })
@@ -142,7 +144,7 @@ describe('ChartPlotLibrary', () => {
     const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-viewport-test' } } })
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
     await flushPromises()
-    const menu = wrapper.get('[role="menu"]').element as HTMLElement
+    const menu = wrapper.get('[role="dialog"]').element as HTMLElement
     expect(menu.style.left).toBe('8px')
     expect(menu.style.width).toBe('204px')
     expect(addSpy).toHaveBeenCalledWith('resize', expect.any(Function))
@@ -167,7 +169,7 @@ describe('ChartPlotLibrary', () => {
     })
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
     await flushPromises()
-    const menu = wrapper.get('[role="menu"]').element as HTMLElement
+    const menu = wrapper.get('[role="dialog"]').element as HTMLElement
     expect(menu.style.top).toBe('8px')
     expect(menu.style.maxHeight).toBe('164px')
     expect(addSpy).toHaveBeenCalledWith('scroll', expect.any(Function), true)
@@ -196,7 +198,7 @@ describe('ChartPlotLibrary', () => {
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
     await wrapper.get('[aria-label="Add indicator plot"]').setValue('rsi')
     await flushPromises()
-    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
     expect(chart.indicators).toHaveLength(1)
   })
 
@@ -209,12 +211,12 @@ describe('ChartPlotLibrary', () => {
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
     const insertion = wrapper.get('[aria-label="Add indicator plot"]').setValue('rsi')
     await Promise.resolve()
-    expect(wrapper.find('[role="menu"]').exists()).toBe(true)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
     release()
     await insertion
     await flushPromises()
     expect(apiMock.put).toHaveBeenCalledWith('/instrument-indicators/42', { indicators: chart.indicators })
-    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
   })
 
   it('loads and adds a typed Python plot asset without executing frontend code', async () => {
