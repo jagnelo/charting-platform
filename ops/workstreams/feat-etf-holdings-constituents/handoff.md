@@ -5788,3 +5788,12 @@ fund-detail and pricing dates (2026-08-31 and 2026-09-28), but no
 holdings-specific as-of date; direct application-equivalent retrieval failed
 DNS resolution for `matrixadvisorsvalueetf.com`. Matrix remains
 `non_executable_public_source` until holdings freshness semantics are explicit.
+
+## Nicholas Wealth route recheck — 2026-10-02
+
+Current indexed first-party material identifies the XFUNDS catalogue and
+representative product pages expose `DOWNLOAD ALL HOLDINGS` controls, but no
+resolved artifact or rows were available from the indexed click result. Direct
+application-equivalent requests failed DNS resolution for `nicholasx.com`, so no
+complete current portfolio was retrieved. Nicholas Wealth remains
+`issuer_access_blocked`; no UI-marker or SEC-derived promotion was made.
