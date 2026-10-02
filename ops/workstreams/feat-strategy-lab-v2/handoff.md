@@ -6530,3 +6530,34 @@ artifact reads are chunked, but end-to-end replay is not yet bounded-memory for
 very long histories. The next implementation slice must replace this with a
 chunked content-addressed runtime data-plane handoff before claiming broad
 history-scale readiness.
+
+## 2026-10-02 - Immutable experiment package binding
+
+Experiments now optionally bind each declared strategy-version fingerprint to
+one exact immutable `StrategyPackage` fingerprint. The binding is part of the
+experiment fingerprint and is preserved by resource normalization/rehydration.
+Trial runtime assembly rejects packages that are missing from the experiment
+binding or differ from the pinned package, preventing a retry from silently
+changing source archives or dependency locks. Draft experiments may remain
+unbound; execution fails closed until each strategy version is package-bound.
+
+Validation at source commit `0a257187ae4ae86619257c3c99cf16ed586e5eba`:
+1,069 Strategy Lab v2 tests passed, Ruff passed, MyPy passed across 325 source
+files, formatting checks passed for the touched files that are formatter-clean,
+and `git diff --check` passed. The workstream validator passed before the
+implementation commit; it is rerun with this checkpoint.
+
+Nautilus v2 does not require waiting for a stable tag. The exact isolated
+`2.0.0rc5` wheel/runtime image and a basic native-engine probe already pass, but
+that probe is not the complete platform conformance suite and cannot authorize
+authoritative results yet. Prerelease builds remain prohibited from broker
+connections and real-capital control. The legacy backend pin remains 1.226.0;
+the v2 runtime stays isolated rather than changing that global dependency.
+
+There is no external release blocker to isolated implementation. Provider,
+ETF, and TC2000 branch tips are still not ancestors of staging, so consuming
+their shared contracts remains gated; this does not block parallel-safe core
+work. Docker is ready, while `full_stack_browser` remains a final acceptance
+gate. Next implementation context: replace full event-tape and JSON-bundle
+materialization with a bounded, chunked content-addressed replay data plane,
+then continue owner-scoped resource hydration and runtime dispatch assembly.

@@ -788,8 +788,9 @@ progress:
     - strategy-lab-v2-exact-pinned-prerelease-authority-gate
     - strategy-lab-v2-verified-local-source-package-resolution
     - strategy-lab-v2-verified-frozen-event-tape-artifact-boundary
+    - strategy-lab-v2-experiment-strategy-package-identity-binding
   total: 18
-  current_phase: strategy-lab-v2-verified-frozen-event-tape-artifact-boundary
+  current_phase: strategy-lab-v2-experiment-strategy-package-identity-binding
   current_blocker: >-
     No external product, market-data, or Nautilus release dependency blocks
     isolated implementation. Docker is currently ready through the authorized
