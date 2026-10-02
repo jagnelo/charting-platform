@@ -19,12 +19,15 @@ from app.strategy_lab_v2.engine_execution import (
 )
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     NautilusRuntimeInputArtifactReference,
+    verify_nautilus_context_stream_artifact_file,
     verify_nautilus_runtime_artifact_file,
 )
 from app.strategy_lab_v2.sandbox import (
     SandboxCommandPlan,
     nautilus_runtime_command,
     sandbox_attempt_id,
+    sandbox_context_stream_digest,
+    sandbox_context_stream_path,
     sandbox_engine_id,
     sandbox_input_bundle_digest,
     sandbox_input_path,
@@ -129,6 +132,8 @@ def run_nautilus_plan(
         engine_marker = sandbox_engine_id(sandbox_plan)
         attempt_id = sandbox_attempt_id(sandbox_plan)
         input_digest = sandbox_input_bundle_digest(sandbox_plan)
+        context_digest = sandbox_context_stream_digest(sandbox_plan)
+        context_path = sandbox_context_stream_path(sandbox_plan)
         memory_limit_bytes = sandbox_memory_limit_bytes(sandbox_plan)
     except (TypeError, ValueError):
         reasons.append("sandbox_plan_not_hardened")
@@ -150,11 +155,37 @@ def run_nautilus_plan(
                 )
             except (OSError, TypeError, ValueError):
                 reasons.append("nautilus_input_artifact_integrity_failed")
+            context_reference = runtime_input_artifact.context_stream
+            if context_reference is None:
+                if context_digest is not None or context_path is not None:
+                    reasons.append("nautilus_context_stream_unbound")
+            else:
+                if context_digest != context_reference.artifact.content_digest:
+                    reasons.append("nautilus_context_stream_digest_mismatch")
+                if context_path is None:
+                    reasons.append("nautilus_context_stream_mount_required")
+                else:
+                    try:
+                        verify_nautilus_context_stream_artifact_file(
+                            context_reference,
+                            context_path,
+                            max_input_bytes=max(1, memory_limit_bytes // 8),
+                        )
+                    except (OSError, TypeError, ValueError):
+                        reasons.append("nautilus_context_stream_integrity_failed")
+        elif context_digest is not None or context_path is not None:
+            reasons.append("nautilus_context_stream_reference_required")
         try:
             expected_command = nautilus_runtime_command(
                 expected_version=execution_plan.engine_version,
                 snapshot_fingerprint=execution_plan.data_snapshot_fingerprint,
                 max_input_bytes=max(1, memory_limit_bytes // 8),
+                context_stream_digest=(
+                    context_digest
+                    if runtime_input_artifact is not None
+                    and runtime_input_artifact.context_stream is not None
+                    else None
+                ),
             )
             if sandbox_runtime_command(sandbox_plan) != expected_command:
                 reasons.append("nautilus_runtime_command_required")

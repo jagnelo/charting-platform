@@ -32,7 +32,12 @@ from app.strategy_lab_v2.runtime_execution import (
     StrategyRuntimePreflight,
     StrategyRuntimeRequest,
 )
-from app.strategy_lab_v2.sandbox import SandboxCommandPlan, sandbox_memory_limit_bytes
+from app.strategy_lab_v2.sandbox import (
+    SandboxCommandPlan,
+    sandbox_context_stream_digest,
+    sandbox_context_stream_path,
+    sandbox_memory_limit_bytes,
+)
 from app.strategy_lab_v2.worker_execution import (
     WorkerExecutionResolution,
     execute_worker_handoff,
@@ -98,6 +103,21 @@ class WorkerExecutionRequest:
             1, sandbox_memory_limit_bytes(self.sandbox_plan) // 8
         ):
             raise ValueError("runtime input artifact exceeds the worker memory-derived bound")
+        context_reference = self.runtime_input_artifact.context_stream
+        if context_reference is None:
+            if (
+                sandbox_context_stream_digest(self.sandbox_plan) is not None
+                or sandbox_context_stream_path(self.sandbox_plan) is not None
+            ):
+                raise ValueError(
+                    "sandbox context stream mount is not bound to the runtime artifact"
+                )
+        elif (
+            sandbox_context_stream_digest(self.sandbox_plan)
+            != context_reference.artifact.content_digest
+            or sandbox_context_stream_path(self.sandbox_plan) is None
+        ):
+            raise ValueError("sandbox context stream mount differs from the runtime artifact")
 
     @property
     def request_fingerprint(self) -> str:

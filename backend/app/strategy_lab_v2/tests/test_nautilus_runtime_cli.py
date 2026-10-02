@@ -6,6 +6,7 @@ from decimal import Decimal
 import pytest
 
 from app.strategy_lab_v2 import nautilus_runtime_cli
+from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ProductClass
 from app.strategy_lab_v2.nautilus_engine_input import (
@@ -20,10 +21,14 @@ from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
     _invocation_batch,
     _manifest,
 )
-from app.strategy_lab_v2.nautilus_runtime_bundle import build_nautilus_runtime_bundle
+from app.strategy_lab_v2.nautilus_runtime_bundle import (
+    build_nautilus_runtime_bundle,
+    materialize_nautilus_context_stream_artifact,
+)
+from strategy_runtime import deserialize_invocation_batch
 
 
-def _runtime_bundle():
+def _runtime_bundle(*, context_stream_store: LocalArtifactStore | None = None):
     first_event = NautilusEventRecord(
         "prices",
         "adapter-event-1",
@@ -87,7 +92,21 @@ def _runtime_bundle():
         parameters={"window": 20},
         random_seed=17,
     )
-    return build_nautilus_runtime_bundle(engine_input, _invocation_batch())
+    invocation_batch = _invocation_batch()
+    if context_stream_store is None:
+        return build_nautilus_runtime_bundle(engine_input, invocation_batch)
+    source, manifest, contexts, entrypoint, max_intents = deserialize_invocation_batch(
+        invocation_batch
+    )
+    context_stream = materialize_nautilus_context_stream_artifact(
+        context_stream_store,
+        source=source,
+        manifest=manifest,
+        contexts=contexts,
+        entrypoint=entrypoint,
+        max_intents_per_event=max_intents,
+    )
+    return build_nautilus_runtime_bundle(engine_input, context_stream=context_stream)
 
 
 def test_runtime_bundle_binds_cli_digest_to_the_readonly_wire_bytes() -> None:
@@ -131,6 +150,80 @@ def test_cli_runs_only_digest_attempt_snapshot_and_version_bound_bundle(
     assert len(calls) == 1
     result = json.loads(output_path.read_text(encoding="utf-8"))
     assert result == {"engine_version": "2.0.0rc5", "authoritative": False, "fills": 2}
+
+
+def test_cli_verifies_and_streams_context_sidecar_before_native_run(tmp_path, monkeypatch) -> None:
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    bundle = _runtime_bundle(context_stream_store=store)
+    assert bundle.context_stream is not None
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "result.json"
+    input_path.write_bytes(bundle.wire_bytes)
+    output_path.touch()
+    monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle.input_bundle_digest)
+    monkeypatch.setenv("STRATEGY_ATTEMPT_ID", bundle.attempt_id)
+    monkeypatch.setenv(
+        "STRATEGY_CONTEXT_STREAM_DIGEST", bundle.context_stream.artifact.content_digest
+    )
+    calls = []
+
+    def fake_run(engine_input, *, invocation_context_stream, expected_context_count):
+        calls.append(
+            (
+                engine_input,
+                invocation_context_stream.read(),
+                expected_context_count,
+            )
+        )
+        return {"engine_version": "2.0.0rc5", "authoritative": False}
+
+    monkeypatch.setattr(nautilus_runtime_cli, "run_native_backtest", fake_run)
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+    assert (
+        nautilus_runtime_cli.run_bundle(
+            str(input_path),
+            str(output_path),
+            expected_version="2.0.0rc5",
+            expected_snapshot_fingerprint=content_digest("snapshot"),
+            max_input_bytes=1_000_000,
+            context_stream_path=str(store.path_for(bundle.context_stream.artifact.storage_key)),
+        )
+        == 0
+    )
+    assert len(calls) == 1
+    assert calls[0][1] == store.read(bundle.context_stream.artifact.storage_key)
+    assert calls[0][2] == bundle.context_stream.context_count
+
+
+def test_cli_rejects_context_sidecar_digest_drift_before_result_write(
+    tmp_path, monkeypatch
+) -> None:
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    bundle = _runtime_bundle(context_stream_store=store)
+    assert bundle.context_stream is not None
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "result.json"
+    context_path = tmp_path / "contexts.ndjson"
+    input_path.write_bytes(bundle.wire_bytes)
+    context_path.write_bytes(b"drifted")
+    output_path.write_text("unchanged", encoding="utf-8")
+    monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle.input_bundle_digest)
+    monkeypatch.setenv("STRATEGY_ATTEMPT_ID", bundle.attempt_id)
+    monkeypatch.setenv(
+        "STRATEGY_CONTEXT_STREAM_DIGEST", bundle.context_stream.artifact.content_digest
+    )
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+
+    with pytest.raises(ValueError, match="byte length differs"):
+        nautilus_runtime_cli.run_bundle(
+            str(input_path),
+            str(output_path),
+            expected_version="2.0.0rc5",
+            expected_snapshot_fingerprint=content_digest("snapshot"),
+            max_input_bytes=1_000_000,
+            context_stream_path=str(context_path),
+        )
+    assert output_path.read_text(encoding="utf-8") == "unchanged"
 
 
 @pytest.mark.parametrize(

@@ -13,11 +13,12 @@ import hashlib
 import json
 import os
 import stat
-from collections.abc import Mapping
+import tempfile
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
-from typing import Any
+from typing import Any, BinaryIO, cast
 
 from app.strategy_lab_v2.artifact_store import (
     ArtifactStoreDecision,
@@ -27,8 +28,18 @@ from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
 from app.strategy_lab_v2.nautilus_engine_input import NautilusEngineInput
-from app.strategy_lab_v2.nautilus_runtime_protocol import NAUTILUS_RUNTIME_BUNDLE_SCHEMA
-from strategy_runtime import deserialize_invocation_batch
+from app.strategy_lab_v2.nautilus_runtime_protocol import (
+    NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
+    NAUTILUS_CONTEXT_STREAM_SCHEMA,
+    NAUTILUS_RUNTIME_BUNDLE_SCHEMA,
+    NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1,
+)
+from app.strategy_lab_v2.sdk import StrategyContext, StrategySdkManifest
+from strategy_runtime import (
+    MAX_INVOCATION_CONTEXT_STREAM_BYTES,
+    deserialize_invocation_batch,
+    serialize_invocation_context_stream,
+)
 
 NAUTILUS_RUNTIME_ARTIFACT_MEDIA_TYPE = "application/vnd.charting.strategy-lab.nautilus+json"
 NAUTILUS_RUNTIME_ARTIFACT_SCHEMA = "strategy-lab.nautilus-runtime-bundle.v1"
@@ -36,6 +47,112 @@ NAUTILUS_RUNTIME_ARTIFACT_SCHEMA = "strategy-lab.nautilus-runtime-bundle.v1"
 
 class NautilusRuntimeBundleError(ValueError):
     """Malformed or inconsistent local Nautilus worker input."""
+
+
+@dataclass(frozen=True, slots=True)
+class NautilusContextStreamArtifactReference:
+    """Pinned artifact identity for a bounded engine-neutral invocation stream."""
+
+    artifact: ArtifactManifest
+    context_count: int
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.artifact, ArtifactManifest):
+            raise TypeError("artifact must be an ArtifactManifest")
+        if self.artifact.media_type != NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE:
+            raise ValueError("strategy context stream media type is unsupported")
+        if self.artifact.schema_version != NAUTILUS_CONTEXT_STREAM_SCHEMA:
+            raise ValueError("strategy context stream schema is unsupported")
+        if self.artifact.retention_class is not ArtifactRetention.PINNED_INPUT:
+            raise ValueError("strategy context streams must use pinned-input retention")
+        if (
+            not isinstance(self.context_count, int)
+            or isinstance(self.context_count, bool)
+            or self.context_count < 1
+        ):
+            raise ValueError("context_count must be a positive integer")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+    def to_wire(self) -> dict[str, Any]:
+        return {
+            "artifact": {
+                "content_digest": self.artifact.content_digest,
+                "byte_length": self.artifact.byte_length,
+                "media_type": self.artifact.media_type,
+                "schema_version": self.artifact.schema_version,
+                "storage_key": self.artifact.storage_key,
+                "retention_class": self.artifact.retention_class.value,
+            },
+            "context_count": self.context_count,
+        }
+
+
+def materialize_nautilus_context_stream_artifact(
+    store: LocalArtifactStore,
+    *,
+    source: str,
+    manifest: StrategySdkManifest,
+    contexts: Iterable[StrategyContext],
+    entrypoint: str,
+    max_intents_per_event: int = 100,
+    max_stream_bytes: int = MAX_INVOCATION_CONTEXT_STREAM_BYTES,
+) -> NautilusContextStreamArtifactReference:
+    """Serialize and publish SDK contexts directly to a pinned content artifact."""
+
+    if not isinstance(store, LocalArtifactStore):
+        raise TypeError("store must be a LocalArtifactStore")
+    temporary_path: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w+b",
+            dir=store.root,
+            prefix=".nautilus-context-stream-",
+            delete=False,
+        ) as stream:
+            temporary_path = stream.name
+            context_count = serialize_invocation_context_stream(
+                cast(BinaryIO, stream),
+                source=source,
+                manifest=manifest,
+                contexts=contexts,
+                entrypoint=entrypoint,
+                max_intents_per_event=max_intents_per_event,
+                max_stream_bytes=max_stream_bytes,
+            )
+            stream.flush()
+            os.fsync(stream.fileno())
+            byte_length = os.fstat(stream.fileno()).st_size
+            stream.seek(0)
+            digest = hashlib.sha256()
+            while chunk := stream.read(1024 * 1024):
+                digest.update(chunk)
+        content_address = f"sha256:{digest.hexdigest()}"
+        artifact = ArtifactManifest(
+            content_digest=content_address,
+            byte_length=byte_length,
+            media_type=NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
+            schema_version=NAUTILUS_CONTEXT_STREAM_SCHEMA,
+            storage_key=content_address,
+            retention_class=ArtifactRetention.PINNED_INPUT,
+        )
+        publication = store.publish_file(artifact, temporary_path)
+        if publication.decision not in {
+            ArtifactStoreDecision.WRITTEN,
+            ArtifactStoreDecision.REUSED,
+        }:
+            raise NautilusRuntimeBundleError(
+                "strategy context stream failed content-addressed publication"
+            )
+        return NautilusContextStreamArtifactReference(artifact, context_count)
+    finally:
+        if temporary_path is not None:
+            try:
+                os.unlink(temporary_path)
+            except FileNotFoundError:
+                pass
 
 
 def _wire_value(value: Any) -> Any:
@@ -65,6 +182,7 @@ class NautilusRuntimeBundle:
     attempt_id: str
     input_bundle_digest: str
     wire_bytes: bytes
+    context_stream: NautilusContextStreamArtifactReference | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.attempt_id, str) or not self.attempt_id.strip():
@@ -76,6 +194,7 @@ class NautilusRuntimeBundle:
             self.wire_bytes,
             attempt_id=self.attempt_id,
             input_bundle_digest=self.input_bundle_digest,
+            context_stream=self.context_stream,
         )
 
     @property
@@ -95,6 +214,7 @@ class NautilusRuntimeInputArtifactReference:
     attempt_id: str
     input_bundle_digest: str
     artifact: ArtifactManifest
+    context_stream: NautilusContextStreamArtifactReference | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.attempt_id, str) or not self.attempt_id.strip():
@@ -108,6 +228,10 @@ class NautilusRuntimeInputArtifactReference:
             raise ValueError("runtime input artifact schema is unsupported")
         if self.artifact.retention_class is not ArtifactRetention.PINNED_INPUT:
             raise ValueError("runtime input artifacts must use pinned-input retention")
+        if self.context_stream is not None and not isinstance(
+            self.context_stream, NautilusContextStreamArtifactReference
+        ):
+            raise TypeError("context_stream must be a NautilusContextStreamArtifactReference")
 
     @property
     def fingerprint(self) -> str:
@@ -124,6 +248,12 @@ def materialize_nautilus_runtime_bundle(
         raise TypeError("bundle must be a NautilusRuntimeBundle")
     if not isinstance(store, LocalArtifactStore):
         raise TypeError("store must be a LocalArtifactStore")
+    if bundle.context_stream is not None:
+        with store.open_verified(
+            bundle.context_stream.artifact.storage_key,
+            max_bytes=bundle.context_stream.artifact.byte_length,
+        ):
+            pass
     manifest = ArtifactManifest(
         content_digest=artifact_content_digest(bundle.wire_bytes),
         byte_length=len(bundle.wire_bytes),
@@ -139,6 +269,7 @@ def materialize_nautilus_runtime_bundle(
         attempt_id=bundle.attempt_id,
         input_bundle_digest=bundle.input_bundle_digest,
         artifact=manifest,
+        context_stream=bundle.context_stream,
     )
 
 
@@ -166,10 +297,17 @@ def load_materialized_nautilus_runtime_bundle(
         reference.artifact,
         max_bytes=max_input_bytes,
     )
+    if reference.context_stream is not None:
+        with store.open_verified(
+            reference.context_stream.artifact.storage_key,
+            max_bytes=reference.context_stream.artifact.byte_length,
+        ):
+            pass
     return NautilusRuntimeBundle(
         attempt_id=reference.attempt_id,
         input_bundle_digest=reference.input_bundle_digest,
         wire_bytes=wire_bytes,
+        context_stream=reference.context_stream,
     )
 
 
@@ -192,7 +330,10 @@ def verify_nautilus_runtime_artifact_file(
     manifest = reference.artifact
     if manifest.byte_length > max_input_bytes:
         raise ValueError("Nautilus runtime input artifact exceeds its configured bound")
-    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    descriptor = os.open(
+        path,
+        os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0),
+    )
     try:
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode):
@@ -210,6 +351,48 @@ def verify_nautilus_runtime_artifact_file(
         os.close(descriptor)
     if f"sha256:{digest.hexdigest()}" != manifest.content_digest:
         raise ValueError("Nautilus runtime input artifact digest differs")
+
+
+def verify_nautilus_context_stream_artifact_file(
+    reference: NautilusContextStreamArtifactReference,
+    path: str | os.PathLike[str],
+    *,
+    max_input_bytes: int,
+) -> None:
+    """Verify the exact mounted sidecar bytes without buffering the stream."""
+
+    if not isinstance(reference, NautilusContextStreamArtifactReference):
+        raise TypeError("reference must be a NautilusContextStreamArtifactReference")
+    if (
+        not isinstance(max_input_bytes, int)
+        or isinstance(max_input_bytes, bool)
+        or max_input_bytes <= 0
+    ):
+        raise ValueError("max_input_bytes must be a positive integer")
+    manifest = reference.artifact
+    if manifest.byte_length > max_input_bytes:
+        raise ValueError("Nautilus context stream exceeds its configured bound")
+    descriptor = os.open(
+        path,
+        os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0),
+    )
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise ValueError("Nautilus context stream must be a regular file")
+        if metadata.st_size != manifest.byte_length:
+            raise ValueError("Nautilus context stream byte length differs")
+        total = 0
+        digest = hashlib.sha256()
+        while chunk := os.read(descriptor, min(65_536, max_input_bytes + 1 - total)):
+            total += len(chunk)
+            if total > max_input_bytes:
+                raise ValueError("Nautilus context stream exceeds its configured bound")
+            digest.update(chunk)
+    finally:
+        os.close(descriptor)
+    if f"sha256:{digest.hexdigest()}" != manifest.content_digest:
+        raise ValueError("Nautilus context stream digest differs")
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -230,6 +413,7 @@ def _validate_runtime_bundle_wire_bytes(
     *,
     attempt_id: str,
     input_bundle_digest: str,
+    context_stream: NautilusContextStreamArtifactReference | None,
 ) -> None:
     try:
         payload = json.loads(
@@ -239,53 +423,80 @@ def _validate_runtime_bundle_wire_bytes(
         )
     except (TypeError, ValueError, json.JSONDecodeError) as error:
         raise ValueError("Nautilus runtime input artifact is malformed") from error
-    if not isinstance(payload, Mapping) or set(payload) != {
-        "schema",
-        "engine_input",
-        "serialized_strategy_invocation_batch",
-    }:
+    if not isinstance(payload, Mapping):
         raise ValueError("Nautilus runtime input artifact fields are invalid")
-    if payload["schema"] != NAUTILUS_RUNTIME_BUNDLE_SCHEMA:
+    schema = payload.get("schema")
+    if schema == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1:
+        if context_stream is not None or set(payload) != {
+            "schema",
+            "engine_input",
+            "serialized_strategy_invocation_batch",
+        }:
+            raise ValueError("legacy Nautilus runtime input artifact fields are invalid")
+        if not isinstance(payload["serialized_strategy_invocation_batch"], str):
+            raise ValueError("Nautilus runtime input artifact strategy batch is invalid")
+    elif schema == NAUTILUS_RUNTIME_BUNDLE_SCHEMA:
+        if context_stream is None or set(payload) != {
+            "schema",
+            "engine_input",
+            "strategy_context_stream",
+        }:
+            raise ValueError("streaming Nautilus runtime input artifact fields are invalid")
+        if payload["strategy_context_stream"] != context_stream.to_wire():
+            raise ValueError("Nautilus context stream reference differs from the bundle")
+    else:
         raise ValueError("Nautilus runtime input artifact schema is unsupported")
     engine_input = payload["engine_input"]
     if not isinstance(engine_input, Mapping) or engine_input.get("attempt_id") != attempt_id:
         raise ValueError("Nautilus runtime input artifact attempt identity differs")
-    if not isinstance(payload["serialized_strategy_invocation_batch"], str):
-        raise ValueError("Nautilus runtime input artifact strategy batch is invalid")
     if content_digest(payload) != input_bundle_digest:
         raise ValueError("Nautilus runtime input artifact semantic digest differs")
 
 
 def build_nautilus_runtime_bundle(
     engine_input: NautilusEngineInput,
-    serialized_strategy_invocation_batch: str,
+    serialized_strategy_invocation_batch: str | None = None,
+    *,
+    context_stream: NautilusContextStreamArtifactReference | None = None,
 ) -> NautilusRuntimeBundle:
-    """Serialize typed frozen inputs and authenticate their SDK batch binding."""
+    """Serialize frozen engine inputs with exactly one batch or stream reference."""
 
     if not isinstance(engine_input, NautilusEngineInput):
         raise TypeError("engine_input must be a NautilusEngineInput")
-    if not isinstance(serialized_strategy_invocation_batch, str):
-        raise TypeError("serialized_strategy_invocation_batch must be a string")
-    try:
-        source, manifest, contexts, entrypoint, _max_intents = deserialize_invocation_batch(
-            serialized_strategy_invocation_batch
-        )
-    except (TypeError, ValueError) as error:
-        raise NautilusRuntimeBundleError("strategy invocation batch is malformed") from error
-    if content_digest(source) != engine_input.strategy_source_digest:
-        raise NautilusRuntimeBundleError("strategy batch source digest differs from engine input")
-    if manifest.fingerprint != engine_input.strategy_manifest_fingerprint:
-        raise NautilusRuntimeBundleError("strategy batch manifest differs from engine input")
-    if entrypoint != engine_input.entrypoint:
-        raise NautilusRuntimeBundleError("strategy batch entrypoint differs from engine input")
-    if any(context.parameters != engine_input.parameters for context in contexts):
-        raise NautilusRuntimeBundleError("strategy batch parameters differ from engine input")
-    if any(context.random_seed != engine_input.random_seed for context in contexts):
-        raise NautilusRuntimeBundleError("strategy batch seed differs from engine input")
+    if (serialized_strategy_invocation_batch is None) == (context_stream is None):
+        raise TypeError("provide exactly one strategy invocation batch or context stream")
+    if context_stream is not None:
+        if not isinstance(context_stream, NautilusContextStreamArtifactReference):
+            raise TypeError("context_stream must be a NautilusContextStreamArtifactReference")
+    else:
+        if not isinstance(serialized_strategy_invocation_batch, str):
+            raise TypeError("serialized_strategy_invocation_batch must be a string")
+        try:
+            source, manifest, contexts, entrypoint, _max_intents = deserialize_invocation_batch(
+                serialized_strategy_invocation_batch
+            )
+        except (TypeError, ValueError) as error:
+            raise NautilusRuntimeBundleError("strategy invocation batch is malformed") from error
+        if content_digest(source) != engine_input.strategy_source_digest:
+            raise NautilusRuntimeBundleError(
+                "strategy batch source digest differs from engine input"
+            )
+        if manifest.fingerprint != engine_input.strategy_manifest_fingerprint:
+            raise NautilusRuntimeBundleError("strategy batch manifest differs from engine input")
+        if entrypoint != engine_input.entrypoint:
+            raise NautilusRuntimeBundleError("strategy batch entrypoint differs from engine input")
+        if any(context.parameters != engine_input.parameters for context in contexts):
+            raise NautilusRuntimeBundleError("strategy batch parameters differ from engine input")
+        if any(context.random_seed != engine_input.random_seed for context in contexts):
+            raise NautilusRuntimeBundleError("strategy batch seed differs from engine input")
 
     tape = engine_input.event_tape
-    payload = {
-        "schema": NAUTILUS_RUNTIME_BUNDLE_SCHEMA,
+    payload: dict[str, Any] = {
+        "schema": (
+            NAUTILUS_RUNTIME_BUNDLE_SCHEMA
+            if context_stream is not None
+            else NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1
+        ),
         "engine_input": {
             "trial_id": engine_input.trial_id,
             "attempt_id": engine_input.attempt_id,
@@ -344,8 +555,11 @@ def build_nautilus_runtime_bundle(
             "random_seed": engine_input.random_seed,
             "input_version": engine_input.input_version,
         },
-        "serialized_strategy_invocation_batch": serialized_strategy_invocation_batch,
     }
+    if context_stream is not None:
+        payload["strategy_context_stream"] = context_stream.to_wire()
+    else:
+        payload["serialized_strategy_invocation_batch"] = serialized_strategy_invocation_batch
     wire = json.dumps(
         payload,
         ensure_ascii=False,
@@ -357,6 +571,7 @@ def build_nautilus_runtime_bundle(
         attempt_id=engine_input.attempt_id,
         input_bundle_digest=content_digest(payload),
         wire_bytes=wire,
+        context_stream=context_stream,
     )
 
 
@@ -364,11 +579,14 @@ __all__ = [
     "NAUTILUS_RUNTIME_ARTIFACT_MEDIA_TYPE",
     "NAUTILUS_RUNTIME_ARTIFACT_SCHEMA",
     "NAUTILUS_RUNTIME_BUNDLE_SCHEMA",
+    "NautilusContextStreamArtifactReference",
     "NautilusRuntimeBundle",
     "NautilusRuntimeBundleError",
     "NautilusRuntimeInputArtifactReference",
     "build_nautilus_runtime_bundle",
     "load_materialized_nautilus_runtime_bundle",
+    "materialize_nautilus_context_stream_artifact",
     "materialize_nautilus_runtime_bundle",
+    "verify_nautilus_context_stream_artifact_file",
     "verify_nautilus_runtime_artifact_file",
 ]

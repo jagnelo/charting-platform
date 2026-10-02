@@ -38,12 +38,12 @@ from app.strategy_lab_v2.nautilus_event_adapter import materialize_nautilus_even
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     NautilusRuntimeInputArtifactReference,
     build_nautilus_runtime_bundle,
+    materialize_nautilus_context_stream_artifact,
     materialize_nautilus_runtime_bundle,
 )
-from app.strategy_lab_v2.replay import build_event_tape_contexts
+from app.strategy_lab_v2.replay import iter_event_tape_contexts
 from app.strategy_lab_v2.sdk import StrategySdkManifest
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
-from strategy_runtime import serialize_invocation_batch
 
 
 class NautilusTrialAssemblyError(ValueError):
@@ -61,7 +61,7 @@ class NautilusTrialRuntimeAssembly:
     snapshot_fingerprint: str
     strategy_package_fingerprint: str
     engine_input_fingerprint: str
-    invocation_batch_digest: str
+    invocation_input_digest: str
     runtime_input_artifact: NautilusRuntimeInputArtifactReference
 
     def __post_init__(self) -> None:
@@ -76,7 +76,7 @@ class NautilusTrialRuntimeAssembly:
             "snapshot_fingerprint",
             "strategy_package_fingerprint",
             "engine_input_fingerprint",
-            "invocation_batch_digest",
+            "invocation_input_digest",
         ):
             require_sha256_digest(getattr(self, name), field_name=name)
         if not isinstance(self.runtime_input_artifact, NautilusRuntimeInputArtifactReference):
@@ -89,6 +89,12 @@ class NautilusTrialRuntimeAssembly:
     @property
     def fingerprint(self) -> str:
         return content_digest(self)
+
+    @property
+    def invocation_batch_digest(self) -> str:
+        """Compatibility alias for older callers of the pre-stream assembly."""
+
+        return self.invocation_input_digest
 
 
 def assemble_nautilus_trial_runtime_input(
@@ -246,13 +252,14 @@ def assemble_nautilus_trial_runtime_input(
             snapshot,
             strategy_manifest,
         )
-        contexts = build_event_tape_contexts(
-            event_tape,
+        contexts = iter_event_tape_contexts(
+            event_tape.events,
             strategy_manifest,
             random_seed=trial.seed,
             parameters=effective_parameters,
         )
-        invocation_batch = serialize_invocation_batch(
+        context_stream = materialize_nautilus_context_stream_artifact(
+            artifact_store,
             source=strategy_source,
             manifest=strategy_manifest,
             contexts=contexts,
@@ -272,7 +279,7 @@ def assemble_nautilus_trial_runtime_input(
             parameters=effective_parameters,
             random_seed=trial.seed,
         )
-        bundle = build_nautilus_runtime_bundle(engine_input, invocation_batch)
+        bundle = build_nautilus_runtime_bundle(engine_input, context_stream=context_stream)
         artifact_reference = materialize_nautilus_runtime_bundle(bundle, artifact_store)
     except (TypeError, ValueError) as error:
         raise NautilusTrialAssemblyError(
@@ -287,7 +294,7 @@ def assemble_nautilus_trial_runtime_input(
         snapshot_fingerprint=snapshot.fingerprint,
         strategy_package_fingerprint=strategy_package.fingerprint,
         engine_input_fingerprint=engine_input.fingerprint,
-        invocation_batch_digest=content_digest(invocation_batch),
+        invocation_input_digest=context_stream.artifact.content_digest,
         runtime_input_artifact=artifact_reference,
     )
 

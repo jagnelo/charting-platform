@@ -12,6 +12,8 @@ from app.strategy_lab_v2.sandbox import (
     build_nautilus_runtime_sandbox_command,
     build_nautilus_sandbox_command,
     build_sandbox_command,
+    sandbox_context_stream_digest,
+    sandbox_context_stream_path,
     sandbox_engine_id,
     sandbox_memory_limit_bytes,
     sandbox_runtime_command,
@@ -145,6 +147,30 @@ def test_nautilus_runtime_builder_binds_fixed_cli_and_snapshot(tmp_path) -> None
     command = sandbox_runtime_command(plan)
     assert command[:3] == ("python", "-m", "app.strategy_lab_v2.nautilus_runtime_cli")
     assert command[-2:] == ("--max-input-bytes", str(profile.memory_limit_bytes // 8))
+
+
+def test_nautilus_runtime_builder_binds_readonly_context_stream_sidecar(tmp_path) -> None:
+    profile = _profile()
+    context_digest = content_digest("context stream")
+    context_path = tmp_path / "contexts.ndjson"
+    plan = build_nautilus_runtime_sandbox_command(
+        _request(profile),
+        profile,
+        image_name="strategy-lab/runtime",
+        input_bundle_path=tmp_path / "bundle.json",
+        output_path=tmp_path / "result.json",
+        expected_version="2.0.0rc5",
+        snapshot_fingerprint=content_digest("snapshot"),
+        context_stream_path=context_path,
+        context_stream_digest=context_digest,
+    )
+
+    command = sandbox_runtime_command(plan)
+    assert command[-2:] == ("--context-stream", "/inputs/contexts")
+    assert sandbox_context_stream_path(plan) == context_path
+    assert sandbox_context_stream_digest(plan) == context_digest
+    assert f"--mount=type=bind,src={context_path},dst=/inputs/contexts,readonly" in plan.argv
+    assert f"--env=STRATEGY_CONTEXT_STREAM_DIGEST={context_digest}" in plan.argv
 
 
 def test_paths_commands_and_image_references_are_validated(tmp_path) -> None:

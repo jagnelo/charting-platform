@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import json
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from io import BytesIO
 
 import pytest
 
@@ -45,7 +45,7 @@ from app.strategy_lab_v2.nautilus_trial_assembly import (
     assemble_nautilus_trial_runtime_input,
 )
 from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
-from strategy_runtime import deserialize_invocation_batch
+from strategy_runtime import deserialize_invocation_context_stream
 
 BASE = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
 SOURCE = "class Strategy:\n    def on_event(self, context):\n        return []\n"
@@ -227,9 +227,14 @@ def test_trial_assembly_materializes_reproducible_pinned_bundle(tmp_path) -> Non
         store,
         max_input_bytes=1_000_000,
     )
-    source, manifest, contexts, entrypoint, max_intents = deserialize_invocation_batch(
-        json.loads(bundle.wire_bytes)["serialized_strategy_invocation_batch"]
+    assert bundle.context_stream is not None
+    source, manifest, decoded_contexts, entrypoint, max_intents = (
+        deserialize_invocation_context_stream(
+            BytesIO(store.read(bundle.context_stream.artifact.storage_key)),
+            expected_context_count=bundle.context_stream.context_count,
+        )
     )
+    contexts = tuple(decoded_contexts)
 
     assert assembly.runtime_input_artifact.attempt_id == values["attempt"].attempt_id
     assert assembly.trial_fingerprint == values["trial"].trial_id
@@ -266,8 +271,10 @@ def test_trial_assembly_applies_immutable_strategy_defaults(tmp_path) -> None:
         store,
         max_input_bytes=1_000_000,
     )
-    _source, _manifest, contexts, _entrypoint, _max_intents = deserialize_invocation_batch(
-        json.loads(bundle.wire_bytes)["serialized_strategy_invocation_batch"]
+    assert bundle.context_stream is not None
+    _source, _manifest, contexts, _entrypoint, _max_intents = deserialize_invocation_context_stream(
+        BytesIO(store.read(bundle.context_stream.artifact.storage_key)),
+        expected_context_count=bundle.context_stream.context_count,
     )
 
     assert all(context.parameters == {"window": 20} for context in contexts)
