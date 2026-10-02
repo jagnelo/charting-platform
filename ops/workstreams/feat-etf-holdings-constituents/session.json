@@ -105,11 +105,11 @@
   "goal_unavailable_reason": null,
   "head": "51d1c5958",
   "implementation_sha": "1faed1e93",
-  "last_checkpoint": "2026-10-02T11:14:08Z",
+  "last_checkpoint": "2026-10-02T11:15:47Z",
   "last_human_progress_update": "2026-09-25T00:46:26Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue symbol-level fallback rechecks in queue order (next Saturna, queue rank 111) while preserving the explicit fallback boundary; after staging, reconcile only the narrow ETF bridge and run AC14",
-  "plan_hash": "654f992a6787afa54f91b59f3c1c00e4e63440311c51be18a7a3a12b6165f1ec",
+  "plan_hash": "8b0355d8c58a16136b153be02decfbd887663167b41b9e9150d9bc9e8089a1c3",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,7 +134,7 @@
     "current_phase": "provider_evidence_reconciliation",
     "next_action": "Continue symbol-level fallback rechecks in queue order (next Saturna, queue rank 111); preserve the explicit fallback boundary and do not activate paid/direct-provider routes while awaiting provider-platform staging.",
     "total": 14,
-    "updated_at": "2026-10-02T11:14:08Z"
+    "updated_at": "2026-10-02T11:15:47Z"
   },
   "remote": "52814f95bd0ef62968ba1af4018ff9ef5049d3d6",
   "remote_sha": "52814f95bd0ef62968ba1af4018ff9ef5049d3d6",

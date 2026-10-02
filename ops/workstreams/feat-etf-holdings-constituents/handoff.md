@@ -2985,6 +2985,16 @@ public-CUSIP requests to both `topTenHoldings` and `fund-info` routes
 export is proven, so no top-ten, factsheet, browser-only, or SEC artifact is
 promoted as current.
 
+## Saturna/Amana route recheck — 2026-10-02
+
+Current indexed first-party pages now expose holdings tables for AMEI, AMGR, and
+AMEM with October 1/September 30, 2026 market-data dates and
+ticker/CUSIP/quantity/weight rows. Direct application-equivalent requests still
+failed DNS resolution for `www.saturna.com`, and no independently callable
+complete endpoint was proven; AMSU had no current checked route. Saturna remains
+`issuer_access_blocked`, and no indexed table was promoted without executable
+transport proof.
+
 ## Pzena route recheck — 2026-10-02
 
 Current indexed PZIV/PZLV first-party pages still expose only a JavaScript

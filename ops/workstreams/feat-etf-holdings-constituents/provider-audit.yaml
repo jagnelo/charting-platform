@@ -7370,7 +7370,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-07
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [AMEI, AMGR, AMEM, AMSU]
     estimated_us_etf_count: null
@@ -7394,6 +7394,8 @@ providers:
       - "web:saturna-current-amana-etf-holdings-pages-2026-09-04"
       - "live:saturna-current-amana-etf-holdings-pages-2026-09-04-blocked"
       - "live:saturna-amana-route-recheck-2026-09-07-blocked"
+      - "web:saturna-current-amana-holdings-pages-2026-10-02"
+      - "live:saturna-route-recheck-2026-10-02-dns-failure"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -7407,6 +7409,10 @@ providers:
         source: "https://www.saturna.com/products/amana-equity-income-etf, https://www.saturna.com/products/amana-growth-etf, and https://www.saturna.com/products/amana-developing-world-etf"
         result: "Fresh bounded retrieval returned HTTP 403 Cloudflare challenge HTML for all three official Amana routes. No complete current holdings artifact was exposed; AMEI, AMGR, and AMEM remain issuer-access-blocked."
         evidence_ref: "live:saturna-amana-route-recheck-2026-09-07-blocked"
+      - date: 2026-10-02
+        source: "https://www.saturna.com/products/amana-equity-income-etf; https://www.saturna.com/products/amana-growth-etf; https://www.saturna.com/products/amana-developing-world-etf"
+        result: "Current indexed first-party pages now expose holdings tables for AMEI, AMGR, and AMEM with October 1/September 30, 2026 market-data dates and complete-looking ticker/CUSIP/quantity/weight rows. Direct application-equivalent requests from this worker still failed DNS resolution for www.saturna.com, and no independently callable complete endpoint was retrieved; AMSU has no corresponding current route in the checked catalogue. The provider remains issuer_access_blocked and no indexed page was promoted without executable transport proof."
+        evidence_ref: "web:saturna-current-amana-holdings-pages-2026-10-02"
     disposition_reason: "saturna: Saturna's official pages advertise complete Amana ETF holdings, but the issuer WAF returned HTTP 403 to both backend-equivalent transports for AMEI, AMGR, and AMEM. Preserve the issuer-access-blocked fallback until a complete holdings artifact is executable."
     next_action: "saturna: Periodically re-test the official Amana ETF pages and any declared holdings downloads; promote only after bounded backend access returns complete current rows with proven mapping."
     implementation_sha: null
