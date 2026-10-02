@@ -112,14 +112,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "75b3e0048d8cb40dd24b21afd73c1c7078dbc69d",
+  "head": "7dcde92c21cc6ab26d721a82059e91b62eab1408",
   "implementation_sha": "075a733bef7f259cea8abcf1335c9051f6cd0cd6",
   "interrupted": false,
   "last_checkpoint": "2026-10-02T00:16:00+01:00",
-  "last_human_progress_update": "2026-10-02T20:42:35.842422+00:00",
+  "last_human_progress_update": "2026-10-02T20:58:48.534148+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue independent TC workstation UI and Study/Strategy slices while preserving the protected visual policy; keep provider/ETF consumer integration deferred until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
-  "plan_hash": "47c02e077a4a11cc09bee270f31f0da90b8af5a11269185a7489fc727f68ce71",
+  "plan_hash": "1ec005b49681f9a7c3952ab382eb0011c8b11846b13b41d83d8ba2166865432c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -133,10 +133,10 @@
       "AC1"
     ],
     "current_blocker": "No external blocker for independent TC work. Six screenshot differences await visual review; provider and ETF consumer work waits for staging.",
-    "current_phase": "R1_active_chart_timeframe_keyboard_shortcuts_passed",
-    "next_action": "Compare the remaining mapped V25 interaction requirements against current workstation behavior and browser evidence; then pick and implement the next independent TC-owned workstation or Study/Strategy gap. Keep protected screenshot baselines and policies unchanged, do not duplicate provider or ETF work, and defer consumer integration until both dependency tips reach staging.",
+    "current_phase": "R6_drawing_flyout_keyboard_selection_focus_passed",
+    "next_action": "Compare the remaining mapped V25 interaction requirements and TC-owned Study/Strategy behavior against current implementation and browser evidence; then implement the next independent gap. Keep protected screenshot baselines and policies unchanged, do not duplicate provider or ETF work, and defer consumer integration until both dependency tips reach staging.",
     "total": 9,
-    "updated_at": "2026-10-02T20:42:35.842405+00:00"
+    "updated_at": "2026-10-02T20:58:48.534130+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

@@ -15809,3 +15809,30 @@ still require visual-policy review; no baseline, mask, threshold, skip, or
 acceptance rule changed. Continue independent TC-owned workstation and
 Study/Strategy work; do not consume provider/ETF tips before they reach
 staging, and do not mutate another branch or worktree.
+
+## 2026-10-02 — Drawing-toolbar keyboard selection focus recovery
+
+Product commit `7dcde92c21cc6ab26d721a82059e91b62eab1408` restores focus to the
+owning drawing-group button after selecting a drawing tool from its keyboard
+menu. Before the fix, Enter selected the tool and closed the menu, leaving focus
+on the removed menu item and then on the document body. The active drawing mode,
+mouse behavior, visual styling, and menu navigation are unchanged.
+
+The focused DrawingToolbar accessibility suite passed `2/2`. At the exact
+product SHA, authenticated Chromium F14-keyboard passed `1/1`, including
+ArrowDown navigation, Escape focus recovery, Enter selection, active-mode
+retention, and focus recovery to the Lines button. The full serial frontend
+suite passed `128/128` files and `1,170/1,170` tests. `npm run build` passed
+`vue-tsc` and Vite with only the existing Workstation chunk-over-500-kB
+warning. The branch-scoped six-service Compose stack reached healthy status;
+Compose warned that Buildx is absent but successfully built with its standard
+builder. Teardown removed the assigned containers, volumes, network, and four
+generated images; resource accounting reported zero remaining resources.
+
+The default-sandbox Chromium attempt failed before opening a page because
+Chromium's sandbox setup was denied; the same local test passed on the approved
+retry. No screenshot, baseline, mask, threshold, skip, fallback, provider, ETF,
+or acceptance policy changed. A fresh dependency audit found provider-platform
+and ETF tips still outside staging, so consumer integration remains deferred.
+Continue the next independent TC-owned workstation or Study/Strategy gap; do
+not mutate another worktree or push under the private-origin safeguard.

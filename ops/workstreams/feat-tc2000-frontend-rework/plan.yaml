@@ -25,7 +25,7 @@ current_blocker: >-
   understood, but no baseline, mask, threshold, skip, fallback, or acceptance
   rule may change without that review. A fresh local-ref audit sees staging at
   `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform at
-  `313337668b28ec94b465d602f01c8d24564acf33`, and ETF holdings at
+  `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, and ETF holdings at
   `be38c21fca2a0ef0310f41e11189d756ff952fe7`; neither dependency tip is an
   ancestor of staging, so consumer integration and shared-path reconciliation
   must wait. These gates do not prevent independent TC-owned frontend work.
@@ -33,9 +33,13 @@ current_blocker: >-
   for the active chart, pointer-based active-window tracking, and pop-out target
   selection. At exact tip `75b3e004`, the authenticated F8k Chromium flow passed
   1/1, the serial frontend suite passed 128 files / 1,169 tests, and the
-  production build passed with the existing large-chunk warning. The six
-  screenshot differences, wider R1/R5/R6 work, and exact post-staging gate
-  remain open. HEAD `75b3e0048d8c` is unpushed; the local origin is at
+  production build passed with the existing large-chunk warning. Product
+  commit `7dcde92c` restores focus to the drawing-group button after a keyboard
+  selection closes its menu; exact-tip F14 Chromium passed 1/1, the serial
+  frontend suite passed 128 files / 1,170 tests, and the production build
+  passed. The six screenshot differences, wider R1/R5/R6 work, and exact
+  post-staging gate remain open. Product tip `7dcde92c21cc` is unpushed; the
+  local origin is at
   `63d64bfe95c9`, and the existing private-origin safeguard remains a
   transport hold, not a product blocker.
 planning_state: ready
@@ -273,24 +277,25 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_active_chart_timeframe_keyboard_shortcuts_passed
+  current_phase: R6_drawing_flyout_keyboard_selection_focus_passed
   next_action: >-
-    Compare the remaining mapped V25 interaction requirements against current
-    workstation behavior and browser evidence; then pick and implement the next
-    independent TC-owned workstation or Study/Strategy gap. Keep the protected
-    screenshot baselines and policies unchanged, do not duplicate provider or
-    ETF work, and defer consumer integration until both dependency tips reach
-    staging.
+    Compare the remaining mapped V25 interaction requirements and TC-owned
+    Study/Strategy behavior against current implementation and browser evidence;
+    then implement the next independent gap. Keep protected screenshot
+    baselines and policies unchanged, do not duplicate provider or ETF work,
+    and defer consumer integration until both dependency tips reach staging.
   current_blocker: >-
     No external dependency blocks independent TC frontend work. The six
     screenshot differences await the visual-policy review specified by
     `docs/tc2000-visual-parity.md`; provider/ETF consumer work waits until
     both tips reach staging. Neither prevents other TC-owned UI and
-    Study/Strategy slices. The active chart timeframe slice passed its
-    authenticated browser flow, full serial frontend suite, production build,
-    and scoped Docker cleanup. Local commits are unpushed under the existing
-    private-origin safeguard; no push was attempted for this slice.
+    Study/Strategy slices. The drawing flyout focus-recovery slice passed its
+    focused unit test, authenticated browser flow, full serial frontend suite,
+    production build, and scoped Docker cleanup. Local commits are unpushed
+    under the existing private-origin safeguard; no push was attempted for this
+    slice.
 historical_implementation_records:
+  - "Product commit 7dcde92c21cc6ab26d721a82059e91b62eab1408 restores focus to the owning Drawing Toolbar group button after a keyboard selection closes its menu, avoiding focus loss to document body while preserving active drawing mode and appearance. The focused unit suite passed 2/2; authenticated Chromium F14-keyboard passed 1/1; the full serial frontend suite passed 128 files / 1,170 tests; vue-tsc and production build passed with the existing large-chunk warning. The branch-scoped six-service Compose stack became healthy using the standard builder despite the host's Buildx warning, then scoped cleanup removed four generated images and all containers, volumes, and network; resource accounting reported zero remaining resources. No visual oracle, provider/ETF behavior, or acceptance policy changed."
   - "Product commits 64cbfa4c and 75b3e004 add TC2000 `=` / `-` timeframe stepping for the active chart, publish changes through existing timeframe link groups, update the active workstation window when a docked tool is clicked, and target the corresponding chart in a pop-out. The authenticated F8k Chromium flow passed 1/1 at exact product tip 75b3e0048d8cb40dd24b21afd73c1c7078dbc69; the serial frontend suite passed 128 files / 1,169 tests; vue-tsc and the production build passed with the existing large-chunk warning. The six-service branch Compose stack became healthy through ordinary Compose after the host's Make target failed on missing Docker Buildx; scoped teardown/resource cleanup removed containers, volumes, network, and four generated images, leaving zero owned resources. Two earlier F8k candidate failures exposed test timing during chart reload and missing pointer-based active-window selection; both were corrected without weakening assertions. No provider/ETF behavior or visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 44b837a2 adds a white focus-visible outline to primary Workstation layout tabs without replacing the blue active-tab marker or gold drag-over marker. The existing roving-arrow/Enter/Space interaction remains unchanged; the authenticated browser check verified ArrowRight focus, the computed white ring, Enter selection, and retained active marker with zero console errors or warnings. The clean exact-commit serial frontend suite and production vue-tsc/Vite build passed; the four-service TC stack became healthy and scoped teardown/resource audit found zero retained resources. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 507c6df42 gives TC-owned Market Map actions explicit contextual accessible names for saving explicit symbols, refreshing the map, saving/exporting/deleting snapshots, and saving selected members as a personal watchlist while preserving visible labels, state mutations, and visual styling. Focused MarketMapTool coverage passed 54/54; the full serial frontend suite passed 128 files and 1,167/1,167 tests; vue-tsc, the production build, git diff --check, TC scope self-tests, and workstream validation passed with the existing large-chunk warning. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
