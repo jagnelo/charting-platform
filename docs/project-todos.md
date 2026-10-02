@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-10-02 — Current-source Kraken admission remains fail-closed
+
+- [x] A focused Kraken live attempt was executed through the owner-local
+      durable coordinator. The first sandboxed attempt was rejected because
+      the configured ledger path was read-only in that execution boundary;
+      the elevated retry reached provider-specific admission and made zero
+      Kraken requests.
+- [ ] Kraken's public request-per-second pool has no durable native account
+      counter in the adapter, so the active baseline remains unknown. The
+      runner correctly refuses discovery, latest-candle, and current-price
+      transport until a provider-backed or explicitly reviewed baseline is
+      available; no rate or prior usage is inferred.
+
 ### 2026-10-02 — Current-source focused provider live evidence
 
 - [x] Bounded current-source live slices passed for Alpaca (`7/7`), Binance

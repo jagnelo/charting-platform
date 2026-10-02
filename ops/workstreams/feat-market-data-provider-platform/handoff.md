@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 Kraken focused admission audit
+
+- The focused Kraken live runner was retried with the owner-local durable
+  coordinator. The initial sandbox execution could not write the configured
+  ledger; the elevated retry reached the provider-specific safety gate and
+  stopped before transport with zero Kraken requests.
+- Kraken's public request-per-second allowance has no durable native account
+  usage counter exposed by the adapter, so the active baseline is unknown for
+  discovery, latest candles, and current price. The runner keeps those
+  operations non-routable rather than inventing a rate or treating prior
+  usage as zero.
+- The two preflight receipts are appended to `validation.jsonl`; this is
+  negative safety evidence, not live-provider acceptance.
+
 ## 2026-10-02 Current-source focused live evidence
 
 - The provider-specific safety runner admitted and completed these bounded

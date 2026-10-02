@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 focused Kraken admission audit: the first sandboxed runner
+    attempt could not write the owner-local durable quota ledger; the approved
+    elevated retry reached provider-specific admission and stopped before
+    transport with zero Kraken requests because the active public
+    requests-per-second baseline is unknown. Discovery, latest-candle, and
+    current-price operations remain fail-closed; no provider rate or prior
+    usage is inferred.
+  - >-
     2026-10-02 current-source focused live evidence at source
     fda33e73cea2a01a12c92220a977169d0d5f336f: Alpaca 7/7, Binance 3/3,
     OpenFIGI 3/3, MarketData.app account usage 1/1, EODHD account usage 1/1,
