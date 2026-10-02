@@ -56,9 +56,9 @@
         <template v-for="item in columnRenderItems" :key="item.column.key">
         <div class="watchlist__header-cell" :style="columnCellStyle(item)" @mousedown.capture="handleColumnMouseDown($event, item)">
           <div v-if="item.column.key === stackedColumnKey" class="watchlist__stack-header">
-            <button v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" type="button" @click="toggleSort(stackedColumn.key)"><em v-if="columnGroups[stackedColumn.key]">{{ columnGroups[stackedColumn.key] }}</em>{{ stackedColumn.label }}<small v-if="sortKey === stackedColumn.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small></button>
+            <button v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" type="button" :aria-label="sortButtonLabel(stackedColumn.key, stackedColumn.label)" :aria-pressed="sortKey === stackedColumn.key ? 'true' : 'false'" @click="toggleSort(stackedColumn.key)"><em v-if="columnGroups[stackedColumn.key]">{{ columnGroups[stackedColumn.key] }}</em>{{ stackedColumn.label }}<small v-if="sortKey === stackedColumn.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small></button>
           </div>
-          <button v-else type="button" @click="toggleSort(item.column.key)">
+          <button v-else type="button" :aria-label="sortButtonLabel(item.column.key, item.column.label)" :aria-pressed="sortKey === item.column.key ? 'true' : 'false'" @click="toggleSort(item.column.key)">
             <em v-if="columnGroups[item.column.key]">{{ columnGroups[item.column.key] }}</em>{{ item.column.label }}<small v-if="sortKey === item.column.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small>
           </button>
           <span v-if="item.column.key !== stackedColumnKey" class="watchlist__column-resize-handle" role="separator" tabindex="0" :aria-label="`Resize ${item.column.label} column`" @mousedown.prevent.stop="beginColumnMouseResize($event, item)" />
@@ -1360,6 +1360,10 @@ function toggleSort(key: string) {
     sortKey.value = key
     sortDirection.value = 'asc'
   }
+}
+function sortButtonLabel(key: string, label: string) {
+  if (sortKey.value !== key) return `Sort by ${label}`
+  return `Sort by ${label}, ${sortDirection.value === 'asc' ? 'ascending' : 'descending'}`
 }
 
 function selectRow(row: WatchlistRow, event: MouseEvent) {

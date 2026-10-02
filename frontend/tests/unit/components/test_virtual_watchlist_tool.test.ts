@@ -946,7 +946,12 @@ describe('VirtualWatchlistTool', () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: { label: 'Sectors', rows },
     })
-    await wrapper.findAll('.watchlist__header button')[0].trigger('click')
+    const symbolSort = wrapper.findAll('.watchlist__header button')[0]
+    expect(symbolSort.attributes('aria-label')).toBe('Sort by Symbol, ascending')
+    expect(symbolSort.attributes('aria-pressed')).toBe('true')
+    await symbolSort.trigger('click')
+    expect(symbolSort.attributes('aria-label')).toBe('Sort by Symbol, descending')
+    expect(symbolSort.attributes('aria-pressed')).toBe('true')
     await wrapper.find('.watchlist__row').trigger('click')
     expect(wrapper.emitted('select')?.[0]?.[0]).toMatchObject({ instrumentId: 3, symbol: 'XLV' })
   })
