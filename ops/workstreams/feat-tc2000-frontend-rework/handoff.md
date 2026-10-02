@@ -14935,3 +14935,26 @@ discovery pages`), and ETF holdings at
 `0f2c0d98b3876e8ad270d54de01632dec09e6fa3` (`docs(etf): refresh subversive
 and suncoast evidence`). Neither upstream tip is an ancestor of staging; TC
 consumer integration and shared-path reconciliation remain deferred.
+
+## 2026-10-02 — Standalone Study Lab status-semantics slice
+
+Product commit `11f38cba` gives the standalone Study Lab route explicit button
+types and accessible names, scopes its lifecycle controls, and exposes
+validation and run status through live regions. Study validation, execution,
+cancellation, emitted requests, visual layout, and data behavior are
+unchanged.
+
+Focused StudyLabView coverage passed `1/1`; the full serial frontend suite
+passed `127/127` files and `1,155/1,155` tests; `vue-tsc` and the production
+build passed with the existing large-chunk warning; TC scope self-tests,
+workstream validation, and `git diff --check` passed. No provider-platform,
+ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy
+changed. No other worktree was mutated.
+
+The current atomic read-only dependency audit observes staging at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform at
+`af2d79d63d13b6eb1d5c3ba1ca4eaa716dea1a77` (`fix(marketstack): advance raw
+discovery pages`), and ETF holdings at
+`b0bf22155ece4270dd55718e9f96f37ac810da5f` (`docs(etf): refresh vega shares
+route evidence`). Neither upstream tip is an ancestor of staging; TC consumer
+integration and shared-path reconciliation remain deferred.

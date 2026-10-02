@@ -33,10 +33,10 @@ current_blocker: >-
   and Nimbus Sans), so a matching-font replay is required before attributing
   the mismatch to product pixels. The
   standard parallel frontend gate remains host-timing-sensitive on the
-  unrelated 100k-point uPlot benchmark; serial coverage passes 1,154/1,154.
+  unrelated 100k-point uPlot benchmark; serial coverage passes 1,155/1,155.
   Provider-platform and ETF consumer integration remains a sequencing gate
   until both upstream branches reach staging. On the resumed 2026-10-01 audit,
-  provider is at `af2d79d6`, ETF is at `0f2c0d98`, and staging remains
+  provider is at `af2d79d6`, ETF is at `b0bf2215`, and staging remains
   `8b885a2f`; neither dependency is an ancestor of staging. Shared-path reconciliation and
   the final post-staging exact gate remain pending. Origin synchronization
   remains a separate operational hold under the recorded private-origin
@@ -274,7 +274,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_alert_form_accessibility_checkpointed
+  current_phase: R6_study_lab_view_accessibility_checkpointed
   next_action: >-
     Verify the protected visual mismatch against the expected seeded baseline
     in a matching browser/font environment without changing snapshots or visual
@@ -289,7 +289,7 @@ progress:
     first capture and 45,932 after stability, distributed across board text and
     anti-aliasing rather than localized chart geometry. The parallel frontend
     timing guard remains host-sensitive on the unrelated 100k-point uPlot
-    benchmark, while serial coverage passes 1,154/1,154 at the current product
+    benchmark, while serial coverage passes 1,155/1,155 at the current product
     tip. Provider-platform and ETF consumer integration remains a sequencing
     gate until both upstream branches reach staging; shared-path reconciliation
     and the final post-staging exact gate remain pending. Origin synchronization
@@ -534,6 +534,8 @@ historical_implementation_records_continued:
 
   - "Product commit a8205c30 adds explicit button semantics, a stable close-control name, and aria-pressed condition state to AlertForm while preserving alert creation, condition selection, visual layout, and event behavior. Focused AlertForm coverage passed 1/1; the full serial frontend suite passed 126/126 files and 1,154/1,154 tests; vue-tsc and production build passed with the existing large-chunk warning; TC scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "The current atomic read-only dependency audit observes staging at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform at af2d79d63d13b6eb1d5c3ba1ca4eaa716dea1a77 (fix(marketstack): advance raw discovery pages), and ETF holdings at 0f2c0d98b3876e8ad270d54de01632dec09e6fa3 (docs(etf): refresh subversive and suncoast evidence). Neither upstream tip is an ancestor of staging, so TC consumer integration and shared-path reconciliation remain deferred."
+  - "Product commit 11f38cba adds explicit button semantics and accessible names to the standalone Study Lab route, scopes its lifecycle controls, and exposes validation/run status through live regions while preserving study validation, execution, cancellation, and layout behavior. Focused StudyLabView coverage passed 1/1; the full serial frontend suite passed 127/127 files and 1,155/1,155 tests; vue-tsc and production build passed with the existing large-chunk warning; TC scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
+  - "The current atomic read-only dependency audit observes staging at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform at af2d79d63d13b6eb1d5c3ba1ca4eaa716dea1a77 (fix(marketstack): advance raw discovery pages), and ETF holdings at b0bf22155ece4270dd55718e9f96f37ac810da5f (docs(etf): refresh vega shares route evidence). Neither upstream tip is an ancestor of staging, so TC consumer integration and shared-path reconciliation remain deferred."
 
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
