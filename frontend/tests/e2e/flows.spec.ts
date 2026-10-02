@@ -2640,6 +2640,8 @@ test.describe('TC2000 workstation', () => {
     const semiconductors = industries.locator('.industry-list__row').filter({ hasText: 'Semiconductors' })
     await expect(semiconductors).toBeVisible()
     await expect(semiconductors.locator('.industry-list__classification')).toHaveText('controlled_fixture')
+    await expect(semiconductors).toHaveAttribute('aria-pressed', 'false')
+    await expect(semiconductors).toHaveAttribute('aria-label', /Semiconductors, .* constituents resolved/)
     await expect(industries.locator('.industry-list__provenance')).toContainText('controlled_fixture')
     // Proxy data is intentionally fetched after the constituent response, and
     // may already be cached by the time the row becomes clickable. Assert the
@@ -2647,6 +2649,7 @@ test.describe('TC2000 workstation', () => {
     // contract through the request context instead of relying on a response
     // listener registered across that asynchronous boundary.
     await semiconductors.click()
+    await expect(semiconductors).toHaveAttribute('aria-pressed', 'true')
 
     const token = await page.evaluate(() => localStorage.getItem('access_token'))
     expect(token).toBeTruthy()

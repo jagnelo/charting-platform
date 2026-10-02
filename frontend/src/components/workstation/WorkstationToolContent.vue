@@ -300,6 +300,8 @@
         type="button"
         :class="{ 'industry-list__row--active': item.industry === selectedIndustry }"
         class="industry-list__row"
+        :aria-pressed="item.industry === selectedIndustry ? 'true' : 'false'"
+        :aria-label="industryRowLabel(item)"
         @click="emit('selectIndustry', item.industry, industryETFContext)"
       >
         <strong>{{ item.industry }}</strong><span>{{ item.resolved_count }}/{{ item.constituent_count }}</span>
@@ -2887,6 +2889,17 @@ function displayIndustryValue(item: { values: Record<string, string | number | n
   return key === 'rsi14' || key === 'position_52w' || key === 'relative_ratio' || key === 'relative_spy'
     ? value.toFixed(2)
     : `${(value * 100).toFixed(2)}%`
+}
+function industryRowLabel(item: {
+  industry: string
+  resolved_count: number
+  constituent_count: number
+  classificationDetail: string
+  values: Record<string, string | number | null>
+}) {
+  const coverage = `${item.resolved_count} of ${item.constituent_count} constituents resolved`
+  const proxyCount = item.values.proxy_count == null ? '' : `, ${item.values.proxy_count} verified proxies`
+  return `${item.industry}, ${coverage}${proxyCount}, ${item.classificationDetail}. Select industry.`
 }
 function classificationLabel(systems?: string[]) {
   const values = [...new Set((systems ?? []).filter(Boolean))]
