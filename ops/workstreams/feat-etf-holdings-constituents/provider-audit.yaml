@@ -6392,7 +6392,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-03
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [WAGN]
     estimated_us_etf_count: null
@@ -6415,6 +6415,8 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.pabrai"
       - "web:pabrai-wagons-investor-resources-2026-09-03"
       - "web:pabrai-wagons-current-report-2026-09-03"
+      - "web:pabrai-wagons-investor-resources-2026-10-02"
+      - "live:pabrai-wagons-route-recheck-2026-10-02-dns-failure"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -6428,6 +6430,10 @@ providers:
         source: "https://wagonsfund.b-cdn.net/Certified%20Shareholder%20Report%20%28Form%20N-CSR%29%20with%20Holdings%20%E2%80%93%20June%2030%2C%202026.pdf"
         result: "The latest issuer-hosted N-CSR PDF contains a June 30, 2026 Schedule of Investments, confirming periodic holdings disclosure but not a current executable portfolio route; several non-US positions also lack exchange tickers."
         evidence_ref: "web:pabrai-wagons-current-report-2026-09-03"
+      - date: 2026-10-02
+        source: "https://www.wagonsetf.com/ir"
+        result: "The current official investor-resources page still lists the June 30, 2026 N-CSR, annual tailored shareholder report, and older Complete Holdings PDFs as the available holdings artifacts; no daily or current executable feed is declared. Direct application-equivalent retrieval from this worker failed DNS resolution for www.wagonsetf.com."
+        evidence_ref: "web:pabrai-wagons-investor-resources-2026-10-02"
     disposition_reason: "pabrai: The official WAGN investor-resources page exposes periodic shareholder-report PDFs rather than a current executable holdings feed. The June 30, 2026 N-CSR is a dated Schedule of Investments, so the provider remains fallback-only as non_executable_public_source; no SEC-derived reconstruction is promoted."
     next_action: "pabrai: Re-audit the official WAGN investor resources after a new reporting cycle for a public current complete holdings artifact; promote only when an executable route and current date are proven."
     implementation_sha: null

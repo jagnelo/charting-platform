@@ -5807,3 +5807,12 @@ request; no public complete current artifact is exposed. Direct
 application-equivalent requests failed DNS resolution for
 `northsquareinvest.com`, so no executable rows were retrieved. North Square
 remains `non_executable_public_source`.
+
+## Pabrai WAGN route recheck — 2026-10-02
+
+The current official investor-resources page still exposes periodic June 30,
+2026 reports and older Complete Holdings PDFs rather than a current executable
+feed. Direct application-equivalent requests failed DNS resolution for
+`www.wagonsetf.com`, so no current rows were retrieved. Pabrai remains
+`non_executable_public_source`; no periodic report or SEC reconstruction was
+promoted as current.
