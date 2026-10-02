@@ -520,6 +520,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   that probe receipt and rejects package/channel/pin/image mismatches. The
   harness remains engine-injected and therefore cannot be mistaken for actual
   Nautilus conformance or authority.
+- `nautilus_rc_fixture_probe.py` runs deterministic, synthetic in-memory
+  order/fill, multi-instrument, and replay paths inside the pinned RC image;
+  forward event-tape parity remains explicitly deferred until the real
+  canonical-event adapter exists.
+- `NautilusRcFixtureReceipt` records that image-backed result as four passed
+  checks plus one deferred forward-parity check, preserving the exact runtime,
+  image, and fixture digests without creating `EngineConformanceEvidence` or
+  authority prematurely.
 - `result_publication.py` composes conformance, runtime isolation, and exact
   result-artifact integrity into a storage-neutral publish plan. Only a stable
   authoritative build with matching evidence can publish; already-published

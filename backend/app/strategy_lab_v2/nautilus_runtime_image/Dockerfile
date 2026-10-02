@@ -22,6 +22,7 @@ COPY __init__.py app/strategy_lab_v2/__init__.py
 COPY canonical.py app/strategy_lab_v2/canonical.py
 COPY conformance.py app/strategy_lab_v2/conformance.py
 COPY nautilus_runtime_probe.py app/strategy_lab_v2/nautilus_runtime_probe.py
+COPY nautilus_rc_fixture_probe.py app/strategy_lab_v2/nautilus_rc_fixture_probe.py
 
 ENTRYPOINT ["python", "-m", "app.strategy_lab_v2.nautilus_runtime_probe"]
 CMD ["--expected-version", "2.0.0rc5"]

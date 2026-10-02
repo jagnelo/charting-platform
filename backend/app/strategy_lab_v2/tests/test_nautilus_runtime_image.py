@@ -18,6 +18,10 @@ def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() ->
     assert "ADD --checksum=sha256:${NAUTILUS_WHEEL_SHA256}" in source
     assert "pyproject.toml" not in source
     assert "backend/.venv" not in source
+    assert (
+        "COPY nautilus_rc_fixture_probe.py app/strategy_lab_v2/nautilus_rc_fixture_probe.py"
+        in source
+    )
 
 
 def test_rc_runtime_image_is_probe_only_and_defaults_to_non_authoritative_rc5() -> None:

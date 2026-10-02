@@ -19,6 +19,7 @@ from app.strategy_lab_v2.conformance import (
     NAUTILUS_RELEASE_PIN_VERSION,
     NAUTILUS_V2_RC_PACKAGE_VERSION,
     NAUTILUS_V2_RC_RELEASE_TAG,
+    ConformanceCheck,
     EngineReleaseChannel,
     NautilusReleasePin,
 )
@@ -170,4 +171,99 @@ class NautilusRuntimeProbeEvidence:
         return content_digest(self)
 
 
-__all__ = ["NautilusRcCompatibilityRuntime", "NautilusRuntimeProbeEvidence"]
+@dataclass(frozen=True, slots=True)
+class NautilusRcFixtureReceipt:
+    """Partial real-engine fixture receipt for the non-authoritative RC track."""
+
+    runtime_fingerprint: str
+    runtime_image_digest: str
+    fixture_digest: str
+    passed_checks: frozenset[ConformanceCheck]
+    deferred_checks: frozenset[ConformanceCheck]
+
+    def __post_init__(self) -> None:
+        for name in ("runtime_fingerprint", "runtime_image_digest", "fixture_digest"):
+            require_sha256_digest(getattr(self, name), field_name=name)
+        passed = frozenset(self.passed_checks)
+        deferred = frozenset(self.deferred_checks)
+        if any(not isinstance(check, ConformanceCheck) for check in passed | deferred):
+            raise TypeError("fixture checks must contain ConformanceCheck values")
+        if passed & deferred:
+            raise ValueError("passed and deferred fixture checks must be disjoint")
+        if passed | deferred != frozenset(ConformanceCheck):
+            raise ValueError("fixture receipt must account for every conformance check")
+        object.__setattr__(self, "passed_checks", passed)
+        object.__setattr__(self, "deferred_checks", deferred)
+
+    @classmethod
+    def from_mapping(
+        cls,
+        payload: Mapping[str, Any],
+        runtime: NautilusRcCompatibilityRuntime,
+    ) -> NautilusRcFixtureReceipt:
+        """Parse the real image fixture output without granting authority."""
+
+        if not isinstance(payload, Mapping):
+            raise TypeError("fixture payload must be a mapping")
+        if not isinstance(runtime, NautilusRcCompatibilityRuntime):
+            raise TypeError("runtime must be a NautilusRcCompatibilityRuntime")
+        required = {
+            "authoritative",
+            "deterministic_replay",
+            "engine_lifecycle",
+            "forward_event_tape_parity",
+            "multi_instrument_accounting",
+            "native_order_fill_cost",
+        }
+        if set(payload) != required:
+            raise ValueError("fixture payload fields must match the exact receipt schema")
+        if payload["authoritative"] is not False:
+            raise ValueError("release-candidate fixture receipts cannot be authoritative")
+        if payload["engine_lifecycle"] != "passed":
+            raise ValueError("fixture engine lifecycle must pass")
+        replay = payload["deterministic_replay"]
+        multi = payload["multi_instrument_accounting"]
+        native = payload["native_order_fill_cost"]
+        if not isinstance(replay, Mapping) or replay.get("equal") is not True:
+            raise ValueError("deterministic replay fixture did not match")
+        if not isinstance(multi, Mapping) or multi.get("instrument_count", 0) < 2:
+            raise ValueError("multi-instrument fixture did not cover two instruments")
+        if not isinstance(native, Mapping) or native.get("total_orders", 0) < 1:
+            raise ValueError("native order/fill fixture did not execute an order")
+        if payload["forward_event_tape_parity"] != "deferred_authoritative_fixture":
+            raise ValueError("forward event-tape parity must remain explicitly deferred")
+        return cls(
+            runtime_fingerprint=runtime.fingerprint,
+            runtime_image_digest=runtime.runtime_image_digest,
+            fixture_digest=content_digest(payload),
+            passed_checks=frozenset(
+                {
+                    ConformanceCheck.MULTI_INSTRUMENT_ACCOUNTING,
+                    ConformanceCheck.NATIVE_ORDER_FILL_COST,
+                    ConformanceCheck.DETERMINISTIC_REPLAY,
+                    ConformanceCheck.ENGINE_LIFECYCLE,
+                }
+            ),
+            deferred_checks=frozenset({ConformanceCheck.FORWARD_EVENT_TAPE_PARITY}),
+        )
+
+    @property
+    def compatible(self) -> bool:
+        """Partial RC fixtures are compatible but not complete conformance."""
+
+        return True
+
+    @property
+    def authoritative(self) -> bool:
+        return False
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+__all__ = [
+    "NautilusRcCompatibilityRuntime",
+    "NautilusRuntimeProbeEvidence",
+    "NautilusRcFixtureReceipt",
+]

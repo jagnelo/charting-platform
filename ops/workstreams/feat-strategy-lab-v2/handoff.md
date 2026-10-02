@@ -5945,5 +5945,28 @@ authority claims. This is an identity/reproducibility gate around the injected
 fixture harness; it does not claim that synthetic fixtures are real Nautilus
 multi-instrument or event-tape conformance.
 
-The full Strategy Lab v2 package suite passes 974 tests, with Ruff, targeted
+The full Strategy Lab v2 package suite passes 976 tests, with Ruff, targeted
 formatting, MyPy across 302 files, and diff validation green.
+
+## 2026-10-02 - Image-backed RC deterministic engine fixtures
+
+The isolated image was rebuilt with `nautilus_rc_fixture_probe.py`, producing
+digest `sha256:1e8a1c33b58ac216027b777dc025e833f5bc5c93bf10e9b550985e0024847c3f`.
+Under network-disabled, read-only, capability-dropped, no-new-privileges
+execution, the real Nautilus `2.0.0rc5` engine completed deterministic
+synthetic fixtures: one instrument produced one native order and position with
+account total `98899.78 USD`; two instruments produced two orders and two
+positions with account total `97799.56 USD`; two identical runs matched exactly.
+The fixture explicitly reports `forward_event_tape_parity` as
+`deferred_authoritative_fixture`, because the canonical event adapter and host
+forward callback are not yet available. This is genuine RC compatibility
+evidence, not stable authority or a live-shadow claim.
+
+The resulting JSON was parsed through `NautilusRcFixtureReceipt` with source
+digest `sha256:dd30e7817784d1a9eec556c15b846f93040a7a4e8694cab4771d0ba0c24c6c06`,
+image digest above, and fixture digest
+`sha256:8432ac13ee7e24b526ca8efeadf3d20370eb3aadf362fa947e2f7ab4579d7540`.
+The typed receipt records passed checks for engine lifecycle, native
+order/fill/cost, multi-instrument accounting, and deterministic replay, with
+only `forward_event_tape_parity` deferred. It remains compatible evidence and
+is explicitly non-authoritative.

@@ -15,6 +15,7 @@ from app.strategy_lab_v2.conformance import (
 )
 from app.strategy_lab_v2.nautilus_runtime import (
     NautilusRcCompatibilityRuntime,
+    NautilusRcFixtureReceipt,
     NautilusRuntimeProbeEvidence,
 )
 
@@ -111,3 +112,39 @@ def test_probe_evidence_rejects_schema_version_and_runtime_mismatches() -> None:
         NautilusRuntimeProbeEvidence.from_mapping(
             {**payload, "engine_lifecycle": "failed"}, runtime
         )
+
+
+def test_real_rc_fixture_receipt_preserves_deferred_forward_parity() -> None:
+    runtime = _runtime()
+    payload = {
+        "authoritative": False,
+        "deterministic_replay": {"equal": True},
+        "engine_lifecycle": "passed",
+        "forward_event_tape_parity": "deferred_authoritative_fixture",
+        "multi_instrument_accounting": {"instrument_count": 2},
+        "native_order_fill_cost": {"total_orders": 1},
+    }
+
+    receipt = NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+    assert receipt.runtime_fingerprint == runtime.fingerprint
+    assert receipt.runtime_image_digest == runtime.runtime_image_digest
+    assert receipt.fixture_digest == content_digest(payload)
+    assert receipt.compatible
+    assert receipt.authoritative is False
+    assert receipt.deferred_checks == frozenset({ConformanceCheck.FORWARD_EVENT_TAPE_PARITY})
+
+
+def test_real_rc_fixture_receipt_rejects_false_authority_or_parity_claim() -> None:
+    runtime = _runtime()
+    payload = {
+        "authoritative": True,
+        "deterministic_replay": {"equal": True},
+        "engine_lifecycle": "passed",
+        "forward_event_tape_parity": "passed",
+        "multi_instrument_accounting": {"instrument_count": 2},
+        "native_order_fill_cost": {"total_orders": 1},
+    }
+
+    with pytest.raises(ValueError, match="cannot be authoritative"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
