@@ -2,10 +2,11 @@
 
 ### 2026-10-02 — Marketstack universe totals fail closed
 
-- [x] Require a strict provider-declared `pagination.total` for Marketstack
-      ticker discovery; missing, negative, boolean, and non-integer totals now
-      fail closed instead of truncating the universe at the current page.
-      Focused Marketstack coverage passed `17/17`.
+- [x] Require strict provider-declared pagination metadata for Marketstack
+      ticker discovery and advance using raw page counts despite local
+      quote-type filtering; missing, contradictory, negative, boolean, and
+      non-integer metadata now fail closed instead of truncating or repeating
+      the universe. Focused Marketstack coverage passed `21/21`.
 
 ### 2026-10-02 — Tokenized event pages fail closed on malformed rows
 

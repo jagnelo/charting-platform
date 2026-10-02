@@ -168,10 +168,12 @@ remaining_gaps:
     unresolved capability controls remain explicit in validation.jsonl; no
     safety admission was bypassed and no key was spent.
   - >-
-    2026-10-02 Marketstack universe-total integrity: ticker discovery now
-    requires a provider-declared non-negative integer pagination total and
-    fails closed when absent or malformed, rather than inferring the total from
-    the current page length. Focused coverage passed 17/17.
+    2026-10-02 Marketstack universe-pagination integrity: ticker discovery now
+    requires strict provider pagination metadata and advances using raw page
+    counts despite local quote-type filtering; missing or contradictory
+    metadata fails closed instead of repeating or skipping instruments.
+    Focused coverage passed 21/21; branch-wide validation is pending at the
+    post-commit exact SHA.
   - >-
     2026-10-02 exact-current live preflight: the full manifest ran with the
     owner-managed environment at source 4a809bd and stopped before transport

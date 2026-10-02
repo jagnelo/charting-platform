@@ -919,26 +919,14 @@ def test_marketstack_discovery_requires_explicit_exchange_and_preserves_scope():
     assert get.call_args.args[1]["exchange"] == "XNAS"
 
 
-@pytest.mark.parametrize(
-    "pagination",
-    [
-        {},
-        {"total": "many"},
-        {"total": -1},
-        {"total": True},
-    ],
-)
-def test_marketstack_discovery_requires_strict_provider_total(pagination):
+def test_marketstack_discovery_advances_by_raw_page_count_when_filtering_quote_type():
     provider = MarketstackProvider()
     payload = {
-        "pagination": pagination,
+        "pagination": {"offset": 0, "count": 3, "total": 5},
         "data": [
-            {
-                "symbol": "AAPL",
-                "name": "Apple Inc.",
-                "exchange": "XNAS",
-                "currency": "USD",
-            }
+            {"symbol": "AAPL", "name": "Apple Inc.", "exchange": "XNAS"},
+            {"symbol": "SPY", "name": "SPDR S&P 500 ETF", "exchange": "ARCX"},
+            {"symbol": "MSFT", "name": "Microsoft Corp.", "exchange": "XNAS"},
         ],
     }
     with (
@@ -946,7 +934,39 @@ def test_marketstack_discovery_requires_strict_provider_total(pagination):
         patch.object(provider, "_get", return_value=payload),
     ):
         configured.MARKETSTACK_DISCOVERY_EXCHANGE = "XNAS"
-        with pytest.raises(ProviderResponseError, match="tickers pagination total"):
+        page = provider.discover_universe_page("EQUITY", 0)
+
+    assert [quote["symbol"] for quote in page["quotes"]] == ["AAPL", "MSFT"]
+    assert page["total"] == 5
+    assert page["next_offset"] == 3
+
+
+@pytest.mark.parametrize(
+    "pagination",
+    [
+        {},
+        {"total": "many"},
+        {"total": -1},
+        {"total": True},
+        {"offset": 1, "count": 1, "total": 2},
+        {"offset": 0, "count": 2, "total": 1},
+        {"offset": 0, "count": 0, "total": 1},
+    ],
+)
+def test_marketstack_discovery_requires_strict_provider_total(pagination):
+    provider = MarketstackProvider()
+    payload = {
+        "pagination": pagination,
+        "data": [
+            {"symbol": "AAPL", "name": "Apple Inc.", "exchange": "XNAS", "currency": "USD"}
+        ],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch.object(provider, "_get", return_value=payload),
+    ):
+        configured.MARKETSTACK_DISCOVERY_EXCHANGE = "XNAS"
+        with pytest.raises(ProviderResponseError, match="tickers pagination"):
             provider.discover_universe_page("EQUITY", 0)
 
 

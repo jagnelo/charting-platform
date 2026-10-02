@@ -2407,7 +2407,31 @@ class MarketstackProvider(_RESTProvider):
         total = _strict_int(
             pagination["total"], self.name, "tickers pagination total"
         )
-        return {"total": total, "quotes": quotes}
+        page_offset = _strict_int(
+            pagination.get("offset", offset), self.name, "tickers pagination offset"
+        )
+        if page_offset != offset:
+            raise ProviderResponseError(
+                self.name,
+                "provider returned a tickers pagination offset different from requested offset",
+            )
+        page_count = _strict_int(
+            pagination.get("count", len(rows)),
+            self.name,
+            "tickers pagination count",
+        )
+        if page_count != len(rows):
+            raise ProviderResponseError(
+                self.name,
+                "provider returned a tickers pagination count different from the raw page length",
+            )
+        if page_offset + page_count > total:
+            raise ProviderResponseError(
+                self.name,
+                "provider returned tickers pagination metadata beyond its declared total",
+            )
+        next_offset = page_offset + page_count if page_offset + page_count < total else None
+        return {"total": total, "quotes": quotes, "next_offset": next_offset}
 
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY", "ETF"]

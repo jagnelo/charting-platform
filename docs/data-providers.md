@@ -5,11 +5,11 @@ supplies, its priority level per capability, and where to configure its credenti
 
 ## 2026-10-02 — Marketstack universe totals fail closed
 
-Marketstack ticker discovery now requires a provider-declared, non-negative
-integer `pagination.total`. It no longer substitutes the current page length
-when that total is absent or malformed, preventing a partial universe page from
-being mistaken for a complete snapshot. Focused Marketstack coverage passed
-`17/17`.
+Marketstack ticker discovery now requires strict provider pagination metadata
+and advances using the raw provider page count even when local quote-type
+filtering removes rows. It no longer substitutes the current page length when
+metadata is absent or malformed, preventing a partial universe page from being
+mistaken for a complete snapshot. Focused Marketstack coverage passed `21/21`.
 
 ## 2026-10-02 — Tokenized event page validation
 

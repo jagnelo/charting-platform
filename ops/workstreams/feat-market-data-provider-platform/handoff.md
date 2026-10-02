@@ -11,14 +11,16 @@
 
 ## 2026-10-02 Marketstack universe-total integrity
 
-- Marketstack ticker discovery now requires a non-negative integer provider
-  `pagination.total`; it fails closed when the total is missing or malformed
-  instead of inferring the total from the current page length and risking
-  permanent universe truncation.
-- Focused Marketstack coverage passed `17/17`; exact SHA `e72c4368` then
+- Marketstack ticker discovery now requires strict provider pagination metadata
+  and advances using the raw page count even when local quote-type filtering
+  removes rows. It fails closed when metadata is missing or contradictory
+  instead of inferring progress from filtered rows and risking repeated or
+  permanently skipped instruments.
+- Focused Marketstack coverage passed `21/21`; exact SHA `e72c4368` then
   passed optional providers `117/117`, branch-owned unit `1,942/1,942`, Docker
   integration `386/386` in `731.98s`, Ruff, compile, diff, and workstream
-  validation. Receipts are recorded in `validation.jsonl`.
+  validation. Receipts for the raw-page offset correction will be recorded at
+  its post-commit exact SHA.
 
 ## 2026-10-02 Exact-current live preflight
 
