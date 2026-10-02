@@ -2993,6 +2993,14 @@ to the web fetcher, and direct application-equivalent requests failed DNS
 resolution for `www.pzena.com`. No complete current artifact was retrieved;
 Pzena remains `issuer_access_blocked`.
 
+## Rareview route recheck — 2026-10-02
+
+The current official Rareview catalogue lists seven ETF strategies, but linked
+product route fetches exposed no current holdings artifact. Direct
+application-equivalent requests failed DNS resolution for
+`rareviewcapital.com`, so no current complete symbol-scoped route was
+retrieved. Rareview remains `non_executable_public_source`.
+
 ## Performance Trust STBF route recheck — 2026-10-02
 
 The current PTAM resources page still links a complete STBF monthly holdings

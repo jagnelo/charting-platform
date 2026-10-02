@@ -6927,7 +6927,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-03
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_product_page_stale_holdings_table
     representative_symbols: [RMME, BEGS, RSEE, RTRE, RDFI, RTAI]
     estimated_us_etf_count: null
@@ -6952,6 +6952,8 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.rareview_funds"
       - "web:rareview-current-etf-catalogue-2026-09-03"
       - "web:rareview-stale-holdings-pages-2026-09-03"
+      - "web:rareview-current-etf-catalogue-2026-10-02"
+      - "live:rareview-route-recheck-2026-10-02-dns-failure"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -6961,6 +6963,10 @@ providers:
         source: "Rareview Capital official ETF catalogue and product pages"
         result: "The official catalogue identifies six current ETFs, but the accessible product holdings sections are stale historical tables (for example RSEE dated January 21, 2022 and RTAI dated October 22, 2020); no current complete machine-readable route is declared."
         evidence_ref: "web:rareview-stale-holdings-pages-2026-09-03"
+      - date: 2026-10-02
+        source: "https://rareviewcapital.com/etfs/ and linked RSEE/RDFI/RTRE/RMME/RTAI/BEGS product routes"
+        result: "The current official catalogue lists seven ETF strategies (including BCOM) but the linked product route fetches did not expose current holdings artifacts; direct application-equivalent requests from this worker failed DNS resolution for rareviewcapital.com. No current complete symbol-scoped route was retrieved."
+        evidence_ref: "web:rareview-current-etf-catalogue-2026-10-02"
     disposition_reason: "rareview_funds: Rareview's official catalogue identifies six ETFs, but accessible product holdings sections expose stale historical tables rather than a current complete symbol-scoped artifact. The provider remains non_executable_public_source without SEC reconstruction or native promotion."
     next_action: "rareview_funds: Recheck Rareview ETF product pages for a current complete holdings route; promote only after current rows, strict parsing, and bounded live validation are proven."
     implementation_sha: null
