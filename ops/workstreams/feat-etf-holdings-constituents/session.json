@@ -69,25 +69,8 @@
   },
   "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-etf-holdings-constituents-fdc36fa2",
-      "charting-stack-feat-etf-holdings-constituents-fdc36fa2"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -103,13 +86,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "51d1c5958",
-  "implementation_sha": "d770d92bb5a64224c8e05df6fc5bca9238dd84cb",
-  "last_checkpoint": "2026-10-02T12:00:24Z",
+  "head": "ac19a53d6b67298db7a953357df7081d3d729fbc",
+  "implementation_sha": "ac19a53d6b67298db7a953357df7081d3d729fbc",
+  "last_checkpoint": "2026-10-02T12:14:00Z",
   "last_human_progress_update": "2026-09-25T00:46:26Z",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "reconcile stale fallback audit evidence where a current check is useful, then recheck the provider-platform dependency; after staging, reconcile only the narrow ETF bridge and run AC14",
-  "plan_hash": "e0971cc18b9e2ec97dd892b047138225a7a0be12b101c221f062efd94beb0bcc",
+  "next_action": "Continue branch-owned evidence reconciliation for the remaining fallback inventory, then re-check the provider-platform dependency; do not add a speculative ETF_HOLDINGS bridge or activate paid/direct-provider routes while awaiting staging.",
+  "plan_hash": "160d67e5ea4c57d1c5c3fe8ba82d69257c8a8f56272348bc6c12ad6b11ad29f6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -130,14 +113,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "Read-only refs now show local and fetched origin feat/market-data-provider-platform at 354966b2 and staging at 8b885a2f; the provider ref is not an ancestor of staging and its ProviderCapability definition still lacks ETF_HOLDINGS, so AC10 remains deferred. The provider workstream handoff remains human-review/owner-gated. The 2026-10-02 PIMCO recheck is aligned across runtime/YAML/tests and leaves MINT/BOND unavailable; all 15 Tier-0 and 155 Tier-1 fallback representative symbols retain explicit outcomes, while the remaining 19 fallback identities have provider-level terminal or non-publisher dispositions. AC11 remains open for unresolved fallback evidence and AC14 remains post-integration.",
+    "current_blocker": "The provider-platform refs remain at 354966b2 while staging is 8b885a2f; the provider ref is not an ancestor of staging and still lacks ProviderCapability.ETF_HOLDINGS, so AC10 remains deferred. The 2026-10-02 Amplify successor reconciliation now gives AIEQ/AWAY/BDRY/BWET current native successor evidence while preserving historical ETFMG as not_applicable; MINT/BOND remain unavailable. AC11 still has unresolved fallback evidence and AC14 remains post-integration.",
     "current_phase": "provider_evidence_reconciliation",
-    "next_action": "Reconcile stale fallback audit evidence where a current check is useful, then recheck the provider-platform dependency; preserve the explicit fallback boundary and do not activate paid/direct-provider routes while awaiting provider-platform staging.",
+    "next_action": "Continue branch-owned evidence reconciliation for the remaining fallback inventory, then re-check the provider-platform dependency; do not add a speculative ETF_HOLDINGS bridge or activate paid/direct-provider routes while awaiting staging.",
     "total": 14,
-    "updated_at": "2026-10-02T12:00:24Z"
+    "updated_at": "2026-10-02T12:14:00Z"
   },
-  "remote": "9bcfaa77ffc65d544be82d723305569ff799de4e",
-  "remote_sha": "9bcfaa77ffc65d544be82d723305569ff799de4e",
+  "remote": "ac19a53d6b67298db7a953357df7081d3d729fbc",
+  "remote_sha": "ac19a53d6b67298db7a953357df7081d3d729fbc",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "e83b4e4f-2c58-4ace-949e-cbd7155927e5",
