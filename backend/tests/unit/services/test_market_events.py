@@ -117,6 +117,41 @@ async def test_refresh_market_events_runs_additional_provider_calendar_operation
 
 
 @pytest.mark.asyncio
+async def test_refresh_market_events_rotates_bounded_provider_budget(db, monkeypatch):
+    monkeypatch.setattr(
+        market_events,
+        "market_event_provider_names",
+        lambda _provider_names=None: ["massive", "alpha_vantage", "fmp"],
+    )
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        return SimpleNamespace(provider_name=kwargs["provider_name"], result=[])
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+
+    results = [
+        await market_events.refresh_market_events(
+            AsyncSessionAdapter(db), max_providers=1
+        )
+        for _ in range(3)
+    ]
+
+    assert [result["providers"][0]["provider"] for result in results] == [
+        "massive",
+        "alpha_vantage",
+        "fmp",
+    ]
+    rotation = db.execute(
+        select(ProviderPaginationState).where(
+            ProviderPaginationState.operation == "provider_rotation"
+        )
+    ).scalar_one()
+    assert rotation.status == "partial"
+    assert rotation.pages_fetched == 3
+    assert rotation.metadata_payload["last_selected"] == "fmp"
+
+
+@pytest.mark.asyncio
 async def test_refresh_market_events_follows_massive_cursor_pages(
     db, monkeypatch
 ):

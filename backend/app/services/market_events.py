@@ -124,6 +124,114 @@ def _market_event_operations(
     return operations
 
 
+async def _rotate_market_event_provider_names(
+    db: AsyncSession,
+    names: Sequence[str],
+    *,
+    max_providers: int,
+    start: date | None,
+    end: date | None,
+) -> tuple[list[str], ProviderPaginationState | None, int | None]:
+    """Select a bounded provider slice without permanently starving providers.
+
+    ``max_providers`` is a per-invocation work budget, not an allow-list. The
+    selected slice advances only when the caller commits the complete refresh,
+    so a process failure retries the same slice while provider failures still
+    allow later providers to receive their next turn.
+    """
+
+    normalized = [str(name).strip().lower() for name in names if str(name).strip()]
+    if not normalized or max_providers >= len(normalized):
+        return normalized, None, None
+    bounded = max(0, int(max_providers))
+    if bounded == 0:
+        return [], None, None
+
+    identity = "|".join(
+        [
+            "v1",
+            start.isoformat() if start is not None else "*",
+            end.isoformat() if end is not None else "*",
+            *normalized,
+        ]
+    )
+    state_key = "market-events-provider-rotation:" + hashlib.sha256(
+        identity.encode("utf-8")
+    ).hexdigest()
+    state = (
+        await db.execute(
+            select(ProviderPaginationState)
+            .where(ProviderPaginationState.state_key == state_key)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if state is None:
+        state = ProviderPaginationState(
+            state_key=state_key,
+            provider="internal",
+            capability=ProviderCapability.MARKET_EVENTS.value,
+            operation="provider_rotation",
+            page_number=0,
+            cursor="0",
+            page_size=bounded,
+            status="pending",
+            metadata_payload={
+                "providers": normalized,
+                "window": {
+                    "start": start.isoformat() if start is not None else None,
+                    "end": end.isoformat() if end is not None else None,
+                },
+            },
+        )
+        db.add(state)
+        await db.flush()
+
+    metadata = state.metadata_payload if isinstance(state.metadata_payload, dict) else {}
+    last_selected = str(metadata.get("last_selected") or "").strip().lower()
+    if last_selected in normalized:
+        start_index = (normalized.index(last_selected) + 1) % len(normalized)
+    else:
+        try:
+            start_index = int(state.cursor or 0) % len(normalized)
+        except (TypeError, ValueError):
+            state.status = "failed"
+            state.last_error = "invalid persisted market-event provider rotation cursor"
+            raise ValueError(state.last_error)
+
+    selected = [
+        normalized[(start_index + offset) % len(normalized)]
+        for offset in range(min(bounded, len(normalized)))
+    ]
+    next_index = (start_index + len(selected)) % len(normalized)
+    state.page_size = bounded
+    state.status = "pending"
+    return selected, state, next_index
+
+
+def _commit_market_event_provider_rotation(
+    state: ProviderPaginationState | None,
+    *,
+    selected: Sequence[str],
+    next_index: int | None,
+) -> None:
+    if state is None or next_index is None or not selected:
+        return
+    state.cursor = str(next_index)
+    state.page_number = int(state.page_number or 0) + 1
+    state.pages_fetched = int(state.pages_fetched or 0) + 1
+    state.last_page_count = len(selected)
+    state.last_success_at = datetime.now(UTC)
+    state.last_failure_at = None
+    state.last_error = None
+    state.status = "partial"
+    state.metadata_payload = {
+        **(state.metadata_payload or {}),
+        "providers": list(selected),
+        "last_selected": selected[-1],
+        "selected_count": len(selected),
+    }
+
+
 async def _fetch_cursor_paginated_market_events(
     db: AsyncSession,
     *,
@@ -409,8 +517,16 @@ async def refresh_market_events(
     """
 
     names = market_event_provider_names(provider_names)
+    rotation_state: ProviderPaginationState | None = None
+    rotation_next_index: int | None = None
     if max_providers is not None:
-        names = names[: max(0, int(max_providers))]
+        names, rotation_state, rotation_next_index = await _rotate_market_event_provider_names(
+            db,
+            names,
+            max_providers=max(0, int(max_providers)),
+            start=start,
+            end=end,
+        )
 
     provider_results: list[dict[str, Any]] = []
     total_events = 0
@@ -543,6 +659,11 @@ async def refresh_market_events(
         total_unlinked += provider_unlinked
 
     reconciliation = await reconcile_market_events(db, start=start, end=end)
+    _commit_market_event_provider_rotation(
+        rotation_state,
+        selected=names,
+        next_index=rotation_next_index,
+    )
     await db.commit()
     return {
         "status": "refreshed" if total_events else ("failed" if failures else "no_events"),
