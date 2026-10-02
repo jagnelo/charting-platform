@@ -983,13 +983,15 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="avos",
-    investigated_at=date(2026, 9, 25),
+    investigated_at=date(2026, 10, 2),
     evidence_refs=(
         "web:avos-current-holdings-page-2026-09-04",
         "live:avos-current-holdings-page-2026-09-04-blocked",
         "live:avos-html-holdings-future-effective-date-2026-09-07",
         "web:avos-current-holdings-page-2026-09-25",
         "live:avos-direct-route-dns-failure-2026-09-25",
+        "web:avos-current-holdings-page-2026-10-02",
+        "live:avos-direct-route-403-cloudflare-2026-10-02",
     ),
     next_action=(
         "Re-test the official AVOS page from an allowed network path; promote only after "

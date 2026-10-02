@@ -461,8 +461,8 @@ symbol_audit_ledger:
       provider_identity: avos
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-25
-      evidence_refs: [web:avos-current-holdings-page-2026-09-04, live:avos-current-holdings-page-2026-09-04-blocked, live:avos-html-holdings-future-effective-date-2026-09-07, web:avos-current-holdings-page-2026-09-25, live:avos-direct-route-dns-failure-2026-09-25]
+      investigated_at: 2026-10-02
+      evidence_refs: [web:avos-current-holdings-page-2026-09-04, live:avos-current-holdings-page-2026-09-04-blocked, live:avos-html-holdings-future-effective-date-2026-09-07, web:avos-current-holdings-page-2026-09-25, live:avos-direct-route-dns-failure-2026-09-25, web:avos-current-holdings-page-2026-10-02, live:avos-direct-route-403-cloudflare-2026-10-02]
       next_action: "Re-test the official AVOS page from an allowed network path; promote only after the current issuer table is executable and parser, identity, freshness, and bounded live evidence pass."
     - symbol: BGGG
       tier: 1
@@ -2573,7 +2573,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-25
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [AVOS]
     estimated_us_etf_count: null
@@ -2617,6 +2617,14 @@ providers:
         source: "https://avosglobalequities.com/"
         result: "The direct bounded route probe failed with DNS resolution error; this confirms local transport unavailability but does not establish a parseable application route."
         evidence_ref: "live:avos-direct-route-dns-failure-2026-09-25"
+      - date: 2026-10-02
+        source: "https://avosglobalequities.com/"
+        result: "Current indexed official material exposes a complete AVOS holdings table effective 2026-09-29, but the bounded direct request returned HTTP 403 Cloudflare HTML; no executable native artifact was retrieved."
+        evidence_ref: "web:avos-current-holdings-page-2026-10-02"
+      - date: 2026-10-02
+        source: "https://avosglobalequities.com/"
+        result: "The application-equivalent request returned HTTP 403 Cloudflare HTML and no holdings rows."
+        evidence_ref: "live:avos-direct-route-403-cloudflare-2026-10-02"
     disposition_reason: "avos: The official indexed page now exposes a complete current 2026-09-17 holdings table, but the executable backend-equivalent route remains blocked (earlier HTTP 403 and current direct DNS failure); native support remains unavailable."
     next_action: "avos: Re-test the official AVOS page from an allowed network path; promote only after the current issuer table is executable and parser, identity, freshness, and bounded live evidence pass."
     implementation_sha: null

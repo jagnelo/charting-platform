@@ -5698,6 +5698,18 @@ The runtime capability audit, symbol ledger, and provider ledger now carry the
 2026-10-02 evidence references. Focused validation is being rerun for this
 evidence-only checkpoint.
 
+## AVOS route recheck — 2026-10-02
+
+Current indexed AVOS material exposes a complete holdings table effective
+2026-09-29, but the bounded direct request returned HTTP 403 Cloudflare HTML
+and no executable rows. AVOS therefore remains
+`unavailable`/`issuer_route_access_blocked`; no indexed table, SEC reconstruction,
+parser promotion, or paid route was used.
+
+The runtime capability audit, symbol ledger, and provider ledger now carry the
+2026-10-02 AVOS evidence references. Focused validation is being rerun for this
+evidence-only checkpoint.
+
 ## Arin/ATTR route recheck — 2026-10-02
 
 Current indexed Arin material exposes a complete 26-row ATTR holdings table
