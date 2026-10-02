@@ -6523,9 +6523,44 @@ passed. The adapter still fails closed when no declared route is available;
 the current probe did not obtain holdings rows and must not be counted as live
 current-support evidence.
 
-Next: push this ETF-owned test/evidence correction and inspect the new exact-SHA
-CI run. AC7 remains open until the declared job is green and the local visual
-gate is resolved or its unrelated out-of-scope failures receive explicit
-direction. The provider-platform branch remains outside staging, so AC10 stays
+Next: the ETF-owned correction and evidence have been pushed. Exact-SHA CI
+37064805786 on `8dc45d84560de1e8650fe3773bbc5e205a7dacd2` passed Backend,
+Branch-declared, Frontend Unit, and Playwright jobs; the protected exhaustive
+gate was skipped as designed. The local visual gate remains non-green due to
+the documented unrelated Study Lab/EasyScan visual failures. AC7 remains open
+until the full profile is green or the unrelated failures receive an authorized
+disposition. The provider-platform branch remains outside staging, so AC10 is
 dependency-gated; AC14 remains post-integration. No other worktree or branch
 was modified.
+
+## Exact-SHA CI after DFTT access classification — 2026-10-02
+
+Exact-SHA GitHub Actions run `37064805786` completed successfully on ETF
+branch tip `8dc45d84560de1e8650fe3773bbc5e205a7dacd2`. Backend Tests,
+Branch-declared Tests, Frontend Unit Tests, and E2E Tests (Playwright) all
+passed. The protected Exhaustive Integration Gate was skipped as designed on
+this feature branch. This confirms the DFTT-only access classification does
+not break the declared matrix or browser tests; the current DFTT route remains
+an external access skip and is not counted as current holdings support.
+
+The full local integration profile is still not green because its visual E2E
+stage fails on the already-documented unrelated visual-parity drift. The
+generic Study Lab and EasyScan test/snapshot paths are not owned by this ETF
+workstream, and no ETF-owned visual assertion failure was identified. AC7
+therefore remains open until the full profile is green or the unrelated gate
+failure receives an authorized disposition. No visual baselines or unrelated
+tests were changed.
+
+Current remote refs were rechecked read-only: staging is
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, and
+`feat/market-data-provider-platform` is
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`; the latter has not reached
+staging. AC10 remains the genuine upstream dependency for ETF_HOLDINGS
+integration, and AC14 remains post-integration/deployment. No other branch or
+worktree was changed.
+
+Next action: preserve the exact branch boundary while awaiting either the
+provider-platform merge into staging or explicit scope direction for the
+unrelated generic visual-gate failures. On the staging update, inspect the
+exact staged contracts and implement only the narrow ETF-owned ETF_HOLDINGS
+bridge.

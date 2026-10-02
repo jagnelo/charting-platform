@@ -68,7 +68,6 @@
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "dirty_paths": [
-    "backend/tests/live/test_etf_holdings_live_providers.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -109,13 +108,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "be38c21fca2a0ef0310f41e11189d756ff952fe7",
+  "head": "8dc45d84560de1e8650fe3773bbc5e205a7dacd2",
   "implementation_sha": "4da62c54d1465835e4562115e12513c984cd7962",
   "last_checkpoint": "2026-10-02T17:10:58Z",
-  "last_human_progress_update": "2026-10-02T21:04:48.931634+00:00",
+  "last_human_progress_update": "2026-10-02T21:29:06.725339+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Run final workstream/diff checks, commit and push only the ETF-owned DFTT access-classification and receipts, then inspect exact-SHA CI. Keep generic visual tests out of scope pending explicit direction; do not add the ETF_HOLDINGS bridge until the shared provider platform is in staging.",
-  "plan_hash": "084c9e66269c057facf4c2381344bc730a85ed2bdc284662f51f7eb74c7ccf03",
+  "next_action": "Commit and push the ETF-owned CI receipt records, then verify the exact final branch CI and clean synchronization. Keep the generic visual-gate paths outside this workstream unless their scope is authorized; resume the ETF_HOLDINGS bridge after provider-platform reaches staging.",
+  "plan_hash": "3bfd5531771a99e6b430a6ff9c465e5b8a05c3b3655658ecb870a8d7718f78b7",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -135,14 +134,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "AC7 remains open: exact-SHA run 37060669397 on be38c21f passed Backend, Frontend, and Playwright, skipped the protected gate, but failed Branch-declared with exit 2; job logs are admin-only. Local reproduction passed 589 adapter tests and default live checks, then found one DFTT route-discovery failure among 534 live cases (525 passed, 8 skipped). The official browser-rendered product page advertises the CSV while application-style page HTML omits its nonce route and the endpoint returns access-limited HTML. A DFTT-only test skip classification plus negative symbol-scope regression is implemented locally; focused helper/live checks, narrative invariant, workstream validation, and Ruff pass. Both ledgers retain 15 Tier-0 and 156 Tier-1 outcomes. The full Docker gate remains non-green at unrelated visual failures. Provider branch origin is 88132e9145a08d1c935a0111b3dba0fbd88bdff1 and staging is 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35; AC10 awaits the provider branch reaching staging. AC14 remains post-integration.",
-    "current_phase": "provider_live_access_reconciliation",
-    "next_action": "Commit and push only the ETF-owned DFTT live-test access classification and branch-owned receipts; then inspect exact-SHA CI. Keep generic visual changes outside scope pending human direction, and defer the ETF_HOLDINGS bridge until provider-platform work lands in staging.",
+    "current_blocker": "AC7 remains open: exact-SHA CI run 37064805786 on 8dc45d84560de1e8650fe3773bbc5e205a7dacd2 passed Backend, Branch-declared, Frontend Unit, and Playwright; the protected gate was skipped as designed. Local Docker full integration still fails only at unrelated visual parity, with 92 host-renderer diffs and named non-ETF Study Lab/EasyScan failures in the pinned-browser diagnostic. Those paths are outside this workstream owned_paths. Both ledgers retain 15 Tier-0 and 156 Tier-1 outcomes. AC10 awaits provider-platform reaching staging; AC14 is post-integration.",
+    "current_phase": "final_validation_and_dependency_wait",
+    "next_action": "Keep the ETF worktree clean and synchronized. Resume the ETF_HOLDINGS bridge only after provider-platform lands in staging. Resolve the unrelated visual gate only if its scope is authorized; then rerun full integration and exact-SHA CI before ready_for_human_review.",
     "total": 14,
-    "updated_at": "2026-10-02T21:04:48.931614+00:00"
+    "updated_at": "2026-10-02T21:29:06.725318+00:00"
   },
-  "remote": "be38c21fca2a0ef0310f41e11189d756ff952fe7",
-  "remote_sha": "be38c21fca2a0ef0310f41e11189d756ff952fe7",
+  "remote": "8dc45d84560de1e8650fe3773bbc5e205a7dacd2",
+  "remote_sha": "8dc45d84560de1e8650fe3773bbc5e205a7dacd2",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "e83b4e4f-2c58-4ace-949e-cbd7155927e5",
