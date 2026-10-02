@@ -789,8 +789,9 @@ progress:
     - strategy-lab-v2-verified-local-source-package-resolution
     - strategy-lab-v2-verified-frozen-event-tape-artifact-boundary
     - strategy-lab-v2-experiment-strategy-package-identity-binding
+    - strategy-lab-v2-disk-spooled-event-tape-artifact
   total: 18
-  current_phase: strategy-lab-v2-experiment-strategy-package-identity-binding
+  current_phase: strategy-lab-v2-disk-spooled-event-tape-artifact
   current_blocker: >-
     No external product, market-data, or Nautilus release dependency blocks
     isolated implementation. Docker is currently ready through the authorized
@@ -798,19 +799,23 @@ progress:
     yet been run and remains a final validation gate, not a development blocker.
     Exact-pinned Nautilus v2 conformance is still required before results become
     authoritative local backtests.
-    Frozen event-tape resolution, owner-scoped trial-input hydration, injected
+    The disk-spooled event-tape resolver and streaming Nautilus-neutral event
+    conversion are implemented, but Nautilus trial assembly, runtime bundle
+    transport, and the isolated runtime still materialize complete tapes and
+    SDK invocation batches. Owner-scoped trial-input hydration, injected
     instrument/venue/account adapters, and atomic worker dispatch composition
-    remain implementation work. Provider, ETF, and TC2000 staging boundaries
-    apply only to their eventual shared-contract integration.
+    also remain implementation work. Provider, ETF, and TC2000 staging
+    boundaries apply only to their eventual shared-contract integration.
   next_action: >-
-    Replace full in-memory tape/wire-bundle materialization with a bounded,
-    chunked content-addressed data-plane handoff suitable for long histories.
-    Then hydrate the attempt/trial and fingerprint-linked experiment, portfolio,
-    snapshot, strategy, and package through owner-scoped typed resource reads;
-    inject canonical instrument and venue/account adapters; assemble the
-    runtime bundle and bind its reference into worker evidence and atomic search
-    dispatch. Reconcile the injected Arrow decoder with the provider platform
-    only after that shared contract reaches staging. Continue with event-aligned
-    target-position allocation/risk and broader native product, accounting,
-    report, and exact-pinned Nautilus v2 conformance. Do not wait for a stable
-    upstream tag or modify parallel worktrees.
+    Bind the stream artifact to Nautilus trial assembly and a separate
+    read-only worker mount/reference; update the runtime CLI and result evidence
+    so the worker consumes verified native-event records without recreating a
+    full NautilusEventTape or SDK context batch. Qualify exact-pinned RC5
+    BacktestNode/catalog chunking and same-time event ordering against the
+    current native probe before enabling authoritative output. Then hydrate
+    fingerprint-linked resources through owner-scoped reads, inject canonical
+    instrument and venue/account adapters, and bind runtime references into
+    atomic dispatch. Reconcile the injected Arrow decoder only after the
+    provider contract reaches staging. Continue target-position allocation,
+    broader native product/accounting/report conformance, and full validation.
+    Do not wait for a stable upstream tag or modify parallel worktrees.

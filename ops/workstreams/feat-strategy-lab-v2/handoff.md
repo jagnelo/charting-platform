@@ -6561,3 +6561,42 @@ work. Docker is ready, while `full_stack_browser` remains a final acceptance
 gate. Next implementation context: replace full event-tape and JSON-bundle
 materialization with a bounded, chunked content-addressed replay data plane,
 then continue owner-scoped resource hydration and runtime dispatch assembly.
+
+## 2026-10-02 - Disk-spooled frozen event-tape stream
+
+Added `FrozenEventTapeArtifactResolver.resolve_streaming(...)`. It verifies
+provider-owned source artifacts while decoding rows individually, uses a
+bounded-cache SQLite sort spool with unique event identity and canonical event
+ordering, then writes ordered canonical NDJSON to a pinned content-addressed
+artifact. Event-line size, temporary disk use, and SQLite page cache are
+bounded/configurable. The generated `tape_fingerprint` matches the existing
+`FrozenEventTape.fingerprint` byte-for-byte; the verifier checks raw artifact
+integrity, event ordering, sequence monotonicity, per-dependency counts, and
+semantic tape identity before a second pass yields events.
+
+Added `iter_materialized_nautilus_event_records(...)` to feed that verified
+stream into the existing engine-neutral Nautilus event adapter one record at a
+time, preserving effective event-type, instrument, field, interval, and
+snapshot-coverage checks without constructing a `NautilusEventTape` tuple.
+This is not yet the end-to-end runtime path: `NautilusTrialAssembly`, the JSON
+runtime bundle, worker mount contract, runtime CLI, and strategy-context batch
+still materialize complete inputs. Do not claim long-history bounded-memory
+readiness until those consumers use the stream directly and exact RC5 replay
+parity is demonstrated.
+
+Validation at source commit `df28ac88e9bd2f58915404d76ad4b9c6ca128543`:
+1,075 Strategy Lab v2 tests passed; Ruff passed; MyPy passed across 325 source
+files; formatter checks passed for the new streaming module and its tests; and
+`git diff --check` passed.
+
+No stable Nautilus release is required. Exact-pinned RC5 remains eligible after
+the complete platform conformance suite, and prereleases remain barred from
+broker connections and real-capital control. Shared provider/ETF/TC2000
+contract consumption remains staged behind those branches reaching staging;
+it does not block this independent data-plane work. Docker is ready and
+`full_stack_browser` remains a final acceptance gate.
+
+Next: extend the content-addressed stream reference through trial assembly and
+the isolated worker mount/CLI, then run it through Nautilus's catalog-backed
+chunked path while streaming SDK contexts/results. Preserve same-time event
+ordering; verify it against exact RC5 before any authoritative activation.
