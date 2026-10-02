@@ -188,6 +188,15 @@ describe('linked instrument tool stale-response guards', () => {
     expect(apiPatch).toHaveBeenCalledWith('/alerts/screener/9', { status: 'paused' })
   })
 
+  it('names rearm controls by alert type', async () => {
+    apiGet.mockImplementation((_path: string) => {
+      if (_path === '/alerts/screener') return Promise.resolve([{ id: 10, screener_id: 5, screener_name: 'Paused momentum', trigger_type: 'both', status: 'paused', repeat: false }])
+      return Promise.resolve([])
+    })
+    const wrapper = mountAlerts({ props: { instrumentId: 1, symbol: 'SPY' } })
+    await vi.waitFor(() => expect(wrapper.get('button[aria-label="Rearm scan alert"]')).toBeTruthy())
+  })
+
   it('creates an indicator alert from the primary Alerts tool', async () => {
     apiGet.mockResolvedValue([])
     apiPost.mockResolvedValue({ id: 41, instrument_id: 7, indicator_a_type: 'rsi', condition: 'crosses_below', threshold_value: 30, status: 'active', repeat: true })

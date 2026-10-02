@@ -86,7 +86,7 @@
         <button type="button" :aria-label="`${alert.repeat ? 'Disable' : 'Enable'} repeat for price alert`" :aria-pressed="alert.repeat ? 'true' : 'false'" @click="patchPrice(alert.id, { repeat: !alert.repeat })"><WorkstationGlyph kind="repeat" /></button>
         <button v-if="alert.status === 'active'" type="button" aria-label="Pause price alert" @click="patchPrice(alert.id, { status: 'paused' })"><WorkstationGlyph kind="pause" /></button>
         <button v-else-if="alert.status === 'paused'" type="button" aria-label="Resume price alert" @click="patchPrice(alert.id, { status: 'active' })"><WorkstationGlyph kind="resume" /></button>
-        <button v-if="alert.status !== 'active'" type="button" @click="rearmPrice(alert.id)">Rearm</button>
+        <button v-if="alert.status !== 'active'" type="button" aria-label="Rearm price alert" @click="rearmPrice(alert.id)">Rearm</button>
         <button type="button" aria-label="Delete price alert" @click="deletePrice(alert.id)"><WorkstationGlyph kind="delete" /></button>
       </li>
       <li v-for="alert in indicatorAlerts" :key="`indicator-${alert.id}`" role="listitem" :aria-label="`Indicator alert: ${indicatorAlertLabel(alert)}, ${alert.status}`">
@@ -95,7 +95,7 @@
         <button type="button" :aria-label="`${alert.repeat ? 'Disable' : 'Enable'} repeat for indicator alert`" :aria-pressed="alert.repeat ? 'true' : 'false'" @click="patchIndicator(alert.id, { repeat: !alert.repeat })"><WorkstationGlyph kind="repeat" /></button>
         <button v-if="alert.status === 'active'" type="button" aria-label="Pause indicator alert" @click="patchIndicator(alert.id, { status: 'paused' })"><WorkstationGlyph kind="pause" /></button>
         <button v-else-if="alert.status === 'paused'" type="button" aria-label="Resume indicator alert" @click="patchIndicator(alert.id, { status: 'active' })"><WorkstationGlyph kind="resume" /></button>
-        <button v-if="alert.status !== 'active'" type="button" @click="rearmIndicator(alert.id)">Rearm</button>
+        <button v-if="alert.status !== 'active'" type="button" aria-label="Rearm indicator alert" @click="rearmIndicator(alert.id)">Rearm</button>
         <button type="button" aria-label="Delete indicator alert" @click="deleteIndicator(alert.id)"><WorkstationGlyph kind="delete" /></button>
       </li>
       <li v-for="alert in screenerAlerts" :key="`screener-${alert.id}`" role="listitem" :aria-label="`Scan alert: ${alert.screener_name || `Scan ${alert.screener_id}`}, ${alert.status}`">
@@ -104,7 +104,7 @@
         <button type="button" :aria-label="`${alert.repeat ? 'Disable' : 'Enable'} repeat for scan alert`" :aria-pressed="alert.repeat ? 'true' : 'false'" @click="patchScreener(alert.id, { repeat: !alert.repeat })"><WorkstationGlyph kind="repeat" /></button>
         <button v-if="alert.status === 'active'" type="button" aria-label="Pause scan alert" @click="patchScreener(alert.id, { status: 'paused' })"><WorkstationGlyph kind="pause" /></button>
         <button v-else-if="alert.status === 'paused'" type="button" aria-label="Resume scan alert" @click="patchScreener(alert.id, { status: 'active' })"><WorkstationGlyph kind="resume" /></button>
-        <button v-if="alert.status !== 'active'" type="button" @click="rearmScreener(alert.id)">Rearm</button>
+        <button v-if="alert.status !== 'active'" type="button" aria-label="Rearm scan alert" @click="rearmScreener(alert.id)">Rearm</button>
         <button type="button" aria-label="Delete scan alert" @click="deleteScreener(alert.id)"><WorkstationGlyph kind="delete" /></button>
       </li>
     </ul>
