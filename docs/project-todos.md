@@ -1,5 +1,12 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-head Docker integration validation after provider rotation
+
+- [x] At exact pushed source `51465c701`, Docker PostgreSQL/Redis integration
+      passed `386/386` in `729.17s` with 57 existing dependency warnings.
+      Test resources were cleaned without a host-wide Docker prune and no
+      provider credentials or external calls were used.
+
 ### 2026-10-02 — Exact-head non-ETF unit inventory after provider rotation
 
 - [x] At exact pushed source `eec5a6b20`, the complete branch-owned non-ETF

@@ -162,6 +162,11 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact pushed source 51465c701 passed the Docker PostgreSQL/Redis
+    integration gate: 386/386 in 729.17s with 57 existing dependency
+    warnings. Test resources were cleaned without a host-wide Docker prune;
+    no provider credentials or external calls were used.
+  - >-
     2026-10-02 exact pushed source eec5a6b20 passed the complete branch-owned
     non-ETF unit inventory: 1909/1909 cases in 134.77s with 37 existing
     dependency warnings. Only the parallel ETF adapter test file was excluded

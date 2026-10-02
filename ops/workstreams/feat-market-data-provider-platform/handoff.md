@@ -1,5 +1,12 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-head Docker integration validation after provider rotation
+
+- At exact pushed source `51465c701`, the Docker PostgreSQL/Redis integration
+  gate passed `386/386` in `729.17s` with 57 existing dependency warnings.
+  Repository cleanup removed the test resources and performed no host-wide
+  Docker prune; no provider credentials or live external calls were used.
+
 ## 2026-10-02 exact-head non-ETF unit inventory after provider rotation
 
 - At exact pushed source `eec5a6b20`, the complete branch-owned non-ETF unit
