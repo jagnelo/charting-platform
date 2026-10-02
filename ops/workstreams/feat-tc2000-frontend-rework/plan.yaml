@@ -55,7 +55,7 @@ current_blocker: >-
   provider/ETF behavior, or acceptance policy changed. Provider-platform and
   ETF consumer integration remains a sequencing gate until both upstream
   branches reach staging. The current atomic audit observes staging at
-  `8b885a2f`, provider-platform at `9a8b71f4`, and ETF holdings at
+  `8b885a2f`, provider-platform at `6305bca0`, and ETF holdings at
   `1a256e78`; neither dependency is an ancestor of staging. Shared-path
   reconciliation and the final post-staging exact gate remain pending. Origin
   synchronization remains a separate operational hold under the recorded
@@ -326,7 +326,7 @@ progress:
     snapshots, masks, thresholds, skips, fallbacks, provider/ETF behavior, or
     acceptance policy changed. Provider-platform and ETF consumer integration
     remains a sequencing gate until both upstream branches reach staging; the
-    current audit observes staging `8b885a2f`, provider `9a8b71f4`, and ETF
+    current audit observes staging `8b885a2f`, provider `6305bca0`, and ETF
     `1a256e78`, with neither upstream tip an ancestor of staging. Shared-path
     reconciliation and the final post-staging exact gate remain pending.
 historical_implementation_records:

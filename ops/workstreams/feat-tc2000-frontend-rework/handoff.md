@@ -47,7 +47,7 @@ roughly `45,932`-pixel board text/font anti-aliasing mismatch. No snapshots,
 masks, thresholds, skips, fallbacks, provider/ETF behavior, or acceptance
 policy changed. Provider and ETF consumer integration remains deferred until
 both branches reach staging; the current audit is staging `8b885a2f`, provider
-`9a8b71f4`, ETF `1a256e78`, with neither upstream tip an ancestor of staging.
+`6305bca0`, ETF `1a256e78`, with neither upstream tip an ancestor of staging.
 
 ## 2026-10-02 — Browser gate revalidated with Compose fallback
 
