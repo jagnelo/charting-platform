@@ -4,11 +4,11 @@
       <strong>Python Library</strong>
       <input v-model.trim="filter" aria-label="Filter Python assets" placeholder="Filter assets" />
       <button type="button" :disabled="loading" @click="refresh">{{ loading ? 'Loading…' : 'Refresh' }}</button>
-      <button type="button" @click="creating = !creating">{{ creating ? 'Close new' : 'New' }}</button>
+      <button type="button" :aria-expanded="creating ? 'true' : 'false'" :aria-controls="createFormId" @click="creating = !creating">{{ creating ? 'Close new' : 'New' }}</button>
       <button type="button" @click="fileInput?.click()">Import</button>
       <input ref="fileInput" class="code-library-tool__file" type="file" accept="application/json,.json" @change="importAsset" />
     </header>
-    <form v-if="creating" class="code-library-tool__create" aria-label="Create Python asset" @submit.prevent="createAsset">
+    <form v-if="creating" :id="createFormId" class="code-library-tool__create" aria-label="Create Python asset" @submit.prevent="createAsset">
       <input v-model.trim="newName" aria-label="New Python asset name" placeholder="Asset name" />
       <input v-model.trim="newStableKey" aria-label="New Python asset key" placeholder="stable-key" />
       <select v-model="newKind" aria-label="New Python asset kind" @change="newValidation = null"><option value="study">Study</option><option value="plot">Plot</option><option value="column">Column</option><option value="condition">Condition</option><option value="signal">Signal</option></select>
@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, useId } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
@@ -118,6 +118,7 @@ const filter = ref('')
 const loading = ref(false)
 const error = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
+const createFormId = `code-library-create-${useId()}`
 const drafts = ref<Record<number, string>>({})
 const selectedVersions = ref<Record<number, number>>({})
 const savingVersion = ref<number | null>(null)
