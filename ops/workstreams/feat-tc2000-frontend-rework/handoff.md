@@ -1,5 +1,25 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Strategy Lab native disclosure semantics
+
+Product commit `8aa0141ee` preserves the six TC-owned Strategy Lab section
+headings as `h3` elements while placing native button controls inside them,
+replacing scripted `h3[role="button"]` behavior without changing disclosure
+ids, expanded state, layout, or section actions. Focused StrategyLabView
+coverage passed `39/39`; the serial frontend suite passed `128/128` files and
+`1,161/1,161` tests with Vitest file parallelism disabled and one worker;
+`vue-tsc` and the production build passed with the existing large-chunk
+warning; TC scope validation, scope self-tests, workstream validation, and
+`git diff --check` passed. The default parallel frontend invocation remains
+host-timing-sensitive on its unrelated 100k-point uPlot benchmark. No
+provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or
+acceptance policy changed. No other worktree was mutated.
+
+The broader goal remains active: provider/ETF consumer integration is still
+sequenced behind both branches reaching staging, followed by line-level shared
+path reconciliation and a clean exact-tip gate. The protected visual replay
+also remains pending in a matching browser/font environment.
+
 ## 2026-10-02 — Indicator Panel native membership actions
 
 Product commit `8e4d17887` converts TC-owned Indicator Panel watchlist and
