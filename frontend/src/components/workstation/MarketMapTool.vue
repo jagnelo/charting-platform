@@ -2053,6 +2053,7 @@ onUnmounted(() => {
 .market-map-tool__tile--negative { background: #843f50 !important; }
 .market-map-tool__tile--unknown { background: #3c4652 !important; }
 .market-map-tool__tile--selected { outline: 2px solid #f7d87b; outline-offset: -2px; z-index: 2; }
+.market-map-tool__tile:focus-visible { box-shadow: inset 0 0 0 2px #fff; z-index: 4; }
 .market-map-tool__hover { position: absolute; right: 12px; bottom: 12px; z-index: 5; display: flex; flex-direction: column; gap: 2px; max-width: 300px; padding: 8px 10px; border: 1px solid #60758d; background: #18222e; box-shadow: 0 4px 18px #0008; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>
