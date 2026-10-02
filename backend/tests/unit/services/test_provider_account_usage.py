@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 from sqlalchemy import select
 
-from app.config import provider_rate_limit_seed, settings
+from app.config import settings
 from app.models.data_source import DataSource
 from app.models.provider_runtime import ProviderAccountUsageObservation
 from app.providers.base import ProviderAccountUsage, ProviderAccountUsageDimension
@@ -51,79 +51,6 @@ def test_binance_native_weight_snapshot_is_an_exact_baseline_candidate():
         "account_usage",
         58,
     )
-
-
-def test_coingecko_native_monthly_usage_is_an_exact_baseline_candidate():
-    observed_at = datetime(2026, 10, 2, 12, 0, tzinfo=UTC)
-    execution = SimpleNamespace(
-        provider_name="coingecko",
-        policy=SimpleNamespace(
-            quota_contract={
-                "dimensions": [
-                    {
-                        "name": "calls_per_month",
-                        "limit": 10_000,
-                        "window_seconds": 2_678_400,
-                        "unit": "credits",
-                        "scope": "demo_api_key",
-                        "quota_group": "demo_api_key",
-                        "reset": "calendar_month_utc",
-                    }
-                ],
-                "reset": "per_dimension",
-            }
-        ),
-    )
-    candidate = provider_account_usage._native_baseline_candidate(
-        execution,
-        ProviderAccountUsageDimension(
-            name="calls_per_month",
-            unit="credits",
-            limit=10_000,
-            remaining=9_876,
-            consumed=124,
-            reset_at=datetime(2026, 11, 1, 0, 0, tzinfo=UTC),
-        ),
-        observed_at,
-    )
-    assert candidate is not None
-    assert candidate[:3] == ("calls_per_month", "account_usage", 124)
-
-
-def test_coingecko_monthly_usage_rejects_a_nonmatching_account_limit():
-    observed_at = datetime(2026, 10, 2, 12, 0, tzinfo=UTC)
-    execution = SimpleNamespace(
-        provider_name="coingecko",
-        policy=SimpleNamespace(
-            quota_contract={
-                "dimensions": [
-                    {
-                        "name": "calls_per_month",
-                        "limit": 10_000,
-                        "window_seconds": 2_678_400,
-                        "unit": "credits",
-                        "scope": "demo_api_key",
-                        "quota_group": "demo_api_key",
-                        "reset": "calendar_month_utc",
-                    }
-                ],
-                "reset": "per_dimension",
-            }
-        ),
-    )
-    candidate = provider_account_usage._native_baseline_candidate(
-        execution,
-        ProviderAccountUsageDimension(
-            name="calls_per_month",
-            unit="credits",
-            limit=5_000,
-            remaining=4_876,
-            consumed=124,
-            reset_at=datetime(2026, 11, 1, 0, 0, tzinfo=UTC),
-        ),
-        observed_at,
-    )
-    assert candidate is None
 
 
 def test_eodhd_native_minute_headers_are_an_exact_candidate_when_reviewed():
@@ -577,68 +504,6 @@ async def test_eodhd_native_daily_usage_reconciles_exact_coordinator_baseline(
 
     assert result["baseline_reconciliations"][0]["dimension"] == "calls_per_day"
     assert result["baseline_reconciliations"][0]["used_units"] == 7
-    assert result["baseline_reconciliations"][0]["source"] == (
-        "provider_account_observation"
-    )
-
-
-@pytest.mark.asyncio
-async def test_coingecko_native_monthly_usage_reconciles_exact_coordinator_baseline(
-    db, monkeypatch, tmp_path
-):
-    source = DataSource(name="coingecko", base_url="https://api.coingecko.com/api/v3")
-    db.add(source)
-    db.flush()
-    observed_at = datetime.now(UTC).replace(microsecond=0)
-    next_month = (observed_at.replace(day=28) + timedelta(days=4)).replace(
-        day=1, hour=0, minute=0, second=0, microsecond=0
-    )
-    seed = provider_rate_limit_seed("coingecko")
-    execution = SimpleNamespace(
-        provider_name="coingecko",
-        data_source=source,
-        policy=SimpleNamespace(
-            quota_contract=seed["quota_contract"],
-            quota_scope=seed["quota_scope"],
-        ),
-        result=ProviderAccountUsage(
-            provider="coingecko",
-            observed_at=observed_at,
-            unit="credits",
-            account_plan="Demo",
-            dimensions=(
-                ProviderAccountUsageDimension(
-                    name="calls_per_month",
-                    unit="credits",
-                    limit=10_000,
-                    remaining=9_876,
-                    consumed=124,
-                    reset_at=next_month,
-                ),
-            ),
-        ),
-    )
-
-    async def fake_chain(*args, **kwargs):
-        return [SimpleNamespace(provider_name="coingecko")]
-
-    async def fake_execute(*args, **kwargs):
-        return execution
-
-    monkeypatch.setattr(provider_account_usage, "resolve_provider_chain", fake_chain)
-    monkeypatch.setattr(provider_account_usage, "execute_provider_call", fake_execute)
-    monkeypatch.setattr(
-        settings,
-        "PROVIDER_QUOTA_LEDGER_PATH",
-        str(tmp_path / "quota.sqlite3"),
-    )
-
-    result = await provider_account_usage.refresh_provider_account_usage(
-        AsyncSessionAdapter(db), provider_name="coingecko"
-    )
-
-    assert result["baseline_reconciliations"][0]["dimension"] == "calls_per_month"
-    assert result["baseline_reconciliations"][0]["used_units"] == 124
     assert result["baseline_reconciliations"][0]["source"] == (
         "provider_account_observation"
     )

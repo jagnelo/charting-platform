@@ -1,5 +1,35 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 CoinGecko Demo usage capability correction (in progress)
+
+- The current free Demo credential cannot use CoinGecko's `/key` endpoint.
+  First-party reference documentation shows this endpoint on
+  `pro-api.coingecko.com` with `x-cg-pro-api-key`; the one prior live probe
+  returned HTTP 401 `10005`. That was an entitlement-denial observation, not a
+  successful usage snapshot, and the response still consumed minute capacity.
+- Removed the Pro-only call from the Demo adapter, account-usage capability and
+  chain, native quota-baseline mapping, operation-cost profile, and successful
+  live-operation manifest. The historical redacted denial receipt remains in
+  `validation.jsonl`; the live suite will not repeat that known-bad request.
+  Demo search/profile remain supported. Its 10,000-credit UTC-month pool is
+  still fail-closed until an exact account-side balance is reconciled; no zero
+  usage is assumed.
+- Current changes are limited to provider/config/runtime accounting, tests,
+  provider documentation, the live runner manifest, and this branch workstream.
+  Exact changed paths are `backend/app/config.py`,
+  `backend/app/providers/coingecko.py`,
+  `backend/app/services/provider_account_usage.py`,
+  `backend/tests/live/test_market_data_providers_live.py`,
+  `backend/tests/unit/providers/test_new_providers.py`,
+  `backend/tests/unit/services/test_provider_account_usage.py`,
+  `backend/tests/unit/services/test_provider_quota_contract.py`,
+  `backend/tests/unit/test_live_provider_runner.py`,
+  `scripts/run-live-provider-probes.py`, `docs/data-providers.md`,
+  `ops/workstreams/feat-market-data-provider-platform/plan.yaml`,
+  `ops/workstreams/feat-market-data-provider-platform/session.json`, and
+  `ops/workstreams/feat-market-data-provider-platform/handoff.md`. Focused
+  exact-commit and full Docker validation are pending.
+
 ## 2026-10-02 exact-current preflight after tokenized pagination correction
 
 - At exact pushed source `c4352c3d3`, the full provider manifest stopped before

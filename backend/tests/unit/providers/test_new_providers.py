@@ -215,6 +215,11 @@ class TestRegistryCapabilities:
         assert "instrument_search" in caps
         assert "instrument_metadata" in caps
         assert "universe_discovery" in caps
+        # CoinGecko documents /key on the Pro API host with Pro credentials.
+        # The configured Demo integration must not advertise or poll that
+        # unavailable account-usage capability.
+        assert "account_usage" not in caps
+        assert "coingecko" not in app_config.settings.PROVIDER_CHAIN_SEEDS["account_usage"]
         assert "price_history" not in caps
         assert "option_chain" not in caps
 
@@ -3011,85 +3016,6 @@ class TestCoinGeckoCredentialWarning:
             mock_settings.COINGECKO_API_KEY = "demo-key-123"
             headers = provider._headers()
         assert headers == {"x-cg-demo-api-key": "demo-key-123"}
-
-    def test_account_usage_reads_native_monthly_credit_snapshot(self):
-        response = MagicMock(status_code=200)
-        response.headers = {}
-        response.raise_for_status.return_value = None
-        response.json.return_value = {
-            "plan": "Demo",
-            "rate_limit_request_per_minute": 100,
-            "monthly_call_credit": 10_000,
-            "current_total_monthly_calls": 321,
-            "current_remaining_monthly_calls": 9_679,
-            "api_key_rate_limit_request_per_minute": 80,
-            "api_key_monthly_call_credit": 5_000,
-            "api_key_current_total_monthly_calls": 123,
-        }
-        with (
-            patch("app.providers.coingecko.settings") as configured,
-            patch("app.providers.coingecko.httpx.get", return_value=response) as get,
-        ):
-            configured.COINGECKO_API_KEY = "demo-key-123"
-            usage = CoinGeckoProvider().fetch_account_usage()
-
-        assert get.call_count == 1
-        assert usage.account_plan == "Demo"
-        assert usage.limit == 5_000
-        assert usage.remaining == 4_877
-        dimensions = {dimension.name: dimension for dimension in usage.dimensions}
-        assert dimensions["calls_per_minute"].limit == 80
-        assert dimensions["calls_per_minute"].remaining is None
-        assert dimensions["calls_per_month"].consumed == 123
-        assert dimensions["calls_per_month"].remaining == 4_877
-        assert dimensions["calls_per_minute_plan"].limit == 100
-        assert dimensions["calls_per_month_plan"].consumed == 321
-        assert dimensions["calls_per_month"].reset_at is not None
-        assert dimensions["calls_per_month"].reset_at > usage.observed_at
-
-    def test_account_usage_rejects_non_reconciling_monthly_counters(self):
-        response = MagicMock(status_code=200)
-        response.headers = {}
-        response.raise_for_status.return_value = None
-        response.json.return_value = {
-            "plan": "Demo",
-            "rate_limit_request_per_minute": 100,
-            "monthly_call_credit": 10_000,
-            "current_total_monthly_calls": 321,
-            "current_remaining_monthly_calls": 9_678,
-            "api_key_rate_limit_request_per_minute": 80,
-            "api_key_monthly_call_credit": 5_000,
-            "api_key_current_total_monthly_calls": 123,
-        }
-        with (
-            patch("app.providers.coingecko.settings") as configured,
-            patch("app.providers.coingecko.httpx.get", return_value=response),
-        ):
-            configured.COINGECKO_API_KEY = "demo-key-123"
-            with pytest.raises(ProviderResponseError, match="do not reconcile"):
-                CoinGeckoProvider().fetch_account_usage()
-
-    def test_account_usage_rejects_key_counter_above_key_limit(self):
-        response = MagicMock(status_code=200)
-        response.headers = {}
-        response.raise_for_status.return_value = None
-        response.json.return_value = {
-            "plan": "Demo",
-            "rate_limit_request_per_minute": 100,
-            "monthly_call_credit": 10_000,
-            "current_total_monthly_calls": 321,
-            "current_remaining_monthly_calls": 9_679,
-            "api_key_rate_limit_request_per_minute": 80,
-            "api_key_monthly_call_credit": 5_000,
-            "api_key_current_total_monthly_calls": 5_001,
-        }
-        with (
-            patch("app.providers.coingecko.settings") as configured,
-            patch("app.providers.coingecko.httpx.get", return_value=response),
-        ):
-            configured.COINGECKO_API_KEY = "demo-key-123"
-            with pytest.raises(ProviderResponseError, match="exceed"):
-                CoinGeckoProvider().fetch_account_usage()
 
     def test_profile_uses_ranked_symbol_search_before_metadata_fetch(self):
         provider = CoinGeckoProvider()

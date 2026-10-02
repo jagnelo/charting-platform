@@ -224,7 +224,6 @@ class Settings(BaseSettings):
             "binance",
             "alpaca",
             "openfigi",
-            "coingecko",
         ],
         # Alpaca exposes an assets/discovery endpoint but no instrument-search
         # operation. Keep it out of this chain; stale policies from older
@@ -616,10 +615,10 @@ class Settings(BaseSettings):
                         "name": "calls_per_month",
                         "limit": 10000,
                         "window_seconds": 2678400,
-                        # /key calls this a monthly call-credit pool; current
-                        # Demo-plan pricing documents one API call as one
-                        # credit. Retain that native quota unit rather than
-                        # conflating it with the separate RPM request counter.
+                        # Demo-plan pricing defines one monthly credit per
+                        # API request. This is a local quota dimension; the
+                        # Demo key cannot access the Pro-only /key usage
+                        # endpoint, so no native account counter is assumed.
                         "unit": "credits",
                         "scope": "demo_api_key",
                         "quota_group": "demo_api_key",
@@ -629,24 +628,8 @@ class Settings(BaseSettings):
                         # regardless of subscription/billing date.
                         "reset": "calendar_month_utc",
                     },
-                    {
-                        "name": "account_usage_probe_concurrency",
-                        "limit": 1,
-                        "window_seconds": 1,
-                        "unit": "concurrent_requests",
-                        "scope": "deployment",
-                        "quota_group": "account_usage_probe",
-                        "source": "application_policy:provider_native_baseline_bootstrap",
-                        "reset": "rolling",
-                        "applies_to_operations": ["fetch_account_usage"],
-                    },
                 ],
                 "reset": "per_dimension",
-                "account_usage_bootstrap": {
-                    "enabled": True,
-                    "source": "application_policy:provider_native_baseline_bootstrap",
-                    "reconciled_dimensions": ["calls_per_month"],
-                },
             },
             "tokens_per_minute": 100,
             "quota_scope": "demo_api_key",
@@ -1682,7 +1665,6 @@ class Settings(BaseSettings):
                 "search_instruments": 1,
                 "discover_universe_page": 1,
                 "get_instrument_profile": 2,
-                "fetch_account_usage": 1,
             },
         },
         # Every tokenized quote adapter first resolves the provider asset and

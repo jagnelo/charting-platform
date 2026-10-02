@@ -117,7 +117,7 @@ branch_tests_reason: Application models, migrations, providers, workers, Redis q
 live_test_impact: opt-in provider probes and a separately approved post-deployment 30-day disabled shadow run; no deployment or activation is authorized in this implementation session
 migration_impact: multiple additive/transformational PostgreSQL migrations for issuers, domain identities, series scope, sessions, facts/events/short interest, provider runtime budgets, and shadow telemetry; old symbol/OHLCV rows require deterministic compatibility backfill
 deployment_impact: new backend/worker configuration, optional provider credentials, QuantLib dependency, Redis-backed quota state, scheduled shadow-report jobs, and feature flags; deployment remains a separate human-authorized master workflow
-status: ready_for_human_review
+status: in_progress
 approved_execution_decisions:
   provider_use:
     rule: Use every eligible provider for every capability it supports, ranked dynamically by capability, history, freshness, health, entitlement, exact cost, and remaining usage.
@@ -5338,4 +5338,4 @@ progress:
       and Docker integration `386/386`. No identity-selection behavior or ETF
       adapter ownership changed; unresolved provider and owner-controlled gates
       remain fail-closed.
-  next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.
+  next_action: Continue autonomous implementation in this assigned worktree. Validate the current provider-contract correction with branch-owned full unit and Docker integration gates, then run exact-current-source live preflight/probes and resolve locally researchable or executable provider gaps. Stop only for genuine owner-controlled legal/account/target-secret decisions; keep routing fail-closed and do not integrate, deploy, activate routing, modify another worktree, or start the final 30-day shadow run.

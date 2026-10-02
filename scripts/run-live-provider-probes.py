@@ -193,10 +193,6 @@ LIVE_PROVIDER_CASES = {
             "test_market_data_providers_live.py",
             "test_coingecko_credentialed_profile_observes_id_resolution_request",
         ),
-        (
-            "test_market_data_providers_live.py",
-            "test_coingecko_credentialed_account_usage_snapshot",
-        ),
     ),
     "fred": (
         (
@@ -421,7 +417,6 @@ LIVE_REQUIRED_OPERATIONS = {
     "coingecko": {
         "search_instruments",
         "get_instrument_profile",
-        "fetch_account_usage",
     },
     "fred": {"fetch_ohlcv"},
     "finra": {"fetch_short_interest", "fetch_market_events"},

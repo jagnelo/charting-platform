@@ -314,7 +314,7 @@ decimal interpretation would allow; the contract records the basis explicitly.
 | Binance | public crypto OHLCV, ticker, USDT universe, native request-weight usage snapshot | none | Current Spot REST documentation exposes a 6,000 request-weight/min IP ceiling. Adapter operations use documented weights: single-symbol price 2 and exchange-info discovery 20. Historical OHLCV costs weight 2 per 1,000-candle page; the requested range is conservatively paged and reserved before execution. The bounded `/api/v3/time` account-usage probe reads `X-MBX-USED-WEIGHT-1M` and proves the current fixed-minute counter; response `Retry-After`/weight headers are retained on capacity failures | IP / fixed minute; 429/418 protection | exact-weight price/discovery and bounded historical operations remain baseline-gated until the native usage probe establishes the active fixed-minute window; no empty-ledger assumption |
 | Coinbase Exchange | public crypto candles, ticker, USD products | none | 10 public requests/sec, burst up to 15; candle responses cap at 300 bars | IP / rolling | route and live-read blocked by default: written Coinbase authority must cover this application's automated/AI use and persistent storage; non-redistribution remains required; rate-limit compliance alone is not legal authorization |
 | Kraken | public crypto OHLC, ticker, USD pairs | none | safe public frequency <=1 request/sec; pair/IP limits apply; OHLC responses cap at 720 bars | IP/pair / rolling | history follows the provider `last` cursor and reserves `ceil(requested candles / 720)` calls; keyless live evidence required |
-| CoinGecko Demo | crypto search, metadata, market-cap universe, native account-usage snapshot when authorized | `COINGECKO_API_KEY` | 100 calls/min and 10,000 calls/month; CoinGecko documents that monthly call credits reset on the first day of each month regardless of billing date ([pricing](https://www.coingecko.com/en/api/pricing), [support clarification](https://support.coingecko.com/hc/en-us/articles/16760509234713-When-does-my-request-volume-monthly-API-credit-reset)) | Demo key / rolling minute + UTC calendar-month pool | the documented [`/key` usage endpoint](https://docs.coingecko.com/reference/api-usage) is implemented with strict plan/account and API-key-specific counter validation; routing uses the configured-key pool while plan/account counters remain separate observations. Credentialed search is live-proven. The configured Demo key returned HTTP 401 `10005` to `/key`, recorded as an expected entitlement denial; no account baseline is accepted and ordinary routing remains fail-closed until an authorized key/plan supplies native usage evidence |
+| CoinGecko Demo | crypto search, metadata, market-cap universe | `COINGECKO_API_KEY` | 100 calls/min and 10,000 calls/month; one request consumes one monthly credit and the allowance resets on the first day of each UTC month ([pricing](https://www.coingecko.com/en/api/pricing), [usage-credit FAQ](https://support.coingecko.com/hc/en-us/articles/13962109374489-How-does-CoinGecko-API-count-the-API-usage-credit)) | Demo API key / rolling minute + UTC calendar-month pool | Search/profile are live-proven. Demo does not provide a usable native usage snapshot: the documented [`/key` endpoint](https://docs.coingecko.com/reference/api-usage) is shown on the Pro API host with `x-cg-pro-api-key`; the configured Demo credential returned HTTP 401 `10005`. That denial is historical evidence only, not a passing usage integration. The endpoint is no longer polled or advertised as an account-usage capability; monthly routing remains fail-closed until its account pool is explicitly reconciled from a trusted account-side observation |
 | FINRA | consolidated short interest (OAuth Query API), OTC Daily List lifecycle/corporate-action deltas, and generic asynchronous Query API jobs | `FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET` | 1,200 synchronous requests/minute/IP; 20 asynchronous submissions/minute/dataset/account; max 5,000 records and a published 3 MB synchronous-response ceiling. The adapter reserves 3,000,000 bytes per synchronous operation (decimal interpretation, conservative because FINRA does not define the byte convention); the public credential publishes a 10 GB monthly allowance and disables the credential until the first day of the following month. The native reset timezone and byte convention remain unconfirmed, so the provider-defined label is retained for audit while a conservative provider-scoped rolling 31-day safety envelope protects admission | OAuth client / IP + dataset/account + provider-defined monthly public-credential byte window with rolling 31-day application safety envelope; native reset boundary remains unresolved | synchronous datasets live-proven; async submit/poll/presigned-download flow is fixture-tested and becomes routable only with a positive reviewed result-byte bound plus the provider-defined monthly reset admission; the default unbounded path remains fail-closed |
 | FINRA OTC directory | Candidate `otcSecurityMaster` DAPI-shaped adapter or explicitly supplied pipe-delimited mirror; current public FINRA catalog does not establish `otcSecurityMaster` as an available dataset | `FINRA_OTC_SYMBOL_DIRECTORY_URL` plus source-evidence, operation-cost, terms, completeness, redistribution, and polling controls | FINRA's 1,200 synchronous requests/minute/IP and 3 MB/response are platform-wide ceilings only; they do not establish this candidate dataset's availability, quota applicability, or source-specific rights. Any synchronous response bound uses 3,000,000 bytes locally | configured source / no assumed provider quota | **non-routable and no live request permitted** until current FINRA documentation or written provider confirmation is recorded; prior pagination probe is transport-only historical evidence, not source authorization |
 | OTC Markets Overnight Security Master (candidate) | Officially specified complete OTC security-master file containing OTC Markets security/company identifiers, symbols, names, security type/class, tier, reporting standard, status, reference price, and overnight-eligibility fields; pipe-delimited file plus a validation file with source/timestamp/record count; the candidate parser strictly validates the file shape and, when both files are supplied, rejects a record-count mismatch | commercial OTC Markets delivery/entitlement; specification names SFTP host `sftp.otcmarkets.com` and account-representative credentials, but grants no access | Files are published before each trading session at 5:25 PM and 7:20 PM ET on trading days, approximately 5 MB; CUSIP-included and no-CUSIP variants exist. Provider/file-delivery terms, quota, complete US-OTC coverage, and redistribution rights must be confirmed. The specification warns that CUSIP redistribution requires a separate CUSIP license | provider account / SFTP delivery contract / session cadence | **candidate only; source delivery and live routing are disabled**. This is the concrete alternative to the undocumented FINRA `otcSecurityMaster` candidate and remains outside the approved free-only routing budget until access and rights are explicitly authorized ([official specification](https://www.otcmarkets.com/files/OTC%20Markets%20Overnight%20Security%20Master%20Specification.pdf)) |
@@ -1275,26 +1275,24 @@ client never treats an empty local ledger as zero Binance usage.
 **Notes**:
 - CoinGecko is the authoritative source for crypto universe discovery and metadata.
 - For OHLCV, Binance is preferred; CoinGecko's OHLC endpoint has coarser granularity.
-- Rate limit: 100 calls/minute and 10,000 calls/month on the Demo plan. Both
-  dimensions are recorded independently. CoinGecko documents that monthly
-  credits reset on the first day of each month, regardless of billing date;
-  the runtime therefore models the pool as a UTC calendar-month window.
-- `fetch_account_usage()` calls the documented `/key` endpoint and validates
-  both the plan/account fields and the configured-key fields:
-  `api_key_rate_limit_request_per_minute`, `api_key_monthly_call_credit`, and
-  `api_key_current_total_monthly_calls`. Routing uses the key-specific pool;
-  plan/account counters are retained as separate observation dimensions, and
-  `current_total_monthly_calls + current_remaining_monthly_calls` is checked
-  independently. The key-specific monthly native observation is the only path
-  that can reconcile the configured account baseline; no local zero is
-  assumed. The endpoint does not necessarily return minute remaining/reset
-  data, so that dimension remains non-reconcilable unless the response supplies
-  it.
-- The configured Demo credential was live-checked on 2026-10-02 and returned
-  HTTP 401 (`10005`) for `/key`. This is recorded as an expected entitlement
-  denial, not a successful usage snapshot. The adapter is ready for a key/plan
-  that authorizes the endpoint, but ordinary CoinGecko routing stays
-  fail-closed until native account evidence is available.
+- Demo plan: 100 calls/minute and 10,000 monthly credits. CoinGecko counts one
+  credit for each request and resets monthly credits on the first day of each
+  UTC calendar month. Keep the minute and month pools as separate durable
+  quota dimensions; the month is not a fixed-duration 30-day window.
+- Do not call `/key` with the Demo credential. Although CoinGecko support
+  describes `/key` as an API-usage endpoint, its reference documents the Pro
+  API host and `x-cg-pro-api-key`. The configured Demo key was probed once on
+  2026-10-02 and received HTTP 401 `10005` (endpoint not entitled). This is
+  retained as denial evidence only; the Demo adapter does not expose
+  `account_usage` and the live suite will not spend another request on it.
+  CoinGecko states that unsuccessful responses still count against the
+  minute-rate limit ([usage-credit FAQ](https://support.coingecko.com/hc/en-us/articles/13962109374489-How-does-CoinGecko-API-count-the-API-usage-credit)),
+  so retrying this known entitlement denial would spend capacity without
+  producing usage data.
+- Since no usable Demo account-side counter is available, the monthly pool
+  cannot safely infer external consumption. The provider remains fail-closed
+  for monthly-quota routing until the exact current account balance/reset is
+  reconciled into the durable quota coordinator. Do not seed an assumed zero.
 - A metadata lookup consumes two HTTP calls (`/search` provider-ID resolution
   plus `/coins/{id}`); runtime accounting reserves both calls and the ranked
   search result avoids ambiguous ticker-to-coin mappings.
