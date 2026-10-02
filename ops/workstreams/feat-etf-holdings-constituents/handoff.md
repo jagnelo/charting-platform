@@ -5841,3 +5841,12 @@ Both issuer hostnames (`tctl.us` and `www.tctl.us`) remain inaccessible: direct
 DNS failed and the web fetcher could not open either URL. No current TCTL product
 or holdings artifact was retrieved. TCTL remains `issuer_access_blocked`; no SEC
 reconstruction or unproven native route was introduced.
+
+## Putnam/Franklin route recheck — 2026-10-02
+
+No newer complete current holdings snapshot was retrieved from the Putnam or
+Franklin successor surfaces; direct application-equivalent requests failed DNS
+resolution. The latest executable 14-symbol sweep remains authoritative: PFRX
+returned no rows and every other mapped representative was stale. Putnam
+remains `non_executable_public_source`; no stale or SEC-derived data was
+promoted as current.

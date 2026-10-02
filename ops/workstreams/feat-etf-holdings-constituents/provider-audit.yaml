@@ -6764,7 +6764,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-06
+    last_checked: 2026-10-02
     source_access_declared: issuer_successor_graphql_holdings_periodic_disclosure
     representative_symbols: [PFRX, SYNB, PGRO, PHYD, PBDC, PCRB, PLDR, PFUT, PULT, PEMX, PVAL, PPIE, PPEM, PGRI]
     estimated_us_etf_count: null
@@ -6789,6 +6789,8 @@ providers:
       - "web:putnam-quarterly-holdings-disclosure-2026-09-03"
       - "live:putnam-franklin-api-stale-or-empty-2026-09-03"
       - "live:putnam-franklin-representative-recheck-2026-09-06"
+      - "web:putnam-franklin-current-catalogue-recheck-2026-10-02"
+      - "live:putnam-franklin-route-recheck-2026-10-02-dns-failure"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -6806,6 +6808,10 @@ providers:
         source: "Franklin Templeton public GraphQL holdings API"
         result: "The full no-credential 14-symbol sweep returned no PFRX rows and stale snapshots for every other symbol: SYNB 2025-10-31; PGRO/PBDC 2026-06-30; PHYD 2026-02-28; PCRB/PULT 2026-01-31; PLDR/PFUT 2026-05-31; PEMX/PVAL/PGRI 2026-07-31; PPIE/PPEM 2026-04-30. No symbol produced a current complete snapshot."
         evidence_ref: "live:putnam-franklin-full-sweep-2026-09-06"
+      - date: 2026-10-02
+        source: "https://www.putnam.com/putnam-investments/investment-options; https://www.franklintempleton.com/api/pds/price-and-performance"
+        result: "Current indexed Putnam/Franklin material still identifies the successor catalogue and published product/API surfaces, but no newer complete current holdings snapshot was available from this worker; direct application-equivalent requests to the issuer/successor hosts failed DNS resolution. The existing no-credential sweep remains the latest executable evidence: PFRX empty and all other representatives stale."
+        evidence_ref: "web:putnam-franklin-current-catalogue-recheck-2026-10-02"
     disposition_reason: "putnam: Putnam's current retail ETF catalogue has moved to Franklin Templeton and its public API is executable, but the September 6 no-credential sweep returned no PFRX rows and stale snapshots for every other mapped symbol, ranging from 2025-10-31 through 2026-07-31. Official disclosure materials describe an eight-business-day quarterly complete-holdings cadence; therefore no complete current route is proven and the provider remains non_executable_public_source without SEC reconstruction or native promotion."
     next_action: "putnam: Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped 14 symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     implementation_sha: null

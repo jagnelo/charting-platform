@@ -105,11 +105,11 @@
   "goal_unavailable_reason": null,
   "head": "51d1c5958",
   "implementation_sha": "1faed1e93",
-  "last_checkpoint": "2026-10-02T11:10:57Z",
+  "last_checkpoint": "2026-10-02T11:11:46Z",
   "last_human_progress_update": "2026-09-25T00:46:26Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "preserve the explicit fallback capability boundary while awaiting the shared provider-platform ETF_HOLDINGS capability in staging; after staging, reconcile only the narrow ETF bridge and run AC14",
-  "plan_hash": "1906b3633185dbcf22c5832097c4c8fc2008e0323cbdb1f359cfa10690a1f9ac",
+  "plan_hash": "d1495561a9ccb1dca08cb9d27f97403eb7f7ba13eec19d960f7f76f75ea4c11e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,7 +134,7 @@
     "current_phase": "provider_evidence_reconciliation",
     "next_action": "Continue awaiting provider-platform staging before the ETF_HOLDINGS bridge; preserve the explicit fallback capability boundary and human-review handoff without activating paid/direct-provider routes.",
     "total": 14,
-    "updated_at": "2026-10-02T11:10:57Z"
+    "updated_at": "2026-10-02T11:11:46Z"
   },
   "remote": "52814f95bd0ef62968ba1af4018ff9ef5049d3d6",
   "remote_sha": "52814f95bd0ef62968ba1af4018ff9ef5049d3d6",
