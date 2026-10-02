@@ -2733,8 +2733,9 @@ providers:
         evidence_ref: "live:baillie-gifford-complete-workbooks-2026-10-02"
     disposition_reason: "baillie_gifford: The official fund pages declare daily all-holdings workbooks; the fund-ID routes now expose complete dated second-sheet workbooks with identifiers and weights for all four representatives, covered by a strict parser and bounded live evidence."
     next_action: "baillie_gifford: Monitor the four fund-ID workbooks and retain native status while they remain complete, identity-valid, dated, and executable; add future products only after equivalent first-party evidence."
-    implementation_sha: null
-    validation_refs: []
+    implementation_sha: 1faed1e93
+    validation_refs:
+      - validation:2026-10-02-baillie-gifford-native-promotion
   - adapter_key: ballast
     display_name: ballast
     queue_rank: 22
