@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-10-02 — Tokenized complete-feed pagination correction
+
+- [x] Commit `56b9a3ea` distinguishes xStocks numeric pagination from
+      Robinhood's complete non-paginated corporate-action feed. A full
+      Robinhood response is no longer marked partial and replayed indefinitely
+      across scheduled jobs.
+- [x] Focused tokenized coverage passed `37/37`; the exact branch-owned unit
+      gate passed `1,960/1,960`; Docker PostgreSQL/Redis integration passed
+      `386/386`. No provider rows are intentionally discarded.
+- [ ] External provider admission, legal/source, secret-store, and final
+      shadow gates remain independent and fail-closed.
+
 ### 2026-10-02 — Exact-current public/provider usage evidence refresh
 
 - [x] At exact source `52e24174b`, OpenFIGI passed `3/3` with 3 requests and

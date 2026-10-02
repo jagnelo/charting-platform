@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact source 56b9a3ea fixes tokenized corporate-action
+    pagination semantics: xStocks numeric pages still resume through durable
+    page state, while Robinhood's explicitly complete non-paginated feed is no
+    longer replayed as an artificial continuation when its row count equals
+    the configured page size. Focused coverage passed 37/37; the exact
+    branch-owned unit gate passed 1,960/1,960 and Docker integration passed
+    386/386. No relevant provider rows are discarded or permanently excluded.
+  - >-
     2026-10-02 exact source 52e24174b current-source focused live evidence
     passed OpenFIGI 3/3 (3 requests), Binance 3/3 (7 requests), MarketData.app
     native usage 1/1 (1 request), and Twelve Data native usage 1/1 (1 request).

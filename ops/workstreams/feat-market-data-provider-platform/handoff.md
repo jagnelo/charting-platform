@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 tokenized complete-feed pagination correction
+
+- Commit `56b9a3ea` fixes a repository-controlled pagination edge case. xStocks
+  numeric pages continue through durable state, while Robinhood's explicitly
+  complete non-paginated corporate-action feed is marked complete even when it
+  contains exactly the configured page size; it is not replayed forever.
+- Focused tokenized coverage passed `37/37`; the exact branch-owned non-ETF
+  unit inventory passed `1,960/1,960` with 37 warnings; Docker integration
+  passed `386/386` with 57 warnings. Testcontainers cleanup was isolated and
+  no provider calls or credentials were used by those gates.
+- No frontend or ETF adapter paths changed. External provider admission and
+  deployment gates remain fail-closed.
+
 ## 2026-10-02 exact-current public/provider usage evidence refresh
 
 - Exact source `52e24174b` passed OpenFIGI `3/3` with 3 requests, Binance
