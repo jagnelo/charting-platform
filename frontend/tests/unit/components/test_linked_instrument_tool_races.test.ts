@@ -138,7 +138,9 @@ describe('linked instrument tool stale-response guards', () => {
     apiPatch.mockReturnValue(mutation.promise)
     const wrapper = mountAlerts({ props: { instrumentId: 1, symbol: 'SPY' } })
     await vi.waitFor(() => expect(wrapper.get('button[aria-label="Enable repeat for price alert"]')).toBeTruthy())
-    await wrapper.get('button[aria-label="Enable repeat for price alert"]').trigger('click')
+    const repeatButton = wrapper.get('button[aria-label="Enable repeat for price alert"]')
+    expect(repeatButton.attributes('aria-pressed')).toBe('false')
+    await repeatButton.trigger('click')
     await wrapper.setProps({ instrumentId: 2, symbol: 'XLK' })
     expect((wrapper.vm as unknown as { busy: boolean }).busy).toBe(false)
 
@@ -181,6 +183,7 @@ describe('linked instrument tool stale-response guards', () => {
     apiPatch.mockResolvedValue({ id: 9, screener_id: 4, screener_name: 'Momentum', trigger_type: 'entered', status: 'paused', repeat: true })
     const wrapper = mountAlerts({ props: { instrumentId: 1, symbol: 'SPY' } })
     await vi.waitFor(() => expect(wrapper.text()).toContain('Momentum'))
+    expect(wrapper.get('button[aria-label="Disable repeat for scan alert"]').attributes('aria-pressed')).toBe('true')
     await wrapper.get('button[aria-label="Pause scan alert"]').trigger('click')
     expect(apiPatch).toHaveBeenCalledWith('/alerts/screener/9', { status: 'paused' })
   })
