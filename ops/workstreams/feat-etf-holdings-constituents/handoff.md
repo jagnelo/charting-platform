@@ -237,19 +237,37 @@ symbols are now native-promoted and covered by deterministic plus opt-in live te
   `unavailable` outcomes; unresolved route discovery remains `unknown`.
 - Validation tier: `full_integration`.
 - Local validation profile: `full_stack_browser`.
-- The latest complete `make validate-integration` run on the current working
-  changes passed healthy branch-scoped stack, backend/frontend checks,
-  research-runner probes, and functional E2E (154 passed, 106 skipped).
-  Visual E2E initially reported 103/104 because the `workspace-floating`
-  snapshot at `visual-1080p-125` exceeded its strict threshold; an isolated
-  fresh-stack retry passed all four workspace-floating viewport variants. The
-  mismatch was transient and did not implicate ETF holdings tests or routes.
+- Latest implementation tested: `4da62c54d1465835e4562115e12513c984cd7962`
+  (the current feature tip before the durable receipt update; this tip contains
+  only a formatting change relative to `68ad9f27f`). The complete deterministic
+  ETF adapter/capability/refresh/task suite passed 712 tests. The branch-declared
+  runner passed 589 adapter tests, default live contracts (2 passed/532
+  opt-in-skipped), the full 534-case live matrix (518 passed/16 skipped in
+  17m59s), Ruff, workstream validation, frontend type-check, 17 ETF panel/view
+  tests, and the production build.
+- The latest `make validate-integration` run reached and failed at
+  `e2e-visual`; it is not green. The branch-scoped stack was healthy, backend
+  coverage passed (1,873 tests; 81.12%), frontend coverage passed (945 tests;
+  82.08%), and the functional browser stage passed. One ETF endpoint request
+  reported `ERR_NETWORK_CHANGED` without a confirmed ETF assertion failure. The
+  visual
+  stage reported 92 stable screenshot mismatches across four viewport profiles;
+  repeated captures were about 1–2% different against the suite's 0.5% limit,
+  with text/icon-edge rasterization differences visible in the inspected shell
+  comparison. No visual snapshot was regenerated. The gate's automatic cleanup
+  removed its branch-scoped containers, images, volumes, and network without a
+  host-wide prune. One ETF endpoint request in the functional run encountered
+  `ERR_NETWORK_CHANGED`, but no ETF-specific assertion failure was identified.
 - Planning session: `e83b4e4f-2c58-4ace-949e-cbd7155927e5`.
-- Latest implementation checkpoint is `4df595394` (durable session-state
-  reconciliation after the provider-platform continuation recheck). The
-  provider implementation remains at the reconciled 496/420/76 state described
-  above; the latest branch-owned acceptance evidence is recorded at
-  `2026-10-01T18:47:24Z`.
+- The current code-derived provider state remains 496 registered / 421
+  native-live-backed / 75 fallback-only, and the latest branch-owned acceptance
+  evidence is recorded in the appended 2026-10-02 validation receipt. The
+  latest observed origin provider-platform ref is
+  `88132e9145a08d1c935a0111b3dba0fbd88bdff1`; staging remains
+  `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`. The provider ref is not an
+  ancestor of staging and neither inspected `ProviderCapability` contains
+  `ETF_HOLDINGS`; AC10 remains external to this worktree. AC14 remains a
+  post-integration 30-day shadow gate.
   Earlier
   checkpoints include `dabe2329965c704f93e3dbb21ec50a7da418ba6c` (Hexis/NICO
   native FilePoint route and synchronized records) and the named provider
@@ -6357,7 +6375,56 @@ and Frontend Unit Tests; the protected Exhaustive Integration Gate was skipped
 as designed for a feature branch. Playwright failed after 16m33s with only
 public exit code 1. The job log requires repository-admin rights and the
 uploaded `playwright-report` artifact is not publicly downloadable from this
-environment, so the failing browser case cannot be classified here. The local
-Docker socket is also unavailable. The branch remains clean and synchronized;
-AC7 is not called green until the browser failure is evidenced or rerun in an
-available Docker environment.
+environment, so the failing browser case could not then be classified. A
+subsequent local Docker-backed run on implementation commit `4da62c54` completed
+the stack, backend/frontend checks, research probes, and functional browser
+stage, then failed at visual E2E with 92 stable screenshot mismatches across
+four profiles. The complete current branch-declared suite passed 518 live
+issuer cases with 16 skips and all static/frontend steps; the full deterministic
+ETF suite passed 712. See the current validation receipt for exact commands and
+scope. AC7 remains open pending exact-SHA CI and resolution/accepted diagnosis
+of the local full-gate visual and unrelated browser failures. The provider
+branch remains outside staging, so AC10 remains deferred; AC14 remains
+post-integration. No staging/provider worktree, paid source, or credential was
+modified.
+
+## Full integration and branch-declared validation — 2026-10-02 (latest)
+
+The required full gate was run against implementation commit
+`4da62c54d1465835e4562115e12513c984cd7962` with `CI=1` and the temporary
+Buildx CLI plugin supplied through a `/tmp`-scoped `DOCKER_CONFIG`. Workstream
+validation, Ruff and the full 282-file format check, frontend type-check,
+backend coverage (1,873 passed; 81.12%), frontend coverage (945 tests; 82.08%),
+frontend build, Compose contract, stack health, and research-runner probes
+passed. The functional Playwright stage passed. One ETF endpoint request
+reported `ERR_NETWORK_CHANGED` without a confirmed ETF assertion failure. The
+visual stage failed with 92 stable
+screenshot mismatches across four viewport profiles. Repeated captures differed
+by roughly 1–2% against the 0.5% threshold, with visible text/icon-edge
+rasterization differences in the inspected shell comparison. No snapshots were
+regenerated. The gate exited at `e2e-visual`, and its automatic teardown removed
+the exact ETF stack containers, images, volumes, and network; no host-wide
+prune was used.
+
+The complete branch-declared runner then passed on the same code commit:
+589 adapter tests; default live contract 2 passed/532 expected opt-in skips;
+the full opt-in matrix 518 passed/16 skips of 534 cases in 17m59s; Ruff;
+workstream validation; frontend type-check; ETF panel/view tests (17 passed);
+and production build. The complete deterministic adapter/capability/refresh/
+task suite separately passed 712 tests. The Make wrapper itself could not
+allocate the shared runtime lock in the restricted sandbox, so the repository's
+unchanged `scripts/run-branch-tests.py` executed the exact workstream-declared
+sequence directly from this worktree with network access for public issuer
+reads.
+
+The source implementation tip remains code-derived at 496 registered / 421
+native-live-backed / 75 fallback-only providers. Both symbol ledgers retain
+15 Tier-0 and 156 Tier-1 outcomes, with 19 terminal/non-publisher symbol-less
+identities. The latest read-only refs are staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35` and origin
+`feat/market-data-provider-platform` `88132e9145a08d1c935a0111b3dba0fbd88bdff1`;
+the provider branch is not staged and both inspected `ProviderCapability`
+definitions lack `ETF_HOLDINGS`. AC10 stays deferred to that dependency, while
+AC14 remains the post-integration 30-day production shadow gate. No other
+branch/worktree, paid source, or credential was modified. Exact-SHA CI for the
+new durable receipt tip is the next validation step; AC7 is not reported green.
