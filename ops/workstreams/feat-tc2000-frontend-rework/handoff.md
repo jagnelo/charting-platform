@@ -14959,6 +14959,29 @@ discovery pages`), and ETF holdings at
 route evidence`). Neither upstream tip is an ancestor of staging; TC consumer
 integration and shared-path reconciliation remain deferred.
 
+## 2026-10-02 — Indicator Panel action-semantics slice
+
+Product commit `261ed6ba` exposes Indicator Panel row-menu disclosure state
+through unique `aria-controls` relationships, exposes projection/repeat/
+visibility toggles through `aria-pressed`, and makes the panel's action buttons
+explicit buttons. Chart actions, alert/drawing behavior, menu positioning,
+keyboard/mouse activation, and visual layout are unchanged.
+
+Focused IndicatorPanel coverage passed `1/1`; the full serial frontend suite
+passed `127/127` files and `1,156/1,156` tests; `vue-tsc` and the production
+build passed with the existing large-chunk warning; TC scope self-tests,
+workstream validation, and `git diff --check` passed. No provider-platform,
+ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy
+changed. No other worktree was mutated.
+
+The current atomic read-only dependency audit observes staging at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform at
+`5f6b1edef67b4ee209404bea05f57e5fdab7471a` (`fix(marketstack): scope raw
+pagination totals`), and ETF holdings at
+`0709577bcaeedf7875352bc63cbe96a156648b91` (`docs(etf): record provider ref
+refresh`). Neither upstream tip is an ancestor of staging; TC consumer
+integration and shared-path reconciliation remain deferred.
+
 ## 2026-10-02 — Strategy Lab sidebar selection-state slice
 
 Product commit `afa8a57c` exposes the selected Strategy Lab definition through
