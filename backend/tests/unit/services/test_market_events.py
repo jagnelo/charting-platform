@@ -129,12 +129,17 @@ async def test_refresh_market_events_rotates_bounded_provider_budget(db, monkeyp
 
     monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
 
-    results = [
-        await market_events.refresh_market_events(
-            AsyncSessionAdapter(db), max_providers=1
+    results = []
+    for offset in range(3):
+        window_start = date(2026, 9, 1 + offset)
+        results.append(
+            await market_events.refresh_market_events(
+                AsyncSessionAdapter(db),
+                start=window_start,
+                end=window_start,
+                max_providers=1,
+            )
         )
-        for _ in range(3)
-    ]
 
     assert [result["providers"][0]["provider"] for result in results] == [
         "massive",
@@ -149,6 +154,7 @@ async def test_refresh_market_events_rotates_bounded_provider_budget(db, monkeyp
     assert rotation.status == "partial"
     assert rotation.pages_fetched == 3
     assert rotation.metadata_payload["last_selected"] == "fmp"
+    assert rotation.metadata_payload["window"]["start"] == "2026-09-03"
 
 
 @pytest.mark.asyncio

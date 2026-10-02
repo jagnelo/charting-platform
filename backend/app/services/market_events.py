@@ -150,8 +150,6 @@ async def _rotate_market_event_provider_names(
     identity = "|".join(
         [
             "v1",
-            start.isoformat() if start is not None else "*",
-            end.isoformat() if end is not None else "*",
             *normalized,
         ]
     )
@@ -187,6 +185,15 @@ async def _rotate_market_event_provider_names(
         await db.flush()
 
     metadata = state.metadata_payload if isinstance(state.metadata_payload, dict) else {}
+    state.metadata_payload = {
+        **metadata,
+        "providers": normalized,
+        "window": {
+            "start": start.isoformat() if start is not None else None,
+            "end": end.isoformat() if end is not None else None,
+        },
+    }
+    metadata = state.metadata_payload
     last_selected = str(metadata.get("last_selected") or "").strip().lower()
     if last_selected in normalized:
         start_index = (normalized.index(last_selected) + 1) % len(normalized)
