@@ -6011,3 +6011,11 @@ current date while the test expected `current`. The fixture now uses the
 execution date; production freshness logic is unchanged. The full 705-test
 adapter/capability/refresh/task suite, Ruff, workstream validation, and
 diff-check pass at implementation checkpoint `5fc1a1f2`.
+
+## Provider-platform remote ref refresh — 2026-10-02
+
+The remote ref refresh succeeded and updated the local remote-tracking refs,
+but the provider-platform branch remains at `1b518778` while staging remains at
+`8b885a2f`. The provider branch is not an ancestor of staging, and both fetched
+`ProviderCapability` definitions still lack `ETF_HOLDINGS`. AC10 remains
+deferred; no provider-platform or staging worktree was modified.
