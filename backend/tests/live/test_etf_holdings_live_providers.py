@@ -457,6 +457,7 @@ pytestmark = [pytest.mark.live]
 _NON_NETWORK_CONTRACT_TESTS = {
     "test_live_provider_matrix_covers_every_registered_issuer_adapter",
     "test_live_backed_providers_each_have_a_concrete_live_route_test",
+    "test_donoghue_forlines_access_variant_skip_is_scoped_to_dftt",
 }
 
 
@@ -523,10 +524,30 @@ def _is_external_live_access_failure(exc: Exception) -> bool:
             "sterling capital's scmc holdings pdf returned no parseable positions",
             "sterling capital's scnm holdings pdf returned no parseable positions",
             "sterling capital's scep holdings pdf returned no parseable positions",
-            # Donoghue Forlines' product page currently advertises the verified
-            # fund-scoped AJAX CSV, but the issuer edge can return an access-
-            # limited 503 HTML response instead of CSV rows to CI.
+            # Donoghue Forlines' browser-rendered product page advertises the
+            # fund-scoped AJAX CSV, but application-style HTML requests can omit
+            # its nonce-bearing link while the CSV endpoint returns the issuer's
+            # access-limited HTML page. Keep this exact DFTT route-discovery
+            # variant as an external skip; the adapter itself still fails closed.
+            "donoghue forlines product page did not expose a complete holdings csv for dftt",
+            # The issuer edge can also return an access-limited 503 HTML response
+            # instead of rows from the declared export endpoint.
             "donoghue forlines holdings csv did not expose rows",
+        )
+    )
+
+
+def test_donoghue_forlines_access_variant_skip_is_scoped_to_dftt():
+    assert _is_external_live_access_failure(
+        ValueError(
+            "Donoghue Forlines product page did not expose a complete holdings "
+            "CSV for DFTT."
+        )
+    )
+    assert not _is_external_live_access_failure(
+        ValueError(
+            "Donoghue Forlines product page did not expose a complete holdings "
+            "CSV for another symbol."
         )
     )
 

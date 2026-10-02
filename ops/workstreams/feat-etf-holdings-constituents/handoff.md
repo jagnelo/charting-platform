@@ -6480,7 +6480,7 @@ then, a generic Study Lab/EasyScan test or baseline repair would cross current
 failure classification and do not alter those files. AC8 is not complete while
 AC7 remains open and the workstream is not at `ready_for_human_review`.
 
-Branch-owned records updated for this receipt: `ops/workstreams/feat-etf-holdings-constituents/plan.yaml`, `ops/workstreams/feat-etf-holdings-constituents/handoff.md`, `ops/workstreams/feat-etf-holdings-constituents/validation.jsonl`, and `ops/workstreams/feat-etf-holdings-constituents/session.json`.
+Branch-owned paths updated for this receipt: `backend/tests/live/test_etf_holdings_live_providers.py`, `ops/workstreams/feat-etf-holdings-constituents/plan.yaml`, `ops/workstreams/feat-etf-holdings-constituents/handoff.md`, `ops/workstreams/feat-etf-holdings-constituents/validation.jsonl`, and `ops/workstreams/feat-etf-holdings-constituents/session.json`.
 
 Workflow mechanics note: the default UV cache and repository-wide agent
 coordination locks were read-only in the base sandbox; using the branch-local
@@ -6489,3 +6489,43 @@ resolved those boundaries without changing another worktree. The current
 `agent-session.py` dirty-path formatter also drops the first character of the
 first modified path after stripping Git's porcelain output; `session.json` was
 corrected for this receipt, and no shared workflow code was modified.
+
+## DFTT live-access variant and CI reproduction — 2026-10-02
+
+Exact-SHA run `37060669397` on `be38c21fca2a0ef0310f41e11189d756ff952fe7`
+passed Backend Tests, Frontend Unit Tests, and Playwright E2E; Branch-declared
+Tests failed with exit code 2, and the protected Exhaustive Integration Gate
+was skipped as designed. Its public check-run annotation exposed only the exit
+code; downloading the job log returned HTTP 403.
+
+The repository-declared sequence was reproduced in this worktree. All 589
+deterministic adapter tests and the default live contract passed. The full
+534-case opt-in live matrix completed with 525 passed, 8 skipped, and one
+failure after 922.06 seconds: `test_live_donoghue_forlines_product_page_declared_holdings_csv`
+could not discover a complete CSV URL for DFTT. This is not a parser assertion
+failure.
+
+Current first-party evidence is inconsistent by access path. The
+browser-rendered [Donoghue Forlines DFTT page](https://etfs.donoghueforlines.com/etfs/tactical-30-etf/)
+identifies DFTT, shows current top-ten data, and advertises a fund-scoped full
+holdings CSV. An application-style HTML request to that same page returned the
+product content but omitted its nonce-bearing AJAX download link; requesting
+the currently declared fund-scoped endpoint returned the issuer's
+`Your access to this site has been limited` HTML page. This supports a narrow
+issuer-edge access classification for this probe, not current route success.
+
+The live-test external-access helper now recognizes only the exact DFTT
+missing-link message, and a regression asserts that the same message for a
+different symbol is not classified as external. No adapter, capability, or
+provider-count behavior was weakened or changed. The focused helper test passed,
+the focused DFTT route probe skipped with the exact recorded reason, and Ruff
+passed. The adapter still fails closed when no declared route is available;
+the current probe did not obtain holdings rows and must not be counted as live
+current-support evidence.
+
+Next: push this ETF-owned test/evidence correction and inspect the new exact-SHA
+CI run. AC7 remains open until the declared job is green and the local visual
+gate is resolved or its unrelated out-of-scope failures receive explicit
+direction. The provider-platform branch remains outside staging, so AC10 stays
+dependency-gated; AC14 remains post-integration. No other worktree or branch
+was modified.
