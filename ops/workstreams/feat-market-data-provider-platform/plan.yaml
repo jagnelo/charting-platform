@@ -162,6 +162,18 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact pushed source 6305bca0d hardened the backend seed-universe
+    pagination path: raw discovery pages are persisted before validation,
+    provider next_offset/next_url/complete metadata is validated, and
+    repeated, non-progressing, gap-skipping, malformed, or prematurely
+    terminal pagination fails closed instead of silently dropping later
+    listings. Focused persistence tests passed 18/18. The exact source passed
+    1,957/1,957 branch-owned unit tests and 386/386 Docker integration tests;
+    the exact-current provider safety preflight stopped at 0/0 before transport.
+    Provider-specific active baselines/contracts, legal/source admission,
+    deferred capability evidence, complete NMS/OTC/SEC admission, deployment
+    secret stores, and the final shadow phase remain open.
+  - >-
     2026-10-02 exact pushed source 7527716ba full provider safety preflight
     stopped before provider transport with 0/0 cases and zero external
     requests; the redacted receipt is appended to validation.jsonl.

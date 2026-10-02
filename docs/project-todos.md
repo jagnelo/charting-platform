@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-current universe pagination continuity hardening
+
+- [x] Commit `6305bca0d` hardens the backend `seed_universe` discovery loop:
+      raw pages are retained before validation; provider `next_offset`,
+      `next_url`, and `complete` metadata are validated; repeated,
+      non-progressing, gap-skipping, malformed, and prematurely terminal
+      pagination fails closed instead of silently dropping later listings.
+- [x] Regression coverage proves a two-page provider continuation is followed
+      (`18/18` focused persistence tests; Ruff and diff checks clean).
+- [x] Exact pushed source `6305bca0d` passed the complete branch-owned unit
+      inventory (`1,957/1,957`, 37 warnings) and Docker PostgreSQL/Redis
+      integration (`386/386`, 57 warnings). Testcontainers cleanup was scoped;
+      no provider requests or credentials were used by either gate.
+- [x] Exact-current provider safety preflight at `6305bca0d` stopped before
+      transport (`0/0`, zero provider requests); the redacted receipt is in
+      `validation.jsonl`.
+- [ ] Provider-specific active baselines/contracts, legal/source admission,
+      deferred capability evidence, deployment secret stores, complete
+      NMS/OTC/SEC admission, and the final separately authorized shadow phase
+      remain explicit fail-closed gates.
+
 ### 2026-10-02 — Exact-current safety preflight at pushed branch tip
 
 - [x] At exact pushed source `7527716ba`, the full provider manifest stopped

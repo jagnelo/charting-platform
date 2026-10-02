@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-current universe pagination continuity hardening
+
+- Commit `6305bca0d` hardens `seed_universe` so discovery pages are never
+  silently truncated when a provider supplies continuation metadata. Raw pages
+  remain persisted before normalization; `next_offset`, `next_url`, and
+  `complete` are validated; repeated/non-progressing/gap-skipping/malformed
+  pagination and premature terminal pages fail closed.
+- The focused persistence suite passed `18/18`; Ruff and `git diff --check`
+  passed. No frontend or ETF adapter paths changed.
+- Exact source `6305bca0d` passed the complete branch-owned unit inventory
+  (`1,957/1,957`, 37 existing dependency warnings) and Docker PostgreSQL/Redis
+  integration (`386/386`, 57 existing dependency warnings). Testcontainers
+  cleanup was isolated and no provider calls or credentials were used.
+- The exact-current full provider safety preflight stopped before transport at
+  `0/0` with zero provider requests. Its redacted receipt is in
+  `validation.jsonl`; unresolved provider-specific baseline/cost/byte/reset,
+  legal/source, capability, complete-universe, secret-store, deferred-provider,
+  and final-shadow gates remain fail-closed.
+
 ## 2026-10-02 exact-current safety preflight at pushed branch tip
 
 - At exact pushed source `7527716ba`, the full provider manifest stopped before
