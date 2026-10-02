@@ -9,7 +9,9 @@ from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolatio
 from app.strategy_lab_v2.runtime_execution import StrategyRuntimeRequest
 from app.strategy_lab_v2.sandbox import (
     SandboxCommandPlan,
+    build_nautilus_sandbox_command,
     build_sandbox_command,
+    sandbox_engine_id,
     sandbox_runtime_image_digest,
 )
 
@@ -90,6 +92,31 @@ def test_runtime_preflight_rejection_prevents_command_creation(tmp_path) -> None
             input_bundle_path=tmp_path / "input", output_path=tmp_path / "output",
             command=("python", "runner.py"),
         )
+
+
+def test_nautilus_builder_binds_engine_identity_and_preserves_image_validation(tmp_path) -> None:
+    profile = _profile()
+    plan = build_nautilus_sandbox_command(
+        _request(profile),
+        profile,
+        image_name="strategy-lab/runtime",
+        input_bundle_path=tmp_path / "input",
+        output_path=tmp_path / "output",
+        command=("python", "-m", "runner"),
+    )
+    assert sandbox_engine_id(plan) == "nautilus"
+    assert plan.argv[19] == "--env=STRATEGY_ENGINE_ID=nautilus"
+    assert sandbox_runtime_image_digest(plan) == profile.runtime_image_digest
+
+    generic = build_sandbox_command(
+        _request(profile),
+        profile,
+        image_name="strategy-lab/runtime",
+        input_bundle_path=tmp_path / "input",
+        output_path=tmp_path / "output",
+        command=("python", "-m", "runner"),
+    )
+    assert sandbox_engine_id(generic) is None
 
 
 def test_paths_commands_and_image_references_are_validated(tmp_path) -> None:

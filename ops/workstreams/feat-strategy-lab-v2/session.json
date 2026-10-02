@@ -125,7 +125,7 @@
   "head": "bbef109e9140ea952ca28c15c2edabf5c9f9b0ed",
   "implementation_sha": "5ca8250726dd9a88f660b4470007de78daf6a614",
   "last_checkpoint": "2026-10-02T16:09:31.395712+00:00",
-  "last_human_progress_update": "2026-10-02T16:06:53.887038+00:00",
+  "last_human_progress_update": "2026-10-02T16:17:09.015223+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -142,11 +142,11 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "RC compatibility is unblocked by exact isolated 2.0.0rc5 runtime and typed receipt-to-execution evidence; authoritative publication/live shadow remain gated by stable Nautilus conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration",
+    "current_blocker": "RC compatibility is unblocked by exact isolated 2.0.0rc5 runtime, typed receipt-to-execution evidence, and an explicit Nautilus sandbox engine marker; authoritative publication/live shadow remain gated by stable Nautilus conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration",
     "current_phase": "strategy-lab-v2-nautilus-rc-compatibility-track-awaiting-authoritative-gates",
     "next_action": "when the host/Rust canonical-event callback and approved staging contracts become available, invoke the completed NautilusForwardEventTape materializer, forward-parity receipt verifier, and conformance projection at that adapter boundary; until then continue engine-neutral and isolated RC work while keeping worker activation, publication, and live shadow fail-closed",
     "total": 18,
-    "updated_at": "2026-10-02T16:06:53.887016+00:00"
+    "updated_at": "2026-10-02T16:17:09.015206+00:00"
   },
   "remote": "bbef109e9140ea952ca28c15c2edabf5c9f9b0ed",
   "remote_sha": "5ca8250726dd9a88f660b4470007de78daf6a614",

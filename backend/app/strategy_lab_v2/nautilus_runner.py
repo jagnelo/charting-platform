@@ -17,7 +17,7 @@ from app.strategy_lab_v2.engine_execution import (
     EngineExecutionDecision,
     NautilusExecutionPlan,
 )
-from app.strategy_lab_v2.sandbox import SandboxCommandPlan
+from app.strategy_lab_v2.sandbox import SandboxCommandPlan, sandbox_engine_id
 from app.strategy_lab_v2.sandbox_execution import (
     SandboxRunResult,
     SandboxRunStatus,
@@ -105,6 +105,13 @@ def run_nautilus_plan(
         reasons.append("only_nautilus_engine_is_supported")
     if execution_plan.sandbox_plan_fingerprint != sandbox_plan.fingerprint:
         reasons.append("sandbox_plan_identity_mismatch")
+    try:
+        engine_marker = sandbox_engine_id(sandbox_plan)
+    except (TypeError, ValueError):
+        reasons.append("sandbox_plan_not_hardened")
+    else:
+        if engine_marker != "nautilus":
+            reasons.append("nautilus_sandbox_engine_marker_required")
     if reasons:
         return NautilusRunResult(
             execution_plan.fingerprint,

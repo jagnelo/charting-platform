@@ -6184,3 +6184,14 @@ and the non-authoritative boundary for the eventual host/Rust callback.
 The focused conformance-fixture suite passes 18 tests and the complete
 Strategy Lab v2 package suite passes 1,004 tests, Ruff, MyPy, and diff
 validation.
+
+## 2026-10-02 - Nautilus sandbox engine binding
+
+Added an explicit Nautilus sandbox builder that binds
+`STRATEGY_ENGINE_ID=nautilus` into the hardened Docker argv. The final
+`run_nautilus_plan` process boundary now validates that marker and rejects
+missing or non-Nautilus engine identities before invoking Docker, closing the
+gap where a plan could claim Nautilus evidence while carrying a generic runtime
+command. Generic sandbox plans remain available to engine-neutral runtime
+paths. Focused sandbox/runner coverage passes 11 tests; the complete Strategy
+Lab v2 package suite passes 1,006 tests, Ruff, MyPy, and diff validation.

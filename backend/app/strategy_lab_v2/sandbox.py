@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -36,6 +36,7 @@ _HARDENED_ARG_PREFIX = (
 )
 _HARDENED_TMPFS = "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864"
 _HARDENED_PIDS_LIMIT = "--pids-limit=256"
+_ENGINE_ENV_PREFIX = "--env=STRATEGY_ENGINE_ID="
 
 
 def _safe_text(value: str, field_name: str) -> None:
@@ -133,12 +134,13 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
         field_name="input bundle digest",
     )
 
-    image = argv[19]
+    image_index = _image_index(argv)
+    image = argv[image_index]
     image_name, separator, image_digest = image.rpartition("@")
     if not separator or not image_name or any(char.isspace() for char in image_name):
         raise ValueError("sandbox command plan must pin its runtime image digest")
     require_sha256_digest(image_digest, field_name="runtime image digest")
-    command = argv[20:]
+    command = argv[image_index + 1 :]
     if not command or command[0].startswith("-"):
         raise ValueError("sandbox command plan must contain an executable command")
     if any(
@@ -170,11 +172,31 @@ def sandbox_runtime_image_digest(plan: SandboxCommandPlan) -> str:
     if not isinstance(plan, SandboxCommandPlan):
         raise TypeError("plan must be a SandboxCommandPlan")
     validate_sandbox_command_plan(plan)
-    _image_name, separator, image_digest = plan.argv[19].rpartition("@")
+    _image_name, separator, image_digest = plan.argv[_image_index(plan.argv)].rpartition("@")
     if not separator:
         raise ValueError("sandbox command plan must pin its runtime image digest")
     require_sha256_digest(image_digest, field_name="runtime image digest")
     return image_digest
+
+
+def sandbox_engine_id(plan: SandboxCommandPlan) -> str | None:
+    """Return the optional engine identity bound into a sandbox command."""
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    marker = plan.argv[19]
+    if not marker.startswith(_ENGINE_ENV_PREFIX):
+        return None
+    value = marker.removeprefix(_ENGINE_ENV_PREFIX)
+    _safe_text(value, "sandbox engine identity")
+    return value
+
+
+def _image_index(argv: tuple[str, ...]) -> int:
+    """Locate the image after the optional engine marker."""
+
+    return 20 if argv[19].startswith(_ENGINE_ENV_PREFIX) else 19
 
 
 def _require_positive_option(value: str, label: str) -> None:
@@ -263,3 +285,26 @@ def build_sandbox_command(
         wall_timeout_seconds=profile.wall_timeout_seconds,
         output_limit_bytes=profile.output_limit_bytes,
     )
+
+
+def build_nautilus_sandbox_command(
+    request: StrategyRuntimeRequest,
+    profile: RuntimeIsolationProfile,
+    *,
+    image_name: str,
+    input_bundle_path: str | os.PathLike[str],
+    output_path: str | os.PathLike[str],
+    command: Sequence[str],
+) -> SandboxCommandPlan:
+    """Build a hardened command explicitly bound to the Nautilus engine."""
+
+    plan = build_sandbox_command(
+        request,
+        profile,
+        image_name=image_name,
+        input_bundle_path=input_bundle_path,
+        output_path=output_path,
+        command=command,
+    )
+    argv = (*plan.argv[:19], f"{_ENGINE_ENV_PREFIX}nautilus", *plan.argv[19:])
+    return replace(plan, argv=argv)

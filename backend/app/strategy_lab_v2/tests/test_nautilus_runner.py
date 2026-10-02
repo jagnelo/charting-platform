@@ -36,6 +36,7 @@ def _sandbox() -> SandboxCommandPlan:
             "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result,rw",
             "--env=STRATEGY_ATTEMPT_ID=attempt-1",
             f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
+            "--env=STRATEGY_ENGINE_ID=nautilus",
             f"runtime@{content_digest('image')}",
             "python",
             "runner",
@@ -132,3 +133,27 @@ def test_runner_rejects_invalid_argument_types() -> None:
         run_nautilus_plan("bad", sandbox)  # type: ignore[arg-type]
     with pytest.raises(TypeError, match="sandbox_plan"):
         run_nautilus_plan(_engine_plan(sandbox), "bad")  # type: ignore[arg-type]
+
+
+def test_runner_rejects_unmarked_or_non_nautilus_sandbox_before_spawn(tmp_path: Path) -> None:
+    sandbox = _sandbox()
+    unmarked = replace(sandbox, argv=(*sandbox.argv[:19], *sandbox.argv[20:]))
+    unmarked_result = run_nautilus_plan(
+        _engine_plan(unmarked),
+        unmarked,
+        docker_binary=os.fspath(tmp_path / "missing"),
+    )
+    assert unmarked_result.status is NautilusRunStatus.REJECTED
+    assert "nautilus_sandbox_engine_marker_required" in unmarked_result.rejection_reasons
+
+    other_engine = replace(
+        sandbox,
+        argv=(*sandbox.argv[:19], "--env=STRATEGY_ENGINE_ID=python", *sandbox.argv[20:]),
+    )
+    other_engine_result = run_nautilus_plan(
+        _engine_plan(other_engine),
+        other_engine,
+        docker_binary=os.fspath(tmp_path / "missing"),
+    )
+    assert other_engine_result.status is NautilusRunStatus.REJECTED
+    assert "nautilus_sandbox_engine_marker_required" in other_engine_result.rejection_reasons

@@ -73,6 +73,7 @@ def _fixtures() -> tuple:
             "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result,rw",
             "--env=STRATEGY_ATTEMPT_ID=attempt-1",
             f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
+            "--env=STRATEGY_ENGINE_ID=nautilus",
             f"runtime@{content_digest('runtime-image')}",
             "python",
             "runner",

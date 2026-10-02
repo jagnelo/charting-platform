@@ -1103,7 +1103,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   network, make the root read-only, drop capabilities, disable privilege
   escalation and secrets, run as an unprivileged user, mount inputs read-only,
   bound output/CPU/memory/PID limits, and carry the explicit wall-time budget;
-  execution remains a worker adapter responsibility.
+  execution remains a worker adapter responsibility. The Nautilus-specific
+  builder additionally binds `STRATEGY_ENGINE_ID=nautilus` into the argv so the
+  final process boundary can distinguish an engine-owned command from a
+  generic strategy runtime plan.
 - `sandbox_execution.py` executes only those validated argv plans with
   `shell=False`, a minimal secret-free environment, process-group cleanup,
   explicit wall-time enforcement, and bounded stdout/stderr capture. The
@@ -1243,9 +1246,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   additive migration owns table creation and application startup still owns
   migration execution.
 - `nautilus_runner.py` is the final process handoff after the Nautilus
-  execution gate. Rejected, non-Nautilus, or sandbox-mismatched plans return
-  before process creation; ready plans execute only through the bounded sandbox
-  adapter and preserve authoritative status only for successful gated runs.
+  execution gate. Rejected, non-Nautilus, sandbox-mismatched, or unmarked
+  sandbox plans return before process creation; ready plans execute only
+  through the bounded sandbox adapter and preserve authoritative status only
+  for successful gated runs.
 - `runtime_result_adapter.py` materializes one bounded sandbox result into the
   monotonic runtime execution state. It verifies command-plan and request
   identity, records bounded stdout digest/size for success or typed error
