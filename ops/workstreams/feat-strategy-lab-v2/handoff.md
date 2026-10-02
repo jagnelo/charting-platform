@@ -6070,3 +6070,16 @@ The elevated combined backend gate subsequently passed 2,642 tests with
 and RPI Compose configuration contracts rendered successfully. This removes
 the earlier sandbox-only runtime-registry diagnostic from the validation
 picture; it was an execution-environment boundary, not a product failure.
+
+## 2026-10-02 - RC fixture receipt/conformance binding
+
+`require_rc_fixture_binding(...)` now joins the parsed real-image
+`NautilusRcFixtureReceipt` to the exact runtime probe, release pin, and partial
+conformance suite. It requires passed and deferred check sets to match exactly
+and rejects image/version/channel drift or any authority claim. This lets the
+current `2.0.0rc5` fixture evidence feed compatibility analysis without
+silently satisfying the stable or forward-parity authority gates.
+
+The focused RC fixture/probe suite passes 22 tests; the complete package suite
+passes 993 tests, Ruff, MyPy across 305 source files, diff validation, and
+workstream validation.

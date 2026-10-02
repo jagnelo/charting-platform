@@ -19,6 +19,7 @@ from app.strategy_lab_v2.conformance import (
 from app.strategy_lab_v2.nautilus_event_adapter import NautilusEventParityReceipt
 from app.strategy_lab_v2.nautilus_runtime import (
     NautilusRcCompatibilityRuntime,
+    NautilusRcFixtureReceipt,
     NautilusRuntimeProbeEvidence,
 )
 
@@ -161,6 +162,54 @@ def require_runtime_probe_binding(
         raise ValueError("complete execution-eligible conformance evidence is required")
     if resolution.report.authoritative:
         raise ValueError("release-candidate probe evidence cannot be authoritative")
+
+
+def require_rc_fixture_binding(
+    resolution: ConformanceExecutionResolution,
+    runtime: NautilusRcCompatibilityRuntime,
+    probe: NautilusRuntimeProbeEvidence,
+    receipt: NautilusRcFixtureReceipt,
+) -> None:
+    """Bind a partial real-engine RC receipt to its probe and fixture suite.
+
+    The RC fixture intentionally defers forward event-tape parity, so it is
+    not an execution-eligible complete conformance resolution. This boundary
+    still authenticates the package/image identity and requires the parsed
+    receipt's passed/deferred check sets to match the observed suite exactly.
+    It never upgrades compatibility evidence to authority.
+    """
+
+    if not isinstance(resolution, ConformanceExecutionResolution):
+        raise TypeError("resolution must be a ConformanceExecutionResolution")
+    if not isinstance(runtime, NautilusRcCompatibilityRuntime):
+        raise TypeError("runtime must be a NautilusRcCompatibilityRuntime")
+    if not isinstance(probe, NautilusRuntimeProbeEvidence):
+        raise TypeError("probe must be a NautilusRuntimeProbeEvidence")
+    if not isinstance(receipt, NautilusRcFixtureReceipt):
+        raise TypeError("receipt must be a NautilusRcFixtureReceipt")
+    if probe.runtime_fingerprint != runtime.fingerprint:
+        raise ValueError("probe evidence is not bound to the declared runtime")
+    if probe.runtime_image_digest != runtime.runtime_image_digest:
+        raise ValueError("probe image digest does not match the runtime release pin")
+    if receipt.runtime_fingerprint != runtime.fingerprint:
+        raise ValueError("fixture receipt is not bound to the declared runtime")
+    if receipt.runtime_image_digest != runtime.runtime_image_digest:
+        raise ValueError("fixture receipt image digest does not match the runtime release pin")
+    evidence = resolution.evidence
+    if evidence.engine_id.lower() != "nautilus":
+        raise ValueError("RC fixture binding requires Nautilus evidence")
+    if evidence.engine_version != runtime.package_version:
+        raise ValueError("RC fixture evidence version does not match the runtime")
+    if evidence.release_channel is not runtime.release_channel:
+        raise ValueError("RC fixture evidence channel does not match the runtime")
+    if evidence.release_pin != runtime.release_pin:
+        raise ValueError("RC fixture evidence release pin does not match the runtime")
+    if evidence.passed_checks != receipt.passed_checks:
+        raise ValueError("RC fixture passed checks do not match the conformance suite")
+    if resolution.suite.missing_checks != receipt.deferred_checks:
+        raise ValueError("RC fixture deferred checks do not match the conformance suite")
+    if resolution.report.authoritative or receipt.authoritative:
+        raise ValueError("RC fixture evidence cannot be authoritative")
 
 
 def build_event_tape_parity_observation(

@@ -20,6 +20,7 @@ from app.strategy_lab_v2.conformance_fixtures import (
     build_event_tape_parity_observation,
     execute_conformance_suite,
     require_complete_conformance_suite,
+    require_rc_fixture_binding,
     require_runtime_probe_binding,
 )
 from app.strategy_lab_v2.nautilus_event_adapter import (
@@ -29,6 +30,7 @@ from app.strategy_lab_v2.nautilus_event_adapter import (
 )
 from app.strategy_lab_v2.nautilus_runtime import (
     NautilusRcCompatibilityRuntime,
+    NautilusRcFixtureReceipt,
     NautilusRuntimeProbeEvidence,
 )
 from app.strategy_lab_v2.sdk import MarketEvent
@@ -340,6 +342,45 @@ def _rc_probe(runtime: NautilusRcCompatibilityRuntime) -> NautilusRuntimeProbeEv
     )
 
 
+def _rc_partial_resolution(
+    runtime: NautilusRcCompatibilityRuntime,
+) -> ConformanceExecutionResolution:
+    expected = {
+        check: content_digest({"check": check.value, "fixture": "rc5"})
+        for check in ConformanceCheck
+    }
+
+    def runner(check: ConformanceCheck):
+        fixture = "deferred" if check is ConformanceCheck.FORWARD_EVENT_TAPE_PARITY else "rc5"
+        return {"check": check.value, "fixture": fixture}
+
+    return execute_conformance_suite(
+        expected,
+        runner,
+        suite_id="rc5-partial-fixture",
+        engine_id="nautilus",
+        engine_version=runtime.package_version,
+        build_digest=content_digest("nautilus-v2-rc5-build"),
+        release_channel=runtime.release_channel,
+        tested_at=NOW,
+        release_pin=runtime.release_pin,
+    )
+
+
+def _rc_receipt(runtime: NautilusRcCompatibilityRuntime) -> NautilusRcFixtureReceipt:
+    return NautilusRcFixtureReceipt.from_mapping(
+        {
+            "authoritative": False,
+            "deterministic_replay": {"equal": True},
+            "engine_lifecycle": "passed",
+            "forward_event_tape_parity": "deferred_authoritative_fixture",
+            "multi_instrument_accounting": {"instrument_count": 2},
+            "native_order_fill_cost": {"total_orders": 1},
+        },
+        runtime,
+    )
+
+
 def test_executable_rc_suite_binds_to_the_probed_runtime_image() -> None:
     runtime = _rc_runtime()
     resolution = _rc_resolution(runtime)
@@ -365,3 +406,24 @@ def test_runtime_probe_binding_rejects_a_different_image_digest() -> None:
 
     with pytest.raises(ValueError, match="image digest"):
         require_runtime_probe_binding(resolution, runtime, probe)
+
+
+def test_partial_rc_fixture_receipt_binds_to_probe_and_conformance_suite() -> None:
+    runtime = _rc_runtime()
+    resolution = _rc_partial_resolution(runtime)
+    receipt = _rc_receipt(runtime)
+
+    require_rc_fixture_binding(resolution, runtime, _rc_probe(runtime), receipt)
+
+    assert resolution.suite.missing_checks == receipt.deferred_checks
+    assert resolution.evidence.passed_checks == receipt.passed_checks
+    assert not receipt.authoritative
+
+
+def test_partial_rc_fixture_receipt_rejects_suite_check_drift() -> None:
+    runtime = _rc_runtime()
+    resolution = _rc_resolution(runtime)
+    receipt = _rc_receipt(runtime)
+
+    with pytest.raises(ValueError, match="passed checks"):
+        require_rc_fixture_binding(resolution, runtime, _rc_probe(runtime), receipt)
