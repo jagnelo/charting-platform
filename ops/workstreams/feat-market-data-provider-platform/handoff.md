@@ -1,6 +1,15 @@
 # feat/market-data-provider-platform
 
-## 2026-10-02 CoinGecko Demo usage capability correction (in progress)
+## 2026-10-02 EODHD quota-contract correction (focused validation; exact-source gates pending)
+
+- Re-audited EODHD's current first-party [API limits documentation](https://eodhd.com/financial-apis/api-limits). It states that every plan has a separate 1,000-HTTP-request/minute ceiling, while Free has 20 weighted API-call credits/day resetting at midnight GMT. Endpoint costs differ: EOD, search/list/calendar cost 1; intraday/news/technical cost 5; fundamentals/options cost 10; whole-exchange Bulk costs 100; `/api/user` costs zero daily credits.
+- Updated the EODHD contract to model the independent request and weighted-credit pools. The app uses a stricter local rolling 60-second request envelope because the native headers expose limit/remaining but no exact reset timestamp; it does not treat the current per-key header as permission to exceed 1,000/minute. `/api/user` remains a single RPM request but has an explicitly zero daily-credit cost.
+- Corrected lazy daily usage handling: if `/api/user` reports an older `apiRequestsDate`, current GMT-day charged usage is zero; the last active day's actual count is retained as a separate observation. Native minute counters reconcile only if the key's exact header remains compatible with the local ceiling and current observed use.
+- Existing unpinned rows are refreshed only when they still carry the exact old repository-owned 20/minute conflict-marked seed; pinned/custom policies remain unchanged. The old repository entitlement plan name is recognized during seed refresh so the EODHD capability entitlement correction migrates rather than remaining stale.
+- Focused provider/accounting regression suite passed `405/405` on the working tree; Ruff, diff check, and workstream validation passed. These are not yet exact-commit acceptance receipts. Docker readiness is confirmed with repository access to the running Docker socket; exact-SHA branch unit, PostgreSQL/Redis integration, bounded EODHD live tests, and the current provider-wide preflight are next.
+- No frontend or ETF provider-adapter files changed. Full provider readiness remains blocked by unrelated provider-specific baselines, quota/byte/reset, legal/source, capability, universe, and external secret-store gates; do not interpret this EODHD correction as overall branch completion.
+
+## 2026-10-02 CoinGecko Demo usage capability correction (validated)
 
 - The current free Demo credential cannot use CoinGecko's `/key` endpoint.
   First-party reference documentation shows this endpoint on
@@ -27,8 +36,15 @@
   `scripts/run-live-provider-probes.py`, `docs/data-providers.md`,
   `ops/workstreams/feat-market-data-provider-platform/plan.yaml`,
   `ops/workstreams/feat-market-data-provider-platform/session.json`, and
-  `ops/workstreams/feat-market-data-provider-platform/handoff.md`. Focused
-  exact-commit and full Docker validation are pending.
+  `ops/workstreams/feat-market-data-provider-platform/handoff.md`.
+- Exact committed source `26e6dd5b602c73143986462b19af6428c62dba4f` passed the
+  branch-owned non-ETF unit inventory (`1,957/1,957`, 37 warnings) and the
+  Docker PostgreSQL/Redis integration gate (`386/386`, 868.86 seconds,
+  57 warnings). The only excluded unit file is the parallel ETF adapter suite;
+  no provider calls or credentials were used by either gate. Redacted receipts
+  are in `validation.jsonl`.
+- Provider-wide live admission and the exact-current full preflight remain
+  open; this correction does not imply complete market-data provider readiness.
 
 ## 2026-10-02 exact-current preflight after tokenized pagination correction
 

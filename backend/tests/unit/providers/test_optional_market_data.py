@@ -692,7 +692,7 @@ def test_eodhd_fetches_documented_daily_usage_and_current_reset_boundary():
     assert get.call_args.kwargs["params"] == {"api_token": "demo"}
 
 
-def test_eodhd_stale_usage_date_does_not_invent_current_reset_boundary():
+def test_eodhd_stale_usage_date_keeps_history_and_proves_zero_current_day_use():
     provider = EODHDProvider()
     response = _response(
         {
@@ -711,8 +711,16 @@ def test_eodhd_stale_usage_date_does_not_invent_current_reset_boundary():
         usage = provider.fetch_account_usage()
 
     assert usage is not None
-    assert usage.dimensions[0].name == "calls_per_day"
-    assert usage.dimensions[0].reset_at is None
+    assert usage.consumed == 0
+    assert usage.remaining == 20
+    dimensions = {dimension.name: dimension for dimension in usage.dimensions}
+    assert dimensions["calls_per_day"].consumed == 0
+    assert dimensions["calls_per_day"].remaining == 20
+    assert dimensions["calls_per_day"].reset_at is not None
+    assert dimensions["calls_per_day"].reset_at > usage.observed_at
+    assert dimensions["calls_per_day_last_active"].consumed == 7
+    assert dimensions["calls_per_day_last_active"].remaining == 13
+    assert dimensions["calls_per_day_last_active"].reset_at is None
 
 
 def test_eodhd_rejects_invalid_extra_call_balance():

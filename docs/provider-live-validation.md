@@ -161,12 +161,15 @@ be probed with only the key, but discovery remains non-routable without it.
 The separate Marketstack quota preflight also requires the reviewed monthly
 limit/reset/evidence controls; the conflicting provider pages are never
 resolved by a generic default.
-EODHD is handled the same way for its conflicting minute pool: the native
-`/user` account snapshot may bootstrap the independently documented daily
-counter, but ordinary EODHD routing remains blocked until
-`EODHD_REVIEWED_MINUTE_LIMIT`, `EODHD_REVIEWED_MINUTE_RESET`, and
-`EODHD_MINUTE_QUOTA_EVIDENCE` are configured. The lower published 20/minute
-value is retained for audit and is never treated as a confirmed account limit.
+EODHD's current API-limits documentation specifies 1,000 HTTP requests/minute
+on every plan and 20 weighted Free-plan credits/day, reset at midnight GMT.
+The account's successful-response `X-RateLimit-Limit` and
+`X-RateLimit-Remaining` headers are retained as native observations; the
+runtime enforces a stricter rolling-minute request envelope and separately
+charges endpoint-specific daily credits. `/api/user` costs zero daily credits
+and supplies the daily account snapshot. The `EODHD_REVIEWED_MINUTE_*`
+settings are optional and only required together as explicit evidence for a
+future account-specific override; they are not a default routing gate.
 Coinbase's live case is blocked before transport until its exact internal,
 automated, persistent, non-redistributed use has current written authority
 recorded in the scoped `COINBASE_MARKET_DATA_USE_*` settings. FRED remains
@@ -798,17 +801,20 @@ generic cross-provider limiter is used.
 When all controls are present, the runtime reserves the documented bandwidth
 pool before execution and settles it to measured response bytes; incomplete or
 invalid maps or reset controls remain fail-closed.
-EODHD now exposes its documented `/user` account snapshot as two named
-observations when available: the daily `apiRequests`/`dailyRateLimit` pool and
-the response-header minute request pool. The daily observation is eligible to
-seed the durable `calls_per_day` baseline only when the returned
-`apiRequestsDate` is the current UTC date and the reset is the next midnight
-GMT; a stale date or a mismatched reviewed limit remains observation-only. The
-official EODHD sources still conflict between 20 and 1,000 requests/minute.
-The contract records that conflict and uses the documented Free Starter
-20/minute value as the conservative reviewed ceiling; it does not substitute
-the broader 1,000/minute claim until the plan and reset semantics are clarified
-with provider/account evidence.
+EODHD's current API-limits documentation specifies 1,000 HTTP requests/minute
+on every plan and 20 weighted Free-plan API-call credits/day, reset at midnight
+GMT. The runtime caps requests at 1,000 per rolling 60-second window and
+accounts daily endpoint credits independently. The native `/api/user` usage
+endpoint costs zero daily credits, reports the active daily limit/date, and
+successful responses carry the current per-key minute limit/remaining headers.
+If its lazy daily counter still reports a prior date, that is evidence of zero
+charged usage in the current GMT day; the prior-day amount is retained as a
+separate `calls_per_day_last_active` observation. Minute headers seed a current
+rolling baseline only when the provider's active limit is at least the
+documented local cap and observed usage is within that cap. EOD/profile access
+remains entitlement-gated independently of quota. Optional
+`EODHD_REVIEWED_MINUTE_*` settings are only for explicit future account/plan
+overrides, not default admission gates.
 The exact current-source account probes on 2026-09-16 passed for Twelve Data
 and EODHD. Twelve Data reconciled its native 8-credit minute pool after one
 `/api_usage` request, while its documented 800-credit UTC-day pool remained

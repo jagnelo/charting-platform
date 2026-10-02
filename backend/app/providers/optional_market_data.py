@@ -2461,13 +2461,13 @@ class EODHDProvider(_RESTProvider):
         """Read EODHD's documented daily API-call usage snapshot.
 
         The User API reports the number of calls on the latest active usage
-        date and the account's daily call limit.  EODHD documents that this
-        daily counter resets at midnight GMT, but may continue displaying the
-        previous active date until a request after midnight; therefore a
-        reset timestamp is exposed only when the returned date is the current
-        UTC date.  The separate minute request headers are retained as a
-        provider-native observation when both counters are present, without
-        inferring a reset timestamp from the header alone.
+        date and the account's daily call limit. EODHD documents a midnight
+        GMT reset and lazy zeroing on the first request after midnight. When
+        the endpoint still reports a past usage date, that is evidence that
+        the current day's charged usage is zero; preserve the last-active-day
+        amount as a separate observation instead of confusing it with today's
+        budget. The separate minute headers are observed against a strict
+        local rolling window because EODHD publishes no reset timestamp.
         """
 
         payload, headers = self._get_with_headers("user")
@@ -2501,27 +2501,45 @@ class EODHDProvider(_RESTProvider):
             raise ProviderResponseError(
                 self.name, "provider returned an invalid apiRequestsDate field"
             ) from exc
-        if used is None or daily_limit is None or daily_limit <= 0 or used > daily_limit:
+        if (
+            used is None
+            or daily_limit is None
+            or daily_limit <= 0
+            or used > daily_limit
+            or usage_date > datetime.now(UTC).date()
+        ):
             raise ProviderResponseError(
                 self.name, "provider returned invalid daily account-usage counters"
             )
 
         observed_at = datetime.now(UTC)
-        reset_at: datetime | None = None
-        if usage_date == observed_at.date():
-            next_day = usage_date + timedelta(days=1)
-            reset_at = datetime(next_day.year, next_day.month, next_day.day, tzinfo=UTC)
+        current_day_used = used if usage_date == observed_at.date() else 0
+        next_day = observed_at.date() + timedelta(days=1)
+        reset_at = datetime(next_day.year, next_day.month, next_day.day, tzinfo=UTC)
 
         dimensions = [
             ProviderAccountUsageDimension(
                 name="calls_per_day",
                 unit="calls",
                 limit=daily_limit,
-                remaining=daily_limit - used,
-                consumed=used,
+                remaining=daily_limit - current_day_used,
+                consumed=current_day_used,
                 reset_at=reset_at,
             )
         ]
+        if usage_date < observed_at.date():
+            # The API's lazy daily counter still exposes its last active
+            # date. Keep that historical usage rather than dropping it, while
+            # the current-window zero above follows the documented GMT reset.
+            dimensions.append(
+                ProviderAccountUsageDimension(
+                    name="calls_per_day_last_active",
+                    unit="calls",
+                    limit=daily_limit,
+                    remaining=daily_limit - used,
+                    consumed=used,
+                )
+            )
         # EODHD exposes ``extraLimit`` as a separate, non-expiring buffer
         # that is consumed only after the daily call allowance is exhausted.
         # It is a remaining balance, not a second daily limit: retain it as
@@ -2576,14 +2594,11 @@ class EODHDProvider(_RESTProvider):
                     limit=minute_limit,
                     remaining=minute_remaining,
                     consumed=minute_limit - minute_remaining,
-                    # EODHD documents this pool as resetting every minute.
-                    # Keep the native daily counter's stale-date handling
-                    # independent; this boundary is only for the minute
-                    # header dimension and never promotes a plan/limit.
-                    reset_at=(
-                        datetime.now(UTC).replace(second=0, microsecond=0)
-                        + timedelta(minutes=1)
-                    ),
+                    # The public docs expose current limit/remaining but no
+                    # reset timestamp. Anchor a conservative local rolling
+                    # observation window at this snapshot; this is not
+                    # represented as a provider-supplied reset boundary.
+                    reset_at=observed_at + timedelta(seconds=60),
                 )
             )
 
@@ -2595,8 +2610,8 @@ class EODHDProvider(_RESTProvider):
             observed_at=observed_at,
             unit="calls",
             limit=daily_limit,
-            remaining=daily_limit - used,
-            consumed=used,
+            remaining=daily_limit - current_day_used,
+            consumed=current_day_used,
             reset_at=reset_at,
             account_plan=(
                 subscription_type.strip()

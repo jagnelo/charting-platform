@@ -1191,10 +1191,31 @@ def test_eodhd_credentialed_account_usage_snapshot():
     if daily.reset_at is not None:
         assert daily.reset_at.tzinfo is not None
     reconciliation = reconcile_native_account_usage("eodhd", usage)
-    # The supplied account can report the previous usage date until the first
-    # request after midnight GMT. Preserve that observation without fabricating
-    # a current daily baseline when the reset boundary is absent.
-    assert all(item["status"] == "not_reconciled" for item in reconciliation)
+    daily_reconciliation = next(
+        item for item in reconciliation if item.get("dimension") == "calls_per_day"
+    )
+    assert daily_reconciliation["status"] == "reconciled"
+    # The endpoint's native minute headers can carry an account-specific cap
+    # above the stricter documented all-plan local cap. Reconcile exact
+    # observed use only when it is within that app cap; otherwise remain
+    # fail-closed until the full rolling window elapses.
+    minute = dimensions["requests_per_minute"]
+    assert minute.limit is not None and minute.limit > 0
+    assert minute.remaining is not None and minute.remaining >= 0
+    assert minute.consumed is not None and minute.consumed >= 0
+    minute_reconciliation = next(
+        (
+            item
+            for item in reconciliation
+            if item.get("dimension") == "requests_per_minute"
+        ),
+        None,
+    )
+    if minute.limit >= 1000 and minute.consumed <= 1000:
+        assert minute_reconciliation is not None
+        assert minute_reconciliation["status"] == "reconciled"
+    else:
+        assert minute_reconciliation is None or minute_reconciliation["status"] == "not_reconciled"
 
 
 def test_eodhd_free_plan_profile_entitlement_is_explicit():

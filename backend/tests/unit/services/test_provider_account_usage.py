@@ -53,7 +53,7 @@ def test_binance_native_weight_snapshot_is_an_exact_baseline_candidate():
     )
 
 
-def test_eodhd_native_minute_headers_are_an_exact_candidate_when_reviewed():
+def test_eodhd_native_minute_headers_reconcile_under_the_documented_local_cap():
     observed_at = datetime(2026, 9, 25, 3, 30, 29, tzinfo=UTC)
     execution = SimpleNamespace(
         provider_name="eodhd",
@@ -62,12 +62,12 @@ def test_eodhd_native_minute_headers_are_an_exact_candidate_when_reviewed():
                 "dimensions": [
                     {
                         "name": "requests_per_minute",
-                        "limit": 1200,
+                        "limit": 1000,
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "api_key",
                         "quota_group": "api_key",
-                        "reset": "fixed_minute",
+                        "reset": "rolling",
                     }
                 ],
                 "reset": "per_dimension",
@@ -82,7 +82,7 @@ def test_eodhd_native_minute_headers_are_an_exact_candidate_when_reviewed():
             limit=1200,
             remaining=1199,
             consumed=1,
-            reset_at=datetime(2026, 9, 25, 3, 31, tzinfo=UTC),
+            reset_at=observed_at + timedelta(seconds=60),
         ),
         observed_at,
     )
@@ -125,6 +125,47 @@ def test_alpaca_native_snapshot_accepts_documented_second_precision_skew():
     )
     assert candidate is not None
     assert candidate[:3] == ("market_data_requests_per_minute", "account_usage", 1)
+
+
+@pytest.mark.parametrize(
+    ("native_limit", "remaining"),
+    [(999, 998), (1200, 199)],
+)
+def test_eodhd_native_minute_snapshot_stays_blocked_when_below_or_over_local_cap(
+    native_limit, remaining
+):
+    observed_at = datetime(2026, 9, 25, 3, 30, 29, tzinfo=UTC)
+    execution = SimpleNamespace(
+        provider_name="eodhd",
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "requests_per_minute",
+                        "limit": 1000,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "quota_group": "api_key",
+                        "reset": "rolling",
+                    }
+                ],
+                "reset": "per_dimension",
+            }
+        ),
+    )
+    candidate = provider_account_usage._native_baseline_candidate(
+        execution,
+        ProviderAccountUsageDimension(
+            name="requests_per_minute",
+            unit="requests",
+            limit=native_limit,
+            remaining=remaining,
+            reset_at=observed_at + timedelta(seconds=60),
+        ),
+        observed_at,
+    )
+    assert candidate is None
 
 
 def test_alpaca_native_snapshot_rejects_reset_stale_beyond_reviewed_skew():

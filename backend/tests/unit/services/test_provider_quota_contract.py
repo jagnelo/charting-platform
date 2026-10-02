@@ -2275,45 +2275,30 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
 
     eodhd = settings.PROVIDER_RATE_LIMIT_SEEDS["eodhd"]["quota_contract"]
     assert [item["reset"] for item in eodhd["dimensions"]] == [
-        "provider_defined",
+        "rolling",
         "calendar_day_gmt",
         "rolling",
     ]
-    assert [item["limit"] for item in eodhd["dimensions"]] == [20, 20, 1]
+    assert [item["limit"] for item in eodhd["dimensions"]] == [1000, 20, 1]
     assert [item["unit"] for item in eodhd["dimensions"]] == [
         "requests",
         "calls",
         "concurrent_requests",
     ]
-    assert eodhd["dimensions"][0]["source"] == "https://eodhd.com/lp/historical-eod-api"
-    assert eodhd["dimensions"][1]["source"] == "https://eodhd.com/lp/historical-eod-api"
+    assert eodhd["dimensions"][0]["source"] == "https://eodhd.com/financial-apis/api-limits"
+    assert eodhd["dimensions"][1]["source"] == "https://eodhd.com/financial-apis/api-limits"
     assert (
         eodhd["dimensions"][0]["limit_basis"]
-        == "conservative seed pending account-specific review"
+        == "documented all-plan request ceiling"
     )
-    assert eodhd["unknown_dimensions"] == [
-        "published_minute_limit_conflict",
-        "requests_per_minute_reset_boundary",
-    ]
-    assert eodhd["account_usage_bootstrap"]["allowed_unknown_dimensions"] == [
-        "published_minute_limit_conflict",
-        "requests_per_minute_reset_boundary",
-    ]
+    assert eodhd["unknown_dimensions"] == []
+    assert eodhd["account_usage_bootstrap"]["allowed_unknown_dimensions"] == []
     assert eodhd["account_usage_bootstrap"]["reconciled_dimensions"] == [
+        "requests_per_minute",
         "calls_per_day"
     ]
-    assert eodhd["source_conflicts"] == [
-        {
-            "source": "https://eodhd.com/financial-apis/api-limits",
-            "claim": "1,000 requests per minute on every plan",
-            "conflicts_with": "https://eodhd.com/lp/historical-eod-api",
-        }
-    ]
-    assert (
-        eodhd["dimensions"][1]["reset_source"]
-        == "https://eodhd.com/financial-apis/api-limits"
-    )
-    assert settings.PROVIDER_RATE_LIMIT_SEEDS["eodhd"]["tokens_per_minute"] == 20
+    assert "source_conflicts" not in eodhd
+    assert settings.PROVIDER_RATE_LIMIT_SEEDS["eodhd"]["tokens_per_minute"] == 1000
     assert eodhd["operation_costs_required"] is True
     assert (
         settings.PROVIDER_USAGE_PROFILE_SEEDS["eodhd"]["operation_costs"]["get_instrument_profile"]
@@ -2329,10 +2314,10 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
         == 1
     )
     assert eodhd_costs["requests_per_minute"]["fetch_account_usage"] == 1
-    assert eodhd_costs["calls_per_day"]["fetch_account_usage"] == 1
+    assert eodhd_costs["calls_per_day"]["fetch_account_usage"] == {}
 
     eodhd_entitlement = settings.PROVIDER_ENTITLEMENT_SEEDS["eodhd"]
-    assert eodhd_entitlement["configured_plan"] == "free-20-day"
+    assert eodhd_entitlement["configured_plan"] == "free-20-calls-day"
     assert eodhd_entitlement["capabilities"]["instrument_metadata"] == {
         "configured_plan": "unreviewed",
         "is_free": False,

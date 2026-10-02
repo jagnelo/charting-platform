@@ -29,17 +29,12 @@ _NATIVE_BASELINE_DIMENSIONS: dict[str, dict[str, str]] = {
     "marketdata_app": {
         "credits_per_day": ProviderCapability.ACCOUNT_USAGE.value,
     },
-    # EODHD's documented /user endpoint reports the current daily-call
-    # counter and the account's daily limit.  Its midnight-GMT boundary is
-    # accepted only when the response identifies the current UTC usage date;
-    # minute-rate observations remain observation-only while the provider's
-    # official sources disagree on the exact plan limit.
+    # EODHD's documented /user endpoint reports the daily-call counter and
+    # account limit, plus native per-key minute limit/remaining headers. A
+    # higher native minute ceiling can seed use under the stricter local
+    # 1,000/minute cap; stale daily dates remain observation-only.
     "eodhd": {
         "calls_per_day": ProviderCapability.ACCOUNT_USAGE.value,
-        # EODHD's current API-limits documentation states that the minute
-        # request pool resets every minute. The adapter derives the next
-        # minute boundary from the observation timestamp; admission still
-        # requires the operator-reviewed active account limit/evidence.
         "requests_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
     },
     # Twelve Data's /api_usage response exposes the current minute pool via
@@ -219,7 +214,33 @@ def _native_baseline_candidate(
     limit = policy_dimension.get("limit")
     if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
         return None
-    if dimension.limit != limit or dimension.reset_at is None:
+    if provider_name == "eodhd" and dimension_name == "requests_per_minute":
+        # EODHD documents a 1,000/minute all-plan ceiling but its response
+        # header reports the exact active per-key limit. A higher native limit
+        # is compatible with this deliberately lower app cap. Translate the
+        # observed remaining counter into consumed units without widening the
+        # policy; a lower native limit or over-cap observed use stays blocked.
+        if (
+            isinstance(dimension.limit, bool)
+            or not isinstance(dimension.limit, int)
+            or dimension.limit < limit
+            or dimension.remaining is None
+            or isinstance(dimension.remaining, bool)
+            or not isinstance(dimension.remaining, int)
+            or dimension.remaining < 0
+            or dimension.remaining > dimension.limit
+        ):
+            return None
+        consumed = dimension.limit - dimension.remaining
+        if consumed > limit:
+            return None
+    else:
+        if dimension.limit != limit:
+            return None
+        consumed = dimension.consumed
+        if consumed is None and dimension.remaining is not None:
+            consumed = limit - dimension.remaining
+    if dimension.reset_at is None:
         return None
     reset_at = dimension.reset_at
     if observed_at.tzinfo is None or reset_at.tzinfo is None:
@@ -242,9 +263,6 @@ def _native_baseline_candidate(
             or (observed_at - reset_at).total_seconds() > float(skew_limit)
         ):
             return None
-    consumed = dimension.consumed
-    if consumed is None and dimension.remaining is not None:
-        consumed = limit - dimension.remaining
     if (
         isinstance(consumed, bool)
         or not isinstance(consumed, int)

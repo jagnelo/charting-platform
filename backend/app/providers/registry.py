@@ -628,11 +628,6 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
         "MARKETSTACK_REVIEWED_MONTHLY_RESET",
         "MARKETSTACK_QUOTA_EVIDENCE",
     ),
-    "eodhd": (
-        "EODHD_REVIEWED_MINUTE_LIMIT",
-        "EODHD_REVIEWED_MINUTE_RESET",
-        "EODHD_MINUTE_QUOTA_EVIDENCE",
-    ),
     # MarketData.app account plans have distinct daily credit pools.  Native
     # response headers are telemetry; admission uses only this explicit
     # operator-reviewed plan/limit pair.
@@ -744,10 +739,9 @@ def provider_routing_control_settings(
     # any market-data or options operation.
     if name == "marketdata_app" and operation == "fetch_account_usage":
         return ()
-    # EODHD's native /user snapshot is the bounded mechanism that can
-    # establish the documented daily baseline while its conflicting minute
-    # sources remain unresolved. It may bootstrap; ordinary data operations
-    # still require the reviewed minute controls below.
+    # EODHD's native /user snapshot observes both weighted daily usage and
+    # current per-key minute headers. It is the bounded bootstrap operation;
+    # ordinary operations use the documented separate request/credit pools.
     if name == "eodhd" and operation == "fetch_account_usage":
         return ()
 
@@ -776,7 +770,7 @@ def provider_missing_routing_controls(
     """
 
     required = provider_routing_control_settings(name, operation)
-    if not required:
+    if not required and name != "eodhd":
         return []
     if name == "finra":
         if operation in {"fetch_short_interest", "fetch_market_events"}:
@@ -1050,17 +1044,15 @@ def provider_missing_routing_controls(
             missing.append("MARKETSTACK_QUOTA_EVIDENCE")
         return list(dict.fromkeys(missing))
     if name == "eodhd":
-        missing: list[str] = []
         reviewed_limit = provider_positive_integer(
             getattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 0)
         )
-        # Do not retain an arbitrary ceiling from the older conservative
-        # seed. The account-specific native entitlement may legitimately
-        # exceed the stale published conflict (the configured account exposed
-        # 1,200/minute); positivity is validated here and the provider/source
-        # evidence remains mandatory below.
+        # The published 1,000/minute contract is active by default. Only an
+        # explicitly configured future account/plan override needs its own
+        # reset and evidence; a partial override fails closed.
         if reviewed_limit is None:
-            missing.append("EODHD_REVIEWED_MINUTE_LIMIT")
+            return []
+        missing: list[str] = []
         if not provider_quota_reset_is_admission_safe(
             getattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "")
         ):

@@ -7,7 +7,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import select
 
-from app.config import settings
+from app.config import provider_rate_limit_seed, settings
 from app.models.data_source import DataSource
 from app.models.market_data_foundation import ProviderQuotaWindow
 from app.models.provider_runtime import (
@@ -26,6 +26,7 @@ from app.services.provider_runtime import (
     ProviderQuotaUnknownError,
     ResolvedProvider,
     TokenBucket,
+    _apply_policy_defaults,
     _capacity_response_headers,
     _get_bucket,
     _get_semaphore,
@@ -143,14 +144,84 @@ def test_account_usage_bootstrap_requires_valid_reconciled_dimension_map():
         quota_source="unit-test",
     )
     assert policy_allows_account_usage_bootstrap(policy, "fetch_account_usage") is False
-    contract["account_usage_bootstrap"]["reconciled_dimensions"] = ["calls_per_day", "calls_per_day"]
+    contract["account_usage_bootstrap"]["reconciled_dimensions"] = [
+        "calls_per_day",
+        "calls_per_day",
+    ]
     assert policy_allows_account_usage_bootstrap(policy, "fetch_account_usage") is False
-    contract["account_usage_bootstrap"]["reconciled_dimensions"] = ["account_usage_probe_concurrency"]
+    contract["account_usage_bootstrap"]["reconciled_dimensions"] = [
+        "account_usage_probe_concurrency"
+    ]
     assert policy_allows_account_usage_bootstrap(policy, "fetch_account_usage") is False
     assert (
         "quota_contract.account_usage_bootstrap.reconciled_dimensions"
         in quota_contract_missing_dimensions(policy)
     )
+
+
+@pytest.mark.parametrize("pinned", [False, True])
+def test_eodhd_legacy_repository_seed_migrates_only_unpinned_policy(pinned, monkeypatch):
+    monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 0)
+    monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "")
+    monkeypatch.setattr(settings, "EODHD_MINUTE_QUOTA_EVIDENCE", "")
+    current_seed = provider_rate_limit_seed("eodhd")
+    legacy_contract = deepcopy(current_seed["quota_contract"])
+    request_dimension = next(
+        item
+        for item in legacy_contract["dimensions"]
+        if item["name"] == "requests_per_minute"
+    )
+    request_dimension.update(
+        {
+            "limit": 20,
+            "source": "https://eodhd.com/lp/historical-eod-api",
+            "reset": "provider_defined",
+            "limit_basis": "conservative seed pending account-specific review",
+        }
+    )
+    legacy_contract["account_usage_bootstrap"]["reconciled_dimensions"] = [
+        "calls_per_day"
+    ]
+    legacy_contract["account_usage_bootstrap"]["allowed_unknown_dimensions"] = [
+        "published_minute_limit_conflict",
+        "requests_per_minute_reset_boundary",
+    ]
+    legacy_contract["source_conflicts"] = [
+        {
+            "source": "https://eodhd.com/financial-apis/api-limits",
+            "claim": "1,000 requests per minute on every plan",
+            "conflicts_with": "https://eodhd.com/lp/historical-eod-api",
+        }
+    ]
+    legacy_contract["unknown_dimensions"] = [
+        "published_minute_limit_conflict",
+        "requests_per_minute_reset_boundary",
+    ]
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        is_enabled=True,
+        is_pinned=pinned,
+        tokens_per_minute=20,
+        quota_contract=legacy_contract,
+        quota_scope=current_seed["quota_scope"],
+        quota_source=current_seed["quota_source"],
+    )
+
+    _apply_policy_defaults(
+        policy,
+        provider_name="eodhd",
+        providers=["eodhd"],
+        freshness_seconds=300,
+        rate_seed=current_seed,
+    )
+
+    if pinned:
+        assert policy.tokens_per_minute == 20
+        assert policy.quota_contract == legacy_contract
+    else:
+        assert policy.tokens_per_minute == 1000
+        assert policy.quota_contract == current_seed["quota_contract"]
 
 
 @pytest.mark.asyncio
@@ -713,8 +784,12 @@ async def test_eodhd_free_plan_migrates_and_blocks_unentitled_fundamentals_even_
             ProviderEntitlement.capability == ProviderCapability.INSTRUMENT_METADATA,
         )
     ).scalar_one()
-    assert metadata_entitlement.configured_plan == "free-20-day"
+    assert metadata_entitlement.configured_plan == "free-20-calls-day"
     assert metadata_entitlement.is_free is True
+
+    # The previous identifier was also repository-owned. Simulate an
+    # installation that has not yet run the plan-identifier migration.
+    metadata_entitlement.configured_plan = "free-20-day"
 
     # Existing rows on the repository-managed free plan must pick up the
     # newly recorded capability-level Fundamentals exclusion on reseed.

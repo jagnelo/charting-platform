@@ -793,14 +793,19 @@ class TestProviderRegistry:
         ]
         assert provider_missing_routing_controls("tiingo") == []
         assert provider_missing_routing_controls("fmp") == []
+        assert provider_missing_routing_controls("eodhd") == []
+        assert provider_routing_control_settings("eodhd", "fetch_account_usage") == ()
+        assert provider_missing_routing_controls("eodhd", "fetch_account_usage") == []
+        default_eodhd_seed = provider_rate_limit_seed("eodhd")
+        assert default_eodhd_seed["tokens_per_minute"] == 1000
+        assert default_eodhd_seed["quota_contract"]["unknown_dimensions"] == []
+        monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "")
+        monkeypatch.setattr(settings, "EODHD_MINUTE_QUOTA_EVIDENCE", "")
+        monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 20)
         assert provider_missing_routing_controls("eodhd") == [
-            "EODHD_REVIEWED_MINUTE_LIMIT",
             "EODHD_REVIEWED_MINUTE_RESET",
             "EODHD_MINUTE_QUOTA_EVIDENCE",
         ]
-        assert provider_routing_control_settings("eodhd", "fetch_account_usage") == ()
-        assert provider_missing_routing_controls("eodhd", "fetch_account_usage") == []
-        monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 20)
         monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "rolling")
         monkeypatch.setattr(settings, "EODHD_MINUTE_QUOTA_EVIDENCE", "account dashboard")
         assert provider_missing_routing_controls("eodhd") == []

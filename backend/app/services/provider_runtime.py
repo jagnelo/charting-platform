@@ -1181,6 +1181,30 @@ def _apply_policy_defaults(
     ):
         if getattr(policy, field_name) is None and rate_seed.get(field_name) is not None:
             setattr(policy, field_name, rate_seed[field_name])
+    # EODHD's former repository seed was deliberately non-routable at the
+    # published Free Starter card's 20 requests/minute, with an explicit
+    # source-conflict marker. After the first-party limits page resolved that
+    # conflict, refresh only rows that still exactly carry that old
+    # repository-owned contract. Do not rewrite pinned or operator-customized
+    # policy rows merely because the code seed changed.
+    if (
+        provider_name == "eodhd"
+        and not policy.is_pinned
+        and policy.tokens_per_minute == 20
+        and policy.quota_source == rate_seed.get("quota_source")
+        and isinstance(policy.quota_contract, dict)
+        and policy.quota_contract.get("unknown_dimensions")
+        == ["published_minute_limit_conflict", "requests_per_minute_reset_boundary"]
+        and any(
+            isinstance(dimension, dict)
+            and dimension.get("name") == "requests_per_minute"
+            and dimension.get("limit") == 20
+            and dimension.get("reset") == "provider_defined"
+            for dimension in policy.quota_contract.get("dimensions") or []
+        )
+        and rate_seed.get("tokens_per_minute") == 1000
+    ):
+        policy.tokens_per_minute = 1000
     seeded_contract = rate_seed.get("quota_contract")
     if seeded_contract:
         # Refresh contracts generated from the same repository/provider source
@@ -1847,6 +1871,9 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 # EODHD's repository-managed free-plan seed also contains
                 # capability-specific endpoint entitlements. Refresh rows
                 # created before that distinction was recorded.
+                "free-20-calls-day",
+                # Existing installations may still have the pre-audit name;
+                # it was a repository seed, not an operator-selected plan.
                 "free-20-day",
             }
             if provider_name == "marketdata_app":

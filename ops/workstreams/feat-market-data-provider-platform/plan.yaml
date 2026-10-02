@@ -1902,6 +1902,18 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-10-02 CoinGecko Demo usage capability correction: removed the
+      Pro-only `/key` request from the Demo adapter, account-usage capability,
+      native baseline chain, quota cost profile, and successful live manifest.
+      The prior HTTP 401 `10005` is retained as an entitlement denial, not a
+      usage success; Demo monthly credit admission remains fail-closed pending
+      a trusted account-side balance. Exact commit
+      `26e6dd5b602c73143986462b19af6428c62dba4f` passed the branch-owned
+      non-ETF unit inventory (`1,957/1,957`, 37 warnings) and Docker
+      PostgreSQL/Redis integration (`386/386`, 868.86 seconds, 57 warnings).
+      No provider calls or credentials were used by these gates; redacted
+      receipts are in `validation.jsonl`.
+    - >-
       2026-09-25 discovery-cache row isolation: EODHD/FMP full-catalogue cache
       entries and returned rows are now copied per dictionary, preventing
       caller-side mutation from changing later reconciliation pages. Focused
@@ -5338,4 +5350,4 @@ progress:
       and Docker integration `386/386`. No identity-selection behavior or ETF
       adapter ownership changed; unresolved provider and owner-controlled gates
       remain fail-closed.
-  next_action: Continue autonomous implementation in this assigned worktree. Validate the current provider-contract correction with branch-owned full unit and Docker integration gates, then run exact-current-source live preflight/probes and resolve locally researchable or executable provider gaps. Stop only for genuine owner-controlled legal/account/target-secret decisions; keep routing fail-closed and do not integrate, deploy, activate routing, modify another worktree, or start the final 30-day shadow run.
+  next_action: Commit the EODHD documentation-backed quota/accounting correction and its legacy-seed migration. At that exact commit, run the full branch-owned non-ETF unit suite and Docker PostgreSQL/Redis integration gate, then bounded EODHD live validation and a refreshed full provider safety preflight. Continue closing locally researchable/executable blockers; stop only at genuine owner-controlled legal/account/target-secret decisions. Keep routing fail-closed and do not integrate, deploy, activate routing, modify another worktree, or start the final 30-day shadow run.
