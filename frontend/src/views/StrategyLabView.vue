@@ -17,6 +17,7 @@
             v-if="!strategyLab.definitions.length"
             type="button"
             class="definition-item definition-item--new sidebar-new-btn"
+            aria-label="Create new strategy"
             @click="startNew"
           >
             + New
@@ -27,6 +28,8 @@
             type="button"
             class="definition-item"
             :class="{ active: strategyLab.selectedDefinitionId === definition.id }"
+            :aria-pressed="strategyLab.selectedDefinitionId === definition.id ? 'true' : 'false'"
+            :aria-label="`Open strategy ${definition.name}`"
             @click="selectDefinition(definition.id)"
           >
             <div class="definition-tile definition-tile--dense">
@@ -53,6 +56,7 @@
             v-if="strategyLab.definitions.length"
             type="button"
             class="definition-item definition-item--new sidebar-new-btn"
+            aria-label="Create new strategy"
             @click="startNew"
           >
             + New

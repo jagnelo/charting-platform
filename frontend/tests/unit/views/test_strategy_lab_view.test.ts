@@ -727,6 +727,16 @@ describe('StrategyLabView', () => {
     expect(item.text()).not.toContain('v1')
   })
 
+  it('exposes the selected strategy and names the new-strategy action', async () => {
+    const wrapper = mountView()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Momentum Pilot'))
+
+    const item = wrapper.get('button.definition-item:not(.sidebar-new-btn)')
+    expect(item.attributes('aria-label')).toBe('Open strategy Momentum Pilot')
+    expect(item.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.get('button.sidebar-new-btn').attributes('aria-label')).toBe('Create new strategy')
+  })
+
   it('filters and sorts the execution log by individual columns', async () => {
     const wrapper = mountView()
 
