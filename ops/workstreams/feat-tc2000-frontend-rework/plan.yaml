@@ -276,7 +276,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R5_code_library_archive_checkpointed
+  current_phase: R5_code_library_form_state_checkpointed
   next_action: >-
     Verify the protected visual mismatch against the expected seeded baseline
     in a matching browser/font environment without changing snapshots or visual
@@ -298,6 +298,7 @@ progress:
     remains a separate operational hold under the recorded private-origin
     safeguard.
 historical_implementation_records:
+  - "Product commit 868ed49a4 gives the TC-owned Python Library New/Close new control an explicit aria-expanded state and stable aria-controls relationship to the create form, preserving the existing create workflow and layout. Focused Code Library coverage passed 11/11; the full serial frontend suite passed 128 files / 1,159 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit a57993e7d gives the TC-owned Python Code Library archive/unarchive action a stable accessible name and aria-pressed state while preserving the immutable asset lifecycle and existing archive mutation API. Focused Code Library coverage passed 11/11; the full serial frontend suite passed 128 files / 1,159 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 289135c43 exposes the TC-owned Research Results two-run comparison control's open/closed state through aria-pressed while preserving comparison selection, labels, and rendered comparison content. Focused Research Results coverage passed 50/50; the full serial frontend suite passed 128 files / 1,159 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 625c505a2 gives TC-owned price, indicator, and scan alert repeat actions explicit aria-pressed state while preserving dynamic Enable/Disable labels and existing mutation behavior. Focused alert-race coverage passed 15/15; the full serial frontend suite passed 128 files / 1,158 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."

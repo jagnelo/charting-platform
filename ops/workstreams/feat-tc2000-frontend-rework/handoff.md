@@ -1,5 +1,24 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — R5 Python Library create-form state semantics
+
+Product commit `868ed49a4` gives the TC-owned Python Library New/Close new
+control an explicit `aria-expanded` state and stable `aria-controls`
+relationship to the create form, preserving the existing create workflow and
+layout.
+
+Focused Code Library coverage passed `11/11`; the full serial frontend suite
+passed `128/128` files and `1,159/1,159` tests; `vue-tsc` and the production
+build passed with the existing large-chunk warning; TC scope validation,
+scope self-tests, workstream validation, and `git diff --check` passed. No
+provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or
+acceptance policy changed. No other worktree was mutated.
+
+The broader goal remains active: provider/ETF consumer integration is still
+sequenced behind both branches reaching staging, followed by line-level
+shared path reconciliation and a clean exact-tip gate. The protected visual
+replay also remains pending in a matching browser/font environment.
+
 ## 2026-10-02 — R5 Python Code Library archive state semantics
 
 Product commit `a57993e7d` gives the TC-owned Python Code Library
