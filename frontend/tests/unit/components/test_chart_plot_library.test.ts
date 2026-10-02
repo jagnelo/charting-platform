@@ -45,6 +45,77 @@ describe('ChartPlotLibrary', () => {
     expect(chart.indicators).toHaveLength(2)
   })
 
+  it('edits an indicator from the primary plot library without dropping its existing configuration', async () => {
+    const chart = usePanelStore('plot-library-indicator-settings-test')
+    const original = { type: 'sma' as const, params: { period: 20, custom_source: 'close' }, style: { color: '#ff0000', lineWidth: 1.5 }, pane: 'main' as const, lockedTimeframes: ['D1' as const, 'W1' as const], hidden: true }
+    chart.setIndicators([original])
+    chart.instrument = { id: 42, symbol: 'SPY' } as any
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-indicator-settings-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit SMA(20) settings"]').trigger('click')
+
+    const dialog = document.body.querySelector<HTMLElement>('[role="dialog"][aria-label="Indicator settings: SMA(20)"]')!
+    const period = dialog.querySelector<HTMLInputElement>('input[aria-label="Period"]')!
+    expect(dialog).not.toBeNull()
+    expect(document.activeElement).toBe(period)
+    period.value = '50'
+    period.dispatchEvent(new Event('input', { bubbles: true }))
+    dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!.click()
+    await flushPromises()
+
+    expect(chart.indicators[0]).toEqual({ ...original, params: { period: 50, custom_source: 'close' } })
+    expect(apiMock.put).toHaveBeenCalledWith('/instrument-indicators/42', { indicators: [chart.indicators[0]] })
+    expect(document.body.querySelector('[aria-label="Indicator settings: SMA(20)"]')).toBeNull()
+    expect(document.activeElement).toBe(wrapper.get('button[aria-label="Chart plot library"]').element)
+    wrapper.unmount()
+  })
+
+  it('edits catalog select and datetime parameters with their declared input types', async () => {
+    const chart = usePanelStore('plot-library-indicator-typed-settings-test')
+    chart.setIndicators([
+      { type: 'pivot_points', params: { method: 'classic' }, style: { color: '#80cbc4', lineWidth: 1 }, pane: 'main' },
+      { type: 'avwap', params: { anchor_timestamp: 1704067200 }, style: { color: '#80cbc4', lineWidth: 1 }, pane: 'main' },
+    ])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-indicator-typed-settings-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit PIVOTS(classic) settings"]').trigger('click')
+    let dialog = document.body.querySelector<HTMLElement>('[aria-label="Indicator settings: PIVOTS(classic)"]')!
+    expect(dialog.querySelector('select[aria-label="Method"]')?.value).toBe('classic')
+    const method = dialog.querySelector<HTMLSelectElement>('select[aria-label="Method"]')!
+    method.value = 'fibonacci'
+    method.dispatchEvent(new Event('change', { bubbles: true }))
+    dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!.click()
+    await flushPromises()
+    expect(chart.indicators[0].params.method).toBe('fibonacci')
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit AVWAP(2024-01-01) settings"]').trigger('click')
+    dialog = document.body.querySelector<HTMLElement>('[aria-label^="Indicator settings: AVWAP"]')!
+    const anchor = dialog.querySelector<HTMLInputElement>('input[aria-label="Anchor date"]')!
+    expect(anchor.type).toBe('datetime-local')
+    anchor.value = '2024-01-15T09:30'
+    anchor.dispatchEvent(new Event('input', { bubbles: true }))
+    dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!.click()
+    await flushPromises()
+    expect(chart.indicators[1].params.anchor_timestamp).toBe(Date.parse('2024-01-15T09:30') / 1000)
+    wrapper.unmount()
+  })
+
+  it('opens indicator settings when the chart requests an indicator edit', async () => {
+    const chart = usePanelStore('plot-library-chart-edit-request-test')
+    chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-chart-edit-request-test' } }, attachTo: document.body })
+
+    chart.requestEditIndicator(0)
+    await flushPromises()
+
+    expect(document.body.querySelector('[role="dialog"][aria-label="Indicator settings: SMA(20)"]')).not.toBeNull()
+    expect(chart.editRequestIndicatorIndex).toBeNull()
+    wrapper.unmount()
+  })
+
   it('lets users select an explicit output for multi-output indicators', async () => {
     const chart = usePanelStore('plot-library-output-selection-test')
     chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#80cbc4', lineWidth: 1 }, pane: 'main' }])

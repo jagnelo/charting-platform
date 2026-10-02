@@ -52,15 +52,23 @@
         <input :value="plot.color ?? '#ffb74d'" :aria-label="`${plot.name} color`" type="color" @input="updatePythonPlot(index, { color: ($event.target as HTMLInputElement).value })" /><span>{{ plot.name }} <small>Python</small></span>
         <button type="button" :aria-label="`${plot.hidden ? 'Show' : 'Hide'} ${plot.name}`" :aria-pressed="plot.hidden ? 'false' : 'true'" @click="togglePythonPlot(index)"><WorkstationGlyph :kind="plot.hidden ? 'hidden' : 'visible'" /></button><button type="button" :aria-label="`Move ${plot.name} up`" :disabled="index === 0" @click="movePythonPlot(index, -1)"><WorkstationGlyph kind="move-up" /></button><button type="button" :aria-label="`Move ${plot.name} down`" :disabled="index === (pythonPlots?.length ?? 0) - 1" @click="movePythonPlot(index, 1)"><WorkstationGlyph kind="move-down" /></button><button type="button" :aria-label="`Duplicate ${plot.name}`" @click="duplicatePythonPlot(index)"><WorkstationGlyph kind="duplicate" /></button><button type="button" :aria-label="`Copy ${plot.name} to linked charts`" :disabled="!linkedTargets" @click="copyPythonPlot(index, 'linked')"><WorkstationGlyph kind="copy-linked" /></button><button type="button" :aria-label="`Copy ${plot.name} to selected chart target`" :disabled="!copyTargetAvailable" @click="copyPythonPlot(index, selectedCopyTarget)"><WorkstationGlyph kind="copy" /></button><button type="button" :aria-label="`Remove ${plot.name}`" @click="removePythonPlot(index)"><WorkstationGlyph kind="delete" /></button>
       </li><li v-if="draggingPreview && !chartStore.indicators.some(indicator => indicator.type === draggingPreview!.type && JSON.stringify(indicator.params ?? {}) === JSON.stringify(draggingPreview!.params ?? {}))" class="chart-plots__drag-preview" draggable="true" @dragstart="startPreviewDrag($event)" @dragend="endDrag"><span>{{ indicatorDisplayName(draggingPreview) }}</span></li><li v-for="(indicator, index) in chartStore.indicators" :key="`${indicator.type}:${index}`" :class="{ muted: indicator.hidden }" draggable="true" @dragstart="startDrag(index, $event)" @dragend="endDrag">
-        <input :value="indicator.style.color" :aria-label="`${label(indicator)} color`" type="color" @input="style(index, 'color', ($event.target as HTMLInputElement).value)" /><span>{{ label(indicator) }}</span><select v-if="indicatorOutputOptions(indicator).length" :aria-label="`${label(indicator)} output`" :value="indicator.output ?? ''" @mousedown.stop @change="setOutput(index, ($event.target as HTMLSelectElement).value)"><option value="">Select output…</option><option v-for="option in indicatorOutputOptions(indicator)" :key="option.value" :value="option.value">{{ option.label }}</option></select>
+        <input :value="indicator.style.color" :aria-label="`${label(indicator)} color`" type="color" @input="style(index, 'color', ($event.target as HTMLInputElement).value)" /><button type="button" class="chart-plots__indicator-settings-trigger" :aria-label="`Edit ${label(indicator)} settings`" @click.stop="openIndicatorSettings(index)">{{ label(indicator) }}</button><select v-if="indicatorOutputOptions(indicator).length" :aria-label="`${label(indicator)} output`" :value="indicator.output ?? ''" @mousedown.stop @change="setOutput(index, ($event.target as HTMLSelectElement).value)"><option value="">Select output…</option><option v-for="option in indicatorOutputOptions(indicator)" :key="option.value" :value="option.value">{{ option.label }}</option></select>
         <input :value="indicator.style.lineWidth" :aria-label="`${label(indicator)} line width`" type="number" min="0.25" max="5" step="0.25" @change="style(index, 'lineWidth', Number(($event.target as HTMLInputElement).value))" />
         <button type="button" :aria-label="`${indicator.hidden ? 'Show' : 'Hide'} ${label(indicator)}`" :aria-pressed="indicator.hidden ? 'false' : 'true'" @click="toggle(index)"><WorkstationGlyph :kind="indicator.hidden ? 'hidden' : 'visible'" /></button><button type="button" :aria-label="`Move ${label(indicator)} up`" :disabled="index === 0" @click="move(index, -1)"><WorkstationGlyph kind="move-up" /></button><button type="button" :aria-label="`Move ${label(indicator)} down`" :disabled="index === chartStore.indicators.length - 1" @click="move(index, 1)"><WorkstationGlyph kind="move-down" /></button><button type="button" :aria-label="`Duplicate ${label(indicator)}`" @click="duplicate(index)"><WorkstationGlyph kind="duplicate" /></button><button type="button" :aria-label="`Copy ${label(indicator)} to linked charts`" :disabled="!linkedTargets" @click="copy(index, 'linked')"><WorkstationGlyph kind="copy-linked" /></button><button type="button" :aria-label="`Copy ${label(indicator)} to selected chart target`" :disabled="!copyTargetAvailable" @click="copy(index, selectedCopyTarget)"><WorkstationGlyph kind="copy" /></button><button type="button" :aria-label="`Promote ${label(indicator)}`" @click="selectPromotion(index)"><WorkstationGlyph kind="promote" /></button><button type="button" :aria-label="`Delete ${label(indicator)}`" @click="chartStore.removeIndicator(index)"><WorkstationGlyph kind="delete" /></button>
       </li></ol>
     </div>
+    <IndicatorSettingsDialog
+      v-if="editingIndicator"
+      :key="editingIndex ?? 'editing'"
+      :indicator="editingIndicator"
+      :display-name="label(editingIndicator)"
+      @cancel="closeIndicatorSettings"
+      @apply="applyIndicatorSettings"
+    />
   </section>
 </template>
 <script setup lang="ts">
-import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { usePanelStore } from '@/stores/chart'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -71,6 +79,7 @@ import { getTechnicalIndicatorOutputOptions } from '@/lib/technicalConditions'
 import { clearAnalysisDrag, createChartPlotDragPayload, createPythonPlotDragPayload, indicatorOutputFromConfig, scheduleAnalysisDragCleanup, writeChartPlotDrag, writePythonPlotDrag } from '@/lib/workstation/plotDrag'
 import { fetchCodeAssets } from '@/lib/workstation/libraryQueries'
 import WorkstationGlyph from './WorkstationGlyph.vue'
+import IndicatorSettingsDialog from './IndicatorSettingsDialog.vue'
 type PythonPlot = {
   code_version_id: number
   name: string
@@ -90,6 +99,8 @@ const emit = defineEmits<{
   configuration: [windowKey: string, configuration: Record<string, unknown>]
 }>()
 const chartStore = usePanelStore(inject<string>('panelId', 'chart')); const open = ref(false); const catalog = INDICATOR_CATALOG; const workspaceStore = useWorkspaceStore()
+const editingIndex = ref<number | null>(null)
+const editingIndicator = computed(() => editingIndex.value == null ? null : chartStore.indicators[editingIndex.value] ?? null)
 const plotLibraryToken = globalThis.crypto?.randomUUID?.().replace(/-/g, '').slice(0, 12) ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 const plotLibraryMenuId = `chart-plot-library-menu-${plotLibraryToken}`
 const queryClient = useQueryClient()
@@ -145,6 +156,27 @@ function handleMenuKeydown(event: KeyboardEvent) {
     closeToTrigger()
   }
 }
+function openIndicatorSettings(index: number) {
+  if (!chartStore.indicators[index]) return
+  editingIndex.value = index
+  if (!open.value) toggleOpen()
+}
+function closeIndicatorSettings() {
+  editingIndex.value = null
+  closeToTrigger()
+}
+async function applyIndicatorSettings(indicator: IndicatorConfig) {
+  const index = editingIndex.value
+  if (index == null || !chartStore.indicators[index]) return
+  chartStore.updateIndicator(index, indicator)
+  await chartStore.saveIndicatorsForInstrument()
+  closeIndicatorSettings()
+}
+watch(() => chartStore.editRequestIndicatorIndex, index => {
+  if (index == null) return
+  chartStore.requestEditIndicator(null)
+  openIndicatorSettings(index)
+})
 const selectedCopyTarget = ref('linked')
 const chartTargets = computed(() => (workspaceStore.activeTab?.windows ?? []).filter(window => ['chart', 'watchlist'].includes(window.tool_type) && window.instance_key !== props.sourceWindowKey))
 const watchlistTargets = computed(() => chartTargets.value.filter(window => window.tool_type === 'watchlist'))
@@ -557,6 +589,6 @@ onBeforeUnmount(() => {
 })
 </script>
 <style scoped>
-.chart-plots{position:relative}.chart-plots button,.chart-plots select,.chart-plots input{border:1px solid #3a4954;background:#172027;color:#dce6ed;font:10px "Segoe UI",Arial,sans-serif}.chart-plots>button{height:18px;padding:0 5px;cursor:pointer}.chart-plots__menu{z-index:121;display:grid;gap:4px;max-height:340px;padding:6px;border:1px solid #4a5b67;background:#131a20;box-shadow:0 6px 16px #000b}.chart-plots__menu header{display:flex;align-items:center}.chart-plots__menu header button{margin-left:auto}.chart-plots select{min-width:0;padding:2px}.chart-plots p{margin:0;padding:3px 4px;color:#b4c3cd;border-top:1px solid #2d3942}.chart-plots p small{color:#8196a4}.chart-plots ol{display:grid;gap:2px;max-height:204px;margin:0;padding:0;overflow:auto;list-style:none}.chart-plots li{display:grid;grid-template-columns:18px minmax(0,1fr) 36px repeat(6,18px);align-items:center;gap:3px;padding:2px;border-top:1px solid #27323a}.chart-plots li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chart-plots li input[type=color]{width:17px;height:16px;padding:0}.chart-plots li input[type=number]{min-width:0;padding:1px}.chart-plots li button{height:17px;padding:0;cursor:pointer}.chart-plots li button:disabled{opacity:.35}.muted{opacity:.5}
+.chart-plots{position:relative}.chart-plots button,.chart-plots select,.chart-plots input{border:1px solid #3a4954;background:#172027;color:#dce6ed;font:10px "Segoe UI",Arial,sans-serif}.chart-plots>button{height:18px;padding:0 5px;cursor:pointer}.chart-plots__menu{z-index:121;display:grid;gap:4px;max-height:340px;padding:6px;border:1px solid #4a5b67;background:#131a20;box-shadow:0 6px 16px #000b}.chart-plots__menu header{display:flex;align-items:center}.chart-plots__menu header button{margin-left:auto}.chart-plots select{min-width:0;padding:2px}.chart-plots p{margin:0;padding:3px 4px;color:#b4c3cd;border-top:1px solid #2d3942}.chart-plots p small{color:#8196a4}.chart-plots ol{display:grid;gap:2px;max-height:204px;margin:0;padding:0;overflow:auto;list-style:none}.chart-plots li{display:grid;grid-template-columns:18px minmax(0,1fr) 36px repeat(6,18px);align-items:center;gap:3px;padding:2px;border-top:1px solid #27323a}.chart-plots li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chart-plots li input[type=color]{width:17px;height:16px;padding:0}.chart-plots li input[type=number]{min-width:0;padding:1px}.chart-plots li button{height:17px;padding:0;cursor:pointer}.chart-plots li button:disabled{opacity:.35}.chart-plots li .chart-plots__indicator-settings-trigger{min-width:0;overflow:hidden;padding:0;border:0;background:transparent;text-align:left;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}.chart-plots li .chart-plots__indicator-settings-trigger:hover{text-decoration:underline}.muted{opacity:.5}
 .chart-plots__promotion{display:grid;grid-template-columns:72px 34px 62px minmax(60px,1fr) 36px;gap:3px}.chart-plots__promotion input,.chart-plots__promotion select{min-width:0}.chart-plots__promotion-status{margin:0;padding:2px 4px;color:#9ec6a0}
 </style>
