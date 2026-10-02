@@ -26,6 +26,7 @@ from app.strategy_lab_v2.contracts import (
     RunAttempt,
     ScientificTrial,
     StrategyPackage,
+    StrategyVersion,
 )
 from app.strategy_lab_v2.event_tape import FrozenEventTape
 from app.strategy_lab_v2.nautilus_engine_input import (
@@ -41,6 +42,7 @@ from app.strategy_lab_v2.nautilus_runtime_bundle import (
 )
 from app.strategy_lab_v2.replay import build_event_tape_contexts
 from app.strategy_lab_v2.sdk import StrategySdkManifest
+from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from strategy_runtime import serialize_invocation_batch
 
 
@@ -284,8 +286,49 @@ def assemble_nautilus_trial_runtime_input(
     )
 
 
+def assemble_nautilus_trial_runtime_input_from_package(
+    *,
+    attempt: RunAttempt,
+    trial: ScientificTrial,
+    experiment: ExperimentDefinition,
+    portfolio: PortfolioComposition,
+    snapshot: DataSnapshot,
+    event_tape: FrozenEventTape,
+    strategy: StrategyVersion,
+    strategy_package: StrategyPackage,
+    strategy_package_resolver: StrategyPackageArtifactResolver,
+    instruments: Sequence[NautilusInstrumentDefinition],
+    venue: NautilusVenueDefinition,
+    artifact_store: LocalArtifactStore,
+    max_intents_per_event: int = 100,
+) -> NautilusTrialRuntimeAssembly:
+    """Resolve a pinned strategy package before building its worker input."""
+
+    if not isinstance(strategy_package_resolver, StrategyPackageArtifactResolver):
+        raise TypeError("strategy_package_resolver must be a StrategyPackageArtifactResolver")
+    if strategy_package_resolver.store is not artifact_store:
+        raise ValueError("strategy package and runtime input must share one artifact store")
+    resolved_package = strategy_package_resolver.resolve(strategy_package, strategy)
+    return assemble_nautilus_trial_runtime_input(
+        attempt=attempt,
+        trial=trial,
+        experiment=experiment,
+        portfolio=portfolio,
+        snapshot=snapshot,
+        event_tape=event_tape,
+        strategy_package=strategy_package,
+        strategy_manifest=resolved_package.manifest,
+        strategy_source=resolved_package.source,
+        instruments=instruments,
+        venue=venue,
+        artifact_store=artifact_store,
+        max_intents_per_event=max_intents_per_event,
+    )
+
+
 __all__ = [
     "NautilusTrialAssemblyError",
     "NautilusTrialRuntimeAssembly",
     "assemble_nautilus_trial_runtime_input",
+    "assemble_nautilus_trial_runtime_input_from_package",
 ]

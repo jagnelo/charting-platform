@@ -40,6 +40,7 @@ from app.strategy_lab_v2.sdk import (
 
 WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.v1"
 BATCH_WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.batch.v1"
+STRATEGY_MANIFEST_WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-manifest.v1"
 MAX_WIRE_PAYLOAD_BYTES = 16 * 1024 * 1024
 
 
@@ -180,9 +181,7 @@ def _decode_value(value: Any) -> Any:
         return float_result
     if kind in {"mapping", "tuple", "list", "set"}:
         if kind == "mapping":
-            if not isinstance(payload, Mapping) or any(
-                not isinstance(key, str) for key in payload
-            ):
+            if not isinstance(payload, Mapping) or any(not isinstance(key, str) for key in payload):
                 raise TypeError("wire mapping payload must be a string-keyed object")
             return {key: _decode_value(payload[key]) for key in sorted(payload)}
         if not isinstance(payload, list):
@@ -365,7 +364,8 @@ def _decode_manifest(value: Any) -> StrategySdkManifest:
         sdk_version=strategy_data["sdk_version"],
         source_digest=strategy_data["source_digest"],
         dependencies=tuple(
-            _decode_dependency(item) for item in _list(strategy_data["dependencies"], "dependencies")
+            _decode_dependency(item)
+            for item in _list(strategy_data["dependencies"], "dependencies")
         ),
         parameter_schema=_mapping(
             _decode_value(strategy_data["parameter_schema"]), "parameter_schema"
@@ -389,10 +389,39 @@ def _decode_manifest(value: Any) -> StrategySdkManifest:
             )
         )
     model_dependencies = tuple(
-        _decode_dependency(item)
-        for item in _list(root["model_dependencies"], "model_dependencies")
+        _decode_dependency(item) for item in _list(root["model_dependencies"], "model_dependencies")
     )
     return StrategySdkManifest(strategy, tuple(data_dependencies), model_dependencies)
+
+
+def serialize_strategy_manifest(manifest: StrategySdkManifest) -> str:
+    """Serialize the typed SDK manifest as a bounded, versioned artifact."""
+
+    if not isinstance(manifest, StrategySdkManifest):
+        raise TypeError("manifest must use StrategySdkManifest")
+    return _dump_json(
+        {
+            "protocol_version": STRATEGY_MANIFEST_WIRE_PROTOCOL_VERSION,
+            "manifest": _encode_manifest(manifest),
+        },
+        "strategy manifest",
+    )
+
+
+def deserialize_strategy_manifest(payload: str) -> StrategySdkManifest:
+    """Decode a versioned SDK manifest and require its exact canonical bytes."""
+
+    if not isinstance(payload, str) or not payload.strip():
+        raise ValueError("strategy manifest payload must not be empty")
+    root = _mapping(_load_json(payload, "strategy manifest payload"), "strategy manifest")
+    if set(root) != {"protocol_version", "manifest"}:
+        raise ValueError("strategy manifest fields are invalid")
+    if root["protocol_version"] != STRATEGY_MANIFEST_WIRE_PROTOCOL_VERSION:
+        raise ValueError("unsupported strategy manifest protocol version")
+    manifest = _decode_manifest(root["manifest"])
+    if serialize_strategy_manifest(manifest) != payload:
+        raise ValueError("strategy manifest bytes are not canonical")
+    return manifest
 
 
 def _encode_context(context: StrategyContext) -> dict[str, Any]:
@@ -521,7 +550,9 @@ def serialize_invocation(
     return _dump_json(payload, "invocation payload")
 
 
-def deserialize_invocation(payload: str) -> tuple[str, StrategySdkManifest, StrategyContext, str, int]:
+def deserialize_invocation(
+    payload: str,
+) -> tuple[str, StrategySdkManifest, StrategyContext, str, int]:
     """Decode and validate a serialized invocation envelope."""
 
     if not isinstance(payload, str) or not payload.strip():
@@ -806,6 +837,7 @@ def deserialize_invocation_batch_result(payload: str) -> tuple[Any, ...]:
 __all__ = [
     "BATCH_WIRE_PROTOCOL_VERSION",
     "MAX_WIRE_PAYLOAD_BYTES",
+    "STRATEGY_MANIFEST_WIRE_PROTOCOL_VERSION",
     "WIRE_PROTOCOL_VERSION",
     "deserialize_invocation_batch",
     "deserialize_invocation_batch_result",
@@ -815,4 +847,6 @@ __all__ = [
     "serialize_invocation_batch_result",
     "serialize_invocation",
     "serialize_invocation_result",
+    "deserialize_strategy_manifest",
+    "serialize_strategy_manifest",
 ]

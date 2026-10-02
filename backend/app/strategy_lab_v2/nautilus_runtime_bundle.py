@@ -162,7 +162,10 @@ def load_materialized_nautilus_runtime_bundle(
         raise ValueError("max_input_bytes must be a positive integer")
     if reference.artifact.byte_length > max_input_bytes:
         raise ValueError("Nautilus runtime input artifact exceeds its configured bound")
-    wire_bytes, _integrity = store.read_manifest(reference.artifact)
+    wire_bytes, _integrity = store.read_manifest(
+        reference.artifact,
+        max_bytes=max_input_bytes,
+    )
     return NautilusRuntimeBundle(
         attempt_id=reference.attempt_id,
         input_bundle_digest=reference.input_bundle_digest,

@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import stat
 import tempfile
 from collections.abc import Collection
 from dataclasses import dataclass
@@ -54,7 +55,11 @@ class ArtifactStoreResolution:
         if not isinstance(self.decision, ArtifactStoreDecision):
             raise TypeError("decision must be an ArtifactStoreDecision")
         require_sha256_digest(self.storage_key, field_name="storage_key")
-        if not isinstance(self.byte_length, int) or isinstance(self.byte_length, bool) or self.byte_length < 0:
+        if (
+            not isinstance(self.byte_length, int)
+            or isinstance(self.byte_length, bool)
+            or self.byte_length < 0
+        ):
             raise ValueError("byte_length must be a non-negative integer")
         if self.integrity is not None and not isinstance(self.integrity, ArtifactIntegrityReceipt):
             raise TypeError("integrity must be an ArtifactIntegrityReceipt")
@@ -93,7 +98,11 @@ class ArtifactByteResolution:
         if not isinstance(self.decision, ArtifactByteDecision):
             raise TypeError("decision must be an ArtifactByteDecision")
         require_sha256_digest(self.storage_key, field_name="storage_key")
-        if not isinstance(self.byte_length, int) or isinstance(self.byte_length, bool) or self.byte_length < 0:
+        if (
+            not isinstance(self.byte_length, int)
+            or isinstance(self.byte_length, bool)
+            or self.byte_length < 0
+        ):
             raise ValueError("byte_length must be a non-negative integer")
         if not isinstance(self.retention, ArtifactRetentionResolution):
             raise TypeError("retention must be an ArtifactRetentionResolution")
@@ -143,7 +152,11 @@ class ArtifactCleanupRecord:
         for name in ("relative_path", "reason"):
             if not isinstance(getattr(self, name), str) or not getattr(self, name).strip():
                 raise ValueError(f"{name} must not be empty")
-        if not isinstance(self.byte_length, int) or isinstance(self.byte_length, bool) or self.byte_length < 0:
+        if (
+            not isinstance(self.byte_length, int)
+            or isinstance(self.byte_length, bool)
+            or self.byte_length < 0
+        ):
             raise ValueError("byte_length must be a non-negative integer")
         if self.modified_at.tzinfo is None or self.modified_at.utcoffset() is None:
             raise ValueError("modified_at must be timezone-aware")
@@ -255,9 +268,7 @@ class LocalArtifactStore:
             raise ArtifactStoreCorruptionError("artifact shard directory is a symlink")
         existing = self._read_existing_observation(target, manifest.storage_key)
         if existing is not None:
-            existing_integrity = verify_artifact_observation(
-                manifest, existing[0], existing[1]
-            )
+            existing_integrity = verify_artifact_observation(manifest, existing[0], existing[1])
             if not existing_integrity.verified:
                 raise ArtifactStoreCorruptionError(
                     "existing artifact bytes do not match the requested manifest"
@@ -287,9 +298,7 @@ class LocalArtifactStore:
                     raise ArtifactStoreCorruptionError(
                         "artifact target appeared but could not be read"
                     )
-                raced_integrity = verify_artifact_observation(
-                    manifest, raced[0], raced[1]
-                )
+                raced_integrity = verify_artifact_observation(manifest, raced[0], raced[1])
                 if not raced_integrity.verified:
                     raise ArtifactStoreCorruptionError(
                         "concurrent artifact writer published mismatched bytes"
@@ -304,9 +313,7 @@ class LocalArtifactStore:
             published = self._read_existing_observation(target, manifest.storage_key)
             if published is None:
                 raise ArtifactStoreCorruptionError("published artifact cannot be read")
-            published_integrity = verify_artifact_observation(
-                manifest, published[0], published[1]
-            )
+            published_integrity = verify_artifact_observation(manifest, published[0], published[1])
             if not published_integrity.verified:
                 raise ArtifactStoreCorruptionError("published artifact failed verification")
             return ArtifactStoreResolution(
@@ -339,9 +346,7 @@ class LocalArtifactStore:
             raise ArtifactStoreCorruptionError("artifact shard directory is a symlink")
         existing = self._read_existing_observation(target, manifest.storage_key)
         if existing is not None:
-            existing_integrity = verify_artifact_observation(
-                manifest, existing[0], existing[1]
-            )
+            existing_integrity = verify_artifact_observation(manifest, existing[0], existing[1])
             if not existing_integrity.verified:
                 raise ArtifactStoreCorruptionError(
                     "existing artifact bytes do not match the requested manifest"
@@ -357,9 +362,12 @@ class LocalArtifactStore:
         observed_bytes = 0
         digest = hashlib.sha256()
         try:
-            with source_path.open("rb") as source_stream, tempfile.NamedTemporaryFile(
-                mode="wb", dir=target.parent, prefix=f".{target.name}.", delete=False
-            ) as temporary:
+            with (
+                source_path.open("rb") as source_stream,
+                tempfile.NamedTemporaryFile(
+                    mode="wb", dir=target.parent, prefix=f".{target.name}.", delete=False
+                ) as temporary,
+            ):
                 temporary_name = temporary.name
                 while chunk := source_stream.read(1024 * 1024):
                     observed_bytes += len(chunk)
@@ -368,9 +376,7 @@ class LocalArtifactStore:
                 temporary.flush()
                 os.fsync(temporary.fileno())
             observed_digest = f"sha256:{digest.hexdigest()}"
-            integrity = verify_artifact_observation(
-                manifest, observed_digest, observed_bytes
-            )
+            integrity = verify_artifact_observation(manifest, observed_digest, observed_bytes)
             if not integrity.verified:
                 return ArtifactStoreResolution(
                     ArtifactStoreDecision.REJECT,
@@ -388,9 +394,7 @@ class LocalArtifactStore:
                     raise ArtifactStoreCorruptionError(
                         "artifact target appeared but could not be read"
                     )
-                raced_integrity = verify_artifact_observation(
-                    manifest, raced[0], raced[1]
-                )
+                raced_integrity = verify_artifact_observation(manifest, raced[0], raced[1])
                 if not raced_integrity.verified:
                     raise ArtifactStoreCorruptionError(
                         "concurrent artifact writer published mismatched bytes"
@@ -405,9 +409,7 @@ class LocalArtifactStore:
             published = self._read_existing_observation(target, manifest.storage_key)
             if published is None:
                 raise ArtifactStoreCorruptionError("published artifact cannot be read")
-            published_integrity = verify_artifact_observation(
-                manifest, published[0], published[1]
-            )
+            published_integrity = verify_artifact_observation(manifest, published[0], published[1])
             if not published_integrity.verified:
                 raise ArtifactStoreCorruptionError("published artifact failed verification")
             return ArtifactStoreResolution(
@@ -432,12 +434,34 @@ class LocalArtifactStore:
             raise FileNotFoundError(target)
         return payload
 
-    def read_manifest(self, manifest: ArtifactManifest) -> tuple[bytes, ArtifactIntegrityReceipt]:
-        """Read one manifest payload and return its complete integrity receipt."""
+    def read_manifest(
+        self,
+        manifest: ArtifactManifest,
+        *,
+        max_bytes: int | None = None,
+    ) -> tuple[bytes, ArtifactIntegrityReceipt]:
+        """Read one verified manifest, optionally enforcing a bound while reading."""
 
         if not isinstance(manifest, ArtifactManifest):
             raise TypeError("manifest must be an ArtifactManifest")
-        payload = self.read(manifest.storage_key)
+        if max_bytes is not None and (
+            not isinstance(max_bytes, int) or isinstance(max_bytes, bool) or max_bytes < 0
+        ):
+            raise ValueError("max_bytes must be a non-negative integer or None")
+        if max_bytes is not None and manifest.byte_length > max_bytes:
+            raise ValueError("artifact manifest exceeds its configured byte bound")
+        if max_bytes is None:
+            payload = self.read(manifest.storage_key)
+        else:
+            target = self.path_for(manifest.storage_key)
+            bounded_payload = self._read_existing_bounded(
+                target,
+                manifest.storage_key,
+                max_bytes=max_bytes,
+            )
+            if bounded_payload is None:
+                raise FileNotFoundError(target)
+            payload = bounded_payload
         integrity = verify_artifact_payload(manifest, payload)
         if not integrity.verified:
             raise ArtifactStoreCorruptionError("artifact bytes do not match the manifest")
@@ -570,15 +594,23 @@ class LocalArtifactStore:
                     if storage_key in committed:
                         decision, reason = ArtifactCleanupDecision.RETAINED, "committed"
                     elif not eligible:
-                        decision, reason = ArtifactCleanupDecision.RETAINED, "minimum_age_not_reached"
+                        decision, reason = (
+                            ArtifactCleanupDecision.RETAINED,
+                            "minimum_age_not_reached",
+                        )
                     else:
                         decision, reason = self._delete_cleanup_entry(entry, "uncommitted_content")
                 else:
                     byte_length = stat_result.st_size
                     if not eligible:
-                        decision, reason = ArtifactCleanupDecision.RETAINED, "minimum_age_not_reached"
+                        decision, reason = (
+                            ArtifactCleanupDecision.RETAINED,
+                            "minimum_age_not_reached",
+                        )
                     else:
-                        decision, reason = self._delete_cleanup_entry(entry, "temporary_publication_file")
+                        decision, reason = self._delete_cleanup_entry(
+                            entry, "temporary_publication_file"
+                        )
                 records.append(
                     ArtifactCleanupRecord(
                         kind,
@@ -590,12 +622,12 @@ class LocalArtifactStore:
                         reason,
                     )
                 )
-        return ArtifactCleanupResolution(observed_at, minimum_age, tuple(sorted(records, key=lambda item: item.relative_path)))
+        return ArtifactCleanupResolution(
+            observed_at, minimum_age, tuple(sorted(records, key=lambda item: item.relative_path))
+        )
 
     @staticmethod
-    def _delete_cleanup_entry(
-        entry: Path, reason: str
-    ) -> tuple[ArtifactCleanupDecision, str]:
+    def _delete_cleanup_entry(entry: Path, reason: str) -> tuple[ArtifactCleanupDecision, str]:
         if entry.is_symlink():
             raise ArtifactStoreCorruptionError("artifact cleanup target became a symlink")
         try:
@@ -619,9 +651,52 @@ class LocalArtifactStore:
         return payload
 
     @staticmethod
-    def _read_existing_observation(
-        target: Path, storage_key: str
-    ) -> tuple[str, int] | None:
+    def _read_existing_bounded(
+        target: Path,
+        storage_key: str,
+        *,
+        max_bytes: int,
+    ) -> bytes | None:
+        """Read a content-addressed file through a no-follow, size-bounded descriptor."""
+
+        if target.is_symlink():
+            raise ArtifactStoreCorruptionError("artifact target is not a regular immutable file")
+        try:
+            descriptor = os.open(
+                target,
+                os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0),
+            )
+        except FileNotFoundError:
+            return None
+        try:
+            metadata = os.fstat(descriptor)
+            if not stat.S_ISREG(metadata.st_mode):
+                raise ArtifactStoreCorruptionError(
+                    "artifact target is not a regular immutable file"
+                )
+            if metadata.st_size > max_bytes:
+                raise ArtifactStoreCorruptionError(
+                    "artifact bytes exceed their configured read bound"
+                )
+            digest = hashlib.sha256()
+            chunks: list[bytes] = []
+            observed_bytes = 0
+            while chunk := os.read(descriptor, min(1024 * 1024, max_bytes + 1 - observed_bytes)):
+                observed_bytes += len(chunk)
+                if observed_bytes > max_bytes:
+                    raise ArtifactStoreCorruptionError(
+                        "artifact bytes exceed their configured read bound"
+                    )
+                digest.update(chunk)
+                chunks.append(chunk)
+        finally:
+            os.close(descriptor)
+        if f"sha256:{digest.hexdigest()}" != storage_key:
+            raise ArtifactStoreCorruptionError("existing artifact bytes have the wrong digest")
+        return b"".join(chunks)
+
+    @staticmethod
+    def _read_existing_observation(target: Path, storage_key: str) -> tuple[str, int] | None:
         """Verify an existing artifact by streaming digest/length evidence."""
 
         if target.is_symlink():

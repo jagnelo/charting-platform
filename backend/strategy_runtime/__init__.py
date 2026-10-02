@@ -11,15 +11,18 @@ from typing import Any
 from strategy_runtime.protocol import (
     BATCH_WIRE_PROTOCOL_VERSION,
     MAX_WIRE_PAYLOAD_BYTES,
+    STRATEGY_MANIFEST_WIRE_PROTOCOL_VERSION,
     WIRE_PROTOCOL_VERSION,
     deserialize_invocation,
     deserialize_invocation_batch,
     deserialize_invocation_batch_result,
     deserialize_invocation_result,
+    deserialize_strategy_manifest,
     serialize_invocation,
     serialize_invocation_batch,
     serialize_invocation_batch_result,
     serialize_invocation_result,
+    serialize_strategy_manifest,
 )
 from strategy_runtime.runner import (
     RUNTIME_ERROR_EVIDENCE_VERSION,
@@ -58,6 +61,7 @@ def __getattr__(name: str) -> Any:
     globals()[name] = value
     return value
 
+
 __all__ = [
     "InvocationStatus",
     "RUNTIME_ERROR_EVIDENCE_VERSION",
@@ -65,11 +69,13 @@ __all__ = [
     "StrategyInvocationSession",
     "BATCH_WIRE_PROTOCOL_VERSION",
     "MAX_WIRE_PAYLOAD_BYTES",
+    "STRATEGY_MANIFEST_WIRE_PROTOCOL_VERSION",
     "WIRE_PROTOCOL_VERSION",
     "deserialize_invocation_batch",
     "deserialize_invocation_batch_result",
     "deserialize_invocation",
     "deserialize_invocation_result",
+    "deserialize_strategy_manifest",
     "main",
     "run_strategy_event",
     "run_strategy_events",
@@ -77,6 +83,7 @@ __all__ = [
     "serialize_invocation_batch_result",
     "serialize_invocation",
     "serialize_invocation_result",
+    "serialize_strategy_manifest",
     "CUSTOM_METRIC_BATCH_WIRE_PROTOCOL_VERSION",
     "CUSTOM_METRIC_WIRE_PROTOCOL_VERSION",
     "deserialize_custom_metric_invocation",

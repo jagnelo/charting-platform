@@ -63,6 +63,41 @@ def test_publish_rejects_bad_payload_without_creating_a_file(tmp_path) -> None:
     assert not store.path_for(manifest.storage_key).exists()
 
 
+def test_manifest_read_enforces_declared_and_observed_size_bounds(tmp_path) -> None:
+    payload = b"bounded immutable artifact"
+    manifest = _manifest(payload)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(manifest, payload)
+
+    with pytest.raises(ValueError, match="manifest exceeds its configured byte bound"):
+        store.read_manifest(manifest, max_bytes=len(payload) - 1)
+
+    corrupt_manifest = ArtifactManifest(
+        artifact_content_digest(payload),
+        1,
+        "application/octet-stream",
+        "1",
+        artifact_content_digest(payload),
+    )
+    target = store.path_for(corrupt_manifest.storage_key)
+    target.chmod(0o644)
+    target.write_bytes(payload)
+    with pytest.raises(ArtifactStoreCorruptionError, match="configured read bound"):
+        store.read_manifest(corrupt_manifest, max_bytes=4)
+
+
+def test_bounded_manifest_read_rejects_a_pipe_without_blocking(tmp_path) -> None:
+    payload = b"pipe target"
+    manifest = _manifest(payload)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    target = store.path_for(manifest.storage_key)
+    target.parent.mkdir(parents=True)
+    os.mkfifo(target)
+
+    with pytest.raises(ArtifactStoreCorruptionError, match="regular immutable file"):
+        store.read_manifest(manifest, max_bytes=len(payload))
+
+
 def test_publish_file_streams_and_deduplicates_without_buffering_payload(tmp_path) -> None:
     payload = b"mounted result bytes"
     source = tmp_path / "mounted-result"
@@ -179,10 +214,13 @@ def test_collect_deletes_only_when_retention_is_explicitly_eligible(tmp_path) ->
     assert deleted.decision is ArtifactByteDecision.DELETED
     assert deleted.byte_length == len(payload)
     assert not store.path_for(manifest.storage_key).exists()
-    assert store.collect(
-        manifest,
-        resolve_artifact_retention(state, observed_at=eligible_at),
-    ).decision is ArtifactByteDecision.NOT_FOUND
+    assert (
+        store.collect(
+            manifest,
+            resolve_artifact_retention(state, observed_at=eligible_at),
+        ).decision
+        is ArtifactByteDecision.NOT_FOUND
+    )
 
 
 def test_collect_preserves_pinned_bytes_and_rejects_foreign_retention(tmp_path) -> None:
