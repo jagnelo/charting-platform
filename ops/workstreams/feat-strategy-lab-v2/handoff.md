@@ -2,6 +2,35 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-02 - Owner-scoped typed resource rehydration
+
+`ResourceDomainNormalization` now retains the typed domain contract it already
+constructs while validating strategy, package, portfolio, experiment, attempt,
+snapshot, trial, metric-set, and forward-instance resources. The new
+`rehydrate_resource_contract` function rebuilds a typed value from the canonical
+persisted attributes through the same strict normalizers used at creation and
+rejects generic resource types without a typed contract. The PostgreSQL
+resource reader exposes `get_domain_contract`, reusing its owner-scoped read and
+checking a stored domain fingerprint against rehydrated attributes when that
+fingerprint is present. Foreign resources remain indistinguishable from missing
+ones; malformed attributes and fingerprint drift fail closed.
+
+At source SHA `462fbb541361a758f8bfdb2c9a0e517a8acbc9e2`, all 1,046
+Strategy Lab v2 tests passed, Ruff passed, MyPy passed across 320 source files,
+all four changed Python files passed format checks, and whitespace validation
+was clean. PostgreSQL reader behavior is unit-tested through the existing
+owner-scoped reader with an in-memory aggregate store; a live database
+integration run remains part of the broader acceptance gate. The source commit
+is pushed and local/remote hashes matched.
+
+The next host-composition work still needs verified local resolvers for
+package/source/manifest and frozen event-tape bytes, plus provider-derived
+instrument metadata and venue/account construction. The immutable bundle
+producer can then consume those values and its artifact reference can be bound
+into atomic dispatch. Target-position allocation/risk integration and broad
+native product/accounting/report conformance remain later gates. No parallel
+provider, ETF, or TC2000 worktree was read or modified.
+
 ## 2026-10-02 - Immutable Nautilus trial-input assembly
 
 Added a producer that binds one queued/running attempt to its immutable
