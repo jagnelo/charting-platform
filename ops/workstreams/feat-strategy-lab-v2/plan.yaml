@@ -774,7 +774,8 @@ progress:
     - strategy-lab-v2-nautilus-serialized-strategy-invocation-bridge
     - strategy-lab-v2-nautilus-rc-worker-cli-and-result-artifact-path
     - strategy-lab-v2-nautilus-content-addressed-runtime-input-handoff
+    - strategy-lab-v2-nautilus-time-batched-event-context-bridge
   total: 18
-  current_phase: strategy-lab-v2-nautilus-content-addressed-runtime-input-handoff-proven
+  current_phase: strategy-lab-v2-nautilus-time-batched-event-context-bridge-proven
   current_blocker: No external blocker prevents isolated RC implementation. Stable Nautilus v2 gates authority and full conformance only; provider, ETF, and TC2000 staging boundaries apply only to their respective shared-contract integrations. Remaining implementation work is to assemble frozen trial/snapshot/portfolio inputs into the typed bundle and connect its materializer to the dispatch producer, route target-position intents through allocation/risk, and broaden native product/accounting/report coverage.
   next_action: implement the producer-side assembly from immutable trial, strategy, frozen event tape, instrument catalog, venue/account, and portfolio inputs; publish its pinned bundle artifact before durable dispatch and put the compact reference on WorkerExecutionRequest. Then connect target-position intents to event-aligned allocation/risk and expand native product/accounting/report conformance. Preserve RC output as non-authoritative and keep activation/publication/live shadow fail-closed.

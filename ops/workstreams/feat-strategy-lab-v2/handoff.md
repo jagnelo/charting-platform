@@ -2,6 +2,33 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-02 - Nautilus same-time event-batch bridge
+
+The isolated Nautilus bridge now consumes the engine-neutral SDK's same-time
+event batches as one strategy invocation, bound to the final native callback
+for that timestamp so all events in the batch are visible first. Legacy
+one-context-per-event worker payloads remain supported. The bridge also now
+compares native nanosecond timestamps to SDK timestamps at their shared
+microsecond precision; the previous comparison could only pass around the Unix
+epoch and rejected normal modern dates. Its RC5 runtime probe now uses two
+simultaneous native events at a 2024 timestamp.
+
+At source SHA `4f3cfc4d4f2212841825d696f8f191cf47b59f2c`, the complete
+Strategy Lab v2 package passed 1,035 tests, Ruff passed, MyPy passed across 318
+source files, changed files passed format checks, and all 30 workstream records
+validated. A separately tagged, checksum-pinned Nautilus `2.0.0rc5` image
+(`sha256:bc8aa4436f0083382d0ea49a9ebd28d829dcab83cca631085b26910bf5d3f0a9`)
+passed the network-disabled, read-only, capability-dropped probe: two native
+events, one SDK invocation, one native order, one open position, explicitly
+non-authoritative. This is local compatibility evidence, not publication or
+conformance authority.
+
+No release wait blocks implementation. The next producer gap remains assembling
+persisted trial/snapshot/portfolio inputs into the pinned bundle and binding it
+into durable dispatch. Multi-strategy shared-account routing and target-position
+allocation/risk integration are still unsupported; stable-v2 conformance still
+gates authoritative publication and deployed shadow activation.
+
 ## 2026-10-02 - Content-addressed Nautilus runtime-input handoff
 
 Added a typed pinned-input artifact reference that keeps the Nautilus bundle's
