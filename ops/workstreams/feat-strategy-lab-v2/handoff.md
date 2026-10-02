@@ -6134,3 +6134,10 @@ parity, and conformance projection seams are complete. The remaining action is
 to invoke them from the real host/Rust canonical-event callback once that
 callback and approved staging contracts exist; worker activation, publication,
 and live shadow remain fail-closed until their independent gates pass.
+
+## 2026-10-02 - Upstream gate refresh after parity completion
+
+Remote refs were refreshed after the forward-parity implementation. `origin/staging`
+remains `8b885a2ffd9c`; market-data `f9be6bfdb71d`, ETF `1a256e78d0d1`, and
+TC2000 `63d64bfe95c9` are still not staging ancestors. No shared-path
+reconciliation is admissible yet, and no parallel worktree was changed.
