@@ -6128,3 +6128,9 @@ The exact-tip Docker-backed combined backend gate then passed 2,650 tests with
 83.77% total coverage against the 75% threshold, and the backend/RPI Compose
 contract rendered successfully. The gate emitted 86 dependency warnings but no
 test failures; resources were cleaned after completion.
+
+The durable plan next action now reflects that the implementation-side tape,
+parity, and conformance projection seams are complete. The remaining action is
+to invoke them from the real host/Rust canonical-event callback once that
+callback and approved staging contracts exist; worker activation, publication,
+and live shadow remain fail-closed until their independent gates pass.
