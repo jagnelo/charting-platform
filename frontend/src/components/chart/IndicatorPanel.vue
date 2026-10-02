@@ -3,7 +3,10 @@
     <!-- Collapse toggle strip -->
     <button
       class="panel-toggle"
+      type="button"
       :title="isPanelOpen ? 'Hide panel' : 'Show panel'"
+      :aria-label="isPanelOpen ? 'Hide indicator panel' : 'Show indicator panel'"
+      :aria-expanded="isPanelOpen ? 'true' : 'false'"
       @click="isPanelOpen = !isPanelOpen"
     ><WorkstationGlyph :kind="isPanelOpen ? 'chevron-left' : 'chevron-right'" /></button>
 
@@ -234,7 +237,7 @@
                   <span class="row-name">{{ displayName(ind) }}</span>
                   <span v-if="ind.lockedTimeframes?.length" class="tf-lock-badge" title="Timeframe locked"><WorkstationGlyph kind="lock" /></span>
                   <div class="row-menu-wrap">
-                    <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`ind-${i}`, $event)" title="More"><WorkstationGlyph kind="more" /></button>
+                    <button class="row-btn row-menu-btn" type="button" @click.stop="toggleMenu(`ind-${i}`, $event)" title="More" :aria-label="`More options for ${displayName(ind)}`"><WorkstationGlyph kind="more" /></button>
                     <Teleport to="body">
                       <div v-if="menuOpenId === `ind-${i}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
                         <button class="dd-item" @click.stop="openIndEditor(i); closeMenu()"><WorkstationGlyph kind="settings" /> Settings</button>
@@ -273,8 +276,8 @@
               <option value="">— Preset —</option>
               <option v-for="p in presetsStore.presets" :key="p.id" :value="p.id">{{ p.name }}</option>
             </select>
-            <button class="preset-btn" @click="applyPreset" title="Apply preset"><WorkstationGlyph kind="apply" /></button>
-            <button class="preset-btn" @click="saveAsPreset" title="Save as preset"><WorkstationGlyph kind="edit" /></button>
+            <button class="preset-btn" type="button" @click="applyPreset" title="Apply preset" aria-label="Apply selected indicator preset"><WorkstationGlyph kind="apply" /></button>
+            <button class="preset-btn" type="button" @click="saveAsPreset" title="Save as preset" aria-label="Save indicator preset"><WorkstationGlyph kind="edit" /></button>
           </div>
         </div>
       </Transition>
@@ -322,7 +325,7 @@
                   <span v-if="d.indicator_key" class="draw-pane-tag">{{ d.indicator_key.toUpperCase() }}</span>
                 </span>
                 <div class="row-menu-wrap">
-                  <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`draw-${d.id}`, $event)" title="More"><WorkstationGlyph kind="more" /></button>
+                  <button class="row-btn row-menu-btn" type="button" @click.stop="toggleMenu(`draw-${d.id}`, $event)" title="More" :aria-label="`More options for ${drawingLabel(d)}`"><WorkstationGlyph kind="more" /></button>
                   <Teleport to="body">
                     <div v-if="menuOpenId === `draw-${d.id}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
                       <button class="dd-item" @click.stop="toggleVisible(d); closeMenu()">
@@ -384,7 +387,7 @@
               <span class="alert-icon"><WorkstationGlyph kind="currency" /></span>
               <span class="row-name">{{ a.condition.replace(/_/g,' ') }} {{ formatMoney(Number(a.threshold_price), a.instrument_currency) }}</span>
               <div class="row-menu-wrap">
-                <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`palert-${a.id}`, $event)" title="More"><WorkstationGlyph kind="more" /></button>
+                <button class="row-btn row-menu-btn" type="button" @click.stop="toggleMenu(`palert-${a.id}`, $event)" title="More" :aria-label="`More options for price alert ${a.condition.replace(/_/g, ' ')}`"><WorkstationGlyph kind="more" /></button>
                 <Teleport to="body">
                   <div v-if="menuOpenId === `palert-${a.id}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
                     <button class="dd-item" @click.stop="openAlertEditor(a, null); closeMenu()"><WorkstationGlyph kind="settings" /> Edit</button>
@@ -419,7 +422,7 @@
               <span class="alert-icon"><WorkstationGlyph kind="approx" /></span>
               <span class="row-name">{{ indAlertLabel(a) }}</span>
               <div class="row-menu-wrap">
-                <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`ialert-${a.id}`, $event)" title="More"><WorkstationGlyph kind="more" /></button>
+                <button class="row-btn row-menu-btn" type="button" @click.stop="toggleMenu(`ialert-${a.id}`, $event)" title="More" :aria-label="`More options for ${indAlertLabel(a)}`"><WorkstationGlyph kind="more" /></button>
                 <Teleport to="body">
                   <div v-if="menuOpenId === `ialert-${a.id}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
                     <button class="dd-item" @click.stop="openAlertEditor(null, a); closeMenu()"><WorkstationGlyph kind="settings" /> Edit</button>
@@ -458,7 +461,7 @@
         <div class="editor-box">
           <div class="ed-header">
             <span>{{ editingInd?.type.toUpperCase() }} Settings</span>
-            <button class="ed-close" @click="closeIndEditor"><WorkstationGlyph kind="close" /></button>
+            <button class="ed-close" type="button" aria-label="Close indicator settings" @click="closeIndEditor"><WorkstationGlyph kind="close" /></button>
           </div>
           <div class="ed-body" v-if="editingInd">
             <div class="ed-row">
@@ -564,7 +567,7 @@
         <div class="editor-box">
           <div class="ed-header">
             <span>{{ editingDraw ? drawingLabel(editingDraw) : '' }} Settings</span>
-            <button class="ed-close" @click="closeDrawEditor"><WorkstationGlyph kind="close" /></button>
+            <button class="ed-close" type="button" aria-label="Close drawing settings" @click="closeDrawEditor"><WorkstationGlyph kind="close" /></button>
           </div>
           <div class="ed-body" v-if="editingDraw">
             <div class="ed-row">

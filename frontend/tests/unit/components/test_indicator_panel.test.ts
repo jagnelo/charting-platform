@@ -58,6 +58,14 @@ describe('IndicatorPanel section disclosures', () => {
     await nextTick()
     await nextTick()
 
+    const panelToggle = wrapper.get('.panel-toggle')
+    expect(panelToggle.attributes('type')).toBe('button')
+    expect(panelToggle.attributes('aria-label')).toBe('Hide indicator panel')
+    expect(panelToggle.attributes('aria-expanded')).toBe('true')
+    await panelToggle.trigger('click')
+    expect(panelToggle.attributes('aria-label')).toBe('Show indicator panel')
+    expect(panelToggle.attributes('aria-expanded')).toBe('false')
+
     expect(api.get).toHaveBeenCalledWith('/instruments/7/membership')
     const headers = wrapper.findAll('.section-header')
     expect(headers).toHaveLength(6)
