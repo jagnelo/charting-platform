@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-current Alpaca focused live validation
+
+- Exact source `aa8f3b899` passed the bounded Alpaca live matrix `7/7` with
+  `8` provider requests and complete same-run evidence for historical and
+  intraday OHLCV, latest price, native account usage, equity/crypto profiles,
+  universe discovery, and a corporate-action page.
+- The redacted receipt is durable in `validation.jsonl`; no credentials or
+  provider payloads entered Git. This is focused current-source evidence and
+  does not replace the blocked full matrix.
+
 ## 2026-10-02 exact-source lossless routed-response retention
 
 - Commit `6eb7ab275` closes a repository-controlled retention gap: every routed

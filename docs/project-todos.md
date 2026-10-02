@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-current Alpaca focused live validation
+
+- [x] At exact source `aa8f3b899`, the manifest-driven Alpaca focused matrix
+      passed `7/7` cases with `8` provider requests and complete same-run
+      evidence: historical and intraday OHLCV, latest price, native usage,
+      equity/crypto profiles, universe discovery, and corporate actions.
+- [x] The redacted receipt is persisted in `validation.jsonl`; no credentials
+      or response payloads entered Git. This focused run does not claim that
+      the blocked full provider matrix is complete.
+
 ### 2026-10-02 — Exact-source lossless routed-response retention
 
 - [x] Commit `6eb7ab275` makes every routed provider call retain its ordered
