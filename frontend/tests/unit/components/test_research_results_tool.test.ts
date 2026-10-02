@@ -94,6 +94,23 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.find('[aria-label="sample scalar result"]').exists()).toBe(true)
   })
 
+  it('exposes comparison visibility as pressed state', async () => {
+    apiGet.mockResolvedValue([
+      { id: 10, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifact_count: 0, artifacts: [] },
+      { id: 11, status: 'completed', code_version_id: 5, run_config: {}, dataset_manifest: {}, artifact_count: 0, artifacts: [] },
+    ])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('input[aria-label="Compare run 10"]').setValue(true)
+    await wrapper.get('input[aria-label="Compare run 11"]').setValue(true)
+    const compare = wrapper.findAll('button').find(button => button.text() === 'Compare')!
+    expect(compare.attributes('aria-pressed')).toBe('false')
+    await compare.trigger('click')
+    expect(wrapper.findAll('button').find(button => button.text() === 'Hide compare')!.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.find('.research-results-tool__comparison').exists()).toBe(true)
+  })
+
   it('shows a bounded detail-loading state while compact run artifacts hydrate', async () => {
     let resolveDetail!: (value: unknown) => void
     const detail = new Promise(resolve => { resolveDetail = resolve })

@@ -2,7 +2,7 @@
   <section ref="resultsRoot" class="research-results-tool" role="region" aria-label="Study Lab research results">
     <header aria-label="Research results toolbar">
       <strong>Persisted runs</strong>
-      <button v-if="comparisonRuns.length === 2" type="button" @click="comparisonOpen = !comparisonOpen">{{ comparisonOpen ? 'Hide compare' : 'Compare' }}</button>
+      <button v-if="comparisonRuns.length === 2" type="button" :aria-pressed="comparisonOpen ? 'true' : 'false'" @click="comparisonOpen = !comparisonOpen">{{ comparisonOpen ? 'Hide compare' : 'Compare' }}</button>
       <button type="button" :disabled="loading" @click="refresh">Refresh</button>
     </header>
     <p v-if="error" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
