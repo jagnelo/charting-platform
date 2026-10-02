@@ -9,6 +9,7 @@ result envelope contains only typed intents and digest-bound evidence.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from datetime import UTC, date, datetime
@@ -40,10 +41,12 @@ from app.strategy_lab_v2.sdk import (
 
 WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.v1"
 BATCH_WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.batch.v1"
-INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.context-stream.v1"
+INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.context-stream.v2"
+INVOCATION_RESULT_STREAM_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.result-stream.v1"
 STRATEGY_MANIFEST_WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-manifest.v1"
 MAX_WIRE_PAYLOAD_BYTES = 16 * 1024 * 1024
 MAX_INVOCATION_CONTEXT_STREAM_BYTES = 16 * 1024 * 1024 * 1024
+MAX_INVOCATION_RESULT_STREAM_BYTES = 16 * 1024 * 1024 * 1024
 
 
 class _DuplicateFieldError(ValueError):
@@ -677,7 +680,7 @@ def _write_context_stream_record(stream: BinaryIO, wire: bytes) -> None:
 def _read_context_stream_record(
     stream: BinaryIO,
     field_name: str,
-) -> tuple[Any, int] | None:
+) -> tuple[Any, int, bytes] | None:
     wire = stream.readline(MAX_WIRE_PAYLOAD_BYTES + 2)
     if not wire:
         return None
@@ -687,7 +690,7 @@ def _read_context_stream_record(
         payload = wire[:-1].decode("utf-8")
     except UnicodeDecodeError as error:
         raise ValueError(f"{field_name} is not valid UTF-8") from error
-    return _load_json(payload, field_name), len(wire)
+    return _load_json(payload, field_name), len(wire), wire
 
 
 def serialize_invocation_context_stream(
@@ -738,6 +741,7 @@ def serialize_invocation_context_stream(
     _write_context_stream_record(stream, header_wire)
     previous_key: tuple[datetime, int] | None = None
     count = 0
+    digest = hashlib.sha256()
     for context in contexts:
         if not isinstance(context, StrategyContext):
             raise TypeError("invocation stream contexts must use StrategyContext values")
@@ -755,9 +759,20 @@ def serialize_invocation_context_stream(
         if observed_bytes > max_stream_bytes:
             raise ValueError("invocation context stream exceeds its configured byte bound")
         _write_context_stream_record(stream, record_wire)
+        digest.update(record_wire)
         count += 1
     if count == 0:
         raise ValueError("invocation context stream must not be empty")
+    trailer = {
+        "record_type": "trailer",
+        "context_count": count,
+        "records_sha256": f"sha256:{digest.hexdigest()}",
+    }
+    trailer_wire = (_dump_json(trailer, "invocation context stream trailer") + "\n").encode("utf-8")
+    observed_bytes += len(trailer_wire)
+    if observed_bytes > max_stream_bytes:
+        raise ValueError("invocation context stream exceeds its configured byte bound")
+    _write_context_stream_record(stream, trailer_wire)
     return count
 
 
@@ -769,8 +784,10 @@ def deserialize_invocation_context_stream(
 ) -> tuple[str, StrategySdkManifest, Iterator[StrategyContext], str, int]:
     """Read stream metadata now and decode one strict context per iteration."""
 
-    if not callable(getattr(stream, "readline", None)):
-        raise TypeError("stream must provide readline(size)")
+    if not callable(getattr(stream, "readline", None)) or not callable(
+        getattr(stream, "read", None)
+    ):
+        raise TypeError("stream must provide readline(size) and read(size)")
     if expected_context_count is not None and (
         not isinstance(expected_context_count, int)
         or isinstance(expected_context_count, bool)
@@ -787,7 +804,7 @@ def deserialize_invocation_context_stream(
     header_record = _read_context_stream_record(stream, "invocation context stream header")
     if header_record is None:
         raise ValueError("invocation context stream header is missing")
-    header, observed_bytes = header_record
+    header, observed_bytes, _header_wire = header_record
     if observed_bytes > max_stream_bytes:
         raise ValueError("invocation context stream exceeds its configured byte bound")
     header = _mapping(header, "header")
@@ -817,14 +834,38 @@ def deserialize_invocation_context_stream(
         nonlocal observed_bytes
         previous_key: tuple[datetime, int] | None = None
         index = 0
+        digest = hashlib.sha256()
         while record_line := _read_context_stream_record(
             stream, "invocation context stream record"
         ):
-            record, line_bytes = record_line
+            record, line_bytes, record_wire = record_line
             observed_bytes += line_bytes
             if observed_bytes > max_stream_bytes:
                 raise ValueError("invocation context stream exceeds its configured byte bound")
             record = _mapping(record, "invocation context stream record")
+            if record.get("record_type") == "trailer":
+                if set(record) != {"record_type", "context_count", "records_sha256"}:
+                    raise ValueError("invocation context stream trailer fields are invalid")
+                if (
+                    not isinstance(record["context_count"], int)
+                    or isinstance(record["context_count"], bool)
+                    or record["context_count"] != index
+                ):
+                    raise ValueError("invocation context stream count differs from its trailer")
+                if index == 0:
+                    raise ValueError("invocation context stream must not be empty")
+                if (
+                    not isinstance(record["records_sha256"], str)
+                    or record["records_sha256"] != f"sha256:{digest.hexdigest()}"
+                ):
+                    raise ValueError("invocation context stream digest differs from its trailer")
+                if expected_context_count is not None and index != expected_context_count:
+                    raise ValueError(
+                        "invocation context stream count differs from its artifact reference"
+                    )
+                if stream.read(1):
+                    raise ValueError("invocation context stream has trailing bytes")
+                return
             if set(record) != {"index", "context"}:
                 raise ValueError("invocation context stream record fields are invalid")
             if (
@@ -840,14 +881,164 @@ def deserialize_invocation_context_stream(
                     "invocation context stream is not strictly chronological by event_time and event_sequence"
                 )
             previous_key = context_key
+            digest.update(record_wire)
             index += 1
             yield context
-        if index == 0:
-            raise ValueError("invocation context stream must not be empty")
-        if expected_context_count is not None and index != expected_context_count:
-            raise ValueError("invocation context stream count differs from its artifact reference")
+        raise ValueError("invocation context stream trailer is missing")
 
     return source, manifest, decoded_contexts(), entrypoint, max_intents
+
+
+def serialize_invocation_result_stream(
+    stream: BinaryIO,
+    results: Iterable[Any],
+    *,
+    max_stream_bytes: int = MAX_INVOCATION_RESULT_STREAM_BYTES,
+) -> tuple[int, bool]:
+    """Write indexed typed results incrementally and return count/all-success."""
+
+    if not callable(getattr(stream, "write", None)):
+        raise TypeError("stream must provide write(bytes)")
+    if not isinstance(results, Iterable) or isinstance(results, str | bytes):
+        raise TypeError("invocation result stream must be iterable")
+    if (
+        not isinstance(max_stream_bytes, int)
+        or isinstance(max_stream_bytes, bool)
+        or max_stream_bytes < 1
+    ):
+        raise ValueError("invocation result stream byte bound must be a positive integer")
+
+    header = {
+        "protocol_version": INVOCATION_RESULT_STREAM_PROTOCOL_VERSION,
+        "record_type": "header",
+    }
+    header_wire = (_dump_json(header, "invocation result stream header") + "\n").encode("utf-8")
+    observed_bytes = len(header_wire)
+    if observed_bytes > max_stream_bytes:
+        raise ValueError("invocation result stream exceeds its configured byte bound")
+    _write_context_stream_record(stream, header_wire)
+
+    digest = hashlib.sha256()
+    count = 0
+    all_succeeded = True
+    for result in results:
+        result_payload = _invocation_result_payload(result)
+        record = {"record_type": "result", "index": count, "result": result_payload}
+        record_wire = (_dump_json(record, "invocation result stream record") + "\n").encode("utf-8")
+        observed_bytes += len(record_wire)
+        if observed_bytes > max_stream_bytes:
+            raise ValueError("invocation result stream exceeds its configured byte bound")
+        _write_context_stream_record(stream, record_wire)
+        digest.update(record_wire)
+        all_succeeded = all_succeeded and result.status.value == "succeeded"
+        count += 1
+    if count == 0:
+        raise ValueError("invocation result stream must not be empty")
+
+    trailer = {
+        "record_type": "trailer",
+        "result_count": count,
+        "records_sha256": f"sha256:{digest.hexdigest()}",
+    }
+    trailer_wire = (_dump_json(trailer, "invocation result stream trailer") + "\n").encode("utf-8")
+    observed_bytes += len(trailer_wire)
+    if observed_bytes > max_stream_bytes:
+        raise ValueError("invocation result stream exceeds its configured byte bound")
+    _write_context_stream_record(stream, trailer_wire)
+    return count, all_succeeded
+
+
+def deserialize_invocation_result_stream(
+    stream: BinaryIO,
+    *,
+    expected_result_count: int | None = None,
+    max_stream_bytes: int = MAX_INVOCATION_RESULT_STREAM_BYTES,
+) -> Iterator[Any]:
+    """Yield typed results incrementally and verify the final stream trailer."""
+
+    if not callable(getattr(stream, "readline", None)) or not callable(
+        getattr(stream, "read", None)
+    ):
+        raise TypeError("stream must provide readline(size) and read(size)")
+    if expected_result_count is not None and (
+        not isinstance(expected_result_count, int)
+        or isinstance(expected_result_count, bool)
+        or expected_result_count < 1
+    ):
+        raise ValueError("expected_result_count must be positive or None")
+    if (
+        not isinstance(max_stream_bytes, int)
+        or isinstance(max_stream_bytes, bool)
+        or max_stream_bytes < 1
+    ):
+        raise ValueError("invocation result stream byte bound must be a positive integer")
+
+    header_record = _read_context_stream_record(stream, "invocation result stream header")
+    if header_record is None:
+        raise ValueError("invocation result stream header is missing")
+    header, observed_bytes, _header_wire = header_record
+    if observed_bytes > max_stream_bytes:
+        raise ValueError("invocation result stream exceeds its configured byte bound")
+    header = _mapping(header, "invocation result stream header")
+    if set(header) != {"protocol_version", "record_type"}:
+        raise ValueError("invocation result stream header fields are invalid")
+    if (
+        header["protocol_version"] != INVOCATION_RESULT_STREAM_PROTOCOL_VERSION
+        or header["record_type"] != "header"
+    ):
+        raise ValueError("unsupported invocation result stream protocol version")
+
+    def decoded_results() -> Iterator[Any]:
+        observed = 0
+        digest = hashlib.sha256()
+        result_count = 0
+        while line_record := _read_context_stream_record(stream, "invocation result stream record"):
+            record, line_bytes, record_wire = line_record
+            observed += line_bytes
+            if observed_bytes + observed > max_stream_bytes:
+                raise ValueError("invocation result stream exceeds its configured byte bound")
+            record = _mapping(record, "invocation result stream record")
+            if record.get("record_type") == "trailer":
+                if set(record) != {"record_type", "result_count", "records_sha256"}:
+                    raise ValueError("invocation result stream trailer fields are invalid")
+                if (
+                    not isinstance(record["result_count"], int)
+                    or isinstance(record["result_count"], bool)
+                    or record["result_count"] != result_count
+                ):
+                    raise ValueError("invocation result stream count differs from its trailer")
+                if result_count == 0:
+                    raise ValueError("invocation result stream must not be empty")
+                if (
+                    not isinstance(record["records_sha256"], str)
+                    or record["records_sha256"] != f"sha256:{digest.hexdigest()}"
+                ):
+                    raise ValueError("invocation result stream digest differs from its trailer")
+                if expected_result_count is not None and result_count != expected_result_count:
+                    raise ValueError("invocation result stream count differs from its reference")
+                if stream.read(1):
+                    raise ValueError("invocation result stream has trailing bytes")
+                return
+
+            if (
+                set(record) != {"record_type", "index", "result"}
+                or record["record_type"] != "result"
+            ):
+                raise ValueError("invocation result stream record fields are invalid")
+            if (
+                not isinstance(record["index"], int)
+                or isinstance(record["index"], bool)
+                or record["index"] != result_count
+            ):
+                raise ValueError("invocation result stream record index is not contiguous")
+            result_payload = _dump_json(record["result"], "invocation result stream result")
+            result = deserialize_invocation_result(result_payload)
+            digest.update(record_wire)
+            result_count += 1
+            yield result
+        raise ValueError("invocation result stream trailer is missing")
+
+    return decoded_results()
 
 
 def _encode_intent(intent: StrategyIntent) -> dict[str, Any]:
@@ -1024,18 +1215,22 @@ def deserialize_invocation_batch_result(payload: str) -> tuple[Any, ...]:
 __all__ = [
     "BATCH_WIRE_PROTOCOL_VERSION",
     "INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION",
+    "INVOCATION_RESULT_STREAM_PROTOCOL_VERSION",
     "MAX_INVOCATION_CONTEXT_STREAM_BYTES",
+    "MAX_INVOCATION_RESULT_STREAM_BYTES",
     "MAX_WIRE_PAYLOAD_BYTES",
     "STRATEGY_MANIFEST_WIRE_PROTOCOL_VERSION",
     "WIRE_PROTOCOL_VERSION",
     "deserialize_invocation_batch",
     "deserialize_invocation_batch_result",
     "deserialize_invocation_context_stream",
+    "deserialize_invocation_result_stream",
     "deserialize_invocation",
     "deserialize_invocation_result",
     "serialize_invocation_batch",
     "serialize_invocation_batch_result",
     "serialize_invocation_context_stream",
+    "serialize_invocation_result_stream",
     "serialize_invocation",
     "serialize_invocation_result",
     "deserialize_strategy_manifest",

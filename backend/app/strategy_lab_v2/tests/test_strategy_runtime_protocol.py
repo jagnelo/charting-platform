@@ -31,7 +31,9 @@ from app.strategy_lab_v2.sdk import (
 from strategy_runtime import (
     BATCH_WIRE_PROTOCOL_VERSION,
     INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION,
+    INVOCATION_RESULT_STREAM_PROTOCOL_VERSION,
     MAX_INVOCATION_CONTEXT_STREAM_BYTES,
+    MAX_INVOCATION_RESULT_STREAM_BYTES,
     MAX_WIRE_PAYLOAD_BYTES,
     InvocationStatus,
     deserialize_invocation,
@@ -39,13 +41,16 @@ from strategy_runtime import (
     deserialize_invocation_batch_result,
     deserialize_invocation_context_stream,
     deserialize_invocation_result,
+    deserialize_invocation_result_stream,
     main,
+    run_strategy_event_stream,
     run_strategy_events,
     serialize_invocation,
     serialize_invocation_batch,
     serialize_invocation_batch_result,
     serialize_invocation_context_stream,
     serialize_invocation_result,
+    serialize_invocation_result_stream,
 )
 from strategy_runtime.runner import run_strategy_event
 
@@ -332,6 +337,20 @@ def test_context_stream_wire_rejects_count_order_and_index_drift() -> None:
     with pytest.raises(ValueError, match="index is not contiguous"):
         next(invalid_indexes)
 
+    missing_trailer = BytesIO(b"\n".join(wire.splitlines()[:-1]) + b"\n")
+    _, _, truncated_contexts, _, _ = deserialize_invocation_context_stream(missing_trailer)
+    assert next(truncated_contexts) == first
+    assert next(truncated_contexts) == second
+    with pytest.raises(ValueError, match="trailer is missing"):
+        next(truncated_contexts)
+
+    tampered_digest = wire.replace(b'"records_sha256":"sha256:', b'"records_sha256":"sha256:0', 1)
+    _, _, invalid_digest, _, _ = deserialize_invocation_context_stream(BytesIO(tampered_digest))
+    assert next(invalid_digest) == first
+    assert next(invalid_digest) == second
+    with pytest.raises(ValueError, match="digest differs"):
+        next(invalid_digest)
+
     stream_limit = len(wire.split(b"\n", 1)[0]) + 1
     with pytest.raises(ValueError, match="configured byte bound"):
         serialize_invocation_context_stream(
@@ -348,6 +367,90 @@ def test_context_stream_wire_rejects_count_order_and_index_drift() -> None:
         )
         next(bounded_contexts)
     assert MAX_INVOCATION_CONTEXT_STREAM_BYTES > MAX_WIRE_PAYLOAD_BYTES
+
+
+def test_result_stream_round_trip_is_incremental_and_integrity_checked() -> None:
+    source = """
+class Strategy:
+    def on_event(self, context):
+        return [TargetPositionIntent('US.AAPL', Decimal(context.event_sequence) / Decimal(10))]
+"""
+    manifest = _manifest(source)
+    first = _context()
+    second = replace(
+        first,
+        event_time=NOW + timedelta(days=1),
+        event_sequence=2,
+        market_events={
+            "daily-bars": (
+                MarketEvent(
+                    "daily-bars",
+                    "bar-2",
+                    "US.AAPL",
+                    NOW + timedelta(days=1),
+                    2,
+                    {"close": Decimal("191")},
+                ),
+            )
+        },
+    )
+    results = run_strategy_event_stream(
+        source,
+        manifest=manifest,
+        contexts=(first, second),
+        entrypoint="strategy.main:Strategy",
+    )
+    payload = BytesIO()
+    assert serialize_invocation_result_stream(payload, results) == (2, True)
+    assert (
+        f'"protocol_version":"{INVOCATION_RESULT_STREAM_PROTOCOL_VERSION}"'.encode()
+        in payload.getvalue()
+    )
+
+    payload.seek(0)
+    decoded = tuple(deserialize_invocation_result_stream(payload, expected_result_count=2))
+    assert len(decoded) == 2
+    assert all(item.status is InvocationStatus.SUCCEEDED for item in decoded)
+    assert decoded[0].intents[0].target_fraction == Decimal("0.1")
+    assert decoded[1].intents[0].target_fraction == Decimal("0.2")
+
+    tampered = payload.getvalue().replace(b'"result_count":2', b'"result_count":3')
+    invalid = deserialize_invocation_result_stream(BytesIO(tampered))
+    assert next(invalid) == decoded[0]
+    assert next(invalid) == decoded[1]
+    with pytest.raises(ValueError, match="count differs"):
+        next(invalid)
+    assert MAX_INVOCATION_RESULT_STREAM_BYTES > MAX_WIRE_PAYLOAD_BYTES
+
+
+def test_strategy_context_stream_runner_pulls_one_context_per_result() -> None:
+    source = """
+class Strategy:
+    def on_event(self, context):
+        return []
+"""
+    first = _context()
+    second = replace(first, event_time=NOW + timedelta(days=1), event_sequence=2)
+    observed: list[StrategyContext] = []
+
+    def contexts():
+        for context in (first, second):
+            observed.append(context)
+            yield context
+
+    results = run_strategy_event_stream(
+        source,
+        manifest=_manifest(source),
+        contexts=contexts(),
+        entrypoint="strategy.main:Strategy",
+    )
+    assert observed == []
+    assert next(results).status is InvocationStatus.SUCCEEDED
+    assert observed == [first]
+    assert next(results).status is InvocationStatus.SUCCEEDED
+    assert observed == [first, second]
+    with pytest.raises(StopIteration):
+        next(results)
 
 
 def test_wire_datetimes_normalize_equivalent_offsets_to_utc() -> None:
@@ -606,6 +709,84 @@ class Strategy:
     assert isinstance(decoded[1].intents[0], TargetPositionIntent)
     assert decoded[0].intents[0].target_fraction == Decimal("0.1")
     assert decoded[1].intents[0].target_fraction == Decimal("0.2")
+
+
+def test_cli_streams_context_requests_and_atomically_publishes_result_stream(tmp_path) -> None:
+    source = """
+class Strategy:
+    def on_event(self, context):
+        return [TargetPositionIntent('US.AAPL', Decimal(context.event_sequence) / Decimal(10))]
+"""
+    manifest = _manifest(source)
+    first = _context()
+    second = replace(
+        first,
+        event_time=NOW + timedelta(days=1),
+        event_sequence=2,
+        market_events={
+            "daily-bars": (
+                MarketEvent(
+                    "daily-bars",
+                    "bar-2",
+                    "US.AAPL",
+                    NOW + timedelta(days=1),
+                    2,
+                    {"close": Decimal("191")},
+                ),
+            )
+        },
+    )
+    encoded_request = BytesIO()
+    assert (
+        serialize_invocation_context_stream(
+            encoded_request,
+            source=source,
+            manifest=manifest,
+            contexts=(first, second),
+            entrypoint="strategy.main:Strategy",
+        )
+        == 2
+    )
+    request = tmp_path / "context-stream.jsonl"
+    result_path = tmp_path / "result-stream.jsonl"
+    request.write_bytes(encoded_request.getvalue())
+
+    assert main(["--request", str(request), "--result", str(result_path)]) == 0
+    with result_path.open("rb") as result_stream:
+        decoded = tuple(
+            deserialize_invocation_result_stream(result_stream, expected_result_count=2)
+        )
+    assert len(decoded) == 2
+    assert all(item.status is InvocationStatus.SUCCEEDED for item in decoded)
+    assert decoded[0].intents[0].target_fraction == Decimal("0.1")
+    assert decoded[1].intents[0].target_fraction == Decimal("0.2")
+
+
+def test_cli_validates_complete_context_stream_before_invoking_strategy(
+    tmp_path, monkeypatch
+) -> None:
+    source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
+    encoded_request = BytesIO()
+    serialize_invocation_context_stream(
+        encoded_request,
+        source=source,
+        manifest=_manifest(source),
+        contexts=(_context(),),
+        entrypoint="strategy.main:Strategy",
+    )
+    request = tmp_path / "malformed-context-stream.jsonl"
+    result_path = tmp_path / "result-stream.jsonl"
+    request.write_bytes(encoded_request.getvalue() + b"{malformed}\n")
+
+    import strategy_runtime.runner as runtime_runner
+
+    monkeypatch.setattr(
+        runtime_runner,
+        "run_strategy_event_stream",
+        lambda *_args, **_kwargs: pytest.fail("strategy ran before input verification"),
+    )
+    assert main(["--request", str(request), "--result", str(result_path)]) == 1
+    assert not result_path.exists()
 
 
 def test_cli_returns_nonzero_without_publishing_malformed_request(tmp_path) -> None:

@@ -13,12 +13,12 @@ import argparse
 import builtins
 import os
 import tempfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from typing import Any, BinaryIO, cast
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.sdk import (
@@ -81,7 +81,9 @@ class StrategyInvocationResult:
             require_sha256_digest(self.error_digest, field_name="error_digest")
         if self.status is InvocationStatus.SUCCEEDED:
             if reasons or self.error_digest is not None:
-                raise ValueError("successful invocations cannot contain rejection or error evidence")
+                raise ValueError(
+                    "successful invocations cannot contain rejection or error evidence"
+                )
         elif self.status is InvocationStatus.REJECTED:
             if not reasons or intents or self.error_digest is not None:
                 raise ValueError("rejected invocations require reasons and no intents or error")
@@ -423,7 +425,9 @@ class StrategyInvocationSession:
             intents=intents,
         )
 
-    def _failed_digest(self, context: StrategyContext, error_digest: str) -> StrategyInvocationResult:
+    def _failed_digest(
+        self, context: StrategyContext, error_digest: str
+    ) -> StrategyInvocationResult:
         return StrategyInvocationResult(
             source_digest=self._source_digest,
             manifest_fingerprint=self._manifest.fingerprint,
@@ -544,6 +548,51 @@ def run_strategy_events(
     return tuple(results)
 
 
+def run_strategy_event_stream(
+    source: str,
+    *,
+    manifest: StrategySdkManifest,
+    contexts: Iterable[StrategyContext],
+    entrypoint: str,
+    max_intents_per_event: int = 100,
+) -> Iterator[StrategyInvocationResult]:
+    """Invoke one persistent strategy session over contexts without batch retention.
+
+    Context typing and chronology are checked as each record is pulled. The
+    iterator stops at the first rejected or failed invocation, matching the
+    batch runner's execution semantics without requiring a complete tuple.
+    Consumers should publish output atomically only after this iterator and its
+    source stream have been fully validated.
+    """
+
+    if not isinstance(contexts, Iterable) or isinstance(contexts, str | bytes):
+        raise TypeError("contexts must be an iterable of StrategyContext values")
+    session = StrategyInvocationSession(
+        source,
+        manifest=manifest,
+        entrypoint=entrypoint,
+        max_intents_per_event=max_intents_per_event,
+    )
+    previous_key: tuple[Any, int] | None = None
+    count = 0
+    for context in contexts:
+        if not isinstance(context, StrategyContext):
+            raise TypeError("contexts must contain StrategyContext values")
+        context_key = (context.event_time, context.event_sequence)
+        if previous_key is not None and context_key <= previous_key:
+            raise ValueError(
+                "contexts must be strictly chronological by event_time and event_sequence"
+            )
+        previous_key = context_key
+        count += 1
+        result = session.invoke(context)
+        yield result
+        if result.status is not InvocationStatus.SUCCEEDED:
+            return
+    if count == 0:
+        raise ValueError("contexts must contain at least one StrategyContext")
+
+
 def _atomic_write(path: Path, payload: str) -> None:
     """Write a result beside the requested destination and publish it atomically."""
 
@@ -571,6 +620,38 @@ def _atomic_write(path: Path, payload: str) -> None:
             temporary.unlink(missing_ok=True)
 
 
+def _atomic_write_invocation_result_stream(
+    path: Path,
+    results: Iterable[StrategyInvocationResult],
+) -> tuple[int, bool]:
+    """Publish a bounded-memory result stream beside its destination atomically."""
+
+    from strategy_runtime.protocol import serialize_invocation_result_stream
+
+    parent = path.parent
+    if not parent.is_dir():
+        raise OSError("result parent directory does not exist")
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            dir=parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary = Path(handle.name)
+            summary = serialize_invocation_result_stream(cast(BinaryIO, handle), results)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        temporary = None
+        return summary
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
 def _absolute_path(value: str, field_name: str) -> Path:
     path = Path(value)
     if not path.is_absolute() or "\x00" in value:
@@ -581,11 +662,7 @@ def _absolute_path(value: str, field_name: str) -> Path:
 def _read_bounded_text(path: Path, *, max_bytes: int) -> str:
     """Read a mounted UTF-8 payload without allocating beyond its wire limit."""
 
-    if (
-        not isinstance(max_bytes, int)
-        or isinstance(max_bytes, bool)
-        or max_bytes < 1
-    ):
+    if not isinstance(max_bytes, int) or isinstance(max_bytes, bool) or max_bytes < 1:
         raise ValueError("max_bytes must be a positive integer")
     with path.open("rb") as handle:
         payload = handle.read(max_bytes + 1)
@@ -612,12 +689,51 @@ def main(argv: Sequence[str] | None = None) -> int:
         request_path = _absolute_path(args.request, "request path")
         result_path = _absolute_path(args.result, "result path")
         from strategy_runtime.protocol import (
+            INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION,
             MAX_WIRE_PAYLOAD_BYTES,
+            _load_json,
             deserialize_invocation,
             deserialize_invocation_batch,
+            deserialize_invocation_context_stream,
             serialize_invocation_batch_result,
             serialize_invocation_result,
         )
+
+        with request_path.open("rb") as request_stream:
+            first_line = request_stream.readline(MAX_WIRE_PAYLOAD_BYTES + 2)
+            request_stream.seek(0)
+            stream_header: Any = None
+            if first_line.endswith(b"\n") and len(first_line) <= MAX_WIRE_PAYLOAD_BYTES + 1:
+                try:
+                    stream_header = _load_json(
+                        first_line[:-1].decode("utf-8"), "runtime request header"
+                    )
+                except (TypeError, UnicodeError, ValueError):
+                    stream_header = None
+            if (
+                isinstance(stream_header, Mapping)
+                and stream_header.get("protocol_version")
+                == INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION
+            ):
+                stream_source, stream_manifest, stream_contexts, stream_entrypoint, stream_limit = (
+                    deserialize_invocation_context_stream(request_stream)
+                )
+                verified_context_count = sum(1 for _context in stream_contexts)
+                request_stream.seek(0)
+                stream_source, stream_manifest, stream_contexts, stream_entrypoint, stream_limit = (
+                    deserialize_invocation_context_stream(request_stream)
+                )
+                result_count, all_succeeded = _atomic_write_invocation_result_stream(
+                    result_path,
+                    run_strategy_event_stream(
+                        stream_source,
+                        manifest=stream_manifest,
+                        contexts=stream_contexts,
+                        entrypoint=stream_entrypoint,
+                        max_intents_per_event=stream_limit,
+                    ),
+                )
+                return 0 if result_count == verified_context_count and all_succeeded else 2
 
         payload = _read_bounded_text(request_path, max_bytes=MAX_WIRE_PAYLOAD_BYTES)
         try:
@@ -644,9 +760,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_intents_per_event=max_intents,
         )
         _atomic_write(result_path, serialize_invocation_batch_result(results))
-        return 0 if len(results) == len(contexts) and all(
-            item.status is InvocationStatus.SUCCEEDED for item in results
-        ) else 2
+        return (
+            0
+            if len(results) == len(contexts)
+            and all(item.status is InvocationStatus.SUCCEEDED for item in results)
+            else 2
+        )
     except (OSError, TypeError, UnicodeError, ValueError):
         return 1
 
@@ -658,5 +777,6 @@ __all__ = [
     "StrategyInvocationSession",
     "main",
     "run_strategy_event",
+    "run_strategy_event_stream",
     "run_strategy_events",
 ]
