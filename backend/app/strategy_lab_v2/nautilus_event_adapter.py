@@ -8,14 +8,19 @@ Nautilus ``Bar``, ``QuoteTick``, or ``TradeTick`` values.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
 from app.strategy_lab_v2.contracts import DataSnapshot
-from app.strategy_lab_v2.event_tape import FrozenEventTape, bind_event_tape
+from app.strategy_lab_v2.event_tape import FrozenEventTape, bind_event_tape, select_snapshot_series
+from app.strategy_lab_v2.event_tape_artifacts import (
+    FrozenEventTapeStreamResolution,
+    iter_verified_event_tape_stream,
+)
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
 
@@ -443,6 +448,83 @@ def materialize_nautilus_event_tape(
     return NautilusEventTape(tape.fingerprint, records)
 
 
+def iter_materialized_nautilus_event_records(
+    resolution: FrozenEventTapeStreamResolution,
+    snapshot: DataSnapshot,
+    manifest: StrategySdkManifest,
+    artifact_store: LocalArtifactStore,
+    *,
+    max_event_bytes: int = 1_048_576,
+) -> Iterable[NautilusEventRecord]:
+    """Stream a verified canonical tape through the engine-neutral Nautilus adapter.
+
+    Unlike :func:`materialize_nautilus_event_tape`, this path never creates a
+    ``NautilusEventTape`` tuple. Consumers should write these records to a
+    bounded staging artifact/catalog and verify it completely before execution.
+    """
+
+    if not isinstance(resolution, FrozenEventTapeStreamResolution):
+        raise TypeError("resolution must be a FrozenEventTapeStreamResolution")
+    if not isinstance(snapshot, DataSnapshot):
+        raise TypeError("snapshot must be a DataSnapshot")
+    if not isinstance(manifest, StrategySdkManifest):
+        raise TypeError("manifest must be a StrategySdkManifest")
+    if not isinstance(artifact_store, LocalArtifactStore):
+        raise TypeError("artifact_store must be a LocalArtifactStore")
+    if resolution.snapshot_fingerprint != snapshot.fingerprint:
+        raise ValueError("event-tape stream references a different snapshot")
+    if resolution.manifest_fingerprint != manifest.fingerprint:
+        raise ValueError("event-tape stream references a different SDK manifest")
+
+    dependencies = {item.dependency_id: item for item in manifest.data_dependencies}
+    if set(dependencies) != {
+        dependency_id for dependency_id, _count in resolution.binding.dependency_event_counts
+    }:
+        raise ValueError("event-tape stream dependencies differ from the SDK manifest")
+    event_types = _effective_event_types(snapshot, manifest)
+    selected = {
+        dependency_id: select_snapshot_series(snapshot, dependency)
+        for dependency_id, dependency in dependencies.items()
+    }
+
+    def records() -> Iterable[NautilusEventRecord]:
+        for event in iter_verified_event_tape_stream(
+            resolution,
+            artifact_store,
+            max_event_bytes=max_event_bytes,
+        ):
+            dependency = dependencies.get(event.dependency_id)
+            if dependency is None:
+                raise ValueError("event-tape stream contains an undeclared SDK dependency")
+            candidates, effective_start, effective_end = selected[event.dependency_id]
+            if not candidates:
+                raise ValueError(
+                    f"snapshot has no matching series for dependency {event.dependency_id!r}"
+                )
+            if event.instrument_id != dependency.requirement.instrument_id:
+                raise ValueError(
+                    f"dependency {event.dependency_id!r} contains an undeclared instrument"
+                )
+            if set(event.values) != set(dependency.fields):
+                raise ValueError(
+                    f"dependency {event.dependency_id!r} event fields do not match its declaration"
+                )
+            if not effective_start <= event.event_time < effective_end:
+                raise ValueError(
+                    f"dependency {event.dependency_id!r} event falls outside its declared interval"
+                )
+            if not any(item.start <= event.event_time < item.end for item in candidates):
+                raise ValueError(
+                    f"dependency {event.dependency_id!r} event falls outside snapshot coverage"
+                )
+            yield materialize_nautilus_event(
+                event,
+                event_type=event_types[event.dependency_id],
+            )
+
+    return records()
+
+
 def _effective_event_types(
     snapshot: DataSnapshot,
     manifest: StrategySdkManifest,
@@ -625,4 +707,5 @@ __all__ = [
     "materialize_nautilus_event_tape",
     "verify_nautilus_event_tape_parity",
     "verify_nautilus_forward_event_tape_parity",
+    "iter_materialized_nautilus_event_records",
 ]

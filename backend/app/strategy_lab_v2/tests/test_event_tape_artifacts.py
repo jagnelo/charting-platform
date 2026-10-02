@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from typing import BinaryIO
 
 import pytest
@@ -25,7 +26,13 @@ from app.strategy_lab_v2.contracts import (
 )
 from app.strategy_lab_v2.event_tape_artifacts import (
     FrozenEventTapeArtifactResolver,
+    FrozenEventTapeStreamResolution,
     FrozenSeriesRow,
+    iter_verified_event_tape_stream,
+)
+from app.strategy_lab_v2.nautilus_event_adapter import (
+    iter_materialized_nautilus_event_records,
+    materialize_nautilus_event_tape,
 )
 from app.strategy_lab_v2.sdk import StrategyDataDependency, StrategySdkManifest
 
@@ -143,6 +150,144 @@ def test_resolves_verified_series_artifact_and_projects_only_declared_fields(tmp
     assert result.source_artifact_digests == (series.content_digest,)
     assert [event.values for event in result.tape.events] == [{"close": 100}, {"close": 101}]
     assert all(event.event_id.startswith("sha256:") for event in result.tape.events)
+
+
+def test_streaming_resolution_preserves_tape_identity_without_retaining_events(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs(fields=("close",))
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+    resolver = FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder())
+
+    materialized = resolver.resolve(snapshot, manifest)
+    streamed = resolver.resolve_streaming(snapshot, manifest)
+
+    assert isinstance(streamed, FrozenEventTapeStreamResolution)
+    assert not hasattr(streamed, "tape")
+    assert streamed.tape_fingerprint == materialized.tape.fingerprint
+    assert streamed.binding == materialized.binding
+    assert streamed.event_count == materialized.tape.event_count
+    assert tuple(iter_verified_event_tape_stream(streamed, store)) == materialized.tape.events
+    assert store.path_for(streamed.artifact.storage_key).read_bytes().count(b"\n") == 2
+
+
+def test_streaming_tape_can_feed_the_nautilus_event_adapter_incrementally(tmp_path) -> None:
+    fields = ("open", "high", "low", "close", "volume")
+    snapshot, manifest, series, payload = _inputs(fields=fields)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+
+    class NativeBarDecoder:
+        def iter_rows(self, series: DataSeriesManifest, source: BinaryIO):
+            del source
+            for sequence in range(series.row_count):
+                price = 100 + sequence
+                yield FrozenSeriesRow(
+                    f"bar-{sequence}",
+                    BASE + timedelta(days=sequence),
+                    sequence,
+                    {
+                        "open": price,
+                        "high": price + 1,
+                        "low": price - 1,
+                        "close": price,
+                        "volume": 1000 + sequence,
+                    },
+                )
+
+    resolver = FrozenEventTapeArtifactResolver(store, NativeBarDecoder())
+    materialized = resolver.resolve(snapshot, manifest)
+    streamed = resolver.resolve_streaming(snapshot, manifest)
+    expected = materialize_nautilus_event_tape(materialized.tape, snapshot, manifest)
+    actual = tuple(iter_materialized_nautilus_event_records(streamed, snapshot, manifest, store))
+
+    assert actual == expected.events
+
+
+def test_streaming_resolution_rejects_duplicate_event_identity(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs()
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+
+    class DuplicateSourceIdsDecoder:
+        def iter_rows(self, series: DataSeriesManifest, source: BinaryIO):
+            del source
+            yield FrozenSeriesRow("same", BASE, 0, {"close": 100})
+            yield FrozenSeriesRow("same", BASE + timedelta(days=1), 1, {"close": 101})
+
+    resolver = FrozenEventTapeArtifactResolver(store, DuplicateSourceIdsDecoder())
+    with pytest.raises(ValueError, match="event ids must be unique"):
+        resolver.resolve_streaming(snapshot, manifest)
+
+
+def test_streaming_resolution_handles_long_histories_incrementally(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs(row_count=4096)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+
+    class GeneratedHistoryDecoder:
+        def iter_rows(self, series: DataSeriesManifest, source: BinaryIO):
+            del source
+            for sequence in range(series.row_count):
+                yield FrozenSeriesRow(
+                    f"bar-{sequence}",
+                    BASE,
+                    sequence,
+                    {"close": Decimal(sequence)},
+                )
+
+    resolver = FrozenEventTapeArtifactResolver(store, GeneratedHistoryDecoder())
+    streamed = resolver.resolve_streaming(snapshot, manifest)
+    events = iter_verified_event_tape_stream(streamed, store)
+
+    first = next(iter(events))
+    assert first.sequence == 0
+    assert first.values["close"] == Decimal(0)
+    count = 1 + sum(1 for _event in events)
+    assert count == 4096
+    assert streamed.event_count == 4096
+
+
+def test_streaming_resolution_enforces_a_temporary_disk_budget(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs(row_count=2048)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+
+    class LargeRowsDecoder:
+        def iter_rows(self, series: DataSeriesManifest, source: BinaryIO):
+            del source
+            for sequence in range(series.row_count):
+                yield FrozenSeriesRow(
+                    f"bar-{sequence}",
+                    BASE,
+                    sequence,
+                    {"close": "x" * 2048},
+                )
+
+    resolver = FrozenEventTapeArtifactResolver(store, LargeRowsDecoder())
+    with pytest.raises(ValueError, match="sort spool exceeds its configured disk bound"):
+        resolver.resolve_streaming(
+            snapshot,
+            manifest,
+            max_event_bytes=4096,
+            max_spool_bytes=1_048_576,
+        )
+
+
+def test_streaming_resolution_bounds_each_event_and_verifies_the_output_artifact(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs()
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+    resolver = FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder())
+
+    with pytest.raises(ValueError, match="row exceeds its configured bound"):
+        resolver.resolve_streaming(snapshot, manifest, max_event_bytes=8)
+
+    streamed = resolver.resolve_streaming(snapshot, manifest)
+    target = store.path_for(streamed.artifact.storage_key)
+    target.chmod(0o644)
+    target.write_bytes(b"{}\n")
+    with pytest.raises(ArtifactStoreCorruptionError, match="wrong digest"):
+        tuple(iter_verified_event_tape_stream(streamed, store))
 
 
 def test_rejects_declared_row_count_mismatch_before_binding(tmp_path) -> None:
