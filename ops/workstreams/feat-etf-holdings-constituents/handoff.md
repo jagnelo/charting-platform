@@ -6095,3 +6095,15 @@ Read-only refs now show local `feat/market-data-provider-platform` at
 provider definitions still lack `ProviderCapability.ETF_HOLDINGS`. This remains
 the only external dependency preventing AC10; no provider-platform or staging
 worktree was modified.
+
+## AC11 fallback acceptance audit — 2026-10-02
+
+The branch-owned acceptance audit now has complete evidence for the fallback
+boundary: 155 Tier-1 runtime/YAML symbol records are parity-aligned and contain
+only explicit `current`, `unavailable`, or `not_applicable` outcomes; no symbol
+record is `unknown`. The 75 fallback provider records are all accounted for,
+and the 19 identities without representative symbols are explicitly terminal
+or non-portfolio-publisher (`inactive_or_successor_disposition`,
+`non_executable_public_source`, or `provider_not_a_portfolio_publisher`).
+Together with the 15 Tier-0 records and the current Amplify successor bridge,
+this satisfies AC11 without promoting SEC, stale, partial, or unverified data.
