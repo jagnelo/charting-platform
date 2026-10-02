@@ -14,8 +14,16 @@ from app.strategy_lab_v2.capabilities import (
     CapabilityRequirement,
     preflight_capabilities,
 )
-from app.strategy_lab_v2.contracts import AdjustmentMode, EventGranularity, ProductClass
-from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
+from app.strategy_lab_v2.contracts import (
+    AdjustmentMode,
+    EventGranularity,
+    ProductClass,
+    StrategyVersion,
+)
+from app.strategy_lab_v2.resource_domains import (
+    normalize_resource_attributes,
+    rehydrate_resource_contract,
+)
 
 SOURCE_DIGEST = content_digest("strategy-source")
 ARTIFACT_DIGEST = content_digest("dependency-wheel")
@@ -51,6 +59,26 @@ def test_strategy_attributes_are_normalized_and_domain_fingerprinted() -> None:
     reordered = _attributes()
     reordered["dependencies"] = list(reversed(reordered["dependencies"]))
     assert normalize_resource_attributes(ApiResourceType.STRATEGY, reordered) == result
+
+
+def test_persisted_strategy_attributes_rehydrate_to_the_same_typed_contract() -> None:
+    normalized = normalize_resource_attributes(ApiResourceType.STRATEGY, _attributes())
+
+    restored = rehydrate_resource_contract(ApiResourceType.STRATEGY, normalized.attributes)
+
+    assert isinstance(restored, StrategyVersion)
+    expected = normalized.typed_contract
+    assert isinstance(expected, StrategyVersion)
+    assert restored.fingerprint == normalized.domain_fingerprint
+    assert restored.fingerprint == expected.fingerprint
+
+
+def test_rehydration_fails_closed_for_untyped_resource_domains() -> None:
+    with pytest.raises(ValueError, match="no typed domain contract"):
+        rehydrate_resource_contract(
+            ApiResourceType.ARTIFACT,
+            {"name": "artifact"},
+        )
 
 
 def test_strategy_resource_id_aliases_must_agree() -> None:
@@ -385,9 +413,9 @@ def test_snapshot_attributes_rehydrate_preflight_and_series_contracts() -> None:
 
     assert result.domain_fingerprint is not None
     assert result.attributes["snapshot_id"] == "snapshot-v1"
-    assert result.attributes["preflight_report"]["fingerprint"] == _preflight_payload()[
-        "fingerprint"
-    ]
+    assert (
+        result.attributes["preflight_report"]["fingerprint"] == _preflight_payload()["fingerprint"]
+    )
     assert result.attributes["series"][0]["adjustment"] == "split_adjusted"
     assert result.attributes["created_at"] == datetime(2026, 9, 17, 12, 0, tzinfo=UTC)
 

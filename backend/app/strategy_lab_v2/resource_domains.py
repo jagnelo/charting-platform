@@ -65,6 +65,30 @@ from app.strategy_lab_v2.rebalance import (
     RebalanceTrigger,
 )
 
+DomainResourceContract = (
+    StrategyVersion
+    | StrategyPackage
+    | PortfolioComposition
+    | ExperimentDefinition
+    | RunAttempt
+    | DataSnapshot
+    | ScientificTrial
+    | MetricSet
+    | ForwardInstance
+)
+
+_DOMAIN_RESOURCE_CONTRACT_TYPES = (
+    StrategyVersion,
+    StrategyPackage,
+    PortfolioComposition,
+    ExperimentDefinition,
+    RunAttempt,
+    DataSnapshot,
+    ScientificTrial,
+    MetricSet,
+    ForwardInstance,
+)
+
 
 @dataclass(frozen=True, slots=True)
 class ResourceDomainNormalization:
@@ -72,6 +96,7 @@ class ResourceDomainNormalization:
 
     attributes: Mapping[str, Any]
     domain_fingerprint: str | None = None
+    typed_contract: DomainResourceContract | None = None
 
     def __post_init__(self) -> None:
         normalized = freeze_json(self.attributes)
@@ -79,6 +104,10 @@ class ResourceDomainNormalization:
             raise TypeError("normalized resource attributes must be a mapping")
         if self.domain_fingerprint is not None:
             require_sha256_digest(self.domain_fingerprint, field_name="domain_fingerprint")
+        if self.typed_contract is not None and not isinstance(
+            self.typed_contract, _DOMAIN_RESOURCE_CONTRACT_TYPES
+        ):
+            raise TypeError("typed_contract must use an allowlisted Strategy Lab domain contract")
         object.__setattr__(self, "attributes", normalized)
 
 
@@ -118,6 +147,33 @@ def normalize_resource_attributes(
     if resource_type is ApiResourceType.FORWARD_INSTANCE:
         return _normalize_forward_instance(attributes)
     return ResourceDomainNormalization(attributes)
+
+
+def rehydrate_resource_contract(
+    resource_type: ApiResourceType,
+    attributes: Mapping[str, Any],
+    *,
+    expected_domain_fingerprint: str | None = None,
+) -> DomainResourceContract:
+    """Rebuild and validate a typed domain contract from persisted attributes.
+
+    Resource rows intentionally store canonical API attributes rather than
+    Python class names. This is the inverse domain boundary for trusted host
+    workflows: it re-runs the same normalization used at creation and returns
+    the typed value only for resource types with an explicit domain contract.
+    """
+
+    normalized = normalize_resource_attributes(resource_type, attributes)
+    if expected_domain_fingerprint is not None:
+        require_sha256_digest(
+            expected_domain_fingerprint,
+            field_name="expected_domain_fingerprint",
+        )
+        if normalized.domain_fingerprint != expected_domain_fingerprint:
+            raise ValueError("persisted resource domain fingerprint does not match its attributes")
+    if normalized.typed_contract is None:
+        raise ValueError(f"resource type {resource_type.value!r} has no typed domain contract")
+    return normalized.typed_contract
 
 
 def _normalize_strategy(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
@@ -198,7 +254,7 @@ def _normalize_strategy(attributes: Mapping[str, Any]) -> ResourceDomainNormaliz
     }
     if api_ids:
         normalized["resource_id"] = api_ids[0]
-    return ResourceDomainNormalization(normalized, strategy.fingerprint)
+    return ResourceDomainNormalization(normalized, strategy.fingerprint, strategy)
 
 
 def _normalize_package(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
@@ -257,7 +313,7 @@ def _normalize_package(attributes: Mapping[str, Any]) -> ResourceDomainNormaliza
     }
     if api_ids:
         normalized["resource_id"] = api_ids[0]
-    return ResourceDomainNormalization(normalized, package.fingerprint)
+    return ResourceDomainNormalization(normalized, package.fingerprint, package)
 
 
 def _decimal_attribute(value: Any, field_name: str) -> Decimal:
@@ -343,7 +399,7 @@ def _normalize_portfolio(attributes: Mapping[str, Any]) -> ResourceDomainNormali
     }
     if api_ids:
         normalized["resource_id"] = api_ids[0]
-    return ResourceDomainNormalization(normalized, portfolio.fingerprint)
+    return ResourceDomainNormalization(normalized, portfolio.fingerprint, portfolio)
 
 
 def _normalize_experiment(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
@@ -361,9 +417,7 @@ def _normalize_experiment(attributes: Mapping[str, Any]) -> ResourceDomainNormal
     }
     unknown = sorted(set(attributes) - allowed)
     if unknown:
-        raise ValueError(
-            f"experiment attributes contain unsupported fields: {', '.join(unknown)}"
-        )
+        raise ValueError(f"experiment attributes contain unsupported fields: {', '.join(unknown)}")
     api_ids = [attributes[name] for name in ("resource_id", "id") if name in attributes]
     if any(not isinstance(value, str) or not value.strip() for value in api_ids):
         raise ValueError("experiment resource_id/id must be a non-empty string")
@@ -410,7 +464,7 @@ def _normalize_experiment(attributes: Mapping[str, Any]) -> ResourceDomainNormal
     }
     if api_ids:
         normalized["resource_id"] = api_ids[0]
-    return ResourceDomainNormalization(normalized, experiment.fingerprint)
+    return ResourceDomainNormalization(normalized, experiment.fingerprint, experiment)
 
 
 def _datetime_attribute(value: Any, field_name: str) -> datetime:
@@ -476,7 +530,7 @@ def _normalize_attempt(attributes: Mapping[str, Any]) -> ResourceDomainNormaliza
         "trial_id": attempt.trial_id,
         "ordinal": attempt.ordinal,
     }
-    return ResourceDomainNormalization(normalized, content_digest(identity))
+    return ResourceDomainNormalization(normalized, content_digest(identity), attempt)
 
 
 def _normalize_snapshot(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
@@ -522,7 +576,7 @@ def _normalize_snapshot(attributes: Mapping[str, Any]) -> ResourceDomainNormaliz
     }
     if api_ids:
         normalized["resource_id"] = api_ids[0]
-    return ResourceDomainNormalization(normalized, snapshot.fingerprint)
+    return ResourceDomainNormalization(normalized, snapshot.fingerprint, snapshot)
 
 
 def _normalize_trial(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
@@ -594,7 +648,7 @@ def _normalize_trial(attributes: Mapping[str, Any]) -> ResourceDomainNormalizati
     }
     if api_ids:
         normalized["resource_id"] = api_ids[0]
-    return ResourceDomainNormalization(normalized, trial.trial_id)
+    return ResourceDomainNormalization(normalized, trial.trial_id, trial)
 
 
 def _trial_randomization(value: Any) -> TrialRandomization:
@@ -720,7 +774,7 @@ def _normalize_metric_set(attributes: Mapping[str, Any]) -> ResourceDomainNormal
     }
     if api_ids:
         normalized["resource_id"] = api_ids[0]
-    return ResourceDomainNormalization(normalized, metric_set.fingerprint)
+    return ResourceDomainNormalization(normalized, metric_set.fingerprint, metric_set)
 
 
 def _metric_value(value: Any) -> MetricValue:
@@ -856,7 +910,9 @@ def _normalize_forward_instance(attributes: Mapping[str, Any]) -> ResourceDomain
     if len(api_ids) == 2 and api_ids[0] != api_ids[1]:
         raise ValueError("forward_instance resource_id and id must agree")
     last_event_id = attributes.get("last_event_id")
-    if last_event_id is not None and (not isinstance(last_event_id, str) or not last_event_id.strip()):
+    if last_event_id is not None and (
+        not isinstance(last_event_id, str) or not last_event_id.strip()
+    ):
         raise ValueError("forward_instance last_event_id must be a non-empty string when present")
     last_event_sequence = attributes.get("last_event_sequence")
     correction_count = attributes.get("correction_count")
@@ -869,7 +925,9 @@ def _normalize_forward_instance(attributes: Mapping[str, Any]) -> ResourceDomain
             instance_id=attributes["instance_id"],
             portfolio_fingerprint=attributes["portfolio_fingerprint"],
             warmup_snapshot_fingerprint=attributes["warmup_snapshot_fingerprint"],
-            carry_in_mode=_enum_attribute(CarryInMode, attributes["carry_in_mode"], "carry_in_mode"),
+            carry_in_mode=_enum_attribute(
+                CarryInMode, attributes["carry_in_mode"], "carry_in_mode"
+            ),
             state=_enum_attribute(ForwardState, attributes["state"], "forward state"),
             last_event_id=last_event_id,
             last_event_sequence=last_event_sequence,
@@ -896,7 +954,7 @@ def _normalize_forward_instance(attributes: Mapping[str, Any]) -> ResourceDomain
     }
     if api_ids:
         normalized["resource_id"] = api_ids[0]
-    return ResourceDomainNormalization(normalized, content_digest(instance))
+    return ResourceDomainNormalization(normalized, content_digest(instance), instance)
 
 
 def _preflight_report(value: Any) -> PreflightReport:
@@ -975,7 +1033,9 @@ def _capability_requirement(value: Any) -> CapabilityRequirement:
     }
     unknown = sorted(set(value) - allowed)
     if unknown:
-        raise ValueError(f"capability requirement contains unsupported fields: {', '.join(unknown)}")
+        raise ValueError(
+            f"capability requirement contains unsupported fields: {', '.join(unknown)}"
+        )
     try:
         return CapabilityRequirement(
             instrument_id=value["instrument_id"],
@@ -1124,7 +1184,13 @@ def _series_attributes(value: DataSeriesManifest) -> Mapping[str, Any]:
 def _portfolio_component(value: Any) -> PortfolioComponent:
     if not isinstance(value, Mapping):
         raise ValueError("portfolio components must contain mappings")
-    allowed = {"component_id", "strategy_fingerprint", "instrument_ids", "capital_weight", "priority"}
+    allowed = {
+        "component_id",
+        "strategy_fingerprint",
+        "instrument_ids",
+        "capital_weight",
+        "priority",
+    }
     unknown = sorted(set(value) - allowed)
     if unknown:
         raise ValueError(f"portfolio component contains unsupported fields: {', '.join(unknown)}")
@@ -1290,4 +1356,9 @@ def _shared_risk_attributes(policy: SharedRiskPolicy) -> Mapping[str, Any]:
     }
 
 
-__all__ = ["ResourceDomainNormalization", "normalize_resource_attributes"]
+__all__ = [
+    "DomainResourceContract",
+    "ResourceDomainNormalization",
+    "normalize_resource_attributes",
+    "rehydrate_resource_contract",
+]

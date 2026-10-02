@@ -22,6 +22,10 @@ from app.strategy_lab_v2.api_resources import (
     ResourceIdentifier,
 )
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.resource_domains import (
+    DomainResourceContract,
+    rehydrate_resource_contract,
+)
 from app.strategy_lab_v2.storage import AggregateKey, StoredAggregate
 
 
@@ -58,8 +62,7 @@ class PostgresResourceReader:
             if not isinstance(projections, Mapping):
                 raise TypeError("projections must be a mapping")
             if any(
-                not isinstance(resource_type, ApiResourceType)
-                or not callable(loader)
+                not isinstance(resource_type, ApiResourceType) or not callable(loader)
                 for resource_type, loader in projections.items()
             ):
                 raise TypeError("projections must map resource types to callables")
@@ -89,6 +92,33 @@ class PostgresResourceReader:
         if not self._owned_by(aggregate, principal):
             return None
         return self._project(aggregate, resource_type)
+
+    async def get_domain_contract(
+        self,
+        *,
+        principal: Any,
+        resource_type: ApiResourceType,
+        resource_id: str,
+    ) -> DomainResourceContract | None:
+        """Load an owner-scoped persisted resource as its validated domain type."""
+
+        document = await self.get_resource(
+            principal=principal,
+            resource_type=resource_type,
+            resource_id=resource_id,
+        )
+        if document is None:
+            return None
+        expected_domain_fingerprint = document.meta.get("domain_fingerprint")
+        return rehydrate_resource_contract(
+            resource_type,
+            document.attributes,
+            expected_domain_fingerprint=(
+                expected_domain_fingerprint
+                if isinstance(expected_domain_fingerprint, str)
+                else None
+            ),
+        )
 
     async def list_resources(
         self,
@@ -133,7 +163,9 @@ class PostgresResourceReader:
         if len({document.id for _, document in records}) != len(records):
             raise ValueError("visible resource IDs must be unique")
         snapshot_digest = content_digest(
-            tuple((sort_value, document.id, document.fingerprint) for sort_value, document in records)
+            tuple(
+                (sort_value, document.id, document.fingerprint) for sort_value, document in records
+            )
         )
         return self._paginate_records(
             resource_type,
@@ -153,9 +185,7 @@ class PostgresResourceReader:
         if not isinstance(value, Sequence) or isinstance(value, str | bytes):
             raise TypeError("resource projection must return a sequence")
         documents = tuple(value)
-        if any(
-            not isinstance(document, ResourceDocument) for document in documents
-        ):
+        if any(not isinstance(document, ResourceDocument) for document in documents):
             raise TypeError("resource projections must contain ResourceDocument values")
         if len({document.id for document in documents}) != len(documents):
             raise ValueError("projected resource IDs must be unique")
@@ -172,9 +202,13 @@ class PostgresResourceReader:
     ) -> ResourceCollection:
         if any(document.identity.resource_type is not resource_type for document in documents):
             raise ValueError("projected resource has the wrong collection type")
-        records = tuple(sorted(((document.id, document) for document in documents), key=lambda item: item[0]))
+        records = tuple(
+            sorted(((document.id, document) for document in documents), key=lambda item: item[0])
+        )
         snapshot_digest = content_digest(
-            tuple((sort_value, document.id, document.fingerprint) for sort_value, document in records)
+            tuple(
+                (sort_value, document.id, document.fingerprint) for sort_value, document in records
+            )
         )
         return cls._paginate_records(
             resource_type,
@@ -202,7 +236,9 @@ class PostgresResourceReader:
             if cursor.snapshot_digest != snapshot_digest:
                 raise ValueError("cursor snapshot does not match the visible resource set")
             visible = tuple(
-                item for item in visible if (item[0], item[1].id) > (cursor.sort_value, cursor.item_id)
+                item
+                for item in visible
+                if (item[0], item[1].id) > (cursor.sort_value, cursor.item_id)
             )
         page = visible[:limit]
         has_more = len(visible) > len(page)
@@ -257,7 +293,11 @@ class PostgresResourceReader:
         if declared_id != aggregate.key.aggregate_id:
             raise ValueError("resource aggregate ID does not match its state")
         schema_version = state.get("schema_version", 1)
-        if not isinstance(schema_version, int) or isinstance(schema_version, bool) or schema_version < 1:
+        if (
+            not isinstance(schema_version, int)
+            or isinstance(schema_version, bool)
+            or schema_version < 1
+        ):
             raise ValueError("resource schema_version must be a positive integer")
         revision_digest = state.get("revision_digest", aggregate.state_fingerprint)
         require_sha256_digest(revision_digest, field_name="revision_digest")

@@ -13,7 +13,9 @@ from app.strategy_lab_v2.api_resources import (
     ResourceIdentifier,
 )
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import StrategyVersion
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
+from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
 from app.strategy_lab_v2.storage import AggregateKey, StoredAggregate
 
 
@@ -29,7 +31,9 @@ class MemoryStore:
 
     async def list_type(self, aggregate_type: str) -> tuple[StoredAggregate, ...]:
         return tuple(
-            aggregate for aggregate in self.aggregates if aggregate.key.aggregate_type == aggregate_type
+            aggregate
+            for aggregate in self.aggregates
+            if aggregate.key.aggregate_type == aggregate_type
         )
 
 
@@ -53,6 +57,32 @@ def _trial(
         1,
         state,
     )
+
+
+def _strategy(strategy_id: str, *, owner_id: str = "alice") -> StoredAggregate:
+    attributes = {
+        "strategy_id": strategy_id,
+        "version_id": "v1",
+        "sdk_version": "strategy-sdk.v2",
+        "source_digest": content_digest("strategy-source"),
+        "dependencies": (),
+        "parameter_schema": {"window": {"type": "integer"}},
+        "default_parameters": {"window": 20},
+    }
+    state = {
+        "owner_id": owner_id,
+        "resource_type": ApiResourceType.STRATEGY.value,
+        "resource_id": strategy_id,
+        "schema_version": 1,
+        "attributes": attributes,
+        "meta": {
+            "domain_fingerprint": normalize_resource_attributes(
+                ApiResourceType.STRATEGY,
+                attributes,
+            ).domain_fingerprint
+        },
+    }
+    return StoredAggregate(AggregateKey(ApiResourceType.STRATEGY.value, strategy_id), 1, state)
 
 
 @pytest.mark.asyncio
@@ -111,9 +141,67 @@ async def test_reader_does_not_leak_foreign_get_and_projects_relationships() -> 
     assert document is not None
     assert document.identity.revision_digest == aggregate.state_fingerprint
     assert document.relationships["experiment"][0].resource_type is ApiResourceType.EXPERIMENT
-    assert await reader.get_resource(
-        principal="alice", resource_type=ApiResourceType.TRIAL, resource_id="trial-2"
-    ) is None
+    assert (
+        await reader.get_resource(
+            principal="alice", resource_type=ApiResourceType.TRIAL, resource_id="trial-2"
+        )
+        is None
+    )
+
+
+@pytest.mark.asyncio
+async def test_reader_rehydrates_owner_scoped_typed_domain_contract() -> None:
+    reader = PostgresResourceReader(
+        MemoryStore([_strategy("momentum"), _strategy("private", owner_id="bob")])
+    )
+
+    strategy = await reader.get_domain_contract(
+        principal="alice",
+        resource_type=ApiResourceType.STRATEGY,
+        resource_id="momentum",
+    )
+    foreign = await reader.get_domain_contract(
+        principal="alice",
+        resource_type=ApiResourceType.STRATEGY,
+        resource_id="private",
+    )
+
+    assert isinstance(strategy, StrategyVersion)
+    assert strategy.strategy_id == "momentum"
+    assert strategy.default_parameters == {"window": 20}
+    assert foreign is None
+
+
+@pytest.mark.asyncio
+async def test_reader_rejects_malformed_typed_domain_attributes() -> None:
+    aggregate = _strategy("momentum")
+    state = dict(aggregate.state)
+    state["attributes"] = {"strategy_id": "momentum", "source_digest": "sha256:bad"}
+    malformed = StoredAggregate(aggregate.key, aggregate.version, state)
+    reader = PostgresResourceReader(MemoryStore([malformed]))
+
+    with pytest.raises(ValueError, match="strategy attribute is required"):
+        await reader.get_domain_contract(
+            principal="alice",
+            resource_type=ApiResourceType.STRATEGY,
+            resource_id="momentum",
+        )
+
+
+@pytest.mark.asyncio
+async def test_reader_rejects_drift_from_persisted_domain_fingerprint() -> None:
+    aggregate = _strategy("momentum")
+    state = dict(aggregate.state)
+    state["meta"] = {"domain_fingerprint": content_digest("wrong domain identity")}
+    drifted = StoredAggregate(aggregate.key, aggregate.version, state)
+    reader = PostgresResourceReader(MemoryStore([drifted]))
+
+    with pytest.raises(ValueError, match="domain fingerprint"):
+        await reader.get_domain_contract(
+            principal="alice",
+            resource_type=ApiResourceType.STRATEGY,
+            resource_id="momentum",
+        )
 
 
 @pytest.mark.asyncio
@@ -135,15 +223,21 @@ async def test_reader_rejects_cursor_for_different_or_changed_snapshot() -> None
     )
     with pytest.raises(ValueError, match="cursor resource"):
         await reader.list_resources(
-            principal="alice", resource_type=ApiResourceType.TRIAL, limit=1,
-            cursor=cursor, request_id="request-2"
+            principal="alice",
+            resource_type=ApiResourceType.TRIAL,
+            limit=1,
+            cursor=cursor,
+            request_id="request-2",
         )
 
     store.aggregates.append(_trial("trial-3"))
     with pytest.raises(ValueError, match="cursor snapshot"):
         await reader.list_resources(
-            principal="alice", resource_type=ApiResourceType.TRIAL, limit=1,
-            cursor=page.next_cursor, request_id="request-3"
+            principal="alice",
+            resource_type=ApiResourceType.TRIAL,
+            limit=1,
+            cursor=page.next_cursor,
+            request_id="request-3",
         )
 
 
@@ -152,7 +246,9 @@ async def test_reader_fails_closed_on_malformed_owner_or_relationships() -> None
     missing_owner = StoredAggregate(
         AggregateKey(ApiResourceType.TRIAL.value, "trial-1"), 1, {"sort_value": "trial-1"}
     )
-    malformed_relationship = _trial("trial-2", relationships={"experiment": [{"id": "missing-type"}]})
+    malformed_relationship = _trial(
+        "trial-2", relationships={"experiment": [{"id": "missing-type"}]}
+    )
     reader = PostgresResourceReader(MemoryStore([missing_owner, malformed_relationship]))
     with pytest.raises(ValueError, match="owner_id"):
         await reader.get_resource(
@@ -203,11 +299,14 @@ async def test_reader_uses_owner_scoped_relational_projection_with_cursor_pagina
         request_id="request-2",
     )
     assert [item.id for item in second.items] == ["attempt-2"]
-    assert await reader.get_resource(
-        principal="alice",
-        resource_type=ApiResourceType.ATTEMPT,
-        resource_id="attempt-2",
-    ) == documents[0]
+    assert (
+        await reader.get_resource(
+            principal="alice",
+            resource_type=ApiResourceType.ATTEMPT,
+            resource_id="attempt-2",
+        )
+        == documents[0]
+    )
     assert seen_principals == ["alice", "alice", "alice"]
 
 
