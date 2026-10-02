@@ -1074,6 +1074,7 @@
               <button
                 type="button"
                 class="run-batch__head"
+                :aria-pressed="batch.runs.some(run => strategyLab.selectedRunId === run.id) ? 'true' : 'false'"
                 @click="strategyLab.selectedRunId = batch.primaryRun?.id ?? null"
               >
                 <span>
@@ -1098,6 +1099,7 @@
                   type="button"
                   class="run-item"
                   :class="{ active: strategyLab.selectedRunId === run.id }"
+                  :aria-pressed="strategyLab.selectedRunId === run.id ? 'true' : 'false'"
                   @click="strategyLab.selectedRunId = run.id"
                 >
                   <div class="run-item__header">

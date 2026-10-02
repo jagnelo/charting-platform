@@ -955,6 +955,23 @@ describe('StrategyLabView', () => {
     expect(wrapper.find(`#${runHistoryId}`).exists()).toBe(false)
   })
 
+  it('exposes selected run history batch and run state', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Research runs')
+    const historyToggle = wrapper.get('.scroll-list-toggle')
+    if (historyToggle.attributes('aria-expanded') !== 'true') await historyToggle.trigger('click')
+
+    const batch = wrapper.get('.run-batch__head')
+    const run = wrapper.get('.run-item')
+    expect(batch.attributes('aria-pressed')).toBe('false')
+    expect(run.attributes('aria-pressed')).toBe('false')
+    await run.trigger('click')
+    expect(batch.attributes('aria-pressed')).toBe('true')
+    expect(run.attributes('aria-pressed')).toBe('true')
+  })
+
   it('does not preselect a comparison run by default', async () => {
     const multiRunDefinition = clone(definition)
     multiRunDefinition.runs = [
