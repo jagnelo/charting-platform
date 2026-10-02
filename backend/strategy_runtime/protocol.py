@@ -12,11 +12,12 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Iterable, Iterator, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any, BinaryIO
 
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.capabilities import CapabilityRequirement
 from app.strategy_lab_v2.contracts import (
     AdjustmentMode,
@@ -889,6 +890,114 @@ def deserialize_invocation_context_stream(
     return source, manifest, decoded_contexts(), entrypoint, max_intents
 
 
+@dataclass(frozen=True, slots=True)
+class InvocationResultStreamSummary:
+    """Integrity and bounded-size receipt for one finalized result stream."""
+
+    result_count: int
+    all_succeeded: bool
+    content_digest: str
+    byte_length: int
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.result_count, int)
+            or isinstance(self.result_count, bool)
+            or self.result_count < 1
+        ):
+            raise ValueError("result_count must be positive")
+        if not isinstance(self.all_succeeded, bool):
+            raise TypeError("all_succeeded must be a boolean")
+        require_sha256_digest(self.content_digest, field_name="content_digest")
+        if (
+            not isinstance(self.byte_length, int)
+            or isinstance(self.byte_length, bool)
+            or self.byte_length < 1
+        ):
+            raise ValueError("byte_length must be positive")
+
+
+class InvocationResultStreamWriter:
+    """Append typed invocation results as callbacks complete, without retention."""
+
+    def __init__(
+        self,
+        stream: BinaryIO,
+        *,
+        max_stream_bytes: int = MAX_INVOCATION_RESULT_STREAM_BYTES,
+    ) -> None:
+        if not callable(getattr(stream, "write", None)):
+            raise TypeError("stream must provide write(bytes)")
+        if (
+            not isinstance(max_stream_bytes, int)
+            or isinstance(max_stream_bytes, bool)
+            or max_stream_bytes < 1
+        ):
+            raise ValueError("invocation result stream byte bound must be positive")
+        self._stream = stream
+        self._max_stream_bytes = max_stream_bytes
+        self._result_count = 0
+        self._all_succeeded = True
+        self._records_digest = hashlib.sha256()
+        self._stream_digest = hashlib.sha256()
+        self._byte_length = 0
+        self._finished = False
+        header = {
+            "protocol_version": INVOCATION_RESULT_STREAM_PROTOCOL_VERSION,
+            "record_type": "header",
+        }
+        header_wire = (_dump_json(header, "invocation result stream header") + "\n").encode("utf-8")
+        self._write(header_wire)
+
+    def _write(self, wire: bytes) -> None:
+        if self._byte_length + len(wire) > self._max_stream_bytes:
+            raise ValueError("invocation result stream exceeds its configured byte bound")
+        _write_context_stream_record(self._stream, wire)
+        self._stream_digest.update(wire)
+        self._byte_length += len(wire)
+
+    def write(self, result: Any) -> None:
+        """Encode and append exactly one validated invocation result."""
+
+        if self._finished:
+            raise ValueError("invocation result stream is already finalized")
+        result_payload = _invocation_result_payload(result)
+        record = {
+            "record_type": "result",
+            "index": self._result_count,
+            "result": result_payload,
+        }
+        record_wire = (_dump_json(record, "invocation result stream record") + "\n").encode("utf-8")
+        self._write(record_wire)
+        self._records_digest.update(record_wire)
+        self._all_succeeded = self._all_succeeded and result.status.value == "succeeded"
+        self._result_count += 1
+
+    def finish(self) -> InvocationResultStreamSummary:
+        """Append the integrity trailer and return the whole-file content digest."""
+
+        if self._finished:
+            raise ValueError("invocation result stream is already finalized")
+        if self._result_count == 0:
+            raise ValueError("invocation result stream must not be empty")
+        trailer = {
+            "record_type": "trailer",
+            "result_count": self._result_count,
+            "records_sha256": f"sha256:{self._records_digest.hexdigest()}",
+        }
+        trailer_wire = (_dump_json(trailer, "invocation result stream trailer") + "\n").encode(
+            "utf-8"
+        )
+        self._write(trailer_wire)
+        self._finished = True
+        return InvocationResultStreamSummary(
+            result_count=self._result_count,
+            all_succeeded=self._all_succeeded,
+            content_digest=f"sha256:{self._stream_digest.hexdigest()}",
+            byte_length=self._byte_length,
+        )
+
+
 def serialize_invocation_result_stream(
     stream: BinaryIO,
     results: Iterable[Any],
@@ -897,55 +1006,13 @@ def serialize_invocation_result_stream(
 ) -> tuple[int, bool]:
     """Write indexed typed results incrementally and return count/all-success."""
 
-    if not callable(getattr(stream, "write", None)):
-        raise TypeError("stream must provide write(bytes)")
     if not isinstance(results, Iterable) or isinstance(results, str | bytes):
         raise TypeError("invocation result stream must be iterable")
-    if (
-        not isinstance(max_stream_bytes, int)
-        or isinstance(max_stream_bytes, bool)
-        or max_stream_bytes < 1
-    ):
-        raise ValueError("invocation result stream byte bound must be a positive integer")
-
-    header = {
-        "protocol_version": INVOCATION_RESULT_STREAM_PROTOCOL_VERSION,
-        "record_type": "header",
-    }
-    header_wire = (_dump_json(header, "invocation result stream header") + "\n").encode("utf-8")
-    observed_bytes = len(header_wire)
-    if observed_bytes > max_stream_bytes:
-        raise ValueError("invocation result stream exceeds its configured byte bound")
-    _write_context_stream_record(stream, header_wire)
-
-    digest = hashlib.sha256()
-    count = 0
-    all_succeeded = True
+    writer = InvocationResultStreamWriter(stream, max_stream_bytes=max_stream_bytes)
     for result in results:
-        result_payload = _invocation_result_payload(result)
-        record = {"record_type": "result", "index": count, "result": result_payload}
-        record_wire = (_dump_json(record, "invocation result stream record") + "\n").encode("utf-8")
-        observed_bytes += len(record_wire)
-        if observed_bytes > max_stream_bytes:
-            raise ValueError("invocation result stream exceeds its configured byte bound")
-        _write_context_stream_record(stream, record_wire)
-        digest.update(record_wire)
-        all_succeeded = all_succeeded and result.status.value == "succeeded"
-        count += 1
-    if count == 0:
-        raise ValueError("invocation result stream must not be empty")
-
-    trailer = {
-        "record_type": "trailer",
-        "result_count": count,
-        "records_sha256": f"sha256:{digest.hexdigest()}",
-    }
-    trailer_wire = (_dump_json(trailer, "invocation result stream trailer") + "\n").encode("utf-8")
-    observed_bytes += len(trailer_wire)
-    if observed_bytes > max_stream_bytes:
-        raise ValueError("invocation result stream exceeds its configured byte bound")
-    _write_context_stream_record(stream, trailer_wire)
-    return count, all_succeeded
+        writer.write(result)
+    summary = writer.finish()
+    return summary.result_count, summary.all_succeeded
 
 
 def deserialize_invocation_result_stream(
@@ -1216,6 +1283,8 @@ __all__ = [
     "BATCH_WIRE_PROTOCOL_VERSION",
     "INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION",
     "INVOCATION_RESULT_STREAM_PROTOCOL_VERSION",
+    "InvocationResultStreamSummary",
+    "InvocationResultStreamWriter",
     "MAX_INVOCATION_CONTEXT_STREAM_BYTES",
     "MAX_INVOCATION_RESULT_STREAM_BYTES",
     "MAX_WIRE_PAYLOAD_BYTES",

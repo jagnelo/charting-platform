@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -34,8 +35,22 @@ from app.strategy_lab_v2.artifact_store import (
 from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
+from app.strategy_lab_v2.nautilus_runner import NautilusRunResult, NautilusRunStatus
+from app.strategy_lab_v2.nautilus_runtime_bundle import (
+    NautilusInvocationResultStreamReference,
+)
+from app.strategy_lab_v2.nautilus_runtime_protocol import (
+    NAUTILUS_INVOCATION_RESULT_STREAM_MEDIA_TYPE,
+    NAUTILUS_INVOCATION_RESULT_STREAM_SCHEMA,
+)
+from app.strategy_lab_v2.sandbox import sandbox_invocation_result_stream_path
 from app.strategy_lab_v2.sandbox_execution import SandboxRunResult, SandboxRunStatus
 from app.strategy_lab_v2.tests.test_sandbox_execution import _plan as sandbox_plan
+from strategy_runtime import (
+    InvocationResultStreamWriter,
+    InvocationStatus,
+    StrategyInvocationResult,
+)
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
@@ -79,9 +94,7 @@ class _Committer:
 async def test_publish_coordinates_bytes_and_commit_then_replays(tmp_path) -> None:
     payload = b"durable result"
     committer = _Committer()
-    service = LocalArtifactPublicationService(
-        LocalArtifactStore(tmp_path / "artifacts"), committer
-    )
+    service = LocalArtifactPublicationService(LocalArtifactStore(tmp_path / "artifacts"), committer)
 
     committed = await service.publish(_manifest(payload), payload, committed_at=NOW)
     assert committed.decision is ArtifactPublicationDecision.COMMITTED
@@ -107,9 +120,7 @@ async def test_publish_file_coordinates_streamed_bytes_and_commit(tmp_path) -> N
     source = tmp_path / "result.bin"
     source.write_bytes(payload)
     committer = _Committer()
-    service = LocalArtifactPublicationService(
-        LocalArtifactStore(tmp_path / "artifacts"), committer
-    )
+    service = LocalArtifactPublicationService(LocalArtifactStore(tmp_path / "artifacts"), committer)
 
     published = await service.publish_file(_manifest(payload), source, committed_at=NOW)
 
@@ -179,6 +190,86 @@ async def test_publish_sandbox_result_rejects_manifest_identity_drift(tmp_path) 
         )
 
 
+async def test_publish_nautilus_invocation_result_stream_revalidates_and_streams_file(
+    tmp_path,
+) -> None:
+    output_path = tmp_path / "result.json"
+    output_path.write_bytes(b"result")
+    stream_path = tmp_path / "invocations.ndjson"
+    invocation = StrategyInvocationResult(
+        content_digest("source"),
+        content_digest("manifest"),
+        content_digest("context"),
+        "strategy.main:Strategy",
+        InvocationStatus.SUCCEEDED,
+    )
+    stream = stream_path.open("w+b")
+    writer = InvocationResultStreamWriter(stream)
+    writer.write(invocation)
+    summary = writer.finish()
+    stream.close()
+    payload = stream_path.read_bytes()
+    stream_manifest = ArtifactManifest(
+        summary.content_digest,
+        summary.byte_length,
+        NAUTILUS_INVOCATION_RESULT_STREAM_MEDIA_TYPE,
+        NAUTILUS_INVOCATION_RESULT_STREAM_SCHEMA,
+        summary.content_digest,
+        ArtifactRetention.PINNED_RESULT,
+    )
+
+    plan = sandbox_plan(output_limit=2048, output_path=os.fspath(output_path))
+    argv = list(plan.argv)
+    argv.insert(16, "--mount=type=bind,src=/tmp/contexts,dst=/inputs/contexts,readonly")
+    argv.insert(18, f"--mount=type=bind,src={stream_path},dst=/outputs/invocations")
+    argv.insert(21, f"--env=STRATEGY_CONTEXT_STREAM_DIGEST={content_digest('contexts')}")
+    plan = replace(plan, argv=tuple(argv))
+    assert sandbox_invocation_result_stream_path(plan) == stream_path
+    sandbox_result = SandboxRunResult(
+        plan.fingerprint,
+        plan.request_fingerprint,
+        SandboxRunStatus.SUCCEEDED,
+        0,
+        content_digest("stdout"),
+        content_digest("stderr"),
+        0,
+        0,
+        result_digest=artifact_content_digest(output_path.read_bytes()),
+        result_bytes=output_path.stat().st_size,
+    )
+    run_result = NautilusRunResult(
+        content_digest("execution plan"),
+        plan.fingerprint,
+        NautilusRunStatus.SUCCEEDED,
+        False,
+        sandbox_result,
+        NautilusInvocationResultStreamReference(stream_manifest, 1, True),
+    )
+    service = LocalArtifactPublicationService(
+        LocalArtifactStore(tmp_path / "artifacts"), _Committer()
+    )
+
+    published = await service.publish_nautilus_invocation_result_stream(
+        stream_manifest,
+        plan,
+        run_result,
+        committed_at=NOW,
+    )
+
+    assert published.decision is ArtifactPublicationDecision.COMMITTED
+    assert published.storage.integrity is not None
+    assert published.storage.integrity.observed_digest == summary.content_digest
+    assert published.storage.integrity.observed_byte_length == len(payload)
+    stream_path.write_bytes(b"drifted")
+    with pytest.raises(ValueError, match="byte length differs|digest differs"):
+        await service.publish_nautilus_invocation_result_stream(
+            stream_manifest,
+            plan,
+            run_result,
+            committed_at=NOW,
+        )
+
+
 async def test_bad_payload_is_rejected_before_commit(tmp_path) -> None:
     payload = b"expected"
     committer = _Committer()
@@ -223,9 +314,7 @@ async def test_retention_service_deletes_only_after_resolver_authorizes(tmp_path
     )
     eligible_at = NOW + timedelta(days=1)
     state = ArtifactRetentionState.from_manifest(manifest, retention_eligible_at=eligible_at)
-    resolver = _RetentionResolver(
-        resolve_artifact_retention(state, observed_at=eligible_at)
-    )
+    resolver = _RetentionResolver(resolve_artifact_retention(state, observed_at=eligible_at))
     store = LocalArtifactStore(tmp_path / "artifacts")
     store.publish(manifest, payload)
     service = LocalArtifactRetentionService(store, resolver)

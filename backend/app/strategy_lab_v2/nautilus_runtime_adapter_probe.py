@@ -35,7 +35,9 @@ from app.strategy_lab_v2.sdk import (
 )
 from strategy_runtime import (
     MAX_INVOCATION_CONTEXT_STREAM_BYTES,
+    MAX_INVOCATION_RESULT_STREAM_BYTES,
     deserialize_invocation_batch,
+    deserialize_invocation_result_stream,
     serialize_invocation_batch,
     serialize_invocation_context_stream,
 )
@@ -256,12 +258,14 @@ def run_context_stream_cli_probe() -> dict[str, Any]:
             root = Path(directory)
             bundle_path = root / "bundle.json"
             context_path = root / "contexts.ndjson"
+            result_stream_path = root / "invocations.ndjson"
             output_path = root / "result.json"
             bundle_path.write_text(
                 json.dumps(bundle, allow_nan=False, separators=(",", ":"), sort_keys=True),
                 encoding="utf-8",
             )
             context_path.write_bytes(context_bytes)
+            result_stream_path.touch()
             output_path.touch()
             os.environ["STRATEGY_INPUT_BUNDLE_DIGEST"] = content_digest(bundle)
             os.environ["STRATEGY_ATTEMPT_ID"] = "attempt-adapter-probe"
@@ -280,9 +284,14 @@ def run_context_stream_cli_probe() -> dict[str, Any]:
                     str(MAX_INVOCATION_CONTEXT_STREAM_BYTES),
                     "--context-stream",
                     str(context_path),
+                    "--invocation-results",
+                    str(result_stream_path),
+                    "--max-result-bytes",
+                    str(MAX_INVOCATION_RESULT_STREAM_BYTES),
                 ]
             )
             result = json.loads(output_path.read_text(encoding="utf-8"))
+            result_stream_bytes = result_stream_path.read_bytes()
     finally:
         for name, value in previous.items():
             if value is None:
@@ -294,6 +303,23 @@ def run_context_stream_cli_probe() -> dict[str, Any]:
         or result.get("authoritative") is not False
     ):
         raise RuntimeError("native context-stream CLI probe did not produce expected evidence")
+    stream_receipt = result.get("strategy_invocation_result_stream")
+    if not isinstance(stream_receipt, dict):
+        raise RuntimeError("native context-stream CLI probe did not stream invocation results")
+    if (
+        stream_receipt.get("byte_length") != len(result_stream_bytes)
+        or stream_receipt.get("content_digest")
+        != f"sha256:{hashlib.sha256(result_stream_bytes).hexdigest()}"
+    ):
+        raise RuntimeError("native invocation result stream receipt differs from its bytes")
+    decoded_results = tuple(
+        deserialize_invocation_result_stream(
+            BytesIO(result_stream_bytes),
+            expected_result_count=stream_receipt.get("result_count"),
+        )
+    )
+    if not decoded_results or not stream_receipt.get("all_succeeded"):
+        raise RuntimeError("native invocation result stream is empty or contains failures")
     return result
 
 

@@ -25,6 +25,11 @@ from app.strategy_lab_v2.nautilus_runtime_data import (
     materialize_native_venue,
 )
 from app.strategy_lab_v2.nautilus_strategy_bridge import build_native_strategy_bridge
+from strategy_runtime import (
+    INVOCATION_RESULT_STREAM_PROTOCOL_VERSION,
+    MAX_INVOCATION_RESULT_STREAM_BYTES,
+    InvocationResultStreamSummary,
+)
 
 NAUTILUS_RUNTIME_ADAPTER_VERSION = "strategy-lab.nautilus-runtime-adapter.v1"
 
@@ -117,6 +122,8 @@ def run_native_backtest(
     serialized_strategy_invocation_batch: str | None = None,
     invocation_context_stream: BinaryIO | None = None,
     expected_context_count: int | None = None,
+    invocation_result_stream: BinaryIO | None = None,
+    max_invocation_result_bytes: int = MAX_INVOCATION_RESULT_STREAM_BYTES,
 ) -> dict[str, Any]:
     """Run one validated engine input and SDK invocation input in the isolated image."""
 
@@ -130,6 +137,8 @@ def run_native_backtest(
         serialized_strategy_invocation_batch,
         invocation_context_stream=invocation_context_stream,
         expected_context_count=expected_context_count,
+        invocation_result_stream=invocation_result_stream,
+        max_invocation_result_bytes=max_invocation_result_bytes,
     )
 
     native_instruments = tuple(
@@ -171,11 +180,31 @@ def run_native_backtest(
             engine.add_data(native_events, sort=True)
         engine.run()
         result = engine.get_result()
-        invocation_result_wire = strategy_bridge.result_wire()
+        invocation_result_output = strategy_bridge.result_output()
         summary = getattr(result, "summary", {})
         if not isinstance(summary, Mapping):
             raise NautilusRuntimeDataError("Nautilus result summary is not a mapping")
         scalar_summary = {str(key): str(value) for key, value in sorted(summary.items())}
+        result_evidence: dict[str, Any]
+        if isinstance(invocation_result_output, InvocationResultStreamSummary):
+            result_evidence = {
+                "strategy_invocation_result_stream": {
+                    "protocol_version": INVOCATION_RESULT_STREAM_PROTOCOL_VERSION,
+                    "content_digest": invocation_result_output.content_digest,
+                    "byte_length": invocation_result_output.byte_length,
+                    "result_count": invocation_result_output.result_count,
+                    "all_succeeded": invocation_result_output.all_succeeded,
+                }
+            }
+        else:
+            invocation_result_wire = invocation_result_output
+            if not isinstance(invocation_result_wire, str):
+                raise NautilusRuntimeDataError("strategy invocation result output is invalid")
+            result_evidence = {
+                "strategy_invocation_result_wire": invocation_result_wire,
+                "strategy_invocation_result_digest": content_digest(invocation_result_wire),
+                "strategy_invocation_count": result_invocation_count(invocation_result_wire),
+            }
         evidence = {
             "adapter_version": NAUTILUS_RUNTIME_ADAPTER_VERSION,
             "authoritative": False,
@@ -190,9 +219,7 @@ def run_native_backtest(
                 if strategy_bridge.input_protocol == "batch"
                 else {}
             ),
-            "strategy_invocation_result_wire": invocation_result_wire,
-            "strategy_invocation_result_digest": content_digest(invocation_result_wire),
-            "strategy_invocation_count": result_invocation_count(invocation_result_wire),
+            **result_evidence,
             "iterations": int(result.iterations),
             "total_events": int(result.total_events),
             "total_orders": int(result.total_orders),

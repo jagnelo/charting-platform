@@ -1528,11 +1528,12 @@ continues to own no I/O.
 Nautilus is the planned authoritative simulator, isolated from the legacy 1.x
 environment. The current exact `2.0.0rc5` release candidate may be installed
 in a separate Python/Rust/runtime-image boundary and used now for local
-backtest, replay, and forward event-tape compatibility evidence. Every such
-run is explicitly non-authoritative and excluded from official rankings and
-publication. Stable v2 remains the gate for authoritative results, official
-rankings, and any deployed shadow soak; it must pass multi-instrument
-accounting, native execution/cost models, deterministic replay, engine
-lifecycle, and backtest/forward event-tape parity. The local Compose
+backtest and replay runs. An exact-pinned stable or pre-release v2 build may
+publish authoritative local backtest results only after the full platform
+conformance suite passes: multi-instrument accounting, native execution/cost
+models, deterministic replay, reporting, and engine lifecycle. Results retain
+the package version/channel and wheel/image digests; pre-releases remain barred
+from broker connections or real capital. Broker-free forward-shadow activation
+additionally requires backtest/forward event-tape parity. The local Compose
 worker/storage and API phases follow shared-path reconciliation, and the
 TC2000-native UI remains a separate authorization boundary.

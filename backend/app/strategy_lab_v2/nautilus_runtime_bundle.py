@@ -31,13 +31,17 @@ from app.strategy_lab_v2.nautilus_engine_input import NautilusEngineInput
 from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
     NAUTILUS_CONTEXT_STREAM_SCHEMA,
+    NAUTILUS_INVOCATION_RESULT_STREAM_MEDIA_TYPE,
+    NAUTILUS_INVOCATION_RESULT_STREAM_SCHEMA,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1,
 )
 from app.strategy_lab_v2.sdk import StrategyContext, StrategySdkManifest
 from strategy_runtime import (
     MAX_INVOCATION_CONTEXT_STREAM_BYTES,
+    InvocationStatus,
     deserialize_invocation_batch,
+    deserialize_invocation_result_stream,
     serialize_invocation_context_stream,
 )
 
@@ -87,6 +91,51 @@ class NautilusContextStreamArtifactReference:
                 "retention_class": self.artifact.retention_class.value,
             },
             "context_count": self.context_count,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class NautilusInvocationResultStreamReference:
+    """Verified content-addressed result records emitted by one RC worker."""
+
+    artifact: ArtifactManifest
+    result_count: int
+    all_succeeded: bool
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.artifact, ArtifactManifest):
+            raise TypeError("artifact must be an ArtifactManifest")
+        if self.artifact.media_type != NAUTILUS_INVOCATION_RESULT_STREAM_MEDIA_TYPE:
+            raise ValueError("Nautilus invocation result stream media type is unsupported")
+        if self.artifact.schema_version != NAUTILUS_INVOCATION_RESULT_STREAM_SCHEMA:
+            raise ValueError("Nautilus invocation result stream schema is unsupported")
+        if self.artifact.retention_class is not ArtifactRetention.PINNED_RESULT:
+            raise ValueError("Nautilus invocation results must use pinned-result retention")
+        if (
+            not isinstance(self.result_count, int)
+            or isinstance(self.result_count, bool)
+            or self.result_count < 1
+        ):
+            raise ValueError("result_count must be a positive integer")
+        if not isinstance(self.all_succeeded, bool):
+            raise TypeError("all_succeeded must be a boolean")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+    def to_wire(self) -> dict[str, Any]:
+        return {
+            "artifact": {
+                "content_digest": self.artifact.content_digest,
+                "byte_length": self.artifact.byte_length,
+                "media_type": self.artifact.media_type,
+                "schema_version": self.artifact.schema_version,
+                "storage_key": self.artifact.storage_key,
+                "retention_class": self.artifact.retention_class.value,
+            },
+            "result_count": self.result_count,
+            "all_succeeded": self.all_succeeded,
         }
 
 
@@ -395,6 +444,81 @@ def verify_nautilus_context_stream_artifact_file(
         raise ValueError("Nautilus context stream digest differs")
 
 
+def verify_nautilus_invocation_result_stream_file(
+    reference: NautilusInvocationResultStreamReference,
+    path: str | os.PathLike[str],
+    *,
+    max_result_bytes: int,
+) -> None:
+    """Verify mounted result bytes, JSONL integrity, count, and invocation status."""
+
+    if not isinstance(reference, NautilusInvocationResultStreamReference):
+        raise TypeError("reference must be a NautilusInvocationResultStreamReference")
+    if (
+        not isinstance(max_result_bytes, int)
+        or isinstance(max_result_bytes, bool)
+        or max_result_bytes <= 0
+    ):
+        raise ValueError("max_result_bytes must be a positive integer")
+    manifest = reference.artifact
+    if manifest.byte_length > max_result_bytes:
+        raise ValueError("Nautilus invocation result stream exceeds its configured bound")
+    descriptor = os.open(
+        path,
+        os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0),
+    )
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise ValueError("Nautilus invocation result stream must be a regular file")
+        if metadata.st_size != manifest.byte_length:
+            raise ValueError("Nautilus invocation result stream byte length differs")
+        with os.fdopen(descriptor, "rb") as stream:
+            descriptor = -1
+            observed = 0
+            digest = hashlib.sha256()
+            while chunk := stream.read(65_536):
+                observed += len(chunk)
+                if observed > max_result_bytes:
+                    raise ValueError(
+                        "Nautilus invocation result stream exceeds its configured bound"
+                    )
+                digest.update(chunk)
+            raw_digest = f"sha256:{digest.hexdigest()}"
+            if raw_digest != manifest.content_digest:
+                raise ValueError("Nautilus invocation result stream digest differs")
+
+            stream.seek(0)
+            decoded_count = 0
+            all_succeeded = True
+            for result in deserialize_invocation_result_stream(
+                stream,
+                expected_result_count=reference.result_count,
+                max_stream_bytes=max_result_bytes,
+            ):
+                decoded_count += 1
+                all_succeeded = all_succeeded and result.status is InvocationStatus.SUCCEEDED
+            if decoded_count != reference.result_count:
+                raise ValueError("Nautilus invocation result stream count differs")
+            if all_succeeded != reference.all_succeeded:
+                raise ValueError("Nautilus invocation result stream status differs")
+
+            stream.seek(0)
+            verification_digest = hashlib.sha256()
+            verification_length = 0
+            while chunk := stream.read(65_536):
+                verification_length += len(chunk)
+                verification_digest.update(chunk)
+            if (
+                verification_length != observed
+                or f"sha256:{verification_digest.hexdigest()}" != raw_digest
+            ):
+                raise ValueError("Nautilus invocation result stream changed during verification")
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
@@ -580,6 +704,7 @@ __all__ = [
     "NAUTILUS_RUNTIME_ARTIFACT_SCHEMA",
     "NAUTILUS_RUNTIME_BUNDLE_SCHEMA",
     "NautilusContextStreamArtifactReference",
+    "NautilusInvocationResultStreamReference",
     "NautilusRuntimeBundle",
     "NautilusRuntimeBundleError",
     "NautilusRuntimeInputArtifactReference",
@@ -588,5 +713,6 @@ __all__ = [
     "materialize_nautilus_context_stream_artifact",
     "materialize_nautilus_runtime_bundle",
     "verify_nautilus_context_stream_artifact_file",
+    "verify_nautilus_invocation_result_stream_file",
     "verify_nautilus_runtime_artifact_file",
 ]

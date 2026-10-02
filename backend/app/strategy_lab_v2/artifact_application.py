@@ -38,9 +38,17 @@ from app.strategy_lab_v2.artifact_store import (
 )
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest
+from app.strategy_lab_v2.nautilus_runner import NautilusRunResult
+from app.strategy_lab_v2.nautilus_runtime_bundle import (
+    verify_nautilus_invocation_result_stream_file,
+)
 from app.strategy_lab_v2.postgres_artifact_commit import PostgresArtifactCommitAdapter
 from app.strategy_lab_v2.postgres_artifact_retention import PostgresArtifactRetentionAdapter
-from app.strategy_lab_v2.sandbox import SandboxCommandPlan, sandbox_output_path
+from app.strategy_lab_v2.sandbox import (
+    SandboxCommandPlan,
+    sandbox_invocation_result_stream_path,
+    sandbox_output_path,
+)
 from app.strategy_lab_v2.sandbox_execution import SandboxRunResult, SandboxRunStatus
 
 
@@ -212,6 +220,43 @@ class LocalArtifactPublicationService:
             committed_at=committed_at,
         )
 
+    async def publish_nautilus_invocation_result_stream(
+        self,
+        manifest: ArtifactManifest,
+        sandbox_plan: SandboxCommandPlan,
+        run_result: NautilusRunResult,
+        *,
+        committed_at: datetime,
+    ) -> ArtifactPublicationResolution:
+        """Publish the verified callback-result sidecar without loading it in memory."""
+
+        if not isinstance(manifest, ArtifactManifest):
+            raise TypeError("manifest must be an ArtifactManifest")
+        if not isinstance(sandbox_plan, SandboxCommandPlan):
+            raise TypeError("sandbox_plan must be a SandboxCommandPlan")
+        if not isinstance(run_result, NautilusRunResult):
+            raise TypeError("run_result must be a NautilusRunResult")
+        reference = run_result.invocation_result_stream
+        if reference is None:
+            raise ValueError("Nautilus run is missing its verified invocation result stream")
+        if run_result.sandbox_plan_fingerprint != sandbox_plan.fingerprint:
+            raise ValueError("Nautilus run result does not match its sandbox plan")
+        if run_result.sandbox_result is None or (
+            run_result.sandbox_result.status is not SandboxRunStatus.SUCCEEDED
+        ):
+            raise ValueError("invocation result stream requires a successful sandbox process")
+        if manifest != reference.artifact:
+            raise ValueError("artifact manifest does not match the verified result stream")
+        path = sandbox_invocation_result_stream_path(sandbox_plan)
+        if path is None:
+            raise ValueError("sandbox plan has no invocation result stream mount")
+        verify_nautilus_invocation_result_stream_file(
+            reference,
+            path,
+            max_result_bytes=sandbox_plan.output_limit_bytes,
+        )
+        return await self.publish_file(manifest, path, committed_at=committed_at)
+
     async def _finalize_storage(
         self,
         manifest: ArtifactManifest,
@@ -373,7 +418,9 @@ class ArtifactCleanupScheduler:
             minimum_age=self._minimum_age,
         )
 
-    async def run(self, stop_event: Any, *, max_cycles: int | None = None) -> tuple[ArtifactCleanupResolution, ...]:
+    async def run(
+        self, stop_event: Any, *, max_cycles: int | None = None
+    ) -> tuple[ArtifactCleanupResolution, ...]:
         if not callable(getattr(stop_event, "is_set", None)):
             raise TypeError("stop_event must provide is_set")
         if max_cycles is not None and (

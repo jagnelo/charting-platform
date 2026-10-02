@@ -225,6 +225,45 @@ def test_gated_nautilus_result_is_envelope_checked_before_materialization() -> N
     assert rejected.rejection_reason == "Nautilus result does not match its execution plan"
 
 
+def test_stream_validation_failure_materializes_as_runtime_failure() -> None:
+    state, plan = _fixtures()
+    execution_plan = NautilusExecutionPlan(
+        "trial-1",
+        "attempt-1",
+        content_digest("snapshot"),
+        "nautilus",
+        "2.0.0",
+        content_digest("build"),
+        content_digest("authorization"),
+        content_digest("runtime"),
+        content_digest("conformance"),
+        plan.fingerprint,
+        EngineExecutionDecision.READY,
+        False,
+    )
+    failure_digest = content_digest("invalid result stream")
+    run_result = NautilusRunResult(
+        execution_plan.fingerprint,
+        plan.fingerprint,
+        NautilusRunStatus.FAILED,
+        False,
+        _result(plan, SandboxRunStatus.SUCCEEDED),
+        result_failure_digest=failure_digest,
+    )
+
+    materialized = materialize_nautilus_result(
+        state,
+        execution_plan,
+        plan,
+        run_result,
+        observed_at=NOW,
+    )
+
+    assert materialized.decision is RuntimeResultDecision.FAILED
+    assert materialized.state.phase is RuntimeExecutionPhase.FAILED
+    assert materialized.state.error_digest == failure_digest
+
+
 def test_rejected_nautilus_result_does_not_become_runtime_failure() -> None:
     state, plan = _fixtures()
     execution_plan = NautilusExecutionPlan(

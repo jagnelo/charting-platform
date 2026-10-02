@@ -275,7 +275,7 @@ class NativeStrategyBridge:
     """Native strategy instance and its typed invocation-result wire output."""
 
     strategy: Any
-    result_wire: Any
+    result_output: Any
     input_fingerprint: str
     input_protocol: str
 
@@ -288,8 +288,10 @@ def build_native_strategy_bridge(
     *,
     invocation_context_stream: BinaryIO | None = None,
     expected_context_count: int | None = None,
+    invocation_result_stream: BinaryIO | None = None,
+    max_invocation_result_bytes: int | None = None,
 ) -> NativeStrategyBridge:
-    """Bind a legacy batch or verified context stream to native callbacks."""
+    """Bind invocation inputs to callbacks and optionally stream callback results."""
 
     from app.strategy_lab_v2.sdk import (
         OrderIntent,
@@ -297,6 +299,8 @@ def build_native_strategy_bridge(
         TargetPositionIntent,
     )
     from strategy_runtime import (
+        MAX_INVOCATION_RESULT_STREAM_BYTES,
+        InvocationResultStreamWriter,
         InvocationStatus,
         StrategyInvocationSession,
         deserialize_invocation_batch,
@@ -307,6 +311,20 @@ def build_native_strategy_bridge(
     if (serialized_invocation_batch is None) == (invocation_context_stream is None):
         raise NautilusRuntimeDataError(
             "provide exactly one strategy invocation batch or context stream"
+        )
+    if invocation_result_stream is not None and not callable(
+        getattr(invocation_result_stream, "write", None)
+    ):
+        raise NautilusRuntimeDataError("strategy result stream must provide write(bytes)")
+    result_stream_writer = None
+    if invocation_result_stream is not None:
+        result_stream_writer = InvocationResultStreamWriter(
+            invocation_result_stream,
+            max_stream_bytes=(
+                MAX_INVOCATION_RESULT_STREAM_BYTES
+                if max_invocation_result_bytes is None
+                else max_invocation_result_bytes
+            ),
         )
     if invocation_context_stream is not None:
         if not callable(getattr(invocation_context_stream, "seek", None)):
@@ -416,7 +434,8 @@ def build_native_strategy_bridge(
         entrypoint=entrypoint,
         max_intents_per_event=max_intents,
     )
-    invocation_results: list[Any] = []
+    invocation_results: list[Any] | None = [] if result_stream_writer is None else None
+    invocation_result_count = 0
     callback_failure_types: list[str] = []
 
     from nautilus_trader.model import (  # type: ignore[import-not-found,attr-defined]
@@ -488,7 +507,7 @@ def build_native_strategy_bridge(
             instrument_id: Any,
             ts_event: int,
         ) -> None:
-            nonlocal callback_index, current_trigger
+            nonlocal callback_index, current_trigger, invocation_result_count
             if callback_index >= len(ordered_records):
                 raise NautilusRuntimeDataError("Nautilus emitted an unexpected extra event")
             expected_record = ordered_records[callback_index]
@@ -540,7 +559,12 @@ def build_native_strategy_bridge(
                 )
             runtime_context = replace(context, positions=positions)
             result = invocation_session.invoke(runtime_context)
-            invocation_results.append(result)
+            if result_stream_writer is None:
+                assert invocation_results is not None
+                invocation_results.append(result)
+            else:
+                result_stream_writer.write(result)
+            invocation_result_count += 1
             if result.status is not InvocationStatus.SUCCEEDED:
                 return
             for intent in result.intents:
@@ -587,7 +611,7 @@ def build_native_strategy_bridge(
 
     strategy = _InvocationStrategy(_InvocationStrategyConfig())
 
-    def result_wire() -> str:
+    def result_output() -> Any:
         if callback_failure_types:
             failure_types = ",".join(sorted(set(callback_failure_types)))
             raise NautilusRuntimeDataError(f"native strategy callback failed with {failure_types}")
@@ -599,15 +623,18 @@ def build_native_strategy_bridge(
             raise NautilusRuntimeDataError(
                 "Nautilus did not invoke every serialized event strategy context"
             )
-        if len(invocation_results) != expected_contexts:
+        if invocation_result_count != expected_contexts:
             raise NautilusRuntimeDataError(
                 "Nautilus did not invoke every serialized strategy context"
             )
+        if result_stream_writer is not None:
+            return result_stream_writer.finish()
+        assert invocation_results is not None
         return serialize_invocation_batch_result(invocation_results)
 
     return NativeStrategyBridge(
         strategy=strategy,
-        result_wire=result_wire,
+        result_output=result_output,
         input_fingerprint=input_fingerprint,
         input_protocol=input_protocol,
     )

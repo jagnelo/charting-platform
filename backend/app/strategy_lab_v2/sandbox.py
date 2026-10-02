@@ -130,9 +130,12 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
     _validate_mount(argv[input_mount_index], "/inputs/bundle", "readonly")
     _validate_mount(argv[output_mount_index], "/outputs/result", "rw")
     context_mount = _optional_mount_index(argv, "/inputs/contexts")
+    invocation_result_mount = _optional_mount_index(argv, "/outputs/invocations")
     context_digest = _optional_argument_index(argv, _CONTEXT_STREAM_ENV_PREFIX)
-    if (context_mount is None) != (context_digest is None):
-        raise ValueError("sandbox context stream mount and digest must be bound together")
+    if (context_mount is None) != (context_digest is None) or (context_mount is None) != (
+        invocation_result_mount is None
+    ):
+        raise ValueError("sandbox context and invocation-result streams must be bound together")
     if context_mount is not None:
         if context_digest is None:
             raise ValueError("sandbox context stream digest is required")
@@ -141,6 +144,8 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
             argv[context_digest].removeprefix(_CONTEXT_STREAM_ENV_PREFIX),
             field_name="context stream digest",
         )
+    if invocation_result_mount is not None:
+        _validate_mount(argv[invocation_result_mount], "/outputs/invocations", "rw")
     attempt_index = _argument_index(argv, "--env=STRATEGY_ATTEMPT_ID=", "attempt identity")
     if not argv[attempt_index].startswith("--env=STRATEGY_ATTEMPT_ID="):
         raise ValueError("sandbox command plan must bind the attempt identity")
@@ -164,6 +169,7 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
     expected_options.extend(
         [
             argv[output_mount_index],
+            *(() if invocation_result_mount is None else (argv[invocation_result_mount],)),
             argv[attempt_index],
             argv[input_digest_index],
         ]
@@ -288,6 +294,18 @@ def sandbox_context_stream_digest(plan: SandboxCommandPlan) -> str | None:
     return plan.argv[index].removeprefix(_CONTEXT_STREAM_ENV_PREFIX)
 
 
+def sandbox_invocation_result_stream_path(plan: SandboxCommandPlan) -> Path | None:
+    """Return the optional host path bound to streamed invocation results."""
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    index = _optional_mount_index(plan.argv, "/outputs/invocations")
+    if index is None:
+        return None
+    return Path(_mount_source(plan.argv[index], "/outputs/invocations", "rw"))
+
+
 def sandbox_memory_limit_bytes(plan: SandboxCommandPlan) -> int:
     """Return the positive memory bound from a validated sandbox plan."""
 
@@ -312,6 +330,7 @@ def nautilus_runtime_command(
     snapshot_fingerprint: str,
     max_input_bytes: int,
     context_stream_digest: str | None = None,
+    max_result_bytes: int | None = None,
 ) -> tuple[str, ...]:
     """Build the only supported command for an isolated Nautilus strategy run."""
 
@@ -341,8 +360,24 @@ def nautilus_runtime_command(
         str(max_input_bytes),
     )
     if context_stream_digest is None:
+        if max_result_bytes is not None:
+            raise ValueError("max_result_bytes requires a streaming context input")
         return command
-    return (*command, "--context-stream", "/inputs/contexts")
+    if (
+        not isinstance(max_result_bytes, int)
+        or isinstance(max_result_bytes, bool)
+        or max_result_bytes <= 0
+    ):
+        raise ValueError("max_result_bytes must be a positive integer")
+    return (
+        *command,
+        "--context-stream",
+        "/inputs/contexts",
+        "--invocation-results",
+        "/outputs/invocations",
+        "--max-result-bytes",
+        str(max_result_bytes),
+    )
 
 
 def _argument_index(argv: tuple[str, ...], prefix: str, label: str) -> int:
@@ -428,6 +463,7 @@ def build_sandbox_command(
     working_directory: str = "/workspace",
     context_stream_path: str | os.PathLike[str] | None = None,
     context_stream_digest: str | None = None,
+    invocation_result_stream_path: str | os.PathLike[str] | None = None,
 ) -> SandboxCommandPlan:
     """Build a shell-free Docker argv after enforcing the runtime preflight."""
 
@@ -463,10 +499,17 @@ def build_sandbox_command(
     result_path = _mount_path(output_path, "output_path")
     if (context_stream_path is None) != (context_stream_digest is None):
         raise ValueError("context stream path and digest must be provided together")
+    if (context_stream_path is None) != (invocation_result_stream_path is None):
+        raise ValueError("context and invocation-result stream paths must be provided together")
     context_path = (
         None
         if context_stream_path is None
         else _mount_path(context_stream_path, "context_stream_path")
+    )
+    invocation_result_path = (
+        None
+        if invocation_result_stream_path is None
+        else _mount_path(invocation_result_stream_path, "invocation_result_stream_path")
     )
     if context_stream_digest is not None:
         require_sha256_digest(context_stream_digest, field_name="context_stream_digest")
@@ -494,6 +537,11 @@ def build_sandbox_command(
             else (f"--mount=type=bind,src={context_path},dst=/inputs/contexts,readonly",)
         ),
         f"--mount=type=bind,src={result_path},dst=/outputs/result",
+        *(
+            ()
+            if invocation_result_path is None
+            else (f"--mount=type=bind,src={invocation_result_path},dst=/outputs/invocations",)
+        ),
         f"--env=STRATEGY_ATTEMPT_ID={request.attempt_id}",
         f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={request.input_bundle_digest}",
         *(
@@ -523,6 +571,7 @@ def build_nautilus_sandbox_command(
     command: Sequence[str],
     context_stream_path: str | os.PathLike[str] | None = None,
     context_stream_digest: str | None = None,
+    invocation_result_stream_path: str | os.PathLike[str] | None = None,
 ) -> SandboxCommandPlan:
     """Build a hardened command explicitly bound to the Nautilus engine."""
 
@@ -536,6 +585,7 @@ def build_nautilus_sandbox_command(
         working_directory="/opt/strategy-lab-v2",
         context_stream_path=context_stream_path,
         context_stream_digest=context_stream_digest,
+        invocation_result_stream_path=invocation_result_stream_path,
     )
     image_index = _image_index(plan.argv)
     argv = (*plan.argv[:image_index], f"{_ENGINE_ENV_PREFIX}nautilus", *plan.argv[image_index:])
@@ -553,6 +603,7 @@ def build_nautilus_runtime_sandbox_command(
     snapshot_fingerprint: str,
     context_stream_path: str | os.PathLike[str] | None = None,
     context_stream_digest: str | None = None,
+    invocation_result_stream_path: str | os.PathLike[str] | None = None,
 ) -> SandboxCommandPlan:
     """Build a hardened invocation bound to the runtime's fixed Nautilus CLI."""
 
@@ -567,9 +618,13 @@ def build_nautilus_runtime_sandbox_command(
             snapshot_fingerprint=snapshot_fingerprint,
             max_input_bytes=max(1, profile.memory_limit_bytes // 8),
             context_stream_digest=context_stream_digest,
+            max_result_bytes=(
+                profile.output_limit_bytes if context_stream_digest is not None else None
+            ),
         ),
         context_stream_path=context_stream_path,
         context_stream_digest=context_stream_digest,
+        invocation_result_stream_path=invocation_result_stream_path,
     )
 
 
@@ -583,6 +638,7 @@ __all__ = [
     "sandbox_attempt_id",
     "sandbox_context_stream_digest",
     "sandbox_context_stream_path",
+    "sandbox_invocation_result_stream_path",
     "sandbox_engine_id",
     "sandbox_memory_limit_bytes",
     "sandbox_output_path",

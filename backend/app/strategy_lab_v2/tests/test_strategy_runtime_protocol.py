@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
@@ -35,6 +36,7 @@ from strategy_runtime import (
     MAX_INVOCATION_CONTEXT_STREAM_BYTES,
     MAX_INVOCATION_RESULT_STREAM_BYTES,
     MAX_WIRE_PAYLOAD_BYTES,
+    InvocationResultStreamWriter,
     InvocationStatus,
     deserialize_invocation,
     deserialize_invocation_batch,
@@ -421,6 +423,44 @@ class Strategy:
     with pytest.raises(ValueError, match="count differs"):
         next(invalid)
     assert MAX_INVOCATION_RESULT_STREAM_BYTES > MAX_WIRE_PAYLOAD_BYTES
+
+
+def test_result_stream_writer_returns_bounded_content_receipt() -> None:
+    source = """
+class Strategy:
+    def on_event(self, context):
+        return []
+"""
+    manifest = _manifest(source)
+    result = run_strategy_event(
+        source,
+        manifest=manifest,
+        context=_context(),
+        entrypoint="strategy.main:Strategy",
+    )
+    payload = BytesIO()
+    writer = InvocationResultStreamWriter(payload)
+    writer.write(result)
+    summary = writer.finish()
+
+    assert summary.result_count == 1
+    assert summary.all_succeeded is True
+    assert summary.byte_length == len(payload.getvalue())
+    assert summary.content_digest == f"sha256:{hashlib.sha256(payload.getvalue()).hexdigest()}"
+    with pytest.raises(ValueError, match="already finalized"):
+        writer.write(result)
+    with pytest.raises(ValueError, match="already finalized"):
+        writer.finish()
+
+    payload.seek(0)
+    decoded = tuple(deserialize_invocation_result_stream(payload))
+    assert decoded == (result,)
+
+    oversized = InvocationResultStreamWriter(BytesIO(), max_stream_bytes=128)
+    with pytest.raises(ValueError, match="configured byte bound"):
+        oversized.write(result)
+    with pytest.raises(ValueError, match="must not be empty"):
+        InvocationResultStreamWriter(BytesIO()).finish()
 
 
 def test_strategy_context_stream_runner_pulls_one_context_per_result() -> None:

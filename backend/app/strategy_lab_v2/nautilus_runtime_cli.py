@@ -153,6 +153,22 @@ def _write_result(path_value: str, result: Mapping[str, Any]) -> None:
         os.close(descriptor)
 
 
+def _open_result_stream(path_value: str, *, max_bytes: int) -> Any:
+    if not isinstance(max_bytes, int) or isinstance(max_bytes, bool) or max_bytes < 1:
+        raise ValueError("max_result_bytes must be a positive integer")
+    descriptor = os.open(
+        path_value,
+        os.O_WRONLY | os.O_TRUNC | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0),
+    )
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise ValueError("runtime invocation result target must be a regular file")
+        return os.fdopen(descriptor, "wb")
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
 def run_bundle(
     input_path: str,
     output_path: str,
@@ -161,6 +177,8 @@ def run_bundle(
     expected_snapshot_fingerprint: str,
     max_input_bytes: int,
     context_stream_path: str | None = None,
+    invocation_result_stream_path: str | None = None,
+    max_result_bytes: int | None = None,
 ) -> int:
     """Run one bundle-bound SDK batch or verified stream into the result file."""
 
@@ -181,8 +199,13 @@ def run_bundle(
     if runtime_package_version() != expected_version:
         raise ValueError("Nautilus package version differs from the execution plan")
     if bundle["schema"] == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1:
-        if context_stream_path is not None or os.environ.get("STRATEGY_CONTEXT_STREAM_DIGEST"):
-            raise ValueError("legacy runtime bundle cannot bind a context stream")
+        if (
+            context_stream_path is not None
+            or invocation_result_stream_path is not None
+            or max_result_bytes is not None
+            or os.environ.get("STRATEGY_CONTEXT_STREAM_DIGEST")
+        ):
+            raise ValueError("legacy runtime bundle cannot bind strategy streams")
         result = run_native_backtest(
             engine_input,
             serialized_strategy_invocation_batch=bundle["serialized_strategy_invocation_batch"],
@@ -190,6 +213,14 @@ def run_bundle(
     else:
         if context_stream_path is None:
             raise ValueError("streaming runtime bundle requires its mounted context stream")
+        if invocation_result_stream_path is None or max_result_bytes is None:
+            raise ValueError("streaming runtime bundle requires its bounded result stream")
+        if (
+            not isinstance(max_result_bytes, int)
+            or isinstance(max_result_bytes, bool)
+            or max_result_bytes < 1
+        ):
+            raise ValueError("max_result_bytes must be a positive integer")
         context_digest, context_byte_length, context_count = _context_stream_reference(bundle)
         expected_context_digest = os.environ.get("STRATEGY_CONTEXT_STREAM_DIGEST")
         if expected_context_digest != context_digest:
@@ -218,11 +249,19 @@ def run_bundle(
                 if f"sha256:{stream_digest.hexdigest()}" != context_digest:
                     raise ValueError("runtime context stream artifact digest differs")
                 stream.seek(0)
-                result = run_native_backtest(
-                    engine_input,
-                    invocation_context_stream=stream,
-                    expected_context_count=context_count,
-                )
+                with _open_result_stream(
+                    invocation_result_stream_path,
+                    max_bytes=max_result_bytes,
+                ) as result_stream:
+                    result = run_native_backtest(
+                        engine_input,
+                        invocation_context_stream=stream,
+                        expected_context_count=context_count,
+                        invocation_result_stream=result_stream,
+                        max_invocation_result_bytes=max_result_bytes,
+                    )
+                    result_stream.flush()
+                    os.fsync(result_stream.fileno())
         finally:
             if descriptor >= 0:
                 os.close(descriptor)
@@ -242,6 +281,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--snapshot-fingerprint")
     parser.add_argument("--max-input-bytes", type=int)
     parser.add_argument("--context-stream")
+    parser.add_argument("--invocation-results")
+    parser.add_argument("--max-result-bytes", type=int)
     args = parser.parse_args(argv)
     if args.probe:
         if any(
@@ -251,6 +292,8 @@ def main(argv: list[str] | None = None) -> int:
                 args.snapshot_fingerprint,
                 args.max_input_bytes,
                 args.context_stream,
+                args.invocation_results,
+                args.max_result_bytes,
             )
         ):
             parser.error("--probe cannot be combined with runtime bundle options")
@@ -266,6 +309,8 @@ def main(argv: list[str] | None = None) -> int:
         expected_snapshot_fingerprint=args.snapshot_fingerprint,
         max_input_bytes=args.max_input_bytes,
         context_stream_path=args.context_stream,
+        invocation_result_stream_path=args.invocation_results,
+        max_result_bytes=args.max_result_bytes,
     )
 
 

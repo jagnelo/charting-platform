@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.engine_execution import NautilusExecutionPlan
 from app.strategy_lab_v2.nautilus_runner import NautilusRunResult, NautilusRunStatus
 from app.strategy_lab_v2.runtime_execution import (
@@ -65,6 +65,7 @@ def materialize_sandbox_result(
     sandbox_result: SandboxRunResult,
     *,
     observed_at: datetime,
+    application_error_digest: str | None = None,
 ) -> RuntimeResultResolution:
     """Apply one sandbox terminal result to runtime state without publication."""
 
@@ -76,10 +77,16 @@ def materialize_sandbox_result(
         raise TypeError("sandbox_result must be a SandboxRunResult")
     if observed_at.tzinfo is None or observed_at.utcoffset() is None:
         raise ValueError("observed_at must be timezone-aware")
+    if application_error_digest is not None:
+        require_sha256_digest(application_error_digest, field_name="application_error_digest")
+        if sandbox_result.status is not SandboxRunStatus.SUCCEEDED:
+            raise ValueError("application error digests require a successful sandbox process")
     if sandbox_result.plan_fingerprint != sandbox_plan.fingerprint:
         return _reject(state, sandbox_result, "sandbox result does not match its command plan")
     if sandbox_result.request_fingerprint != state.request_fingerprint:
-        return _reject(state, sandbox_result, "sandbox result references a different runtime request")
+        return _reject(
+            state, sandbox_result, "sandbox result references a different runtime request"
+        )
     if state.phase in {
         RuntimeExecutionPhase.SUCCEEDED,
         RuntimeExecutionPhase.FAILED,
@@ -87,17 +94,26 @@ def materialize_sandbox_result(
     }:
         same_success = (
             state.phase is RuntimeExecutionPhase.SUCCEEDED
+            and application_error_digest is None
             and sandbox_result.status is SandboxRunStatus.SUCCEEDED
             and state.output_digest == sandbox_result.terminal_output_digest
             and state.output_bytes == sandbox_result.terminal_output_bytes
         )
         same_failure = (
             state.phase is RuntimeExecutionPhase.FAILED
-            and sandbox_result.status is not SandboxRunStatus.SUCCEEDED
             and state.error_digest
             == (
-                sandbox_result.error_digest
-                or content_digest(f"sandbox process status: {sandbox_result.status.value}")
+                application_error_digest
+                if application_error_digest is not None
+                else (
+                    sandbox_result.error_digest
+                    or content_digest(f"sandbox process status: {sandbox_result.status.value}")
+                )
+            )
+            and (
+                sandbox_result.status is SandboxRunStatus.SUCCEEDED
+                if application_error_digest is not None
+                else sandbox_result.status is not SandboxRunStatus.SUCCEEDED
             )
         )
         if same_success or same_failure:
@@ -106,7 +122,9 @@ def materialize_sandbox_result(
                 state,
                 sandbox_result,
             )
-        return _reject(state, sandbox_result, "terminal runtime state conflicts with the sandbox result")
+        return _reject(
+            state, sandbox_result, "terminal runtime state conflicts with the sandbox result"
+        )
     if observed_at < state.updated_at:
         return _reject(state, sandbox_result, "runtime result time cannot move backwards")
 
@@ -122,7 +140,17 @@ def materialize_sandbox_result(
     )
     if running.decision is not RuntimeExecutionDecision.APPLY:
         return _reject(state, sandbox_result, "runtime running transition could not be applied")
-    if sandbox_result.status is SandboxRunStatus.SUCCEEDED:
+    if application_error_digest is not None:
+        terminal = RuntimeExecutionUpdate(
+            state.request_fingerprint,
+            state.attempt_id,
+            running.state.sequence + 1,
+            RuntimeExecutionPhase.FAILED,
+            observed_at,
+            error_digest=application_error_digest,
+        )
+        decision = RuntimeResultDecision.FAILED
+    elif sandbox_result.status is SandboxRunStatus.SUCCEEDED:
         terminal = RuntimeExecutionUpdate(
             state.request_fingerprint,
             state.attempt_id,
@@ -180,23 +208,38 @@ def materialize_nautilus_result(
     if run_result.sandbox_result is None:
         raise ValueError("executed Nautilus results require sandbox evidence")
     if run_result.execution_plan_fingerprint != execution_plan.fingerprint:
-        return _reject(state, run_result.sandbox_result, "Nautilus result does not match its execution plan")
+        return _reject(
+            state, run_result.sandbox_result, "Nautilus result does not match its execution plan"
+        )
     if run_result.sandbox_plan_fingerprint != sandbox_plan.fingerprint:
-        return _reject(state, run_result.sandbox_result, "Nautilus result does not match its sandbox plan")
+        return _reject(
+            state, run_result.sandbox_result, "Nautilus result does not match its sandbox plan"
+        )
     if run_result.sandbox_result.plan_fingerprint != sandbox_plan.fingerprint:
-        return _reject(state, run_result.sandbox_result, "Nautilus sandbox evidence does not match its plan")
-    if run_result.sandbox_result.status.value != run_result.status.value:
+        return _reject(
+            state, run_result.sandbox_result, "Nautilus sandbox evidence does not match its plan"
+        )
+    status_matches_process = run_result.sandbox_result.status.value == run_result.status.value
+    post_process_failure = (
+        run_result.status is NautilusRunStatus.FAILED
+        and run_result.sandbox_result.status is SandboxRunStatus.SUCCEEDED
+        and run_result.result_failure_digest is not None
+    )
+    if not status_matches_process and not post_process_failure:
         return _reject(state, run_result.sandbox_result, "Nautilus and sandbox statuses differ")
     expected_authoritative = (
         execution_plan.authoritative and run_result.status is NautilusRunStatus.SUCCEEDED
     )
     if run_result.authoritative is not expected_authoritative:
-        return _reject(state, run_result.sandbox_result, "Nautilus authority evidence is inconsistent")
+        return _reject(
+            state, run_result.sandbox_result, "Nautilus authority evidence is inconsistent"
+        )
     return materialize_sandbox_result(
         state,
         sandbox_plan,
         run_result.sandbox_result,
         observed_at=observed_at,
+        application_error_digest=run_result.result_failure_digest,
     )
 
 

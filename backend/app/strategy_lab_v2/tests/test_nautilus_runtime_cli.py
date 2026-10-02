@@ -158,8 +158,10 @@ def test_cli_verifies_and_streams_context_sidecar_before_native_run(tmp_path, mo
     assert bundle.context_stream is not None
     input_path = tmp_path / "input.json"
     output_path = tmp_path / "result.json"
+    result_stream_path = tmp_path / "invocations.ndjson"
     input_path.write_bytes(bundle.wire_bytes)
     output_path.touch()
+    result_stream_path.touch()
     monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle.input_bundle_digest)
     monkeypatch.setenv("STRATEGY_ATTEMPT_ID", bundle.attempt_id)
     monkeypatch.setenv(
@@ -167,15 +169,28 @@ def test_cli_verifies_and_streams_context_sidecar_before_native_run(tmp_path, mo
     )
     calls = []
 
-    def fake_run(engine_input, *, invocation_context_stream, expected_context_count):
+    def fake_run(
+        engine_input,
+        *,
+        invocation_context_stream,
+        expected_context_count,
+        invocation_result_stream,
+        max_invocation_result_bytes,
+    ):
+        invocation_result_stream.write(b"bounded-result-stream")
         calls.append(
             (
                 engine_input,
                 invocation_context_stream.read(),
                 expected_context_count,
+                max_invocation_result_bytes,
             )
         )
-        return {"engine_version": "2.0.0rc5", "authoritative": False}
+        return {
+            "engine_version": "2.0.0rc5",
+            "authoritative": False,
+            "strategy_invocation_result_stream": {"content_digest": "placeholder"},
+        }
 
     monkeypatch.setattr(nautilus_runtime_cli, "run_native_backtest", fake_run)
     monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
@@ -187,12 +202,16 @@ def test_cli_verifies_and_streams_context_sidecar_before_native_run(tmp_path, mo
             expected_snapshot_fingerprint=content_digest("snapshot"),
             max_input_bytes=1_000_000,
             context_stream_path=str(store.path_for(bundle.context_stream.artifact.storage_key)),
+            invocation_result_stream_path=str(result_stream_path),
+            max_result_bytes=1024,
         )
         == 0
     )
     assert len(calls) == 1
     assert calls[0][1] == store.read(bundle.context_stream.artifact.storage_key)
     assert calls[0][2] == bundle.context_stream.context_count
+    assert calls[0][3] == 1024
+    assert result_stream_path.read_bytes() == b"bounded-result-stream"
 
 
 def test_cli_rejects_context_sidecar_digest_drift_before_result_write(
@@ -203,10 +222,12 @@ def test_cli_rejects_context_sidecar_digest_drift_before_result_write(
     assert bundle.context_stream is not None
     input_path = tmp_path / "input.json"
     output_path = tmp_path / "result.json"
+    result_stream_path = tmp_path / "invocations.ndjson"
     context_path = tmp_path / "contexts.ndjson"
     input_path.write_bytes(bundle.wire_bytes)
     context_path.write_bytes(b"drifted")
     output_path.write_text("unchanged", encoding="utf-8")
+    result_stream_path.touch()
     monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle.input_bundle_digest)
     monkeypatch.setenv("STRATEGY_ATTEMPT_ID", bundle.attempt_id)
     monkeypatch.setenv(
@@ -222,6 +243,8 @@ def test_cli_rejects_context_sidecar_digest_drift_before_result_write(
             expected_snapshot_fingerprint=content_digest("snapshot"),
             max_input_bytes=1_000_000,
             context_stream_path=str(context_path),
+            invocation_result_stream_path=str(result_stream_path),
+            max_result_bytes=1024,
         )
     assert output_path.read_text(encoding="utf-8") == "unchanged"
 

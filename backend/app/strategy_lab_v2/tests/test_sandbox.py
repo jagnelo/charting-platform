@@ -15,6 +15,7 @@ from app.strategy_lab_v2.sandbox import (
     sandbox_context_stream_digest,
     sandbox_context_stream_path,
     sandbox_engine_id,
+    sandbox_invocation_result_stream_path,
     sandbox_memory_limit_bytes,
     sandbox_runtime_command,
     sandbox_runtime_image_digest,
@@ -153,6 +154,7 @@ def test_nautilus_runtime_builder_binds_readonly_context_stream_sidecar(tmp_path
     profile = _profile()
     context_digest = content_digest("context stream")
     context_path = tmp_path / "contexts.ndjson"
+    invocation_result_path = tmp_path / "invocations.ndjson"
     plan = build_nautilus_runtime_sandbox_command(
         _request(profile),
         profile,
@@ -163,13 +165,23 @@ def test_nautilus_runtime_builder_binds_readonly_context_stream_sidecar(tmp_path
         snapshot_fingerprint=content_digest("snapshot"),
         context_stream_path=context_path,
         context_stream_digest=context_digest,
+        invocation_result_stream_path=invocation_result_path,
     )
 
     command = sandbox_runtime_command(plan)
-    assert command[-2:] == ("--context-stream", "/inputs/contexts")
+    assert command[-6:] == (
+        "--context-stream",
+        "/inputs/contexts",
+        "--invocation-results",
+        "/outputs/invocations",
+        "--max-result-bytes",
+        str(profile.output_limit_bytes),
+    )
     assert sandbox_context_stream_path(plan) == context_path
     assert sandbox_context_stream_digest(plan) == context_digest
+    assert sandbox_invocation_result_stream_path(plan) == invocation_result_path
     assert f"--mount=type=bind,src={context_path},dst=/inputs/contexts,readonly" in plan.argv
+    assert f"--mount=type=bind,src={invocation_result_path},dst=/outputs/invocations" in plan.argv
     assert f"--env=STRATEGY_CONTEXT_STREAM_DIGEST={context_digest}" in plan.argv
 
 

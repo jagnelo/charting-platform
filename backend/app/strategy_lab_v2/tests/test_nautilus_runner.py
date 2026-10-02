@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import json
 import os
+import shlex
 from dataclasses import replace
+from hashlib import sha256
+from io import BytesIO
 from pathlib import Path
 
 import pytest
@@ -14,9 +18,20 @@ from app.strategy_lab_v2.nautilus_runner import NautilusRunStatus, run_nautilus_
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     NAUTILUS_RUNTIME_ARTIFACT_MEDIA_TYPE,
     NAUTILUS_RUNTIME_ARTIFACT_SCHEMA,
+    NautilusContextStreamArtifactReference,
+    NautilusInvocationResultStreamReference,
     NautilusRuntimeInputArtifactReference,
 )
+from app.strategy_lab_v2.nautilus_runtime_protocol import (
+    NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
+    NAUTILUS_CONTEXT_STREAM_SCHEMA,
+)
 from app.strategy_lab_v2.sandbox import SandboxCommandPlan, nautilus_runtime_command
+from strategy_runtime import (
+    InvocationResultStreamWriter,
+    InvocationStatus,
+    StrategyInvocationResult,
+)
 
 
 def _sandbox() -> SandboxCommandPlan:
@@ -252,3 +267,122 @@ def test_runner_rejects_runtime_input_artifact_byte_drift_before_spawn(tmp_path:
     )
     assert snapshot_result.status is NautilusRunStatus.REJECTED
     assert "nautilus_runtime_command_required" in snapshot_result.rejection_reasons
+
+
+def test_runner_verifies_and_binds_invocation_result_stream(tmp_path: Path) -> None:
+    input_path = tmp_path / "bundle.json"
+    context_path = tmp_path / "contexts.ndjson"
+    result_path = tmp_path / "result.json"
+    stream_path = tmp_path / "invocations.ndjson"
+    input_bytes = b"verified bundle"
+    context_bytes = b"verified contexts"
+    input_path.write_bytes(input_bytes)
+    context_path.write_bytes(context_bytes)
+    result_path.touch()
+    stream_path.touch()
+    invocation = StrategyInvocationResult(
+        content_digest("source"),
+        content_digest("manifest"),
+        content_digest("context"),
+        "strategy.main:Strategy",
+        InvocationStatus.SUCCEEDED,
+    )
+    stream_output = BytesIO()
+    writer = InvocationResultStreamWriter(stream_output)
+    writer.write(invocation)
+    summary = writer.finish()
+    stream_bytes = stream_output.getvalue()
+    stream_digest = f"sha256:{sha256(stream_bytes).hexdigest()}"
+    result_json = json.dumps(
+        {
+            "strategy_invocation_result_stream": {
+                "protocol_version": "strategy-lab.strategy-runtime.result-stream.v1",
+                "content_digest": stream_digest,
+                "byte_length": len(stream_bytes),
+                "result_count": 1,
+                "all_succeeded": True,
+            }
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    shell_body = "\n".join(
+        (
+            'for value in "$@"; do',
+            '    case "$value" in',
+            "        --mount=type=bind,src=*,dst=/outputs/result)",
+            "            result_path=${value#--mount=type=bind,src=}",
+            "            result_path=${result_path%,dst=/outputs/result}",
+            "            ;;",
+            "        --mount=type=bind,src=*,dst=/outputs/invocations)",
+            "            stream_path=${value#--mount=type=bind,src=}",
+            "            stream_path=${stream_path%,dst=/outputs/invocations}",
+            "            ;;",
+            "    esac",
+            "done",
+            f"printf '%s' {shlex.quote(result_json)} > \"$result_path\"",
+            f"printf '%s' {shlex.quote(stream_bytes.decode('utf-8'))} > \"$stream_path\"",
+        )
+    )
+    sandbox = _sandbox()
+    context_digest = f"sha256:{sha256(context_bytes).hexdigest()}"
+    runtime_command = nautilus_runtime_command(
+        expected_version="2.0.0",
+        snapshot_fingerprint=content_digest("snapshot"),
+        max_input_bytes=536870912 // 8,
+        context_stream_digest=context_digest,
+        max_result_bytes=sandbox.output_limit_bytes,
+    )
+    argv = (
+        *sandbox.argv[:15],
+        f"--mount=type=bind,src={input_path},dst=/inputs/bundle,readonly",
+        f"--mount=type=bind,src={context_path},dst=/inputs/contexts,readonly",
+        f"--mount=type=bind,src={result_path},dst=/outputs/result",
+        f"--mount=type=bind,src={stream_path},dst=/outputs/invocations",
+        "--env=STRATEGY_ATTEMPT_ID=attempt-1",
+        f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
+        f"--env=STRATEGY_CONTEXT_STREAM_DIGEST={context_digest}",
+        "--env=STRATEGY_ENGINE_ID=nautilus",
+        sandbox.argv[20],
+        *runtime_command,
+    )
+    sandbox = replace(sandbox, argv=argv)
+    input_digest = artifact_content_digest(input_bytes)
+    context_artifact_digest = artifact_content_digest(context_bytes)
+    runtime_artifact = NautilusRuntimeInputArtifactReference(
+        "attempt-1",
+        content_digest("inputs"),
+        ArtifactManifest(
+            input_digest,
+            len(input_bytes),
+            NAUTILUS_RUNTIME_ARTIFACT_MEDIA_TYPE,
+            NAUTILUS_RUNTIME_ARTIFACT_SCHEMA,
+            input_digest,
+            ArtifactRetention.PINNED_INPUT,
+        ),
+        NautilusContextStreamArtifactReference(
+            ArtifactManifest(
+                context_artifact_digest,
+                len(context_bytes),
+                NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
+                NAUTILUS_CONTEXT_STREAM_SCHEMA,
+                context_artifact_digest,
+                ArtifactRetention.PINNED_INPUT,
+            ),
+            1,
+        ),
+    )
+
+    result = run_nautilus_plan(
+        _engine_plan(sandbox),
+        sandbox,
+        docker_binary=_fake_binary(tmp_path, shell_body),
+        runtime_input_artifact=runtime_artifact,
+    )
+
+    assert result.status is NautilusRunStatus.SUCCEEDED
+    assert result.result_failure_digest is None
+    assert isinstance(result.invocation_result_stream, NautilusInvocationResultStreamReference)
+    assert result.invocation_result_stream.artifact.content_digest == summary.content_digest
+    assert result.invocation_result_stream.artifact.byte_length == len(stream_bytes)
+    assert result.invocation_result_stream.result_count == 1

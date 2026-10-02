@@ -1,18 +1,33 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import replace
+from io import BytesIO
 
 import pytest
 
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.artifacts import artifact_content_digest
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
+    NautilusInvocationResultStreamReference,
     load_materialized_nautilus_runtime_bundle,
     materialize_nautilus_runtime_bundle,
     verify_nautilus_context_stream_artifact_file,
+    verify_nautilus_invocation_result_stream_file,
     verify_nautilus_runtime_artifact_file,
 )
+from app.strategy_lab_v2.nautilus_runtime_protocol import (
+    NAUTILUS_INVOCATION_RESULT_STREAM_MEDIA_TYPE,
+    NAUTILUS_INVOCATION_RESULT_STREAM_SCHEMA,
+)
 from app.strategy_lab_v2.tests.test_nautilus_runtime_cli import _runtime_bundle
+from strategy_runtime import (
+    InvocationResultStreamWriter,
+    InvocationStatus,
+    StrategyInvocationResult,
+)
 
 
 def test_runtime_bundle_is_published_and_reloaded_by_raw_and_semantic_identity(tmp_path) -> None:
@@ -98,4 +113,48 @@ def test_context_sidecar_is_content_addressed_and_verified_with_its_bundle(tmp_p
             bundle.context_stream,
             mounted_path,
             max_input_bytes=bundle.context_stream.artifact.byte_length,
+        )
+
+
+def test_invocation_result_stream_requires_valid_digest_trailer_and_status(tmp_path) -> None:
+    result = StrategyInvocationResult(
+        content_digest("source"),
+        content_digest("manifest"),
+        content_digest("context"),
+        "strategy.main:Strategy",
+        InvocationStatus.SUCCEEDED,
+    )
+    output = BytesIO()
+    writer = InvocationResultStreamWriter(output)
+    writer.write(result)
+    summary = writer.finish()
+    payload = output.getvalue()
+    path = tmp_path / "invocations.ndjson"
+    path.write_bytes(payload)
+    digest = f"sha256:{hashlib.sha256(payload).hexdigest()}"
+    manifest = ArtifactManifest(
+        digest,
+        len(payload),
+        NAUTILUS_INVOCATION_RESULT_STREAM_MEDIA_TYPE,
+        NAUTILUS_INVOCATION_RESULT_STREAM_SCHEMA,
+        digest,
+        ArtifactRetention.PINNED_RESULT,
+    )
+    reference = NautilusInvocationResultStreamReference(
+        manifest,
+        summary.result_count,
+        summary.all_succeeded,
+    )
+
+    verify_nautilus_invocation_result_stream_file(
+        reference,
+        path,
+        max_result_bytes=len(payload),
+    )
+    path.write_bytes(b"x" * len(payload))
+    with pytest.raises(ValueError, match="digest differs"):
+        verify_nautilus_invocation_result_stream_file(
+            reference,
+            path,
+            max_result_bytes=len(payload),
         )
