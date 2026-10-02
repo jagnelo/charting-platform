@@ -173,7 +173,8 @@ remaining_gaps:
     counts despite local quote-type filtering; `total_scope: raw` separates
     pagination totals from filtered reconciliation counts, and missing or
     contradictory metadata fails closed instead of repeating or skipping
-    instruments.
+    instruments. Exact SHA 5f6b1ede passed optional providers 121/121, branch
+    units 1,947/1,947, Docker integration 386/386, and static validation.
     Focused coverage passed 21/21; exact SHA af2d79d6 passed optional providers
     121/121, branch units 1,946/1,946, Docker integration 386/386, and static
     workstream validation.

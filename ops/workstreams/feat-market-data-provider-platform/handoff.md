@@ -17,10 +17,11 @@
   instead of inferring progress from filtered rows and risking repeated or
   permanently skipped instruments. The explicit `total_scope: raw` marker
   keeps raw pagination totals separate from filtered reconciliation counts.
-- Focused Marketstack coverage passed `21/21`; exact SHA `af2d79d6` then
-  passed optional providers `121/121`, branch-owned unit `1,946/1,946`, Docker
-  integration `386/386` in `734.56s`, Ruff, compile, diff, and workstream
-  validation. Receipts are recorded in `validation.jsonl`.
+- Focused Marketstack coverage passed `21/21` plus raw-total reconciliation
+  coverage; exact SHA `5f6b1ede` then passed optional providers `121/121`,
+  branch-owned unit `1,947/1,947`, Docker integration `386/386` in `721.62s`,
+  Ruff, compile, diff, and workstream validation. Receipts are recorded in
+  `validation.jsonl`.
 
 ## 2026-10-02 Exact-current live preflight
 
