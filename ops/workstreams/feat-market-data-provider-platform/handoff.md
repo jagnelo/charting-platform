@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 Current live preflight after raw-total scope handling
+
+- At source `3154c0f8`, the full live manifest again stopped before transport:
+  `0/0` cases and zero provider requests (`incomplete_preflight`). The receipt
+  retains the exact unresolved provider-specific quota/cost/byte, legal-use,
+  FINRA/SEC admission, and capability-coverage controls.
+- This confirms the raw-total reconciliation change did not bypass safety
+  admission or spend any configured provider key.
+
 ## 2026-10-02 Current live preflight after Marketstack hardening
 
 - At source `982fa996`, the full live manifest again stopped before transport:
