@@ -14,8 +14,8 @@ from datetime import UTC, datetime
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.capabilities import PreflightClass
-from app.strategy_lab_v2.contracts import DataSnapshot
-from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
+from app.strategy_lab_v2.contracts import DataSeriesManifest, DataSnapshot
+from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
 
 EVENT_TAPE_DEFINITION_VERSION = "strategy-lab.event-tape.v1"
 
@@ -181,11 +181,13 @@ class FrozenEventTape:
             raise ValueError("slice start must not follow end")
         result: list[MarketEvent] = []
         for event in self.events:
-            after_start = start is None or event.event_time > start or (
-                include_start and event.event_time == start
+            after_start = (
+                start is None
+                or event.event_time > start
+                or (include_start and event.event_time == start)
             )
-            before_end = end is None or event.event_time < end or (
-                include_end and event.event_time == end
+            before_end = (
+                end is None or event.event_time < end or (include_end and event.event_time == end)
             )
             if after_start and before_end:
                 result.append(event)
@@ -254,9 +256,6 @@ def bind_event_tape(
     if not tape.events:
         raise ValueError("event tape cannot bind an empty event set")
 
-    decisions = {
-        decision.requirement: decision for decision in snapshot.preflight_report.decisions
-    }
     dependency_ids = {item.dependency_id for item in manifest.data_dependencies}
     tape_dependency_ids = {event.dependency_id for event in tape.events}
     if tape_dependency_ids != dependency_ids:
@@ -266,54 +265,7 @@ def bind_event_tape(
 
     counts: list[tuple[str, int]] = []
     for dependency in manifest.data_dependencies:
-        decision = decisions.get(dependency.requirement)
-        if decision is None:
-            raise ValueError(
-                f"snapshot preflight has no decision for dependency {dependency.dependency_id!r}"
-            )
-        if decision.classification is PreflightClass.UNSUPPORTED:
-            raise ValueError(
-                f"dependency {dependency.dependency_id!r} uses an unsupported preflight"
-            )
-        replacements = {
-            item.field: item.substituted_value for item in decision.degradations
-        }
-        effective_granularity = replacements.get(
-            "event_granularity", dependency.requirement.event_granularity.value
-        )
-        effective_event_type = replacements.get(
-            "event_type", dependency.requirement.event_type
-        )
-        effective_timeframe = replacements.get("timeframe", dependency.requirement.timeframe)
-        effective_adjustment = replacements.get(
-            "adjustment", dependency.requirement.adjustment.value
-        )
-        effective_session = replacements.get("session", dependency.requirement.session)
-        effective_feed = replacements.get("feed", dependency.requirement.feed)
-        effective_actions = replacements.get(
-            "corporate_action_semantics",
-            dependency.requirement.corporate_action_semantics,
-        )
-        effective_start = _replacement_time(
-            replacements.get("history_start"), dependency.requirement.start
-        )
-        effective_end = _replacement_time(
-            replacements.get("history_end"), dependency.requirement.end
-        )
-        candidates = tuple(
-            item
-            for item in snapshot.series
-            if item.instrument_id == dependency.requirement.instrument_id
-            and item.event_granularity.value == effective_granularity
-            and item.event_type == effective_event_type
-            and item.timeframe == effective_timeframe
-            and item.adjustment.value == effective_adjustment
-            and item.session == effective_session
-            and item.feed == effective_feed
-            and item.corporate_action_semantics == effective_actions
-            and item.start < effective_end
-            and item.end > effective_start
-        )
+        candidates, effective_start, effective_end = select_snapshot_series(snapshot, dependency)
         if not candidates:
             raise ValueError(
                 f"snapshot has no matching series for dependency {dependency.dependency_id!r}"
@@ -352,6 +304,67 @@ def bind_event_tape(
     )
 
 
+def select_snapshot_series(
+    snapshot: DataSnapshot,
+    dependency: StrategyDataDependency,
+) -> tuple[tuple[DataSeriesManifest, ...], datetime, datetime]:
+    """Select frozen series matching one dependency's effective preflight.
+
+    Degraded preflight substitutions are applied exactly as recorded on the
+    snapshot. Keeping this selection in one place lets artifact readers and the
+    in-memory event-tape binder enforce identical data boundaries.
+    """
+
+    if not isinstance(snapshot, DataSnapshot):
+        raise TypeError("snapshot must be a DataSnapshot")
+    if not isinstance(dependency, StrategyDataDependency):
+        raise TypeError("dependency must be a StrategyDataDependency")
+    decision = next(
+        (
+            item
+            for item in snapshot.preflight_report.decisions
+            if item.requirement == dependency.requirement
+        ),
+        None,
+    )
+    if decision is None:
+        raise ValueError(
+            f"snapshot preflight has no decision for dependency {dependency.dependency_id!r}"
+        )
+    if decision.classification is PreflightClass.UNSUPPORTED:
+        raise ValueError(f"dependency {dependency.dependency_id!r} uses an unsupported preflight")
+    replacements = {item.field: item.substituted_value for item in decision.degradations}
+    requirement = dependency.requirement
+    effective_granularity = replacements.get(
+        "event_granularity", requirement.event_granularity.value
+    )
+    effective_event_type = replacements.get("event_type", requirement.event_type)
+    effective_timeframe = replacements.get("timeframe", requirement.timeframe)
+    effective_adjustment = replacements.get("adjustment", requirement.adjustment.value)
+    effective_session = replacements.get("session", requirement.session)
+    effective_feed = replacements.get("feed", requirement.feed)
+    effective_actions = replacements.get(
+        "corporate_action_semantics", requirement.corporate_action_semantics
+    )
+    effective_start = _replacement_time(replacements.get("history_start"), requirement.start)
+    effective_end = _replacement_time(replacements.get("history_end"), requirement.end)
+    candidates = tuple(
+        item
+        for item in snapshot.series
+        if item.instrument_id == requirement.instrument_id
+        and item.event_granularity.value == effective_granularity
+        and item.event_type == effective_event_type
+        and item.timeframe == effective_timeframe
+        and item.adjustment.value == effective_adjustment
+        and item.session == effective_session
+        and item.feed == effective_feed
+        and item.corporate_action_semantics == effective_actions
+        and item.start < effective_end
+        and item.end > effective_start
+    )
+    return candidates, effective_start, effective_end
+
+
 def _replacement_time(value: str | None, fallback: datetime) -> datetime:
     if value is None:
         return fallback
@@ -369,4 +382,5 @@ __all__ = [
     "EventTapeBinding",
     "FrozenEventTape",
     "bind_event_tape",
+    "select_snapshot_series",
 ]

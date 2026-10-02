@@ -14,11 +14,13 @@ import os
 import re
 import stat
 import tempfile
-from collections.abc import Collection
+from collections.abc import Collection, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
+from typing import BinaryIO
 
 from app.strategy_lab_v2.artifact_retention import (
     ArtifactRetentionResolution,
@@ -433,6 +435,107 @@ class LocalArtifactStore:
         if payload is None:
             raise FileNotFoundError(target)
         return payload
+
+    @contextmanager
+    def open_verified(
+        self,
+        storage_key: str,
+        *,
+        max_bytes: int | None = None,
+    ) -> Iterator[BinaryIO]:
+        """Yield a seekable verified artifact stream without buffering its payload.
+
+        The same no-follow regular-file descriptor is hashed before and after
+        the caller consumes it. This supports streaming columnar readers while
+        detecting replacement or mutation during decoding.
+        """
+
+        require_sha256_digest(storage_key, field_name="storage_key")
+        if max_bytes is not None and (
+            not isinstance(max_bytes, int) or isinstance(max_bytes, bool) or max_bytes < 0
+        ):
+            raise ValueError("max_bytes must be a non-negative integer or None")
+        target = self.path_for(storage_key)
+        if target.is_symlink():
+            raise ArtifactStoreCorruptionError("artifact target is not a regular immutable file")
+        try:
+            descriptor = os.open(
+                target,
+                os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0),
+            )
+        except FileNotFoundError:
+            raise
+        except OSError as error:
+            raise ArtifactStoreCorruptionError(
+                "artifact target could not be opened as a regular immutable file"
+            ) from error
+
+        stream: BinaryIO | None = None
+        try:
+            initial_metadata = os.fstat(descriptor)
+            if not stat.S_ISREG(initial_metadata.st_mode):
+                raise ArtifactStoreCorruptionError(
+                    "artifact target is not a regular immutable file"
+                )
+            if max_bytes is not None and initial_metadata.st_size > max_bytes:
+                raise ArtifactStoreCorruptionError(
+                    "artifact bytes exceed their configured read bound"
+                )
+            initial_digest, initial_length = self._digest_descriptor(
+                descriptor, max_bytes=max_bytes
+            )
+            if initial_digest != storage_key:
+                raise ArtifactStoreCorruptionError("existing artifact bytes have the wrong digest")
+            if initial_length != initial_metadata.st_size:
+                raise ArtifactStoreCorruptionError("artifact length changed while it was verified")
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            stream = os.fdopen(descriptor, "rb")
+            descriptor = -1
+            try:
+                yield stream
+            finally:
+                try:
+                    if stream.closed:
+                        raise ArtifactStoreCorruptionError(
+                            "artifact stream was closed before verification completed"
+                        )
+                    final_metadata = os.fstat(stream.fileno())
+                    final_digest, final_length = self._digest_descriptor(
+                        stream.fileno(), max_bytes=max_bytes
+                    )
+                    if (
+                        final_digest != storage_key
+                        or final_length != initial_length
+                        or final_metadata.st_size != initial_metadata.st_size
+                        or final_metadata.st_mtime_ns != initial_metadata.st_mtime_ns
+                        or final_metadata.st_ctime_ns != initial_metadata.st_ctime_ns
+                    ):
+                        raise ArtifactStoreCorruptionError(
+                            "artifact bytes changed while they were being consumed"
+                        )
+                finally:
+                    stream.close()
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
+
+    @staticmethod
+    def _digest_descriptor(
+        descriptor: int,
+        *,
+        max_bytes: int | None,
+    ) -> tuple[str, int]:
+        os.lseek(descriptor, 0, os.SEEK_SET)
+        digest = hashlib.sha256()
+        observed_bytes = 0
+        while chunk := os.read(descriptor, 1024 * 1024):
+            observed_bytes += len(chunk)
+            if max_bytes is not None and observed_bytes > max_bytes:
+                raise ArtifactStoreCorruptionError(
+                    "artifact bytes exceed their configured read bound"
+                )
+            digest.update(chunk)
+        return f"sha256:{digest.hexdigest()}", observed_bytes
 
     def read_manifest(
         self,

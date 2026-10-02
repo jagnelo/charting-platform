@@ -786,7 +786,28 @@ progress:
     - strategy-lab-v2-nautilus-immutable-trial-input-assembly
     - strategy-lab-v2-owner-scoped-typed-resource-rehydration
     - strategy-lab-v2-exact-pinned-prerelease-authority-gate
+    - strategy-lab-v2-verified-local-source-package-resolution
+    - strategy-lab-v2-verified-frozen-event-tape-artifact-boundary
   total: 18
-  current_phase: strategy-lab-v2-exact-pinned-prerelease-authority-gate
-  current_blocker: No external blocker prevents isolated v2 implementation or local backtest qualification. The exact pinned 2.0.0rc5 build must still pass the full platform conformance suite before its results are treated as authoritative; that is implementation and validation work, not a wait for an upstream stable tag. Provider, ETF, and TC2000 staging boundaries apply only to their shared-contract integrations. Package/source and event-tape artifact resolution, provider-derived instrument metadata, trusted dispatch-evidence composition, and worker handoff binding remain implementation work. Target-position routing and broader native product/accounting/report conformance also remain open.
-  next_action: define verified local artifact resolvers for strategy-package archive/manifest and frozen event-tape inputs, then compose them with owner-scoped typed resource reads plus injected instrument-catalog and venue/account adapters to produce the runtime bundle. Bind its compact reference into worker execution evidence and atomic search dispatch. Keep provider-native adapters behind the approved shared contracts until that work reaches staging; then implement event-aligned target-position allocation/risk and broaden native product/accounting/report conformance. Qualify the exact pinned Nautilus v2 build against the complete suite; stable upstream publication is not a prerequisite.
+  current_phase: strategy-lab-v2-verified-frozen-event-tape-artifact-boundary
+  current_blocker: >-
+    No external product, market-data, or Nautilus release dependency blocks
+    isolated implementation. Docker is currently ready through the authorized
+    workflow path; the required full_stack_browser acceptance profile has not
+    yet been run and remains a final validation gate, not a development blocker.
+    Exact-pinned Nautilus v2 conformance is still required before results become
+    authoritative local backtests.
+    Frozen event-tape resolution, owner-scoped trial-input hydration, injected
+    instrument/venue/account adapters, and atomic worker dispatch composition
+    remain implementation work. Provider, ETF, and TC2000 staging boundaries
+    apply only to their eventual shared-contract integration.
+  next_action: >-
+    Hydrate the attempt/trial and fingerprint-linked experiment, portfolio,
+    snapshot, strategy, and package through owner-scoped typed resource reads;
+    inject canonical instrument and venue/account adapters; then assemble the
+    runtime bundle and bind its reference into worker evidence and atomic search
+    dispatch. Reconcile the injected Arrow decoder with the provider platform
+    only after that shared contract reaches staging. Continue with event-aligned
+    target-position allocation/risk and broader native product, accounting,
+    report, and exact-pinned Nautilus v2 conformance. Do not wait for a stable
+    upstream tag or modify parallel worktrees.

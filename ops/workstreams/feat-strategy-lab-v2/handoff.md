@@ -6458,3 +6458,67 @@ and the focused tests `test_engine_execution.py`, `test_execution_orchestration.
 `test_nautilus_runner.py`, `test_nautilus_runtime_cli.py`,
 `test_nautilus_runtime_image.py`, `test_sandbox.py`, and
 `test_sandbox_execution.py` under `backend/app/strategy_lab_v2/tests/`.
+
+## 2026-10-02 - Verified local strategy-package resolution
+
+The implementation no longer waits for a stable Nautilus v2 tag. Exact-pinned
+v2 prereleases are eligible for authoritative local backtests only after the
+complete platform conformance suite; prereleases remain barred from broker
+connections and real-capital control. Forward shadow additionally requires
+backtest/forward event-tape parity. RC5's current compatibility probe alone is
+still non-authoritative.
+
+Added the v1 source-archive contract and `StrategyPackageArtifactResolver`.
+Source packages are bounded ZIPs containing exactly the versioned SDK manifest,
+canonical exact dependency lock, and the entrypoint module. Resolution checks
+the raw archive/manifest/lock digests and declared lengths, strategy and SDK
+identity, exact worker runtime ABI, source digest, archive member types and
+compression limits, then applies static strategy validation. It never extracts
+files or installs dependencies; wheel packages fail closed until the isolated
+runtime supports them. A verified package result can now feed the existing
+Nautilus trial-input assembler, and both package and runtime artifacts must use
+the same content-addressed store.
+
+`LocalArtifactStore.read_manifest` now optionally enforces its bound during a
+no-follow regular-file read, preventing oversized or special-file inputs from
+being buffered before integrity checks. The full Strategy Lab v2 package passed
+1,057 tests; Ruff passed across `app/strategy_lab_v2` and `strategy_runtime`;
+MyPy passed across 323 source files. This validation was run against source
+commit `f3d6077752733ce73be7b1d16359b3ce9897ba8e`.
+
+Next: define the frozen event-tape artifact boundary using the platform's
+content-addressed Parquet/Arrow artifacts, then hydrate owner-scoped trial
+resources and inject canonical instrument/venue/account adapters before binding
+the assembled runtime reference into worker evidence and atomic dispatch.
+Target-position allocation/risk and broad native product/accounting/report
+conformance remain open. No external release or upstream branch blocks this
+isolated implementation. Fresh status through the authorized workflow reports
+Docker available and ready. The required `full_stack_browser` profile has not
+yet been run; it remains a final validation gate, not a current development
+blocker. No parallel worktree was accessed or changed.
+
+## 2026-10-02 - Verified frozen event-tape artifact boundary
+
+Added `LocalArtifactStore.open_verified` for seekable streaming access to
+content-addressed artifacts. It opens a no-follow regular-file descriptor,
+checks the digest before decoding, enforces an optional byte bound, and checks
+the same descriptor again after consumption so the resolver does not need to
+buffer an entire Parquet/Arrow artifact before integrity verification.
+
+Added `FrozenEventTapeArtifactResolver` and a typed decoder boundary. It selects
+series using the same effective preflight semantics as `bind_event_tape`, checks
+decoded row counts and series time bounds, projects only strategy-declared
+fields, and binds the final immutable tape to the snapshot and SDK manifest.
+The decoder is injected deliberately: the provider workstream owns the actual
+Parquet/Arrow schema, and this branch does not add a second market-data format
+or fetch path. Missing/corrupt artifacts and malformed decoded rows fail
+closed.
+
+The Strategy Lab v2 package passes 1,066 tests; Ruff passes and MyPy passes
+across 325 source files. The full-stack browser profile has not yet been run;
+fresh workflow status says Docker is ready, so this is pending final acceptance
+validation rather than an environment blocker. Next is owner-scoped trial
+resource hydration, canonical instrument/account adapter injection, runtime
+reference binding into worker evidence and atomic dispatch, then portfolio risk
+and full Nautilus v2 conformance. Exact-pinned 2.0.0rc5 remains eligible after
+that conformance; no stable release wait is required.

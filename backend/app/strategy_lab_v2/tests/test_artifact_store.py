@@ -86,6 +86,32 @@ def test_manifest_read_enforces_declared_and_observed_size_bounds(tmp_path) -> N
         store.read_manifest(corrupt_manifest, max_bytes=4)
 
 
+def test_verified_artifact_stream_is_seekable_and_rechecks_consumed_bytes(tmp_path) -> None:
+    payload = b"streamed columnar artifact"
+    manifest = _manifest(payload)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(manifest, payload)
+
+    with store.open_verified(manifest.storage_key, max_bytes=len(payload)) as source:
+        assert source.read(8) == payload[:8]
+        source.seek(0)
+        assert source.read() == payload
+
+
+def test_verified_artifact_stream_rejects_mutation_during_consumption(tmp_path) -> None:
+    payload = b"verified before decode"
+    manifest = _manifest(payload)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(manifest, payload)
+    target = store.path_for(manifest.storage_key)
+
+    with pytest.raises(ArtifactStoreCorruptionError, match="changed while"):
+        with store.open_verified(manifest.storage_key) as source:
+            source.read(4)
+            target.chmod(0o644)
+            target.write_bytes(b"changed while decoding")
+
+
 def test_bounded_manifest_read_rejects_a_pipe_without_blocking(tmp_path) -> None:
     payload = b"pipe target"
     manifest = _manifest(payload)
@@ -96,6 +122,19 @@ def test_bounded_manifest_read_rejects_a_pipe_without_blocking(tmp_path) -> None
 
     with pytest.raises(ArtifactStoreCorruptionError, match="regular immutable file"):
         store.read_manifest(manifest, max_bytes=len(payload))
+
+
+def test_verified_artifact_stream_rejects_a_pipe_without_blocking(tmp_path) -> None:
+    payload = b"pipe stream"
+    manifest = _manifest(payload)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    target = store.path_for(manifest.storage_key)
+    target.parent.mkdir(parents=True)
+    os.mkfifo(target)
+
+    with pytest.raises(ArtifactStoreCorruptionError, match="regular immutable file"):
+        with store.open_verified(manifest.storage_key):
+            pytest.fail("non-regular artifact must not be yielded")
 
 
 def test_publish_file_streams_and_deduplicates_without_buffering_payload(tmp_path) -> None:
