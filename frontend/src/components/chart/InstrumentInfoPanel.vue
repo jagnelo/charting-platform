@@ -13,13 +13,15 @@
         <template v-if="instrument.is_synthetic">
           <div class="info-expr">{{ instrument.expression }}</div>
           <div v-if="instrument.synthetic_constituents?.length" class="info-constituents">
-            <span
+            <button
               v-for="c in instrument.synthetic_constituents"
               :key="c.ticker_alias"
+              type="button"
               class="constituent-chip"
               @click="emit('select', c.ticker_alias, c.constituent_instrument_id)"
+              :aria-label="`Open constituent ${c.ticker_alias}`"
               :title="`Open ${c.ticker_alias}`"
-            >{{ c.ticker_alias }}</span>
+            >{{ c.ticker_alias }}</button>
           </div>
         </template>
 
@@ -28,7 +30,9 @@
           <div :id="descriptionBodyId" class="info-description" :class="{ 'info-description--expanded': descExpanded }">{{ instrument.description }}</div>
           <button
             v-if="instrument.description.length > 160"
+            type="button"
             class="desc-more"
+            :aria-label="descExpanded ? 'Show less instrument description' : 'Show more instrument description'"
             :aria-expanded="descExpanded"
             :aria-controls="descriptionBodyId"
             @click="descExpanded = !descExpanded"
@@ -386,12 +390,15 @@ function rangeOccurrenceTitle(
 }
 
 .constituent-chip {
+  border: 0;
   font-size: 10px;
+  font-family: inherit;
   background: #1a2a3a;
   color: #64b5f6;
   padding: 2px 7px;
   border-radius: 10px;
   cursor: pointer;
+  text-align: left;
   transition: background 0.1s;
 }
 .constituent-chip:hover { background: #1e3a5a; }

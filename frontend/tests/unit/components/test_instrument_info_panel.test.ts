@@ -204,7 +204,10 @@ describe('InstrumentInfoPanel', () => {
       },
     })
 
-    await wrapper.get('.constituent-chip').trigger('click')
+    const constituent = wrapper.get('.constituent-chip')
+    expect(constituent.attributes('type')).toBe('button')
+    expect(constituent.attributes('aria-label')).toBe('Open constituent XLK')
+    await constituent.trigger('click')
     expect(wrapper.emitted('select')).toEqual([['XLK', 91]])
     wrapper.unmount()
   })
