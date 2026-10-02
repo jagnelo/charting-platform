@@ -67,10 +67,32 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+  ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-etf-holdings-constituents-fdc36fa2",
+      "charting-stack-feat-etf-holdings-constituents-fdc36fa2"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "docker_ready": {
     "ready": true,
@@ -86,13 +108,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "a600d30d59d37cd45974e959afc1b440f1909eb8",
-  "implementation_sha": "a600d30d59d37cd45974e959afc1b440f1909eb8",
+  "head": "b309afe42ef8d8d3835cb045c06a88f81f3491c5",
+  "implementation_sha": "4da62c54d1465835e4562115e12513c984cd7962",
   "last_checkpoint": "2026-10-02T17:10:58Z",
-  "last_human_progress_update": "2026-09-25T00:46:26Z",
+  "last_human_progress_update": "2026-10-02T20:21:33.150355+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Obtain privileged or otherwise actionable Playwright failure detail for exact-SHA run 37036231172, or rerun the browser gate in an available Docker environment; do not add speculative ETF_HOLDINGS bridge or activate paid/direct-provider routes. AC14 remains post-integration.",
-  "plan_hash": "fe433c9bb419e85f9e9c8eeb4b9a0a5c479bf40fecac2e7a06bd483eec4a2b75",
+  "next_action": "Continue only in the ETF worktree. Wait for provider-platform to reach staging before implementing the narrow ETF bridge. Generic Study Lab/EasyScan visual repair is outside owned_paths and needs explicit scope authorization; AC14 requires the post-integration 30-day observation.",
+  "plan_hash": "46a4822b4ebea7b7958a7257ae4fdfbb508a8b4032ee0d792838be3cefa30986",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -107,20 +129,19 @@
       "AC4",
       "AC5",
       "AC6",
-      "AC8",
       "AC9",
       "AC11",
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The final opt-in live matrix is green at 524 passed and 10 narrowly evidenced external/access skips; the deterministic ETF suite is green at 712 tests, with Ruff, workstream validation, and diff-check passing, and both ledgers retain 15 Tier-0 and 156 Tier-1 symbol outcomes including 19 terminal/non-publisher symbol-less identities. Exact-SHA CI run 37036231172 on a600d30d passed Backend, Branch-declared, and Frontend jobs but Playwright failed after 16m33s; only an exit code is public, the job log requires admin rights, and the uploaded report is not publicly downloadable. The Docker-backed gate is unavailable locally because the Docker socket is permission denied. Read-only refs show local and origin feat/market-data-provider-platform at aa8f3b89 and staging at 8b885a2f; the provider ref is not an ancestor of staging and both ProviderCapability definitions lack ETF_HOLDINGS, so AC10 remains an external staging dependency. AC14 remains post-integration.",
-    "current_phase": "provider_evidence_reconciliation",
-    "next_action": "Obtain actionable Playwright failure detail for run 37036231172 or rerun the browser gate in an available Docker environment; keep the provider-platform dependency deferred without speculative ETF_HOLDINGS or paid/direct-provider routes; AC14 remains post-integration.",
+    "current_blocker": "AC7 remains open: deterministic ETF suite 712 passed; branch-declared suite 589 adapter tests, default live 2 passed/532 skipped, opt-in live 518/534 with 16 external/access skips, Ruff, workstream validation, frontend checks, targeted ETF UI tests, and build passed. The local full Docker gate passed functional E2E but failed visual E2E; the pinned Playwright 1.62.1 container diagnostic had 99 passed, 4 unrelated failures (three Study Lab baseline run-state/ID drift, one EasyScan ERR_NETWORK_CHANGED), and one flaky workspace-restore screenshot that passed retry. Exact-SHA CI run 37055561673 on b309afe42 passed Backend, Branch-declared, Frontend Unit, and Playwright; protected Exhaustive Integration was skipped. No generic visuals were changed. Both ledgers retain 15 Tier-0 and 156 Tier-1 outcomes, including 19 terminal/non-publisher symbol-less identities. Provider branch origin is 88132e9145a08d1c935a0111b3dba0fbd88bdff1, staging is 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35; provider branch is not in staging and both lack ETF_HOLDINGS, so AC10 remains dependency-gated. AC14 remains post-integration.",
+    "current_phase": "final_validation_and_handoff",
+    "next_action": "Continue only in the ETF worktree. Wait for provider-platform to reach staging before implementing the narrow ETF bridge. Generic Study Lab/EasyScan visual repair is outside owned_paths and needs explicit scope authorization; AC14 requires the post-integration 30-day observation.",
     "total": 14,
-  "updated_at": "2026-10-02T17:10:58Z"
+    "updated_at": "2026-10-02T20:21:33.150335+00:00"
   },
-  "remote": "a600d30d59d37cd45974e959afc1b440f1909eb8",
-  "remote_sha": "a600d30d59d37cd45974e959afc1b440f1909eb8",
+  "remote": "b309afe42ef8d8d3835cb045c06a88f81f3491c5",
+  "remote_sha": "b309afe42ef8d8d3835cb045c06a88f81f3491c5",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "e83b4e4f-2c58-4ace-949e-cbd7155927e5",

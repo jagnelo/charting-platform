@@ -6428,3 +6428,64 @@ definitions lack `ETF_HOLDINGS`. AC10 stays deferred to that dependency, while
 AC14 remains the post-integration 30-day production shadow gate. No other
 branch/worktree, paid source, or credential was modified. Exact-SHA CI for the
 new durable receipt tip is the next validation step; AC7 is not reported green.
+
+## Exact-SHA CI receipt and visual-gate classification — 2026-10-02
+
+Exact-SHA GitHub Actions run `37055561673` on the synchronized ETF branch tip
+`b309afe42ef8d8d3835cb045c06a88f81f3491c5` passed Backend Tests,
+Branch-declared Tests, Frontend Unit Tests, and E2E Tests (Playwright). The
+protected Exhaustive Integration Gate was skipped as designed on a feature
+branch. This is positive branch-CI evidence, but it does not replace or make
+green the locally required full-integration profile, which includes visual
+Playwright coverage.
+
+The local full Docker-backed gate on implementation SHA
+`4da62c54d1465835e4562115e12513c984cd7962` passed workstream validation,
+Ruff/format, backend and frontend coverage, build, Compose contract, stack
+health, research-runner probes, and functional Playwright. Functional
+Playwright passed; an ETF endpoint logged one `ERR_NETWORK_CHANGED` request
+without a confirmed ETF assertion failure. The gate then failed at visual E2E
+with 92 screenshot differences across four viewport profiles in the host
+renderer.
+
+The same visual suite in the pinned official Playwright
+`v1.62.1-noble` container reduced the failures to 99 passed, 4 failed, and 1
+flaky. Three failures are unrelated Study Lab screenshots: the observed page
+contains a newer persisted run ID/state than the August baseline, including a
+run newly failing the research runner's network-isolation rule where the
+baseline showed an older completed result. One unrelated EasyScan condition
+editor case failed on `ERR_NETWORK_CHANGED`. The workspace-restore screenshot
+was flaky on its first attempt and passed on retry. The named failures are
+outside this ETF workstream's `owned_paths`; no generic UI behavior, visual
+test, or snapshot was changed. ETF-owned visual assertions had no identified
+failure in that container run. This is a classified non-green visual gate, not
+a green full-integration result.
+
+The latest exact remote-tracking refs remain staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35` and
+`origin/feat/market-data-provider-platform`
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`. The provider branch is not an
+ancestor of staging and the inspected staged/provider `ProviderCapability`
+contracts still lack `ETF_HOLDINGS`; do not add a speculative bridge or modify
+the parallel worktree. AC10 therefore remains dependency-gated. AC14 remains
+the post-integration 30-day shadow gate. The 15 Tier-0 and 156 Tier-1 symbol
+outcomes, including 19 terminal/non-publisher symbol-less identities, remain
+accounted for.
+
+Next: continue only in this ETF worktree. When the provider-platform work is
+published into staging, inspect the exact staged contracts and implement the
+narrow ETF-owned capability/holdings integration here. To clear AC7 before
+then, a generic Study Lab/EasyScan test or baseline repair would cross current
+`owned_paths` and needs explicit scope authorization; until then, preserve the
+failure classification and do not alter those files. AC8 is not complete while
+AC7 remains open and the workstream is not at `ready_for_human_review`.
+
+Branch-owned records updated for this receipt: `ops/workstreams/feat-etf-holdings-constituents/plan.yaml`, `ops/workstreams/feat-etf-holdings-constituents/handoff.md`, `ops/workstreams/feat-etf-holdings-constituents/validation.jsonl`, and `ops/workstreams/feat-etf-holdings-constituents/session.json`.
+
+Workflow mechanics note: the default UV cache and repository-wide agent
+coordination locks were read-only in the base sandbox; using the branch-local
+UV cache under `/tmp` and the narrowly elevated repository session helper
+resolved those boundaries without changing another worktree. The current
+`agent-session.py` dirty-path formatter also drops the first character of the
+first modified path after stripping Git's porcelain output; `session.json` was
+corrected for this receipt, and no shared workflow code was modified.
