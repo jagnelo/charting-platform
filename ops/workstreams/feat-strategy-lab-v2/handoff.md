@@ -6651,3 +6651,44 @@ Next: extend the content-addressed stream reference through trial assembly and
 the isolated worker mount/CLI, then run it through Nautilus's catalog-backed
 chunked path while streaming SDK contexts/results. Preserve same-time event
 ordering; verify it against exact RC5 before any authoritative activation.
+
+## 2026-10-02 - RC5 streamed strategy contexts on native callbacks
+
+`build_native_strategy_bridge(...)` and the isolated runtime adapter now accept
+either the existing serialized invocation batch or a seekable v2 context
+stream. Stream bytes are fingerprinted with bounded reads. Before importing
+Nautilus, the bridge exhausts a validation pass that authenticates event IDs,
+history membership, chronology, same-time coverage, parameter/seed binding,
+and canonical native event order. The callback path then reopens the verified
+stream and advances one timestamp group at a time, invoking batched contexts
+only on the last native callback in that group. Native callbacks are checked
+against the exact frozen tape order; the legacy batch input and output
+contracts remain available.
+
+The exact isolated Nautilus 2.0.0rc5 image, built with the pinned wheel
+`sha256:eab45fafd2312deda1236554c49a9798bfc76bc8465af864878e2f70189ebebe`,
+ran the streamed-context path by immutable image ID under no-network,
+read-only, capability-dropped, no-new-privileges, and unprivileged-UID
+restrictions. Two same-time native quote events yielded one SDK invocation, one
+native order, and one open position. The evidence recorded engine version
+`2.0.0rc5`, input protocol `context-stream`, and `authoritative: false`; the
+execution evidence digest was
+`sha256:f72bd113a8d6d2b903a29d0f96a39bdde691d1c2bdae3bb39de2e50f5eb5d14e`.
+The immutable local image ID was
+`sha256:e7d704d5e7b54f685b3a01ebe4a774285a21572016f97a41a083e3ed8d8c7f14`.
+
+Validation at source commit `bfa77138f00bcd571bcfacbd17132ba14d7c432c`:
+1,089 Strategy Lab v2 tests passed; Ruff passed; all four changed Python files
+passed format checks; MyPy passed across 325 source files; `git diff --check`
+passed; and the RC5 streamed-context probe passed. The source commit was pushed
+to `origin/feat/strategy-lab-v2`.
+
+This is an adapter seam, not yet the full bounded-memory runtime: the worker
+request and CLI still carry a JSON batch, frozen event/native-event inputs
+remain materialized, and native invocation results remain accumulated for the
+legacy wire response. Continue by binding the context stream as a verified
+content-addressed sidecar through trial assembly, worker mount, and CLI, then
+stream results into the artifact path and convert native events to RC5 catalog
+chunks. Stable Nautilus v2 is not a blocker; full platform conformance still
+gates authoritative results, and prereleases remain barred from broker/live
+real-capital control.
