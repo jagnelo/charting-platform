@@ -280,6 +280,14 @@ symbol_audit_ledger:
       investigated_at: 2026-09-03
       evidence_refs: [web:anfield-adfi-current-close-notice-2026-09-03]
       next_action: "Confirm the ADFI closure/successor record; reopen only if a current successor issuer publishes a complete executable holdings artifact."
+    - symbol: BTR
+      tier: 1
+      provider_identity: sammons_enterprises
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-10-02
+      evidence_refs: [web:beacon-btr-liquidation-sec-2026-09-03, live:beacon-btr-route-redirect-2026-10-02]
+      next_action: "Keep BTR not applicable: Beacon's official route no longer exposes the product and the issuer's liquidation record is the current disposition. Reopen only if a current successor issuer publishes a complete executable holdings artifact; do not treat the historical tactical-risk CSV or SEC reconstruction as current support."
     - symbol: GAUD
       tier: 1
       provider_identity: guinness_atkinson
@@ -4280,7 +4288,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: native_promoted
     disposition: native_promoted
-    last_checked: 2026-09-03
+    last_checked: 2026-10-02
     source_access_declared: issuer_product_page_declared_current_holdings_api
     representative_symbols:
       - BESO
@@ -7288,14 +7296,13 @@ providers:
     disposition: native_promoted
     last_checked: 2026-09-03
     source_access_declared: issuer_product_page_declared_complete_holdings_csv
-    representative_symbols: [BTR, BSR, BTA]
+    representative_symbols: [BSR, BTA]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: daily
     first_party_domains: [beaconinvestingfunds.com, cdn.craft.cloud]
     candidate_routes:
-      - "https://beaconinvestingfunds.com/funds/tactical-risk"
       - "https://beaconinvestingfunds.com/funds/unified-catalyst"
       - "https://beaconinvestingfunds.com/funds/tactical-alternatives"
     route_complete: true
@@ -7309,6 +7316,8 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.sammons_enterprises"
       - "web:beacon-sammons-current-btr-bsr-bta-pages-2026-09-03"
       - "live:beacon-sammons-current-holdings-csv-2026-09-03"
+      - "web:beacon-btr-liquidation-sec-2026-09-03"
+      - "live:beacon-btr-route-redirect-2026-10-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -7318,8 +7327,12 @@ providers:
         source: "Beacon Investing Funds official BTR, BSR, and BTA pages and declared Craft CDN holdings CSVs"
         result: "All three product pages declared complete current CSVs dated September 1, 2026; the provider-specific adapter validated each page/link pair and parsed the current rows."
         evidence_ref: "web:beacon-sammons-current-btr-bsr-bta-pages-2026-09-03"
-    disposition_reason: "sammons_enterprises: Sammons-associated Beacon BTR, BSR, and BTA product pages declare complete fund-scoped daily holdings CSVs. The native adapter validates exact product/link pairs and parses current holdings without SEC reconstruction, preserving Beacon/Sammons publisher provenance."
-    next_action: "sammons_enterprises: Monitor the three Beacon product pages, declared CDN filenames, schemas, and composition-date continuity; add future products only after equivalent route and live evidence."
+      - date: 2026-10-02
+        source: "Beacon official route recheck and SEC liquidation record"
+        result: "BTR's former official route now resolves to the Beacon catalogue rather than a BTR product page; the issuer's liquidation record makes the historical BTR route non-current. BSR and BTA remain the active native routes."
+        evidence_ref: "web:beacon-btr-liquidation-sec-2026-09-03"
+    disposition_reason: "sammons_enterprises: Beacon's BSR and BTA product pages continue to declare complete fund-scoped daily holdings CSVs. BTR is explicitly excluded from native support because its former product route no longer exposes the fund and the issuer records a liquidation disposition; historical CSVs and SEC reconstruction are not current support."
+    next_action: "sammons_enterprises: Monitor the BSR and BTA product pages, declared CDN filenames, schemas, and composition-date continuity; re-open BTR only if a current successor issuer publishes a complete executable holdings artifact."
     implementation_sha: bf44fd3e9d88d82532aaae2a96265ec3b65a1fb0
     validation_refs:
       - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_sammons_enterprises_adapter_fetches_declared_beacon_csv"

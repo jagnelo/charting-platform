@@ -695,6 +695,13 @@ _TIER_0_ADAPTER_ALIASES: dict[str, frozenset[str]] = {
     "fm_investments": frozenset({"fm_investments", "us_benchmark_series"}),
 }
 
+# Beacon's BTR identity has historically appeared under both the original
+# Sammons audit key and the later Beacon Capital adapter key.  Keep the
+# terminal product disposition symbol-scoped across that alias pair.
+_NON_TIER_0_ADAPTER_ALIASES: dict[str, frozenset[str]] = {
+    "sammons_enterprises": frozenset({"sammons_enterprises", "beacon_capital"}),
+}
+
 for _symbol in (
     "TBIL",
     "XBIL",
@@ -779,6 +786,23 @@ _register_non_tier_0_audits(
     next_action=(
         "Confirm the ADFI closure/successor record; reopen only if a current successor "
         "issuer publishes a complete executable holdings artifact."
+    ),
+)
+_register_non_tier_0_audits(
+    ("BTR",),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="sammons_enterprises",
+    investigated_at=date(2026, 10, 2),
+    evidence_refs=(
+        "web:beacon-btr-liquidation-sec-2026-09-03",
+        "live:beacon-btr-route-redirect-2026-10-02",
+    ),
+    next_action=(
+        "Keep BTR not applicable: Beacon's official route no longer exposes the product and the "
+        "issuer's liquidation record is the current disposition. Reopen only if a current "
+        "successor issuer publishes a complete executable holdings artifact; do not treat the "
+        "historical tactical-risk CSV or SEC reconstruction as current support."
     ),
 )
 _register_non_tier_0_audits(
@@ -1804,7 +1828,10 @@ def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:
     explicit = _NON_TIER_0_SYMBOL_AUDITS.get(symbol)
     if explicit is not None:
         provider_identity = (explicit.provider_identity or "").strip().lower()
-        if adapter_key == provider_identity:
+        expected_adapter_keys = _NON_TIER_0_ADAPTER_ALIASES.get(
+            provider_identity, frozenset({provider_identity})
+        )
+        if adapter_key in expected_adapter_keys:
             return explicit
         historical_provider = _AMPLIFY_ETFMG_HISTORICAL_PROVIDER_BY_SYMBOL.get(symbol)
         if historical_provider == adapter_key:

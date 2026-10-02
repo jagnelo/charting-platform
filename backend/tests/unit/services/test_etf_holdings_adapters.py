@@ -1508,11 +1508,11 @@ async def test_saba_capital_adapter_parses_cefs_nuxt_holdings(monkeypatch):
 async def test_sammons_enterprises_adapter_fetches_declared_beacon_csv(monkeypatch):
     adapter = get_holdings_adapter("sammons_enterprises")
     assert adapter is not None
-    product_url, holdings_url = adapter._FUNDS["BTR"]
-    page = "<h1>Beacon Tactical Risk ETF (BTR)</h1>" f'<a href="{holdings_url}">Holdings CSV</a>'
+    product_url, holdings_url = adapter._FUNDS["BSR"]
+    page = "<h1>Beacon Unified Catalyst ETF (BSR)</h1>" f'<a href="{holdings_url}">Holdings CSV</a>'
     holdings_csv = "\n".join(
         [
-            "Beacon Tactical Risk ETF",
+            "Beacon Unified Catalyst ETF",
             "Fund Holdings Data as of 09/01/2026",
             "Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %",
             "VANGUARD ENERGY ETF,92204A306,VDE US,11.70%,182.64,20904,3818534,11.70%",
@@ -1526,7 +1526,7 @@ async def test_sammons_enterprises_adapter_fetches_declared_beacon_csv(monkeypat
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 
-    result = await adapter.fetch_latest(symbol="BTR")
+    result = await adapter.fetch_latest(symbol="BSR")
 
     assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
     assert [row.symbol for row in result.rows] == ["VDE", "VHT"]
@@ -1536,6 +1536,17 @@ async def test_sammons_enterprises_adapter_fetches_declared_beacon_csv(monkeypat
     assert result.legal_metadata["route_resolution"] == (
         "beacon_product_page_declared_complete_holdings_csv"
     )
+
+
+def test_sammons_enterprises_does_not_advertise_liquidated_btr_route():
+    adapter = get_holdings_adapter("sammons_enterprises")
+    assert adapter is not None
+
+    probe = adapter.probe(symbol="BTR", name="Beacon Tactical Risk ETF", identifiers={})
+
+    assert probe.status == "unsupported_symbol"
+    assert probe.source_url is None
+    assert "limited to BSR and BTA" in probe.reason
 
 
 @pytest.mark.asyncio
@@ -9079,6 +9090,70 @@ async def test_true_shares_adapter_discovers_google_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_true_shares_adapter_uses_current_public_fund_api_when_csv_link_is_absent(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("true_shares")
+    assert adapter is not None
+
+    api_payload = {
+        "mode": "live",
+        "fund": {"ticker": "ONEH", "name": "TrueShares Equity Hedge ETF"},
+        "holdings": [
+            {
+                "ticker": "ONEH",
+                "as_of_date": "2026-10-01",
+                "security_name": "TREASURY BILL B 09/02/27",
+                "security_ticker": "912797WA1",
+                "security_id": "912797WA1",
+                "weight": 51.93,
+                "market_value": 1000,
+                "quantity": 10,
+                "currency": "USD",
+            },
+            {
+                "ticker": "ONEH",
+                "as_of_date": "2026-10-01",
+                "security_name": "PAYB RCXTESHT SHALLOW HEDGE",
+                "security_ticker": "RCXTESHT",
+                "security_id": "RCXTESHT",
+                "weight": 0,
+                "market_value": -100,
+                "quantity": -100,
+                "currency": "USD",
+            },
+        ],
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><body><h1>ONEH</h1><div data-navstar-ticker='ONEH'></div></body></html>",
+            content_type="text/html",
+            url="https://www.true-shares.com/etf/oneh",
+        ),
+        FakeResponse(
+            text=json.dumps(api_payload),
+            content_type="application/json",
+            url=adapter.PUBLIC_FUND_API_URL,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ONEH", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://www.true-shares.com/etf/oneh",
+        adapter.PUBLIC_FUND_API_URL,
+    ]
+    assert len(result.rows) == 2
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].weight == Decimal("0.5193")
+    assert result.rows[1].holding_type == "derivative"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_fund_api_holdings_json"
+    assert result.legal_metadata["composition_date"] == "2026-10-01"
+
+
+@pytest.mark.asyncio
 async def test_truemark_adapter_verifies_product_page_before_parsing_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("truemark")
     assert adapter is not None
@@ -13200,6 +13275,24 @@ async def test_logan_adapter_verifies_bundle_declared_filepoint_csv(monkeypatch)
         "logan_filepoint_static_bundle_declared_holdings_csv"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-27"
+
+
+def test_logan_adapter_accepts_current_ticker_identity_shell():
+    adapter = get_holdings_adapter("logan")
+    assert adapter is not None
+
+    current_page_shell = """
+    <html>
+      <body>
+        <p>Logan Capital Exchange-Traded Funds</p>
+        <div id="funds" data-ticker="LCLG"></div>
+        <a id="csvdownload">Download Holdings</a>
+        <table><tbody id="full-holdings"></tbody></table>
+      </body>
+    </html>
+    """
+
+    assert adapter._is_verified_product_page(current_page_shell)
 
 
 @pytest.mark.asyncio
@@ -18124,40 +18217,35 @@ Receivables/Payables, RECPAY, RECPAY, -0.100000000000, 1, -35696, -35696, -0.100
     )
 
 
-@pytest.mark.asyncio
-async def test_beacon_adapter_supports_the_tactical_risk_product_route(monkeypatch):
+def test_beacon_adapter_does_not_advertise_liquidated_tactical_risk_route():
     adapter = get_holdings_adapter("beacon_capital")
     assert adapter is not None
 
-    product_page_html = """
-    <html><body>
-      <h1>Beacon Tactical Risk ETF</h1><p>FUND TICKER BTR</p>
-      <a href="https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/assets/ultimus-holdings/tactical-risk-holdings.csv">
-        Holdings CSV
-      </a>
-    </body></html>
-    """
-    raw_csv = """Beacon Tactical Risk ETF
-Fund Holdings Data as of 07/20/2026
-Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %
-VANGUARD REAL ES, 922908553, VNQ US, 8.452668732000, 99.48, 27962, 2781659.76, 8.452897197000
-"""
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=product_page_html,
-            content_type="text/html",
-            url="https://beaconinvestingfunds.com/funds/tactical-risk",
-        ),
-        FakeResponse(text=raw_csv, content_type="text/csv", url=adapter._routes["BTR"][2]),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    probe = adapter.probe(symbol="BTR", name="Beacon Tactical Risk ETF", identifiers={})
 
-    result = await adapter.fetch_latest(symbol="BTR", identifiers={})
+    assert probe.status == "needs_issuer_route"
+    assert probe.source_url is None
 
-    assert result.rows[0].symbol == "VNQ"
-    assert result.rows[0].weight == Decimal("0.08452668732")
-    assert result.legal_metadata["composition_date"] == "2026-07-20"
+
+def test_beacon_adapter_accepts_current_bsr_product_name_alias():
+    adapter = get_holdings_adapter("beacon_capital")
+    assert adapter is not None
+    _, product_page_url, holdings_csv_url = adapter._routes["BSR"]
+
+    adapter._validate_product_page(
+        """
+        <html><title>Unified Catalyst | Beacon Investing Funds</title>
+        <p class="eyebrow">BSR</p><h1>Unified Catalyst</h1>
+        <p>The Beacon Unified Catalyst Fund seeks long-term growth.</p>
+        <a href="https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/assets/ultimus-holdings/unified-catalyst-holdings.csv">Holdings CSV</a>
+        </html>
+        """,
+        symbol="BSR",
+        expected_fund_name="Beacon Unified Catalyst ETF",
+        holdings_csv_url=holdings_csv_url,
+        fund_name_aliases=adapter._fund_name_aliases["BSR"],
+    )
+    assert product_page_url.endswith("/unified-catalyst")
 
 
 @pytest.mark.asyncio
@@ -20717,7 +20805,7 @@ async def test_beehive_adapter_fetches_official_declared_daily_holdings_csv(monk
     probe = adapter.probe(symbol="BEEX", name="The BeeHive ETF", identifiers={})
     assert probe.status == "ready"
     assert probe.source_url == (
-        "https://thebeehiveetf.com/wp-content/uploads/data/TidalFG_Holdings_BEEX.csv"
+        "https://tier1-assets.tidalfinancialgroup.com/funds/documents/beex/beex_holdings.csv"
     )
 
     with pytest.raises(ValueError, match="official declared holdings CSV"):
@@ -20739,7 +20827,7 @@ async def test_beehive_adapter_fetches_official_declared_daily_holdings_csv(monk
                 "09/02/2026,BEEX,AMZN,023135106,Amazon.com Inc,52800,254.92,13459776.0,6.70%,201023097.38\n"
                 "09/02/2026,BEEX,Cash&Other,Cash&Other,Cash & Other,-25041,1,-25040.89,-0.01%,201023097.38\n"
             ),
-            url="https://thebeehiveetf.com/wp-content/uploads/data/TidalFG_Holdings_BEEX.csv",
+            url="https://tier1-assets.tidalfinancialgroup.com/funds/documents/beex/beex_holdings.csv",
         ),
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
@@ -20748,7 +20836,7 @@ async def test_beehive_adapter_fetches_official_declared_daily_holdings_csv(monk
 
     assert [request[0] for request in FakeAsyncClient.requested] == [
         "https://thebeehiveetf.com/",
-        "https://thebeehiveetf.com/wp-content/uploads/data/TidalFG_Holdings_BEEX.csv",
+        "https://tier1-assets.tidalfinancialgroup.com/funds/documents/beex/beex_holdings.csv",
     ]
     assert result.rows[0].symbol == "AMZN"
     assert result.rows[0].weight == Decimal("0.0670")
@@ -23073,6 +23161,10 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert adapters["academy"]["live_tested_default_route"] is True
     assert adapters["academy"]["source_provider"] == "academy_etfs"
     assert "issuer_native_live_route" in adapters["academy"]["support_route_types"]
+    assert ISSUER_ADAPTER_CONFIGS["academy"].url_templates == (
+        "https://tier1-assets.tidalfinancialgroup.com/funds/documents/"
+        "{symbol_lower}/{symbol_lower}_holdings.csv",
+    )
     assert adapters["impact_shares"]["live_tested_default_route"] is True
     assert adapters["impact_shares"]["source_provider"] == "impact_shares"
     assert "issuer_native_live_route" in adapters["impact_shares"]["support_route_types"]
@@ -28091,7 +28183,7 @@ async def test_acsi_funds_official_daily_csv_route_is_native_and_symbol_scoped(m
     FakeAsyncClient.queue = [
         FakeResponse(
             text=csv_text,
-            url="https://acsietf.com/wp-content/uploads/files/TidalETF_Services.40ZZ.VA_Holdings_.csv",
+            url="https://tier1-assets.tidalfinancialgroup.com/funds/documents/acsi/acsi_holdings.csv",
         )
     ]
     FakeAsyncClient.requested = []
@@ -28099,7 +28191,9 @@ async def test_acsi_funds_official_daily_csv_route_is_native_and_symbol_scoped(m
 
     result = await adapter.fetch_latest(symbol="ACSI")
 
-    assert FakeAsyncClient.requested[0][0].startswith("https://acsietf.com/")
+    assert FakeAsyncClient.requested[0][0].startswith(
+        "https://tier1-assets.tidalfinancialgroup.com/"
+    )
     assert result.rows[0].symbol == "AAPL"
     assert result.rows[0].weight == Decimal("0.0712")
     assert result.rows[1].row_type == "cash"

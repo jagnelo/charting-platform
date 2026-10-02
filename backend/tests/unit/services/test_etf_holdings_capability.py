@@ -3,6 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
+import pytest
 import yaml
 
 from app.config import settings
@@ -627,6 +628,21 @@ def test_ranked_fallback_terminal_symbol_is_not_applicable():
     assert result.tier == 1
     assert result.outcome == "not_applicable"
     assert result.evidence_state == "inactive_or_successor_disposition"
+
+
+@pytest.mark.parametrize("adapter_key", ["sammons_enterprises", "beacon_capital"])
+def test_beacon_btr_liquidation_is_not_applicable_across_provider_aliases(adapter_key):
+    result = symbol_audit_for_profile(profile_with_symbol("BTR", adapter_key))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
+    assert result.provider_identity == "sammons_enterprises"
+    assert result.investigated_at == date(2026, 10, 2)
+    assert result.evidence_refs == (
+        "web:beacon-btr-liquidation-sec-2026-09-03",
+        "live:beacon-btr-route-redirect-2026-10-02",
+    )
 
 
 def test_follow_on_ranked_fallback_terminal_symbol_preserves_successor_evidence():

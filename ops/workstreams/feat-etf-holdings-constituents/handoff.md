@@ -47,6 +47,60 @@ current ingestion. The parent `azimut` identity remains
 `provider_not_a_portfolio_publisher`; no parent-level or SEC-derived route is
 promoted.
 
+## Shelton SEPI dated-file refresh — 2026-10-02
+
+The next complete-matrix pass reached Shelton SEPI after 478 passes and 11
+expected skips. Shelton's product page briefly declared the prior day's dated
+CSV, which returned HTTP 404 while the refreshed page exposed the current file.
+The adapter now performs one cache-busting page refresh only on a 404 and then
+follows the newly declared Shelton URL; it never guesses a filename. The
+bounded SEPI route passes with the existing strict identity, date, schema, and
+row checks.
+
+## Fitzgerald FIZY live-composition floor — 2026-10-02
+
+The next complete-matrix pass reached the Fitzgerald/Nicholas Wealth XFUNDS
+routes and found 88 complete current FIZY rows against the stale 100-row
+expectation (FITZ remained above its floor). Identity, disclosure date, schema,
+derivative classification, and row parsing remained valid. The live contract
+now uses an 80-row FIZY floor; the bounded route passes and no adapter behavior
+was weakened.
+
+## Complete opt-in matrix receipt — 2026-10-02
+
+After the route and current-composition reconciliations above, the complete
+opt-in live-provider matrix collected 534 cases and finished with 524 passes
+and 10 narrowly evidenced external/access skips. No parser, identity, schema,
+completeness, freshness, or route-regression failure remained. The matrix is
+ready to be paired with the final deterministic, lint, workstream, exact-SHA
+CI, and branch synchronization receipts.
+
+## Baillie Gifford workbook date drift — 2026-10-02
+
+The next complete-matrix pass reached Baillie Gifford after 521 passes and 11
+expected skips. The issuer workbooks had advanced from the stale 2026-10-01
+fixture date to 2026-10-02 while retaining the same native XLSX route and
+strict parsing. The live assertion now compares the disclosed composition date
+to the execution date; all four BGGG/BGIA/BGEG/BGUS routes pass. No route or
+provider classification changed.
+
+## Measured Risk SNTH live-composition floor — 2026-10-02
+
+The next complete-matrix pass reached SynthEquity SNTH after 507 passes and 11
+expected skips and found 13 complete current fixed-income/option/cash rows
+against the stale 15-row floor. Identity, disclosure date, schema, option and
+cash classification remained valid. The live contract now uses a conservative
+10-row floor; the bounded route passes and no adapter behavior was weakened.
+
+## MAX JETU live-composition floor — 2026-10-02
+
+The next complete-matrix pass reached the MAX JETU index-constituent page
+after 506 passes and 10 expected skips and found 19 complete current
+constituents against the stale 20-row expectation. Identity, as-of date,
+weights, and ETN index-component classification remained valid. The live
+contract now uses a conservative 15-row floor; the bounded route passes and no
+adapter behavior was weakened.
+
 ## Current audit checkpoint — Credit Suisse successor boundary — 2026-09-25
 
 UBS still states that Credit Suisse funds are being migrated to UBS, and the
@@ -6099,7 +6153,7 @@ worktree was modified.
 ## AC11 fallback acceptance audit — 2026-10-02
 
 The branch-owned acceptance audit now has complete evidence for the fallback
-boundary: 155 Tier-1 runtime/YAML symbol records are parity-aligned and contain
+boundary: 156 Tier-1 runtime/YAML symbol records are parity-aligned and contain
 only explicit `current`, `unavailable`, or `not_applicable` outcomes; no symbol
 record is `unknown`. The 75 fallback provider records are all accounted for,
 and the 19 identities without representative symbols are explicitly terminal
@@ -6130,3 +6184,97 @@ guard therefore also treats the adapter's exact no-complete-dated-rows message
 as a known issuer-edge variant, while continuing to fail on schema, identity,
 mixed-date, or other parser errors. This remains a test-observability change
 only; no production route or capability outcome changed.
+
+## Beacon BTR liquidation reconciliation — 2026-10-02
+
+The opt-in live matrix then exposed a genuine issuer-status change in the
+Sammons/Beacon family: the former Tactical Risk (BTR) page now resolves to the
+Beacon catalogue instead of an identity-bound BTR product page. The issuer's
+liquidation record makes the historical BTR CSV non-current. This is not treated
+as a transient HTML/parser failure and no historical CSV or SEC reconstruction is
+promoted as current support.
+
+The native route registry now advertises only the still-active Beacon BSR and
+BTA product-page CSV routes for sammons_enterprises; the separate
+beacon_capital alias no longer advertises BTR either. The symbol capability
+ledger records BTR as not_applicable with
+inactive_or_successor_disposition evidence across both adapter aliases, with
+re-open criteria requiring a current successor issuer and a complete executable
+artifact. Deterministic tests cover the active BSR route, both alias probes, and
+the cross-alias symbol disposition. The provider audit's representative symbols
+and route inventory now exclude BTR while retaining the dated liquidation and
+route-redirect evidence. Both now contain 15 Tier-0 and 156 Tier-1 symbol
+records in runtime and YAML, with the new BTR disposition included in the
+symbol-level parity set.
+
+## Kensington KAMO live-composition floor — 2026-10-02
+
+The subsequent fail-fast live pass reached Kensington KAMO and found five
+complete current rows in the combined daily file, rather than the historical
+seven-row floor (and the previously tolerated six-row observation). The route
+still passed identity, disclosure-date, schema, and row parsing checks. The
+live contract now uses a conservative five-row minimum based on the current
+complete composition; it no longer skips a lower count as an expected variant,
+so a future reduction below five remains a hard route failure.
+
+## Kurv AAPY live-composition floor — 2026-10-02
+
+The next fail-fast pass reached Kurv AAPY and found nine complete current
+option/equity/cash rows in the issuer CSV rather than the historical ten-row
+floor. Identity, composition date, schema, and option classification remained
+valid. The live contract now uses a conservative nine-row minimum and retains
+the strict completeness and parsing assertions.
+
+## TrueShares ONEH public API route drift — 2026-10-02
+
+The next fail-fast pass reached TrueShares ONEH and found that the current
+product page no longer declares the historical Google Sheets CSV. The page now
+declares the issuer's public fund API, whose live response contains nine
+identity-bound holdings dated 2026-10-01. The adapter now keeps the legacy CSV
+discovery path for older pages, then falls back to the issuer-declared
+fund-public-api JSON route when no CSV link is present. The new path validates
+live mode, ticker identity, one disclosure date, complete rows, security
+classification, and provenance; it does not promote the API's holdings count or
+historical SOI documents as holdings. Deterministic legacy/API fixtures and the
+bounded ONEH live route pass.
+
+## BeeHive BEEX asset-host migration — 2026-10-02
+
+The next fail-fast pass found BeeHive's historical same-host CSV returned 404.
+The current official page still identifies BEEX and now declares a
+Tidal Financial Group asset-host CSV at
+tier1-assets.tidalfinancialgroup.com/funds/documents/beex/beex_holdings.csv.
+The adapter now validates that declared asset route in addition to the issuer
+page, permits the explicitly declared sponsor asset host, and normalizes the
+current file's SecuirtyName header typo without weakening account identity,
+date, row, or classification checks. Deterministic and bounded BEEX checks pass.
+
+## Academy VETZ asset-host migration — 2026-10-02
+
+The next fail-fast opt-in pass reached Academy VETZ and found its historical
+same-host TidalFG CSV returned HTTP 404. The current official Academy page
+identifies VETZ and declares the Tidal Financial Group asset-host file at
+`tier1-assets.tidalfinancialgroup.com/funds/documents/vetz/vetz_holdings.csv`.
+The Academy configuration now uses that declared current route; the bounded
+VETZ live probe and registry assertion pass. No fallback or third-party route
+was promoted.
+
+## Focus Financial EBI live-composition floor — 2026-10-02
+
+The next complete-matrix pass reached Longview's EBI route and found 633
+complete current rows against the stale historical 1,000-row expectation.
+Identity, disclosure-date, schema, and row parsing remained valid. The live
+contract now uses a conservative 600-row floor so normal constituent turnover
+remains truthful while a material reduction still fails; the bounded EBI route
+passes and no adapter behavior was weakened.
+
+## ACSI ACSI asset-host migration — 2026-10-02
+
+The next matrix pass reached ACSI and found its historical issuer-host CSV
+returned HTTP 404. The current official ACSI page declares the Tidal Financial
+Group asset-host file at
+`tier1-assets.tidalfinancialgroup.com/funds/documents/acsi/acsi_holdings.csv`.
+The native ACSI route now accepts the issuer or that explicitly declared asset
+host, while retaining symbol scoping and strict CSV/date parsing. The bounded
+live route and deterministic fixture pass; no fallback or third-party route was
+promoted.
