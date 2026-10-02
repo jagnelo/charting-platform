@@ -20,26 +20,20 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The last controlled, version-matched visual replay at `e52009bf9` covered
-  eight protected cases: two passed and six failed for understood state
-  differences. The 1080p watchlist-editor references predate the all-family
-  readiness line; the floating references show an empty table while the current
-  test waits for five hydrated rows. `docs/tc2000-visual-parity.md` requires
-  human review and a linked intentional change before snapshots may change, so
-  no baseline, mask, threshold, skip, fallback, or acceptance rule changed.
-  The 10,000-row hydration and 100-cycle pop-out checks passed; their exact
-  branch-scoped Docker resources were removed and audited.
-  Provider-platform and ETF integration is still deferred: current local refs
-  are staging `8b885a2ffd9c`, provider-platform `d7097860a05c`, and ETF
-  holdings `4da62c54d146`; neither dependency tip is an ancestor of staging.
-  Shared-path reconciliation and the post-staging exact gate remain pending.
-  Product commit `e48ef32d61ca` makes the five TC-owned Indicator Panel
-  selection targets native buttons; the focused unit test, full serial
-  frontend suite, production type/build, and targeted authenticated Chromium
-  flow have passed. Clean exact-tip workstream validation and the wider R1/R5/R6
-  gates remain open. Local branch commits are not pushed: the existing
-  private-origin safeguard requires exact-payload authorization before another
-  push, and none was supplied for this updated range.
+  Six protected screenshot differences still need the human review required
+  by `docs/tc2000-visual-parity.md`; the current state differences are
+  understood, but no baseline, mask, threshold, skip, fallback, or acceptance
+  rule may change without that review. A fresh local-ref audit sees staging at
+  `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform at
+  `313337668b28ec94b465d602f01c8d24564acf33`, and ETF holdings at
+  `b309afe42ef8d8d3835cb045c06a88f81f3491c5`; neither dependency tip is an
+  ancestor of staging, so consumer integration and shared-path reconciliation
+  must wait. These gates do not prevent independent TC-owned frontend work.
+  The latest product slice, `a5af29f59464`, exposes the chart plot controls as
+  a dialog; focused and full serial frontend tests, production build, and the
+  authenticated keyboard browser check passed. The wider R1/R5/R6 work and
+  exact post-staging gate remain open. Local commits remain unpushed under the
+  private-origin safeguard; that transport hold does not prevent local work.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -275,7 +269,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_primary_workstation_keyboard_focus_ring_passed
+  current_phase: R1_primary_chart_plot_panel_dialog_semantics_passed
   next_action: >-
     Compare open V25 interaction requirements against the primary workstation
     views and browser evidence, then choose the next independent TC-owned
@@ -287,17 +281,14 @@ progress:
     post-staging gate. Do not push the updated local range under the private-
     origin safeguard without exact-payload authorization.
   current_blocker: >-
-    The six protected screenshot differences cannot be marked accepted or
-    overwritten without the human review required by
-    `docs/tc2000-visual-parity.md`. Provider-platform at `d7097860a05c` and ETF
-    holdings at `4da62c54d146` are still not ancestors of staging
-    `8b885a2ffd9c`, so their contracts cannot yet be consumed or reconciled.
-    These two gates do not block independent TC-owned frontend work. The
-    primary-workstation tab-focus slice is committed as `44b837a2bf54`; clean
-    frontend tests/build and an authenticated live browser check passed. The
-    updated local branch range remains unpushed under the private-origin
-    safeguard until exact-payload push authorization is supplied. No
-    provider/ETF branch, staging branch, or other worktree was changed.
+    Six protected screenshot differences await the visual-policy review.
+    Provider-platform `313337668b28` and ETF `b309afe42ef8` are not ancestors of
+    staging `8b885a2ffd9c`, so TC cannot consume or reconcile those contracts
+    yet. Neither gate blocks independent TC frontend work. The chart plot
+    dialog slice is committed as `a5af29f59464`; its focused/full frontend
+    tests, build, and authenticated keyboard check passed. The private-origin
+    push safeguard still holds the local range, but does not stop local work.
+    No provider/ETF branch, staging branch, or other worktree was changed.
 historical_implementation_records:
   - "Product commit 44b837a2 adds a white focus-visible outline to primary Workstation layout tabs without replacing the blue active-tab marker or gold drag-over marker. The existing roving-arrow/Enter/Space interaction remains unchanged; the authenticated browser check verified ArrowRight focus, the computed white ring, Enter selection, and retained active marker with zero console errors or warnings. The clean exact-commit serial frontend suite and production vue-tsc/Vite build passed; the four-service TC stack became healthy and scoped teardown/resource audit found zero retained resources. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 507c6df42 gives TC-owned Market Map actions explicit contextual accessible names for saving explicit symbols, refreshing the map, saving/exporting/deleting snapshots, and saving selected members as a personal watchlist while preserving visible labels, state mutations, and visual styling. Focused MarketMapTool coverage passed 54/54; the full serial frontend suite passed 128 files and 1,167/1,167 tests; vue-tsc, the production build, git diff --check, TC scope self-tests, and workstream validation passed with the existing large-chunk warning. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
@@ -580,6 +571,8 @@ historical_implementation_records_continued:
   - "The current atomic read-only dependency audit observes staging at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform at 5f6b1edef67b4ee209404bea05f57e5fdab7471a (fix(marketstack): scope raw pagination totals), and ETF holdings at 5eb2f55df5053a49958db1b19e456c9385ededa4 (docs(etf): recheck pimco tier zero coverage). Neither upstream tip is an ancestor of staging, so TC consumer integration and shared-path reconciliation remain deferred."
   - "Product commit 0ffecbc8 makes synthetic instrument constituent chips keyboard-operable buttons with stable accessible names and gives the long-description disclosure explicit button type and context while preserving constituent selection events, description expansion, and report layout. Focused InstrumentInfoPanel coverage passed 6/6; the full serial frontend suite passed 127/127 files and 1,158/1,158 tests; vue-tsc and production build passed with the existing large-chunk warning; TC scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "The current atomic read-only dependency audit observes staging at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform at 5f6b1edef67b4ee209404bea05f57e5fdab7471a (fix(marketstack): scope raw pagination totals), and ETF holdings at 88664a143531a2d45dbc03b006555eca62a100d0 (docs(etf): record dependency checkpoint push). Neither upstream tip is an ancestor of staging, so TC consumer integration and shared-path reconciliation remain deferred."
+  - "The 2026-10-02 fresh local-ref audit observes staging at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform at 313337668b28ec94b465d602f01c8d24564acf33 (fix(db): truncate identity observation index name), and ETF holdings at b309afe42ef8d8d3835cb045c06a88f81f3491c5 (docs(etf): record validation gate results). Neither dependency tip is an ancestor of staging; consumer integration and shared-path reconciliation remain deferred."
+  - "Product commit a5af29f59464 converts the chart plot library popup from a menu to a named dialog because it contains form controls. The trigger announces aria-haspopup=dialog; opening focuses the plot selector, ArrowUp opens with focus on the last enabled control, and Escape restores trigger focus. Focused/full serial frontend tests, production build, and authenticated browser verification passed without changing layout or visual policy."
 
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."

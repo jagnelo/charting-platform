@@ -15714,3 +15714,32 @@ remain open; no visual baseline, mask, threshold, skip, or acceptance rule was
 changed. Next: compare the still-open V25 interaction requirements with the
 current workstation views and tests, then choose the next independent
 TC-owned frontend or Study/Strategy gap.
+
+## 2026-10-02 — Chart plot library dialog semantics
+
+Product commit `a5af29f59464ed087c88c2aed8f7826f5ae53489` changes the Chart
+plot library popup from `role="menu"` to a named dialog because it contains
+select controls and actions. Its trigger now announces `aria-haspopup="dialog"`;
+opening focuses the plot selector, ArrowUp opens with focus on the last enabled
+control, and Escape returns focus to the trigger. The panel's layout and
+existing open/close behavior are unchanged.
+
+Focused chart plot library tests passed `34/34`; the full serial frontend suite
+passed on the exact product commit; `vue-tsc` and the Vite production build
+passed with the existing large-chunk warning. An authenticated Firefox
+Playwright CLI check confirmed the dialog name and role, initial and ArrowUp
+focus placement, Escape focus restoration, and trigger semantics. Browser
+console had zero errors; it emitted one expected warning because the
+branch-local login page uses HTTP while the test account is entered. The
+branch-scoped six-service Compose stack was built and healthy, then stopped;
+the repository resource audit found zero containers, volumes, images, or
+unknown owned resources. No provider-platform, ETF, visual baseline, threshold,
+mask, skip, fallback, or acceptance policy changed; no other worktree was
+mutated.
+
+A fresh read-only local-ref audit observed staging at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform at
+`313337668b28ec94b465d602f01c8d24564acf33`, and ETF holdings at
+`b309afe42ef8d8d3835cb045c06a88f81f3491c5`. Neither dependency tip is an
+ancestor of staging; consumer integration and shared-path reconciliation
+remain deferred.
