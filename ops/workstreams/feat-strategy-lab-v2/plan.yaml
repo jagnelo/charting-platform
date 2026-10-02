@@ -276,7 +276,7 @@ acceptance_criteria:
     text: >-
       Focused deterministic tests, database/Redis integration, migration
       compatibility, worker restart/retry/cancel, artifact integrity, API
-      contracts, Nautilus stable conformance, security/resource isolation,
+      contracts, exact-pinned Nautilus v2 conformance, security/resource isolation,
       Compose scaling, and full exact-tip branch validation pass. Deployment,
       live shadow activation, human closure, integration, and promotion remain
       separately authorized.
@@ -317,7 +317,7 @@ remaining_gaps:
   - The provider-platform workstream has not reached staging; canonical acquisition and capability adapter wiring is deferred.
   - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
   - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
-  - Nautilus stable v2 is not yet published; this no longer blocks isolated RC compatibility execution. Authoritative engine runtime activation, official rankings, publication, and deployed shadow remain gated on stable release/conformance evidence.
+  - Exact-pinned stable or pre-release Nautilus v2 can qualify local backtests after the complete conformance suite; the stable-tag wait described in older progress notes is superseded. RC compatibility currently executes, but the exact RC build has not yet passed that complete suite; broker-free forward shadow still requires event-tape parity.
   - The isolated Nautilus runtime bundle now has a pinned-input content-addressed artifact contract. Durable worker handoff v2 carries its compact artifact manifest plus semantic bundle digest; the worker binds both to the attempt/request and verifies the exact mounted bytes and memory-derived size bound before Docker launch. Production assembly from frozen trial/snapshot/portfolio inputs remains open.
   - The combined backend coverage gate now collects package-owned v2 tests and passes its 75% threshold. The dedicated worker entrypoint is now exposed through an explicit opt-in `strategy-lab-v2` Compose profile with a separate artifact volume, health-gated PostgreSQL/Redis dependencies, read-only root, dropped capabilities, bounded temporary filesystem, fail-closed Docker-socket binding, and a package-owned authenticated single-output evidence resolver default; host multi-artifact policy, live activation, and stable Nautilus execution remain open.
   - Alembic revision `ff0a1b2c3d4e` now creates the complete additive Strategy Lab v2 adapter schema and the active-worker reservation index without touching legacy Strategy Lab tables; the FastAPI lifespan now invokes the explicit startup migration service when namespaced migration settings enable it, while remaining API projections, terminal/result callback wiring, and stable Nautilus execution remain open.
