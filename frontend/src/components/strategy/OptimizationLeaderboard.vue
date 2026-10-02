@@ -27,11 +27,14 @@
             :key="`${row.stop_loss_pct}-${row.take_profit_rr}-${row.max_bars_in_trade}-${index}`"
             :class="{ 'optimization-panel__row--active': activeIndex === index }"
             tabindex="0"
+            :aria-selected="activeIndex === index ? 'true' : 'false'"
             @mouseenter="hoveredIndex = index"
             @mouseleave="hoveredIndex = null"
             @focus="hoveredIndex = index"
             @blur="hoveredIndex = null"
             @click="togglePinned(index)"
+            @keydown.enter.prevent="togglePinned(index)"
+            @keydown.space.prevent="togglePinned(index)"
           >
             <td>{{ index + 1 }}</td>
             <td>{{ row.stop_loss_pct }}%</td>

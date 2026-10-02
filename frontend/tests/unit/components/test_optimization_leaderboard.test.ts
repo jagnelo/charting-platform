@@ -30,8 +30,21 @@ describe('OptimizationLeaderboard', () => {
     expect(wrapper.text()).toContain('Best')
     expect(wrapper.text()).toContain('1.10R')
 
-    await wrapper.findAll('tbody tr')[0].trigger('click')
+    const firstRow = wrapper.findAll('tbody tr')[0]
+    expect(firstRow.attributes('tabindex')).toBe('0')
+    expect(firstRow.attributes('aria-selected')).toBe('false')
+
+    await firstRow.trigger('click')
     expect(wrapper.text()).toContain('Rank #1')
     expect(wrapper.text()).toContain('Stop 2%')
+    expect(firstRow.attributes('aria-selected')).toBe('true')
+
+    await firstRow.trigger('keydown', { key: 'Enter' })
+    expect(firstRow.attributes('aria-selected')).toBe('false')
+    expect(wrapper.find('.optimization-panel__detail').exists()).toBe(false)
+
+    await firstRow.trigger('keydown', { key: ' ' })
+    expect(firstRow.attributes('aria-selected')).toBe('true')
+    expect(wrapper.find('.optimization-panel__detail').exists()).toBe(true)
   })
 })
