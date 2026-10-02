@@ -49,10 +49,7 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -112,13 +109,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7dcde92c21cc6ab26d721a82059e91b62eab1408",
-  "implementation_sha": "075a733bef7f259cea8abcf1335c9051f6cd0cd6",
+  "head": "bc90fda2c70e82d0f7ebe98c0e8d43414910449d",
+  "implementation_sha": "eddce5b9d988c055edd3f94955fa57bc7cca11a3",
   "interrupted": false,
-  "last_checkpoint": "2026-10-02T00:16:00+01:00",
+  "last_checkpoint": "2026-10-02T21:38:46.042046+00:00",
   "last_human_progress_update": "2026-10-02T21:33:44.529356+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue independent TC workstation UI and Study/Strategy slices while preserving the protected visual policy; keep provider/ETF consumer integration deferred until both branches reach staging, then reconcile shared paths and rerun the exact-tip gate.",
+  "next_action": "Continue comparing mapped V25 chart interactions and TC-owned Study/Strategy behavior; implement the next independent gap, keep protected screenshot policies unchanged, and wait for provider/ETF changes to reach staging before integration.",
   "plan_hash": "fc44a7eaa17c18b730dc8ef458abb989b6e29dd9769032b41da2d5edef00196f",
   "planning_required": false,
   "planning_state": "ready",
@@ -141,11 +138,11 @@
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "36937133b00607ada164fe768d99f446853abc47",
-    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..36937133b00607ada164fe768d99f446853abc47",
-    "failure_category": "A previous exact payload was rejected by the private-origin safeguard; this current pending range has not been pushed and remains held without exact-payload authorization; read-only remote lookup succeeds",
-    "head_at_product_checkpoint": "7e927a1f03d72720dab9abb9842ecb7352729b96",
-    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..7e927a1f03d72720dab9abb9842ecb7352729b96",
+    "current_local_head": "bc90fda2c70e82d0f7ebe98c0e8d43414910449d",
+    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..bc90fda2c70e82d0f7ebe98c0e8d43414910449d",
+    "failure_category": "The branch remains unpushed under the existing private-origin safeguard; this session made no push attempt and only committed within the assigned local worktree.",
+    "head_at_product_checkpoint": "eddce5b9d988c055edd3f94955fa57bc7cca11a3",
+    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..eddce5b9d988c055edd3f94955fa57bc7cca11a3",
     "remote": "origin",
     "remote_tracking_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
     "status": "committed_locally_pending_push"
