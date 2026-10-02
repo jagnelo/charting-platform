@@ -1267,12 +1267,16 @@ client never treats an empty local ledger as zero Binance usage.
   credits reset on the first day of each month, regardless of billing date;
   the runtime therefore models the pool as a UTC calendar-month window.
 - `fetch_account_usage()` calls the documented `/key` endpoint and validates
-  the returned plan, minute limit, monthly limit, and
-  `current_total_monthly_calls + current_remaining_monthly_calls` invariant.
-  The monthly native observation is the only path that can reconcile a
-  current account baseline; no local zero is assumed. The endpoint does not
-  necessarily return minute remaining/reset data, so that dimension remains
-  non-reconcilable unless the response supplies it.
+  both the plan/account fields and the configured-key fields:
+  `api_key_rate_limit_request_per_minute`, `api_key_monthly_call_credit`, and
+  `api_key_current_total_monthly_calls`. Routing uses the key-specific pool;
+  plan/account counters are retained as separate observation dimensions, and
+  `current_total_monthly_calls + current_remaining_monthly_calls` is checked
+  independently. The key-specific monthly native observation is the only path
+  that can reconcile the configured account baseline; no local zero is
+  assumed. The endpoint does not necessarily return minute remaining/reset
+  data, so that dimension remains non-reconcilable unless the response supplies
+  it.
 - The configured Demo credential was live-checked on 2026-10-02 and returned
   HTTP 401 (`10005`) for `/key`. This is recorded as an expected entitlement
   denial, not a successful usage snapshot. The adapter is ready for a key/plan

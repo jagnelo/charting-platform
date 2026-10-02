@@ -4,9 +4,12 @@
 
 - `CoinGeckoProvider.fetch_account_usage()` now calls the documented `/key`
   usage endpoint and validates the returned plan, per-minute entitlement,
-  monthly credit limit, and monthly used/remaining reconciliation. The native
-  monthly observation is persisted as the provider account baseline; no local
-  zero is fabricated. Fixture coverage includes a valid snapshot and malformed
+  monthly credit limit, and monthly used/remaining reconciliation. It also
+  validates the documented API-key-specific minute/monthly limits and key
+  monthly counter; routing uses that key-specific pool while plan/account
+  counters remain separate observation dimensions. The native key-monthly
+  observation is persisted as the provider account baseline; no local zero is
+  fabricated. Fixture coverage includes a valid snapshot and malformed
   counter rejection.
 - The operation is registered in the CoinGecko quota/cost contract and the
   manifest-driven account-usage live matrix.

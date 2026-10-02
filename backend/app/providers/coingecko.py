@@ -186,23 +186,18 @@ class CoinGeckoProvider:
                 "CoinGecko usage monthly counters do not reconcile to the declared limit",
             )
 
-        key_rate_limit = payload.get("api_key_rate_limit_request_per_minute")
-        if key_rate_limit is not None:
-            if isinstance(key_rate_limit, bool) or not isinstance(key_rate_limit, int) or key_rate_limit <= 0:
-                raise ProviderResponseError(
-                    self.name,
-                    "CoinGecko usage returned an invalid API-key minute limit",
-                )
-            account_rate_limit = min(account_rate_limit, key_rate_limit)
-        key_monthly_limit = payload.get("api_key_monthly_call_credit")
-        if key_monthly_limit is not None and (
-            isinstance(key_monthly_limit, bool)
-            or not isinstance(key_monthly_limit, int)
-            or key_monthly_limit <= 0
-        ):
+        # CoinGecko exposes both plan/account-wide and API-key-specific pools.
+        # The configured credential is the routing scope, so key-specific
+        # limits and consumption are authoritative for admission. Preserve
+        # the plan/account counters separately instead of silently collapsing
+        # two provider pools into one.
+        key_rate_limit = positive_integer("api_key_rate_limit_request_per_minute")
+        key_monthly_limit = positive_integer("api_key_monthly_call_credit")
+        key_monthly_used = nonnegative_integer("api_key_current_total_monthly_calls")
+        if key_monthly_used > key_monthly_limit:
             raise ProviderResponseError(
                 self.name,
-                "CoinGecko usage returned an invalid API-key monthly limit",
+                "CoinGecko API-key monthly calls exceed the declared key limit",
             )
 
         observed_at = datetime.now(UTC)
@@ -219,7 +214,7 @@ class CoinGeckoProvider:
                     self.name,
                     "CoinGecko returned an invalid minute remaining header",
                 ) from exc
-            if parsed_minute_remaining < 0 or parsed_minute_remaining > account_rate_limit:
+            if parsed_minute_remaining < 0 or parsed_minute_remaining > key_rate_limit:
                 raise ProviderResponseError(
                     self.name,
                     "CoinGecko returned an invalid minute remaining header",
@@ -229,16 +224,31 @@ class CoinGeckoProvider:
             ProviderAccountUsageDimension(
                 name="calls_per_minute",
                 unit="requests",
-                limit=account_rate_limit,
+                limit=key_rate_limit,
                 remaining=parsed_minute_remaining,
                 consumed=(
-                    account_rate_limit - parsed_minute_remaining
+                    key_rate_limit - parsed_minute_remaining
                     if parsed_minute_remaining is not None
                     else None
                 ),
             ),
             ProviderAccountUsageDimension(
                 name="calls_per_month",
+                unit="credits",
+                limit=key_monthly_limit,
+                remaining=key_monthly_limit - key_monthly_used,
+                consumed=key_monthly_used,
+                reset_at=next_month,
+            ),
+            ProviderAccountUsageDimension(
+                name="calls_per_minute_plan",
+                unit="requests",
+                limit=account_rate_limit,
+                remaining=None,
+                consumed=None,
+            ),
+            ProviderAccountUsageDimension(
+                name="calls_per_month_plan",
                 unit="credits",
                 limit=monthly_limit,
                 remaining=monthly_remaining,
@@ -250,9 +260,9 @@ class CoinGeckoProvider:
             provider=self.name,
             observed_at=observed_at,
             unit="credits",
-            limit=monthly_limit,
-            remaining=monthly_remaining,
-            consumed=monthly_used,
+            limit=key_monthly_limit,
+            remaining=key_monthly_limit - key_monthly_used,
+            consumed=key_monthly_used,
             reset_at=next_month,
             account_plan=plan.strip() if isinstance(plan, str) and plan.strip() else None,
             dimensions=dimensions,

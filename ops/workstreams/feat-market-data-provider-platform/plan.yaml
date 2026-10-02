@@ -169,6 +169,13 @@ remaining_gaps:
     contracts, legal/venue/capability controls, and target deployment/CI
     secret stores. No unsafe fallback or prior-usage inference was introduced.
   - >-
+    2026-10-02 CoinGecko account-usage contract correction: the adapter now
+    validates and routes from the documented API-key-specific minute/monthly
+    limits and key monthly counter, while retaining plan/account counters as
+    separate observation dimensions. Focused provider/configuration tests pass
+    429/429 after this correction; the live Demo key entitlement denial and
+    minute-baseline admission gap remain unchanged.
+  - >-
     2026-10-02 exact-head full safety preflight after CoinGecko admission at
     source 60abc3ea07d0da8e356e36b809f5efe4d93ab42d stopped before transport
     with 0/0 cases and zero provider requests. It records CoinGecko's
