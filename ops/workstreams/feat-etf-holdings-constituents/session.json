@@ -136,9 +136,9 @@
     "total": 14,
     "updated_at": "2026-10-02T11:48:40Z"
   },
-  "remote": "c816974babe6bf93da52b09b735477504806a7ff",
-  "remote_sha": "c816974babe6bf93da52b09b735477504806a7ff",
-  "remote_synchronized": false,
+  "remote": "e2810197c07b47da9c7dba61d8dfdcffcb190053",
+  "remote_sha": "e2810197c07b47da9c7dba61d8dfdcffcb190053",
+  "remote_synchronized": true,
   "schema": 2,
   "session_id": "e83b4e4f-2c58-4ace-949e-cbd7155927e5",
   "state": "checkpointed",
