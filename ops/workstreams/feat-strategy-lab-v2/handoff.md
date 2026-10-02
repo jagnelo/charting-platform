@@ -2,6 +2,32 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-02 - Bounded SDK invocation-context stream protocol
+
+Added `iter_event_tape_contexts`, which yields one same-time SDK context at a
+time while retaining only declared rolling histories and the current event
+batch. Added a versioned JSONL invocation-context protocol that writes and
+reads one context record at a time, validates strict chronology and contiguous
+record indexes, rejects oversized rows/streams, and preserves the existing
+duplicate-field and non-finite JSON protections. The batch APIs remain
+available for compatibility.
+
+At clean source SHA `446288c20ecf75af6258a46b573fc49d105824aa`, all 1,079
+Strategy Lab v2 tests passed; Ruff and MyPy across 325 source files passed;
+the five changed Python files passed format checks; and `git diff --check` was
+clean. This source commit is pushed and local `HEAD` matches
+`origin/feat/strategy-lab-v2`.
+
+This is a streaming boundary, not yet end-to-end bounded backtesting: trial
+assembly still accepts/materializes an in-memory frozen tape, builds the full
+native event tape and context batch, and embeds them in the runtime bundle.
+The next implementation slice must bind verified event/context stream
+artifacts into the runtime input and consume them in the isolated Nautilus
+worker through catalog chunks. Exact-pinned RC5 remains eligible for local
+research; full platform conformance and event-tape parity remain gates for
+authoritative results and broker-free shadow activation. No stable 2.x tag,
+parallel worktree, or provider/ETF/TC2000 staging change blocks this work.
+
 ## 2026-10-02 - Pinned Nautilus v2 qualification policy
 
 The Strategy Lab does not wait for an upstream stable 2.x tag. An exact-pinned
