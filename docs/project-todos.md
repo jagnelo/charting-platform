@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-head market-event rotation validation
+
+- [x] At exact source `8d4a765e2`, the complete branch-owned non-ETF unit
+      inventory passed `1,911/1,911` in `150.01s` with 37 existing dependency
+      warnings.
+- [x] At the same exact source, Docker PostgreSQL/Redis integration passed
+      `386/386` in `764.43s` with 57 existing dependency warnings. Isolated
+      testcontainers resources were cleaned without a host-wide prune and no
+      provider credentials or external provider calls were used.
+- [ ] External provider-specific quota/legal/source admissions remain separate
+      gates; this validation does not convert unknown pools into routable ones.
+
 ### 2026-10-02 — Exact-source bounded live provider coverage after rotation
 
 - [x] At exact source `3b2238d00`, bounded manifest-driven live coverage passed:

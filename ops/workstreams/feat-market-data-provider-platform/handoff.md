@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-head market-event rotation validation
+
+- At exact source `8d4a765e2`, the complete branch-owned non-ETF unit inventory
+  passed `1,911/1,911` in `150.01s` with 37 existing dependency warnings.
+- At the same exact source, Docker PostgreSQL/Redis integration passed `386/386`
+  in `764.43s` with 57 existing dependency warnings. Testcontainers cleanup
+  removed only isolated resources; no host-wide prune, provider credentials, or
+  external provider calls were used.
+- This validates the durable provider-rotation fix for capped market-event
+  refreshes. Provider-specific quota/legal/source admissions remain unchanged.
+
 ## 2026-10-02 exact-source bounded live provider coverage after rotation
 
 - At exact source `3b2238d00`, the bounded manifest-driven live matrix passed

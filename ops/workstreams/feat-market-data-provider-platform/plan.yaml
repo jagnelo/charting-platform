@@ -162,6 +162,12 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact source 8d4a765e2 passed the complete branch-owned non-ETF
+    unit inventory (1911/1911 in 150.01s, 37 warnings) and Docker PostgreSQL/
+    Redis integration (386/386 in 764.43s, 57 warnings). The durable
+    market-event provider-rotation fix is exact-head validated; external
+    provider quota/legal/source admissions remain separate and fail-closed.
+  - >-
     2026-10-02 exact source 3b2238d00 bounded manifest-driven live coverage
     passed Alpaca 7/7 (8 requests), Binance 3/3 (7), OpenFIGI 3/3 (3), Nasdaq
     Trader 1/1 (2), MarketData.app account usage 1/1 (1), EODHD account usage
