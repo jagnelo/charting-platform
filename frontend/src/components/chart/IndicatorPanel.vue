@@ -46,7 +46,12 @@
               v-for="wl in membership!.watchlists"
               :key="wl.id"
               class="list-row membership-row"
+              role="button"
+              tabindex="0"
+              :aria-label="`Open watchlist ${wl.name}`"
               @click="onWatchlistClick(wl.id)"
+              @keydown.enter.prevent="onWatchlistClick(wl.id)"
+              @keydown.space.prevent="onWatchlistClick(wl.id)"
             >
               <WorkstationGlyph kind="list" />
               <span class="row-name">{{ wl.name }}</span>
@@ -81,7 +86,12 @@
               v-for="sc in activeScreeners"
               :key="sc.id"
               class="list-row membership-row"
+              role="button"
+              tabindex="0"
+              :aria-label="`Open screener ${sc.name}`"
               @click="onScreenerClick(sc.id)"
+              @keydown.enter.prevent="onScreenerClick(sc.id)"
+              @keydown.space.prevent="onScreenerClick(sc.id)"
             >
               <WorkstationGlyph kind="scan" />
               <span class="row-name">{{ sc.name }}</span>

@@ -10,15 +10,18 @@ import { useDrawingsStore } from '@/stores/drawings'
 import { usePanelStore } from '@/stores/chart'
 import { usePresetsStore } from '@/stores/presets'
 import { useRadarStore } from '@/stores/radar'
+import { useWatchlistStore } from '@/stores/watchlist'
 
+const routerPush = vi.hoisted(() => vi.fn())
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: routerPush }),
 }))
 
 describe('IndicatorPanel section disclosures', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.restoreAllMocks()
+    routerPush.mockReset()
   })
 
   it('exposes keyboard-operable controls linked to each visible section body', async () => {
@@ -67,6 +70,18 @@ describe('IndicatorPanel section disclosures', () => {
     expect(panelToggle.attributes('aria-expanded')).toBe('false')
 
     expect(api.get).toHaveBeenCalledWith('/instruments/7/membership')
+    const watchlistRow = wrapper.get('.membership-row[aria-label="Open watchlist Core"]')
+    expect(watchlistRow.attributes('role')).toBe('button')
+    expect(watchlistRow.attributes('tabindex')).toBe('0')
+    await watchlistRow.trigger('keydown', { key: 'Enter' })
+    expect(useWatchlistStore().focusRequest).toBe(1)
+
+    const screenerRow = wrapper.get('.membership-row[aria-label="Open screener Momentum"]')
+    expect(screenerRow.attributes('role')).toBe('button')
+    expect(screenerRow.attributes('tabindex')).toBe('0')
+    await screenerRow.trigger('keydown', { key: ' ' })
+    expect(routerPush).toHaveBeenCalledWith('/screener?selectedId=2')
+
     const headers = wrapper.findAll('.section-header')
     expect(headers).toHaveLength(6)
     for (const header of headers) {
