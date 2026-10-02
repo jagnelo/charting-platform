@@ -162,6 +162,12 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact source 9a8b71f4d passed the complete branch-owned non-ETF
+    unit inventory (1911/1911 in 137.39s, 37 warnings) and Docker PostgreSQL/
+    Redis integration (386/386 in 823.42s, 57 warnings) after correcting
+    provider-rotation state to persist across changing scheduled windows.
+    External provider quota/legal/source admissions remain separate gates.
+  - >-
     2026-10-02 exact source 07d2b1e05 full provider safety preflight stopped
     before transport with 0/0 cases and zero external requests. The receipt is
     appended to validation.jsonl. Provider-specific baseline/cost/byte/reset,

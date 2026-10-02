@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-head cross-window market-event rotation validation
+
+- [x] At exact source `9a8b71f4d`, the complete branch-owned non-ETF unit
+      inventory passed `1,911/1,911` in `137.39s` with 37 existing dependency
+      warnings. Docker PostgreSQL/Redis integration passed `386/386` in
+      `823.42s` with 57 existing dependency warnings.
+- [x] The integration session cleaned only its isolated testcontainers
+      resources; no host-wide prune, provider credentials, or external provider
+      calls were used.
+- [ ] External provider-specific quota/legal/source admissions remain separate
+      gates and are not widened by this code-level fairness correction.
+
 ### 2026-10-02 — Exact-current provider safety preflight after market-event rotation
 
 - [x] At exact source `07d2b1e05`, the full provider manifest stopped before
