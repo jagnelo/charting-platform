@@ -29,6 +29,17 @@
       gap, not a provider failure; the prior exact-head complete unit receipt
       is retained separately in the handoff.
 
+### 2026-10-02 — Exact-head full safety preflight after CoinGecko admission
+
+- [x] The full manifest was re-run at source
+      `60abc3ea07d0da8e356e36b809f5efe4d93ab42d`. It stopped before transport
+      with `0/0` cases and zero provider requests.
+- [ ] The receipt explicitly includes CoinGecko's unresolved minute baseline
+      (the native `/key` denial does not provide remaining/reset evidence),
+      plus the existing provider-specific quota/cost/byte, legal, venue,
+      capability, and deployment-secret gaps. No generic limit, prior usage,
+      or local zero was inferred.
+
 ### 2026-10-02 — Exact-head full safety preflight
 
 - [x] The full manifest was re-run after the Kraken admission audit at source

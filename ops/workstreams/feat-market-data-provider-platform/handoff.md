@@ -33,6 +33,17 @@
   current exact implementation evidence; the existing prior exact-head
   branch receipts remain the last complete all-unit evidence.
 
+## 2026-10-02 Exact-head full safety preflight after CoinGecko admission
+
+- The full manifest was re-run at source
+  `60abc3ea07d0da8e356e36b809f5efe4d93ab42d` and stopped before transport:
+  `0/0` cases and zero provider requests.
+- The current receipt explicitly shows why CoinGecko ordinary search/profile
+  routing remains blocked: the configured Demo key's `/key` denial does not
+  provide a current per-minute remaining/reset baseline. It also retains the
+  existing provider-specific quota/cost/byte, legal, venue, capability, and
+  deployment-secret gaps. No generic limit or prior usage was inferred.
+
 ## 2026-10-02 Exact-head full safety preflight
 
 - The full manifest was re-run at source

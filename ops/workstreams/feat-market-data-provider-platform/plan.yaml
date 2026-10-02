@@ -162,6 +162,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact-head full safety preflight after CoinGecko admission at
+    source 60abc3ea07d0da8e356e36b809f5efe4d93ab42d stopped before transport
+    with 0/0 cases and zero provider requests. It records CoinGecko's
+    unresolved active per-minute baseline (the configured Demo key's `/key`
+    denial supplies no remaining/reset evidence), together with the existing
+    provider-specific quota/cost/byte, legal, venue, capability, and
+    deployment-secret gaps. No generic limit, prior usage, or local zero was
+    inferred.
+  - >-
     2026-10-02 validation status: the provider/configuration-focused unit
     matrix passed 955/955 without coverage reporting and Docker PostgreSQL/
     Redis integration passed 386/386 in 756.15s at the current implementation
