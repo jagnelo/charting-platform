@@ -68,6 +68,7 @@ owned_paths:
   - frontend/src/components/chart/LayoutPicker.vue
   - frontend/src/components/chart/InstrumentInfoPanel.vue
   - frontend/src/components/chart/IndicatorPanel.vue
+  - frontend/src/components/chart/DrawingToolbar.vue
   - frontend/src/components/alerts/AlertForm.vue
   - frontend/src/components/strategy/
   - frontend/src/stores/workspace.ts
@@ -275,7 +276,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_chart_link_menu_checkpointed
+  current_phase: R6_drawing_toolbar_checkpointed
   next_action: >-
     Verify the protected visual mismatch against the expected seeded baseline
     in a matching browser/font environment without changing snapshots or visual
@@ -297,6 +298,7 @@ progress:
     remains a separate operational hold under the recorded private-origin
     safeguard.
 historical_implementation_records:
+  - "Product commit cb1e3e6a3 exposes aria-pressed state for the TC-owned Drawing Toolbar popup tools while preserving the existing single-tool selection, keyboard menu navigation, popup dismissal, and visual styling. Focused DrawingToolbar accessibility coverage passed 1/1; full frontend Vitest passed 128 files / 1,158 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. The scope guard also identified and the plan now records the pre-existing TC-owned DrawingToolbar path in the allowlist. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 39c14c38c gives the Chart Panel's single-choice symbol-link menu explicit menuitemradio semantics and aria-checked state for None and each link group while preserving the default Blue selection, link updates, dismissal behavior, and visual layout. Focused ChartPanel lifecycle coverage passed 4/4; full frontend Vitest passed 127 files / 1,157 tests; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation, scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 31da94261 makes TC-owned chart membership entries keyboard-operable: watchlist and active-screener rows now expose button semantics, stable accessible names, and Enter/Space activation while preserving existing click navigation, focus requests, row content, and styling. Focused IndicatorPanel coverage passed 1/1; full frontend Vitest passed 127 files / 1,157 tests; frontend type-check and production build passed with the existing large-chunk warning; the TC scope guard, scope self-tests, workstream validation, and git diff --check passed. The scope guard also revealed and the plan now records the pre-existing TC-owned AlertForm path in the allowlist. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 797b29339 exposes aria-pressed state for Strategy Lab run-mode, position-evolution value-mode, and return-period toggle groups while preserving labels, active styling, state changes, run payloads, result projections, and visual layout. Focused Strategy Lab coverage passed 34/34; full frontend Vitest passed 1,136/1,136; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."

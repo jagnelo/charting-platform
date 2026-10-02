@@ -1,5 +1,25 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — R6 Drawing Toolbar selection semantics
+
+Product commit `cb1e3e6a3` exposes `aria-pressed` state for the Drawing
+Toolbar popup tools while preserving the existing single-tool selection,
+keyboard menu navigation, popup dismissal, and visual styling.
+
+Focused DrawingToolbar accessibility coverage passed `1/1`; the full serial
+frontend suite passed `128/128` files and `1,158/1,158` tests; `vue-tsc` and
+the production build passed with the existing large-chunk warning; TC scope
+validation, scope self-tests, workstream validation, and `git diff --check`
+passed. The scope guard also identified a pre-existing TC-owned
+`DrawingToolbar.vue` path missing from the allowlist; that durable plan entry
+was added. No provider-platform, ETF, visual baseline, threshold, mask, skip,
+fallback, or acceptance policy changed. No other worktree was mutated.
+
+The broader goal remains active: provider/ETF consumer integration is still
+sequenced behind both branches reaching staging, followed by line-level shared
+path reconciliation and a clean exact-tip gate. The protected visual replay
+also remains pending in a matching browser/font environment.
+
 ## 2026-10-02 — R6 Chart Panel link-menu selection semantics
 
 Product commit `39c14c38c` gives the Chart Panel's single-choice symbol-link
