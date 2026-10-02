@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-10-02 — Current-source focused provider live evidence
+
+- [x] Bounded current-source live slices passed for Alpaca (`7/7`), Binance
+      (`3/3`), OpenFIGI (`3/3`), MarketData.app account usage (`1/1`), EODHD
+      account usage (`1/1`), and Twelve Data account usage (`1/1`).
+- [x] The approved Dinari Sandbox canary passed (`1/1`, 14 requests under the
+      20-request cap) with non-persisting isolation. Redacted receipts are in
+      the branch validation ledger; no secrets or payloads were persisted.
+- [ ] Providers with unknown active baselines, incomplete byte/cost/reset
+      contracts, legal/venue admission, or missing target secret stores remain
+      fail-closed and are not represented as live passes.
+
 ### 2026-10-02 — Provider-symbol lifecycle history completion
 
 - [x] Persist provider-symbol `effective_at`, `known_at`, and `retired_at`

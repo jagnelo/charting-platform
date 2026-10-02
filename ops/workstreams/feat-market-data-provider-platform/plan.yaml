@@ -162,6 +162,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 current-source focused live evidence at source
+    fda33e73cea2a01a12c92220a977169d0d5f336f: Alpaca 7/7, Binance 3/3,
+    OpenFIGI 3/3, MarketData.app account usage 1/1, EODHD account usage 1/1,
+    Twelve Data account usage 1/1, and the approved Dinari Sandbox canary 1/1
+    (14 requests under the 20-request cap) all passed. Redacted receipts are
+    durable; no secrets or payloads were persisted. This closes the currently
+    admissible focused slices; providers with unknown active baselines,
+    incomplete byte/cost/reset contracts, legal/venue admission, or missing
+    target secret stores remain blocked below.
+  - >-
     2026-10-02 exact-current live safety preflight after provider-symbol
     lifecycle completion: source 168611166e6ce3e6f9904f0b90f7ae2d30d7ca41
     stopped before transport (0/0 cases, zero provider requests, exit 2).

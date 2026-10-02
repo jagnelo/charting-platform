@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 Current-source focused live evidence
+
+- The provider-specific safety runner admitted and completed these bounded
+  slices at source `fda33e73cea2a01a12c92220a977169d0d5f336f`:
+  Alpaca `7/7` (8 HTTP requests), Binance `3/3` (7 requests), OpenFIGI
+  `3/3` (3 requests), MarketData.app native account usage `1/1`, EODHD native
+  account usage `1/1`, and Twelve Data native account usage `1/1`.
+- The explicitly authorized non-persisting Dinari Sandbox canary also passed
+  `1/1` (14 requests, below the configured 20-request cap). Sandbox payloads
+  remained isolated from canonical/usage/alert/analytics persistence.
+- Every receipt is redacted and appended to `validation.jsonl`; no secrets or
+  provider payloads were written to Git. The full matrix still correctly stops
+  before transport because other providers have unknown active baselines,
+  unresolved byte/cost/reset contracts, or missing legal/venue/secret-store
+  admission. Those blockers remain explicit rather than being bypassed.
+
 ## 2026-10-02 Exact-current live safety preflight after lifecycle completion
 
 - At source `168611166e6ce3e6f9904f0b90f7ae2d30d7ca41`, the full manifest
