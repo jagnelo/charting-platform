@@ -412,6 +412,7 @@ def _normalize_experiment(attributes: Mapping[str, Any]) -> ResourceDomainNormal
         "seed",
         "metric_definition_version",
         "engine_contract",
+        "strategy_package_fingerprints",
         "resource_id",
         "id",
     }
@@ -433,6 +434,9 @@ def _normalize_experiment(attributes: Mapping[str, Any]) -> ResourceDomainNormal
     engine_contract = attributes.get("engine_contract", {})
     if not isinstance(engine_contract, Mapping):
         raise ValueError("experiment engine_contract must be a mapping")
+    package_bindings = attributes.get("strategy_package_fingerprints", {})
+    if not isinstance(package_bindings, Mapping):
+        raise ValueError("experiment strategy_package_fingerprints must be a mapping")
     seed = attributes.get("seed")
     if not isinstance(seed, int) or isinstance(seed, bool):
         raise ValueError("experiment seed must be an integer")
@@ -446,6 +450,7 @@ def _normalize_experiment(attributes: Mapping[str, Any]) -> ResourceDomainNormal
             seed=seed,
             metric_definition_version=attributes["metric_definition_version"],
             engine_contract=engine_contract,
+            strategy_package_fingerprints=package_bindings,
         )
     except KeyError as error:
         raise ValueError(f"experiment attribute is required: {error.args[0]}") from error
@@ -461,6 +466,7 @@ def _normalize_experiment(attributes: Mapping[str, Any]) -> ResourceDomainNormal
         "seed": experiment.seed,
         "metric_definition_version": experiment.metric_definition_version,
         "engine_contract": experiment.engine_contract,
+        "strategy_package_fingerprints": experiment.strategy_package_fingerprints,
     }
     if api_ids:
         normalized["resource_id"] = api_ids[0]

@@ -201,6 +201,12 @@ def assemble_nautilus_trial_runtime_input(
         )
     if strategy_package.strategy_fingerprint != strategy.fingerprint:
         raise NautilusTrialAssemblyError("strategy package references a different strategy version")
+    if experiment.strategy_package_fingerprints.get(strategy.fingerprint) != (
+        strategy_package.fingerprint
+    ):
+        raise NautilusTrialAssemblyError(
+            "strategy package does not match its immutable experiment binding"
+        )
     if strategy_package.sdk_version != strategy.sdk_version:
         raise NautilusTrialAssemblyError("strategy package SDK version differs from its strategy")
     if content_digest(strategy_source) != strategy.source_digest:

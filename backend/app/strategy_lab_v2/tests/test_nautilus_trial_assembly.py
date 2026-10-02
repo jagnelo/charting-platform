@@ -148,25 +148,6 @@ def _inputs(*, scenario=None, evaluation_window=None):
         "USD",
         (component,),
     )
-    experiment = ExperimentDefinition(
-        "experiment-1",
-        portfolio.fingerprint,
-        (strategy.fingerprint,),
-        snapshot.fingerprint,
-        snapshot.capability_contract_digest,
-        7,
-        "metrics-v1",
-    )
-    trial = ScientificTrial.create(
-        experiment_fingerprint=experiment.fingerprint,
-        snapshot_fingerprint=snapshot.fingerprint,
-        preflight_report=report,
-        parameter_set={"window": 20},
-        scenario=scenario,
-        seed=13,
-        evaluation_window=evaluation_window,
-    )
-    attempt = RunAttempt("attempt-1", trial.trial_id, 1, AttemptState.QUEUED, BASE)
     package = StrategyPackage(
         "package-1",
         strategy.fingerprint,
@@ -179,6 +160,26 @@ def _inputs(*, scenario=None, evaluation_window=None):
         strategy.sdk_version,
         "cp312-linux-x86_64",
     )
+    experiment = ExperimentDefinition(
+        "experiment-1",
+        portfolio.fingerprint,
+        (strategy.fingerprint,),
+        snapshot.fingerprint,
+        snapshot.capability_contract_digest,
+        7,
+        "metrics-v1",
+        strategy_package_fingerprints={strategy.fingerprint: package.fingerprint},
+    )
+    trial = ScientificTrial.create(
+        experiment_fingerprint=experiment.fingerprint,
+        snapshot_fingerprint=snapshot.fingerprint,
+        preflight_report=report,
+        parameter_set={"window": 20},
+        scenario=scenario,
+        seed=13,
+        evaluation_window=evaluation_window,
+    )
+    attempt = RunAttempt("attempt-1", trial.trial_id, 1, AttemptState.QUEUED, BASE)
     instrument = NautilusInstrumentDefinition(
         "US.AAPL",
         "AAPL",
@@ -287,6 +288,45 @@ def test_trial_assembly_rejects_cross_attempt_and_wrong_source(tmp_path) -> None
         assemble_nautilus_trial_runtime_input(
             **values,
             artifact_store=LocalArtifactStore(tmp_path / "source-artifacts"),
+        )
+
+
+def test_trial_assembly_rejects_a_package_not_pinned_by_the_experiment(tmp_path) -> None:
+    values = _inputs()
+    values["strategy_package"] = replace(
+        values["strategy_package"],
+        archive_digest=content_digest("different-strategy-package"),
+    )
+
+    with pytest.raises(NautilusTrialAssemblyError, match="immutable experiment binding"):
+        assemble_nautilus_trial_runtime_input(
+            **values,
+            artifact_store=LocalArtifactStore(tmp_path / "package-artifacts"),
+        )
+
+
+def test_trial_assembly_rejects_an_executable_experiment_without_package_binding(tmp_path) -> None:
+    values = _inputs()
+    experiment = replace(values["experiment"], strategy_package_fingerprints={})
+    prior_trial = values["trial"]
+    trial = ScientificTrial.create(
+        experiment_fingerprint=experiment.fingerprint,
+        snapshot_fingerprint=prior_trial.snapshot_fingerprint,
+        preflight_report=prior_trial.preflight_report,
+        parameter_set=prior_trial.parameter_set,
+        scenario=prior_trial.scenario,
+        seed=prior_trial.seed,
+        randomization=prior_trial.randomization,
+        evaluation_window=prior_trial.evaluation_window,
+    )
+    values["experiment"] = experiment
+    values["trial"] = trial
+    values["attempt"] = replace(values["attempt"], trial_id=trial.trial_id)
+
+    with pytest.raises(NautilusTrialAssemblyError, match="immutable experiment binding"):
+        assemble_nautilus_trial_runtime_input(
+            **values,
+            artifact_store=LocalArtifactStore(tmp_path / "unbound-package-artifacts"),
         )
 
 

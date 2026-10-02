@@ -638,6 +638,7 @@ class ExperimentDefinition:
     seed: int
     metric_definition_version: str
     engine_contract: Mapping[str, Any] = field(default_factory=dict)
+    strategy_package_fingerprints: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         _nonempty(self.experiment_id, "experiment_id")
@@ -654,9 +655,34 @@ class ExperimentDefinition:
             require_sha256_digest(strategy_fingerprint, field_name="strategy_fingerprint")
         if len(set(strategies)) != len(strategies):
             raise ValueError("experiment strategy fingerprints must be unique")
+        package_bindings = self.strategy_package_fingerprints
+        if not isinstance(package_bindings, Mapping):
+            raise TypeError("experiment strategy package bindings must be a mapping")
+        if package_bindings:
+            if set(package_bindings) != set(strategies):
+                raise ValueError(
+                    "executable experiments must pin one package for every strategy version"
+                )
+            if any(not isinstance(key, str) for key in package_bindings):
+                raise ValueError("strategy package binding keys must be strategy fingerprints")
+            for strategy_fingerprint, package_fingerprint in package_bindings.items():
+                require_sha256_digest(
+                    strategy_fingerprint,
+                    field_name="strategy_package_binding_strategy_fingerprint",
+                )
+                require_sha256_digest(
+                    package_fingerprint,
+                    field_name="strategy_package_binding_package_fingerprint",
+                )
+            if len(set(package_bindings.values())) != len(package_bindings):
+                raise ValueError("experiment strategy package fingerprints must be unique")
         _nonempty(self.metric_definition_version, "metric_definition_version")
         object.__setattr__(self, "strategy_fingerprints", tuple(sorted(strategies)))
         object.__setattr__(self, "engine_contract", freeze_json(self.engine_contract))
+        frozen_package_bindings = freeze_json(package_bindings)
+        if not isinstance(frozen_package_bindings, Mapping):
+            raise TypeError("experiment strategy package bindings must be a mapping")
+        object.__setattr__(self, "strategy_package_fingerprints", frozen_package_bindings)
 
     @property
     def fingerprint(self) -> str:

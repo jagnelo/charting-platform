@@ -17,6 +17,7 @@ from app.strategy_lab_v2.capabilities import (
 from app.strategy_lab_v2.contracts import (
     AdjustmentMode,
     EventGranularity,
+    ExperimentDefinition,
     ProductClass,
     StrategyVersion,
 )
@@ -264,6 +265,10 @@ def test_portfolio_rejects_unknown_fields_and_overweight_components() -> None:
 def test_experiment_attributes_are_normalized_and_strategy_order_is_canonical() -> None:
     first = content_digest("strategy-one")
     second = content_digest("strategy-two")
+    package_bindings = {
+        first: content_digest("package-one"),
+        second: content_digest("package-two"),
+    }
     attributes = {
         "experiment_id": "momentum-search",
         "portfolio_fingerprint": content_digest("portfolio-v1"),
@@ -273,14 +278,38 @@ def test_experiment_attributes_are_normalized_and_strategy_order_is_canonical() 
         "seed": 42,
         "metric_definition_version": "strategy-lab.metrics.v1",
         "engine_contract": {"engine": "nautilus", "version": "v2"},
+        "strategy_package_fingerprints": package_bindings,
     }
 
     result = normalize_resource_attributes(ApiResourceType.EXPERIMENT, attributes)
 
     assert result.domain_fingerprint is not None
     assert result.attributes["strategy_fingerprints"] == tuple(sorted((first, second)))
+    assert result.attributes["strategy_package_fingerprints"] == package_bindings
     assert result.attributes["seed"] == 42
     assert result.attributes["engine_contract"]["version"] == "v2"
+
+    restored = rehydrate_resource_contract(ApiResourceType.EXPERIMENT, result.attributes)
+    assert isinstance(restored, ExperimentDefinition)
+    assert restored.strategy_package_fingerprints == package_bindings
+
+
+def test_experiment_rejects_incomplete_strategy_package_bindings() -> None:
+    first = content_digest("strategy-one")
+    second = content_digest("strategy-two")
+    attributes = {
+        "experiment_id": "momentum-search",
+        "portfolio_fingerprint": content_digest("portfolio-v1"),
+        "strategy_fingerprints": [first, second],
+        "snapshot_fingerprint": content_digest("snapshot-v1"),
+        "capability_contract_digest": content_digest("capability-v1"),
+        "seed": 42,
+        "metric_definition_version": "strategy-lab.metrics.v1",
+        "strategy_package_fingerprints": {first: content_digest("package-one")},
+    }
+
+    with pytest.raises(ValueError, match="one package for every strategy version"):
+        normalize_resource_attributes(ApiResourceType.EXPERIMENT, attributes)
 
 
 def test_experiment_rejects_non_integer_seed_and_unknown_fields() -> None:

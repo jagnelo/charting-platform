@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -8,7 +9,12 @@ import pytest
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import canonical_json
-from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention, StrategyPackage
+from app.strategy_lab_v2.contracts import (
+    ArtifactManifest,
+    ArtifactRetention,
+    ScientificTrial,
+    StrategyPackage,
+)
 from app.strategy_lab_v2.nautilus_trial_assembly import (
     assemble_nautilus_trial_runtime_input_from_package,
 )
@@ -47,6 +53,22 @@ def test_runtime_assembly_resolves_package_from_the_shared_artifact_store(tmp_pa
         sdk_version=strategy.sdk_version,
         runtime_abi="worker-abi-v1",
     )
+    experiment = replace(
+        values["experiment"],
+        strategy_package_fingerprints={strategy.fingerprint: package.fingerprint},
+    )
+    trial = values["trial"]
+    pinned_trial = ScientificTrial.create(
+        experiment_fingerprint=experiment.fingerprint,
+        snapshot_fingerprint=trial.snapshot_fingerprint,
+        preflight_report=trial.preflight_report,
+        parameter_set=trial.parameter_set,
+        scenario=trial.scenario,
+        seed=trial.seed,
+        randomization=trial.randomization,
+        evaluation_window=trial.evaluation_window,
+    )
+    attempt = replace(values["attempt"], trial_id=pinned_trial.trial_id)
     store = LocalArtifactStore(tmp_path / "artifacts")
     archive_manifest = ArtifactManifest(
         package.archive_digest,
@@ -59,6 +81,9 @@ def test_runtime_assembly_resolves_package_from_the_shared_artifact_store(tmp_pa
     store.publish(archive_manifest, archive_bytes)
 
     assembly_inputs = dict(values)
+    assembly_inputs["experiment"] = experiment
+    assembly_inputs["trial"] = pinned_trial
+    assembly_inputs["attempt"] = attempt
     assembly_inputs.pop("strategy_manifest")
     assembly_inputs.pop("strategy_source")
     assembly_inputs["strategy_package"] = package
