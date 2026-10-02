@@ -2,6 +2,44 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-02 - End-to-end pinned context-stream handoff
+
+Trial assembly no longer builds a full SDK context tuple or serialized batch.
+It streams `iter_event_tape_contexts` into a content-addressed pinned-input
+artifact, and the v2 runtime bundle binds that sidecar's manifest and context
+count while preserving the legacy v1 batch format for compatibility. The
+worker request and hardened Docker plan require the matching read-only mount
+and digest; the host verifies the exact mounted bytes before launch. The
+isolated CLI independently authenticates the bundle, attempt, snapshot,
+runtime version, sidecar descriptor, and sidecar bytes before passing the
+seekable file to the RC5 strategy bridge. Unapproved Docker mounts/environment
+options are rejected. The isolated CLI does not import host artifact-store or
+backend-only modules.
+
+At clean source SHA `8cb165aab6843c2bd3577b2aab17d59b7584decb`, all 1,093
+Strategy Lab v2 tests passed; Ruff and formatting checks passed; MyPy passed
+across 325 source files; and `git diff --check` was clean. A freshly built,
+wheel-checksum-pinned Nautilus `2.0.0rc5` image
+(`sha256:2ed9fb927087c1af483d05e8a24c50f7b656da0161c7a5a240e27eb2a255f436`)
+ran the real bundle/sidecar CLI and native engine under network-disabled,
+read-only, dropped-capability, no-new-privileges, unprivileged, memory/CPU/file
+size/PID-limited settings. It processed two same-time quotes, invoked the SDK
+once, produced one native order and one open position, and remained explicitly
+non-authoritative.
+
+This closes only the bounded SDK-context side of the runtime handoff. The
+frozen source `EventTape` and the native event tape are still fully
+materialized; the runtime result and invocation-result list are still
+materialized before artifact publication. Next, stream result records directly
+to bounded artifacts, then move native market events into verified
+content-addressed stream/catalog chunks consumed incrementally by RC5. After
+those data-plane seams, continue owner-scoped runtime hydration, instrument /
+venue / account adapters, atomic dispatch binding, target-position allocation
+and risk routing, and broad native conformance. Exact-pinned prereleases remain
+eligible for local testing; full conformance still gates authority, while
+stable-tag availability does not block development. Provider / ETF / TC2000
+shared-path work remains a later staging reconciliation gate only.
+
 ## 2026-10-02 - Streaming Strategy SDK runtime consumer
 
 Connected the context-stream protocol to the engine-neutral runtime CLI. It

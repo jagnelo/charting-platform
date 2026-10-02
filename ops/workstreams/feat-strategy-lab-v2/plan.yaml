@@ -792,38 +792,35 @@ progress:
     - strategy-lab-v2-disk-spooled-event-tape-artifact
     - strategy-lab-v2-bounded-invocation-context-stream-protocol
     - strategy-lab-v2-streaming-strategy-runtime-consumer
+    - strategy-lab-v2-nautilus-context-stream-sidecar-and-runtime-handoff
   total: 18
-  current_phase: strategy-lab-v2-streaming-strategy-runtime-consumer
+  current_phase: strategy-lab-v2-native-result-and-event-streaming
   current_blocker: >-
     No external product, market-data, or Nautilus release dependency blocks
     isolated implementation; stable Nautilus v2 is not required. Exact-pinned
     RC5 is supported for local compatibility work, and its streamed-context
-    adapter path now passes an isolated, no-network probe. It remains
-    non-authoritative pending full platform conformance. The required
+    bundle/sidecar CLI path now passes a hardened isolated native-engine probe.
+    It remains non-authoritative pending full platform conformance. The required
     full_stack_browser acceptance profile has not yet run and remains final
-    validation, not a development blocker.
-    The SDK worker emits a bounded checksummed context/result stream, and the
-    Nautilus adapter now validates and consumes context streams incrementally
-    by native callback time group while retaining the legacy batch contract.
-    The worker/CLI/bundle still do not pass a content-addressed stream sidecar;
-    engine input and native events remain fully materialized, and invocation
-    results are still accumulated for the legacy result wire. Owner-scoped
-    trial hydration, injected instrument/venue/account adapters, atomic worker
-    dispatch, target-position allocation/risk, and broader native product,
-    accounting, report, and replay conformance remain local implementation
-    work. Provider, ETF, and TC2000 staging boundaries apply only to their
-    eventual shared-contract integration.
+    validation, not a development blocker. The SDK context stream is now a
+    content-addressed sidecar carried through trial assembly, worker request,
+    read-only mount, and CLI verification. The frozen source EventTape and
+    native event tape remain fully materialized, as do runtime execution and
+    invocation-result wires. Owner-scoped trial hydration, injected
+    instrument/venue/account adapters, atomic worker dispatch, target-position
+    allocation/risk, and broader native product, accounting, reporting, and
+    replay conformance remain local implementation work. Provider, ETF, and
+    TC2000 staging boundaries apply only to their eventual shared-contract
+    integration.
   next_action: >-
-    Bind the bounded context stream as a verified content-addressed sidecar to
-    the compact Nautilus runtime manifest and worker request; make the isolated
-    CLI consume it and persist result streams without complete context/result
-    collections. Replace full native event-tape bundle materialization with
-    verified stream artifacts and RC5 catalog chunks; preserve same-time
-    ordering and test deterministic replay before authoritative output. Then
-    hydrate fingerprint-linked resources through owner-scoped reads, inject
-    canonical instrument and venue/account adapters, and bind runtime
-    references into atomic dispatch. Reconcile the injected Arrow decoder only
-    after the provider contract reaches staging. Continue target-position
-    allocation, broader native product/accounting/report conformance, and full
-    validation. Do not wait for a stable upstream tag or modify parallel
-    worktrees.
+    Stream Nautilus invocation-result records into a bounded content-addressed
+    artifact rather than accumulating the legacy result list/string. Then
+    replace full native event-tape bundle materialization with verified stream
+    artifacts and exact-pinned RC5 catalog chunks; preserve same-time ordering
+    and deterministic replay before authoritative output. Hydrate
+    fingerprint-linked resources through owner-scoped reads, inject canonical
+    instrument and venue/account adapters, and bind runtime references into
+    atomic dispatch. Reconcile the Arrow decoder only after the provider
+    contract reaches staging. Continue target-position allocation, broader
+    native product/accounting/report conformance, and full validation. Do not
+    wait for a stable upstream tag or modify parallel worktrees.
