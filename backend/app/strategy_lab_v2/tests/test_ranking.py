@@ -189,6 +189,28 @@ def test_missing_null_unversioned_and_incompatible_results_are_explicitly_exclud
     }
 
 
+def test_non_authoritative_engine_results_are_excluded_from_official_rankings() -> None:
+    authoritative = _rankable_result("0.10", parameter=1, attempt_id="attempt-authoritative")
+    compatibility = replace(
+        _rankable_result("0.90", parameter=2, attempt_id="attempt-compatibility"),
+        engine_authoritative=False,
+    )
+
+    ranking = descriptive_rank_results((authoritative, compatibility), metric_name="return")
+
+    assert ranking.eligible_results == 1
+    assert ranking.include_non_authoritative is False
+    assert ranking.exclusions[0].reason is RankingExclusionReason.NON_AUTHORITATIVE_ENGINE
+
+    exploratory = descriptive_rank_results(
+        (authoritative, compatibility),
+        metric_name="return",
+        include_non_authoritative=True,
+    )
+    assert exploratory.eligible_results == 2
+    assert exploratory.include_non_authoritative is True
+
+
 def test_duplicate_successful_attempts_for_one_trial_do_not_rank_twice() -> None:
     first = _rankable_result("0.10", parameter=1, attempt_id="attempt-one")
     duplicate = replace(

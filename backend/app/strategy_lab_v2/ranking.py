@@ -2,9 +2,9 @@
 
 Ranking is an explicit analysis view, not a profitability or statistical
 verdict. Results are compared only when their experiment context and metric
-calculation identity agree. Degraded preflight results are excluded by default
-and can be included only through an explicit caller choice with their label
-retained in every entry.
+calculation identity agree. Degraded preflight and non-authoritative engine
+results are excluded by default and can be included only through explicit
+caller choices with their labels retained in every entry.
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ class RankingDirection(StrEnum):
 
 
 class RankingExclusionReason(StrEnum):
+    NON_AUTHORITATIVE_ENGINE = "non_authoritative_engine"
     INELIGIBLE_PREFLIGHT = "ineligible_preflight"
     MISSING_METRIC = "missing_metric"
     NULL_METRIC = "null_metric"
@@ -99,6 +100,7 @@ class DescriptiveRanking:
     metric_calculation_fingerprint: str
     direction: RankingDirection
     include_degraded: bool
+    include_non_authoritative: bool
     total_results: int
     eligible_results: int
     entries: tuple[RankingEntry, ...]
@@ -122,6 +124,8 @@ class DescriptiveRanking:
             raise TypeError("metric_basis must be a MetricBasis")
         if not isinstance(self.include_degraded, bool):
             raise TypeError("include_degraded must be a bool")
+        if not isinstance(self.include_non_authoritative, bool):
+            raise TypeError("include_non_authoritative must be a bool")
         if not isinstance(self.total_results, int) or isinstance(self.total_results, bool) or self.total_results < 1:
             raise ValueError("total_results must be positive")
         if not isinstance(self.eligible_results, int) or isinstance(self.eligible_results, bool) or self.eligible_results < 0:
@@ -172,6 +176,7 @@ def descriptive_rank_results(
     metric_basis: MetricBasis = MetricBasis.NET,
     direction: RankingDirection = RankingDirection.MAXIMIZE,
     include_degraded: bool = False,
+    include_non_authoritative: bool = False,
 ) -> DescriptiveRanking:
     """Order compatible completed results by one finite metric value.
 
@@ -189,6 +194,8 @@ def descriptive_rank_results(
         raise TypeError("direction must be a RankingDirection")
     if not isinstance(include_degraded, bool):
         raise TypeError("include_degraded must be a bool")
+    if not isinstance(include_non_authoritative, bool):
+        raise TypeError("include_non_authoritative must be a bool")
     ordered_results = tuple(results)
     if not ordered_results:
         raise ValueError("ranking requires at least one result")
@@ -219,6 +226,17 @@ def descriptive_rank_results(
     exclusions: list[RankingExclusion] = []
     seen_trials: set[str] = set()
     for result in ordered_results:
+        if not include_non_authoritative and not result.engine_authoritative:
+            exclusions.append(
+                RankingExclusion(
+                    result.trial_id,
+                    result.attempt_id,
+                    result.fingerprint,
+                    RankingExclusionReason.NON_AUTHORITATIVE_ENGINE,
+                    "non-authoritative engine output is excluded from official rankings",
+                )
+            )
+            continue
         if result.trial_id in seen_trials:
             exclusions.append(
                 RankingExclusion(
@@ -343,6 +361,7 @@ def descriptive_rank_results(
         metric_calculation_fingerprint=baseline_calculation,
         direction=direction,
         include_degraded=include_degraded,
+        include_non_authoritative=include_non_authoritative,
         total_results=len(ordered_results),
         eligible_results=len(numbered),
         entries=numbered,

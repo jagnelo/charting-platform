@@ -6047,3 +6047,20 @@ implementation tip. Upstream tracking now resolves to the slash-named feature
 ref, the branch is exactly synchronized, and the session checkpoint records
 the current forward-envelope checkpoint. This was workflow metadata drift, not
 a Strategy Lab product or Nautilus dependency failure.
+
+## 2026-10-02 - Non-authoritative result provenance and ranking boundary
+
+`RunResultManifest` and `EngineResultEvidence` now carry an explicit
+`engine_authoritative` bit, included in reproduction identity and propagated
+through result materialization. Publication rejects manifests that are not
+bound to authoritative conformance evidence or whose authority bit disagrees
+with that evidence. Descriptive ranking excludes non-authoritative engine
+output by default with a typed exclusion reason; an explicit exploratory
+`include_non_authoritative=True` opt-in is available for RC compatibility
+analysis without confusing it with official ranking.
+
+Focused provenance/ranking/publication/materialization coverage passed 52
+tests. Package-wide validation passed 991 tests, Ruff, MyPy across 305 source
+files, diff validation, and workstream validation. This makes the existing
+RC policy enforceable in result data rather than relying only on runtime
+documentation or the publication gate.

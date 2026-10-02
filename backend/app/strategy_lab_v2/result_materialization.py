@@ -52,6 +52,7 @@ class EngineResultEvidence:
     metric_set_fingerprint: str
     artifact_content_digests: tuple[str, ...]
     observed_at: datetime
+    authoritative: bool = False
 
     def __post_init__(self) -> None:
         require_sha256_digest(self.trial_id, field_name="trial_id")
@@ -77,6 +78,8 @@ class EngineResultEvidence:
         if len(artifacts) != len(set(artifacts)):
             raise ValueError("engine result artifact digests must be unique")
         _aware(self.observed_at, "observed_at")
+        if not isinstance(self.authoritative, bool):
+            raise TypeError("engine result authoritative must be a boolean")
         object.__setattr__(self, "observed_at", self.observed_at.astimezone(UTC))
         object.__setattr__(self, "artifact_content_digests", tuple(sorted(artifacts)))
 
@@ -199,6 +202,7 @@ def materialize_run_result(
             "attempt_id": attempt.attempt_id,
             "created_at": created_at,
             "evidence": evidence,
+            "engine_authoritative": evidence.authoritative,
             "metric_set": metric_set,
             "output_artifacts": artifacts,
             "portfolio": portfolio,
@@ -245,6 +249,7 @@ def materialize_run_result(
         metric_set=metric_set,
         output_artifacts=artifacts,
         created_at=created_at,
+        engine_authoritative=evidence.authoritative,
     )
     candidate_fingerprint = manifest.fingerprint
     if existing is None:

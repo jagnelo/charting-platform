@@ -332,9 +332,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `ranking.py` provides deterministic descriptive ordering for completed
   results within one experiment and compatible snapshot, portfolio, engine,
   allocation, metric, unit, and calculation contexts. It excludes degraded
-  preflight, null, missing, unversioned, incompatible, and duplicate-trial
-  results by default, retains explicit exclusion reasons, and makes no
-  profitability or statistical inference claim.
+  preflight, non-authoritative engine, null, missing, unversioned, incompatible,
+  and duplicate-trial results by default; an explicit exploratory opt-in can
+  include non-authoritative engine output while retaining the exclusion label.
+  It makes no profitability or statistical inference claim.
 - `metrics.py` v6 computes Decimal account P&L/return, drawdown duration, Ulcer,
   annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
   historical VaR/expected shortfall, and trade outcome/streak summaries from

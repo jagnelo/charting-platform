@@ -31,6 +31,7 @@ def _inputs():
         result.metric_set.fingerprint,
         tuple(item.content_digest for item in result.output_artifacts),
         NOW,
+        True,
     )
     return result, evidence
 
@@ -172,5 +173,6 @@ def test_engine_evidence_canonicalizes_artifact_order() -> None:
         result.metric_set.fingerprint,
         (second, first),
         NOW,
+        True,
     )
     assert evidence.artifact_content_digests == tuple(sorted((first, second)))

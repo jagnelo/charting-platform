@@ -200,6 +200,7 @@ def _result() -> tuple[
         metric_set=metric_set,
         output_artifacts=(artifact,),
         created_at=NOW,
+        engine_authoritative=True,
     )
     integrity = verify_run_result_artifacts(
         result,
@@ -252,6 +253,14 @@ def test_result_publication_rejects_non_authoritative_or_unverified_inputs() -> 
     rejected = plan_result_publication(result, evidence, candidate, runtime, integrity)
     assert rejected.decision is ResultPublicationDecision.REJECT
     assert "engine_conformance_not_authoritative" in rejected.rejection_reasons
+
+    non_authoritative_manifest = replace(result, engine_authoritative=False)
+    rejected_manifest = plan_result_publication(
+        non_authoritative_manifest, evidence, conformance, runtime, integrity
+    )
+    assert rejected_manifest.decision is ResultPublicationDecision.REJECT
+    assert "result_manifest_not_authoritative" in rejected_manifest.rejection_reasons
+    assert "result_engine_authority_mismatch" in rejected_manifest.rejection_reasons
 
     failed_integrity = verify_run_result_artifacts(result, ())
     rejected = plan_result_publication(result, evidence, conformance, runtime, failed_integrity)

@@ -1325,6 +1325,7 @@ class RunResultManifest:
     metric_set: MetricSet
     output_artifacts: tuple[ArtifactManifest, ...]
     created_at: datetime
+    engine_authoritative: bool = False
 
     def __post_init__(self) -> None:
         for name, record, record_type in (
@@ -1353,6 +1354,8 @@ class RunResultManifest:
             self.dependency_catalog_digest, field_name="dependency_catalog_digest"
         )
         require_sha256_digest(self.assumptions_digest, field_name="assumptions_digest")
+        if not isinstance(self.engine_authoritative, bool):
+            raise TypeError("result engine_authoritative must be a boolean")
         for name in ("engine_name", "engine_version", "allocation_definition_version"):
             _nonempty(getattr(self, name), name)
         packages = tuple(self.strategy_packages)
@@ -1441,6 +1444,7 @@ class RunResultManifest:
                 "engine_name": self.engine_name,
                 "engine_version": self.engine_version,
                 "engine_build_digest": self.engine_build_digest,
+                "engine_authoritative": self.engine_authoritative,
                 "dependency_catalog_digest": self.dependency_catalog_digest,
                 "assumptions_digest": self.assumptions_digest,
                 "seed": self.seed,

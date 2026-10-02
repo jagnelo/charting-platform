@@ -212,6 +212,7 @@ def _result_pair(
                 ),
             ),
             created_at=CREATED,
+            engine_authoritative=True,
         )
 
     baseline = build_result(

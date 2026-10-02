@@ -90,6 +90,10 @@ def plan_result_publication(
         reasons.append("conformance_evidence_report_mismatch")
     if conformance_evidence.build_digest != result.engine_build_digest:
         reasons.append("engine_build_mismatch")
+    if not result.engine_authoritative:
+        reasons.append("result_manifest_not_authoritative")
+    if result.engine_authoritative is not conformance_report.authoritative:
+        reasons.append("result_engine_authority_mismatch")
     if not conformance_report.authoritative:
         reasons.append("engine_conformance_not_authoritative")
     if not runtime_report.accepted:

@@ -1174,6 +1174,7 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
             ArtifactManifest(equity_digest, 1024, "application/parquet", "1", equity_digest),
         ),
         created_at=created,
+        engine_authoritative=True,
     )
 
     raw_payload = b"engine-result"
