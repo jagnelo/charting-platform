@@ -1415,13 +1415,14 @@ and Redis services.
 
 ## Deferred integration gates
 
-Do not add remaining shared models, worker/task entrypoints, global dependency
-or lockfile changes, Compose services, or frontend work until the
+Do not add remaining shared models, provider/task entrypoints, global
+dependency or lockfile changes, additional shared Compose services, or
+frontend work until the
 provider-platform, ETF, and TC2000 branches reach staging and their shared
 paths are semantically reconciled. The initial v2 router registration is
 additive and uses only the existing auth/database graph; any expansion into
 provider-backed acquisition, point-in-time membership, CodeVersion/Study Lab
-objects, or worker scheduling must consume those staged contracts rather than
+objects, or shared worker scheduling must consume those staged contracts rather than
 duplicating flows. The application adapter remains the only place allowed to
 authorize, persist, enqueue, or execute a request; the package router itself
 continues to own no I/O.
