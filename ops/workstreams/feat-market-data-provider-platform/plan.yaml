@@ -162,6 +162,12 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact-head safety preflight after the CoinGecko key-pool
+    correction at source 1006f7807b94da2b8e0919cc51e4b9e93cd10f94 stopped
+    before transport with 0/0 cases and zero provider requests. The same
+    external/admission gaps remain; the key-specific correction introduced no
+    unsafe fallback or untracked request path.
+  - >-
     2026-10-02 CoinGecko key-pool live validation at source
     0dd2b9e56a354d26c0c716b05f1a2c2ceb17b520 passed the corrected account-usage
     case with one request. The configured Demo key returned HTTP 401 (`10005`),

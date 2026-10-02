@@ -29,6 +29,14 @@
 - A key/plan authorized for `/key` is still required to validate the
   API-key-specific counters against a successful native payload.
 
+## 2026-10-02 Exact-head safety preflight after key-pool correction
+
+- The full manifest was re-run at source
+  `1006f7807b94da2b8e0919cc51e4b9e93cd10f94` and stopped before transport:
+  `0/0` cases and zero provider requests.
+- The same external/admission gaps remain; the key-specific CoinGecko
+  correction introduced no unsafe fallback or untracked request path.
+
 ## 2026-10-02 Provider-platform validation after CoinGecko admission
 
 - The provider/configuration-focused unit matrix passed `955/955` with
