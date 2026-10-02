@@ -85,8 +85,9 @@ describe('IndicatorPanel section disclosures', () => {
     const headers = wrapper.findAll('.section-header')
     expect(headers).toHaveLength(6)
     for (const header of headers) {
-      expect(header.attributes('role')).toBe('button')
-      expect(header.attributes('tabindex')).toBe('0')
+      expect(header.element.tagName).toBe('BUTTON')
+      expect(header.attributes('type')).toBe('button')
+      expect(header.attributes('role')).toBeUndefined()
       const bodyId = header.attributes('aria-controls')
       expect(bodyId).toMatch(/^v-\d+-(watchlists|screeners|radar|indicators|drawings|alerts)$/)
       expect(header.attributes('aria-expanded')).toMatch(/^(true|false)$/)
@@ -98,7 +99,7 @@ describe('IndicatorPanel section disclosures', () => {
     const indicatorHeader = headers.find(header => header.text().includes('Indicators'))!
     const indicatorBodyId = indicatorHeader.attributes('aria-controls')
     expect(indicatorHeader.attributes('aria-expanded')).toBe('false')
-    await indicatorHeader.trigger('keydown', { key: 'Enter' })
+    await indicatorHeader.trigger('click')
     expect(indicatorHeader.attributes('aria-expanded')).toBe('true')
     expect(wrapper.find(`[id="${indicatorBodyId}"]`).exists()).toBe(true)
 
@@ -116,7 +117,7 @@ describe('IndicatorPanel section disclosures', () => {
     await addButton.trigger('click')
     expect(addButton.attributes('aria-expanded')).toBe('false')
 
-    await indicatorHeader.trigger('keydown', { key: ' ' })
+    await indicatorHeader.trigger('click')
     expect(indicatorHeader.attributes('aria-expanded')).toBe('false')
     expect(wrapper.find(`[id="${indicatorBodyId}"]`).exists()).toBe(false)
     wrapper.unmount()

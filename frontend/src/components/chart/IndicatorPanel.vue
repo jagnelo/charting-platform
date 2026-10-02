@@ -25,20 +25,17 @@
 
     <!-- ── Watchlists membership ─────────────────────────────────────────── -->
     <div v-if="membership !== null" class="section" :class="{ collapsed: !watchlistsOpen }">
-      <div
+      <button
         class="section-header"
-        role="button"
-        tabindex="0"
+        type="button"
         :aria-expanded="watchlistsOpen ? 'true' : 'false'"
         :aria-controls="`${sectionIdPrefix}-watchlists`"
         @click="watchlistsOpen = !watchlistsOpen"
-        @keydown.enter.prevent="watchlistsOpen = !watchlistsOpen"
-        @keydown.space.prevent="watchlistsOpen = !watchlistsOpen"
       >
         <span class="section-title">Watchlists</span>
         <span class="section-count">{{ membership!.watchlists.length }}</span>
         <span class="section-chevron"><WorkstationGlyph :kind="watchlistsOpen ? 'chevron-down' : 'chevron-right'" /></span>
-      </div>
+      </button>
       <Transition name="slide">
         <div class="section-content" v-if="watchlistsOpen" :id="`${sectionIdPrefix}-watchlists`">
           <div class="section-body">
@@ -65,20 +62,17 @@
 
     <!-- ── Screeners membership ───────────────────────────────────────────── -->
     <div v-if="membership !== null" class="section" :class="{ collapsed: !screenersOpen }">
-      <div
+      <button
         class="section-header"
-        role="button"
-        tabindex="0"
+        type="button"
         :aria-expanded="screenersOpen ? 'true' : 'false'"
         :aria-controls="`${sectionIdPrefix}-screeners`"
         @click="screenersOpen = !screenersOpen"
-        @keydown.enter.prevent="screenersOpen = !screenersOpen"
-        @keydown.space.prevent="screenersOpen = !screenersOpen"
       >
         <span class="section-title">Screeners</span>
         <span class="section-count">{{ activeScreeners.length }}</span>
         <span class="section-chevron"><WorkstationGlyph :kind="screenersOpen ? 'chevron-down' : 'chevron-right'" /></span>
-      </div>
+      </button>
       <Transition name="slide">
         <div class="section-content" v-if="screenersOpen" :id="`${sectionIdPrefix}-screeners`">
           <div class="section-body">
@@ -104,20 +98,17 @@
 
     <!-- ── Radar detections ─────────────────────────────────────────────── -->
     <div v-if="chartStore.instrument" class="section" :class="{ collapsed: !radarsOpen }">
-      <div
+      <button
         class="section-header"
-        role="button"
-        tabindex="0"
+        type="button"
         :aria-expanded="radarsOpen ? 'true' : 'false'"
         :aria-controls="`${sectionIdPrefix}-radar`"
         @click="radarsOpen = !radarsOpen"
-        @keydown.enter.prevent="radarsOpen = !radarsOpen"
-        @keydown.space.prevent="radarsOpen = !radarsOpen"
       >
         <span class="section-title">Radar</span>
         <span class="section-count">{{ radarStore.chartDetections.length }}</span>
         <span class="section-chevron"><WorkstationGlyph :kind="radarsOpen ? 'chevron-down' : 'chevron-right'" /></span>
-      </div>
+      </button>
       <Transition name="slide">
         <div class="section-content" v-if="radarsOpen" :id="`${sectionIdPrefix}-radar`">
           <div class="section-body">
@@ -209,20 +200,17 @@
 
     <!-- ── Indicators section ──────────────────────────────────────────── -->
     <div class="section" :class="{ collapsed: !indicatorsOpen }">
-      <div
+      <button
         class="section-header"
-        role="button"
-        tabindex="0"
+        type="button"
         :aria-expanded="indicatorsOpen ? 'true' : 'false'"
         :aria-controls="`${sectionIdPrefix}-indicators`"
         @click="indicatorsOpen = !indicatorsOpen"
-        @keydown.enter.prevent="indicatorsOpen = !indicatorsOpen"
-        @keydown.space.prevent="indicatorsOpen = !indicatorsOpen"
       >
         <span class="section-title">Indicators</span>
         <span class="section-count">{{ chartStore.indicators.length }}</span>
         <span class="section-chevron"><WorkstationGlyph :kind="indicatorsOpen ? 'chevron-down' : 'chevron-right'" /></span>
-      </div>
+      </button>
 
       <Transition name="slide">
         <div class="section-content" v-if="indicatorsOpen" :id="`${sectionIdPrefix}-indicators`">
@@ -296,20 +284,17 @@
 
     <!-- ── Drawings section ────────────────────────────────────────────── -->
     <div class="section section--drawings" :class="{ collapsed: !drawingsOpen }">
-      <div
+      <button
         class="section-header"
-        role="button"
-        tabindex="0"
+        type="button"
         :aria-expanded="drawingsOpen ? 'true' : 'false'"
         :aria-controls="`${sectionIdPrefix}-drawings`"
         @click="drawingsOpen = !drawingsOpen"
-        @keydown.enter.prevent="drawingsOpen = !drawingsOpen"
-        @keydown.space.prevent="drawingsOpen = !drawingsOpen"
       >
         <span class="section-title">Drawings</span>
         <span class="section-count">{{ drawStore.drawings.length }}</span>
         <span class="section-chevron"><WorkstationGlyph :kind="drawingsOpen ? 'chevron-down' : 'chevron-right'" /></span>
-      </div>
+      </button>
 
       <Transition name="slide">
         <div class="section-content" v-if="drawingsOpen" :id="`${sectionIdPrefix}-drawings`">
@@ -367,20 +352,17 @@
 
     <!-- ── Alerts section ──────────────────────────────────────────── -->
     <div class="section section--alerts" :class="{ collapsed: !alertsOpen }">
-      <div
+      <button
         class="section-header"
-        role="button"
-        tabindex="0"
+        type="button"
         :aria-expanded="alertsOpen ? 'true' : 'false'"
         :aria-controls="`${sectionIdPrefix}-alerts`"
         @click="alertsOpen = !alertsOpen"
-        @keydown.enter.prevent="alertsOpen = !alertsOpen"
-        @keydown.space.prevent="alertsOpen = !alertsOpen"
       >
         <span class="section-title">Alerts</span>
         <span class="section-count">{{ instrumentAlerts.length }}</span>
         <span class="section-chevron"><WorkstationGlyph :kind="alertsOpen ? 'chevron-down' : 'chevron-right'" /></span>
-      </div>
+      </button>
 
       <Transition name="slide">
         <div class="section-content" v-if="alertsOpen" :id="`${sectionIdPrefix}-alerts`">
@@ -1403,11 +1385,16 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
 .section-header {
   display: flex;
   align-items: center;
+  width: 100%;
   padding: 7px 10px;
+  border: 0;
+  color: inherit;
   background: #141414;
   cursor: pointer;
+  font: inherit;
   gap: 6px;
   flex-shrink: 0;
+  text-align: left;
   user-select: none;
 }
 .section-header:hover { background: #1a1a1a; }
