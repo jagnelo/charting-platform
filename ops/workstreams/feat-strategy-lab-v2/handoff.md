@@ -5859,3 +5859,14 @@ Redis, and artifact-volume-backed, while retaining its intentionally explicit
 Docker socket because sandbox execution launches separately pinned runtime
 containers. Focused backtest/forward entrypoint and Compose coverage passes 12
 tests; `make test-compose-contract` passes.
+
+## 2026-10-02 - Current dependency and runtime-boundary audit
+
+The current remote refs are market-data `982fa996ef85`, ETF
+`52814f95bd0e`, and TC2000 `63d64bfe95c9`; `origin/staging` remains
+`8b885a2ffd9c`, and none of those dependency refs is a staging ancestor.
+The implementation therefore remains prohibited from shared provider, ETF,
+TC2000, migration, or application-path reconciliation. The backtest and
+forward worker boundaries are now both documented and tested locally, but
+authoritative activation still requires the stable Nautilus v2 release and
+host callback evidence described above.

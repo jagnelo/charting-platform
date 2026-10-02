@@ -1317,6 +1317,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   resolver setting may be overridden before Redis opens when a host needs
   multi-artifact mapping, and the profile is never enabled by the default
   stack.
+- The root Compose stack also contains a separate opt-in
+  `strategy-lab-v2-forward-worker` profile. It consumes only the dedicated
+  `forward-events` Redis queue, uses the namespaced forward database setting,
+  has no Docker socket, and shares only the bind-mountable artifact volume.
+  Its callback factory is intentionally empty by default: host canonical-event
+  materialization plus account/engine settlement must be configured explicitly
+  before Redis opens, so forward shadow execution cannot silently select a
+  provider or simulator policy.
 - `migration_startup.py` provides the explicit Alembic startup hook. It
   validates a PostgreSQL URL and absolute script location, runs the configured
   target off the event loop, serializes concurrent callers, replays the exact
