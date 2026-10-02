@@ -6110,3 +6110,16 @@ produce without importing Nautilus or acquiring provider data.
 
 The focused event-adapter suite passes 17 tests; the complete package suite
 passes 998 tests, Ruff, MyPy, diff validation, and workstream validation.
+
+## 2026-10-02 - Forward parity conformance projection
+
+`build_event_tape_parity_observation(...)` now accepts both the existing
+historical `NautilusEventParityReceipt` and the instance-scoped
+`NautilusForwardEventParityReceipt`. Forward callback evidence can therefore
+feed the existing `FORWARD_EVENT_TAPE_PARITY` conformance check with the same
+fail-closed digest and pass-bit rules; no authority is inferred from a parity
+receipt.
+
+The focused conformance/event-adapter suites pass 33 tests; the complete
+package suite passes 999 tests, Ruff, MyPy across 305 source files, diff
+validation, and workstream validation.

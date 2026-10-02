@@ -547,7 +547,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `build_event_tape_parity_observation(...)` projects that receipt into the
   existing `FORWARD_EVENT_TAPE_PARITY` conformance check. Failed receipts are
   assigned a distinct failure digest, so expected-fixture configuration cannot
-  manufacture a pass.
+  manufacture a pass. It accepts both historical and instance-scoped forward
+  parity receipts, keeping the eventual host callback on the same conformance
+  projection path.
 - `require_rc_fixture_binding(...)` binds the parsed image-backed RC fixture
   receipt to the runtime probe, release pin, and partial conformance suite,
   while preserving the deferred forward-parity and non-authoritative labels.

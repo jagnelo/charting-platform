@@ -16,7 +16,10 @@ from app.strategy_lab_v2.conformance import (
     NautilusReleasePin,
     evaluate_engine_conformance,
 )
-from app.strategy_lab_v2.nautilus_event_adapter import NautilusEventParityReceipt
+from app.strategy_lab_v2.nautilus_event_adapter import (
+    NautilusEventParityReceipt,
+    NautilusForwardEventParityReceipt,
+)
 from app.strategy_lab_v2.nautilus_runtime import (
     NautilusRcCompatibilityRuntime,
     NautilusRcFixtureReceipt,
@@ -214,9 +217,9 @@ def require_rc_fixture_binding(
 
 def build_event_tape_parity_observation(
     expected_digest: str,
-    receipt: NautilusEventParityReceipt,
+    receipt: NautilusEventParityReceipt | NautilusForwardEventParityReceipt,
 ) -> ConformanceFixtureObservation:
-    """Project one adapter parity receipt into the required fixture check.
+    """Project one historical or forward parity receipt into the fixture check.
 
     A passed receipt uses its fingerprint as the observed fixture value. A
     failed receipt derives a distinct failure digest, so it can never be turned
@@ -225,8 +228,11 @@ def build_event_tape_parity_observation(
     """
 
     require_sha256_digest(expected_digest, field_name="expected_digest")
-    if not isinstance(receipt, NautilusEventParityReceipt):
-        raise TypeError("receipt must be a NautilusEventParityReceipt")
+    if not isinstance(receipt, NautilusEventParityReceipt | NautilusForwardEventParityReceipt):
+        raise TypeError(
+            "receipt must be a NautilusEventParityReceipt or "
+            "NautilusForwardEventParityReceipt"
+        )
     observed_digest = receipt.fingerprint
     if not receipt.passed:
         observed_digest = content_digest(

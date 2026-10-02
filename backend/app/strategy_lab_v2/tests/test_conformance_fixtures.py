@@ -23,10 +23,13 @@ from app.strategy_lab_v2.conformance_fixtures import (
     require_rc_fixture_binding,
     require_runtime_probe_binding,
 )
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventTape,
     materialize_nautilus_event,
+    materialize_nautilus_forward_tape,
     verify_nautilus_event_tape_parity,
+    verify_nautilus_forward_event_tape_parity,
 )
 from app.strategy_lab_v2.nautilus_runtime import (
     NautilusRcCompatibilityRuntime,
@@ -284,6 +287,50 @@ def test_failed_event_tape_parity_receipt_cannot_become_a_pass() -> None:
     observation = build_event_tape_parity_observation(receipt.fingerprint, receipt)
 
     assert observation.passed is False
+
+
+def test_forward_event_tape_parity_receipt_projects_into_conformance_observation() -> None:
+    event = MarketEvent(
+        "daily-bars",
+        "bar-1",
+        "US.AAPL",
+        NOW,
+        0,
+        {"open": 100, "high": 101, "low": 99, "close": 100, "volume": 10},
+    )
+    canonical = CanonicalForwardEvent(
+        event.event_id,
+        event.sequence,
+        event.event_time,
+        NOW,
+        content_digest("provider-source"),
+    )
+    tape = materialize_nautilus_forward_tape(
+        "forward-instance-1",
+        (canonical,),
+        (event,),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+    )
+    receipt = verify_nautilus_forward_event_tape_parity(
+        tape,
+        (
+            {
+                "dependency_id": "daily-bars",
+                "event_id": "bar-1",
+                "instrument_id": "US.AAPL",
+                "event_type": "ohlcv",
+                "event_time_ns": 1_704_067_200_000_000_000,
+                "sequence": 0,
+                "values": dict(event.values),
+            },
+        ),
+    )
+
+    observation = build_event_tape_parity_observation(content_digest(receipt), receipt)
+
+    assert observation.check is ConformanceCheck.FORWARD_EVENT_TAPE_PARITY
+    assert observation.passed is True
+    assert observation.observed_digest == observation.expected_digest
 
 
 def test_executable_suite_requires_exact_expected_checks() -> None:
