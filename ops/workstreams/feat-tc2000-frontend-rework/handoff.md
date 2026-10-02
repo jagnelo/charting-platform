@@ -14887,3 +14887,23 @@ universe pagination totals`), and ETF holdings at
 evidence`). Neither upstream tip is an ancestor of staging. The TC branch did
 not consume either tip, reconcile shared paths, or mutate another worktree;
 consumer integration and the exact post-staging gate remain pending.
+
+The dependency refs continued to move during this session. The latest atomic
+read-only check observed staging at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`,
+provider-platform at `1b51877881ceee0e01318d80833752c0fb7ab7ee` (`test(live):
+refresh marketstack preflight evidence`), and ETF holdings at
+`6dc8fbea7104fb7b023efaa687fed812a7633a7f` (`docs(etf): refresh saturna route
+evidence`). Neither upstream tip is an ancestor of staging. TC still has no
+permission to consume either feature tip directly.
+
+## 2026-10-02 — Symbol List selection-state accessibility slice
+
+Product commit `07f75bca6` keeps Symbol List selection and emitted symbol
+actions unchanged while exposing each row's symbol, canonical description,
+metric, comparison ratio, and selected state through an accessible name and
+`aria-pressed`. New focused coverage passed `1/1`; the full serial frontend
+suite passed `125/125` files and `1,153/1,153` tests; `vue-tsc` type-check,
+production build, TC scope self-tests, workstream validation, and
+`git diff --check` passed. The build retained the existing large-chunk warning.
+No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback,
+or acceptance policy changed. No other worktree was mutated.
