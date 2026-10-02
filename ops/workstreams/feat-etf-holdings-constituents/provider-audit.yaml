@@ -6490,7 +6490,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-07
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [PRCS, PRVS]
     estimated_us_etf_count: null
@@ -6513,6 +6513,8 @@ providers:
       - "web:parnassus-official-daily-holdings-routes-2026-09-03"
       - "web:parnassus-sec-etf-identity-2026-09-03"
       - "live:parnassus-daily-holdings-recheck-2026-09-07-dynamic"
+      - "web:parnassus-current-daily-page-2026-10-02"
+      - "live:parnassus-route-recheck-2026-10-02-dns-failure"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -6530,6 +6532,10 @@ providers:
         source: "https://www.parnassus.com/investments/etfs/prcs-core-select/daily-holdings and https://www.parnassus.com/investments/etfs/prvs-value-select/daily-holdings"
         result: "Fresh retrieval returned HTTP 200 HTML shells for both daily-holdings routes. The response loads a React CSV application and exposes no embedded holdings rows, stable download URL, or current date in the backend-retrievable document; no executable complete artifact was obtained, so PRCS/PRVS remain issuer-access-blocked."
         evidence_ref: "live:parnassus-daily-holdings-recheck-2026-09-07-dynamic"
+      - date: 2026-10-02
+        source: "https://www.parnassus.com/investments/etfs/prcs-core-select/daily-holdings; https://www.parnassus.com/investments/etfs/prvs-value-select/daily-holdings"
+        result: "Current indexed first-party search material exposes a PRCS Daily Holdings view with top-ten holdings as of 2026-09-18, while direct page opens remain an empty JavaScript shell with no complete rows or resolved CSV endpoint. Direct application-equivalent requests from this worker failed DNS resolution for www.parnassus.com, so PRCS/PRVS remain issuer_access_blocked."
+        evidence_ref: "web:parnassus-current-daily-page-2026-10-02"
     disposition_reason: "parnassus_investments: Parnassus advertises official daily holdings pages for PRCS and PRVS, but backend-equivalent retrieval currently yields no usable response body, preventing verification or parsing of a complete current artifact. The provider remains fallback-only as issuer_access_blocked; no SEC-derived reconstruction is promoted."
     next_action: "parnassus_investments: Re-test the official PRCS/PRVS daily-holdings pages and resolve their data endpoint when backend access returns a usable payload; promote only after complete rows and current dates are proven."
     implementation_sha: null

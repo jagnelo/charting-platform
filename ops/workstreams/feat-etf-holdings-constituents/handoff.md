@@ -2985,6 +2985,15 @@ public-CUSIP requests to both `topTenHoldings` and `fund-info` routes
 export is proven, so no top-ten, factsheet, browser-only, or SEC artifact is
 promoted as current.
 
+## Parnassus route recheck — 2026-10-02
+
+Current indexed first-party material exposes a PRCS Daily Holdings view with
+top-ten data as of 2026-09-18, but direct page opens remain empty JavaScript
+shells with no complete rows or resolved CSV endpoint. Direct
+application-equivalent requests failed DNS resolution for `www.parnassus.com`,
+so PRCS/PRVS remain `issuer_access_blocked`; no top-ten, SEC, or partial data was
+promoted as current.
+
 The runtime audit, provider ledger, and capability unit coverage now preserve
 these dated source/transport boundaries. Any licensed/vendor route remains
 deferred behind the shared provider-platform entitlement/quota/health contract
