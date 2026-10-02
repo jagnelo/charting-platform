@@ -5870,3 +5870,9 @@ TC2000, migration, or application-path reconciliation. The backtest and
 forward worker boundaries are now both documented and tested locally, but
 authoritative activation still requires the stable Nautilus v2 release and
 host callback evidence described above.
+
+The complete Strategy Lab v2 package suite was rerun at the current exact
+implementation tip and passes 961 tests. This includes the package-owned
+backtest and forward worker entrypoint/Compose contracts; it does not claim
+provider-backed acquisition, stable Nautilus execution, or full repository
+integration.
