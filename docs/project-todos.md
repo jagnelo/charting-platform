@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-head non-ETF and Docker integration validation after per-asset rotation
+
+- [x] At exact pushed source `ef8d042ad`, the complete branch-owned non-ETF
+      unit inventory passed `1,910/1,910` in `140.94s` with 37 existing
+      dependency warnings. Only `backend/tests/unit/providers/test_etf_holdings_*.py`
+      was excluded under the explicit parallel-branch ownership boundary.
+- [x] At the same exact source, Docker PostgreSQL/Redis integration passed
+      `386/386` in `847.99s` with 57 existing dependency warnings. The isolated
+      testcontainers resources were cleaned without a host-wide prune; no
+      provider credentials or external provider calls were used.
+- [ ] Provider-specific active baselines/contracts, capability/legal/source
+      admission, FINRA OTC controls, deployment secret stores, deferred
+      providers, and the final shadow phase remain open; no generic limit or
+      inferred usage was introduced.
+
 ### 2026-10-02 — Tokenized per-asset refresh fairness
 
 - [x] Add durable numeric asset cursors to tokenized quote and aggregate-

@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-head validation after per-asset rotation
+
+- At exact pushed source `ef8d042ad`, the complete branch-owned non-ETF unit
+  inventory passed `1,910/1,910` in `140.94s` with 37 existing dependency
+  warnings. The only excluded tests are
+  `backend/tests/unit/providers/test_etf_holdings_*.py`, owned by the parallel
+  `feat/etf-holdings-constituents` worktree.
+- At the same exact source, the Docker PostgreSQL/Redis integration gate passed
+  `386/386` in `847.99s` with 57 existing dependency warnings. Testcontainers
+  resources were cleaned without host-wide pruning, and no provider credentials
+  or external provider calls were used.
+- This closes the implementation-specific exact-head regression evidence for
+  the tokenized per-asset cursor change. The branch remains `ready_for_human_review`
+  rather than complete because provider-specific quota/terms, legal/source and
+  venue admission, deployment secret stores, deferred providers, and the final
+  separately authorized shadow phase remain explicit gates.
+
 ## 2026-10-02 tokenized per-asset refresh fairness
 
 - Tokenized quote and aggregate-history refreshes now use durable numeric

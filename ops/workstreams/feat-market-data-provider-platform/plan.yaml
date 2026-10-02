@@ -162,6 +162,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact pushed source ef8d042ad passed both current implementation
+    validation gates: the complete branch-owned non-ETF unit inventory passed
+    1910/1910 in 140.94s with 37 existing dependency warnings, and Docker
+    PostgreSQL/Redis integration passed 386/386 in 847.99s with 57 existing
+    dependency warnings. Only the parallel ETF adapter test file was excluded;
+    testcontainers cleanup performed no host-wide prune and no provider calls
+    or credentials were used. Provider-specific active baselines/contracts,
+    capability/legal/source admission, FINRA OTC controls, deployment secret
+    stores, deferred providers, and the final shadow phase remain open.
+  - >-
     2026-10-02 tokenized per-asset refresh fairness correction: quote and
     aggregate-history batches now advance durable numeric cursors across active
     token-detail IDs, including caught per-asset failures, so repeated failures
