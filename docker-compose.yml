@@ -238,7 +238,7 @@ services:
       - "no-new-privileges:true"
     tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=64m"]
     environment:
-      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      STRATEGY_LAB_V2_DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
       STRATEGY_LAB_V2_REDIS_URL: redis://redis:6379/0
       STRATEGY_LAB_V2_ARTIFACT_ROOT: /strategy-lab-artifacts
       STRATEGY_LAB_V2_CALLBACK_FACTORY: ${STRATEGY_LAB_V2_CALLBACK_FACTORY:-app.strategy_lab_v2.worker_callbacks:create}

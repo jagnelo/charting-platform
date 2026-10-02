@@ -764,6 +764,7 @@ progress:
     - strategy-lab-v2-forward-lifecycle-api
     - strategy-lab-v2-forward-replay-observability
     - strategy-lab-v2-forward-worker-compose-boundary-hardening
+    - strategy-lab-v2-backtest-worker-compose-boundary-hardening
   total: 18
   current_phase: strategy-lab-v2-forward-worker-compose-boundary-hardening-awaiting-authoritative-gates
   current_blocker: Stable Nautilus v2 release/conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration remain open

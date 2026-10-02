@@ -127,7 +127,7 @@
   "head": "6ff96505124204c9cd9883e6e313afe569540b50",
   "implementation_sha": "6ff96505124204c9cd9883e6e313afe569540b50",
   "last_checkpoint": "2026-10-02T11:14:32.040086+00:00",
-  "last_human_progress_update": "2026-10-02T11:13:30.702274+00:00",
+  "last_human_progress_update": "2026-10-02T11:16:13.249737+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -145,10 +145,10 @@
       "AC-FORWARD"
     ],
     "current_blocker": "Stable Nautilus v2 release/conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration remain open.",
-    "current_phase": "strategy-lab-v2-forward-worker-compose-boundary-hardening-awaiting-authoritative-gates",
-    "next_action": "Keep the forward worker opt-in and fail-closed; once stable Nautilus v2 and approved staging promotion exist, run exact-tip conformance and line-level shared-path reconciliation.",
+    "current_phase": "strategy-lab-v2-backtest-forward-worker-compose-boundaries-awaiting-authoritative-gates",
+    "next_action": "Keep both local worker services opt-in and fail-closed; once stable Nautilus v2 and approved staging promotion exist, run exact-tip conformance and line-level shared-path reconciliation.",
     "total": 18,
-    "updated_at": "2026-10-02T11:13:30.702255+00:00"
+    "updated_at": "2026-10-02T11:16:13.249718+00:00"
   },
   "remote": "6ff96505124204c9cd9883e6e313afe569540b50",
   "remote_sha": "6ff96505124204c9cd9883e6e313afe569540b50",

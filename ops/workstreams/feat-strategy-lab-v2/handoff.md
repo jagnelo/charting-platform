@@ -5847,3 +5847,15 @@ forward boundary explicit and the absence of a Docker socket prevents a
 forward-event worker from acquiring backtest sandbox authority. Focused
 entrypoint/Compose coverage passes 5 tests and `make test-compose-contract`
 passes.
+
+## 2026-10-02 - Backtest worker configuration boundary hardening
+
+The isolated backtest worker now uses the namespaced
+`STRATEGY_LAB_V2_DATABASE_URL_SYNC` key, matching its explicit worker
+configuration contract rather than inheriting the generic database variable.
+The new Compose contract test verifies that the backtest worker remains
+profile-gated, read-only, capability-dropped, health-gated on PostgreSQL and
+Redis, and artifact-volume-backed, while retaining its intentionally explicit
+Docker socket because sandbox execution launches separately pinned runtime
+containers. Focused backtest/forward entrypoint and Compose coverage passes 12
+tests; `make test-compose-contract` passes.
