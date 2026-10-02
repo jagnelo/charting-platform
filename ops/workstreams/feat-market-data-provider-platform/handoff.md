@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-current preflight after tokenized pagination correction
+
+- At exact pushed source `c4352c3d3`, the full provider manifest stopped before
+  transport at `0/0`, exit `2`, with zero external requests. The redacted
+  receipt is durable in `validation.jsonl`.
+- Provider-specific usage baselines, quota/byte/reset contracts,
+  legal/source admission, deferred capabilities, deployment secret stores, and
+  the final shadow phase remain explicitly fail-closed; no generic limit or
+  inferred usage was introduced.
+
 ## 2026-10-02 tokenized complete-feed pagination correction
 
 - Commit `56b9a3ea` fixes a repository-controlled pagination edge case. xStocks

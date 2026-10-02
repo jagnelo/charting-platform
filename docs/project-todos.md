@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-current preflight after tokenized pagination correction
+
+- [x] At exact pushed source `c4352c3d3`, the full provider matrix stopped
+      before transport at `0/0` with zero external requests. The redacted
+      receipt is durable in `validation.jsonl`.
+- [ ] Provider-specific usage baselines, quota/byte/reset contracts,
+      legal/source admission, deferred capabilities, deployment secret stores,
+      and the final shadow phase remain fail-closed.
+
 ### 2026-10-02 — Tokenized complete-feed pagination correction
 
 - [x] Commit `56b9a3ea` distinguishes xStocks numeric pagination from
