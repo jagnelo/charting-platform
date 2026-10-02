@@ -17,7 +17,14 @@ from app.strategy_lab_v2.engine_execution import (
     EngineExecutionDecision,
     NautilusExecutionPlan,
 )
-from app.strategy_lab_v2.sandbox import SandboxCommandPlan, sandbox_engine_id
+from app.strategy_lab_v2.sandbox import (
+    SandboxCommandPlan,
+    nautilus_runtime_command,
+    sandbox_attempt_id,
+    sandbox_engine_id,
+    sandbox_memory_limit_bytes,
+    sandbox_runtime_command,
+)
 from app.strategy_lab_v2.sandbox_execution import (
     SandboxRunResult,
     SandboxRunStatus,
@@ -72,7 +79,9 @@ class NautilusRunResult:
                 raise ValueError("rejected Nautilus runs require reasons and no process result")
         else:
             if self.sandbox_result is None or reasons:
-                raise ValueError("executed Nautilus runs require a sandbox result and no rejection reasons")
+                raise ValueError(
+                    "executed Nautilus runs require a sandbox result and no rejection reasons"
+                )
             if self.authoritative and self.status is not NautilusRunStatus.SUCCEEDED:
                 raise ValueError("only successful Nautilus runs can be authoritative")
         if self.sandbox_result is not None and (
@@ -107,11 +116,25 @@ def run_nautilus_plan(
         reasons.append("sandbox_plan_identity_mismatch")
     try:
         engine_marker = sandbox_engine_id(sandbox_plan)
+        attempt_id = sandbox_attempt_id(sandbox_plan)
+        memory_limit_bytes = sandbox_memory_limit_bytes(sandbox_plan)
     except (TypeError, ValueError):
         reasons.append("sandbox_plan_not_hardened")
     else:
         if engine_marker != "nautilus":
             reasons.append("nautilus_sandbox_engine_marker_required")
+        if attempt_id != execution_plan.attempt_id:
+            reasons.append("nautilus_sandbox_attempt_mismatch")
+        try:
+            expected_command = nautilus_runtime_command(
+                expected_version=execution_plan.engine_version,
+                snapshot_fingerprint=execution_plan.data_snapshot_fingerprint,
+                max_input_bytes=max(1, memory_limit_bytes // 8),
+            )
+            if sandbox_runtime_command(sandbox_plan) != expected_command:
+                reasons.append("nautilus_runtime_command_required")
+        except (TypeError, ValueError):
+            reasons.append("nautilus_runtime_command_required")
     if reasons:
         return NautilusRunResult(
             execution_plan.fingerprint,

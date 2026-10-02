@@ -771,7 +771,8 @@ progress:
     - strategy-lab-v2-forward-worker-compose-boundary-hardening
     - strategy-lab-v2-backtest-worker-compose-boundary-hardening
     - strategy-lab-v2-nautilus-serialized-strategy-invocation-bridge
+    - strategy-lab-v2-nautilus-rc-worker-cli-and-result-artifact-path
   total: 18
-  current_phase: strategy-lab-v2-nautilus-rc-compatibility-track-serialized-strategy-bridge-proven
-  current_blocker: No external blocker prevents isolated RC implementation. Stable Nautilus v2 remains an authority/conformance gate; provider, ETF, and TC2000 staging boundaries block only their respective shared-contract integrations. Local implementation gaps remain in binding the validated worker handoff to this adapter, routing target-position intents through allocation/risk, and broadening native product, portfolio, metric, and conformance coverage.
-  next_action: bind the validated worker handoff and result/artifact lifecycle to the isolated Nautilus strategy adapter; then route target-position intents through the existing allocation/risk contracts and expand native product/accounting/report conformance. Preserve RC output as non-authoritative and keep activation/publication/live shadow fail-closed.
+  current_phase: strategy-lab-v2-nautilus-rc-worker-cli-and-result-artifact-path-proven
+  current_blocker: No external blocker prevents isolated RC implementation. Stable Nautilus v2 gates authority and full conformance only; provider, ETF, and TC2000 staging boundaries apply only to their respective shared-contract integrations. Remaining implementation work is to assemble and materialize this typed bundle in the durable worker handoff, route target-position intents through allocation/risk, and broaden native product/accounting/report coverage.
+  next_action: connect typed NautilusRuntimeBundle assembly and content-addressed materialization to the durable worker request; then route target-position intents through existing allocation/risk contracts and expand native product/accounting/report conformance. Preserve RC output as non-authoritative and keep activation/publication/live shadow fail-closed.

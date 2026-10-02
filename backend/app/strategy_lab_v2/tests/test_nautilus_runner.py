@@ -9,7 +9,7 @@ import pytest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.engine_execution import EngineExecutionDecision, NautilusExecutionPlan
 from app.strategy_lab_v2.nautilus_runner import NautilusRunStatus, run_nautilus_plan
-from app.strategy_lab_v2.sandbox import SandboxCommandPlan
+from app.strategy_lab_v2.sandbox import SandboxCommandPlan, nautilus_runtime_command
 
 
 def _sandbox() -> SandboxCommandPlan:
@@ -33,20 +33,29 @@ def _sandbox() -> SandboxCommandPlan:
             "--pids-limit=256",
             "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864",
             "--mount=type=bind,src=/tmp/strategy-input,dst=/inputs/bundle,readonly",
-            "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result,rw",
+            "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result",
             "--env=STRATEGY_ATTEMPT_ID=attempt-1",
             f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
             "--env=STRATEGY_ENGINE_ID=nautilus",
             f"runtime@{content_digest('image')}",
-            "python",
-            "runner",
+            *nautilus_runtime_command(
+                expected_version="2.0.0",
+                snapshot_fingerprint=content_digest("snapshot"),
+                max_input_bytes=536870912 // 8,
+            ),
         ),
         2,
         1024,
     )
 
 
-def _engine_plan(sandbox: SandboxCommandPlan, *, decision=EngineExecutionDecision.READY, authoritative=False, engine_id="nautilus") -> NautilusExecutionPlan:
+def _engine_plan(
+    sandbox: SandboxCommandPlan,
+    *,
+    decision=EngineExecutionDecision.READY,
+    authoritative=False,
+    engine_id="nautilus",
+) -> NautilusExecutionPlan:
     reasons = () if decision is EngineExecutionDecision.READY else ("gate rejected",)
     return NautilusExecutionPlan(
         "trial-1",
@@ -114,7 +123,9 @@ def test_ready_plan_maps_sandbox_success_and_preserves_authority(tmp_path: Path)
     ("body", "status"),
     [("exit 7", NautilusRunStatus.FAILED), ("sleep 5", NautilusRunStatus.TIMED_OUT)],
 )
-def test_ready_plan_preserves_non_success_sandbox_status(tmp_path: Path, body: str, status: NautilusRunStatus) -> None:
+def test_ready_plan_preserves_non_success_sandbox_status(
+    tmp_path: Path, body: str, status: NautilusRunStatus
+) -> None:
     request_digest = content_digest("request")
     sandbox = replace(_sandbox(), request_fingerprint=request_digest, wall_timeout_seconds=1)
     result = run_nautilus_plan(
@@ -157,3 +168,44 @@ def test_runner_rejects_unmarked_or_non_nautilus_sandbox_before_spawn(tmp_path: 
     )
     assert other_engine_result.status is NautilusRunStatus.REJECTED
     assert "nautilus_sandbox_engine_marker_required" in other_engine_result.rejection_reasons
+
+
+def test_runner_rejects_unbound_command_and_attempt_before_spawn(tmp_path: Path) -> None:
+    sandbox = _sandbox()
+    arbitrary = replace(sandbox, argv=(*sandbox.argv[:-13], "python", "runner.py"))
+    arbitrary_result = run_nautilus_plan(
+        _engine_plan(arbitrary), arbitrary, docker_binary=os.fspath(tmp_path / "missing")
+    )
+    assert arbitrary_result.status is NautilusRunStatus.REJECTED
+    assert "nautilus_runtime_command_required" in arbitrary_result.rejection_reasons
+
+    wrong_attempt_argv = (
+        *sandbox.argv[:17],
+        "--env=STRATEGY_ATTEMPT_ID=attempt-other",
+        *sandbox.argv[18:],
+    )
+    wrong_attempt = replace(sandbox, argv=wrong_attempt_argv)
+    attempt_result = run_nautilus_plan(
+        _engine_plan(wrong_attempt),
+        wrong_attempt,
+        docker_binary=os.fspath(tmp_path / "missing"),
+    )
+    assert attempt_result.status is NautilusRunStatus.REJECTED
+    assert "nautilus_sandbox_attempt_mismatch" in attempt_result.rejection_reasons
+
+    wrong_snapshot_command = nautilus_runtime_command(
+        expected_version="2.0.0",
+        snapshot_fingerprint=content_digest("different snapshot"),
+        max_input_bytes=536870912 // 8,
+    )
+    wrong_snapshot = replace(
+        sandbox,
+        argv=(*sandbox.argv[: -len(wrong_snapshot_command)], *wrong_snapshot_command),
+    )
+    snapshot_result = run_nautilus_plan(
+        _engine_plan(wrong_snapshot),
+        wrong_snapshot,
+        docker_binary=os.fspath(tmp_path / "missing"),
+    )
+    assert snapshot_result.status is NautilusRunStatus.REJECTED
+    assert "nautilus_runtime_command_required" in snapshot_result.rejection_reasons

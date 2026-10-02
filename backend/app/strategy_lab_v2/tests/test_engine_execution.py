@@ -103,7 +103,7 @@ def _plan(request: StrategyRuntimeRequest) -> SandboxCommandPlan:
             "--pids-limit=256",
             "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864",
             "--mount=type=bind,src=/tmp/strategy-input,dst=/inputs/bundle,readonly",
-            "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result,rw",
+            "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result",
             "--env=STRATEGY_ATTEMPT_ID=attempt-1",
             f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
             f"runtime@{content_digest('runtime-image')}",

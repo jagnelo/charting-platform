@@ -6262,3 +6262,57 @@ shared-path integrations until those branches reach staging.
 Session progress and exact command receipts are recorded in
 `ops/workstreams/feat-strategy-lab-v2/session.json` and
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+## 2026-10-02 - RC worker CLI and result-artifact path
+
+Stable Nautilus v2 is not a prerequisite for this implementation. The isolated
+RC5 compatibility path now has a fixed `nautilus_runtime_cli` command, built
+through `build_nautilus_runtime_sandbox_command`. The runner rejects arbitrary
+commands and binds the attempt, exact engine version, frozen snapshot, and
+memory-derived input bound to the immutable execution/sandbox plans. The CLI
+checks the mounted bundle's canonical digest, attempt, snapshot, exact installed
+package version, strict JSON shape, and bounded input before invoking the
+serialized engine-neutral SDK strategy batch. It writes deterministic native
+execution evidence into the already-mounted result file; the existing sandbox
+adapter captured its file digest/length for the artifact publication path.
+
+The RC image now defaults to the CLI's non-authoritative version probe while
+remaining command-overridable for actual backtests. Its small wire-protocol
+module is separated from host-only typed bundle contracts so the image does not
+load legacy backend contract modules. The Nautilus sandbox builder uses the
+image's packaged working directory. The Docker output bind mount now uses
+Docker's valid read-write default rather than an unsupported `rw` mount token.
+
+An end-to-end run through the real host builder/`run_nautilus_plan` and the
+locally built digest-pinned RC5 image succeeded with networking disabled,
+read-only root, all capabilities dropped, `no-new-privileges`, an unprivileged
+UID, 512 MiB memory, and bounded CPU/output. Two frozen quote events produced
+two serialized SDK invocations, one native order, and one open position. The
+captured 3,016-byte result file had digest
+`sha256:27995118ac75efa6b8c60c3663ee43e0e28cc9e77c15cb523b88fa155bf87c3d`;
+its internal execution-evidence digest verified and its authority bit remained
+false. The exact local RC5 image was rebuilt as
+`sha256:89ec7792a4b6c15aae6752f2cd9d5c503df23e8e48f876a0bdbdf80a96ab9203`.
+
+The Strategy Lab v2 package suite passes 1,026 tests, Ruff passes, and MyPy
+passes across 316 source files. The current host has no Docker BuildKit/buildx
+plugin, so the image was built with the established legacy-builder fallback
+and a temporary package-only `.dockerignore`; that temporary file was removed.
+The current code path proves CLI and result capture, but production worker
+request assembly/materialization of `NautilusRuntimeBundle` is still open, as
+are target-position allocation/risk routing and broader native product,
+accounting, report, and stable-authority conformance. RC results remain
+non-authoritative. Provider, ETF, and TC2000 staging boundaries remain scoped
+to those shared-contract integrations and do not block this isolated work.
+
+Files changed in this slice: `backend/app/strategy_lab_v2/nautilus_runner.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_bundle.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_cli.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_protocol.py`,
+`backend/app/strategy_lab_v2/sandbox.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_image/Dockerfile`,
+`backend/app/strategy_lab_v2/nautilus_runtime_image/Dockerfile.dockerignore`,
+and the focused tests `test_engine_execution.py`, `test_execution_orchestration.py`,
+`test_nautilus_runner.py`, `test_nautilus_runtime_cli.py`,
+`test_nautilus_runtime_image.py`, `test_sandbox.py`, and
+`test_sandbox_execution.py` under `backend/app/strategy_lab_v2/tests/`.

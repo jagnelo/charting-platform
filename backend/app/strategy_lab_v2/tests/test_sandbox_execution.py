@@ -37,7 +37,7 @@ def _plan(
             "--pids-limit=256",
             "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864",
             "--mount=type=bind,src=/tmp/strategy-input,dst=/inputs/bundle,readonly",
-            f"--mount=type=bind,src={output_path},dst=/outputs/result,rw",
+            f"--mount=type=bind,src={output_path},dst=/outputs/result",
             "--env=STRATEGY_ATTEMPT_ID=attempt-1",
             f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
             f"runtime@{content_digest('image')}",
@@ -74,9 +74,7 @@ def test_success_hashes_the_bounded_mounted_result_file(tmp_path) -> None:
     output_path = tmp_path / "result.bin"
     output_path.write_bytes(b"typed-result")
     binary = _fake_binary(tmp_path, "printf 'ok'")
-    result = run_sandbox_command(
-        _plan(output_path=os.fspath(output_path)), docker_binary=binary
-    )
+    result = run_sandbox_command(_plan(output_path=os.fspath(output_path)), docker_binary=binary)
     assert result.result_digest == f"sha256:{hashlib.sha256(b'typed-result').hexdigest()}"
     assert result.result_bytes == len(b"typed-result")
 
@@ -103,7 +101,9 @@ def test_nonzero_exit_is_failed_and_start_error_is_typed(tmp_path) -> None:
     assert missing.status is SandboxRunStatus.START_FAILED
     assert missing.exit_code is None
     assert missing.error_digest is not None
-    other_missing = run_sandbox_command(_plan(), docker_binary=os.fspath(tmp_path / "other-missing"))
+    other_missing = run_sandbox_command(
+        _plan(), docker_binary=os.fspath(tmp_path / "other-missing")
+    )
     assert other_missing.status is SandboxRunStatus.START_FAILED
     assert other_missing.error_digest == missing.error_digest
 

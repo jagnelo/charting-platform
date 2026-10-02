@@ -42,6 +42,10 @@ def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() ->
         "COPY app/strategy_lab_v2/nautilus_runtime_adapter_probe.py app/strategy_lab_v2/nautilus_runtime_adapter_probe.py"
         in source
     )
+    assert (
+        "COPY app/strategy_lab_v2/nautilus_runtime_cli.py app/strategy_lab_v2/nautilus_runtime_cli.py"
+        in source
+    )
 
 
 def test_rc_runtime_context_excludes_everything_outside_the_pinned_runtime_sources() -> None:
@@ -53,8 +57,10 @@ def test_rc_runtime_context_excludes_everything_outside_the_pinned_runtime_sourc
     assert "!strategy_runtime/runner.py" in source
 
 
-def test_rc_runtime_image_is_probe_only_and_defaults_to_non_authoritative_rc5() -> None:
+def test_rc_runtime_image_defaults_to_non_authoritative_rc5_runtime_cli_probe() -> None:
     source = DOCKERFILE.read_text(encoding="utf-8")
 
-    assert 'ENTRYPOINT ["python", "-m", "app.strategy_lab_v2.nautilus_runtime_probe"]' in source
-    assert 'CMD ["--expected-version", "2.0.0rc5"]' in source
+    assert (
+        'CMD ["python", "-m", "app.strategy_lab_v2.nautilus_runtime_cli", "--probe", "--expected-version", "2.0.0rc5"]'
+        in source
+    )

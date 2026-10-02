@@ -33,10 +33,11 @@ COPY app/strategy_lab_v2/nautilus_runtime_adapter.py app/strategy_lab_v2/nautilu
 COPY app/strategy_lab_v2/nautilus_strategy_bridge.py app/strategy_lab_v2/nautilus_strategy_bridge.py
 COPY app/strategy_lab_v2/nautilus_runtime_adapter_probe.py app/strategy_lab_v2/nautilus_runtime_adapter_probe.py
 COPY app/strategy_lab_v2/nautilus_runtime_probe.py app/strategy_lab_v2/nautilus_runtime_probe.py
+COPY app/strategy_lab_v2/nautilus_runtime_protocol.py app/strategy_lab_v2/nautilus_runtime_protocol.py
+COPY app/strategy_lab_v2/nautilus_runtime_cli.py app/strategy_lab_v2/nautilus_runtime_cli.py
 COPY app/strategy_lab_v2/nautilus_rc_fixture_probe.py app/strategy_lab_v2/nautilus_rc_fixture_probe.py
 COPY strategy_runtime/__init__.py strategy_runtime/__init__.py
 COPY strategy_runtime/protocol.py strategy_runtime/protocol.py
 COPY strategy_runtime/runner.py strategy_runtime/runner.py
 
-ENTRYPOINT ["python", "-m", "app.strategy_lab_v2.nautilus_runtime_probe"]
-CMD ["--expected-version", "2.0.0rc5"]
+CMD ["python", "-m", "app.strategy_lab_v2.nautilus_runtime_cli", "--probe", "--expected-version", "2.0.0rc5"]

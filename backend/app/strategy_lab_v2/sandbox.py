@@ -34,9 +34,11 @@ _HARDENED_ARG_PREFIX = (
     "--user=65532:65532",
     "--workdir=/workspace",
 )
+_HARDENED_WORKDIRS = frozenset({"--workdir=/workspace", "--workdir=/opt/strategy-lab-v2"})
 _HARDENED_TMPFS = "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864"
 _HARDENED_PIDS_LIMIT = "--pids-limit=256"
 _ENGINE_ENV_PREFIX = "--env=STRATEGY_ENGINE_ID="
+NAUTILUS_RUNTIME_CLI_MODULE = "app.strategy_lab_v2.nautilus_runtime_cli"
 
 
 def _safe_text(value: str, field_name: str) -> None:
@@ -101,7 +103,10 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
     argv = plan.argv
     if len(argv) < len(_HARDENED_ARG_PREFIX) + 10:
         raise ValueError("sandbox command plan is not a complete hardened invocation")
-    if argv[: len(_HARDENED_ARG_PREFIX)] != _HARDENED_ARG_PREFIX:
+    if (
+        argv[: len(_HARDENED_ARG_PREFIX) - 1] != _HARDENED_ARG_PREFIX[:-1]
+        or argv[len(_HARDENED_ARG_PREFIX) - 1] not in _HARDENED_WORKDIRS
+    ):
         raise ValueError("sandbox command plan is missing required isolation controls")
 
     memory_flag = argv[10]
@@ -193,6 +198,66 @@ def sandbox_engine_id(plan: SandboxCommandPlan) -> str | None:
     return value
 
 
+def sandbox_attempt_id(plan: SandboxCommandPlan) -> str:
+    """Return the attempt identity bound into a validated sandbox plan."""
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    return plan.argv[17].removeprefix("--env=STRATEGY_ATTEMPT_ID=")
+
+
+def sandbox_memory_limit_bytes(plan: SandboxCommandPlan) -> int:
+    """Return the positive memory bound from a validated sandbox plan."""
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    return int(plan.argv[10].removeprefix("--memory="))
+
+
+def sandbox_runtime_command(plan: SandboxCommandPlan) -> tuple[str, ...]:
+    """Return the command after the pinned image in a validated plan."""
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    return plan.argv[_image_index(plan.argv) + 1 :]
+
+
+def nautilus_runtime_command(
+    *,
+    expected_version: str,
+    snapshot_fingerprint: str,
+    max_input_bytes: int,
+) -> tuple[str, ...]:
+    """Build the only supported command for an isolated Nautilus strategy run."""
+
+    _safe_text(expected_version, "expected_version")
+    require_sha256_digest(snapshot_fingerprint, field_name="snapshot_fingerprint")
+    if (
+        not isinstance(max_input_bytes, int)
+        or isinstance(max_input_bytes, bool)
+        or max_input_bytes <= 0
+    ):
+        raise ValueError("max_input_bytes must be a positive integer")
+    return (
+        "python",
+        "-m",
+        NAUTILUS_RUNTIME_CLI_MODULE,
+        "--input",
+        "/inputs/bundle",
+        "--output",
+        "/outputs/result",
+        "--expected-version",
+        expected_version,
+        "--snapshot-fingerprint",
+        snapshot_fingerprint,
+        "--max-input-bytes",
+        str(max_input_bytes),
+    )
+
+
 def _image_index(argv: tuple[str, ...]) -> int:
     """Locate the image after the optional engine marker."""
 
@@ -210,7 +275,7 @@ def _validate_mount(value: str, destination: str, mode: str) -> None:
 
 def _mount_source(value: str, destination: str, mode: str) -> str:
     prefix = "--mount=type=bind,src="
-    suffix = f",dst={destination},{mode}"
+    suffix = f",dst={destination},readonly" if mode == "readonly" else f",dst={destination}"
     if not value.startswith(prefix) or not value.endswith(suffix):
         raise ValueError(f"sandbox command plan must contain a {mode} {destination} mount")
     source = value[len(prefix) : -len(suffix)]
@@ -227,6 +292,7 @@ def build_sandbox_command(
     input_bundle_path: str | os.PathLike[str],
     output_path: str | os.PathLike[str],
     command: Sequence[str],
+    working_directory: str = "/workspace",
 ) -> SandboxCommandPlan:
     """Build a shell-free Docker argv after enforcing the runtime preflight."""
 
@@ -235,7 +301,11 @@ def build_sandbox_command(
     if not isinstance(profile, RuntimeIsolationProfile):
         raise TypeError("profile must be a RuntimeIsolationProfile")
     _safe_text(image_name, "image_name")
-    if image_name.startswith("-") or "@" in image_name or any(char.isspace() for char in image_name):
+    if (
+        image_name.startswith("-")
+        or "@" in image_name
+        or any(char.isspace() for char in image_name)
+    ):
         raise ValueError("image_name must be a plain image reference without digest or whitespace")
     if not isinstance(command, Sequence) or isinstance(command, str | bytes):
         raise TypeError("command must be a sequence of argv strings")
@@ -246,6 +316,8 @@ def build_sandbox_command(
         raise ValueError("command must contain non-empty strings without NUL bytes")
     if command_argv[0].startswith("-"):
         raise ValueError("command executable must not begin with an option")
+    if working_directory not in {"/workspace", "/opt/strategy-lab-v2"}:
+        raise ValueError("working_directory must be an approved sandbox path")
 
     preflight = preflight_strategy_runtime(request, profile)
     if preflight.decision is not StrategyRuntimeDecision.ALLOW:
@@ -265,14 +337,14 @@ def build_sandbox_command(
         "--cap-drop=ALL",
         "--security-opt=no-new-privileges:true",
         "--user=65532:65532",
-        "--workdir=/workspace",
+        f"--workdir={working_directory}",
         f"--memory={profile.memory_limit_bytes}",
         f"--ulimit=cpu={profile.cpu_limit_seconds}",
         f"--ulimit=fsize={profile.output_limit_bytes}",
         "--pids-limit=256",
         "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864",
         f"--mount=type=bind,src={input_path},dst=/inputs/bundle,readonly",
-        f"--mount=type=bind,src={result_path},dst=/outputs/result,rw",
+        f"--mount=type=bind,src={result_path},dst=/outputs/result",
         f"--env=STRATEGY_ATTEMPT_ID={request.attempt_id}",
         f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={request.input_bundle_digest}",
         image,
@@ -305,6 +377,50 @@ def build_nautilus_sandbox_command(
         input_bundle_path=input_bundle_path,
         output_path=output_path,
         command=command,
+        working_directory="/opt/strategy-lab-v2",
     )
     argv = (*plan.argv[:19], f"{_ENGINE_ENV_PREFIX}nautilus", *plan.argv[19:])
     return replace(plan, argv=argv)
+
+
+def build_nautilus_runtime_sandbox_command(
+    request: StrategyRuntimeRequest,
+    profile: RuntimeIsolationProfile,
+    *,
+    image_name: str,
+    input_bundle_path: str | os.PathLike[str],
+    output_path: str | os.PathLike[str],
+    expected_version: str,
+    snapshot_fingerprint: str,
+) -> SandboxCommandPlan:
+    """Build a hardened invocation bound to the runtime's fixed Nautilus CLI."""
+
+    return build_nautilus_sandbox_command(
+        request,
+        profile,
+        image_name=image_name,
+        input_bundle_path=input_bundle_path,
+        output_path=output_path,
+        command=nautilus_runtime_command(
+            expected_version=expected_version,
+            snapshot_fingerprint=snapshot_fingerprint,
+            max_input_bytes=max(1, profile.memory_limit_bytes // 8),
+        ),
+    )
+
+
+__all__ = [
+    "NAUTILUS_RUNTIME_CLI_MODULE",
+    "SandboxCommandPlan",
+    "build_nautilus_runtime_sandbox_command",
+    "build_nautilus_sandbox_command",
+    "build_sandbox_command",
+    "nautilus_runtime_command",
+    "sandbox_attempt_id",
+    "sandbox_engine_id",
+    "sandbox_memory_limit_bytes",
+    "sandbox_output_path",
+    "sandbox_runtime_command",
+    "sandbox_runtime_image_digest",
+    "validate_sandbox_command_plan",
+]

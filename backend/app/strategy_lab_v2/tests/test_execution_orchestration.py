@@ -20,7 +20,7 @@ from app.strategy_lab_v2.runtime_execution import (
     new_runtime_execution_state,
     preflight_strategy_runtime,
 )
-from app.strategy_lab_v2.sandbox import SandboxCommandPlan
+from app.strategy_lab_v2.sandbox import SandboxCommandPlan, nautilus_runtime_command
 from app.strategy_lab_v2.workers import WorkerKind
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
@@ -70,13 +70,16 @@ def _fixtures() -> tuple:
             "--pids-limit=256",
             "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864",
             "--mount=type=bind,src=/tmp/strategy-input,dst=/inputs/bundle,readonly",
-            "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result,rw",
+            "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result",
             "--env=STRATEGY_ATTEMPT_ID=attempt-1",
             f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
             "--env=STRATEGY_ENGINE_ID=nautilus",
             f"runtime@{content_digest('runtime-image')}",
-            "python",
-            "runner",
+            *nautilus_runtime_command(
+                expected_version="2.0.0",
+                snapshot_fingerprint=content_digest("snapshot"),
+                max_input_bytes=536870912 // 8,
+            ),
         ),
         60,
         1024,

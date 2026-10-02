@@ -9,9 +9,12 @@ from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolatio
 from app.strategy_lab_v2.runtime_execution import StrategyRuntimeRequest
 from app.strategy_lab_v2.sandbox import (
     SandboxCommandPlan,
+    build_nautilus_runtime_sandbox_command,
     build_nautilus_sandbox_command,
     build_sandbox_command,
     sandbox_engine_id,
+    sandbox_memory_limit_bytes,
+    sandbox_runtime_command,
     sandbox_runtime_image_digest,
 )
 
@@ -71,6 +74,8 @@ def test_allowed_request_builds_deterministic_hardened_argv(tmp_path) -> None:
     assert "--user=65532:65532" in plan.argv
     assert f"strategy-lab/runtime@{profile.runtime_image_digest}" in plan.argv
     assert sandbox_runtime_image_digest(plan) == profile.runtime_image_digest
+    assert sandbox_memory_limit_bytes(plan) == profile.memory_limit_bytes
+    assert sandbox_runtime_command(plan) == ("python", "-m", "runner")
     assert "--env=STRATEGY_ATTEMPT_ID=attempt-1" in plan.argv
     assert not any("SECRET" in value for value in plan.argv)
     assert plan.wall_timeout_seconds == profile.wall_timeout_seconds
@@ -82,14 +87,20 @@ def test_runtime_preflight_rejection_prevents_command_creation(tmp_path) -> None
     profile = _profile(network_disabled=False)
     with pytest.raises(ValueError, match="network_must_be_disabled"):
         build_sandbox_command(
-            _request(profile), profile, image_name="runtime",
-            input_bundle_path=tmp_path / "input", output_path=tmp_path / "output",
+            _request(profile),
+            profile,
+            image_name="runtime",
+            input_bundle_path=tmp_path / "input",
+            output_path=tmp_path / "output",
             command=("python", "runner.py"),
         )
     with pytest.raises(ValueError, match="strategy_requested_network_access"):
         build_sandbox_command(
-            _request(_profile(), network_requested=True), _profile(), image_name="runtime",
-            input_bundle_path=tmp_path / "input", output_path=tmp_path / "output",
+            _request(_profile(), network_requested=True),
+            _profile(),
+            image_name="runtime",
+            input_bundle_path=tmp_path / "input",
+            output_path=tmp_path / "output",
             command=("python", "runner.py"),
         )
 
@@ -106,6 +117,7 @@ def test_nautilus_builder_binds_engine_identity_and_preserves_image_validation(t
     )
     assert sandbox_engine_id(plan) == "nautilus"
     assert plan.argv[19] == "--env=STRATEGY_ENGINE_ID=nautilus"
+    assert "--workdir=/opt/strategy-lab-v2" in plan.argv
     assert sandbox_runtime_image_digest(plan) == profile.runtime_image_digest
 
     generic = build_sandbox_command(
@@ -117,6 +129,22 @@ def test_nautilus_builder_binds_engine_identity_and_preserves_image_validation(t
         command=("python", "-m", "runner"),
     )
     assert sandbox_engine_id(generic) is None
+
+
+def test_nautilus_runtime_builder_binds_fixed_cli_and_snapshot(tmp_path) -> None:
+    profile = _profile()
+    plan = build_nautilus_runtime_sandbox_command(
+        _request(profile),
+        profile,
+        image_name="strategy-lab/runtime",
+        input_bundle_path=tmp_path / "bundle.json",
+        output_path=tmp_path / "result.json",
+        expected_version="2.0.0rc5",
+        snapshot_fingerprint=content_digest("snapshot"),
+    )
+    command = sandbox_runtime_command(plan)
+    assert command[:3] == ("python", "-m", "app.strategy_lab_v2.nautilus_runtime_cli")
+    assert command[-2:] == ("--max-input-bytes", str(profile.memory_limit_bytes // 8))
 
 
 def test_paths_commands_and_image_references_are_validated(tmp_path) -> None:
