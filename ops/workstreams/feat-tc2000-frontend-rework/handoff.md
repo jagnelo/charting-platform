@@ -14913,3 +14913,25 @@ production build, TC scope self-tests, workstream validation, and
 `git diff --check` passed. The build retained the existing large-chunk warning.
 No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback,
 or acceptance policy changed. No other worktree was mutated.
+
+## 2026-10-02 — Alert Form condition-state accessibility slice
+
+Product commit `a8205c30` gives AlertForm's close control explicit button
+semantics and a stable accessible name, and exposes the selected condition with
+`aria-pressed` and a condition-specific label. Alert creation, condition
+selection, visible layout, and emitted events are unchanged.
+
+Focused AlertForm coverage passed `1/1`; the full serial frontend suite passed
+`126/126` files and `1,154/1,154` tests; `vue-tsc` and the production build
+passed with the existing large-chunk warning; TC scope self-tests, workstream
+validation, and `git diff --check` passed. No provider-platform, ETF, visual
+baseline, threshold, mask, skip, fallback, or acceptance policy changed.
+No other worktree was mutated.
+
+The current atomic read-only dependency audit observes staging at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform at
+`af2d79d63d13b6eb1d5c3ba1ca4eaa716dea1a77` (`fix(marketstack): advance raw
+discovery pages`), and ETF holdings at
+`0f2c0d98b3876e8ad270d54de01632dec09e6fa3` (`docs(etf): refresh subversive
+and suncoast evidence`). Neither upstream tip is an ancestor of staging; TC
+consumer integration and shared-path reconciliation remain deferred.

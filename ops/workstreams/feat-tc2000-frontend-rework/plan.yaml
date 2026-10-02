@@ -33,10 +33,10 @@ current_blocker: >-
   and Nimbus Sans), so a matching-font replay is required before attributing
   the mismatch to product pixels. The
   standard parallel frontend gate remains host-timing-sensitive on the
-  unrelated 100k-point uPlot benchmark; serial coverage passes 1,152/1,152.
+  unrelated 100k-point uPlot benchmark; serial coverage passes 1,154/1,154.
   Provider-platform and ETF consumer integration remains a sequencing gate
   until both upstream branches reach staging. On the resumed 2026-10-01 audit,
-  provider is at `1b518778`, ETF is at `446b2efa`, and staging remains
+  provider is at `af2d79d6`, ETF is at `0f2c0d98`, and staging remains
   `8b885a2f`; neither dependency is an ancestor of staging. Shared-path reconciliation and
   the final post-staging exact gate remain pending. Origin synchronization
   remains a separate operational hold under the recorded private-origin
@@ -274,7 +274,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_symbol_list_accessibility_checkpointed
+  current_phase: R6_alert_form_accessibility_checkpointed
   next_action: >-
     Verify the protected visual mismatch against the expected seeded baseline
     in a matching browser/font environment without changing snapshots or visual
@@ -289,7 +289,7 @@ progress:
     first capture and 45,932 after stability, distributed across board text and
     anti-aliasing rather than localized chart geometry. The parallel frontend
     timing guard remains host-sensitive on the unrelated 100k-point uPlot
-    benchmark, while serial coverage passes 1,152/1,152 at the current product
+    benchmark, while serial coverage passes 1,154/1,154 at the current product
     tip. Provider-platform and ETF consumer integration remains a sequencing
     gate until both upstream branches reach staging; shared-path reconciliation
     and the final post-staging exact gate remain pending. Origin synchronization
@@ -531,6 +531,9 @@ historical_implementation_records_continued:
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip a981101cbe2a0838967f609cbd10e3cadc137e63: backend combined coverage passed 1,621 unit and 408 integration tests with 82.26% total coverage; frontend Vitest passed 1,151/1,151; type-check/build, Compose/provider contracts, branch-scoped Docker health, and research-runner probes passed; authenticated functional Chromium passed 170 with 107 documented skips; and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable because of host Xcode license status 69; the installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the Market Map hierarchy/breadcrumb aria-pressed semantics slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commit b0e23a97a exposes the selected Research Results run through aria-pressed on each run-selection button while preserving wrapper aria-current, labels, keyboard Enter/Space selection, mouse selection, and result rendering. Focused Research Results coverage passed 49/49; the serialised full frontend coverage stage passed 124/124 files and 1,150/1,150 tests at 84.78% statement coverage; type-check/build, TC scope/workstream/diff checks, and focused authenticated F8t-results passed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, fallback, or acceptance-policy behavior changed."
   - "Checkpoint validation for b0e23a97a passed backend combined coverage (1,621 unit and 408 integration tests at 82.26%), Compose/provider contracts, and research-runner sandbox/resource probes. The seeded Chromium suite completed 164 passed and 107 documented skips; four initial ERR_NETWORK_CHANGED failures passed on focused retry. Two unrelated existing UI scenarios remain reproducibly red: F9c-template-comparison pointer interception and F8u-boolean missing persisted RSI Boolean column header. Visual cases completed without additional failures. The host-parallel frontend benchmark remains timing-sensitive, while the serial equivalent passes; no oracle or threshold was changed. Stack teardown removed branch-scoped resources."
+
+  - "Product commit a8205c30 adds explicit button semantics, a stable close-control name, and aria-pressed condition state to AlertForm while preserving alert creation, condition selection, visual layout, and event behavior. Focused AlertForm coverage passed 1/1; the full serial frontend suite passed 126/126 files and 1,154/1,154 tests; vue-tsc and production build passed with the existing large-chunk warning; TC scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
+  - "The current atomic read-only dependency audit observes staging at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider-platform at af2d79d63d13b6eb1d5c3ba1ca4eaa716dea1a77 (fix(marketstack): advance raw discovery pages), and ETF holdings at 0f2c0d98b3876e8ad270d54de01632dec09e6fa3 (docs(etf): refresh subversive and suncoast evidence). Neither upstream tip is an ancestor of staging, so TC consumer integration and shared-path reconciliation remain deferred."
 
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
