@@ -5657,3 +5657,16 @@ The provider-platform refs advanced again: local and cached remote
 staging/provider `ProviderCapability` definitions still do not contain
 `ETF_HOLDINGS`. This was a read-only dependency check; no ETF bridge or
 cross-worktree mutation was introduced.
+
+## Manulife route recheck — 2026-10-01
+
+Current official Manulife catalogue material identifies UDIV, UDEF, and GEDG,
+but provides product metadata rather than a complete executable holdings
+artifact in the browser-indexed evidence. The bounded application-equivalent
+request returned HTTP 403 Forbidden. All three symbols therefore remain
+`unavailable`/`issuer_route_access_blocked`; no Canadian catalogue metadata,
+third-party data, or SEC reconstruction was promoted.
+
+The runtime capability audit, symbol ledger, and provider ledger now share the
+2026-10-01 evidence refs. The focused adapter/capability suite passed 675
+tests, Ruff passed, workstream validation passed, and diff-check passed.

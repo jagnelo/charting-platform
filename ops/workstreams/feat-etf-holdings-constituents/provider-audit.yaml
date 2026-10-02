@@ -301,24 +301,24 @@ symbol_audit_ledger:
       provider_identity: manulife
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-07
-      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked]
+      investigated_at: 2026-10-01
+      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked, web:manulife-current-etf-catalogue-2026-10-01, live:manulife-current-etf-catalogue-2026-10-01-403]
       next_action: "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
     - symbol: UDEF
       tier: 1
       provider_identity: manulife
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-07
-      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked]
+      investigated_at: 2026-10-01
+      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked, web:manulife-current-etf-catalogue-2026-10-01, live:manulife-current-etf-catalogue-2026-10-01-403]
       next_action: "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
     - symbol: GEDG
       tier: 1
       provider_identity: manulife
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-07
-      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked]
+      investigated_at: 2026-10-01
+      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked, web:manulife-current-etf-catalogue-2026-10-01, live:manulife-current-etf-catalogue-2026-10-01-403]
       next_action: "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
     - symbol: QVOY
       tier: 1
@@ -1674,7 +1674,7 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-07
+    last_checked: 2026-10-01
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [UDIV, UDEF, GEDG]
     estimated_us_etf_count: null
@@ -1710,6 +1710,14 @@ providers:
         source: "https://www.manulifeim.com/retail/ca/en/landing-page/etfs"
         result: "Backend-equivalent request returned HTTP 403 Akamai access denied."
         evidence_ref: "live:manulife-etf-catalogue-2026-09-03-blocked"
+      - date: 2026-10-01
+        source: "https://www.manulifeim.com/retail/ca/en/landing-page/etfs"
+        result: "Current official catalogue material identifies UDIV, UDEF, and GEDG, but exposes product metadata rather than a complete executable holdings artifact to the browser-indexed evidence path."
+        evidence_ref: "web:manulife-current-etf-catalogue-2026-10-01"
+      - date: 2026-10-01
+        source: "https://www.manulifeim.com/retail/ca/en/landing-page/etfs"
+        result: "The bounded application-equivalent request returned HTTP 403 Forbidden; no complete executable holdings artifact was retrieved."
+        evidence_ref: "live:manulife-current-etf-catalogue-2026-10-01-403"
     disposition_reason: "manulife: Official material is a Canadian ETF catalogue and bounded access is Akamai-blocked; no complete executable U.S. holdings publisher route is proven for native promotion."
     next_action: "manulife: Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
     implementation_sha: null
