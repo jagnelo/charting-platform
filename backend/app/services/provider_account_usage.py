@@ -50,6 +50,14 @@ _NATIVE_BASELINE_DIMENSIONS: dict[str, dict[str, str]] = {
     "twelve_data": {
         "credits_per_minute": ProviderCapability.ACCOUNT_USAGE.value,
     },
+    # CoinGecko's documented /key response exposes the exact API-key monthly
+    # call-credit limit, consumed total, remaining balance, and the plan's
+    # calendar-month reset. The adapter only supplies this as a native
+    # baseline candidate when the returned limit matches the reviewed Demo
+    # contract; its minute pool remains independently gated.
+    "coingecko": {
+        "calls_per_month": ProviderCapability.ACCOUNT_USAGE.value,
+    },
     # Binance's public /api/v3/time response exposes the cumulative request
     # weight for the current fixed one-minute window.  The adapter supplies
     # the exact next-minute reset boundary and the reviewed 6,000-weight cap.

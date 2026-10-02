@@ -224,6 +224,7 @@ class Settings(BaseSettings):
             "binance",
             "alpaca",
             "openfigi",
+            "coingecko",
         ],
         # Alpaca exposes an assets/discovery endpoint but no instrument-search
         # operation. Keep it out of this chain; stale policies from older
@@ -615,7 +616,11 @@ class Settings(BaseSettings):
                         "name": "calls_per_month",
                         "limit": 10000,
                         "window_seconds": 2678400,
-                        "unit": "requests",
+                        # /key calls this a monthly call-credit pool; current
+                        # Demo-plan pricing documents one API call as one
+                        # credit. Retain that native quota unit rather than
+                        # conflating it with the separate RPM request counter.
+                        "unit": "credits",
                         "scope": "demo_api_key",
                         "quota_group": "demo_api_key",
                         "source": "https://www.coingecko.com/en/api/pricing",
