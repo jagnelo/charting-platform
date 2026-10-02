@@ -1,5 +1,30 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-source lossless routed-response retention
+
+- Commit `6eb7ab275` closes a repository-controlled retention gap: every routed
+  provider operation now persists its ordered response payload envelope in
+  `provider_request_log` on both success and error paths, alongside response
+  bytes and headers. JSON-safe serialization preserves otherwise non-JSON
+  scalar evidence instead of silently dropping it.
+- Telemetry capture is defensive for streaming/unread responses; observation
+  failures cannot turn a successful provider transport into an application
+  failure. Migration `fb2c3d4e5f6a` is additive and refuses downgrade if that
+  evidence would be discarded.
+- Exact committed source passed the branch-owned non-ETF unit inventory
+  (`1,959/1,959`, 37 warnings) and Docker PostgreSQL/Redis integration
+  (`386/386`, 57 warnings). Testcontainers cleanup was isolated; no provider
+  calls or credentials were used by either gate.
+- The exact-current full live matrix recorded `incomplete_preflight` at
+  `0/0`, exit `2`, with zero external requests. It correctly remains fail-closed
+  for provider-specific active usage baselines, cost/byte/reset contracts,
+  legal/source admission, and unresolved capability gates; no generic limit or
+  inferred usage was introduced.
+- No frontend or ETF constituent adapter paths changed. The parallel
+  `feat/etf-holdings-constituents` workstream retains ownership of ETF adapter
+  implementation; this branch only provides the generic provider-platform
+  persistence/routing foundation.
+
 ## 2026-10-02 exact-current universe pagination continuity hardening
 
 - Commit `6305bca0d` hardens `seed_universe` so discovery pages are never

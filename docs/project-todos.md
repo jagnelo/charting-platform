@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-source lossless routed-response retention
+
+- [x] Commit `6eb7ab275` makes every routed provider call retain its ordered
+      response envelope in `provider_request_log`, including error paths;
+      JSON-safe serialization preserves non-JSON scalar evidence rather than
+      silently dropping it, and existing response bytes/headers remain
+      available.
+- [x] Telemetry capture is safe for streaming/unread responses: observation
+      failures are contained so instrumentation cannot fail a provider call.
+- [x] Migration `fb2c3d4e5f6a` is additive and refuses downgrade when retained
+      response evidence would be lost. Exact source passed 1,959/1,959
+      branch-owned units and 386/386 Docker PostgreSQL/Redis integration tests.
+- [x] Exact-current live preflight recorded `incomplete_preflight` at `0/0`
+      with zero external requests because provider-specific usage baselines,
+      cost/byte/reset contracts, legal/source admission, and capability gates
+      remain unresolved. No generic quota or inferred usage was introduced.
+- [ ] Complete the external provider admission and deployment/CI secret-store
+      gates before the final separately authorized 30-day shadow phase.
+
 ### 2026-10-02 — Exact-current universe pagination continuity hardening
 
 - [x] Commit `6305bca0d` hardens the backend `seed_universe` discovery loop:

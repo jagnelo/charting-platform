@@ -162,6 +162,19 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact source 6eb7ab275 adds shared lossless response-envelope
+    retention to every routed provider operation. Provider request logs now
+    persist ordered JSON-safe response payloads on both success and failure,
+    while response bytes and headers remain retained; telemetry capture is
+    streaming-safe and cannot turn an unread response into a provider failure.
+    The additive migration has a downgrade guard that refuses to discard
+    retained evidence. Branch-owned units passed 1,959/1,959 and Docker
+    PostgreSQL/Redis integration passed 386/386 at this exact source. The
+    exact-current full live matrix correctly stopped before transport at 0/0
+    with zero external requests because provider-specific usage baselines,
+    cost/byte/reset contracts, legal/source admission, and capability gates
+    remain unresolved; no generic limit or inferred usage was introduced.
+  - >-
     2026-10-02 exact pushed source 6305bca0d hardened the backend seed-universe
     pagination path: raw discovery pages are persisted before validation,
     provider next_offset/next_url/complete metadata is validated, and
