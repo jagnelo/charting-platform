@@ -5970,3 +5970,27 @@ sections. No independently callable complete current artifact was retrieved;
 direct application-equivalent requests failed DNS resolution for
 `vegasharesetfs.com` across all five routes. VegaShares remains
 `non_executable_public_source`; no top-ten or SEC reconstruction was promoted.
+
+## Wellesley, Worth Charting, Yoke, EPWA, Pacific/PIMCO, and PlanRock route rechecks — 2026-10-02
+
+Wellesley’s current identity page still describes advisory and portfolio-
+management services rather than an independent ETF portfolio publisher; direct
+retrieval failed DNS, so its non-publisher disposition remains.
+
+Worth Charting’s current WRTH page still declares a Download All Holdings control,
+but the declared CSV was not independently retrieved and direct requests failed
+DNS after prior HTTP 403 evidence; WRTH remains issuer-access-blocked.
+
+Yoke’s current page identifies the YOKE fund but exposed no complete rows, and
+direct retrieval failed DNS after prior HTTP 403 evidence; YOKE remains
+issuer-access-blocked.
+
+EPWA/CornerCap FUNL routes were empty or inaccessible in web retrieval and both
+declared domains failed direct DNS; EPWA remains non-executable.
+
+Pacific/PIMCO produced no new executable MINT/BOND route or entitlement. Direct
+Pacific and PIMCO retrieval failed DNS; prior GEME evidence remains symbol-level
+only, so the mixed provider remains non-executable.
+
+PlanRock routes were inaccessible and direct DNS failed; the previously observed
+opaque 48-byte Holdings.csv remains unresolved and no promotion was made.

@@ -8171,7 +8171,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: provider_not_a_portfolio_publisher
     disposition: provider_not_a_portfolio_publisher
-    last_checked: 2026-09-04
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [MCRT]
     estimated_us_etf_count: null
@@ -8201,8 +8201,12 @@ providers:
         source: "Wellesley Asset Management official sites and fund references"
         result: "Wellesley is identified as an investment adviser/sub-adviser for managed accounts and the Miller Convertible Total Return ETF, not the legal publisher of a distinct ETF portfolio catalogue."
         evidence_ref: "web:wellesley-asset-management-current-identity-pages-2026-09-04"
-    disposition_reason: "wellesley_asset_management: Official identity material describes an adviser/sub-adviser rather than an independent ETF portfolio publisher; no separate first-party holdings catalogue applies."
-    next_action: "wellesley_asset_management: Revisit only if a legally published ETF catalogue is identified; otherwise preserve the non-publisher disposition."
+      - date: 2026-10-02
+        source: "Wellesley Asset Management official identity page and bounded application-equivalent request"
+        result: "The current Wellesley page describes institutional/private-wealth advisory and portfolio-management services, not a distinct legal ETF publisher or holdings catalogue. Direct curl failed DNS resolution for www.wellesleyinvestment.com; no separate first-party ETF route applies."
+        evidence_ref: "web:wellesley-current-adviser-identity-page-2026-10-02;live:wellesley-route-recheck-2026-10-02-dns-failure"
+    disposition_reason: "wellesley_asset_management: Current identity material still describes an adviser/portfolio manager rather than an independent ETF portfolio publisher; no separate first-party holdings catalogue applies."
+    next_action: "wellesley_asset_management: Revisit only if a legally published ETF catalogue is identified; otherwise preserve the non-portfolio-publisher disposition."
     implementation_sha: null
     validation_refs: []
   - adapter_key: worth_charting
@@ -8211,7 +8215,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-04
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [WRTH]
     estimated_us_etf_count: null
@@ -8242,8 +8246,12 @@ providers:
         source: "Worth Charting Group official WRTH product page and bounded live probe"
         result: "The official page declares a complete current TidalFG_Holdings_WRTH.csv artifact, but the backend-equivalent HTTP client receives HTTP 403 from the issuer page; native promotion was not retained."
         evidence_ref: "live:worth-charting-current-wrth-holdings-csv-2026-09-04-blocked"
-    disposition_reason: "worth_charting: The official page declares a complete current CSV, but bounded backend-equivalent access is issuer-blocked with HTTP 403, so native promotion is not justified."
-    next_action: "worth_charting: Periodically re-test the official WRTH page and CSV; promote only after complete artifact access succeeds through the application client."
+      - date: 2026-10-02
+        source: "Worth Charting Group official WRTH page/declared CSV and bounded application-equivalent requests"
+        result: "The current first-party page still exposes a Download All Holdings control and the declared TidalFG_Holdings_WRTH.csv route is a CSV artifact, but the web click could not retrieve its content and direct curl failed DNS resolution for worthchartinggroup.com. No executable complete current artifact was retrieved after the prior HTTP 403 evidence."
+        evidence_ref: "web:worth-charting-current-wrth-page-2026-10-02;web:worth-charting-holdings-csv-content-type-2026-10-02;live:worth-charting-route-recheck-2026-10-02-dns-failure"
+    disposition_reason: "worth_charting: The current page declares a complete holdings CSV, but no executable artifact was retrieved and direct transport failed DNS after the prior HTTP 403 evidence. Preserve the issuer_access_blocked fallback."
+    next_action: "worth_charting: Periodically re-test the official WRTH page and CSV; promote only after complete artifact access succeeds through the application client with identity and freshness validation."
     implementation_sha: null
     validation_refs: []
   - adapter_key: yoke
@@ -8252,7 +8260,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-04
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [YOKE]
     estimated_us_etf_count: null
@@ -8282,8 +8290,12 @@ providers:
         source: "Yoke ETF official product page and bounded live probe"
         result: "The official YOKE page publishes a complete current server-rendered holdings table, but the backend-equivalent HTTP client receives HTTP 403 from the issuer page; native promotion was not retained."
         evidence_ref: "live:yoke-current-holdings-page-2026-09-04-blocked"
-    disposition_reason: "yoke: The official page exposes a complete current table, but bounded backend-equivalent access is issuer-blocked with HTTP 403, so native promotion is not justified."
-    next_action: "yoke: Periodically re-test the official YOKE page; promote only after complete table access succeeds through the application client."
+      - date: 2026-10-02
+        source: "Yoke ETF official product page and bounded application-equivalent request"
+        result: "The current YOKE page identifies the fund and its methodology, but no complete holdings rows were exposed in the indexed content. Direct curl failed DNS resolution for yokeetf.com after the prior HTTP 403 evidence; no executable native route was retrieved."
+        evidence_ref: "web:yoke-current-page-2026-10-02;live:yoke-route-recheck-2026-10-02-dns-failure"
+    disposition_reason: "yoke: The current page identifies YOKE but no executable complete holdings artifact was retrieved; direct access failed DNS after the prior HTTP 403 evidence. Preserve the issuer_access_blocked fallback."
+    next_action: "yoke: Periodically re-test the official YOKE page and any declared holdings artifact; promote only after complete table access succeeds through the application client with identity and freshness validation."
     implementation_sha: null
     validation_refs: []
   - adapter_key: epwa
@@ -8292,7 +8304,7 @@ providers:
     starting_status: non_executable_public_source
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-03
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [FUNL]
     estimated_us_etf_count: null
@@ -8321,7 +8333,11 @@ providers:
         source: "https://cornercapfunl-etf.com/; https://cornercapfunds.com/funl/"
         result: "EPWA/CornerCap FUNL routes timed out, returned Cloudflare 522, or redirected to unrelated EP Wealth/ETF Architect pages; no complete current holdings artifact is executable."
         evidence_ref: "web:epwa-cornercap-funl-route-audit-2026-09-03"
-    disposition_reason: "epwa: Current CornerCap/FUNL routes timed out, returned 522, or redirected to unrelated pages; no complete executable first-party holdings artifact is proven."
+      - date: 2026-10-02
+        source: "CornerCap FUNL official domains and bounded application-equivalent requests"
+        result: "Web retrieval returned an empty shell for cornercapfunl-etf.com and failed for cornercapfunds.com/funl; direct curl failed DNS resolution for both declared domains. No complete current holdings artifact is executable, and no redirect or challenge was promoted."
+        evidence_ref: "web:epwa-cornercap-funl-route-recheck-2026-10-02;live:epwa-cornercap-funl-dns-failure-2026-10-02"
+    disposition_reason: "epwa: Current CornerCap/FUNL routes remain empty, inaccessible, or DNS-blocked; no complete executable first-party holdings artifact is proven."
     next_action: "epwa: Re-test the official FUNL domains after access recovery; promote only after a complete current artifact, mapping, parser fixture, and bounded live proof are available."
     implementation_sha: null
     validation_refs: []
@@ -8331,7 +8347,7 @@ providers:
     starting_status: non_executable_public_source
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-24
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [GEME, MINT, BOND]
     estimated_us_etf_count: null
@@ -8461,8 +8477,12 @@ providers:
         source: "https://www.pimco.com/us/en/investment-strategies/short-term-strategies; https://www.pimco.com/us/en/investment-strategies/core-bonds; https://stockanalysis.com/etf/mint/holdings/; https://stockanalysis.com/etf/bond/holdings/; https://marketxls.com/etfs/mint; https://marketxls.com/etfs/bond/holdings"
         result: "Current PIMCO pages confirm MINT and BOND remain active U.S.-listed ETFs and expose current product/NAV context but no complete executable holdings artifact in the public page. StockAnalysis exposes only 25-row previews sourced from Finnhub and gates the full lists; MarketXLS advertises complete exports behind its paid FundXLS access (shown as $99/month). No free, complete, issuer-owned, legally usable route or shared-provider entitlement was established, so neither symbol can be promoted."
         evidence_ref: "web:pimco-current-mint-product-2026-09-25; web:pimco-current-bond-product-2026-09-25; web:stockanalysis-mint-preview-finnhub-gated-2026-09-25; web:stockanalysis-bond-preview-finnhub-gated-2026-09-25; web:marketxls-mint-paid-full-export-2026-09-25; web:marketxls-bond-paid-full-export-2026-09-25"
-    disposition_reason: "pacific_investments: Pacific Asset Management's official U.S.-listed GEME route is now symbol-level current and live-validated, while PIMCO MINT/BOND still expose no complete executable public route; the mixed identity remains fallback-only at provider level until the unresolved PIMCO representatives are closed."
-    next_action: "pacific_investments: Keep the GEME route freshness-monitored and continue free-first MINT/BOND route discovery; do not promote provider-level native support or SEC/top-ten artifacts until the remaining representatives are complete."
+      - date: 2026-10-02
+        source: "Pacific Asset Management GEME and PIMCO MINT/BOND official product pages and bounded application-equivalent requests"
+        result: "Indexed Pacific material continues to identify GEME and its current holdings route, while the current PIMCO MINT page exposes product context but no complete public holdings artifact. Direct curl failed DNS resolution for www.pacificam.co.uk and www.pimco.com; no new executable MINT/BOND route or entitlement was retrieved. The mixed provider identity remains fallback-only because unresolved PIMCO representatives cannot be silently covered by GEME evidence."
+        evidence_ref: "web:pacific-geme-pimco-current-pages-2026-10-02;live:pacific-pimco-route-recheck-2026-10-02-dns-failure"
+    disposition_reason: "pacific_investments: Pacific Asset Management's GEME route remains symbol-level current from prior live evidence, but PIMCO MINT/BOND still expose no complete executable public route and current direct transport failed DNS. The mixed identity remains fallback-only until the unresolved PIMCO representatives are closed."
+    next_action: "pacific_investments: Keep GEME freshness-monitored and continue free-first MINT/BOND route discovery; do not promote provider-level native support or SEC/top-ten artifacts until all representatives are complete."
     implementation_sha: null
     validation_refs: []
   - adapter_key: planrock
@@ -8471,7 +8491,7 @@ providers:
     starting_status: non_executable_public_source
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-03
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [PRAE, PRMN]
     estimated_us_etf_count: null
@@ -8500,7 +8520,11 @@ providers:
         source: "https://planrockfunds.com/fund-details; https://planrockfunds.com/alternative-growth"
         result: "PlanRock pages identify PRAE/PRMN and expose a fund-details widget, but the advertised Holdings.csv is a 48-byte opaque body and no complete current machine-readable holdings route is proven."
         evidence_ref: "web:planrock-prae-prmn-current-pages-2026-09-03"
-    disposition_reason: "planrock: Official PRAE/PRMN pages expose fund widgets, but the advertised Holdings.csv is an opaque 48-byte body and no complete current machine-readable holdings route is proven."
+      - date: 2026-10-02
+        source: "PlanRock official fund-details/alternative-growth pages and bounded application-equivalent requests"
+        result: "Web retrieval failed for both current PlanRock routes and direct curl failed DNS resolution for planrockfunds.com. The prior opaque 48-byte Holdings.csv observation remains unrepaired; no complete current machine-readable holdings route is proven."
+        evidence_ref: "web:planrock-current-pages-2026-10-02-failed;live:planrock-route-recheck-2026-10-02-dns-failure"
+    disposition_reason: "planrock: Official PRAE/PRMN routes remain inaccessible and the previously advertised Holdings.csv was opaque; no complete current machine-readable holdings route is proven."
     next_action: "planrock: Re-test PlanRock fund-details and declared download routes; promote only after a complete current artifact, symbol mapping, parser fixture, and live evidence are available."
     implementation_sha: null
     validation_refs: []
