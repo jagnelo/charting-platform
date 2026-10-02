@@ -4044,7 +4044,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-02
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - FMCX
@@ -4757,7 +4757,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-07
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - AQLG
@@ -6162,7 +6162,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-07
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [DRMY, GLDN, NUKX, WEPN, SLVX, GIAX, BHDG, BLOX, NGHT, FIAX, XCSH]
     estimated_us_etf_count: null
@@ -6275,7 +6275,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-25
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [NSIV, NSIG, QTPI]
     estimated_us_etf_count: null
