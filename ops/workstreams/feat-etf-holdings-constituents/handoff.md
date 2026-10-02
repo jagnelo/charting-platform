@@ -5896,3 +5896,12 @@ Direct application-equivalent retrieval failed DNS resolution for
 `sirenetfs.com` and `dev.sirenetfs.com`, so no callable current artifact was
 retrieved. Siren remains `non_executable_public_source`; periodic reports and
 SEC filings are not reconstructed as current holdings.
+
+## Sophus route recheck — 2026-10-02
+
+Web retrieval timed out for both current Sophus EMEM and EMSC product pages,
+and direct application-equivalent requests failed DNS resolution for
+`sophus-capital-etfs.com`. No callable current holdings artifact or complete
+rows were retrieved; the prior issuer HTTP 403/challenge evidence remains
+unresolved. Sophus remains `issuer_access_blocked`; no challenge page or SEC
+reconstruction was promoted.

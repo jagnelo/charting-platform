@@ -7553,7 +7553,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-04
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [EMEM, EMSC]
     estimated_us_etf_count: null
@@ -7582,8 +7582,12 @@ providers:
         source: "Sophus Capital official EMEM and EMSC product pages and bounded backend requests"
         result: "Official pages publish complete current holdings tables, but httpx received HTTP 403 and the bounded requests fallback returned a non-matching challenge page for both routes; no executable native route is promoted."
         evidence_ref: "live:sophus-current-emem-emsc-holdings-pages-2026-09-04-blocked"
-    disposition_reason: "sophus: Sophus' official EMEM and EMSC pages advertise complete current holdings tables, but backend-equivalent access was blocked by HTTP 403/challenge responses for both routes. Preserve the issuer-access-blocked fallback until complete rows are executable."
-    next_action: "sophus: Periodically re-test the official EMEM and EMSC pages and declared downloads; promote only after bounded backend access returns complete current rows with proven mapping."
+      - date: 2026-10-02
+        source: "Sophus Capital official EMEM and EMSC product pages and bounded application-equivalent requests"
+        result: "Web retrieval timed out for both current first-party product pages, and direct curl failed DNS resolution for sophus-capital-etfs.com. No callable current holdings artifact or complete rows were retrieved; the previously observed issuer challenge remains unresolved and no executable native route is promoted."
+        evidence_ref: "web:sophus-current-emem-emsc-pages-2026-10-02-timeout;live:sophus-route-recheck-2026-10-02-dns-failure"
+    disposition_reason: "sophus: Sophus' official EMEM and EMSC pages previously advertised complete current holdings tables, but current web retrieval timed out and direct application-equivalent access failed DNS after the earlier HTTP 403/challenge evidence. Preserve the issuer_access_blocked fallback until complete rows are executable."
+    next_action: "sophus: Periodically re-test the official EMEM and EMSC pages and declared downloads; promote only after bounded backend access returns complete current rows with proven mapping and freshness."
     implementation_sha: null
     validation_refs: []
   - adapter_key: srh
