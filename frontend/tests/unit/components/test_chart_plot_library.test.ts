@@ -12,13 +12,25 @@ function mount(component: typeof ChartPlotLibrary, options: Record<string, any> 
   return vueMount(component, { ...options, global: { ...(options.global ?? {}), plugins: [[VueQueryPlugin, { queryClient }], ...((options.global?.plugins as any[]) ?? [])] } })
 }
 
-const apiMock = vi.hoisted(() => ({ get: vi.fn().mockResolvedValue([]), put: vi.fn().mockResolvedValue({}), post: vi.fn().mockResolvedValue({}) }))
+const apiMock = vi.hoisted(() => ({
+  registry: [
+    { type: 'sma', params: [{ name: 'period', type: 'int', min_value: 1, max_value: null }] },
+    { type: 'rsi', params: [{ name: 'period', type: 'int', min_value: 2, max_value: null }] },
+    { type: 'bb', params: [
+      { name: 'period', type: 'int', min_value: 1, max_value: null },
+      { name: 'std_dev', type: 'float', min_value: 0.1, max_value: null },
+    ] },
+  ],
+  get: vi.fn(),
+  put: vi.fn().mockResolvedValue({}),
+  post: vi.fn().mockResolvedValue({}),
+}))
 vi.mock('@/lib/api', () => ({ api: apiMock }))
 
 describe('ChartPlotLibrary', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    apiMock.get.mockReset().mockResolvedValue([])
+    apiMock.get.mockReset().mockImplementation((path: string) => Promise.resolve(path === '/indicators/registry' ? apiMock.registry : []))
     apiMock.put.mockReset().mockResolvedValue({})
     apiMock.post.mockReset().mockResolvedValue({})
   })
@@ -54,6 +66,7 @@ describe('ChartPlotLibrary', () => {
 
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
     await wrapper.get('button[aria-label="Edit SMA(20) settings"]').trigger('click')
+    await flushPromises()
 
     const dialog = document.body.querySelector<HTMLElement>('[role="dialog"][aria-label="Indicator settings: SMA(20)"]')!
     const period = dialog.querySelector<HTMLInputElement>('input[aria-label="Period"]')!
@@ -68,6 +81,94 @@ describe('ChartPlotLibrary', () => {
     expect(apiMock.put).toHaveBeenCalledWith('/instrument-indicators/42', { indicators: [chart.indicators[0]] })
     expect(document.body.querySelector('[aria-label="Indicator settings: SMA(20)"]')).toBeNull()
     expect(document.activeElement).toBe(wrapper.get('button[aria-label="Chart plot library"]').element)
+    wrapper.unmount()
+  })
+
+  it('applies backend integer and minimum constraints before saving indicator settings', async () => {
+    const chart = usePanelStore('plot-library-indicator-constraints-test')
+    chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ef9a9a', lineWidth: 1 }, pane: 'separate' }])
+    chart.instrument = { id: 42, symbol: 'SPY' } as any
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-indicator-constraints-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit RSI(14) settings"]').trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.querySelector<HTMLElement>('[aria-label="Indicator settings: RSI(14)"]')!
+    const period = dialog.querySelector<HTMLInputElement>('input[aria-label="Period"]')!
+    const apply = dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!
+    expect(period.min).toBe('2')
+    expect(period.step).toBe('1')
+
+    period.value = '1'
+    period.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    expect(apply.disabled).toBe(true)
+    period.value = '2.5'
+    period.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    expect(apply.disabled).toBe(true)
+    apply.click()
+    await flushPromises()
+    expect(apiMock.put).not.toHaveBeenCalled()
+    period.value = '14'
+    period.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    expect(apply.disabled).toBe(false)
+    apply.click()
+    await flushPromises()
+
+    expect(chart.indicators[0].params.period).toBe(14)
+    expect(apiMock.put).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
+  it('uses floating-point parameter limits from the indicator registry', async () => {
+    const chart = usePanelStore('plot-library-indicator-float-constraints-test')
+    chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#80cbc4', lineWidth: 1 }, pane: 'main' }])
+    chart.instrument = { id: 42, symbol: 'SPY' } as any
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-indicator-float-constraints-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit BB(20,2) settings"]').trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.querySelector<HTMLElement>('[aria-label="Indicator settings: BB(20,2)"]')!
+    const standardDeviation = dialog.querySelector<HTMLInputElement>('input[aria-label="Std dev"]')!
+    const apply = dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!
+    expect(standardDeviation.min).toBe('0.1')
+    expect(standardDeviation.step).toBe('any')
+
+    standardDeviation.value = '0.05'
+    standardDeviation.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    expect(apply.disabled).toBe(true)
+    standardDeviation.value = '0.5'
+    standardDeviation.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    expect(apply.disabled).toBe(false)
+    apply.click()
+    await flushPromises()
+
+    expect(chart.indicators[0].params.std_dev).toBe(0.5)
+    expect(apiMock.put).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
+  it('fails closed when the indicator constraint registry cannot be loaded', async () => {
+    apiMock.get.mockRejectedValueOnce(new Error('registry unavailable'))
+    const chart = usePanelStore('plot-library-indicator-registry-error-test')
+    chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ffb74d', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-indicator-registry-error-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit SMA(20) settings"]').trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.querySelector<HTMLElement>('[aria-label="Indicator settings: SMA(20)"]')!
+    expect(dialog.querySelector('[role="alert"]')?.textContent).toContain('registry unavailable')
+    expect(dialog.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true)
+    expect(apiMock.put).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 

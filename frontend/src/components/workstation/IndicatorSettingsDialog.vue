@@ -35,7 +35,10 @@
               v-else
               :aria-label="param.label"
               type="number"
-              step="any"
+              :min="numericConstraint(param.key)?.min_value ?? undefined"
+              :max="numericConstraint(param.key)?.max_value ?? undefined"
+              :step="numericConstraint(param.key)?.type === 'int' ? 1 : 'any'"
+              :aria-invalid="registryState === 'ready' && numericParamError(param) ? 'true' : undefined"
               :value="String(draft.params[param.key] ?? '')"
               @input="setNumberParam(param.key, ($event.target as HTMLInputElement).value)"
             />
@@ -64,7 +67,13 @@
             </label>
           </fieldset>
 
-          <p v-if="!canApply" class="indicator-settings-dialog__guidance" role="status">
+          <p v-if="registryState === 'loading' && hasNumericParams" class="indicator-settings-dialog__guidance" role="status">
+            Checking valid parameter ranges…
+          </p>
+          <p v-else-if="registryState === 'error'" class="indicator-settings-dialog__guidance" role="alert">
+            {{ registryError }}
+          </p>
+          <p v-else-if="!canApply" class="indicator-settings-dialog__guidance" role="status">
             Enter valid indicator settings and select at least one timeframe when locking this plot.
           </p>
           <footer>
@@ -80,7 +89,16 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { cloneDefaultIndicator, indicatorDefaultPane, INDICATOR_BY_TYPE, normalizeIndicatorParams, type IndicatorParamDef } from '@/lib/indicators/catalog'
+import { api } from '@/lib/api'
 import type { IndicatorConfig, Timeframe } from '@/types'
+
+type RegistryParam = {
+  name: string
+  type: string
+  min_value: number | null
+  max_value: number | null
+}
+type RegistryIndicator = { type: string; params: RegistryParam[] }
 
 const props = defineProps<{ indicator: IndicatorConfig; displayName: string }>()
 const emit = defineEmits<{
@@ -90,6 +108,10 @@ const emit = defineEmits<{
 
 const timeframes: Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
 const parameterDefs = computed<IndicatorParamDef[]>(() => INDICATOR_BY_TYPE[props.indicator.type]?.params ?? [])
+const hasNumericParams = computed(() => parameterDefs.value.some(param => !param.input || param.input === 'number'))
+const registryState = ref<'loading' | 'ready' | 'error'>('loading')
+const registryError = ref('')
+const numericConstraints = ref<Record<string, RegistryParam>>({})
 const fallbackInitialControl = ref<HTMLInputElement | null>(null)
 const dialogRoot = ref<HTMLElement | null>(null)
 const defaultIndicator = cloneDefaultIndicator(props.indicator.type)
@@ -104,12 +126,29 @@ const draft = ref({
   lockedTimeframes: [...(props.indicator.lockedTimeframes ?? [])],
 })
 
+function numericConstraint(key: string) {
+  return numericConstraints.value[key]
+}
+
+function numericParamError(param: IndicatorParamDef): string | null {
+  if (param.input && param.input !== 'number') return null
+  if (registryState.value !== 'ready') return 'Indicator limits are not available'
+  const constraint = numericConstraint(param.key)
+  if (!constraint || !['int', 'float'].includes(constraint.type)) return 'Indicator limits are not available'
+  const value = draft.value.params[param.key]
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'Enter a finite number'
+  if (constraint.type === 'int' && !Number.isInteger(value)) return 'Enter a whole number'
+  if (constraint.min_value != null && value < constraint.min_value) return `Enter at least ${constraint.min_value}`
+  if (constraint.max_value != null && value > constraint.max_value) return `Enter no more than ${constraint.max_value}`
+  return null
+}
+
 const canApply = computed(() => {
   const validParams = parameterDefs.value.every(param => {
     const value = draft.value.params[param.key]
     if (param.input === 'datetime') return typeof value === 'number' && Number.isFinite(value)
     if (param.input === 'select') return (param.options ?? []).some(option => option.value === String(value ?? ''))
-    return typeof value === 'number' && Number.isFinite(value)
+    return numericParamError(param) == null
   })
   return validParams
     && Number.isFinite(draft.value.lineWidth)
@@ -150,6 +189,28 @@ function apply() {
   })
 }
 
+async function loadNumericConstraints() {
+  if (!hasNumericParams.value) {
+    registryState.value = 'ready'
+    return
+  }
+  try {
+    const registry = await api.get<RegistryIndicator[]>('/indicators/registry')
+    const definition = registry.find(item => item.type === props.indicator.type)
+    if (!definition) throw new Error('The selected indicator is missing from the current registry.')
+    numericConstraints.value = Object.fromEntries(definition.params.map(param => [param.name, param]))
+    registryState.value = 'ready'
+    if (parameterDefs.value.some(param => (!param.input || param.input === 'number') && !numericConstraints.value[param.key])) {
+      throw new Error('The selected indicator parameter limits are incomplete.')
+    }
+  } catch (cause) {
+    registryState.value = 'error'
+    registryError.value = cause instanceof Error
+      ? `Could not verify indicator parameter limits. ${cause.message}`
+      : 'Could not verify indicator parameter limits.'
+  }
+}
+
 function handleKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     event.preventDefault()
@@ -179,6 +240,7 @@ onMounted(() => {
     const initialControl = firstControl ?? fallbackInitialControl.value
     initialControl?.focus()
   })
+  void loadNumericConstraints()
 })
 </script>
 
