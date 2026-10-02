@@ -558,6 +558,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   the `FORWARD_EVENT_TAPE_PARITY` conformance projection, returning one typed
   resolution that binds the tape, receipt, and observation for the eventual
   host/Rust callback boundary.
+- `nautilus_engine_input.py` completes the next engine-input seam without
+  importing Nautilus. It binds the event tape to provider-supplied instrument
+  precision/increment metadata, one shared venue/account model and initial cash,
+  plus immutable strategy source/manifest/parameter identities. Missing
+  instruments, cross-venue events, duplicate catalog entries, invalid account
+  currency, and malformed strategy identities fail before a native engine
+  adapter can construct orders or account state.
 - `build_event_tape_parity_observation(...)` projects that receipt into the
   existing `FORWARD_EVENT_TAPE_PARITY` conformance check. Failed receipts are
   assigned a distinct failure digest, so expected-fixture configuration cannot

@@ -6195,3 +6195,15 @@ gap where a plan could claim Nautilus evidence while carrying a generic runtime
 command. Generic sandbox plans remain available to engine-neutral runtime
 paths. Focused sandbox/runner coverage passes 11 tests; the complete Strategy
 Lab v2 package suite passes 1,006 tests, Ruff, MyPy, and diff validation.
+
+## 2026-10-02 - Nautilus engine-input catalog boundary
+
+Added `nautilus_engine_input.py`, an engine-neutral immutable input contract
+for the eventual Nautilus runtime adapter. It binds an already materialized
+event tape to provider-supplied instrument precision/increment/lifecycle
+metadata, one shared venue/account model with initial cash, and the strategy
+source/manifest/parameter identities. It rejects missing instruments,
+cross-venue events, duplicate definitions, invalid cash/base currency, and
+malformed entrypoints before native engine construction. The focused engine
+input/event-adapter suite passes 22 tests; the complete Strategy Lab v2 package
+suite passes 1,011 tests, Ruff, MyPy, and diff validation.

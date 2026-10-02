@@ -125,7 +125,7 @@
   "head": "583bf8bfb9f44d8107b508d0ba3cc9ac33b2ac32",
   "implementation_sha": "5ca8250726dd9a88f660b4470007de78daf6a614",
   "last_checkpoint": "2026-10-02T16:17:49.039175+00:00",
-  "last_human_progress_update": "2026-10-02T16:17:09.015223+00:00",
+  "last_human_progress_update": "2026-10-02T16:26:17.708756+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -142,11 +142,11 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "RC compatibility is unblocked by exact isolated 2.0.0rc5 runtime, typed receipt-to-execution evidence, and an explicit Nautilus sandbox engine marker; authoritative publication/live shadow remain gated by stable Nautilus conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration",
-    "current_phase": "strategy-lab-v2-nautilus-rc-compatibility-track-awaiting-authoritative-gates",
-    "next_action": "when the host/Rust canonical-event callback and approved staging contracts become available, invoke the completed NautilusForwardEventTape materializer, forward-parity receipt verifier, and conformance projection at that adapter boundary; until then continue engine-neutral and isolated RC work while keeping worker activation, publication, and live shadow fail-closed",
+    "current_blocker": "RC compatibility is unblocked by exact isolated 2.0.0rc5 runtime, typed receipt-to-execution evidence, an explicit Nautilus sandbox engine marker, and a complete engine-input catalog contract; authoritative publication/live shadow remain gated by stable Nautilus conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration",
+    "current_phase": "strategy-lab-v2-nautilus-rc-compatibility-track-building-engine-input-adapter",
+    "next_action": "implement the isolated runtime adapter that consumes NautilusEngineInput, materializes typed instrument/venue/event values inside the RC image, invokes native BacktestEngine, and emits typed native execution evidence; keep RC output non-authoritative and keep worker activation/publication/live shadow fail-closed",
     "total": 18,
-    "updated_at": "2026-10-02T16:17:09.015206+00:00"
+    "updated_at": "2026-10-02T16:26:17.708726+00:00"
   },
   "remote": "583bf8bfb9f44d8107b508d0ba3cc9ac33b2ac32",
   "remote_sha": "5ca8250726dd9a88f660b4470007de78daf6a614",
