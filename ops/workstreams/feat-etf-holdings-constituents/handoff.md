@@ -6047,3 +6047,10 @@ The exact-SHA deterministic run initially caught a runtime/YAML evidence parity
 drift for the new PIMCO/Pacific DNS-blocked receipt. Both MINT and BOND runtime
 tuples now include that receipt; all 705 ETF adapter/capability/refresh/task
 tests, Ruff, workstream validation, and diff-check pass.
+
+## Provider-platform ref advancement — 2026-10-02
+
+The provider-platform ref advanced to `3154c0f8` locally and on its origin
+tracking ref, while staging remains `8b885a2f`. The provider branch is still
+not an ancestor of staging and its `ProviderCapability` enum still lacks
+`ETF_HOLDINGS`; AC10 remains deferred and no protected worktree was modified.
