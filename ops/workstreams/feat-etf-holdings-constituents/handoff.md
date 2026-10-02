@@ -6034,3 +6034,11 @@ top-ten, creation-basket, or paid candidate was promoted.
 The runtime tier-0 symbol audit and deterministic capability tests now carry the
 same 2026-10-02 investigated-at date and official-shell evidence for MINT/BOND;
 the focused 91-test capability suite and Ruff pass.
+
+## Provider-platform ref refresh — 2026-10-02
+
+Read-only inspection now sees local `feat/market-data-provider-platform` at
+`5f6b1edf`, `origin/feat/market-data-provider-platform` at `a05d9f43`, and
+`origin/staging` at `8b885a2f`. Neither provider ref is an ancestor of staging,
+and both inspected `ProviderCapability` enums still lack `ETF_HOLDINGS`. AC10
+remains deferred; no provider-platform or staging worktree was modified.

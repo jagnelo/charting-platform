@@ -370,6 +370,7 @@ remaining_gaps:
   - "The 2026-10-02 remote ref refresh successfully fetched origin/staging and origin/feat/market-data-provider-platform, but the refs remain staging 8b885a2f and provider-platform 1b518778; the provider branch is not an ancestor of staging and both fetched ProviderCapability definitions still lack ETF_HOLDINGS. AC10 remains deferred and no cross-worktree mutation occurred."
   - "The 2026-10-02 PIMCO recheck used the current official ETF suite and linked MINT/BOND product shells: both symbols remain active U.S.-listed products with current catalogue/NAV context, but anonymous product pages expose no complete holdings rows or downloadable basket and the bounded direct routes remained DNS-blocked. MINT and BOND therefore remain explicitly unavailable; GEME evidence is not reused across the mixed Pacific/PIMCO identity."
   - "The 2026-10-02 PIMCO recheck is now aligned across the runtime tier-0 symbol audit, YAML ledger, tests, and handoff: MINT/BOND investigated_at is 2026-10-02 with explicit official-shell evidence, and the focused capability suite (91 tests), Ruff, workstream validation, and diff-check pass."
+  - "The 2026-10-02 read-only provider ref refresh found origin/feat/market-data-provider-platform at a05d9f43, local provider at 5f6b1edf, and origin/staging at 8b885a2f; neither provider ref is an ancestor of staging and both inspected ProviderCapability enums still lack ETF_HOLDINGS. AC10 remains deferred and no cross-worktree mutation occurred."
 progress:
   completed:
     - AC1
