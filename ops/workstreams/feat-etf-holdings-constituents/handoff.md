@@ -5916,3 +5916,22 @@ application-equivalent requests failed DNS resolution for
 `strategysharesetfs.com` across all four routes. Strategy Shares remains
 `non_executable_public_source`; periodic shareholder reports are not promoted
 as current holdings.
+
+## Subversive route recheck — 2026-10-02
+
+Current first-party GOP and NANC pages expose Top Ten Holdings sections, Full
+Holdings controls, and periodic FY Q1/Q3 holdings documents, but no dated
+complete current rows were independently retrieved. Direct application-
+equivalent requests failed DNS resolution for `subversiveetfs.com` after the
+prior HTTP 403 evidence. Subversive remains `issuer_access_blocked`; no
+periodic-report or SEC reconstruction was promoted.
+
+## Suncoast route recheck — 2026-10-02
+
+Current indexed Suncoast material exposes a complete-looking SEMG table with
+ticker, CUSIP, shares, value, weight, and effective date 2026-09-30, but direct
+application-equivalent retrieval failed DNS resolution for
+`suncoastequityetf.com`. No independently callable complete endpoint was
+retrieved; ETF Architect document links remain periodic artifacts. Suncoast
+remains `issuer_access_blocked` and no indexed table was promoted without
+executable transport proof.

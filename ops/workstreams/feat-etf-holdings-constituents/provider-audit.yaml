@@ -7769,7 +7769,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-04
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [GOP, NANC]
     estimated_us_etf_count: null
@@ -7800,8 +7800,12 @@ providers:
         source: "Subversive ETFs official GOP and NANC product pages and bounded backend requests"
         result: "Official pages expose current holdings tables, but bounded backend-equivalent httpx requests received HTTP 403 for both routes; no executable native route is promoted."
         evidence_ref: "live:subversive-current-gop-nanc-holdings-pages-2026-09-04-blocked"
-    disposition_reason: "subversive: Subversive's official GOP and NANC pages expose current holdings tables, but backend-equivalent access was blocked by HTTP 403 for both routes. Preserve the issuer-access-blocked fallback until complete rows are executable."
-    next_action: "subversive: Periodically re-test the official GOP and NANC pages and declared downloads; promote only after bounded backend access returns complete current rows with proven mapping."
+      - date: 2026-10-02
+        source: "Subversive ETFs official GOP and NANC product pages and bounded application-equivalent requests"
+        result: "Current first-party pages identify GOP and NANC and expose top-ten sections, Full Holdings controls, and periodic FY Q1/Q3 holdings documents, but no dated complete current rows were rendered or independently retrieved. Direct curl failed DNS resolution for subversiveetfs.com on both routes after the prior HTTP 403 evidence; no executable native route is promoted."
+        evidence_ref: "web:subversive-current-gop-nanc-pages-2026-10-02;live:subversive-route-recheck-2026-10-02-dns-failure"
+    disposition_reason: "subversive: Current GOP and NANC pages expose top-ten sections, Full Holdings controls, and periodic reports, but no dated complete current artifact was independently retrieved; direct transport failed DNS after the prior HTTP 403 evidence. Preserve the issuer_access_blocked fallback until complete rows are executable."
+    next_action: "subversive: Periodically re-test the official GOP and NANC pages and resolve each declared Full Holdings download; promote only after bounded backend access returns complete current rows with proven mapping and freshness."
     implementation_sha: null
     validation_refs: []
   - adapter_key: suncoast
@@ -7810,7 +7814,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-04
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [SEMG]
     estimated_us_etf_count: 1
@@ -7840,8 +7844,12 @@ providers:
         source: "Suncoast official SEMG product page"
         result: "The official page exposes a complete current holdings table, but bounded backend-equivalent access returned HTTP 403; no executable native route is promoted."
         evidence_ref: "live:suncoast-current-semg-holdings-page-2026-09-04-blocked"
-    disposition_reason: "suncoast: Suncoast's official SEMG page exposes current holdings, but backend-equivalent access is blocked by HTTP 403. Preserve the issuer-access-blocked fallback until complete rows are executable."
-    next_action: "suncoast: Periodically re-test the official SEMG page; promote only after bounded backend access returns complete current rows with proven mapping."
+      - date: 2026-10-02
+        source: "Suncoast official SEMG product page and bounded application-equivalent request"
+        result: "Current first-party indexed material exposes a complete-looking SEMG holdings table with ticker, CUSIP, shares, value, weight, and effective date 2026-09-30, but direct curl failed DNS resolution for suncoastequityetf.com. The ETF Architect document links are periodic documents rather than an independently callable current feed; no executable native route is promoted."
+        evidence_ref: "web:suncoast-current-semg-holdings-page-2026-10-02;live:suncoast-route-recheck-2026-10-02-dns-failure"
+    disposition_reason: "suncoast: Suncoast's current indexed SEMG page exposes a complete-looking dated table, but direct application-equivalent access failed DNS and no independently callable complete endpoint was retrieved. Preserve the issuer_access_blocked fallback until complete rows are executable."
+    next_action: "suncoast: Periodically re-test the official SEMG page and resolve declared ETF Architect artifacts; promote only after bounded backend access returns complete current rows with proven mapping and freshness."
     implementation_sha: null
     validation_refs: []
   - adapter_key: swedish_export_credit
