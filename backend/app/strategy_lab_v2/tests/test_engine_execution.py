@@ -14,6 +14,7 @@ from app.strategy_lab_v2.conformance import (
 )
 from app.strategy_lab_v2.engine_execution import (
     EngineExecutionDecision,
+    NautilusExecutionScope,
     plan_nautilus_execution,
 )
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolationRequest
@@ -53,19 +54,18 @@ def _conformance(
     channel: EngineReleaseChannel = EngineReleaseChannel.STABLE,
     checks: frozenset[ConformanceCheck] = frozenset(ConformanceCheck),
 ):
+    version = "2.0.0" if channel is EngineReleaseChannel.STABLE else "2.0.0rc5"
     evidence = EngineConformanceEvidence(
         engine_id,
-        "2.0.0",
+        version,
         content_digest("engine-build"),
         channel,
         content_digest("fixture"),
         checks,
         NOW,
         NautilusReleasePin(
-            package_version="2.0.0",
-            release_tag="v2.0.0"
-            if channel is not EngineReleaseChannel.RELEASE_CANDIDATE
-            else "v2.0.0-rc1",
+            package_version=version,
+            release_tag="v2.0.0" if channel is EngineReleaseChannel.STABLE else "v2.0.0rc5",
             source_digest=content_digest("nautilus-source"),
             runtime_image_digest=content_digest("runtime-image"),
             python_version="3.12.11",
@@ -215,6 +215,72 @@ def test_non_authoritative_compatible_run_can_be_ready_but_is_not_authoritative(
     )
     assert result.decision is EngineExecutionDecision.READY
     assert not result.authoritative
+
+
+def test_rc_backtest_compatibility_scope_runs_without_forward_parity() -> None:
+    trial, attempt, source, capability, lease = _execution_fixture(authoritative=False)
+    from app.strategy_lab_v2.execution import authorize_execution
+
+    authorization = authorize_execution(
+        trial, attempt, source, capability, lease, now=NOW.replace(second=3)
+    )
+    request, runtime = _runtime()
+    checks = frozenset(
+        {
+            ConformanceCheck.MULTI_INSTRUMENT_ACCOUNTING,
+            ConformanceCheck.NATIVE_ORDER_FILL_COST,
+            ConformanceCheck.DETERMINISTIC_REPLAY,
+            ConformanceCheck.ENGINE_LIFECYCLE,
+        }
+    )
+    evidence, report = _conformance(
+        channel=EngineReleaseChannel.RELEASE_CANDIDATE,
+        checks=checks,
+    )
+
+    result = plan_nautilus_execution(
+        authorization,
+        runtime,
+        evidence,
+        report,
+        _plan(request),
+        data_snapshot_fingerprint=content_digest("snapshot"),
+        requested_authoritative=False,
+        execution_scope=NautilusExecutionScope.BACKTEST_COMPATIBILITY,
+    )
+
+    assert result.decision is EngineExecutionDecision.READY
+    assert result.authoritative is False
+    assert result.execution_scope is NautilusExecutionScope.BACKTEST_COMPATIBILITY
+
+
+def test_rc_forward_scope_still_requires_forward_parity() -> None:
+    trial, attempt, source, capability, lease = _execution_fixture(authoritative=False)
+    from app.strategy_lab_v2.execution import authorize_execution
+
+    authorization = authorize_execution(
+        trial, attempt, source, capability, lease, now=NOW.replace(second=3)
+    )
+    request, runtime = _runtime()
+    checks = NautilusExecutionScope.BACKTEST_COMPATIBILITY.required_checks
+    evidence, report = _conformance(
+        channel=EngineReleaseChannel.RELEASE_CANDIDATE,
+        checks=checks,
+    )
+
+    result = plan_nautilus_execution(
+        authorization,
+        runtime,
+        evidence,
+        report,
+        _plan(request),
+        data_snapshot_fingerprint=content_digest("snapshot"),
+        requested_authoritative=False,
+        execution_scope=NautilusExecutionScope.FORWARD_COMPATIBILITY,
+    )
+
+    assert result.decision is EngineExecutionDecision.REJECT
+    assert "required_engine_conformance_failed" in result.rejection_reasons
 
 
 def test_compatible_evidence_without_an_isolated_pin_cannot_execute() -> None:

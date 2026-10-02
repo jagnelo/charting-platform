@@ -7,6 +7,7 @@ from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.conformance import (
+    ConformanceCheck,
     EngineConformanceEvidence,
     EngineConformanceReport,
 )
@@ -22,6 +23,27 @@ from app.strategy_lab_v2.sandbox import (
 class EngineExecutionDecision(StrEnum):
     READY = "ready"
     REJECT = "reject"
+
+
+class NautilusExecutionScope(StrEnum):
+    """Conformance scope required before one isolated Nautilus process runs."""
+
+    FULL = "full"
+    BACKTEST_COMPATIBILITY = "backtest_compatibility"
+    FORWARD_COMPATIBILITY = "forward_compatibility"
+
+    @property
+    def required_checks(self) -> frozenset[ConformanceCheck]:
+        if self is NautilusExecutionScope.BACKTEST_COMPATIBILITY:
+            return frozenset(
+                {
+                    ConformanceCheck.MULTI_INSTRUMENT_ACCOUNTING,
+                    ConformanceCheck.NATIVE_ORDER_FILL_COST,
+                    ConformanceCheck.DETERMINISTIC_REPLAY,
+                    ConformanceCheck.ENGINE_LIFECYCLE,
+                }
+            )
+        return frozenset(ConformanceCheck)
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +63,7 @@ class NautilusExecutionPlan:
     decision: EngineExecutionDecision
     authoritative: bool
     rejection_reasons: tuple[str, ...] = ()
+    execution_scope: NautilusExecutionScope = NautilusExecutionScope.FULL
 
     def __post_init__(self) -> None:
         for name in ("trial_id", "attempt_id", "engine_id", "engine_version"):
@@ -60,6 +83,8 @@ class NautilusExecutionPlan:
             raise TypeError("decision must be an EngineExecutionDecision")
         if not isinstance(self.authoritative, bool):
             raise TypeError("authoritative must be a boolean")
+        if not isinstance(self.execution_scope, NautilusExecutionScope):
+            raise TypeError("execution_scope must be a NautilusExecutionScope")
         reasons = tuple(self.rejection_reasons)
         if len(reasons) != len(set(reasons)) or any(
             not isinstance(reason, str) or not reason.strip() for reason in reasons
@@ -71,6 +96,8 @@ class NautilusExecutionPlan:
             raise ValueError("rejected engine plans require rejection reasons")
         if self.authoritative and self.decision is not EngineExecutionDecision.READY:
             raise ValueError("rejected engine plans cannot be authoritative")
+        if self.authoritative and self.execution_scope is not NautilusExecutionScope.FULL:
+            raise ValueError("authoritative engine plans require the full execution scope")
         object.__setattr__(self, "rejection_reasons", reasons)
 
     @property
@@ -87,8 +114,16 @@ def plan_nautilus_execution(
     *,
     data_snapshot_fingerprint: str,
     requested_authoritative: bool = True,
+    execution_scope: NautilusExecutionScope = NautilusExecutionScope.FULL,
 ) -> NautilusExecutionPlan:
-    """Resolve the final engine invocation gate without starting Nautilus."""
+    """Resolve the final engine invocation gate without starting Nautilus.
+
+    The backtest-compatibility scope intentionally excludes forward event-tape
+    parity, allowing the exact-pinned RC runtime to execute local backtest or
+    replay work while that host/Rust parity adapter is unavailable. Forward
+    compatibility and every authoritative request still require the complete
+    conformance suite.
+    """
 
     if not isinstance(authorization, ExecutionAuthorization):
         raise TypeError("authorization must be an ExecutionAuthorization")
@@ -100,6 +135,8 @@ def plan_nautilus_execution(
         raise TypeError("conformance_report must be an EngineConformanceReport")
     if not isinstance(sandbox_plan, SandboxCommandPlan):
         raise TypeError("sandbox_plan must be a SandboxCommandPlan")
+    if not isinstance(execution_scope, NautilusExecutionScope):
+        raise TypeError("execution_scope must be a NautilusExecutionScope")
     require_sha256_digest(data_snapshot_fingerprint, field_name="data_snapshot_fingerprint")
     if not isinstance(requested_authoritative, bool):
         raise TypeError("requested_authoritative must be a boolean")
@@ -119,12 +156,18 @@ def plan_nautilus_execution(
         reasons.append("conformance_evidence_report_mismatch")
     if conformance_evidence.engine_id.lower() != "nautilus":
         reasons.append("only_nautilus_engine_is_supported")
-    if not conformance_report.compatible:
-        reasons.append("engine_conformance_failed")
+    required_checks = execution_scope.required_checks
+    missing_required_checks = required_checks - conformance_evidence.passed_checks
+    if missing_required_checks:
+        reasons.append("required_engine_conformance_failed")
     if not conformance_report.release_pin_valid:
         reasons.append("isolated_v2_release_pin_required")
+    if execution_scope is NautilusExecutionScope.FULL and not conformance_report.compatible:
+        reasons.append("engine_conformance_failed")
     if requested_authoritative and not authorization.authoritative:
         reasons.append("authorization_is_not_authoritative")
+    if requested_authoritative and execution_scope is not NautilusExecutionScope.FULL:
+        reasons.append("authoritative_full_execution_scope_required")
     if requested_authoritative and not conformance_report.authoritative:
         reasons.append("stable_authoritative_conformance_required")
     if requested_authoritative and conformance_evidence.release_channel.value != "stable":
@@ -157,4 +200,5 @@ def plan_nautilus_execution(
         decision=decision,
         authoritative=decision is EngineExecutionDecision.READY and requested_authoritative,
         rejection_reasons=reasons_tuple,
+        execution_scope=execution_scope,
     )

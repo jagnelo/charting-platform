@@ -506,6 +506,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   exact-pinned release candidate is eligible for isolated compatibility,
   replay, and event-tape execution, but remains non-authoritative; only a
   complete stable release can be marked authoritative.
+- `engine_execution.py` records the conformance scope required by each
+  isolated process. `BACKTEST_COMPATIBILITY` permits the exact-pinned RC to
+  run local backtest/replay work when only forward parity is deferred;
+  `FORWARD_COMPATIBILITY` and `FULL` require all checks, and authoritative
+  plans additionally require the full scope and stable release evidence.
 - `nautilus_runtime.py` defines the exact `2.0.0rc5` compatibility-runtime
   declaration. It binds source and runtime-image digests, Python/Rust versions,
   legacy-runtime isolation, and the release pin consumed by conformance; it

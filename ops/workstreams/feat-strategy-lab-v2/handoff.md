@@ -6146,3 +6146,17 @@ The official Nautilus release list was also rechecked on 2026-10-02: the 2.x
 line still exposes `2.0.0rc5` as a pre-release and no stable 2.x release. The
 RC compatibility track therefore remains the correct local path; stable release
 authority is still fail-closed rather than inferred.
+
+## 2026-10-02 - RC backtest execution scope
+
+`NautilusExecutionScope` now distinguishes full, forward-compatibility, and
+backtest-compatibility process gates. A non-authoritative exact-pinned RC
+backtest/replay plan may proceed when multi-instrument accounting, native
+order/fill/cost, deterministic replay, and lifecycle checks pass while forward
+event-tape parity remains explicitly deferred. Forward compatibility and every
+authoritative plan still require the complete check set; no authority is gained
+from selecting the narrower scope.
+
+The focused engine-execution suite passes 10 tests; the complete Strategy Lab v2
+package suite passes 1,001 tests, Ruff, MyPy across 305 source files, and diff
+validation.
