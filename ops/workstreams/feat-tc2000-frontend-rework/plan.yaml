@@ -274,26 +274,27 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_chart_control_layering_and_visual_checkpoint_recorded
+  current_phase: R6_relative_rotation_accessibility_checkpointed
   next_action: >-
     Verify the protected visual mismatch against the expected seeded baseline
     in a matching browser/font environment without changing snapshots or visual
-    policy. Keep provider/ETF consumer
-    integration deferred until both upstream branches reach staging, then
-    reconcile shared paths and rerun the exact-tip gate. Do not retry origin
-    synchronization under the existing private-origin safeguard without newly
-    accepted exact-payload authorization.
+    policy. Keep provider/ETF consumer integration deferred until both upstream
+    branches reach staging, then reconcile shared paths and rerun the exact-tip
+    gate. Continue bounded TC-owned R1/R5/R6 work while that sequencing gate is
+    open. Do not retry origin synchronization under the existing private-origin
+    safeguard without newly accepted exact-payload authorization.
   current_blocker: >-
     The two reproducible TC-owned browser regressions are fixed and validated;
     an isolated seeded visual rerun reproduced 43,091 differing pixels on the
     first capture and 45,932 after stability, distributed across board text and
     anti-aliasing rather than localized chart geometry. The parallel frontend
     timing guard remains host-sensitive on the unrelated 100k-point uPlot
-    benchmark, while serial coverage passes 1,150/1,150. Provider-platform and
-    ETF consumer integration remains a sequencing gate until both upstream
-    branches reach staging; shared-path reconciliation and the final
-    post-staging exact gate remain pending. Origin synchronization remains a
-    separate operational hold under the recorded private-origin safeguard.
+    benchmark, while serial coverage passes 1,152/1,152 at the current product
+    tip. Provider-platform and ETF consumer integration remains a sequencing
+    gate until both upstream branches reach staging; shared-path reconciliation
+    and the final post-staging exact gate remain pending. Origin synchronization
+    remains a separate operational hold under the recorded private-origin
+    safeguard.
 historical_implementation_records:
   - "Product commit 797b29339 exposes aria-pressed state for Strategy Lab run-mode, position-evolution value-mode, and return-period toggle groups while preserving labels, active styling, state changes, run payloads, result projections, and visual layout. Focused Strategy Lab coverage passed 34/34; full frontend Vitest passed 1,136/1,136; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 797b29339f62cae9079bfa3766e4074762382e6b: backend combined coverage 1,621 tests with 82.26% total coverage, frontend Vitest 1,136/1,136, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the Strategy toggle-state semantics slice and does not close the broader workstream or upstream staging dependencies."

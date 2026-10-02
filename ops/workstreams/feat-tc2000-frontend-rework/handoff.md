@@ -14841,3 +14841,22 @@ Product commit `075a733b` gives Strategy rule-tree condition, NOT-group, and
 root/nested group containers semantic group roles and accessible labels. Focused
 coverage passed `2/2`; `vue-tsc` type-check and diff checks passed. No provider,
 ETF, visual baseline, or acceptance policy changed.
+
+## 2026-10-02 — Relative Rotation sort-state accessibility slice
+
+Product commit `6d1c1b7f8` keeps the Relative Rotation companion table's
+existing sorting and row-selection behavior while exposing the table region,
+sort-control group, current sort direction, and a concise accessible summary for
+each selectable rotation row. Inactive controls announce the field they sort;
+the active control additionally announces ascending or descending order. The
+row summary includes symbol, rotation state, trend, momentum, coverage, and any
+warning count, while the visible table layout and API contract remain unchanged.
+
+Focused Relative Rotation coverage passed `11/11`; the full serial frontend
+suite passed `124/124` files and `1,152/1,152` tests; `vue-tsc` type-check,
+production build, TC scope self-tests, workstream validation, and
+`git diff --check` passed. The build retained the existing large-chunk warning.
+No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback,
+or acceptance policy changed. Provider-platform and ETF consumer integration
+remain deferred until their branches reach staging; no other worktree was
+mutated.
