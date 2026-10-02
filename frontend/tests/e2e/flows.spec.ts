@@ -570,7 +570,7 @@ test.describe('Chart', () => {
     const group = editor.locator('.watchlist__group-input')
     await group.fill('Momentum')
     await group.press('Tab')
-    await editor.getByRole('button', { name: 'Stack', exact: true }).click()
+    await editor.getByRole('button', { name: 'Stack Symbol column', exact: true }).click()
     await expect(watchlist.locator('.watchlist__header')).toContainText('Momentum')
 
     await watchlist.getByRole('button', { name: 'Columns', exact: true }).click()
@@ -579,8 +579,8 @@ test.describe('Chart', () => {
     const setMenu = watchlist.locator('.watchlist__column-set-menu')
     await expect(setMenu).toBeVisible({ timeout: 10_000 })
     await setMenu.getByRole('textbox', { name: 'Column set name' }).fill(setName)
-    await setMenu.getByRole('button', { name: 'Save set', exact: true }).click()
-    const savedSet = setMenu.getByRole('button', { name: `${setName} v1`, exact: true })
+    await setMenu.getByRole('button', { name: 'Save column set', exact: true }).click()
+    const savedSet = setMenu.getByRole('button', { name: `Apply column set ${setName} version 1`, exact: true })
     await expect(savedSet).toBeVisible({ timeout: 15_000 })
     await savedSet.click()
     await expect(watchlist.locator('.watchlist__header')).toContainText('Momentum')
@@ -840,7 +840,7 @@ test.describe('Chart', () => {
     const assetValue = await assetOption.getAttribute('value')
     expect(assetValue).toBeTruthy()
     await pythonColumnAsset.selectOption(assetValue!)
-    await target.getByRole('button', { name: 'Add', exact: true }).click()
+    await target.getByRole('button', { name: 'Add selected Python column', exact: true }).click()
     await expect(target.locator('.watchlist__header button').filter({ hasText: studyName })).toBeVisible({ timeout: 30_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -910,7 +910,7 @@ test.describe('Chart', () => {
     const assetPicker = chart.getByRole('combobox', { name: 'Python plot asset' })
     await expect(assetPicker).toBeVisible({ timeout: 10_000 })
     await assetPicker.selectOption('99101')
-    await chart.getByRole('button', { name: 'Add', exact: true }).click()
+    await chart.getByRole('button', { name: 'Add selected Python plot', exact: true }).click()
     const plot = chart.locator('.chart-plots__python-item').filter({ hasText: plotName }).first()
     await expect(plot).toBeVisible({ timeout: 15_000 })
     const visibilityButton = plot.locator('button').first()
@@ -981,6 +981,7 @@ test.describe('Chart', () => {
   test('F9i — a Study Lab series becomes a reusable chart plot', async ({ page, browserDiagnostics }) => {
     test.setTimeout(120_000)
     const studyName = `E2E reusable series ${Date.now()}`
+    await page.goto('about:blank')
     await page.goto('/chart/SPY')
     await page.getByRole('button', { name: 'Study', exact: true }).click()
     const studyLayoutTab = page.locator('.workstation__tabs > button').filter({ hasText: 'Study Lab' }).last()
@@ -1021,7 +1022,7 @@ test.describe('Chart', () => {
     const optionValue = await option.getAttribute('value')
     expect(optionValue).toBeTruthy()
     await pythonPlot.selectOption(optionValue!)
-    await chart.getByRole('button', { name: 'Add', exact: true }).click()
+    await chart.getByRole('button', { name: 'Add selected Python plot', exact: true }).click()
     await expect(chart.locator('.chart-plots__python-item').filter({ hasText: studyName })).toBeVisible({ timeout: 30_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -1201,6 +1202,7 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('factory layouts render without recovery state or core header collisions', async ({ page, browserDiagnostics }) => {
+    await page.goto('about:blank')
     await page.goto('/chart')
     const layouts = ['US Top Down', 'TC Classic', 'Drill Down', 'Sector by Year', '1 Chart', '4 Timeframe', 'Fundamentals', 'Study Lab']
     for (const layout of layouts) {
@@ -1736,7 +1738,8 @@ test.describe('TC2000 workstation', () => {
 
   test('F8j — floated geometry is persisted through the workspace API', async ({ page, context, browserDiagnostics }) => {
     test.setTimeout(90_000)
-    await page.goto('/chart')
+    // The loggedIn fixture has already loaded the chart; avoid a second
+    // navigation that would cancel its still-active workstation requests.
     const sourceTool = page.locator('.tool-window').first()
     const floatButton = sourceTool.locator('button[title="Float"]')
     await expect(floatButton).toBeVisible({ timeout: 10_000 })
@@ -1757,11 +1760,7 @@ test.describe('TC2000 workstation', () => {
       return (persisted?.style as { popout?: Record<string, unknown> } | undefined)?.popout
     }), { timeout: 10_000, intervals: [250, 500, 1_000] }).toEqual(expect.objectContaining({ left: expect.any(Number), top: expect.any(Number), width: expect.any(Number), height: expect.any(Number) }))
 
-    if (!popup.isClosed()) {
-      const closed = popup.waitForEvent('close')
-      await popup.locator('button[title="Close"]').click()
-      await closed
-    }
+    await closePopupWhenOpen(popup)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -2900,7 +2899,12 @@ test.describe('TC2000 workstation', () => {
 
   test('F8e.native-indicator-selection — chart-item selection uses native keyboard controls without swallowing row actions', async ({ page, browserDiagnostics }) => {
     test.setTimeout(120_000)
+    await page.goto('about:blank')
     await page.goto('/legacy/chart/SPY')
+    // The legacy chart exposes its panel before instrument metadata finishes
+    // loading. Wait for the active instrument before interacting so its load
+    // watcher cannot overwrite the user's panel-toggle action.
+    await expect(page.locator('.symbol-info .sym-name')).not.toBeEmpty({ timeout: 20_000 })
 
     const panelToggle = page.getByRole('button', { name: /^(Hide|Show) indicator panel$/ }).last()
     await expect(panelToggle).toBeVisible()
@@ -3006,7 +3010,7 @@ test.describe('TC2000 workstation', () => {
     const assetValue = await assetOption.getAttribute('value')
     expect(assetValue).toBeTruthy()
     await pythonColumnAsset.selectOption(assetValue!)
-    await target.getByRole('button', { name: 'Add', exact: true }).click()
+    await target.getByRole('button', { name: 'Add selected Python column', exact: true }).click()
     await expect(target.locator('.watchlist__header button').filter({ hasText: studyName })).toBeVisible({ timeout: 30_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -3286,7 +3290,7 @@ test.describe('TC2000 workstation', () => {
     await plots.getByRole('button', { name: 'Load EasyScan plots' }).click()
     await expect(plots.getByText('2 historical scan plots available')).toBeVisible({ timeout: 10_000 })
     await plots.getByRole('combobox', { name: 'EasyScan plot asset' }).selectOption({ label: 'Fixture breadth scan · percentage' })
-    await plots.getByRole('button', { name: 'Add' }).click()
+    await plots.getByRole('button', { name: 'Add selected EasyScan plot', exact: true }).click()
     const scanPlot = plots.locator('.chart-plots__scan-item').filter({ hasText: 'Fixture breadth scan' })
     await expect(scanPlot).toHaveCount(1)
     await expect(scanPlot).toContainText('percentage')
@@ -4003,7 +4007,12 @@ test.describe('TC2000 workstation', () => {
 
   test('F8r-easyscan-narrow — EasyScan builders remain contained in a narrow desktop dock', async ({ page, browserDiagnostics }) => {
     await page.setViewportSize({ width: 390, height: 800 })
+    await page.goto('about:blank')
     await page.goto('/chart/SPY')
+    // The shell is interactive before Golden Layout finishes restoring its
+    // active tab; wait for a live dock window before asking it to add another.
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('.tool-window:visible').first()).toBeVisible({ timeout: 20_000 })
     await page.getByRole('button', { name: 'Add tool' }).click()
     await page.getByRole('menuitem', { name: 'EasyScan', exact: true }).click()
     const scanWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.easy-scan') }).last()
@@ -4530,7 +4539,7 @@ test.describe('TC2000 workstation', () => {
       source_id: 'watchlist:7', color_metric: 'python', python_run_id: 777,
     }))
     await mapWindow.getByRole('textbox', { name: 'Market Map snapshot name' }).fill('Slow output snapshot')
-    await mapWindow.getByRole('button', { name: 'Save snapshot' }).click()
+    await mapWindow.getByRole('button', { name: 'Save Market Map snapshot' }).click()
     const snapshotPicker = mapWindow.getByRole('combobox', { name: 'Market Map snapshot' })
     await expect(snapshotPicker).toHaveValue('91', { timeout: 15_000 })
     await expect(outputPicker).toHaveValue('5102')
@@ -5502,7 +5511,7 @@ test.describe('TC2000 workstation', () => {
 
     const conditionSave = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes('/api/v1/workspaces/library/conditions/rsi-boolean-column') && response.ok())
     const scanCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/screeners/from-condition/rsi-boolean-column') && response.ok())
-    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    await page.getByRole('button', { name: 'Copy plot to selected promotion target', exact: true }).click()
     await Promise.all([conditionSave, scanCreate])
     await expect(page.locator('.chart-plots__promotion-status')).toContainText('Boolean column', { timeout: 15_000 })
 
@@ -5541,7 +5550,7 @@ test.describe('TC2000 workstation', () => {
     await page.getByRole('textbox', { name: 'Plot promotion name' }).fill('RSI Strategy signal')
     const assetCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/code/assets') && response.ok())
     const signalCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/strategy-lab/signals/from-code/') && response.ok())
-    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    await page.getByRole('button', { name: 'Copy plot to selected promotion target', exact: true }).click()
     await Promise.all([assetCreate, signalCreate])
     await expect(page.locator('.chart-plots__promotion-status')).toContainText('Strategy signal', { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
@@ -5577,7 +5586,7 @@ test.describe('TC2000 workstation', () => {
       const target = body?.tabs?.flatMap(tab => tab.windows ?? []).find(window => window.instance_key === targetKey)
       return target?.configuration?.condition_filter_mode === 'active' && Number.isInteger(target?.configuration?.condition_screener_id)
     })
-    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    await page.getByRole('button', { name: 'Copy plot to selected promotion target', exact: true }).click()
     await Promise.all([conditionSave, scanCreate, snapshotSave])
     await expect(page.locator('.chart-plots__promotion-status')).toContainText('filter', { timeout: 15_000 })
     await expect(page.getByRole('region', { name: targetTitle })).toBeVisible({ timeout: 10_000 })
@@ -5586,6 +5595,7 @@ test.describe('TC2000 workstation', () => {
 
   test('F8u-alert — chart indicators promote into an indicator alert for the active instrument', async ({ page, browserDiagnostics }) => {
     test.setTimeout(60_000)
+    await page.goto('about:blank')
     const instrumentLoaded = page.waitForResponse(response => response.request().method() === 'GET' && response.url().includes('/api/v1/instruments/SPY') && response.ok())
     await page.goto('/chart/SPY')
     await instrumentLoaded
@@ -5609,7 +5619,7 @@ test.describe('TC2000 workstation', () => {
 
     const conditionSave = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes('/api/v1/workspaces/library/conditions/ema-indicator-alert') && response.ok())
     const alertCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/alerts/indicator'))
-    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    await page.getByRole('button', { name: 'Copy plot to selected promotion target', exact: true }).click()
     const [, alertResponse] = await Promise.all([conditionSave, alertCreate])
     expect(alertResponse.ok()).toBeTruthy()
     await expect(page.locator('.chart-plots__promotion-status')).toContainText('indicator alert', { timeout: 15_000 })
@@ -5618,6 +5628,7 @@ test.describe('TC2000 workstation', () => {
 
   test('F8u-scan — chart indicators promote into a reusable EasyScan', async ({ page, browserDiagnostics }) => {
     test.setTimeout(60_000)
+    await page.goto('about:blank')
     const instrumentLoaded = page.waitForResponse(response => response.request().method() === 'GET' && response.url().includes('/api/v1/instruments/SPY') && response.ok())
     await page.goto('/chart/SPY')
     await instrumentLoaded
@@ -5636,7 +5647,7 @@ test.describe('TC2000 workstation', () => {
     await page.getByRole('textbox', { name: 'Plot promotion name' }).fill('SMA EasyScan')
     const conditionSave = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes('/api/v1/workspaces/library/conditions/sma-easyscan') && response.ok())
     const scanCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/screeners/from-condition/sma-easyscan') && response.ok())
-    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    await page.getByRole('button', { name: 'Copy plot to selected promotion target', exact: true }).click()
     await Promise.all([conditionSave, scanCreate])
     await expect(page.locator('.chart-plots__promotion-status')).toContainText('EasyScan', { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
@@ -5661,7 +5672,7 @@ test.describe('TC2000 workstation', () => {
     await page.getByRole('textbox', { name: 'Plot promotion name' }).fill('RSI Market Gauge')
     const conditionSave = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes('/api/v1/workspaces/library/conditions/rsi-market-gauge') && response.ok())
     const scanCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/screeners/from-condition/rsi-market-gauge') && response.ok())
-    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    await page.getByRole('button', { name: 'Copy plot to selected promotion target', exact: true }).click()
     await Promise.all([conditionSave, scanCreate])
     await expect(page.locator('.chart-plots__promotion-status')).toContainText('Market Gauge', { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
