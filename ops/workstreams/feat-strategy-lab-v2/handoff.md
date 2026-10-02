@@ -6207,3 +6207,23 @@ cross-venue events, duplicate definitions, invalid cash/base currency, and
 malformed entrypoints before native engine construction. The focused engine
 input/event-adapter suite passes 22 tests; the complete Strategy Lab v2 package
 suite passes 1,011 tests, Ruff, MyPy, and diff validation.
+
+## 2026-10-02 - Isolated Nautilus engine-input runtime adapter
+
+Added the image-local `nautilus_runtime_data.py` materializers and
+`nautilus_runtime_adapter.py`. The adapter consumes a strict serialized
+`NautilusEngineInput`, validates digest/catalog/tape identities before native
+imports, constructs RC5-native instruments, venue/account balances, and quote,
+trade, or OHLCV values, then invokes `BacktestEngine` and emits scalar
+digest-bound execution evidence. The evidence is explicitly non-authoritative;
+the forward event-tape parity field remains deferred and no worker/publication
+authority is enabled.
+
+The hardened exact `2.0.0rc5` image built successfully and the adapter probe
+ran network-disabled, read-only, capability-dropped, and no-new-privileges.
+Its two native quote events produced two iterations, one native order, one
+open position, and deterministic scalar account/cost evidence. The existing
+RC lifecycle and fixture probes remain green. Focused adapter/image tests pass
+6 tests; Ruff, MyPy, and diff validation pass. The next slice is to bind this
+runtime adapter to the worker's serialized strategy invocation/result protocol
+without changing the generic Compose worker or claiming RC authority.

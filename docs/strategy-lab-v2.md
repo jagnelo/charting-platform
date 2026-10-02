@@ -565,6 +565,17 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   instruments, cross-venue events, duplicate catalog entries, invalid account
   currency, and malformed strategy identities fail before a native engine
   adapter can construct orders or account state.
+- `nautilus_runtime_data.py` and `nautilus_runtime_adapter.py` are copied only
+  into the exact isolated RC image. They strictly validate the serialized
+  engine-input payload, materialize native FX/crypto/equity, venue/account, and
+  quote/trade/bar values, invoke `BacktestEngine`, and emit digest-bound scalar
+  execution evidence. The adapter accepts an already validated strategy
+  factory, but every RC result remains explicitly non-authoritative and keeps
+  forward parity deferred until the host/Rust canonical-event callback exists.
+- `nautilus_runtime_adapter_probe.py` is the image-local end-to-end fixture for
+  that bridge. It runs two native quote events through a buy-once strategy and
+  verifies native order, fill, position, cost, and deterministic result fields
+  under the hardened network-disabled/read-only container boundary.
 - `build_event_tape_parity_observation(...)` projects that receipt into the
   existing `FORWARD_EVENT_TAPE_PARITY` conformance check. Failed receipts are
   assigned a distinct failure digest, so expected-fixture configuration cannot

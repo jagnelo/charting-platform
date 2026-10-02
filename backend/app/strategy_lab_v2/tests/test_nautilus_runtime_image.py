@@ -22,6 +22,17 @@ def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() ->
         "COPY nautilus_rc_fixture_probe.py app/strategy_lab_v2/nautilus_rc_fixture_probe.py"
         in source
     )
+    assert (
+        "COPY nautilus_runtime_data.py app/strategy_lab_v2/nautilus_runtime_data.py" in source
+    )
+    assert (
+        "COPY nautilus_runtime_adapter.py app/strategy_lab_v2/nautilus_runtime_adapter.py"
+        in source
+    )
+    assert (
+        "COPY nautilus_runtime_adapter_probe.py app/strategy_lab_v2/nautilus_runtime_adapter_probe.py"
+        in source
+    )
 
 
 def test_rc_runtime_image_is_probe_only_and_defaults_to_non_authoritative_rc5() -> None:

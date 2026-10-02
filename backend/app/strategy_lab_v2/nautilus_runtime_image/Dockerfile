@@ -21,6 +21,9 @@ RUN python -m pip install --no-cache-dir --no-deps /tmp/${NAUTILUS_WHEEL_FILENAM
 COPY __init__.py app/strategy_lab_v2/__init__.py
 COPY canonical.py app/strategy_lab_v2/canonical.py
 COPY conformance.py app/strategy_lab_v2/conformance.py
+COPY nautilus_runtime_data.py app/strategy_lab_v2/nautilus_runtime_data.py
+COPY nautilus_runtime_adapter.py app/strategy_lab_v2/nautilus_runtime_adapter.py
+COPY nautilus_runtime_adapter_probe.py app/strategy_lab_v2/nautilus_runtime_adapter_probe.py
 COPY nautilus_runtime_probe.py app/strategy_lab_v2/nautilus_runtime_probe.py
 COPY nautilus_rc_fixture_probe.py app/strategy_lab_v2/nautilus_rc_fixture_probe.py
 

@@ -125,7 +125,7 @@
   "head": "557492a701b6164b27327ac89682c9b79c371681",
   "implementation_sha": "5ca8250726dd9a88f660b4470007de78daf6a614",
   "last_checkpoint": "2026-10-02T16:26:49.021744+00:00",
-  "last_human_progress_update": "2026-10-02T16:26:17.708756+00:00",
+  "last_human_progress_update": "2026-10-02T16:38:54.779560+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -142,11 +142,11 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "RC compatibility is unblocked by exact isolated 2.0.0rc5 runtime, typed receipt-to-execution evidence, an explicit Nautilus sandbox engine marker, and a complete engine-input catalog contract; authoritative publication/live shadow remain gated by stable Nautilus conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration",
-    "current_phase": "strategy-lab-v2-nautilus-rc-compatibility-track-building-engine-input-adapter",
-    "next_action": "implement the isolated runtime adapter that consumes NautilusEngineInput, materializes typed instrument/venue/event values inside the RC image, invokes native BacktestEngine, and emits typed native execution evidence; keep RC output non-authoritative and keep worker activation/publication/live shadow fail-closed",
+    "current_blocker": "RC execution is locally unblocked; authoritative publication/live shadow still require stable Nautilus conformance, host canonical-event/account/engine integration, approved dependency promotion to staging, shared-path reconciliation, and full repository integration",
+    "current_phase": "strategy-lab-v2-nautilus-rc-compatibility-track-runtime-adapter-proven",
+    "next_action": "bind the isolated adapter to the worker serialized strategy invocation/result protocol; keep RC output non-authoritative and keep worker activation/publication/live shadow fail-closed",
     "total": 18,
-    "updated_at": "2026-10-02T16:26:17.708726+00:00"
+    "updated_at": "2026-10-02T16:38:54.779542+00:00"
   },
   "remote": "557492a701b6164b27327ac89682c9b79c371681",
   "remote_sha": "5ca8250726dd9a88f660b4470007de78daf6a614",
