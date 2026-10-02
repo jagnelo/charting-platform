@@ -933,9 +933,8 @@ describe('MarketMapTool', () => {
     await wrapper.get('.market-map-tool__tile').trigger('click')
     await wrapper.get('.market-map-tool__tile:nth-child(2)').trigger('click', { shiftKey: true })
     await wrapper.get('[aria-label="Market Map new watchlist name"]').setValue('XLK leaders')
-    const saveButton = wrapper.findAll('button').find(button => button.text() === 'Save selection')
-    expect(saveButton).toBeDefined()
-    await saveButton!.trigger('click')
+    const saveButton = wrapper.get('button[aria-label="Save selected members as personal watchlist"]')
+    await saveButton.trigger('click')
     await flushPromises()
 
     expect(createWatchlist).toHaveBeenCalledWith('XLK leaders')
@@ -980,9 +979,8 @@ describe('MarketMapTool', () => {
     await flushPromises()
 
     await wrapper.get('[aria-label="Market Map snapshot name"]').setValue('Morning leaders')
-    const saveSnapshotButton = wrapper.findAll('button').find(button => button.text() === 'Save snapshot')
-    expect(saveSnapshotButton).toBeDefined()
-    await saveSnapshotButton!.trigger('click')
+    const saveSnapshotButton = wrapper.get('button[aria-label="Save Market Map snapshot"]')
+    await saveSnapshotButton.trigger('click')
     await flushPromises()
 
     expect(apiPost).toHaveBeenCalledWith('/analysis/market-map/snapshots', { name: 'Morning leaders', cache_key: response.cache_key })
@@ -1093,9 +1091,8 @@ describe('MarketMapTool', () => {
     const wrapper = mount(MarketMapTool)
     await flushPromises()
 
-    const exportButton = wrapper.findAll('button').find(button => button.text() === 'Export CSV')
-    expect(exportButton).toBeDefined()
-    await exportButton!.trigger('click')
+    const exportButton = wrapper.get('button[aria-label="Export Market Map CSV"]')
+    await exportButton.trigger('click')
 
     expect(createObjectURL).toHaveBeenCalledOnce()
     expect(anchorClick).toHaveBeenCalledOnce()

@@ -26,7 +26,7 @@
       <small v-if="explicitSymbols.trim()" class="market-map-tool__explicit-hint">Canonical selection · save it as a personal watchlist for durable membership</small>
       <template v-if="explicitSymbols.trim()">
         <input v-model.trim="explicitWatchlistName" aria-label="Explicit source watchlist name" placeholder="Save watchlist as…" maxlength="80" />
-        <button type="button" :disabled="explicitSaving || !explicitWatchlistName" @click="saveExplicitSource">{{ explicitSaving ? 'Saving…' : 'Save as watchlist' }}</button>
+        <button type="button" aria-label="Save explicit symbols as personal watchlist" :disabled="explicitSaving || !explicitWatchlistName" @click="saveExplicitSource">{{ explicitSaving ? 'Saving…' : 'Save as watchlist' }}</button>
         <button type="button" :disabled="explicitSaving || !explicitWatchlistName" aria-label="Save explicit symbols as locked source" @click="saveExplicitLockedSource">{{ explicitSaving ? 'Saving…' : 'Save as locked source' }}</button>
         <span v-if="publicationMessage" role="status" aria-live="polite" aria-atomic="true">{{ publicationMessage }}</span>
         <span v-if="publicationError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ publicationError }}</span>
@@ -144,7 +144,7 @@
       </label>
       <span v-if="(colorMetric === 'python' || breadthUsesPython) && pythonRunLoading" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">Evaluating isolated Python…</span>
       <span v-if="(colorMetric === 'python' || areaMetric === 'python' || breadthUsesPython) && pythonRunError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ pythonRunError }}</span>
-      <button type="button" class="market-map-tool__run" :disabled="loading || (!sourceId && !explicitSymbols.trim())" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
+      <button type="button" class="market-map-tool__run" aria-label="Refresh Market Map" :disabled="loading || (!sourceId && !explicitSymbols.trim())" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
       <label>Snapshot
         <select v-model="snapshotSelectionId" aria-label="Market Map snapshot" :disabled="snapshotLoading">
           <option value="">Live / cached result</option>
@@ -152,9 +152,9 @@
         </select>
       </label>
       <input v-model="snapshotName" aria-label="Market Map snapshot name" placeholder="Snapshot name" maxlength="160" />
-      <button type="button" :disabled="snapshotLoading || !map || !snapshotName.trim()" @click="saveSnapshot">{{ snapshotLoading ? 'Saving…' : 'Save snapshot' }}</button>
-      <button type="button" :disabled="!map" @click="exportCsv">Export CSV</button>
-      <button v-if="snapshotSelectionId" type="button" :disabled="snapshotLoading" @click="deleteSnapshot">Delete snapshot</button>
+      <button type="button" aria-label="Save Market Map snapshot" :disabled="snapshotLoading || !map || !snapshotName.trim()" @click="saveSnapshot">{{ snapshotLoading ? 'Saving…' : 'Save snapshot' }}</button>
+      <button type="button" aria-label="Export Market Map CSV" :disabled="!map" @click="exportCsv">Export CSV</button>
+      <button v-if="snapshotSelectionId" type="button" aria-label="Delete selected Market Map snapshot" :disabled="snapshotLoading" @click="deleteSnapshot">Delete snapshot</button>
     </div>
     <p v-if="sourcesError" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ sourcesError }}</p>
     <p v-if="error" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
@@ -252,7 +252,7 @@
         <option v-for="target in publicationTargets" :key="target.id" :value="String(target.id)">{{ target.name }}</option>
       </select>
       <input v-if="!publicationTargetId" v-model="newPublicationName" aria-label="Market Map new watchlist name" placeholder="Watchlist name" maxlength="80" @keydown.enter.prevent="publishSelection" />
-      <button type="button" :disabled="publishing || (!publicationTargetId && !newPublicationName.trim())" @click="publishSelection">{{ publishing ? 'Saving…' : 'Save selection' }}</button>
+      <button type="button" aria-label="Save selected members as personal watchlist" :disabled="publishing || (!publicationTargetId && !newPublicationName.trim())" @click="publishSelection">{{ publishing ? 'Saving…' : 'Save selection' }}</button>
       <input v-model.trim="lockedSourceName" aria-label="Market Map locked source name" placeholder="Locked source name" maxlength="160" />
       <button type="button" :disabled="lockedSourceSaving || !lockedSourceName || !selectedIds.length" aria-label="Save selected members as locked source" @click="saveSelectedAsLockedSource">{{ lockedSourceSaving ? 'Saving…' : 'Save as locked source' }}</button>
       <button type="button" :disabled="!selectedSymbols.length" aria-label="Open selected members in chart" @click="openSelectedInChart">Open in Chart</button>
