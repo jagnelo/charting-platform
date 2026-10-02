@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-current provider safety preflight after rotation
+
+- [x] At exact pushed source `efffd8381`, the full manifest completed its
+      durable-ledger admission path and stopped before provider transport:
+      `0/0` cases and zero external requests. The redacted receipt is appended
+      to `validation.jsonl`.
+- [ ] The current blockers remain provider-specific active usage baselines or
+      cost/byte/reset contracts, capability/legal/source admission, FINRA OTC
+      controls, and the user-deferred providers. No generic limit, local zero,
+      or prior-usage inference was introduced.
+
 ### 2026-10-02 — Exact-head non-ETF and Docker integration validation after per-asset rotation
 
 - [x] At exact pushed source `ef8d042ad`, the complete branch-owned non-ETF

@@ -162,6 +162,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact pushed source efffd8381 completed the provider safety
+    preflight's durable-ledger admission path and stopped before provider
+    transport with 0/0 cases and zero external requests. The redacted receipt
+    is appended to validation.jsonl. Provider-specific active usage baselines
+    and cost/byte/reset contracts, capability/legal/source admission, FINRA OTC
+    controls, and explicitly user-deferred providers remain open; no generic
+    limit, local zero, or prior usage was inferred.
+  - >-
     2026-10-02 exact pushed source ef8d042ad passed both current implementation
     validation gates: the complete branch-owned non-ETF unit inventory passed
     1910/1910 in 140.94s with 37 existing dependency warnings, and Docker

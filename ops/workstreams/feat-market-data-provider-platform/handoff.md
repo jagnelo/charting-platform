@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-current provider safety preflight after rotation
+
+- At exact pushed source `efffd8381`, the full provider manifest completed the
+  durable-ledger admission path and stopped before provider transport: `0/0`
+  cases and zero external requests. The redacted receipt is appended to
+  `validation.jsonl`.
+- The remaining blockers are provider-specific active usage baselines and
+  cost/byte/reset contracts, capability/legal/source admission, FINRA OTC
+  controls, and the explicitly user-deferred providers. The preflight did not
+  introduce a generic rate limit, infer local zero usage, or spend a provider
+  quota.
+
 ## 2026-10-02 exact-head validation after per-asset rotation
 
 - At exact pushed source `ef8d042ad`, the complete branch-owned non-ETF unit
