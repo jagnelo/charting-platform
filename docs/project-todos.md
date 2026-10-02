@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-10-02 — Exact-head non-ETF unit inventory after provider rotation
+
+- [x] At exact pushed source `eec5a6b20`, the complete branch-owned non-ETF
+      unit inventory passed `1,909/1,909` in `134.77s` with 37 existing
+      dependency warnings. Only the parallel ETF adapter test file was
+      excluded under the ownership boundary.
+- [ ] The repository-wide command remains unaccepted as a full pass until the
+      separately owned ETF adapter test file has its own reliable validation.
+
 ### 2026-10-02 — Tokenized provider fairness rotation
 
 - [x] Prevent `TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS` from permanently

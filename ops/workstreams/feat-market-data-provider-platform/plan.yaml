@@ -162,6 +162,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    2026-10-02 exact pushed source eec5a6b20 passed the complete branch-owned
+    non-ETF unit inventory: 1909/1909 cases in 134.77s with 37 existing
+    dependency warnings. Only the parallel ETF adapter test file was excluded
+    under the ownership boundary; the repository-wide command remains
+    unaccepted as a full pass until that separately owned file has reliable
+    validation.
+  - >-
     2026-10-02 tokenized event-provider fairness correction: the corporate
     action refresh now rotates eligible providers using durable action-feed
     pagination state before applying the per-job max_providers budget, so a

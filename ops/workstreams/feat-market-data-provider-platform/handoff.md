@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-10-02 exact-head non-ETF unit inventory after provider rotation
+
+- At exact pushed source `eec5a6b20`, the complete branch-owned non-ETF unit
+  inventory passed `1,909/1,909` in `134.77s` with 37 existing dependency
+  warnings. The command excluded only
+  `backend/tests/unit/providers/test_etf_holdings_*.py`, which remains owned by
+  the parallel `feat/etf-holdings-constituents` worktree.
+- This supersedes the prior `1,908/1,908` receipt for the added fairness
+  regression and still does not claim that the parallel ETF adapter test file
+  passed.
+
 ## 2026-10-02 tokenized provider fairness rotation
 
 - Tokenized corporate-action refresh now treats `max_providers` as a
