@@ -33,10 +33,10 @@ current_blocker: >-
   and Nimbus Sans), so a matching-font replay is required before attributing
   the mismatch to product pixels. The
   standard parallel frontend gate remains host-timing-sensitive on the
-  unrelated 100k-point uPlot benchmark; serial coverage passes 1,165/1,165.
+  unrelated 100k-point uPlot benchmark; serial coverage passes 1,167/1,167.
   A Buildx-assisted exact gate reached the branch-scoped stack and completed
   backend unit/integration coverage (1,621/1,621 and 408/408, 82.26%), frontend
-  tests (128 files, 1,165/1,165), type-check, build, Compose contracts, and
+  tests (128 files, 1,167/1,167), type-check, build, Compose contracts, and
   research-runner probes. The full authenticated browser stage then reported
   161 passed, 9 failed, and 107 documented skips. The nine failures are in
   late Study Lab cancellation/failure recovery, Market Map Python lineage,
