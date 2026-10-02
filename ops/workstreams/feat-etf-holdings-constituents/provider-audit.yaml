@@ -453,8 +453,8 @@ symbol_audit_ledger:
       provider_identity: arin
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-25
-      evidence_refs: [web:arin-attr-holdings-cloudflare-2026-09-02, live:arin-attr-html-holdings-future-effective-date-2026-09-07, web:arin-attr-current-holdings-2026-09-25, live:arin-attr-direct-open-timeout-2026-09-25]
+      investigated_at: 2026-10-02
+      evidence_refs: [web:arin-attr-holdings-cloudflare-2026-09-02, live:arin-attr-html-holdings-future-effective-date-2026-09-07, web:arin-attr-current-holdings-2026-09-25, live:arin-attr-direct-open-timeout-2026-09-25, web:arin-attr-current-holdings-2026-10-02, live:arin-attr-direct-open-403-2026-10-02]
       next_action: "Re-test the official ATTR route from an allowed network path or identify an issuer-published machine-readable export; promote only after parser, identity, freshness, and bounded live evidence pass."
     - symbol: AVOS
       tier: 1
@@ -2422,7 +2422,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-25
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - ATTR
@@ -2464,6 +2464,14 @@ providers:
         source: "https://arinetfs.com/attr"
         result: "The current indexed issuer page exposes a 23-row ATTR holdings table dated 2026-09-16, but direct access from the allowed browser path timed out; no complete executable artifact was captured for native promotion."
         evidence_ref: "web:arin-attr-current-holdings-2026-09-25; live:arin-attr-direct-open-timeout-2026-09-25"
+      - date: 2026-10-02
+        source: "https://arinetfs.com/attr"
+        result: "Current indexed issuer material exposes a complete 26-row ATTR holdings table with an effective date of 2026-09-28, but the bounded direct request returned HTTP 403 Cloudflare HTML; no executable artifact was captured for native promotion."
+        evidence_ref: "web:arin-attr-current-holdings-2026-10-02"
+      - date: 2026-10-02
+        source: "https://arinetfs.com/attr"
+        result: "The application-equivalent request returned HTTP 403 Cloudflare HTML and no holdings rows."
+        evidence_ref: "live:arin-attr-direct-open-403-2026-10-02"
     disposition_reason: "arin: The issuer page exposes current ATTR holdings, but backend requests are Cloudflare-blocked; no stable executable route is proven for native promotion."
     next_action: "arin: Re-test the ATTR page or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
     implementation_sha: null

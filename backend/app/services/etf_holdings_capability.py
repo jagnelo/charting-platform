@@ -963,12 +963,14 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="arin",
-    investigated_at=date(2026, 9, 25),
+    investigated_at=date(2026, 10, 2),
     evidence_refs=(
         "web:arin-attr-holdings-cloudflare-2026-09-02",
         "live:arin-attr-html-holdings-future-effective-date-2026-09-07",
         "web:arin-attr-current-holdings-2026-09-25",
         "live:arin-attr-direct-open-timeout-2026-09-25",
+        "web:arin-attr-current-holdings-2026-10-02",
+        "live:arin-attr-direct-open-403-2026-10-02",
     ),
     next_action=(
         "Re-test the official ATTR route from an allowed network path or identify an "
