@@ -5797,3 +5797,13 @@ resolved artifact or rows were available from the indexed click result. Direct
 application-equivalent requests failed DNS resolution for `nicholasx.com`, so no
 complete current portfolio was retrieved. Nicholas Wealth remains
 `issuer_access_blocked`; no UI-marker or SEC-derived promotion was made.
+
+## North Square route recheck — 2026-10-02
+
+Current indexed first-party material still lists NSIV, NSIG, and QTPI. The NSIV
+page says portfolio characteristics are displayed quarterly after the September
+30, 2026 quarter end and that a complete list of holdings is available upon
+request; no public complete current artifact is exposed. Direct
+application-equivalent requests failed DNS resolution for
+`northsquareinvest.com`, so no executable rows were retrieved. North Square
+remains `non_executable_public_source`.

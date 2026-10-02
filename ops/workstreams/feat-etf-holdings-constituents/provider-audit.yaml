@@ -2055,7 +2055,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: inactive_or_successor_disposition
     disposition: inactive_or_successor_disposition
-    last_checked: 2026-09-25
+    last_checked: 2026-10-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - ALFA
@@ -6298,6 +6298,8 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.north_square"
       - "web:north-square-current-etf-catalogue-2026-09-25"
       - "web:north-square-nsiv-nsig-non-executable-2026-09-25"
+      - "web:north-square-quarterly-holdings-recheck-2026-10-02"
+      - "live:north-square-route-recheck-2026-10-02-dns-failure"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -6323,6 +6325,10 @@ providers:
         source: "https://northsquareinvest.com/strategies/north-square-disciplined-value-etf/; https://northsquareinvest.com/strategies/north-square-growth-opportunities-etf/"
         result: "Current NSIV and NSIG pages identify the products and inception date but expose only quarterly characteristics/top-ten sections and an upon-request complete list; they remain non-executable for current constituent ingestion."
         evidence_ref: "web:north-square-nsiv-nsig-non-executable-2026-09-25"
+      - date: 2026-10-02
+        source: "https://northsquareinvest.com/strategies/; https://northsquareinvest.com/strategies/north-square-disciplined-value-etf/; https://northsquareinvest.com/strategies/north-square-growth-opportunities-etf/; https://northsquaredocs.filepoint.live/"
+        result: "Current indexed first-party material still lists NSIV, NSIG, and QTPI. The NSIV page says portfolio characteristics will be displayed quarterly after the September 30, 2026 quarter end and that a complete list of holdings is available upon request; no public complete current artifact is exposed. Direct application-equivalent requests from this worker failed DNS resolution for northsquareinvest.com, so no executable rows were retrieved."
+        evidence_ref: "web:north-square-quarterly-holdings-recheck-2026-10-02"
     disposition_reason: "north_square: Official NSIV/NSIG pages and the FilePoint catalogue identify the current ETFs but expose no executable complete current holdings artifact; portfolio characteristics are quarterly and complete lists are available upon request. The provider remains fallback-only as non_executable_public_source, with no SEC-derived reconstruction promoted."
     next_action: "north_square: Re-audit the official product and FilePoint pages for a public complete holdings download after the next reporting cycle; promote only when executable current rows and dates are proven."
     implementation_sha: null
