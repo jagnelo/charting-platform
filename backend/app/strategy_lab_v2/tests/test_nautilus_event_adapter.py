@@ -12,6 +12,7 @@ from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventTape,
     materialize_nautilus_event,
     materialize_nautilus_event_tape,
+    verify_nautilus_event_tape_parity,
 )
 from app.strategy_lab_v2.sdk import MarketEvent
 from app.strategy_lab_v2.tests.test_event_tape import _binding_inputs
@@ -115,6 +116,51 @@ def test_materialize_event_tape_reuses_bound_snapshot_and_manifest_identity() ->
     assert all(event.event_type == "ohlcv" for event in materialized.events)
 
 
+def test_event_tape_parity_accepts_permuted_equivalent_wire_records() -> None:
+    first = materialize_nautilus_event(_event("bar-1", sequence=1), event_type="ohlcv")
+    second = materialize_nautilus_event(
+        _event("bar-2", event_time=BASE + timedelta(minutes=1), sequence=2),
+        event_type="ohlcv",
+    )
+    tape = NautilusEventTape(content_digest("source"), (first, second))
+
+    receipt = verify_nautilus_event_tape_parity(
+        tape,
+        (_wire_payload(second), _wire_payload(first)),
+    )
+
+    assert receipt.passed is True
+    assert receipt.compatible is True
+    assert receipt.authoritative is False
+    assert receipt.mismatches == ()
+    assert receipt.fingerprint.startswith("sha256:")
+
+
+def test_event_tape_parity_returns_failed_evidence_for_value_drift() -> None:
+    record = materialize_nautilus_event(_event(), event_type="ohlcv")
+    tape = NautilusEventTape(content_digest("source"), (record,))
+    observed = _wire_payload(record)
+    observed["values"] = {**record.values, "close": 999.0}
+
+    receipt = verify_nautilus_event_tape_parity(tape, (observed,))
+
+    assert receipt.passed is False
+    assert receipt.compatible is False
+    assert receipt.mismatches == ("event[0].values",)
+    assert receipt.expected_wire_digest != receipt.observed_wire_digest
+
+
+def test_event_tape_parity_rejects_malformed_or_duplicate_wire_records() -> None:
+    record = materialize_nautilus_event(_event(), event_type="ohlcv")
+    tape = NautilusEventTape(content_digest("source"), (record,))
+    payload = _wire_payload(record)
+
+    with pytest.raises(ValueError, match="exact wire schema"):
+        verify_nautilus_event_tape_parity(tape, ({**payload, "extra": True},))
+    with pytest.raises(ValueError, match="ids must be unique"):
+        verify_nautilus_event_tape_parity(tape, (payload, payload))
+
+
 def test_record_constructor_rejects_negative_wire_time() -> None:
     with pytest.raises(ValueError, match="non-negative"):
         NautilusEventRecord(
@@ -132,3 +178,15 @@ def test_record_constructor_rejects_negative_wire_time() -> None:
                 "volume": 1,
             },
         )
+
+
+def _wire_payload(record: NautilusEventRecord) -> dict[str, object]:
+    return {
+        "dependency_id": record.dependency_id,
+        "event_id": record.event_id,
+        "instrument_id": record.instrument_id,
+        "event_type": record.event_type,
+        "event_time_ns": record.event_time_ns,
+        "sequence": record.sequence,
+        "values": dict(record.values),
+    }

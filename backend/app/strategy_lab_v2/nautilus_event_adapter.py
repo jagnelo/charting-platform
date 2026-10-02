@@ -8,7 +8,7 @@ Nautilus ``Bar``, ``QuoteTick``, or ``TradeTick`` values.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -19,6 +19,19 @@ from app.strategy_lab_v2.event_tape import FrozenEventTape, bind_event_tape
 from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
 
 NAUTILUS_EVENT_ADAPTER_VERSION = "strategy-lab.nautilus-event-adapter.v1"
+NAUTILUS_EVENT_PARITY_VERSION = "strategy-lab.nautilus-event-parity.v1"
+
+_WIRE_FIELDS = frozenset(
+    {
+        "dependency_id",
+        "event_id",
+        "instrument_id",
+        "event_type",
+        "event_time_ns",
+        "sequence",
+        "values",
+    }
+)
 
 _REQUIRED_FIELDS: dict[str, frozenset[str]] = {
     "ohlcv": frozenset({"open", "high", "low", "close", "volume"}),
@@ -114,6 +127,68 @@ class NautilusEventTape:
         return content_digest(self)
 
 
+@dataclass(frozen=True, slots=True)
+class NautilusEventParityReceipt:
+    """Evidence comparing adapter output with one canonical event tape.
+
+    This receipt proves only that an injected host/Rust adapter reproduced the
+    canonical wire records. It is deliberately not engine conformance evidence
+    and can never authorize publication or live shadow execution.
+    """
+
+    source_tape_fingerprint: str
+    materialized_tape_fingerprint: str
+    expected_event_count: int
+    observed_event_count: int
+    expected_wire_digest: str
+    observed_wire_digest: str
+    mismatches: tuple[str, ...] = ()
+    passed: bool = False
+    parity_version: str = NAUTILUS_EVENT_PARITY_VERSION
+
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.source_tape_fingerprint, field_name="source_tape_fingerprint")
+        require_sha256_digest(
+            self.materialized_tape_fingerprint,
+            field_name="materialized_tape_fingerprint",
+        )
+        require_sha256_digest(self.expected_wire_digest, field_name="expected_wire_digest")
+        require_sha256_digest(self.observed_wire_digest, field_name="observed_wire_digest")
+        for name in ("expected_event_count", "observed_event_count"):
+            value = getattr(self, name)
+            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                raise ValueError(f"{name} must be a non-negative integer")
+        mismatches = tuple(self.mismatches)
+        if any(not isinstance(item, str) or not item.strip() for item in mismatches):
+            raise ValueError("parity mismatches must contain non-empty strings")
+        if mismatches != tuple(sorted(set(mismatches))):
+            raise ValueError("parity mismatches must be unique and ordered")
+        if not isinstance(self.passed, bool):
+            raise TypeError("passed must be a boolean")
+        if self.parity_version != NAUTILUS_EVENT_PARITY_VERSION:
+            raise ValueError("unsupported Nautilus event parity version")
+        equivalent = (
+            self.expected_event_count == self.observed_event_count
+            and self.expected_wire_digest == self.observed_wire_digest
+            and not mismatches
+        )
+        if self.passed != equivalent:
+            raise ValueError("parity pass state does not match the observed evidence")
+        object.__setattr__(self, "mismatches", mismatches)
+
+    @property
+    def compatible(self) -> bool:
+        return self.passed
+
+    @property
+    def authoritative(self) -> bool:
+        return False
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
 def materialize_nautilus_event(
     event: MarketEvent,
     *,
@@ -160,10 +235,102 @@ def materialize_nautilus_event_tape(
     return NautilusEventTape(tape.fingerprint, records)
 
 
+def verify_nautilus_event_tape_parity(
+    tape: NautilusEventTape,
+    observed_events: Sequence[Mapping[str, Any]],
+) -> NautilusEventParityReceipt:
+    """Compare injected adapter wire output with a canonical materialization.
+
+    The observed payload is intentionally a strict mapping contract so a Rust,
+    PyO3, or host callback adapter can be tested without importing Nautilus in
+    the backend process. Event order is canonicalized before comparison; event
+    identity or field differences are returned as failed evidence.
+    """
+
+    if not isinstance(tape, NautilusEventTape):
+        raise TypeError("tape must be a NautilusEventTape")
+    if not isinstance(observed_events, Sequence) or isinstance(observed_events, str | bytes):
+        raise TypeError("observed_events must be a sequence of mappings")
+    observed = tuple(_parse_wire_event(item) for item in observed_events)
+    observed_ids = [item.event_id for item in observed]
+    if len(observed_ids) != len(set(observed_ids)):
+        raise ValueError("observed Nautilus event ids must be unique")
+    ordered_observed = tuple(sorted(observed, key=_event_order))
+    expected_payloads = tuple(_wire_payload(item) for item in tape.events)
+    observed_payloads = tuple(_wire_payload(item) for item in ordered_observed)
+    mismatches: list[str] = []
+    for index in range(max(len(tape.events), len(ordered_observed))):
+        if index >= len(tape.events) or index >= len(ordered_observed):
+            mismatches.append(f"event[{index}]")
+            continue
+        expected = tape.events[index]
+        observed_item = ordered_observed[index]
+        for field in (
+            "dependency_id",
+            "event_id",
+            "instrument_id",
+            "event_type",
+            "event_time_ns",
+            "sequence",
+        ):
+            if getattr(expected, field) != getattr(observed_item, field):
+                mismatches.append(f"event[{index}].{field}")
+        if expected.values != observed_item.values:
+            mismatches.append(f"event[{index}].values")
+    expected_digest = content_digest(expected_payloads)
+    observed_digest = content_digest(observed_payloads)
+    ordered_mismatches = tuple(sorted(set(mismatches)))
+    return NautilusEventParityReceipt(
+        source_tape_fingerprint=tape.source_tape_fingerprint,
+        materialized_tape_fingerprint=tape.fingerprint,
+        expected_event_count=len(tape.events),
+        observed_event_count=len(ordered_observed),
+        expected_wire_digest=expected_digest,
+        observed_wire_digest=observed_digest,
+        mismatches=ordered_mismatches,
+        passed=not ordered_mismatches,
+    )
+
+
+def _event_order(event: NautilusEventRecord) -> tuple[int, int, str, str]:
+    return (event.event_time_ns, event.sequence, event.dependency_id, event.event_id)
+
+
+def _wire_payload(event: NautilusEventRecord) -> Mapping[str, Any]:
+    return {
+        "dependency_id": event.dependency_id,
+        "event_id": event.event_id,
+        "instrument_id": event.instrument_id,
+        "event_type": event.event_type,
+        "event_time_ns": event.event_time_ns,
+        "sequence": event.sequence,
+        "values": event.values,
+    }
+
+
+def _parse_wire_event(payload: Mapping[str, Any]) -> NautilusEventRecord:
+    if not isinstance(payload, Mapping):
+        raise TypeError("observed Nautilus events must be mappings")
+    if set(payload) != _WIRE_FIELDS:
+        raise ValueError("observed Nautilus event fields must match the exact wire schema")
+    return NautilusEventRecord(
+        dependency_id=payload["dependency_id"],
+        event_id=payload["event_id"],
+        instrument_id=payload["instrument_id"],
+        event_type=payload["event_type"],
+        event_time_ns=payload["event_time_ns"],
+        sequence=payload["sequence"],
+        values=payload["values"],
+    )
+
+
 __all__ = [
     "NAUTILUS_EVENT_ADAPTER_VERSION",
+    "NAUTILUS_EVENT_PARITY_VERSION",
+    "NautilusEventParityReceipt",
     "NautilusEventRecord",
     "NautilusEventTape",
     "materialize_nautilus_event",
     "materialize_nautilus_event_tape",
+    "verify_nautilus_event_tape_parity",
 ]

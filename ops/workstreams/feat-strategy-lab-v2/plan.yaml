@@ -773,4 +773,4 @@ progress:
   total: 18
   current_phase: strategy-lab-v2-nautilus-rc-compatibility-track-awaiting-authoritative-gates
   current_blocker: RC compatibility execution can proceed in an isolated exact-pinned runtime; authoritative publication/live shadow remain gated by stable Nautilus conformance, host canonical-event/account/engine evidence, approved dependency promotion to staging, shared migration/application reconciliation, and full repository integration
-  next_action: bind the provider-neutral NautilusEventTape contract into the host/Rust canonical-event adapter when callback and approved staging contracts are available; keep worker activation, publication, and live shadow fail-closed
+  next_action: bind NautilusEventTape and its parity receipt into the host/Rust canonical-event adapter when callback and approved staging contracts are available; keep worker activation, publication, and live shadow fail-closed

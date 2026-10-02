@@ -534,6 +534,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   validates the event-type field contract, and content-addresses the ordered
   materialization. It deliberately imports neither Nautilus nor any provider;
   host callback/Rust implementation and forward-parity evidence remain gated.
+  `verify_nautilus_event_tape_parity(...)` provides the strict observed-wire
+  schema and non-authoritative pass/fail receipt for that future adapter, with
+  canonical ordering and field-level mismatch evidence.
 - `result_publication.py` composes conformance, runtime isolation, and exact
   result-artifact integrity into a storage-neutral publish plan. Only a stable
   authoritative build with matching evidence can publish; already-published

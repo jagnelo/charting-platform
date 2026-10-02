@@ -5988,3 +5988,16 @@ shared-path integration remain explicitly gated.
 The focused adapter suite passes 6 tests with package-local Ruff, formatting,
 MyPy, and diff checks as the next validation receipt; the complete package
 suite and repository integration checks are rerun at the checkpoint commit.
+
+## 2026-10-02 - Canonical event-tape parity receipt
+
+Extended `nautilus_event_adapter.py` with a strict observed-wire schema and
+`verify_nautilus_event_tape_parity(...)`. The verifier canonicalizes event
+order, rejects duplicate or malformed records, and returns content-addressed
+field-level mismatch evidence. `NautilusEventParityReceipt` is explicitly
+compatible-only and non-authoritative, so it can become the forward-parity
+conformance input once a real host/Rust callback is available without making a
+synthetic adapter claim stable Nautilus authority.
+
+The focused adapter suite now passes 9 tests; package-wide validation follows
+after the documentation and workstream receipt are committed.
