@@ -6258,3 +6258,7 @@ and result/artifact lifecycle to this adapter, then route target-position
 intents through allocation/risk and broaden product/accounting/report tests.
 Provider, ETF, and TC2000 contracts remain gated only for their respective
 shared-path integrations until those branches reach staging.
+
+Session progress and exact command receipts are recorded in
+`ops/workstreams/feat-strategy-lab-v2/session.json` and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
