@@ -36,7 +36,7 @@ current_blocker: >-
   unrelated 100k-point uPlot benchmark; serial coverage passes 1,161/1,161.
   Provider-platform and ETF consumer integration remains a sequencing gate
   until both upstream branches reach staging. On the current 2026-10-02 audit,
-  provider is at `d371de64`, ETF is at `6589fe2f`, and staging remains
+  provider is at `d371de64`, ETF is at `1a256e78`, and staging remains
   `8b885a2f`; neither dependency is an ancestor of staging. Shared-path reconciliation and
   the final post-staging exact gate remain pending. Origin synchronization
   remains a separate operational hold under the recorded private-origin
@@ -298,6 +298,7 @@ progress:
     remains a separate operational hold under the recorded private-origin
     safeguard.
 historical_implementation_records:
+  - "The 2026-10-02 post-slice dependency audit observes staging at 8b885a2f, provider-platform at d371de644d5e8849a4c547bb16debae8e4d2c8e4 (test(live): record coingecko usage denial), and ETF holdings at 1a256e78d0d1dcd63c86101cbdc878c8dc35f765 (test(etf): guard sass empty live payload). Neither dependency tip is an ancestor of staging; TC did not consume either feature tip, reconcile shared paths, or mutate another worktree."
   - "Product commit 8aa0141ee preserves the six TC-owned Strategy Lab section headings as h3 elements while placing native button controls inside them, replacing scripted h3[role=button] behavior without changing disclosure ids, expanded state, layout, or section actions. Focused StrategyLabView coverage passed 39/39; the serial frontend suite passed 128 files and 1,161/1,161 tests with Vitest file parallelism disabled and one worker; vue-tsc and the production build passed with the existing large-chunk warning; TC scope self-tests, workstream validation, and git diff --check passed. The default parallel frontend invocation remains host-timing-sensitive on its unrelated 100k-point uPlot benchmark; no provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 8e4d17887 converts TC-owned Indicator Panel watchlist and screener membership rows from scripted div[role=button] controls into native buttons while preserving their labels, click destinations, keyboard activation, and visual styling. Focused IndicatorPanel coverage passed 1/1; the full serial frontend suite passed 128 files and 1,161/1,161 tests; vue-tsc and the production build passed with the existing large-chunk warning; TC scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 1c6c225d0 converts all six TC-owned Indicator Panel section disclosures from scripted div[role=button] controls into native buttons while preserving their aria-expanded/aria-controls relationships, keyboard activation, state, and visual styling. Focused IndicatorPanel coverage passed 1/1; the full serial frontend suite passed 128 files and 1,161/1,161 tests; vue-tsc and the production build passed with the existing large-chunk warning; TC scope self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."

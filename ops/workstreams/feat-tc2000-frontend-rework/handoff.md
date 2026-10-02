@@ -1,5 +1,14 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-02 — Upstream staging boundary recheck
+
+The post-slice read-only dependency audit observes `staging` at `8b885a2f`,
+provider-platform at `d371de64` (`test(live): record coingecko usage denial`),
+and ETF holdings at `1a256e78` (`test(etf): guard sass empty live payload`).
+Neither dependency tip is an ancestor of staging. TC did not consume either
+feature tip, reconcile shared paths, or mutate another worktree; consumer
+integration and the exact post-staging gate remain deferred.
+
 ## 2026-10-02 — Strategy Lab native disclosure semantics
 
 Product commit `8aa0141ee` preserves the six TC-owned Strategy Lab section
