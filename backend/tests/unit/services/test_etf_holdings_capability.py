@@ -596,10 +596,11 @@ def test_ranked_fallback_symbol_audit_uses_explicit_issuer_evidence():
     assert result.outcome == UNAVAILABLE
     assert result.evidence_state == "issuer_route_access_blocked"
     assert result.provider_identity == "aegon"
-    assert result.investigated_at == date(2026, 9, 7)
+    assert result.investigated_at == date(2026, 10, 1)
     assert result.evidence_refs == (
         "web:aegonam-us-asset-management-capabilities-2026-09-03",
         "live:transamerica-talv-incapsula-tabd-404-2026-09-07",
+        "live:transamerica-fund-center-incapsula-2026-10-01",
     )
 
 
@@ -613,6 +614,7 @@ def test_ranked_fallback_symbol_audit_rejects_provider_identity_mismatch():
     assert result.evidence_refs == (
         "web:aegonam-us-asset-management-capabilities-2026-09-03",
         "live:transamerica-talv-incapsula-tabd-404-2026-09-07",
+        "live:transamerica-fund-center-incapsula-2026-10-01",
     )
 
 

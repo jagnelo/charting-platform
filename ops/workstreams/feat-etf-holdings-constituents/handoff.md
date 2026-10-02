@@ -5670,3 +5670,16 @@ third-party data, or SEC reconstruction was promoted.
 The runtime capability audit, symbol ledger, and provider ledger now share the
 2026-10-01 evidence refs. The focused adapter/capability suite passed 675
 tests, Ruff passed, workstream validation passed, and diff-check passed.
+
+## Aegon/Transamerica route recheck — 2026-10-01
+
+The highest-ranked unresolved Aegon identity remains blocked at the issuer
+edge. A bounded request to the official Transamerica fund center returned HTTP
+200 only with an Incapsula challenge placeholder (`robots noindex`, no holdings
+content). TALV and TABD remain `unavailable`/`issuer_route_access_blocked`.
+SEC filings and third-party tables were not promoted as issuer-current
+support, and no parser or native route was added.
+
+The runtime capability audit, symbol ledger, and provider ledger now carry the
+2026-10-01 evidence ref. The focused adapter/capability suite passed 675
+tests, Ruff passed, workstream validation passed, and diff-check passed.

@@ -751,10 +751,11 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="aegon",
-    investigated_at=date(2026, 9, 7),
+    investigated_at=date(2026, 10, 1),
     evidence_refs=(
         "web:aegonam-us-asset-management-capabilities-2026-09-03",
         "live:transamerica-talv-incapsula-tabd-404-2026-09-07",
+        "live:transamerica-fund-center-incapsula-2026-10-01",
     ),
     next_action=(
         "Re-test the official Transamerica TALV/TABD product and holdings routes; promote "
