@@ -10,7 +10,12 @@
       <div class="panel-sym-wrap" ref="symWrapRef">
         <button
           class="panel-sym-btn"
+          type="button"
           :title="store.symbol ? 'Change symbol for this panel' : 'Search symbol'"
+          aria-haspopup="listbox"
+          :aria-expanded="searchOpen ? 'true' : 'false'"
+          :aria-controls="symbolSearchResultsId"
+          :aria-label="store.symbol ? `Change chart symbol from ${store.symbol}` : 'Search chart symbol'"
           @click.stop="toggleSearch"
         >
           <span v-if="store.symbol" class="psym">{{ store.symbol }}</span>
@@ -22,23 +27,33 @@
             ref="searchInputRef"
             v-model="searchQuery"
             class="panel-search-input"
+            type="search"
+            role="combobox"
+            aria-label="Search chart symbol"
             placeholder="Symbol…"
+            :aria-expanded="searchOpen ? 'true' : 'false'"
+            :aria-controls="symbolSearchResultsId"
+            :aria-activedescendant="activeSearchOptionId"
             @input="onSearchInput"
             @keydown.escape="closeSearch"
             @keydown.enter="selectFirst"
             @keydown.arrow-down.prevent="moveDown"
             @keydown.arrow-up.prevent="moveUp"
           />
-          <div v-if="searchResults.length || isExpression || searchMessage" class="panel-search-results">
-            <div
+          <div v-if="searchResults.length || isExpression || searchMessage" :id="symbolSearchResultsId" class="panel-search-results" role="listbox" aria-label="Chart symbol search results">
+            <button
               v-if="canResolveExpression"
+              :id="symbolExpressionOptionId"
               :class="['psr-item', 'psr-item--expr', { highlighted: hlIdx === 0 }]"
+              type="button"
+              role="option"
+              :aria-selected="hlIdx === 0 ? 'true' : 'false'"
               @click="selectExpression"
               @mouseenter="hlIdx = 0"
             >
               <span class="psr-sym">f(x)</span>
               <span class="psr-name">Create expression chart: {{ searchQuery }}</span>
-            </div>
+            </button>
             <div
               v-else-if="expressionHint || searchMessage"
               class="panel-search-message"
@@ -47,16 +62,20 @@
               {{ searchMessage || expressionHint }}
             </div>
             <template v-else>
-              <div
+              <button
                 v-for="(r, i) in searchResults"
                 :key="r.symbol"
+                :id="symbolOptionId(i)"
                 :class="['psr-item', { highlighted: i === hlIdx }]"
+                type="button"
+                role="option"
+                :aria-selected="i === hlIdx ? 'true' : 'false'"
                 @click="selectResult(r)"
                 @mouseenter="hlIdx = i"
               >
                 <span class="psr-sym">{{ r.symbol }}</span>
                 <span class="psr-name">{{ r.name }}</span>
-              </div>
+              </button>
             </template>
           </div>
         </div>
@@ -171,8 +190,20 @@ let searchTimer: ReturnType<typeof setTimeout> | null = null
 const linkMenuOpen = ref(false)
 const searchMessage = ref('')
 const linkMenuId = `panel-link-menu-${props.panelId}`
+const symbolSearchResultsId = `chart-panel-search-results-${props.panelId}`
+const symbolExpressionOptionId = `${symbolSearchResultsId}-expression`
 let lifecycleGeneration = 0
 let selectionGeneration = 0
+
+function symbolOptionId(index: number) {
+  return `${symbolSearchResultsId}-option-${index}`
+}
+
+const activeSearchOptionId = computed(() => {
+  if (isExpression.value && canResolveExpression.value) return symbolExpressionOptionId
+  if (hlIdx.value >= 0 && searchResults.value[hlIdx.value]) return symbolOptionId(hlIdx.value)
+  return undefined
+})
 
 function isCurrent(generation: number, selection = selectionGeneration) {
   return generation === lifecycleGeneration && selection === selectionGeneration
@@ -406,11 +437,16 @@ onMounted(async () => {
 .panel-search-results { max-height: 200px; overflow-y: auto; }
 
 .psr-item {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
   cursor: pointer;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
   font-size: 11px;
 }
 .psr-item.highlighted { background: #1a2a3a; }

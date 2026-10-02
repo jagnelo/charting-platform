@@ -4,6 +4,7 @@ import { nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ChartPanel from '@/components/chart/ChartPanel.vue'
+import { api } from '@/lib/api'
 import { useAlertsStore } from '@/stores/alerts'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useLayoutStore } from '@/stores/layout'
@@ -149,6 +150,49 @@ describe('ChartPanel lifecycle fencing', () => {
     await menu.trigger('keydown', { key: 'Escape' })
     expect(trigger.attributes('aria-expanded')).toBe('false')
     expect(wrapper.find(`#${menuId}`).exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('exposes symbol search as a keyboard-targetable combobox and listbox', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const layoutStore = useLayoutStore()
+    layoutStore.layout = '1'
+    layoutStore.panels[0].symbol = ''
+    vi.spyOn(api, 'get').mockResolvedValue([
+      { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'NYSEARCA', type: 'ETF' },
+    ] as never)
+
+    const wrapper = mount(ChartPanel, {
+      props: { panelId: 'p0' },
+      global: {
+        plugins: [pinia],
+        stubs: {
+          TimeframeSelector: { template: '<div />' },
+          UPlotChart: { template: '<div />' },
+        },
+      },
+    })
+
+    const trigger = wrapper.get('.panel-sym-btn')
+    expect(trigger.attributes('type')).toBe('button')
+    expect(trigger.attributes('aria-haspopup')).toBe('listbox')
+    await trigger.trigger('click')
+
+    const input = wrapper.get('input[role="combobox"]')
+    const resultsId = input.attributes('aria-controls')
+    expect(input.attributes('aria-label')).toBe('Search chart symbol')
+    expect(input.attributes('aria-expanded')).toBe('true')
+    expect(resultsId).toMatch(/^chart-panel-search-results-p0$/)
+
+    await input.setValue('SPY')
+    await vi.waitFor(() => expect(wrapper.find(`#${resultsId}`).exists()).toBe(true))
+    const listbox = wrapper.get(`#${resultsId}`)
+    const option = listbox.get('button[role="option"]')
+    expect(listbox.attributes('aria-label')).toBe('Chart symbol search results')
+    expect(option.attributes('type')).toBe('button')
+    expect(option.attributes('aria-selected')).toBe('true')
+    expect(input.attributes('aria-activedescendant')).toBe(option.attributes('id'))
     wrapper.unmount()
   })
 })
