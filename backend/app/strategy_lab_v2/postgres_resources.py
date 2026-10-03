@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Awaitable, Callable, Mapping, Sequence
+from types import MappingProxyType
 from typing import Any, Protocol
 
 from app.strategy_lab_v2.api_contracts import ApiCursor
@@ -119,6 +120,88 @@ class PostgresResourceReader:
             document.attributes,
             expected_domain_fingerprint=expected_domain_fingerprint,
         )
+
+    async def get_domain_contracts_by_fingerprint(
+        self,
+        *,
+        principal: Any,
+        resource_type: ApiResourceType,
+        fingerprints: Sequence[str],
+    ) -> Mapping[str, DomainResourceContract]:
+        """Load a batch of immutable domain identities within one owner scope.
+
+        Related domain objects point at content fingerprints rather than API
+        resource IDs. Loading a whole requested set with one owner-scoped read
+        avoids repeated resource scans while hydrating a worker trial graph.
+        Missing fingerprints are omitted so the caller can fail closed without
+        revealing whether another owner has the same content.
+        """
+
+        if not isinstance(resource_type, ApiResourceType):
+            raise TypeError("resource_type must be an ApiResourceType")
+        if not isinstance(fingerprints, Sequence) or isinstance(fingerprints, str | bytes):
+            raise TypeError("fingerprints must be a sequence of content digests")
+        requested = tuple(fingerprints)
+        for fingerprint in requested:
+            require_sha256_digest(fingerprint, field_name="domain_fingerprint")
+        if len(set(requested)) != len(requested):
+            raise ValueError("domain fingerprints must be unique")
+        if not requested:
+            return MappingProxyType({})
+
+        projection = self._projections.get(resource_type)
+        if projection is not None:
+            documents = await self._load_projection(projection, principal)
+        else:
+            aggregates = await self._store.list_type(resource_type.value)
+            documents = tuple(
+                self._project(aggregate, resource_type)
+                for aggregate in aggregates
+                if self._owned_by(aggregate, principal)
+            )
+
+        wanted = set(requested)
+        matches: dict[str, ResourceDocument] = {}
+        for document in documents:
+            if document.identity.resource_type is not resource_type:
+                raise ValueError("projected resource has the wrong domain type")
+            declared = document.meta.get("domain_fingerprint")
+            if declared is None:
+                continue
+            if not isinstance(declared, str):
+                raise ValueError("persisted resource domain fingerprint is malformed")
+            if declared not in wanted:
+                continue
+            if declared in matches:
+                raise ValueError("owner has duplicate resources for one domain fingerprint")
+            matches[declared] = document
+
+        return MappingProxyType(
+            {
+                fingerprint: rehydrate_resource_contract(
+                    resource_type,
+                    document.attributes,
+                    expected_domain_fingerprint=fingerprint,
+                )
+                for fingerprint, document in matches.items()
+            }
+        )
+
+    async def get_domain_contract_by_fingerprint(
+        self,
+        *,
+        principal: Any,
+        resource_type: ApiResourceType,
+        fingerprint: str,
+    ) -> DomainResourceContract | None:
+        """Return one owner-scoped typed contract by its immutable identity."""
+
+        matches = await self.get_domain_contracts_by_fingerprint(
+            principal=principal,
+            resource_type=resource_type,
+            fingerprints=(fingerprint,),
+        )
+        return matches.get(fingerprint)
 
     async def list_resources(
         self,

@@ -173,6 +173,51 @@ async def test_reader_rehydrates_owner_scoped_typed_domain_contract() -> None:
 
 
 @pytest.mark.asyncio
+async def test_reader_resolves_domain_fingerprints_in_one_owner_scoped_batch() -> None:
+    own = _strategy("momentum")
+    foreign = _strategy("momentum", owner_id="bob")
+    missing_fingerprint = content_digest("missing-strategy")
+    reader = PostgresResourceReader(MemoryStore([own, foreign]))
+
+    resolved = await reader.get_domain_contracts_by_fingerprint(
+        principal=SimpleNamespace(id="alice"),
+        resource_type=ApiResourceType.STRATEGY,
+        fingerprints=(own.state["meta"]["domain_fingerprint"], missing_fingerprint),
+    )
+
+    assert tuple(resolved) == (own.state["meta"]["domain_fingerprint"],)
+    assert isinstance(resolved[own.state["meta"]["domain_fingerprint"]], StrategyVersion)
+    assert (
+        await reader.get_domain_contract_by_fingerprint(
+            principal="bob",
+            resource_type=ApiResourceType.STRATEGY,
+            fingerprint=own.state["meta"]["domain_fingerprint"],
+        )
+        == resolved[own.state["meta"]["domain_fingerprint"]]
+    )
+
+
+@pytest.mark.asyncio
+async def test_reader_rejects_ambiguous_owner_domain_fingerprints() -> None:
+    first = _strategy("momentum")
+    state = dict(first.state)
+    state["resource_id"] = "momentum-alias"
+    alias = StoredAggregate(
+        AggregateKey(ApiResourceType.STRATEGY.value, "momentum-alias"),
+        1,
+        state,
+    )
+    reader = PostgresResourceReader(MemoryStore([first, alias]))
+
+    with pytest.raises(ValueError, match="duplicate resources"):
+        await reader.get_domain_contract_by_fingerprint(
+            principal="alice",
+            resource_type=ApiResourceType.STRATEGY,
+            fingerprint=first.state["meta"]["domain_fingerprint"],
+        )
+
+
+@pytest.mark.asyncio
 async def test_reader_rejects_malformed_typed_domain_attributes() -> None:
     aggregate = _strategy("momentum")
     state = dict(aggregate.state)
