@@ -855,6 +855,23 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       dataset_manifest: { benchmark_coverage: { status: 'ready' } },
       artifacts: [],
     }
+    // This local screenshot intentionally depicts the Study failure while the
+    // adjacent chart, persisted-results list, and shared analysis are loading.
+    // Hold those reads explicitly so browser speed/viewport cannot decide which
+    // state the visual oracle captures.
+    await page.route(/\/api\/v1\/market-groups\/us-benchmarks(?:\?.*)?$/, async route => {
+      if (route.request().method() !== 'GET') return route.continue()
+      await new Promise<void>(() => {})
+    })
+    await page.route(/\/api\/v1\/ohlcv\/(?:local\/)?SPY\/[^/?]+(?:\/transformed)?(?:\?.*)?$/, async route => {
+      if (route.request().method() !== 'GET') return route.continue()
+      await new Promise<void>(() => {})
+    })
+    await page.route(url => url.pathname.endsWith('/api/v1/research/runs')
+      && url.searchParams.get('limit') === '25', async route => {
+      if (route.request().method() !== 'GET') return route.continue()
+      await new Promise<void>(() => {})
+    })
     await page.route(/\/api\/v1\/code\/validate$/, async route => {
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] }) })
@@ -891,6 +908,10 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await warnings.locator('summary').click()
     await expect(warnings).toContainText('run was terminated')
     await expect(study).toContainText('Rerun snapshot')
+    await expect(page.locator('.workstation__refresh')).toHaveText('Refreshing…')
+    await expect(page.locator('.chart-tool .tool-state')).toHaveText('Loading SPY…')
+    await expect(page.getByRole('region', { name: 'Study Lab research results' }))
+      .toContainText('Loading reproducible research runs…')
     await expect(page).toHaveScreenshot('study-lab-sandbox-error-gap.png', {
       animations: 'disabled',
       caret: 'hide',
