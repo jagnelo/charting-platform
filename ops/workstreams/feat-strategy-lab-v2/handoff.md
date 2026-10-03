@@ -2,6 +2,30 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-03 - Owner-bound search worker graph handoff
+
+The authenticated search-dispatch worker callback now hydrates the dispatched
+attempt using the persisted dispatch owner's scope before returning its worker
+request. It verifies that the dispatch experiment matches the hydrated graph
+and that the runtime package, strategy source digest, and entrypoint are all
+pinned by that experiment. Search-worker composition fails closed when the
+owner-scoped domain reader is unavailable. This prevents a correctly signed
+queue payload from substituting a different persisted trial or package.
+
+At exact clean source SHA `f515326b5eebe621c7251825e96e87423fc74126`, all
+1,129 Strategy Lab v2 tests passed; MyPy passed across 329 files; Ruff passed
+for the package; the four changed Python files passed Ruff formatting; and
+`git diff --check` was clean. The commit is pushed to
+`origin/feat/strategy-lab-v2`.
+
+This verifies and binds the current decoded worker request; it still does not
+construct that request's runtime bundle directly from the hydrated graph. The
+next owned slice is production worker runtime-input assembly from verified
+package and frozen-data artifacts, followed by atomic attempt/dispatch/runtime
+provenance. Provider-owned Arrow decoding remains behind its staging contract.
+Stable Nautilus v2 availability, forward parity, and the final full-stack
+browser acceptance profile are not prerequisites for this implementation slice.
+
 ## 2026-10-03 - Owner-scoped trial graph hydration
 
 `PostgresResourceReader` now resolves batches of typed domain records by their

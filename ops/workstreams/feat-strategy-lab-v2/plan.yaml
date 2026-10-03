@@ -800,8 +800,9 @@ progress:
     - strategy-lab-v2-scoped-backtest-result-publication-provenance
     - strategy-lab-v2-default-disk-backed-event-tape-resolution
     - strategy-lab-v2-owner-scoped-fingerprint-batch-and-trial-domain-hydration
+    - strategy-lab-v2-owner-bound-search-worker-graph-handoff
   total: 18
-  current_phase: strategy-lab-v2-owner-scoped-worker-input-hydration
+  current_phase: strategy-lab-v2-owner-bound-search-worker-graph-handoff
   current_blocker: >-
     No external release, market-data, or upstream branch dependency blocks
     this owned implementation. Exact-pinned Nautilus 2.0.0rc5 now passes the
@@ -813,19 +814,22 @@ progress:
     acceptance, not a prerequisite for the next local slice. The default frozen
     event-tape resolver now uses verified disk-spooled streaming, and owner-scoped
     fingerprint reads hydrate and cross-check the immutable attempt/trial/
-    experiment/portfolio/snapshot/strategy/package graph. Remaining internal
-    work includes connecting that graph to production worker input materialization,
-    resolving verified snapshot bytes, canonical instrument/venue/account
-    adapters, atomic worker dispatch, target-position allocation/risk, and
-    broader product/accounting coverage. Provider, ETF, and TC2000 staging
-    boundaries apply only to their eventual shared-contract integration.
+    experiment/portfolio/snapshot/strategy/package graph, and authenticated
+    search dispatch now hydrates with the dispatch owner and rejects drift in
+    experiment, package, source, or entrypoint bindings. Remaining internal
+    work is to assemble—not merely validate—a worker runtime request from that
+    graph, resolving verified snapshot bytes and canonical instrument/venue/
+    account adapters, then atomically binding runtime artifacts to attempt and
+    dispatch before target-position allocation/risk and broader product/accounting
+    coverage. Provider, ETF, and TC2000 staging boundaries constrain only their
+    eventual shared-contract integration; they do not stop owned worker work.
   next_action: >-
-    Connect the owner-scoped hydrated domain graph to the dedicated worker's
-    production handoff and runtime-input assembly: verify the queued attempt,
-    resolve the pinned strategy package and frozen series/event artifacts, and
-    preserve atomic attempt/dispatch/runtime provenance. Define/inject canonical
-    instrument and venue/account adapters without duplicating provider identity;
-    consume the provider Arrow decoder only after its contract reaches staging.
-    Then complete target-position allocation/risk and broader product/accounting/
-    report conformance. Do not wait for a stable upstream tag or modify parallel
-    worktrees.
+    Replace the preassembled-request search worker boundary with production
+    runtime-input assembly from the owner-hydrated attempt graph. Resolve the
+    exact package and verified frozen data artifacts through injected adapters;
+    bind the resulting runtime artifact and provenance atomically to the attempt
+    and dispatch. Keep canonical instrument identity provider-pluggable and
+    consume provider-owned Arrow decoding only after its contract reaches staging.
+    Then add target-position allocation/risk and broaden product/accounting/report
+    conformance. No stable Nautilus release or unrelated upstream branch blocks
+    this work.

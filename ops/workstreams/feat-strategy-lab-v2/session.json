@@ -87,6 +87,8 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
@@ -125,14 +127,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "d2eb28019a4c1171589623d5ba9154c5d321ecd7",
-  "implementation_sha": "d2eb28019a4c1171589623d5ba9154c5d321ecd7",
-  "last_checkpoint": "2026-10-03T09:21:35.295949+00:00",
+  "head": "f515326b5eebe621c7251825e96e87423fc74126",
+  "implementation_sha": "f515326b5eebe621c7251825e96e87423fc74126",
+  "last_checkpoint": "2026-10-03T09:32:03.000000+00:00",
   "last_human_progress_update": "2026-10-03T09:21:16.498986+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "Assemble the production worker runtime-input artifact directly from the hydrated trial graph; resolve the exact package and verified frozen data artifacts through injected adapters, then atomically bind runtime provenance to the attempt and dispatch.",
   "parent_branch": "staging",
-  "plan_hash": "d427eacd9335f62d02974267ebe754b1d69c2e433f5e153fee8267e84b6a3acd",
+  "plan_hash": "8d3ef57489563e83ecf6a2c301d9bdb26d3d8c1033740b50192c7154aafb0694",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -146,14 +148,14 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "No external dependency blocks the next owned implementation slice; stable Nautilus v2 is not required. RC5 has local backtest evidence. Forward parity is a separate gate, while provider, ETF, TC2000 shared contracts and full-stack browser validation are later integration/acceptance gates.",
-    "current_phase": "strategy-lab-v2-owner-scoped-worker-input-hydration",
-    "next_action": "Connect the owner-scoped hydrated attempt graph to dedicated worker runtime-input materialization. Resolve pinned package and verified frozen series/event artifacts, bind execution provenance atomically to attempt/dispatch, and keep provider-owned Arrow decoding behind its staging contract. Then add canonical instrument/account adapters and target-position risk routing.",
+    "current_blocker": "No external dependency blocks package-owned worker assembly; provider Arrow decoding remains gated on its staging contract. Stable Nautilus v2, forward parity, and the final full-stack browser gate are not prerequisites for this next slice.",
+    "current_phase": "strategy-lab-v2-owner-bound-search-worker-graph-handoff",
+    "next_action": "Assemble the production worker runtime-input artifact directly from the hydrated trial graph, resolving the exact strategy package and verified frozen data artifacts through injected adapters; bind runtime provenance atomically to the attempt and dispatch, then add canonical account and allocation-risk integration.",
     "total": 18,
-    "updated_at": "2026-10-03T09:21:16.498967+00:00"
+    "updated_at": "2026-10-03T09:32:03.000000+00:00"
   },
-  "remote": "d2eb28019a4c1171589623d5ba9154c5d321ecd7",
-  "remote_sha": "d2eb28019a4c1171589623d5ba9154c5d321ecd7",
+  "remote": "f515326b5eebe621c7251825e96e87423fc74126",
+  "remote_sha": "f515326b5eebe621c7251825e96e87423fc74126",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
