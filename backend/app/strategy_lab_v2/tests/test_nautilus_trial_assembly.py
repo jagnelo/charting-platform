@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
+from typing import BinaryIO
 
 import pytest
 
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
+from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capabilities import (
     CapabilityCell,
@@ -17,6 +20,7 @@ from app.strategy_lab_v2.capabilities import (
 )
 from app.strategy_lab_v2.contracts import (
     AdjustmentMode,
+    ArtifactManifest,
     AttemptState,
     DataSeriesManifest,
     DataSnapshot,
@@ -33,6 +37,11 @@ from app.strategy_lab_v2.contracts import (
     StrategyVersion,
 )
 from app.strategy_lab_v2.event_tape import FrozenEventTape
+from app.strategy_lab_v2.event_tape_artifacts import (
+    FrozenEventTapeArtifactResolver,
+    FrozenEventTapeStreamResolution,
+    FrozenSeriesRow,
+)
 from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusCashDefinition,
     NautilusInstrumentDefinition,
@@ -54,6 +63,24 @@ from strategy_runtime import deserialize_invocation_context_stream
 BASE = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
 SOURCE = "class Strategy:\n    def on_event(self, context):\n        return []\n"
 FIELDS = ("open", "high", "low", "close", "volume")
+
+
+class JsonFrozenSeriesDecoder:
+    """Test decoder for the provider-owned snapshot series boundary."""
+
+    def iter_rows(
+        self,
+        series: DataSeriesManifest,
+        source: BinaryIO,
+    ) -> Iterable[FrozenSeriesRow]:
+        del series
+        for row in json.load(source):
+            yield FrozenSeriesRow(
+                event_id=row["event_id"],
+                event_time=datetime.fromisoformat(row["event_time"]),
+                sequence=row["sequence"],
+                values=row["values"],
+            )
 
 
 def _inputs(*, scenario=None, evaluation_window=None):
@@ -264,6 +291,84 @@ def test_trial_assembly_materializes_reproducible_pinned_bundle(tmp_path) -> Non
         )
     )
     assert [event["sequence"] for event in events] == [1, 2]
+
+
+def test_trial_assembly_consumes_default_disk_spooled_event_tape(tmp_path) -> None:
+    values = _inputs()
+    source_events = values["event_tape"].events
+    source_rows = [
+        {
+            "event_id": event.event_id,
+            "event_time": event.event_time.isoformat(),
+            "sequence": event.sequence,
+            "values": {name: str(value) for name, value in event.values.items()},
+        }
+        for event in source_events
+    ]
+    source_payload = json.dumps(source_rows, separators=(",", ":"), sort_keys=True).encode()
+    old_snapshot = values["snapshot"]
+    series = replace(
+        old_snapshot.series[0],
+        content_digest=artifact_content_digest(source_payload),
+    )
+    snapshot = replace(old_snapshot, series=(series,))
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(
+        ArtifactManifest(
+            content_digest=series.content_digest,
+            byte_length=len(source_payload),
+            media_type="application/vnd.apache.parquet",
+            schema_version="provider.market-series.v1",
+            storage_key=series.content_digest,
+        ),
+        source_payload,
+    )
+
+    resolution = FrozenEventTapeArtifactResolver(store, JsonFrozenSeriesDecoder()).resolve(
+        snapshot,
+        values["strategy_manifest"],
+    )
+    assert isinstance(resolution, FrozenEventTapeStreamResolution)
+    assert not hasattr(resolution, "tape")
+
+    old_experiment = values["experiment"]
+    experiment = replace(old_experiment, snapshot_fingerprint=snapshot.fingerprint)
+    old_trial = values["trial"]
+    trial = ScientificTrial.create(
+        experiment_fingerprint=experiment.fingerprint,
+        snapshot_fingerprint=snapshot.fingerprint,
+        preflight_report=old_trial.preflight_report,
+        parameter_set=old_trial.parameter_set,
+        scenario=old_trial.scenario,
+        seed=old_trial.seed,
+        randomization=old_trial.randomization,
+        evaluation_window=old_trial.evaluation_window,
+    )
+    values.update(
+        snapshot=snapshot,
+        event_tape=resolution,
+        experiment=experiment,
+        trial=trial,
+        attempt=replace(values["attempt"], trial_id=trial.trial_id),
+    )
+
+    assembly = assemble_nautilus_trial_runtime_input(
+        **values,
+        artifact_store=store,
+    )
+    bundle = load_materialized_nautilus_runtime_bundle(
+        assembly.runtime_input_artifact,
+        store,
+        max_input_bytes=1_000_000,
+    )
+    assert bundle.native_event_stream is not None
+    payload = json.loads(bundle.wire_bytes)
+    assert set(payload["engine_input"]["event_tape"]) == {
+        "source_tape_fingerprint",
+        "adapter_version",
+        "event_count",
+    }
+    assert payload["engine_input"]["event_tape"]["event_count"] == 2
 
 
 def test_trial_assembly_applies_immutable_strategy_defaults(tmp_path) -> None:

@@ -390,7 +390,24 @@ class FrozenEventTapeArtifactResolver:
         self,
         snapshot: DataSnapshot,
         manifest: StrategySdkManifest,
+    ) -> FrozenEventTapeStreamResolution:
+        """Resolve one snapshot to a verified disk-backed tape by default.
+
+        Event histories may be very large, so the ordinary entry point must
+        not retain decoded rows or the complete tape in memory. Small-fixture
+        callers that explicitly need an in-memory ``FrozenEventTape`` can use
+        :meth:`resolve_materialized`.
+        """
+
+        return self.resolve_streaming(snapshot, manifest)
+
+    def resolve_materialized(
+        self,
+        snapshot: DataSnapshot,
+        manifest: StrategySdkManifest,
     ) -> FrozenEventTapeArtifactResolution:
+        """Explicit compatibility path that retains the complete tape in RAM."""
+
         if not isinstance(snapshot, DataSnapshot):
             raise TypeError("snapshot must be a DataSnapshot")
         if not isinstance(manifest, StrategySdkManifest):

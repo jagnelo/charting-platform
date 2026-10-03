@@ -143,7 +143,9 @@ def test_resolves_verified_series_artifact_and_projects_only_declared_fields(tmp
     store = LocalArtifactStore(tmp_path / "artifacts")
     _publish(store, series, payload)
 
-    result = FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder()).resolve(snapshot, manifest)
+    result = FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder()).resolve_materialized(
+        snapshot, manifest
+    )
 
     assert result.tape.snapshot_fingerprint == snapshot.fingerprint
     assert result.binding.dependency_event_counts == (("daily-bars", 2),)
@@ -158,8 +160,8 @@ def test_streaming_resolution_preserves_tape_identity_without_retaining_events(t
     _publish(store, series, payload)
     resolver = FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder())
 
-    materialized = resolver.resolve(snapshot, manifest)
-    streamed = resolver.resolve_streaming(snapshot, manifest)
+    materialized = resolver.resolve_materialized(snapshot, manifest)
+    streamed = resolver.resolve(snapshot, manifest)
 
     assert isinstance(streamed, FrozenEventTapeStreamResolution)
     assert not hasattr(streamed, "tape")
@@ -195,8 +197,8 @@ def test_streaming_tape_can_feed_the_nautilus_event_adapter_incrementally(tmp_pa
                 )
 
     resolver = FrozenEventTapeArtifactResolver(store, NativeBarDecoder())
-    materialized = resolver.resolve(snapshot, manifest)
-    streamed = resolver.resolve_streaming(snapshot, manifest)
+    materialized = resolver.resolve_materialized(snapshot, manifest)
+    streamed = resolver.resolve(snapshot, manifest)
     expected = materialize_nautilus_event_tape(materialized.tape, snapshot, manifest)
     actual = tuple(iter_materialized_nautilus_event_records(streamed, snapshot, manifest, store))
 
