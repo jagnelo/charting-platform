@@ -14,9 +14,9 @@
           </select>
         </label>
         <span v-if="benchmarkFamilyKey" class="benchmark-surface__family-state">{{ activeBenchmarkLabel }} · locked family legs</span>
-        <span v-if="benchmarkFamilyReadinessLoading" role="status">Checking all-family readiness…</span>
-        <span v-else-if="benchmarkFamilyReadinessError" class="benchmark-surface__family-error" role="alert">Readiness unavailable: {{ benchmarkFamilyReadinessError }}</span>
-        <span v-else-if="benchmarkFamilyReadiness" class="benchmark-surface__family-readiness" aria-label="Benchmark family readiness">All-family readiness: {{ benchmarkFamilyReadiness.readiness_status }} · {{ benchmarkFamilyReadiness.ready_role_count }}/{{ benchmarkFamilyReadiness.role_count }} roles · {{ benchmarkFamilyReadiness.ready_family_count }}/{{ benchmarkFamilyReadiness.family_count }} families ready</span>
+        <span v-if="benchmarkFamilyKey && benchmarkFamilyReadinessLoading" role="status">Checking all-family readiness…</span>
+        <span v-else-if="benchmarkFamilyKey && benchmarkFamilyReadinessError" class="benchmark-surface__family-error" role="alert">Readiness unavailable: {{ benchmarkFamilyReadinessError }}</span>
+        <span v-else-if="benchmarkFamilyKey && benchmarkFamilyReadiness" class="benchmark-surface__family-readiness" aria-label="Benchmark family readiness">All-family readiness: {{ benchmarkFamilyReadiness.readiness_status }} · {{ benchmarkFamilyReadiness.ready_role_count }}/{{ benchmarkFamilyReadiness.role_count }} roles · {{ benchmarkFamilyReadiness.ready_family_count }}/{{ benchmarkFamilyReadiness.family_count }} families ready</span>
         <span v-if="benchmarkFamilyReadiness" class="sr-only" aria-label="Benchmark provider probe evidence">{{ benchmarkFamilyProviderProbeLabel(benchmarkFamilyReadiness) }}</span>
         <span v-if="benchmarkFamilyReadiness" class="sr-only" aria-label="Benchmark family universe provenance">{{ benchmarkFamilyUniverseProvenanceLabel(benchmarkFamilyReadiness) }}</span>
         <span v-if="benchmarkFamilyLoading" role="status">Loading family legs…</span>

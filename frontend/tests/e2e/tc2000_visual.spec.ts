@@ -214,10 +214,16 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await page.goto('/')
     await waitForShellReady(page)
     const benchmarkSurface = page.locator('.benchmark-surface:visible')
-    const benchmarks = page.getByRole('region', { name: 'Major US benchmarks' })
-    await expect(benchmarks).toBeVisible()
+    const familySelector = benchmarkSurface.getByLabel('Benchmark family', { exact: true })
+    await expect(benchmarkSurface.getByLabel('Benchmark family readiness')).toHaveCount(0)
+    await familySelector.selectOption({ label: 'S&P 500' })
     await expect(benchmarkSurface.getByLabel('Benchmark family readiness'))
       .toContainText('All-family readiness:', { timeout: 15_000 })
+    await familySelector.selectOption({ label: 'Major US benchmarks' })
+    await expect(benchmarkSurface.getByLabel('Benchmark family readiness')).toHaveCount(0)
+    await waitForShellReady(page)
+    const benchmarks = page.getByRole('region', { name: 'Major US benchmarks' })
+    await expect(benchmarks).toBeVisible()
     await benchmarks.getByRole('button', { name: 'Columns', exact: true }).click()
     const editor = benchmarks.locator('.watchlist__column-menu')
     await expect(editor).toBeVisible()
@@ -333,8 +339,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     // The detached WatchList can paint its persisted row identities before it
     // hydrates shared market analysis. Do not capture the transient
     // unavailable/loading state as the deterministic populated-state baseline.
-    await expect(popoutTool.locator('.benchmark-surface__family-readiness'))
-      .toContainText('All-family readiness:', { timeout: 15_000 })
+    await expect(popoutTool.getByLabel('Benchmark family universe provenance'))
+      .toContainText('Universe:', { timeout: 15_000 })
     await expect.poll(async () => {
       const rowText = await popoutRows.allTextContents()
       return rowText.length === expectedSymbols.length && rowText.every(text => text.includes('Current'))
