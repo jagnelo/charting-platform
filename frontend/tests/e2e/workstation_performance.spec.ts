@@ -18,6 +18,39 @@ async function closePopupWhenOpen(popup: Page) {
 }
 
 test.describe('TC2000 workstation performance guards', () => {
+  test('defers optional research tools until they are opened', async ({ page, loggedIn, browserDiagnostics }) => {
+    test.setTimeout(90_000)
+    const requestedScripts: string[] = []
+    page.on('request', request => {
+      const url = new URL(request.url())
+      if (url.pathname.startsWith('/assets/') && url.pathname.endsWith('.js')) requestedScripts.push(url.pathname)
+    })
+
+    // The authenticated fixture resets this account to the factory workspace;
+    // reload after attaching the listener so this captures the real cold load.
+    await page.reload()
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('.rotation-tool')).toHaveCount(1, { timeout: 30_000 })
+
+    const deferredToolChunks = ['MarketMapTool', 'StudyLabTool', 'ResearchResultsTool', 'CodeLibraryTool', 'InstrumentInfoPanel']
+    expect(requestedScripts.some(path => deferredToolChunks.some(name => path.includes(`/${name}-`)))).toBe(false)
+
+    const toolsOpened = [
+      { title: 'Study Lab', chunk: 'StudyLabTool', selector: '.study-lab-tool' },
+      { title: 'Study Results', chunk: 'ResearchResultsTool', selector: '.research-results-tool' },
+      { title: 'Python Library', chunk: 'CodeLibraryTool', selector: '.code-library-tool' },
+      { title: 'Instrument Report', chunk: 'InstrumentInfoPanel', selector: '.instrument-report' },
+    ]
+
+    for (const tool of toolsOpened) {
+      await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+      await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: tool.title, exact: true }).click()
+      await expect(page.locator(`${tool.selector}:visible`).last()).toBeVisible({ timeout: 15_000 })
+      await expect.poll(() => requestedScripts.some(path => path.includes(`/${tool.chunk}-`))).toBe(true)
+    }
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('initializes multiple chart windows and recovers without canvas or tool growth', async ({ page, context, loggedIn, browserDiagnostics }) => {
     await page.goto('/chart')
     await expect(page.locator('.tool-window').first()).toBeVisible({ timeout: 10_000 })

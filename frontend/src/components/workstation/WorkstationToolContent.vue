@@ -872,7 +872,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, defineComponent, h, nextTick, onBeforeUnmount, onMounted, provide, ref, watch, type Component } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { fetchCanonicalInstrument } from '@/lib/workstation/instrumentQueries'
@@ -894,7 +894,6 @@ import InstrumentNoteTool from './InstrumentNoteTool.vue'
 import InstrumentAlertsTool from './InstrumentAlertsTool.vue'
 import EasyScanTool from './EasyScanTool.vue'
 import MarketGaugeTool from './MarketGaugeTool.vue'
-import StudyLabTool from './StudyLabTool.vue'
 import UnknownToolRecovery from './UnknownToolRecovery.vue'
 import BreadthHistoryUPlot from './BreadthHistoryUPlot.vue'
 import BenchmarkFamilyBreadthHistoryUPlot from './BenchmarkFamilyBreadthHistoryUPlot.vue'
@@ -905,10 +904,6 @@ import CrossFamilyRankingHistoryUPlot from './CrossFamilyRankingHistoryUPlot.vue
 import CrossFamilyRankHistoryUPlot from './CrossFamilyRankHistoryUPlot.vue'
 import GenericBreadthHistoryUPlot from './GenericBreadthHistoryUPlot.vue'
 import RelativeRotationTool from './RelativeRotationTool.vue'
-import MarketMapTool from './MarketMapTool.vue'
-import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
-import ResearchResultsTool from './ResearchResultsTool.vue'
-import CodeLibraryTool from './CodeLibraryTool.vue'
 import CoverageSummaryTool from './CoverageSummaryTool.vue'
 import BreadthConditionTreeEditor from './BreadthConditionTreeEditor.vue'
 import { fetchCodeAssets, type CodeAssetSummary } from '@/lib/workstation/libraryQueries'
@@ -925,6 +920,40 @@ import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
 import { benchmarkFamilyConstituentSourceId } from '@/lib/workstation/benchmarkFamilySources'
 import { buildBreadthStudyAssetPayload, type BreadthDefinition } from '@/lib/workstation/breadthDefinitions'
 import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type IndicatorType, type OHLCVBar, type Timeframe } from '@/types'
+
+const AsyncToolLoading = defineComponent({
+  name: 'AsyncWorkstationToolLoading',
+  setup: () => () => h('div', {
+    class: 'tool-state',
+    role: 'status',
+    style: 'display:grid;place-items:center;height:100%;padding:12px;color:#98a7b2;font:11px "Segoe UI",Arial,sans-serif;text-align:center',
+  }, 'Loading tool…'),
+})
+
+const AsyncToolError = defineComponent({
+  name: 'AsyncWorkstationToolError',
+  setup: () => () => h('div', {
+    class: 'tool-state tool-state--error',
+    role: 'alert',
+    style: 'display:grid;place-items:center;height:100%;padding:12px;color:#ec8f8f;font:11px "Segoe UI",Arial,sans-serif;text-align:center',
+  }, 'This tool could not be loaded. Refresh the page to try again.'),
+})
+
+function deferWorkstationTool<T extends Component>(loader: () => Promise<{ default: T }>) {
+  return defineAsyncComponent<T>({
+    loader,
+    loadingComponent: AsyncToolLoading,
+    errorComponent: AsyncToolError,
+    delay: 120,
+    timeout: 15_000,
+  })
+}
+
+const MarketMapTool = deferWorkstationTool(() => import('./MarketMapTool.vue'))
+const StudyLabTool = deferWorkstationTool(() => import('./StudyLabTool.vue'))
+const ResearchResultsTool = deferWorkstationTool(() => import('./ResearchResultsTool.vue'))
+const CodeLibraryTool = deferWorkstationTool(() => import('./CodeLibraryTool.vue'))
+const InstrumentInfoPanel = deferWorkstationTool(() => import('@/components/chart/InstrumentInfoPanel.vue'))
 
 // Golden Layout can temporarily retain multiple virtual roots for one tool.
 // Keep the latest name-editor owner module-wide so a stale root cannot replay
