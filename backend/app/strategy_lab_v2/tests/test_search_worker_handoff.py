@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -11,8 +12,15 @@ from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
-from app.strategy_lab_v2.search_worker_handoff import AuthenticatedSearchDispatchMaterializer
+from app.strategy_lab_v2.search_worker_handoff import (
+    AuthenticatedSearchDispatchMaterializer,
+    _require_persisted_trial_binding,
+)
+from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
 from app.strategy_lab_v2.tests.test_worker_process import _request
+from app.strategy_lab_v2.trial_hydration import (
+    HydratedNautilusTrial,
+)
 from app.strategy_lab_v2.worker_handoff import encode_worker_handoff
 from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
 
@@ -31,7 +39,39 @@ class DispatchStore:
         return self.record
 
 
-def _entry_and_payload(tmp_path: Path) -> tuple[RedisStreamEntry, DispatchPayload, SearchDispatchRecord, WorkerExecutionRequest]:
+class StaticTrialHydrator:
+    def __init__(self, graph: HydratedNautilusTrial) -> None:
+        self.graph = graph
+        self.calls: list[tuple[Any, str]] = []
+
+    async def hydrate_attempt(
+        self,
+        *,
+        principal: Any,
+        attempt_resource_id: str,
+    ) -> HydratedNautilusTrial:
+        self.calls.append((principal, attempt_resource_id))
+        return self.graph
+
+
+def _hydrated_graph() -> tuple[dict[str, Any], HydratedNautilusTrial]:
+    values = _inputs()
+    strategy = values["strategy_manifest"].strategy
+    graph = HydratedNautilusTrial(
+        attempt=values["attempt"],
+        trial=values["trial"],
+        experiment=values["experiment"],
+        portfolio=values["portfolio"],
+        snapshot=values["snapshot"],
+        strategies=(strategy,),
+        packages={strategy.fingerprint: values["strategy_package"]},
+    )
+    return values, graph
+
+
+def _entry_and_payload(
+    tmp_path: Path,
+) -> tuple[RedisStreamEntry, DispatchPayload, SearchDispatchRecord, WorkerExecutionRequest]:
     execution_request = _request(tmp_path)
     payload = DispatchPayload.from_mapping(encode_worker_handoff(execution_request))
     dispatch_request = DispatchRequest(
@@ -123,3 +163,74 @@ async def test_authenticated_materializer_rejects_missing_record_and_handoff_dri
             DispatchStore(drifted_record),
             queue_name="strategy-backtest",
         )(drifted_entry, drifted_payload)
+
+
+def test_persisted_trial_binding_checks_experiment_package_source_and_entrypoint(
+    tmp_path: Path,
+) -> None:
+    values, graph = _hydrated_graph()
+    strategy = values["strategy_manifest"].strategy
+    package = values["strategy_package"]
+    runtime_request = replace(
+        _request(tmp_path).runtime_request,
+        package_fingerprint=package.fingerprint,
+        source_digest=strategy.source_digest,
+        entrypoint=package.entrypoint,
+    )
+
+    _require_persisted_trial_binding(
+        graph,
+        experiment_fingerprint=graph.experiment.fingerprint,
+        runtime_request=runtime_request,
+    )
+
+    with pytest.raises(ValueError, match="experiment differs"):
+        _require_persisted_trial_binding(
+            graph,
+            experiment_fingerprint=content_digest("different-experiment"),
+            runtime_request=runtime_request,
+        )
+    with pytest.raises(ValueError, match="not pinned"):
+        _require_persisted_trial_binding(
+            graph,
+            experiment_fingerprint=graph.experiment.fingerprint,
+            runtime_request=replace(
+                runtime_request,
+                package_fingerprint=content_digest("unpinned-package"),
+            ),
+        )
+    with pytest.raises(ValueError, match="source differs"):
+        _require_persisted_trial_binding(
+            graph,
+            experiment_fingerprint=graph.experiment.fingerprint,
+            runtime_request=replace(
+                runtime_request,
+                source_digest=content_digest("different-source"),
+            ),
+        )
+    with pytest.raises(ValueError, match="entrypoint differs"):
+        _require_persisted_trial_binding(
+            graph,
+            experiment_fingerprint=graph.experiment.fingerprint,
+            runtime_request=replace(runtime_request, entrypoint="other.main:run"),
+        )
+
+
+@pytest.mark.asyncio
+async def test_authenticated_materializer_hydrates_with_dispatch_owner_before_execution(
+    tmp_path: Path,
+) -> None:
+    entry, payload, record, _ = _entry_and_payload(tmp_path)
+    _values, graph = _hydrated_graph()
+    dispatch = replace(record, experiment_fingerprint=graph.experiment.fingerprint)
+    hydrator = StaticTrialHydrator(graph)
+    materializer = AuthenticatedSearchDispatchMaterializer(
+        DispatchStore(dispatch),
+        queue_name="strategy-backtest",
+        domain_hydrator=hydrator,
+    )
+
+    with pytest.raises(ValueError, match="package is not pinned"):
+        await materializer(entry, payload)
+
+    assert hydrator.calls == [(dispatch.owner_id, dispatch.request.attempt_id)]

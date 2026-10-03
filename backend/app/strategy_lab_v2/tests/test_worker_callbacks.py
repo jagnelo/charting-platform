@@ -89,6 +89,19 @@ class _SearchDispatchPersistence(_Persistence):
         async def load_submission(**_kwargs: Any) -> None:
             return None
 
+    class resources:
+        @staticmethod
+        async def get_domain_contract(**_kwargs: Any) -> None:
+            return None
+
+        @staticmethod
+        async def get_domain_contract_by_fingerprint(**_kwargs: Any) -> None:
+            return None
+
+        @staticmethod
+        async def get_domain_contracts_by_fingerprint(**_kwargs: Any) -> dict[str, Any]:
+            return {}
+
 
 class _Publisher:
     async def publish_sandbox_result(self, *_args: Any, **_kwargs: Any) -> Any:
@@ -146,12 +159,11 @@ async def test_search_callback_factory_binds_authenticated_dispatch_materializer
         "app.strategy_lab_v2.tests.test_worker_callbacks:search_resolver_factory",
     )
     monkeypatch.setenv("STRATEGY_LAB_V2_QUEUE", "strategy-backtest")
-    callbacks = await create_search_dispatch(
-        _SearchDispatchPersistence(), Path("/tmp/artifacts")
-    )
+    callbacks = await create_search_dispatch(_SearchDispatchPersistence(), Path("/tmp/artifacts"))
 
     assert isinstance(callbacks.materializer, AuthenticatedSearchDispatchMaterializer)
     assert callbacks.materializer.queue_name == "strategy-backtest"
+    assert callbacks.materializer.domain_hydrator is not None
 
 
 @pytest.mark.asyncio

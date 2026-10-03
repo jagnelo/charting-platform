@@ -15,6 +15,8 @@ from typing import Protocol
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
+from app.strategy_lab_v2.runtime_execution import StrategyRuntimeRequest
+from app.strategy_lab_v2.trial_hydration import HydratedNautilusTrial
 from app.strategy_lab_v2.worker_handoff import materialize_worker_handoff
 from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
 
@@ -25,6 +27,15 @@ class SearchDispatchRecordLoader(Protocol):
     async def load_by_request_fingerprint(
         self, request_fingerprint: str
     ) -> SearchDispatchRecord | None: ...
+
+
+class TrialGraphHydrator(Protocol):
+    async def hydrate_attempt(
+        self,
+        *,
+        principal: object,
+        attempt_resource_id: str,
+    ) -> HydratedNautilusTrial: ...
 
 
 WorkerHandoffDecoder = Callable[
@@ -41,6 +52,7 @@ class AuthenticatedSearchDispatchMaterializer:
         *,
         queue_name: str,
         decoder: WorkerHandoffDecoder = materialize_worker_handoff,
+        domain_hydrator: TrialGraphHydrator | None = None,
     ) -> None:
         if not callable(getattr(dispatch_store, "load_by_request_fingerprint", None)):
             raise TypeError(
@@ -52,9 +64,14 @@ class AuthenticatedSearchDispatchMaterializer:
             raise ValueError("queue_name must not contain control characters")
         if not callable(decoder):
             raise TypeError("decoder must be callable")
+        if domain_hydrator is not None and not callable(
+            getattr(domain_hydrator, "hydrate_attempt", None)
+        ):
+            raise TypeError("domain_hydrator must expose hydrate_attempt()")
         self._dispatch_store = dispatch_store
         self._queue_name = queue_name.strip()
         self._decoder = decoder
+        self._domain_hydrator = domain_hydrator
 
     @property
     def dispatch_store(self) -> SearchDispatchRecordLoader:
@@ -63,6 +80,10 @@ class AuthenticatedSearchDispatchMaterializer:
     @property
     def queue_name(self) -> str:
         return self._queue_name
+
+    @property
+    def domain_hydrator(self) -> TrialGraphHydrator | None:
+        return self._domain_hydrator
 
     async def __call__(
         self, entry: RedisStreamEntry, payload: DispatchPayload
@@ -94,7 +115,58 @@ class AuthenticatedSearchDispatchMaterializer:
         if not isinstance(execution_request, WorkerExecutionRequest):
             raise TypeError("worker handoff decoder returned an invalid request")
         _require_attempt_binding(execution_request, request.attempt_id)
+        if self._domain_hydrator is not None:
+            hydrated = await self._domain_hydrator.hydrate_attempt(
+                principal=record.owner_id,
+                attempt_resource_id=request.attempt_id,
+            )
+            _require_persisted_trial_binding(
+                hydrated,
+                experiment_fingerprint=record.experiment_fingerprint,
+                runtime_request=execution_request.runtime_request,
+            )
         return execution_request
+
+
+def _require_persisted_trial_binding(
+    hydrated: HydratedNautilusTrial,
+    *,
+    experiment_fingerprint: str,
+    runtime_request: StrategyRuntimeRequest,
+) -> None:
+    """Bind a decoded runtime request to the dispatch owner's persisted graph."""
+
+    if not isinstance(hydrated, HydratedNautilusTrial):
+        raise TypeError("domain hydrator returned an invalid trial graph")
+    if hydrated.experiment.fingerprint != experiment_fingerprint:
+        raise ValueError("search dispatch experiment differs from the owner's persisted trial")
+    if not isinstance(runtime_request, StrategyRuntimeRequest):
+        raise TypeError("runtime_request must be a StrategyRuntimeRequest")
+    package_fingerprint = runtime_request.package_fingerprint
+    strategy_package = next(
+        (
+            package
+            for package in hydrated.packages.values()
+            if package.fingerprint == package_fingerprint
+        ),
+        None,
+    )
+    if strategy_package is None:
+        raise ValueError("worker runtime package is not pinned by the persisted experiment")
+    strategy = next(
+        (
+            item
+            for item in hydrated.strategies
+            if item.fingerprint == strategy_package.strategy_fingerprint
+        ),
+        None,
+    )
+    if strategy is None:
+        raise ValueError("worker package strategy is not present in the persisted experiment")
+    if runtime_request.source_digest != strategy.source_digest:
+        raise ValueError("worker runtime source differs from the persisted strategy version")
+    if runtime_request.entrypoint != strategy_package.entrypoint:
+        raise ValueError("worker runtime entrypoint differs from the pinned strategy package")
 
 
 def _require_attempt_binding(request: WorkerExecutionRequest, attempt_id: str) -> None:
@@ -151,6 +223,7 @@ def create_authenticated_search_dispatch_materializer(
     *,
     queue_name: str,
     decoder: WorkerHandoffDecoder = materialize_worker_handoff,
+    domain_hydrator: TrialGraphHydrator | None = None,
 ) -> AuthenticatedSearchDispatchMaterializer:
     """Create the explicit worker callback used for search dispatch queues."""
 
@@ -160,11 +233,13 @@ def create_authenticated_search_dispatch_materializer(
         dispatch_store,
         queue_name=queue_name,
         decoder=decoder,
+        domain_hydrator=domain_hydrator,
     )
 
 
 __all__ = [
     "AuthenticatedSearchDispatchMaterializer",
     "SearchDispatchRecordLoader",
+    "TrialGraphHydrator",
     "create_authenticated_search_dispatch_materializer",
 ]

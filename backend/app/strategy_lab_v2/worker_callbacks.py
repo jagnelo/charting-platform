@@ -14,6 +14,10 @@ from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.search_worker_handoff import (
     create_authenticated_search_dispatch_materializer,
 )
+from app.strategy_lab_v2.trial_hydration import (
+    NautilusTrialDomainHydrator,
+    OwnerScopedDomainReader,
+)
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
 from app.strategy_lab_v2.worker_evidence import WorkerSubmissionBinding
 from app.strategy_lab_v2.worker_evidence_resolution import (
@@ -23,7 +27,9 @@ from app.strategy_lab_v2.worker_handoff import materialize_worker_handoff
 from app.strategy_lab_v2.worker_service import WorkerServiceCallbacks, WorkerTerminalWriter
 from app.strategy_lab_v2.worker_terminal_adapter import WorkerTerminalEvidenceResolver
 
-EvidenceResolverFactory = Callable[..., WorkerTerminalEvidenceResolver | Awaitable[WorkerTerminalEvidenceResolver]]
+EvidenceResolverFactory = Callable[
+    ..., WorkerTerminalEvidenceResolver | Awaitable[WorkerTerminalEvidenceResolver]
+]
 
 
 async def create(
@@ -38,9 +44,7 @@ async def create(
         raise TypeError("persistence must expose worker_terminal_writer()")
     if not isinstance(artifact_root, Path):
         raise TypeError("artifact_root must be a Path")
-    resolver_factory = _load_resolver_factory(
-        os.environ.get("STRATEGY_LAB_V2_EVIDENCE_RESOLVER")
-    )
+    resolver_factory = _load_resolver_factory(os.environ.get("STRATEGY_LAB_V2_EVIDENCE_RESOLVER"))
     resolver = _invoke_evidence_resolver_factory(
         resolver_factory,
         persistence,
@@ -63,9 +67,7 @@ async def create(
     )
 
 
-async def create_search_dispatch(
-    persistence: Any, artifact_root: Path
-) -> WorkerServiceCallbacks:
+async def create_search_dispatch(persistence: Any, artifact_root: Path) -> WorkerServiceCallbacks:
     """Build callbacks that authenticate search dispatches before decoding.
 
     This is an explicit callback-factory variant for a worker whose queue is
@@ -82,6 +84,16 @@ async def create_search_dispatch(
         raise TypeError("persistence must expose search_dispatch")
     if queue_name is None or not queue_name.strip():
         raise ValueError("STRATEGY_LAB_V2_QUEUE must be configured for search dispatch workers")
+    resources = getattr(persistence, "resources", None)
+    if resources is None or not all(
+        callable(getattr(resources, method, None))
+        for method in (
+            "get_domain_contract",
+            "get_domain_contract_by_fingerprint",
+            "get_domain_contracts_by_fingerprint",
+        )
+    ):
+        raise TypeError("persistence must expose owner-scoped domain resource reads")
     binding_resolver = create_default_search_dispatch_binding_resolver(persistence)
     callbacks = await create(
         persistence,
@@ -91,6 +103,7 @@ async def create_search_dispatch(
     materializer = create_authenticated_search_dispatch_materializer(
         dispatch_store,
         queue_name=queue_name,
+        domain_hydrator=NautilusTrialDomainHydrator(cast(OwnerScopedDomainReader, resources)),
     )
     return WorkerServiceCallbacks(
         materializer,
