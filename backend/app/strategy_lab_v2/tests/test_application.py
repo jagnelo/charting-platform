@@ -5,7 +5,7 @@ from typing import Any, cast
 
 import pytest
 
-from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
+from app.strategy_lab_v2.admission import ExecutionAdmissionLedger, resolve_execution_admission
 from app.strategy_lab_v2.api_contracts import ApiErrorCode
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.api_router import ApiAdapterError, ResourceMutationServiceResult
@@ -21,8 +21,15 @@ from app.strategy_lab_v2.artifact_commit import ArtifactCommitLedger
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary, CapabilitySummaryDecision
 from app.strategy_lab_v2.contracts import ForwardState
-from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.dispatch import SearchDispatchIntent
+from app.strategy_lab_v2.dispatch_payload import DispatchPayload
+from app.strategy_lab_v2.engine_execution import (
+    EngineExecutionDecision,
+    NautilusExecutionPlan,
+    NautilusExecutionScope,
+)
 from app.strategy_lab_v2.execution import ExecutionAuthorization
+from app.strategy_lab_v2.execution_orchestration import plan_execution_orchestration
 from app.strategy_lab_v2.forward_worker_authorization import ForwardWorkerAuthorization
 from app.strategy_lab_v2.lease_observations import LeaseObservationState
 from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease
@@ -50,6 +57,8 @@ from app.strategy_lab_v2.result_completion import (
 )
 from app.strategy_lab_v2.result_publication import ResultPublicationDecision
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
+from app.strategy_lab_v2.runtime_execution import new_runtime_execution_state
+from app.strategy_lab_v2.sandbox import build_nautilus_runtime_sandbox_command
 from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution, resolve_search_dispatch
 from app.strategy_lab_v2.search_state import SearchCandidatePhase, new_search_execution_state
 from app.strategy_lab_v2.storage import (
@@ -72,6 +81,8 @@ from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import (
 from app.strategy_lab_v2.tests.test_postgres_forward_state import _instance
 from app.strategy_lab_v2.tests.test_postgres_forward_state import _receipt as _forward_receipt
 from app.strategy_lab_v2.tests.test_result_completion import _runtime_success
+from app.strategy_lab_v2.worker_handoff import encode_worker_handoff
+from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
 from app.strategy_lab_v2.workers import (
     WorkerKind,
     WorkerPoolState,
@@ -86,6 +97,120 @@ class _User:
 
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
+
+
+def _worker_request_for_trial(
+    tmp_path,
+    *,
+    runtime_evidence,
+    authorization,
+    runtime_profile,
+    artifact_store,
+    reservation_id,
+):
+    materialized = runtime_evidence.materialized_input
+    graph = materialized.graph
+    runtime_input_artifact = materialized.assembly.runtime_input_artifact
+    pool = WorkerPoolState(
+        WorkerProfile(
+            authorization.lease_worker_id,
+            WorkerKind.BACKTEST,
+            runtime_profile.fingerprint,
+        )
+    )
+    admission_resolution = resolve_execution_admission(
+        ExecutionAdmissionLedger(),
+        authorization,
+        runtime_evidence.runtime_request,
+        runtime_evidence.runtime_preflight,
+        pool,
+        reservation_id=reservation_id,
+        now=NOW,
+    )
+    assert admission_resolution.admission is not None
+    context_stream = runtime_input_artifact.context_stream
+    native_stream = runtime_input_artifact.native_event_stream
+    sandbox_plan = build_nautilus_runtime_sandbox_command(
+        runtime_evidence.runtime_request,
+        runtime_profile,
+        image_name="nautilus-runtime",
+        input_bundle_path=artifact_store.path_for(runtime_input_artifact.artifact.storage_key),
+        output_path=tmp_path / "worker-result.json",
+        expected_version="2.0.0rc5",
+        snapshot_fingerprint=graph.snapshot.fingerprint,
+        context_stream_path=(
+            artifact_store.path_for(context_stream.artifact.storage_key)
+            if context_stream is not None
+            else None
+        ),
+        context_stream_digest=(
+            context_stream.artifact.content_digest if context_stream is not None else None
+        ),
+        invocation_result_stream_path=(
+            tmp_path / "runtime-invocation-results.ndjson" if context_stream is not None else None
+        ),
+        native_event_stream_path=(
+            artifact_store.path_for(native_stream.artifact.storage_key)
+            if native_stream is not None
+            else None
+        ),
+        native_event_stream_digest=(
+            native_stream.artifact.content_digest if native_stream is not None else None
+        ),
+    )
+    runtime_state = new_runtime_execution_state(
+        runtime_evidence.runtime_preflight,
+        attempt_id=authorization.attempt_id,
+        output_limit_bytes=runtime_profile.output_limit_bytes,
+        accepted_at=NOW,
+    )
+    execution_plan = NautilusExecutionPlan(
+        graph.trial.trial_id,
+        graph.attempt.attempt_id,
+        graph.snapshot.fingerprint,
+        "nautilus",
+        "2.0.0rc5",
+        content_digest("nautilus-build"),
+        authorization.fingerprint,
+        runtime_evidence.runtime_preflight.fingerprint,
+        content_digest("nautilus-conformance-report"),
+        sandbox_plan.fingerprint,
+        EngineExecutionDecision.READY,
+        False,
+        execution_scope=NautilusExecutionScope.BACKTEST_COMPATIBILITY,
+    )
+    orchestration_plan = plan_execution_orchestration(
+        authorization,
+        admission_resolution.admission,
+        runtime_evidence.runtime_request,
+        runtime_evidence.runtime_preflight,
+        runtime_state,
+        sandbox_plan,
+        execution_plan,
+    )
+    lease = ExecutionAttemptLease(
+        authorization.attempt_id,
+        authorization.lease_worker_id,
+        authorization.lease_id,
+        NOW,
+        NOW,
+        NOW.replace(year=NOW.year + 1),
+    )
+    return WorkerExecutionRequest(
+        orchestration_plan,
+        authorization,
+        admission_resolution.admission,
+        runtime_evidence.runtime_request,
+        runtime_evidence.runtime_preflight,
+        runtime_state,
+        sandbox_plan,
+        execution_plan,
+        admission_resolution.pool,
+        LeaseObservationState(lease),
+        NOW,
+        NOW,
+        runtime_input_artifact=runtime_input_artifact,
+    )
 
 
 def test_principal_identity_normalizes_existing_integer_user_ids() -> None:
@@ -475,17 +600,18 @@ async def test_application_search_dispatch_callback_is_owner_scoped_and_typed() 
             admission_ledger=ExecutionAdmissionLedger(),
             pool=pool,
             reservation_id=_reservation("application"),
-            dispatch_request=kwargs["dispatch_request"],
+            dispatch_request=kwargs["dispatch_intent"].bind_payload(
+                content_digest("worker-payload")
+            ),
             prior_dispatches=(),
             now=NOW,
         )
 
     adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
     adapter._search_dispatch = resolve
-    dispatch = DispatchRequest(
+    dispatch_intent = SearchDispatchIntent(
         "dispatch-key",
         "attempt-1",
-        content_digest("payload"),
         "strategy-backtest",
         NOW,
     )
@@ -495,13 +621,12 @@ async def test_application_search_dispatch_callback_is_owner_scoped_and_typed() 
         experiment_fingerprint=content_digest("experiment"),
         candidate_index=0,
         attempt_id="attempt-1",
-        dispatch_request=dispatch,
-        payload={"payload_digest": dispatch.payload_digest},
+        dispatch_intent=dispatch_intent,
     )
 
     assert resolved.decision.value == "enqueue"
     assert observed["principal"].id == "42"
-    assert observed["dispatch_request"] == dispatch
+    assert observed["dispatch_intent"] == dispatch_intent
 
 
 @pytest.mark.asyncio
@@ -516,14 +641,12 @@ async def test_application_search_dispatch_fails_closed_without_host_binding() -
             experiment_fingerprint=content_digest("experiment"),
             candidate_index=0,
             attempt_id="attempt-1",
-            dispatch_request=DispatchRequest(
+            dispatch_intent=SearchDispatchIntent(
                 "dispatch-key",
                 "attempt-1",
-                content_digest("payload"),
                 "strategy-backtest",
                 NOW,
             ),
-            payload={},
         )
 
     assert raised.value.error.code is ApiErrorCode.PRECONDITION_FAILED
@@ -572,22 +695,31 @@ async def test_application_search_dispatch_evidence_resolver_uses_durable_store(
         NOW,
         True,
     )
+    reservation_id = _reservation("application-evidence")
+    worker_request = _worker_request_for_trial(
+        tmp_path,
+        runtime_evidence=runtime_evidence,
+        authorization=authorization,
+        runtime_profile=runtime_profile,
+        artifact_store=artifact_store,
+        reservation_id=reservation_id,
+    )
     with pytest.raises(ValueError, match="authorization source"):
         SearchDispatchEvidence(
-            replace(authorization, source_digest=content_digest("different-source")),
-            runtime_evidence,
-            _reservation("application-evidence"),
-            NOW,
+            authorization=replace(authorization, source_digest=content_digest("different-source")),
+            trial_runtime_evidence=runtime_evidence,
+            worker_request=worker_request,
+            reservation_id=reservation_id,
+            now=NOW,
         )
     pool = WorkerPoolState(
         WorkerProfile("worker-1", WorkerKind.BACKTEST, runtime_profile.fingerprint)
     )
     runtime_request = runtime_evidence.runtime_request
     runtime_preflight = runtime_evidence.runtime_preflight
-    dispatch = DispatchRequest(
+    dispatch_intent = SearchDispatchIntent(
         "dispatch-key",
         graph.attempt.attempt_id,
-        content_digest("payload"),
         "strategy-backtest",
         NOW,
     )
@@ -596,11 +728,17 @@ async def test_application_search_dispatch_evidence_resolver_uses_durable_store(
     async def evidence(**kwargs: Any) -> SearchDispatchEvidence:
         observed.update(kwargs)
         return SearchDispatchEvidence(
-            authorization,
-            runtime_evidence,
-            _reservation("application-evidence"),
-            NOW,
+            authorization=authorization,
+            trial_runtime_evidence=runtime_evidence,
+            worker_request=worker_request,
+            reservation_id=reservation_id,
+            now=NOW,
         )
+
+    worker_payload = encode_worker_handoff(worker_request)
+    dispatch_request = dispatch_intent.bind_payload(
+        DispatchPayload.from_mapping(worker_payload).payload_digest
+    )
 
     expected = resolve_search_dispatch(
         new_search_execution_state(
@@ -616,7 +754,7 @@ async def test_application_search_dispatch_evidence_resolver_uses_durable_store(
         admission_ledger=ExecutionAdmissionLedger(),
         pool=pool,
         reservation_id=_reservation("application-evidence"),
-        dispatch_request=dispatch,
+        dispatch_request=dispatch_request,
         prior_dispatches=(),
         now=NOW,
     )
@@ -636,8 +774,7 @@ async def test_application_search_dispatch_evidence_resolver_uses_durable_store(
         experiment_fingerprint=graph.experiment.fingerprint,
         candidate_index=0,
         attempt_id=graph.attempt.attempt_id,
-        dispatch_request=dispatch,
-        payload={},
+        dispatch_intent=dispatch_intent,
     )
 
     assert resolved == expected
@@ -646,7 +783,8 @@ async def test_application_search_dispatch_evidence_resolver_uses_durable_store(
     assert observed["store"]["reservation_id"] == _reservation("application-evidence")
     assert observed["store"]["runtime_request"] == runtime_request
     assert observed["store"]["runtime_preflight"] == runtime_preflight
-    assert observed["store"]["payload"] == {}
+    assert observed["store"]["payload"] == worker_payload
+    assert observed["store"]["dispatch_request"] == dispatch_request
 
     with pytest.raises(ValueError, match="experiment differs from the materialized trial graph"):
         await adapter.dispatch_search_candidate(
@@ -655,8 +793,7 @@ async def test_application_search_dispatch_evidence_resolver_uses_durable_store(
             experiment_fingerprint=content_digest("different-experiment"),
             candidate_index=0,
             attempt_id=graph.attempt.attempt_id,
-            dispatch_request=dispatch,
-            payload={},
+            dispatch_intent=dispatch_intent,
         )
 
 

@@ -34,7 +34,8 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
 from app.strategy_lab_v2.contracts import ArtifactManifest, ForwardInstance, ForwardState
-from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.dispatch import DispatchRequest, SearchDispatchIntent
+from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.execution import ExecutionAuthorization
 from app.strategy_lab_v2.forward_account import (
     ForwardAccountEvent,
@@ -98,6 +99,8 @@ from app.strategy_lab_v2.storage import (
     StorageTransactionRequest,
 )
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
+from app.strategy_lab_v2.worker_handoff import encode_worker_handoff
+from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
 from app.strategy_lab_v2.workers import WorkerProfile
 
 
@@ -120,6 +123,7 @@ class SearchDispatchEvidence:
 
     authorization: ExecutionAuthorization
     trial_runtime_evidence: NautilusTrialRuntimeEvidence
+    worker_request: WorkerExecutionRequest
     reservation_id: str
     now: datetime
 
@@ -128,6 +132,8 @@ class SearchDispatchEvidence:
             raise TypeError("authorization must be an ExecutionAuthorization")
         if not isinstance(self.trial_runtime_evidence, NautilusTrialRuntimeEvidence):
             raise TypeError("trial_runtime_evidence must be a NautilusTrialRuntimeEvidence")
+        if not isinstance(self.worker_request, WorkerExecutionRequest):
+            raise TypeError("worker_request must be a WorkerExecutionRequest")
         if not isinstance(self.reservation_id, str) or not self.reservation_id.strip():
             raise ValueError("reservation_id must not be empty")
         if (
@@ -148,6 +154,39 @@ class SearchDispatchEvidence:
             )
         if self.authorization.source_digest != runtime_request.source_digest:
             raise ValueError("authorization source differs from materialized runtime evidence")
+        worker = self.worker_request
+        if worker.authorization != self.authorization:
+            raise ValueError("worker request authorization differs from dispatch evidence")
+        if worker.runtime_request != runtime_request:
+            raise ValueError("worker request runtime differs from materialized runtime evidence")
+        if worker.runtime_preflight != self.trial_runtime_evidence.runtime_preflight:
+            raise ValueError("worker request preflight differs from materialized runtime evidence")
+        if (
+            worker.runtime_input_artifact
+            != self.trial_runtime_evidence.materialized_input.assembly.runtime_input_artifact
+        ):
+            raise ValueError("worker request artifact differs from the materialized trial input")
+        if worker.admission.authorization_fingerprint != self.authorization.fingerprint:
+            raise ValueError("worker request admission differs from dispatch authorization")
+        if worker.admission.runtime_request_fingerprint != runtime_request.fingerprint:
+            raise ValueError("worker request admission differs from materialized runtime request")
+        if worker.admission.reservation_id != self.reservation_id:
+            raise ValueError("worker request admission differs from dispatch reservation")
+        lease = worker.lease_state.lease
+        if (
+            lease.attempt_id != self.authorization.attempt_id
+            or lease.worker_id != self.authorization.lease_worker_id
+            or lease.lease_id != self.authorization.lease_id
+        ):
+            raise ValueError("worker request lease differs from dispatch authorization")
+        if worker.observed_at != self.now or worker.started_at > self.now:
+            raise ValueError("worker request time differs from dispatch evidence")
+        if (
+            worker.execution_plan.trial_id != graph.trial.trial_id
+            or worker.execution_plan.attempt_id != graph.attempt.attempt_id
+            or worker.execution_plan.data_snapshot_fingerprint != graph.snapshot.fingerprint
+        ):
+            raise ValueError("worker execution plan differs from the materialized trial graph")
 
     @property
     def runtime_request(self) -> StrategyRuntimeRequest:
@@ -454,8 +493,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         experiment_fingerprint: str,
         candidate_index: int,
         attempt_id: str,
-        dispatch_request: DispatchRequest,
-        payload: Mapping[str, Any],
+        dispatch_intent: SearchDispatchIntent,
     ) -> SearchDispatchResolution:
         """Delegate atomic candidate/admission/dispatch staging to the host.
 
@@ -478,10 +516,8 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise ValueError("candidate_index must be a non-negative integer")
         if not isinstance(attempt_id, str) or not attempt_id.strip():
             raise ValueError("attempt_id must not be empty")
-        if not isinstance(dispatch_request, DispatchRequest):
-            raise TypeError("dispatch_request must be a DispatchRequest")
-        if not isinstance(payload, Mapping):
-            raise TypeError("payload must be a mapping")
+        if not isinstance(dispatch_intent, SearchDispatchIntent):
+            raise TypeError("dispatch_intent must be a SearchDispatchIntent")
         search_dispatch_evidence = getattr(self, "_search_dispatch_evidence", None)
         if self._search_dispatch is None and search_dispatch_evidence is None:
             raise ApiAdapterError(
@@ -500,8 +536,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             "experiment_fingerprint": experiment_fingerprint,
             "candidate_index": candidate_index,
             "attempt_id": attempt_id,
-            "dispatch_request": dispatch_request,
-            "payload": payload,
+            "dispatch_intent": dispatch_intent,
         }
         if self._search_dispatch is not None:
             resolved = self._search_dispatch(**callback_kwargs)
@@ -523,6 +558,11 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise ValueError("search dispatch experiment differs from the materialized trial graph")
         if materialized_graph.attempt.attempt_id != attempt_id:
             raise ValueError("search dispatch attempt differs from the materialized trial graph")
+        if dispatch_intent.attempt_id != attempt_id:
+            raise ValueError("search dispatch intent differs from the materialized trial attempt")
+        worker_payload = encode_worker_handoff(evidence.worker_request)
+        payload = DispatchPayload.from_mapping(worker_payload)
+        dispatch_request = dispatch_intent.bind_payload(payload.payload_digest)
         return await self._search_dispatch_store.dispatch(
             principal=owner,
             experiment_fingerprint=experiment_fingerprint,
@@ -533,7 +573,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             runtime_preflight=evidence.runtime_preflight,
             reservation_id=evidence.reservation_id,
             dispatch_request=dispatch_request,
-            payload=payload,
+            payload=worker_payload,
             now=evidence.now,
         )
 

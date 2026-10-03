@@ -1,24 +1,142 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
 
+from app.strategy_lab_v2.admission import ExecutionAdmissionLedger, resolve_execution_admission
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.dispatch_payload import DispatchPayload
+from app.strategy_lab_v2.engine_execution import (
+    EngineExecutionDecision,
+    NautilusExecutionPlan,
+    NautilusExecutionScope,
+)
+from app.strategy_lab_v2.execution_orchestration import plan_execution_orchestration
+from app.strategy_lab_v2.lease_observations import LeaseObservationState
+from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease
+from app.strategy_lab_v2.nautilus_runtime_bundle import NautilusTrialInputBinding
 from app.strategy_lab_v2.postgres_search_dispatch import (
     PostgresSearchDispatchAdapter,
     PostgresSearchDispatchSchema,
 )
 from app.strategy_lab_v2.postgres_search_state import PostgresSearchStateAdapter
 from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
+from app.strategy_lab_v2.runtime_execution import new_runtime_execution_state
+from app.strategy_lab_v2.sandbox import build_nautilus_runtime_sandbox_command
 from app.strategy_lab_v2.search_dispatch import SearchDispatchDecision
 from app.strategy_lab_v2.search_state import new_search_execution_state
 from app.strategy_lab_v2.tests.test_admission import _fixture, _reservation
+from app.strategy_lab_v2.tests.test_runtime_execution import _profile
+from app.strategy_lab_v2.tests.test_worker_process import _request as _worker_request_fixture
+from app.strategy_lab_v2.worker_handoff import decode_worker_handoff, encode_worker_handoff
+from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
+from app.strategy_lab_v2.workers import WorkerPoolState
 
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 EXPERIMENT = content_digest("experiment")
+
+
+def _worker_payload(
+    tmp_path,
+    *,
+    authorization,
+    runtime_request,
+    runtime_preflight,
+    pool: WorkerPoolState,
+    reservation_id,
+):
+    template = _worker_request_fixture(tmp_path)
+    profile = _profile()
+    input_artifact = template.runtime_input_artifact
+    binding = NautilusTrialInputBinding(
+        attempt_id=authorization.attempt_id,
+        trial_fingerprint=authorization.trial_id,
+        experiment_fingerprint=EXPERIMENT,
+        portfolio_fingerprint=content_digest("portfolio"),
+        snapshot_fingerprint=content_digest("snapshot"),
+        strategy_package_fingerprint=runtime_request.package_fingerprint,
+        engine_input_fingerprint=content_digest("engine-input"),
+        invocation_input_digest=content_digest("invocation-input"),
+    )
+    input_artifact = replace(input_artifact, trial_binding=binding)
+    admission = resolve_execution_admission(
+        ExecutionAdmissionLedger(),
+        authorization,
+        runtime_request,
+        runtime_preflight,
+        pool,
+        reservation_id=reservation_id,
+        now=NOW,
+    )
+    assert admission.admission is not None
+    sandbox_plan = build_nautilus_runtime_sandbox_command(
+        runtime_request,
+        profile,
+        image_name="nautilus-runtime",
+        input_bundle_path=tmp_path / "runtime-input.json",
+        output_path=tmp_path / "worker-result.json",
+        expected_version="2.0.0",
+        snapshot_fingerprint=binding.snapshot_fingerprint,
+    )
+    runtime_state = new_runtime_execution_state(
+        runtime_preflight,
+        attempt_id=authorization.attempt_id,
+        output_limit_bytes=profile.output_limit_bytes,
+        accepted_at=NOW,
+    )
+    execution_plan = NautilusExecutionPlan(
+        authorization.trial_id,
+        authorization.attempt_id,
+        binding.snapshot_fingerprint,
+        "nautilus",
+        "2.0.0",
+        content_digest("nautilus-build"),
+        authorization.fingerprint,
+        runtime_preflight.fingerprint,
+        content_digest("conformance-report"),
+        sandbox_plan.fingerprint,
+        EngineExecutionDecision.READY,
+        False,
+        execution_scope=NautilusExecutionScope.BACKTEST_COMPATIBILITY,
+    )
+    orchestration_plan = plan_execution_orchestration(
+        authorization,
+        admission.admission,
+        runtime_request,
+        runtime_preflight,
+        runtime_state,
+        sandbox_plan,
+        execution_plan,
+    )
+    lease = ExecutionAttemptLease(
+        authorization.attempt_id,
+        authorization.lease_worker_id,
+        authorization.lease_id,
+        authorization.authorized_at,
+        authorization.authorized_at,
+        NOW + timedelta(days=1),
+    )
+    request = WorkerExecutionRequest(
+        orchestration_plan,
+        authorization,
+        admission.admission,
+        runtime_request,
+        runtime_preflight,
+        runtime_state,
+        sandbox_plan,
+        execution_plan,
+        admission.pool,
+        LeaseObservationState(lease),
+        NOW,
+        NOW,
+        runtime_input_artifact=input_artifact,
+        docker_binary=template.docker_binary,
+    )
+    return encode_worker_handoff(request)
 
 
 class FakeResult:
@@ -86,7 +204,9 @@ class FakeSession:
             ]
             return FakeResult(sorted(rows, key=lambda row: row["reservation_id"]))
         if "FROM strategy_lab_v2_execution_admissions" in sql:
-            rows = [row for (owner, _), row in self.admissions.items() if owner == values["owner_id"]]
+            rows = [
+                row for (owner, _), row in self.admissions.items() if owner == values["owner_id"]
+            ]
             return FakeResult(sorted(rows, key=lambda row: row["request_fingerprint"]))
         if "FROM strategy_lab_v2_search_dispatches" in sql:
             rows = [
@@ -174,7 +294,7 @@ class FakeSession:
 
 
 @pytest.mark.asyncio
-async def test_postgres_search_dispatch_stages_and_replays_all_rows_atomically() -> None:
+async def test_postgres_search_dispatch_stages_and_replays_all_rows_atomically(tmp_path) -> None:
     session = FakeSession()
     search_state = PostgresSearchStateAdapter(lambda: session)
     worker_state = PostgresWorkerStateAdapter(lambda: session)
@@ -184,19 +304,25 @@ async def test_postgres_search_dispatch_stages_and_replays_all_rows_atomically()
     authorization, runtime_request, runtime_preflight, pool = _fixture()
     await search_state.initialize(
         principal="owner-1",
-        state=new_search_execution_state(
-            EXPERIMENT, (content_digest("trial-1"),), now=NOW
-        ),
+        state=new_search_execution_state(EXPERIMENT, (content_digest("trial-1"),), now=NOW),
     )
     await worker_state.ensure_profile(pool.profile)
+    reservation_id = _reservation("one")
+    payload = _worker_payload(
+        tmp_path,
+        authorization=authorization,
+        runtime_request=runtime_request,
+        runtime_preflight=runtime_preflight,
+        pool=pool,
+        reservation_id=reservation_id,
+    )
     request = DispatchRequest(
         "dispatch-key",
         authorization.attempt_id,
-        content_digest({"payload": "value"}),
+        DispatchPayload.from_mapping(payload).payload_digest,
         "strategy-backtest",
         NOW,
     )
-    payload = {"payload": "value"}
 
     first = await adapter.dispatch(
         principal="owner-1",
@@ -206,7 +332,7 @@ async def test_postgres_search_dispatch_stages_and_replays_all_rows_atomically()
         authorization=authorization,
         runtime_request=runtime_request,
         runtime_preflight=runtime_preflight,
-        reservation_id=_reservation("one"),
+        reservation_id=reservation_id,
         dispatch_request=request,
         payload=payload,
         now=NOW,
@@ -227,7 +353,7 @@ async def test_postgres_search_dispatch_stages_and_replays_all_rows_atomically()
         authorization=authorization,
         runtime_request=runtime_request,
         runtime_preflight=runtime_preflight,
-        reservation_id=_reservation("one"),
+        reservation_id=reservation_id,
         dispatch_request=request,
         payload=payload,
         now=NOW,
@@ -241,7 +367,7 @@ async def test_postgres_search_dispatch_stages_and_replays_all_rows_atomically()
 
 
 @pytest.mark.asyncio
-async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_identity() -> None:
+async def test_postgres_search_dispatch_rejects_admission_drift_before_any_insert(tmp_path) -> None:
     session = FakeSession()
     search_state = PostgresSearchStateAdapter(lambda: session)
     worker_state = PostgresWorkerStateAdapter(lambda: session)
@@ -251,19 +377,101 @@ async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_id
     authorization, runtime_request, runtime_preflight, pool = _fixture()
     await search_state.initialize(
         principal="owner-1",
-        state=new_search_execution_state(
-            EXPERIMENT, (content_digest("trial-1"),), now=NOW
-        ),
+        state=new_search_execution_state(EXPERIMENT, (authorization.trial_id,), now=NOW),
     )
     await worker_state.ensure_profile(pool.profile)
-    request = DispatchRequest(
+    reservation_id = _reservation("atomic-drift")
+    worker_payload = _worker_payload(
+        tmp_path,
+        authorization=authorization,
+        runtime_request=runtime_request,
+        runtime_preflight=runtime_preflight,
+        pool=pool,
+        reservation_id=reservation_id,
+    )
+    worker_request = decode_worker_handoff(DispatchPayload.from_mapping(worker_payload))
+    drifted_admission = replace(
+        worker_request.admission,
+        admitted_at=NOW - timedelta(seconds=1),
+    )
+    drifted_orchestration = plan_execution_orchestration(
+        worker_request.authorization,
+        drifted_admission,
+        worker_request.runtime_request,
+        worker_request.runtime_preflight,
+        worker_request.runtime_state,
+        worker_request.sandbox_plan,
+        worker_request.execution_plan,
+    )
+    drifted_request = replace(
+        worker_request,
+        admission=drifted_admission,
+        orchestration_plan=drifted_orchestration,
+    )
+    payload = encode_worker_handoff(drifted_request)
+    dispatch_request = DispatchRequest(
         "dispatch-key",
         authorization.attempt_id,
-        content_digest({"payload": "value"}),
+        DispatchPayload.from_mapping(payload).payload_digest,
         "strategy-backtest",
         NOW,
     )
-    payload = {"payload": "value"}
+
+    with pytest.raises(ValueError, match="differs from atomic PostgreSQL admission"):
+        await adapter.dispatch(
+            principal="owner-1",
+            experiment_fingerprint=EXPERIMENT,
+            candidate_index=0,
+            attempt_id=authorization.attempt_id,
+            authorization=authorization,
+            runtime_request=runtime_request,
+            runtime_preflight=runtime_preflight,
+            reservation_id=reservation_id,
+            dispatch_request=dispatch_request,
+            payload=payload,
+            now=NOW,
+        )
+
+    assert not session.admissions
+    assert not session.reservations
+    assert not session.dispatches
+    assert not session.payloads
+    assert not session.outboxes
+    assert session.candidates[("owner-1", EXPERIMENT, 0)]["phase"] == "pending"
+
+
+@pytest.mark.asyncio
+async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_identity(
+    tmp_path,
+) -> None:
+    session = FakeSession()
+    search_state = PostgresSearchStateAdapter(lambda: session)
+    worker_state = PostgresWorkerStateAdapter(lambda: session)
+    adapter = PostgresSearchDispatchAdapter(
+        lambda: session, search_state=search_state, worker_state=worker_state
+    )
+    authorization, runtime_request, runtime_preflight, pool = _fixture()
+    await search_state.initialize(
+        principal="owner-1",
+        state=new_search_execution_state(EXPERIMENT, (content_digest("trial-1"),), now=NOW),
+    )
+    await worker_state.ensure_profile(pool.profile)
+    reservation_id = _reservation("one")
+    payload = _worker_payload(
+        tmp_path,
+        authorization=authorization,
+        runtime_request=runtime_request,
+        runtime_preflight=runtime_preflight,
+        pool=pool,
+        reservation_id=reservation_id,
+    )
+    request = DispatchRequest(
+        "dispatch-key",
+        authorization.attempt_id,
+        DispatchPayload.from_mapping(payload).payload_digest,
+        "strategy-backtest",
+        NOW,
+    )
     await adapter.dispatch(
         principal="owner-1",
         experiment_fingerprint=EXPERIMENT,
@@ -272,7 +480,7 @@ async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_id
         authorization=authorization,
         runtime_request=runtime_request,
         runtime_preflight=runtime_preflight,
-        reservation_id=_reservation("one"),
+        reservation_id=reservation_id,
         dispatch_request=request,
         payload=payload,
         now=NOW,
@@ -285,9 +493,12 @@ async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_id
     assert owner_record is not None
     assert worker_record == owner_record
     assert worker_record.request.attempt_id == authorization.attempt_id
-    assert await adapter.load(
-        principal="owner-2", experiment_fingerprint=EXPERIMENT, candidate_index=0
-    ) is None
+    assert (
+        await adapter.load(
+            principal="owner-2", experiment_fingerprint=EXPERIMENT, candidate_index=0
+        )
+        is None
+    )
 
 
 def test_postgres_search_dispatch_schema_is_additive_and_safe() -> None:

@@ -127,9 +127,7 @@ def _document(resource_id: str = "trial-1") -> ResourceDocument:
 
 
 def test_read_only_state_serializers_preserve_typed_identity() -> None:
-    state = new_search_execution_state(
-        content_digest("experiment"), (content_digest("trial"),)
-    )
+    state = new_search_execution_state(content_digest("experiment"), (content_digest("trial"),))
     payload = serialize_search_state_snapshot(state, request_id="request-1")
     assert payload["data"]["type"] == "search-experiments"
     assert payload["data"]["id"] == state.experiment_fingerprint
@@ -264,8 +262,8 @@ def test_forward_event_dispatch_parser_and_serializer_preserve_outbox_identity()
         },
         "payload": {"event_fingerprint": event_fingerprint, "replay_plan_fingerprint": None},
     }
-    parsed_event, parsed_observation, parsed_dispatch, parsed_payload, correction = _parse_forward_dispatch(
-        body, instance_id="forward-1"
+    parsed_event, parsed_observation, parsed_dispatch, parsed_payload, correction = (
+        _parse_forward_dispatch(body, instance_id="forward-1")
     )
     assert parsed_event == event
     assert parsed_observation == observation
@@ -388,9 +386,7 @@ def test_forward_warmup_serializer_rejects_cross_instance_receipt() -> None:
 
 def test_forward_lifecycle_parser_and_serializer_preserve_transition_identity() -> None:
     instance = forward_state().checkpoint.instance
-    target, now = _parse_forward_lifecycle(
-        {"target": instance.state.value, "now": NOW.isoformat()}
-    )
+    target, now = _parse_forward_lifecycle({"target": instance.state.value, "now": NOW.isoformat()})
     assert target is instance.state
     assert now == NOW
     resolution = ForwardStateMutationResolution(
@@ -504,9 +500,7 @@ class FakeAdapter:
         self.mutations.append(
             (request.resource_type.value, request.idempotency_key, request.payload_digest)
         )
-        receipt = create_resource_mutation_receipt(
-            request, self.document, accepted_at=NOW
-        )
+        receipt = create_resource_mutation_receipt(request, self.document, accepted_at=NOW)
         return ResourceMutationServiceResult(
             ResourceMutationResolution(ResourceMutationDecision.ACCEPT, request.fingerprint),
             receipt,
@@ -596,6 +590,9 @@ class FakeAdapter:
 
     async def dispatch_search_candidate(self, **kwargs: Any) -> SearchDispatchResolution:
         authorization, runtime_request, runtime_preflight, pool = _fixture()
+        dispatch_request = kwargs["dispatch_intent"].bind_payload(
+            content_digest("test-worker-payload")
+        )
         state = new_search_execution_state(
             kwargs["experiment_fingerprint"],
             (content_digest("trial-1"),),
@@ -611,7 +608,7 @@ class FakeAdapter:
             admission_ledger=ExecutionAdmissionLedger(),
             pool=pool,
             reservation_id=_reservation("api"),
-            dispatch_request=cast(DispatchRequest, kwargs["dispatch_request"]),
+            dispatch_request=dispatch_request,
             prior_dispatches=(),
             now=NOW,
         )
@@ -840,7 +837,9 @@ async def test_warmup_route_executes_through_asgi_boundary() -> None:
         "final_event_fingerprint": receipt.final_event_fingerprint,
     }
     transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://strategy-lab.test") as client:
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://strategy-lab.test"
+    ) as client:
         response = await client.post(
             "/api/v1/strategy-lab/v2/forward-instances/forward-1/warmup",
             json=body,
@@ -900,7 +899,9 @@ def _ordinary_forward_dispatch_body() -> dict[str, Any]:
 async def test_dispatch_route_executes_atomic_forward_outbox_boundary() -> None:
     app = _asgi_app(ForwardRouteAdapter())
     transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://strategy-lab.test") as client:
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://strategy-lab.test"
+    ) as client:
         response = await client.post(
             "/api/v1/strategy-lab/v2/forward-instances/forward-1/events/dispatch",
             json=_ordinary_forward_dispatch_body(),
@@ -914,7 +915,9 @@ async def test_dispatch_route_executes_atomic_forward_outbox_boundary() -> None:
 async def test_lifecycle_route_executes_compare_and_set_boundary() -> None:
     app = _asgi_app(ForwardRouteAdapter())
     transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://strategy-lab.test") as client:
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://strategy-lab.test"
+    ) as client:
         response = await client.post(
             "/api/v1/strategy-lab/v2/forward-instances/forward-1/lifecycle",
             json={"target": "active", "now": NOW.isoformat()},
@@ -934,7 +937,9 @@ def test_forward_replay_serializer_preserves_deterministic_plan_identity() -> No
         warmup_receipt_fingerprint=forward_state().warmup_receipt_fingerprint,
         planned_at=NOW,
     )
-    payload = serialize_forward_replays((replay_plan,), instance_id="forward-1", request_id="request-1")
+    payload = serialize_forward_replays(
+        (replay_plan,), instance_id="forward-1", request_id="request-1"
+    )
     assert payload["data"][0]["type"] == "forward-replays"
     assert payload["data"][0]["id"] == replay_plan.replay_id
     assert payload["meta"]["count"] == 1
@@ -959,10 +964,10 @@ def test_forward_replay_serializer_rejects_plans_for_another_instance() -> None:
 async def test_replay_route_exposes_additive_counterfactual_plans() -> None:
     app = _asgi_app(ReplayRouteAdapter())
     transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://strategy-lab.test") as client:
-        response = await client.get(
-            "/api/v1/strategy-lab/v2/forward-instances/forward-1/replays"
-        )
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://strategy-lab.test"
+    ) as client:
+        response = await client.get("/api/v1/strategy-lab/v2/forward-instances/forward-1/replays")
     assert response.status_code == 200
     assert response.json()["data"][0]["type"] == "forward-replays"
     assert response.json()["meta"]["count"] == 1
@@ -1143,11 +1148,9 @@ def test_search_api_rejects_invalid_queue_definition_and_missing_adapter() -> No
 
 def test_search_dispatch_api_stages_candidate_evidence_and_fails_closed_without_binding() -> None:
     experiment = content_digest("search-experiment")
-    payload_digest = content_digest("candidate-payload")
     body = {
         "candidate_index": 0,
         "attempt_id": "attempt-1",
-        "payload_digest": payload_digest,
         "queue_name": "strategy-backtest",
         "created_at": NOW.isoformat().replace("+00:00", "Z"),
     }
@@ -1182,7 +1185,7 @@ def test_search_dispatch_api_rejects_unknown_fields_and_missing_idempotency() ->
     body = {
         "candidate_index": 0,
         "attempt_id": "attempt-1",
-        "payload_digest": content_digest("candidate-payload"),
+        "payload_digest": content_digest("client-cannot-bind-host-payload"),
         "queue_name": "strategy-backtest",
         "created_at": NOW.isoformat().replace("+00:00", "Z"),
         "unexpected": True,
@@ -1246,8 +1249,7 @@ def test_router_rejects_ambiguous_or_non_finite_raw_json_bodies() -> None:
                 "Idempotency-Key": "submission-key",
             },
             content=(
-                '{"operation":"backtest","attempt_id":"attempt-1",'
-                '"payload":{"score":NaN}}'
+                '{"operation":"backtest","attempt_id":"attempt-1",' '"payload":{"score":NaN}}'
             ),
         )
         assert non_finite.status_code == 422
@@ -1270,9 +1272,7 @@ def test_router_rejects_collection_snapshot_drift_after_cursor_validation() -> N
         item_id="trial-1",
     )
     with _client(SnapshotDriftAdapter()) as client:
-        response = client.get(
-            "/api/v1/strategy-lab/v2/trials", params={"cursor": cursor.token}
-        )
+        response = client.get("/api/v1/strategy-lab/v2/trials", params={"cursor": cursor.token})
         assert response.status_code == 422
         assert response.json()["errors"][0]["code"] == "validation_error"
 
@@ -1358,9 +1358,7 @@ def test_resource_creation_is_idempotent_and_returns_a_resource_document() -> No
             headers={"Idempotency-Key": "resource-key", "X-Request-ID": "resource-request"},
             json={
                 "attributes": {"name": "mean-reversion", "lookback": 20},
-                "relationships": {
-                    "experiment": [{"type": "experiments", "id": "experiment-1"}]
-                },
+                "relationships": {"experiment": [{"type": "experiments", "id": "experiment-1"}]},
             },
         )
         assert response.status_code == 202
@@ -1389,9 +1387,7 @@ def test_resource_creation_rejects_read_only_or_ambiguous_requests() -> None:
         assert duplicate.status_code == 422
         assert duplicate.json()["errors"][0]["code"] == "validation_error"
 
-        missing_key = client.post(
-            "/api/v1/strategy-lab/v2/trials", json={"attributes": {}}
-        )
+        missing_key = client.post("/api/v1/strategy-lab/v2/trials", json={"attributes": {}})
         assert missing_key.status_code == 400
         assert missing_key.json()["errors"][0]["code"] == "validation_error"
 

@@ -17,6 +17,38 @@ class DispatchDecision(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class SearchDispatchIntent:
+    """Client intent before the host builds the immutable worker payload."""
+
+    idempotency_key: str
+    attempt_id: str
+    queue_name: str
+    created_at: datetime
+
+    def __post_init__(self) -> None:
+        for name in ("idempotency_key", "attempt_id", "queue_name"):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"dispatch intent {name} must not be empty")
+        if len(self.idempotency_key) > 256:
+            raise ValueError("dispatch intent idempotency_key must not exceed 256 characters")
+        if self.created_at.tzinfo is None or self.created_at.utcoffset() is None:
+            raise ValueError("dispatch intent created_at must be timezone-aware")
+        object.__setattr__(self, "created_at", self.created_at.astimezone(UTC))
+
+    def bind_payload(self, payload_digest: str) -> DispatchRequest:
+        """Bind a host-produced worker-payload digest to this dispatch intent."""
+
+        return DispatchRequest(
+            idempotency_key=self.idempotency_key,
+            attempt_id=self.attempt_id,
+            payload_digest=payload_digest,
+            queue_name=self.queue_name,
+            created_at=self.created_at,
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class DispatchRequest:
     """Immutable request identity used by a durable outbox/queue adapter."""
 

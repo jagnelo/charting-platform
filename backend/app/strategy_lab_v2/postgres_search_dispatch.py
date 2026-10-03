@@ -21,7 +21,10 @@ from app.strategy_lab_v2.admission import (
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
+from app.strategy_lab_v2.engine_execution import NautilusExecutionScope
 from app.strategy_lab_v2.execution import ExecutionAuthorization
+from app.strategy_lab_v2.execution_orchestration import plan_execution_orchestration
+from app.strategy_lab_v2.lifecycle import AttemptLeaseStatus
 from app.strategy_lab_v2.outbox import OutboxMessage
 from app.strategy_lab_v2.postgres_search_state import PostgresSearchStateAdapter
 from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
@@ -34,6 +37,8 @@ from app.strategy_lab_v2.search_dispatch import (
     SearchDispatchResolution,
     resolve_search_dispatch,
 )
+from app.strategy_lab_v2.worker_handoff import decode_worker_handoff
+from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
 from app.strategy_lab_v2.workers import WorkerReservation
 
 
@@ -243,7 +248,11 @@ class PostgresSearchDispatchAdapter:
 
         owner_id = _principal_id(principal)
         _validate_digest(experiment_fingerprint, "experiment_fingerprint")
-        if not isinstance(candidate_index, int) or isinstance(candidate_index, bool) or candidate_index < 0:
+        if (
+            not isinstance(candidate_index, int)
+            or isinstance(candidate_index, bool)
+            or candidate_index < 0
+        ):
             raise ValueError("candidate_index must be a non-negative integer")
         if not isinstance(attempt_id, str) or not attempt_id.strip():
             raise ValueError("attempt_id must not be empty")
@@ -260,6 +269,18 @@ class PostgresSearchDispatchAdapter:
         payload_record = DispatchPayload.from_mapping(payload)
         if payload_record.payload_digest != dispatch_request.payload_digest:
             raise ValueError("dispatch payload does not match its content digest")
+        worker_request = decode_worker_handoff(payload_record)
+        _validate_worker_request_binding(
+            worker_request,
+            experiment_fingerprint=experiment_fingerprint,
+            attempt_id=attempt_id,
+            authorization=authorization,
+            runtime_request=runtime_request,
+            runtime_preflight=runtime_preflight,
+            reservation_id=reservation_id,
+            queue_name=dispatch_request.queue_name,
+            now=now,
+        )
         _validate_digest(reservation_id, "reservation_id")
         if now.tzinfo is None or now.utcoffset() is None:
             raise ValueError("dispatch time must be timezone-aware")
@@ -286,11 +307,11 @@ class PostgresSearchDispatchAdapter:
                 prior_dispatches = await self._load_dispatches(
                     session, owner_id, experiment_fingerprint
                 )
-                prior_payload = await self._load_payload(
-                    session, dispatch_request.payload_digest
-                )
+                prior_payload = await self._load_payload(session, dispatch_request.payload_digest)
                 if prior_payload is not None and prior_payload != payload_record:
-                    raise ValueError("dispatch payload identity is already bound to different content")
+                    raise ValueError(
+                        "dispatch payload identity is already bound to different content"
+                    )
                 resolution = resolve_search_dispatch(
                     state,
                     candidate_index=candidate_index,
@@ -310,6 +331,22 @@ class PostgresSearchDispatchAdapter:
                     SearchDispatchDecision.REPLAY_EXISTING,
                 }:
                     return resolution
+                admission = next(
+                    (
+                        item
+                        for item in resolution.admission_ledger.admissions
+                        if item.attempt_id == attempt_id
+                    ),
+                    None,
+                )
+                if admission != worker_request.admission:
+                    raise ValueError(
+                        "worker handoff admission differs from atomic PostgreSQL admission"
+                    )
+                if resolution.pool != worker_request.worker_pool:
+                    raise ValueError(
+                        "worker handoff reservation differs from atomic PostgreSQL worker pool"
+                    )
                 if resolution.decision is SearchDispatchDecision.REPLAY_EXISTING:
                     return resolution
                 if prior_payload is None:
@@ -432,14 +469,19 @@ class PostgresSearchDispatchAdapter:
         requests: list[DispatchRequest] = []
         for row in result.mappings():
             request = _decode_dispatch(row)
-            if row.get("owner_id") != owner_id or row.get("experiment_fingerprint") != experiment_fingerprint:
+            if (
+                row.get("owner_id") != owner_id
+                or row.get("experiment_fingerprint") != experiment_fingerprint
+            ):
                 raise ValueError("PostgreSQL search dispatch owner/experiment drifted")
             if row.get("request_fingerprint") != request.fingerprint:
                 raise ValueError("PostgreSQL search dispatch fingerprint does not match bytes")
             requests.append(request)
         return tuple(sorted(requests, key=lambda item: item.fingerprint))
 
-    async def _load_payload(self, session: AsyncSessionLike, payload_digest: str) -> DispatchPayload | None:
+    async def _load_payload(
+        self, session: AsyncSessionLike, payload_digest: str
+    ) -> DispatchPayload | None:
         result = await session.execute(
             _statement(
                 f"""
@@ -748,6 +790,113 @@ def _decode_reservation(row: Mapping[str, Any]) -> WorkerReservation:
         )
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError("PostgreSQL reservation row is malformed") from error
+
+
+def _validate_worker_request_binding(
+    request: WorkerExecutionRequest,
+    *,
+    experiment_fingerprint: str,
+    attempt_id: str,
+    authorization: ExecutionAuthorization,
+    runtime_request: StrategyRuntimeRequest,
+    runtime_preflight: StrategyRuntimePreflight,
+    reservation_id: str,
+    queue_name: str,
+    now: datetime,
+) -> None:
+    """Reject handoff drift before the transaction can write any dispatch state."""
+
+    if not isinstance(request, WorkerExecutionRequest):
+        raise TypeError("dispatch payload must encode a WorkerExecutionRequest")
+    if request.authorization != authorization:
+        raise ValueError("worker handoff authorization differs from dispatch evidence")
+    if request.runtime_request != runtime_request:
+        raise ValueError("worker handoff runtime request differs from dispatch evidence")
+    if request.runtime_preflight != runtime_preflight:
+        raise ValueError("worker handoff runtime preflight differs from dispatch evidence")
+    if request.admission.attempt_id != attempt_id:
+        raise ValueError("worker handoff admission references a different attempt")
+    if request.admission.reservation_id != reservation_id:
+        raise ValueError("worker handoff admission references a different reservation")
+    if request.admission.authorization_fingerprint != authorization.fingerprint:
+        raise ValueError("worker handoff admission references different authorization")
+    if request.admission.runtime_request_fingerprint != runtime_request.fingerprint:
+        raise ValueError("worker handoff admission references a different runtime request")
+    if (
+        request.worker_pool.profile.worker_id != authorization.lease_worker_id
+        or request.worker_pool.profile.runtime_profile_fingerprint
+        != runtime_request.runtime_profile_fingerprint
+    ):
+        raise ValueError("worker handoff pool differs from dispatch worker identity")
+    if (
+        request.admission.worker_profile_fingerprint
+        != request.worker_pool.profile.runtime_profile_fingerprint
+    ):
+        raise ValueError("worker handoff admission differs from its worker profile")
+    if request.admission.worker_id != request.worker_pool.profile.worker_id:
+        raise ValueError("worker handoff admission differs from its worker")
+    reservation = next(
+        (
+            item
+            for item in request.worker_pool.active_reservations
+            if item.reservation_id == reservation_id and item.attempt_id == attempt_id
+        ),
+        None,
+    )
+    if reservation is None:
+        raise ValueError("worker handoff pool omits its active reservation")
+    lease = request.lease_state.lease
+    if (
+        lease.attempt_id != attempt_id
+        or lease.worker_id != authorization.lease_worker_id
+        or lease.lease_id != authorization.lease_id
+    ):
+        raise ValueError("worker handoff lease differs from dispatch authorization")
+    if lease.status_at(now) is not AttemptLeaseStatus.ACTIVE:
+        raise ValueError("worker handoff lease is not active at dispatch time")
+    if request.observed_at != now or request.started_at > now:
+        raise ValueError("worker handoff observation differs from dispatch time")
+    if request.runtime_input_artifact.attempt_id != attempt_id:
+        raise ValueError("worker handoff runtime artifact references a different attempt")
+    if request.runtime_input_artifact.input_bundle_digest != runtime_request.input_bundle_digest:
+        raise ValueError("worker handoff runtime artifact differs from the runtime request")
+    binding = request.runtime_input_artifact.trial_binding
+    if binding is None:
+        raise ValueError("worker handoff runtime artifact omits its persisted trial binding")
+    if (
+        binding.attempt_id != attempt_id
+        or binding.trial_fingerprint != authorization.trial_id
+        or binding.experiment_fingerprint != experiment_fingerprint
+        or binding.strategy_package_fingerprint != runtime_request.package_fingerprint
+    ):
+        raise ValueError("worker handoff trial binding differs from dispatch identity")
+    if (
+        request.execution_plan.trial_id != authorization.trial_id
+        or request.execution_plan.attempt_id != attempt_id
+        or request.execution_plan.data_snapshot_fingerprint != binding.snapshot_fingerprint
+        or request.execution_plan.authorization_fingerprint != authorization.fingerprint
+        or request.execution_plan.runtime_preflight_fingerprint != runtime_preflight.fingerprint
+        or request.execution_plan.sandbox_plan_fingerprint != request.sandbox_plan.fingerprint
+    ):
+        raise ValueError("worker handoff execution plan differs from its bound inputs")
+    if request.execution_plan.execution_scope is NautilusExecutionScope.FORWARD_COMPATIBILITY:
+        raise ValueError("search dispatch cannot enqueue a forward-only execution plan")
+    if queue_name != "strategy-backtest":
+        raise ValueError("search dispatch must target the strategy-backtest queue")
+    expected_orchestration = plan_execution_orchestration(
+        request.authorization,
+        request.admission,
+        request.runtime_request,
+        request.runtime_preflight,
+        request.runtime_state,
+        request.sandbox_plan,
+        request.execution_plan,
+    )
+    if (
+        not expected_orchestration.accepted
+        or expected_orchestration.fingerprint != request.orchestration_plan.fingerprint
+    ):
+        raise ValueError("worker handoff orchestration does not match its execution evidence")
 
 
 def _validate_digest(value: str, field_name: str) -> None:

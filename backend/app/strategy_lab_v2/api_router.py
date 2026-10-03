@@ -46,7 +46,7 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandResolution,
 )
 from app.strategy_lab_v2.contracts import CarryInMode, ForwardState
-from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.dispatch import DispatchRequest, SearchDispatchIntent
 from app.strategy_lab_v2.forward_account import ForwardAccountState
 from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
 from app.strategy_lab_v2.forward_corrections import (
@@ -298,7 +298,11 @@ class ForwardReplayApiAdapter(Protocol):
 
     def load_forward_replays(
         self, *, principal: Any, instance_id: str
-    ) -> Awaitable[tuple[CounterfactualReplayPlan, ...] | None] | tuple[CounterfactualReplayPlan, ...] | None: ...
+    ) -> (
+        Awaitable[tuple[CounterfactualReplayPlan, ...] | None]
+        | tuple[CounterfactualReplayPlan, ...]
+        | None
+    ): ...
 
 
 class SearchDispatchApiAdapter(Protocol):
@@ -312,9 +316,9 @@ class SearchDispatchApiAdapter(Protocol):
         experiment_fingerprint: str,
         candidate_index: int,
         attempt_id: str,
-        dispatch_request: DispatchRequest,
-        payload: Mapping[str, Any],
+        dispatch_intent: SearchDispatchIntent,
     ) -> Awaitable[SearchDispatchResolution] | SearchDispatchResolution: ...
+
 
 @dataclass(frozen=True, slots=True)
 class SubmissionServiceResult:
@@ -466,21 +470,23 @@ def serialize_submission(result: SubmissionServiceResult) -> dict[str, Any]:
     if not isinstance(result, SubmissionServiceResult):
         raise TypeError("result must be a SubmissionServiceResult")
     receipt = result.receipt
-    return _json_value({
-        "data": {
-            "type": "submissions",
-            "id": receipt.submission_id,
-            "attributes": {
-                "operation": receipt.request.operation,
-                "attempt_id": receipt.request.attempt_id,
-                "idempotency_key": receipt.request.idempotency_key,
-                "payload_digest": receipt.request.payload_digest,
-                "submitted_at": receipt.request.submitted_at,
-                "accepted_at": receipt.accepted_at,
-            },
-            "meta": {"decision": result.resolution.decision.value},
+    return _json_value(
+        {
+            "data": {
+                "type": "submissions",
+                "id": receipt.submission_id,
+                "attributes": {
+                    "operation": receipt.request.operation,
+                    "attempt_id": receipt.request.attempt_id,
+                    "idempotency_key": receipt.request.idempotency_key,
+                    "payload_digest": receipt.request.payload_digest,
+                    "submitted_at": receipt.request.submitted_at,
+                    "accepted_at": receipt.accepted_at,
+                },
+                "meta": {"decision": result.resolution.decision.value},
+            }
         }
-    })
+    )
 
 
 def serialize_resource_mutation(result: ResourceMutationServiceResult) -> dict[str, Any]:
@@ -512,20 +518,22 @@ def serialize_command(resolution: ExecutionCommandResolution) -> dict[str, Any]:
     if resolution.receipt is None:
         raise ValueError("accepted command responses require a receipt")
     receipt = resolution.receipt
-    return _json_value({
-        "data": {
-            "type": "execution-commands",
-            "id": receipt.command_id,
-            "attributes": {
-                "attempt_id": receipt.attempt_id,
-                "kind": receipt.kind,
-                "effect": receipt.effect,
-                "accepted_at": receipt.accepted_at,
-                "command_fingerprint": receipt.command_fingerprint,
-            },
-            "meta": {"decision": resolution.decision.value},
+    return _json_value(
+        {
+            "data": {
+                "type": "execution-commands",
+                "id": receipt.command_id,
+                "attributes": {
+                    "attempt_id": receipt.attempt_id,
+                    "kind": receipt.kind,
+                    "effect": receipt.effect,
+                    "accepted_at": receipt.accepted_at,
+                    "command_fingerprint": receipt.command_fingerprint,
+                },
+                "meta": {"decision": resolution.decision.value},
+            }
         }
-    })
+    )
 
 
 def serialize_legacy_import(
@@ -594,9 +602,7 @@ def serialize_capability_summary(
     )
 
 
-def serialize_search_state(
-    resolution: SearchStateResolution, *, request_id: str
-) -> dict[str, Any]:
+def serialize_search_state(resolution: SearchStateResolution, *, request_id: str) -> dict[str, Any]:
     """Serialize one durable resumable search queue checkpoint."""
 
     if not isinstance(resolution, SearchStateResolution):
@@ -645,9 +651,7 @@ def serialize_search_state_snapshot(
     )
 
 
-def serialize_forward_state(
-    state: ForwardLiveAdmissionState, *, request_id: str
-) -> dict[str, Any]:
+def serialize_forward_state(state: ForwardLiveAdmissionState, *, request_id: str) -> dict[str, Any]:
     """Serialize one restart-safe forward admission checkpoint."""
 
     if not isinstance(state, ForwardLiveAdmissionState):
@@ -671,9 +675,7 @@ def serialize_forward_state(
     )
 
 
-def serialize_forward_account(
-    state: ForwardAccountState, *, request_id: str
-) -> dict[str, Any]:
+def serialize_forward_account(state: ForwardAccountState, *, request_id: str) -> dict[str, Any]:
     """Serialize one authenticated broker-free shadow-account snapshot."""
 
     if not isinstance(state, ForwardAccountState):
@@ -707,8 +709,7 @@ def serialize_forward_event_transaction(
         raise ValueError("request_id must not be empty")
     if (
         resolution.replay_plan is not None
-        and resolution.replay_plan.instance_id
-        != resolution.state.checkpoint.instance.instance_id
+        and resolution.replay_plan.instance_id != resolution.state.checkpoint.instance.instance_id
     ):
         raise ValueError("replay plan instance does not match the transaction state")
     return _json_value(
@@ -749,7 +750,10 @@ def serialize_forward_event_dispatch(
     if resolution.event_transaction.state.fingerprint != resolution.state.fingerprint:
         raise ValueError("event transaction state does not match the dispatch state")
     replay_plan = resolution.event_transaction.replay_plan
-    if replay_plan is not None and replay_plan.instance_id != resolution.state.checkpoint.instance.instance_id:
+    if (
+        replay_plan is not None
+        and replay_plan.instance_id != resolution.state.checkpoint.instance.instance_id
+    ):
         raise ValueError("replay plan instance does not match the dispatch state")
     return _json_value(
         {
@@ -797,7 +801,10 @@ def serialize_forward_warmup(
         raise ValueError("warm-up responses require a durable receipt")
     if resolution.receipt.instance_id != resolution.instance.instance_id:
         raise ValueError("warm-up receipt instance does not match the resolved instance")
-    if resolution.receipt.warmup_snapshot_fingerprint != resolution.instance.warmup_snapshot_fingerprint:
+    if (
+        resolution.receipt.warmup_snapshot_fingerprint
+        != resolution.instance.warmup_snapshot_fingerprint
+    ):
         raise ValueError("warm-up receipt snapshot does not match the resolved instance")
     if resolution.receipt.carry_in_mode is not resolution.instance.carry_in_mode:
         raise ValueError("warm-up receipt carry-in mode does not match the resolved instance")
@@ -902,19 +909,27 @@ def serialize_search_dispatch(
         raise TypeError("resolution must be a SearchDispatchResolution")
     if not isinstance(request_id, str) or not request_id.strip():
         raise ValueError("request_id must not be empty")
-    if not isinstance(candidate_index, int) or isinstance(candidate_index, bool) or candidate_index < 0:
+    if (
+        not isinstance(candidate_index, int)
+        or isinstance(candidate_index, bool)
+        or candidate_index < 0
+    ):
         raise ValueError("candidate_index must be a non-negative integer")
     if not isinstance(attempt_id, str) or not attempt_id.strip():
         raise ValueError("attempt_id must not be empty")
     dispatch = resolution.dispatch_resolution
     envelope = resolution.envelope
-    dispatch_id = envelope.message_id if envelope is not None else content_digest(
-        {
-            "experiment_fingerprint": resolution.search_state.experiment_fingerprint,
-            "candidate_index": candidate_index,
-            "attempt_id": attempt_id,
-            "decision": resolution.decision,
-        }
+    dispatch_id = (
+        envelope.message_id
+        if envelope is not None
+        else content_digest(
+            {
+                "experiment_fingerprint": resolution.search_state.experiment_fingerprint,
+                "candidate_index": candidate_index,
+                "attempt_id": attempt_id,
+                "decision": resolution.decision,
+            }
+        )
     )
     return _json_value(
         {
@@ -1060,9 +1075,7 @@ def _parse_forward_observation(payload: Any) -> ForwardEventObservation:
     )
 
 
-def _parse_forward_correction(
-    payload: Any, *, instance_id: str
-) -> ForwardCorrectionCommand:
+def _parse_forward_correction(payload: Any, *, instance_id: str) -> ForwardCorrectionCommand:
     if not isinstance(payload, Mapping):
         raise ValueError("correction must be a JSON object")
     required = {
@@ -1145,7 +1158,14 @@ def _parse_forward_dispatch(
     payload = body["payload"]
     if not isinstance(payload, Mapping):
         raise ValueError("payload must be a JSON object")
-    if len(json.dumps(_json_value(payload), separators=(",", ":"), ensure_ascii=False).encode("utf-8")) > MAX_RESOURCE_PAYLOAD_BYTES:
+    if (
+        len(
+            json.dumps(_json_value(payload), separators=(",", ":"), ensure_ascii=False).encode(
+                "utf-8"
+            )
+        )
+        > MAX_RESOURCE_PAYLOAD_BYTES
+    ):
         raise ValueError("forward dispatch payload exceeds the maximum size")
     if content_digest(payload) != dispatch_request.payload_digest:
         raise ValueError("dispatch payload digest does not match payload")
@@ -1553,7 +1573,14 @@ def _parse_resource_mutation(
                 details={"reason": str(error)},
             )
         ) from error
-    if len(json.dumps(_json_value(payload), separators=(",", ":"), ensure_ascii=False).encode("utf-8")) > MAX_RESOURCE_PAYLOAD_BYTES:
+    if (
+        len(
+            json.dumps(_json_value(payload), separators=(",", ":"), ensure_ascii=False).encode(
+                "utf-8"
+            )
+        )
+        > MAX_RESOURCE_PAYLOAD_BYTES
+    ):
         raise ApiAdapterError(
             _api_error(
                 ApiErrorCode.VALIDATION_ERROR,
@@ -1651,7 +1678,11 @@ def _parse_legacy_import(
         "supported",
     }
     optional = {"conversion_fingerprint", "notes", "preserve_original"}
-    if not isinstance(body, Mapping) or not required.issubset(body) or set(body) - required - optional:
+    if (
+        not isinstance(body, Mapping)
+        or not required.issubset(body)
+        or set(body) - required - optional
+    ):
         raise ApiAdapterError(
             _api_error(
                 ApiErrorCode.VALIDATION_ERROR,
@@ -1749,9 +1780,7 @@ def _parse_search_initialization(
             )
         )
     trial_fingerprints = body["trial_fingerprints"]
-    if not isinstance(trial_fingerprints, Sequence) or isinstance(
-        trial_fingerprints, str | bytes
-    ):
+    if not isinstance(trial_fingerprints, Sequence) or isinstance(trial_fingerprints, str | bytes):
         raise ApiAdapterError(
             _api_error(
                 ApiErrorCode.VALIDATION_ERROR,
@@ -1792,8 +1821,8 @@ def _parse_search_dispatch(
     experiment_fingerprint: str,
     idempotency_key: str,
     request_id: str,
-) -> tuple[int, str, DispatchRequest]:
-    """Parse the digest-only candidate dispatch envelope."""
+) -> tuple[int, str, SearchDispatchIntent]:
+    """Parse dispatch intent; the host owns worker payload construction."""
 
     try:
         require_sha256_digest(experiment_fingerprint, field_name="experiment_fingerprint")
@@ -1807,7 +1836,7 @@ def _parse_search_dispatch(
                 details={"reason": str(error)},
             )
         ) from error
-    required = {"candidate_index", "attempt_id", "payload_digest", "queue_name", "created_at"}
+    required = {"candidate_index", "attempt_id", "queue_name", "created_at"}
     if not isinstance(body, Mapping) or set(body) != required:
         raise ApiAdapterError(
             _api_error(
@@ -1821,7 +1850,6 @@ def _parse_search_dispatch(
     candidate_index = body["candidate_index"]
     attempt_id = body["attempt_id"]
     queue_name = body["queue_name"]
-    payload_digest = body["payload_digest"]
     created_at = body["created_at"]
     if (
         not isinstance(candidate_index, int)
@@ -1854,24 +1882,13 @@ def _parse_search_dispatch(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
         )
-    if not isinstance(payload_digest, str):
-        raise ApiAdapterError(
-            _api_error(
-                ApiErrorCode.VALIDATION_ERROR,
-                "payload_digest must be a SHA-256 content fingerprint",
-                request_id,
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
-            )
-        )
     try:
-        require_sha256_digest(payload_digest, field_name="payload_digest")
         timestamp = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
         if timestamp.tzinfo is None or timestamp.utcoffset() is None:
             raise ValueError("created_at must be timezone-aware")
-        dispatch = DispatchRequest(
+        intent = SearchDispatchIntent(
             idempotency_key=idempotency_key,
             attempt_id=attempt_id,
-            payload_digest=payload_digest,
             queue_name=queue_name,
             created_at=timestamp,
         )
@@ -1885,7 +1902,7 @@ def _parse_search_dispatch(
                 details={"reason": str(error)},
             )
         ) from error
-    return candidate_index, attempt_id, dispatch
+    return candidate_index, attempt_id, intent
 
 
 def create_strategy_lab_router(
@@ -1926,8 +1943,10 @@ def create_strategy_lab_router(
             body = await _strict_json_body(request, request_id)
         except ApiAdapterError as error:
             return _error_response(error.error)
-        if not isinstance(body, Mapping) or set(body) != {"source"} or not isinstance(
-            body.get("source"), str
+        if (
+            not isinstance(body, Mapping)
+            or set(body) != {"source"}
+            or not isinstance(body.get("source"), str)
         ):
             return _error_response(
                 _api_error(
@@ -2002,9 +2021,14 @@ def create_strategy_lab_router(
                 raise ValueError("adapter returned a collection for the wrong resource")
             if collection.request_id != request_id:
                 raise ValueError("adapter returned a collection for the wrong request")
-            if parsed_cursor is not None and collection.snapshot_digest != parsed_cursor.snapshot_digest:
+            if (
+                parsed_cursor is not None
+                and collection.snapshot_digest != parsed_cursor.snapshot_digest
+            ):
                 raise ValueError("adapter returned a collection for a different cursor snapshot")
-            return JSONResponse(status_code=collection.http_status, content=serialize_collection(collection))
+            return JSONResponse(
+                status_code=collection.http_status, content=serialize_collection(collection)
+            )
         except ApiAdapterError as error:
             return _error_response(error.error)
         except (TypeError, ValueError) as error:
@@ -2122,9 +2146,7 @@ def create_strategy_lab_router(
                         details={"reason": "the host has not supplied search persistence"},
                     )
                 )
-            state = await _resolve(
-                load(principal=principal, experiment_fingerprint=experiment_id)
-            )
+            state = await _resolve(load(principal=principal, experiment_fingerprint=experiment_id))
             if state is None:
                 return _error_response(
                     _api_error(
@@ -2443,7 +2465,9 @@ def create_strategy_lab_router(
                 )
             )
 
-    @router.post("/forward-instances/{instance_id}/events/dispatch", status_code=status.HTTP_202_ACCEPTED)
+    @router.post(
+        "/forward-instances/{instance_id}/events/dispatch", status_code=status.HTTP_202_ACCEPTED
+    )
     async def dispatch_forward_event(
         instance_id: str,
         request: Request,
@@ -2469,7 +2493,9 @@ def create_strategy_lab_router(
                         "forward dispatch adapter is not configured",
                         request_id,
                         status.HTTP_501_NOT_IMPLEMENTED,
-                        details={"reason": "the host has not supplied forward dispatch persistence"},
+                        details={
+                            "reason": "the host has not supplied forward dispatch persistence"
+                        },
                     )
                 )
             resolution = await _resolve(
@@ -2619,9 +2645,7 @@ def create_strategy_lab_router(
             request_id = _request_id(request, request_id_factory)
             if not instance_id.strip():
                 raise ValueError("instance_id must not be empty")
-            target, now = _parse_forward_lifecycle(
-                await _strict_json_body(request, request_id)
-            )
+            target, now = _parse_forward_lifecycle(await _strict_json_body(request, request_id))
             transition = getattr(adapter, "transition_forward_instance", None)
             if not callable(transition):
                 return _error_response(
@@ -2743,7 +2767,8 @@ def create_strategy_lab_router(
                 return _error_response(
                     _api_error(
                         ApiErrorCode.CONFLICT,
-                        resolution.rejection_reason or "search experiment is already bound to different content",
+                        resolution.rejection_reason
+                        or "search experiment is already bound to different content",
                         request_id,
                         status.HTTP_409_CONFLICT,
                     )
@@ -2778,9 +2803,7 @@ def create_strategy_lab_router(
                 )
             )
 
-    @router.post(
-        "/experiments/{experiment_id}/search/cancel", status_code=status.HTTP_202_ACCEPTED
-    )
+    @router.post("/experiments/{experiment_id}/search/cancel", status_code=status.HTTP_202_ACCEPTED)
     async def cancel_search(
         experiment_id: str,
         request: Request,
@@ -2890,7 +2913,7 @@ def create_strategy_lab_router(
             request_id = _request_id(request, request_id_factory)
             body = await _strict_json_body(request, request_id)
             key = _safe_header_value(idempotency_key, "Idempotency-Key", 256)
-            candidate_index, attempt_id, dispatch_request = _parse_search_dispatch(
+            candidate_index, attempt_id, dispatch_intent = _parse_search_dispatch(
                 body,
                 experiment_fingerprint=experiment_id,
                 idempotency_key=key,
@@ -2916,8 +2939,7 @@ def create_strategy_lab_router(
                     experiment_fingerprint=experiment_id,
                     candidate_index=candidate_index,
                     attempt_id=attempt_id,
-                    dispatch_request=dispatch_request,
-                    payload=body,
+                    dispatch_intent=dispatch_intent,
                 )
             )
             if not isinstance(resolution, SearchDispatchResolution):
@@ -3201,7 +3223,9 @@ def create_strategy_lab_router(
                         details={"submission_id": result.receipt.submission_id},
                     )
                 )
-            response = JSONResponse(status_code=status.HTTP_202_ACCEPTED, content=serialize_submission(result))
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED, content=serialize_submission(result)
+            )
             response.headers["X-Request-ID"] = request_id
             return response
         except ApiAdapterError as error:
@@ -3386,7 +3410,9 @@ def create_strategy_lab_router(
                         status.HTTP_409_CONFLICT,
                     )
                 )
-            response = JSONResponse(status_code=status.HTTP_202_ACCEPTED, content=serialize_command(resolution))
+            response = JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED, content=serialize_command(resolution)
+            )
             response.headers["X-Request-ID"] = request_id
             return response
         except ApiAdapterError as error:
