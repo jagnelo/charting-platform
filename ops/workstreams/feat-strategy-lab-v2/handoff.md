@@ -6843,3 +6843,50 @@ gate; provider-platform, ETF, and TC2000 contracts remain staging-gated.
 
 Next: strengthen the exact-RC5 native fill/cost/report fixture and bind its
 durable receipt to the backtest authority and result-publication path.
+
+## 2026-10-03 - RC5 native fill, cost, and report conformance
+
+The pinned Nautilus `2.0.0rc5` image now exercises the native `OneTickSlippageFillModel`
+and `FixedFeeModel`, then reads Nautilus order/fill reports. The isolated image
+contains an exactly pinned pandas reporting stack instead of inheriting optional
+packages from the legacy backend. Its final image is
+`sha256:5b6c4d268f38337b50ec813906f6bbc8fd41895a6ea8b561f601e44e4308a9b8`,
+built from the `nautilus_trader-2.0.0rc5` wheel pinned at
+`sha256:eab45fafd2312deda1236554c49a9798bfc76bc8465af864878e2f70189ebebe`.
+
+Under a network-disabled, read-only, unprivileged container, both repeated
+single-instrument runs reported one order and one fill, filled all 1,000 units,
+executed one tick above the `1.10020` ask at `1.10021`, charged the configured
+`2.00 USD` fee, and reconciled the cash account to `98,897.79 USD`. The shared
+two-instrument account reported two distinct instruments, two complete fills,
+`4.00 USD` total fees, and a reconciled balance of `97,795.58 USD`. Deterministic
+replay matched, and the engine lifecycle passed.
+
+The actual JSON output was consumed by `NautilusRcFixtureReceipt`; its digest is
+`sha256:b233d6aa9953894f65628247455f6b349590c21946fac0a84797e3e9a78eee3e`.
+The receipt records four passed simulator checks (multi-instrument accounting,
+native order/fill/cost, deterministic replay, and lifecycle), explicitly defers
+forward event-tape parity, and remains non-authoritative itself. The scoped
+backtest planner can separately authorize local backtests from those four
+checks; prereleases remain unable to connect to a broker or control real
+capital.
+
+Validation at source commit `f9f646f873149959ecfbba9b51e0f0c2285fb924`:
+1,118 Strategy Lab v2 tests passed; Ruff and format checks passed; MyPy passed
+across 327 files; and `git diff --check` passed. The implementation commit is
+pushed to `origin/feat/strategy-lab-v2`.
+
+Stable Nautilus 2.0 is not a prerequisite, and no external release or workstream
+dependency blocks continued implementation. The remaining immediate internal
+gate is publication integration: `plan_result_publication()` still requires
+the global conformance report itself to be authoritative, so it rejects a
+backtest-authoritative scope whose only missing check is forward parity. Result
+materialization/publication must also retain exact release channel, wheel/image
+digests, conformance identity, and authority scope. Forward parity remains a
+separate forward-only check; provider-platform, ETF, and TC2000 contract use
+remains gated on those approved workstreams reaching staging. Full-stack-browser
+remains the final branch acceptance gate.
+
+Next: bind the backtest-authoritative execution plan and exact engine provenance
+through result materialization/publication without weakening the independent
+forward parity gate.
