@@ -3411,6 +3411,55 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8t-source-freshness — Study Lab requires validation of the edited source before running', async ({ page, browserDiagnostics }) => {
+    const validatedSources: string[] = []
+    let assetCreates = 0
+    let runCreates = 0
+    await page.route(/\/api\/v1\/code\/validate$/, async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      validatedSources.push(route.request().postDataJSON().source)
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, output_contracts: ['scalar'], diagnostics: [], dependencies: ['output'], lookback_hint: null }) })
+    })
+    await page.route(/\/api\/v1\/code\/assets$/, async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      assetCreates += 1
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 9903, versions: [{ id: 9903 }] }) })
+    })
+    await page.route(/\/api\/v1\/research\/runs$/, async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      runCreates += 1
+      await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ id: 9904, status: 'completed', code_version_id: 9903, run_config: { symbol: 'SPY' }, artifacts: [] }) })
+    })
+
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+    const study = page.locator('.study-lab-tool')
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    const source = study.getByRole('textbox', { name: 'Study Python source' })
+    const run = study.getByRole('button', { name: 'Run study', exact: true })
+    await source.fill("output.scalar('first', 1)")
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution')
+    await expect(run).toBeEnabled()
+
+    await source.fill("output.scalar('edited', 2)")
+    await expect(run).toBeDisabled()
+    await expect(study.locator('.study-lab-tool__validation')).toContainText('Study source changed since validation. Validate the current source before running.')
+    expect(assetCreates).toBe(0)
+    expect(runCreates).toBe(0)
+
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution')
+    await expect(run).toBeEnabled()
+    await run.click()
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible()
+    expect(validatedSources).toEqual(["output.scalar('first', 1)", "output.scalar('edited', 2)"])
+    expect(assetCreates).toBe(1)
+    expect(runCreates).toBe(1)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8t-cancel — Study Lab cancels a queued run without leaving stale polling state', async ({ page, browserDiagnostics }) => {
     const run = { id: 9901, status: 'queued', code_version_id: 9901, run_config: { symbol: 'SPY' }, artifacts: [] }
     await page.route(/\/api\/v1\/code\/validate$/, async route => {
