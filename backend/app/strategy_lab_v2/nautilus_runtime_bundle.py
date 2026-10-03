@@ -379,6 +379,38 @@ class NautilusRuntimeBundle:
 
 
 @dataclass(frozen=True, slots=True)
+class NautilusTrialInputBinding:
+    """Domain lineage bound to the exact worker runtime-input reference."""
+
+    attempt_id: str
+    trial_fingerprint: str
+    experiment_fingerprint: str
+    portfolio_fingerprint: str
+    snapshot_fingerprint: str
+    strategy_package_fingerprint: str
+    engine_input_fingerprint: str
+    invocation_input_digest: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.attempt_id, str) or not self.attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        for name in (
+            "trial_fingerprint",
+            "experiment_fingerprint",
+            "portfolio_fingerprint",
+            "snapshot_fingerprint",
+            "strategy_package_fingerprint",
+            "engine_input_fingerprint",
+            "invocation_input_digest",
+        ):
+            require_sha256_digest(getattr(self, name), field_name=name)
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
 class NautilusRuntimeInputArtifactReference:
     """Small durable reference to the exact bytes for one runtime invocation.
 
@@ -392,6 +424,7 @@ class NautilusRuntimeInputArtifactReference:
     artifact: ArtifactManifest
     context_stream: NautilusContextStreamArtifactReference | None = None
     native_event_stream: NautilusNativeEventStreamArtifactReference | None = None
+    trial_binding: NautilusTrialInputBinding | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.attempt_id, str) or not self.attempt_id.strip():
@@ -417,6 +450,12 @@ class NautilusRuntimeInputArtifactReference:
             )
         if self.native_event_stream is not None and self.context_stream is None:
             raise ValueError("native event streaming requires a strategy context stream")
+        if self.trial_binding is not None and not isinstance(
+            self.trial_binding, NautilusTrialInputBinding
+        ):
+            raise TypeError("trial_binding must be a NautilusTrialInputBinding")
+        if self.trial_binding is not None and self.trial_binding.attempt_id != self.attempt_id:
+            raise ValueError("trial input binding must reference the runtime attempt")
 
     @property
     def fingerprint(self) -> str:
@@ -426,6 +465,8 @@ class NautilusRuntimeInputArtifactReference:
 def materialize_nautilus_runtime_bundle(
     bundle: NautilusRuntimeBundle,
     store: LocalArtifactStore,
+    *,
+    trial_binding: NautilusTrialInputBinding | None = None,
 ) -> NautilusRuntimeInputArtifactReference:
     """Publish bundle bytes immutably and return only their durable identity."""
 
@@ -433,6 +474,10 @@ def materialize_nautilus_runtime_bundle(
         raise TypeError("bundle must be a NautilusRuntimeBundle")
     if not isinstance(store, LocalArtifactStore):
         raise TypeError("store must be a LocalArtifactStore")
+    if trial_binding is not None and not isinstance(trial_binding, NautilusTrialInputBinding):
+        raise TypeError("trial_binding must be a NautilusTrialInputBinding")
+    if trial_binding is not None and trial_binding.attempt_id != bundle.attempt_id:
+        raise ValueError("trial input binding must reference the runtime bundle attempt")
     if bundle.context_stream is not None:
         with store.open_verified(
             bundle.context_stream.artifact.storage_key,
@@ -462,6 +507,7 @@ def materialize_nautilus_runtime_bundle(
         artifact=manifest,
         context_stream=bundle.context_stream,
         native_event_stream=bundle.native_event_stream,
+        trial_binding=trial_binding,
     )
 
 
@@ -973,6 +1019,7 @@ __all__ = [
     "NautilusRuntimeBundle",
     "NautilusRuntimeBundleError",
     "NautilusRuntimeInputArtifactReference",
+    "NautilusTrialInputBinding",
     "build_nautilus_runtime_bundle",
     "load_materialized_nautilus_runtime_bundle",
     "materialize_nautilus_context_stream_artifact",

@@ -46,6 +46,7 @@ from app.strategy_lab_v2.nautilus_event_adapter import (
 )
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     NautilusRuntimeInputArtifactReference,
+    NautilusTrialInputBinding,
     build_nautilus_runtime_bundle,
     materialize_nautilus_context_stream_artifact,
     materialize_nautilus_native_event_stream_artifact,
@@ -95,6 +96,26 @@ class NautilusTrialRuntimeAssembly:
             )
         if self.runtime_input_artifact.attempt_id != self.attempt_id:
             raise ValueError("runtime artifact must reference the assembled attempt")
+        if (
+            self.runtime_input_artifact.trial_binding is not None
+            and self.runtime_input_artifact.trial_binding != self.trial_binding
+        ):
+            raise ValueError("runtime artifact trial binding differs from the assembly")
+
+    @property
+    def trial_binding(self) -> NautilusTrialInputBinding:
+        """Return the non-circular domain lineage carried by the runtime artifact."""
+
+        return NautilusTrialInputBinding(
+            attempt_id=self.attempt_id,
+            trial_fingerprint=self.trial_fingerprint,
+            experiment_fingerprint=self.experiment_fingerprint,
+            portfolio_fingerprint=self.portfolio_fingerprint,
+            snapshot_fingerprint=self.snapshot_fingerprint,
+            strategy_package_fingerprint=self.strategy_package_fingerprint,
+            engine_input_fingerprint=self.engine_input_fingerprint,
+            invocation_input_digest=self.invocation_input_digest,
+        )
 
     @property
     def fingerprint(self) -> str:
@@ -325,7 +346,24 @@ def assemble_nautilus_trial_runtime_input(
             context_stream=context_stream,
             native_event_stream=native_event_stream,
         )
-        artifact_reference = materialize_nautilus_runtime_bundle(bundle, artifact_store)
+        engine_input_fingerprint = content_digest(
+            {"engine_input": engine_input.fingerprint, "native_event_stream": native_event_stream}
+        )
+        trial_binding = NautilusTrialInputBinding(
+            attempt_id=attempt.attempt_id,
+            trial_fingerprint=trial.trial_id,
+            experiment_fingerprint=experiment.fingerprint,
+            portfolio_fingerprint=portfolio.fingerprint,
+            snapshot_fingerprint=snapshot.fingerprint,
+            strategy_package_fingerprint=strategy_package.fingerprint,
+            engine_input_fingerprint=engine_input_fingerprint,
+            invocation_input_digest=context_stream.artifact.content_digest,
+        )
+        artifact_reference = materialize_nautilus_runtime_bundle(
+            bundle,
+            artifact_store,
+            trial_binding=trial_binding,
+        )
     except (TypeError, ValueError) as error:
         raise NautilusTrialAssemblyError(
             "immutable Nautilus trial inputs failed validation"
@@ -338,9 +376,7 @@ def assemble_nautilus_trial_runtime_input(
         portfolio_fingerprint=portfolio.fingerprint,
         snapshot_fingerprint=snapshot.fingerprint,
         strategy_package_fingerprint=strategy_package.fingerprint,
-        engine_input_fingerprint=content_digest(
-            {"engine_input": engine_input.fingerprint, "native_event_stream": native_event_stream}
-        ),
+        engine_input_fingerprint=engine_input_fingerprint,
         invocation_input_digest=context_stream.artifact.content_digest,
         runtime_input_artifact=artifact_reference,
     )

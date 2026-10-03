@@ -10,6 +10,7 @@ import pytest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
+from app.strategy_lab_v2.nautilus_runtime_bundle import NautilusTrialInputBinding
 from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.search_worker_handoff import (
@@ -67,6 +68,21 @@ def _hydrated_graph() -> tuple[dict[str, Any], HydratedNautilusTrial]:
         packages={strategy.fingerprint: values["strategy_package"]},
     )
     return values, graph
+
+
+def _trial_binding(graph: HydratedNautilusTrial) -> NautilusTrialInputBinding:
+    strategy_fingerprint = graph.experiment.strategy_fingerprints[0]
+    package = graph.packages[strategy_fingerprint]
+    return NautilusTrialInputBinding(
+        attempt_id=graph.attempt.attempt_id,
+        trial_fingerprint=graph.trial.trial_id,
+        experiment_fingerprint=graph.experiment.fingerprint,
+        portfolio_fingerprint=graph.portfolio.fingerprint,
+        snapshot_fingerprint=graph.snapshot.fingerprint,
+        strategy_package_fingerprint=package.fingerprint,
+        engine_input_fingerprint=content_digest("engine-input"),
+        invocation_input_digest=content_digest("invocation-input"),
+    )
 
 
 def _entry_and_payload(
@@ -171,17 +187,23 @@ def test_persisted_trial_binding_checks_experiment_package_source_and_entrypoint
     values, graph = _hydrated_graph()
     strategy = values["strategy_manifest"].strategy
     package = values["strategy_package"]
+    request_template = _request(tmp_path)
     runtime_request = replace(
-        _request(tmp_path).runtime_request,
+        request_template.runtime_request,
         package_fingerprint=package.fingerprint,
         source_digest=strategy.source_digest,
         entrypoint=package.entrypoint,
+    )
+    runtime_input_artifact = replace(
+        request_template.runtime_input_artifact,
+        trial_binding=_trial_binding(graph),
     )
 
     _require_persisted_trial_binding(
         graph,
         experiment_fingerprint=graph.experiment.fingerprint,
         runtime_request=runtime_request,
+        runtime_input_artifact=runtime_input_artifact,
     )
 
     with pytest.raises(ValueError, match="experiment differs"):
@@ -189,6 +211,7 @@ def test_persisted_trial_binding_checks_experiment_package_source_and_entrypoint
             graph,
             experiment_fingerprint=content_digest("different-experiment"),
             runtime_request=runtime_request,
+            runtime_input_artifact=runtime_input_artifact,
         )
     with pytest.raises(ValueError, match="not pinned"):
         _require_persisted_trial_binding(
@@ -198,6 +221,7 @@ def test_persisted_trial_binding_checks_experiment_package_source_and_entrypoint
                 runtime_request,
                 package_fingerprint=content_digest("unpinned-package"),
             ),
+            runtime_input_artifact=runtime_input_artifact,
         )
     with pytest.raises(ValueError, match="source differs"):
         _require_persisted_trial_binding(
@@ -207,12 +231,36 @@ def test_persisted_trial_binding_checks_experiment_package_source_and_entrypoint
                 runtime_request,
                 source_digest=content_digest("different-source"),
             ),
+            runtime_input_artifact=runtime_input_artifact,
         )
     with pytest.raises(ValueError, match="entrypoint differs"):
         _require_persisted_trial_binding(
             graph,
             experiment_fingerprint=graph.experiment.fingerprint,
             runtime_request=replace(runtime_request, entrypoint="other.main:run"),
+            runtime_input_artifact=runtime_input_artifact,
+        )
+
+    with pytest.raises(ValueError, match="missing its persisted trial-input binding"):
+        _require_persisted_trial_binding(
+            graph,
+            experiment_fingerprint=graph.experiment.fingerprint,
+            runtime_request=runtime_request,
+            runtime_input_artifact=replace(runtime_input_artifact, trial_binding=None),
+        )
+
+    with pytest.raises(ValueError, match="differs from the persisted trial graph"):
+        _require_persisted_trial_binding(
+            graph,
+            experiment_fingerprint=graph.experiment.fingerprint,
+            runtime_request=runtime_request,
+            runtime_input_artifact=replace(
+                runtime_input_artifact,
+                trial_binding=replace(
+                    _trial_binding(graph),
+                    snapshot_fingerprint=content_digest("different-snapshot"),
+                ),
+            ),
         )
 
 

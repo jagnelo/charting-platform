@@ -9,6 +9,7 @@ assembler. It never fetches market data or imports Nautilus.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
@@ -25,6 +26,12 @@ from app.strategy_lab_v2.nautilus_trial_assembly import (
     NautilusTrialAssemblyError,
     NautilusTrialRuntimeAssembly,
     assemble_nautilus_trial_runtime_input,
+)
+from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolationRequest
+from app.strategy_lab_v2.runtime_execution import (
+    StrategyRuntimePreflight,
+    StrategyRuntimeRequest,
+    preflight_strategy_runtime,
 )
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.trial_hydration import (
@@ -76,6 +83,8 @@ class MaterializedNautilusTrialInput:
         )
         if any(actual != expected for actual, expected in bindings):
             raise ValueError("materialized runtime input differs from the hydrated trial graph")
+        if self.assembly.runtime_input_artifact.trial_binding != self.assembly.trial_binding:
+            raise ValueError("runtime artifact is missing its exact trial assembly binding")
         package_fingerprints = set(self.graph.experiment.strategy_package_fingerprints.values())
         if self.assembly.strategy_package_fingerprint not in package_fingerprints:
             raise ValueError("materialized runtime package is not pinned by the experiment")
@@ -88,6 +97,140 @@ class MaterializedNautilusTrialInput:
                 "domain_graph_fingerprint": self.graph.fingerprint,
             }
         )
+
+
+@dataclass(frozen=True, slots=True)
+class NautilusTrialRuntimeEvidence:
+    """Isolation preflight derived from one exact materialized trial input."""
+
+    materialized_input: MaterializedNautilusTrialInput
+    runtime_request: StrategyRuntimeRequest
+    runtime_preflight: StrategyRuntimePreflight
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.materialized_input, MaterializedNautilusTrialInput):
+            raise TypeError("materialized_input must be a MaterializedNautilusTrialInput")
+        if not isinstance(self.runtime_request, StrategyRuntimeRequest):
+            raise TypeError("runtime_request must be a StrategyRuntimeRequest")
+        if not isinstance(self.runtime_preflight, StrategyRuntimePreflight):
+            raise TypeError("runtime_preflight must be a StrategyRuntimePreflight")
+        assembly = self.materialized_input.assembly
+        graph = self.materialized_input.graph
+        if self.runtime_request.attempt_id != assembly.attempt_id:
+            raise ValueError("runtime request must reference the materialized attempt")
+        if self.runtime_request.package_fingerprint != assembly.strategy_package_fingerprint:
+            raise ValueError("runtime request package differs from the materialized input")
+        strategy_package = next(
+            (
+                package
+                for package in graph.packages.values()
+                if package.fingerprint == assembly.strategy_package_fingerprint
+            ),
+            None,
+        )
+        if strategy_package is None:
+            raise ValueError("runtime request package is missing from the hydrated trial graph")
+        strategy = next(
+            (
+                item
+                for item in graph.strategies
+                if item.fingerprint == strategy_package.strategy_fingerprint
+            ),
+            None,
+        )
+        if strategy is None:
+            raise ValueError("runtime request strategy is missing from the hydrated trial graph")
+        if self.runtime_request.source_digest != strategy.source_digest:
+            raise ValueError("runtime request source differs from the hydrated trial graph")
+        if self.runtime_request.entrypoint != strategy_package.entrypoint:
+            raise ValueError("runtime request entrypoint differs from the hydrated trial graph")
+        expected_dependencies = tuple(
+            dependency.artifact_digest for dependency in strategy.dependencies
+        )
+        if self.runtime_request.isolation_request.dependency_digests != expected_dependencies:
+            raise ValueError("runtime request dependencies differ from the strategy package")
+        if (
+            self.runtime_request.input_bundle_digest
+            != assembly.runtime_input_artifact.input_bundle_digest
+        ):
+            raise ValueError("runtime request bundle differs from the materialized input")
+        if self.runtime_preflight.request_fingerprint != self.runtime_request.fingerprint:
+            raise ValueError("runtime preflight must reference the derived runtime request")
+        if (
+            self.runtime_preflight.profile_fingerprint
+            != self.runtime_request.runtime_profile_fingerprint
+        ):
+            raise ValueError("runtime preflight profile differs from the runtime request")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+def build_nautilus_trial_runtime_evidence(
+    materialized_input: MaterializedNautilusTrialInput,
+    runtime_profile: RuntimeIsolationProfile,
+    *,
+    request_id: str,
+    submitted_at: datetime,
+) -> NautilusTrialRuntimeEvidence:
+    """Derive runtime request and isolation preflight from verified trial bytes.
+
+    This synchronous composition belongs in the dedicated backtest preparation
+    process. Its result is suitable for the host's existing atomic search
+    dispatch evidence resolver; it must not run inline on an API event loop.
+    """
+
+    if not isinstance(materialized_input, MaterializedNautilusTrialInput):
+        raise TypeError("materialized_input must be a MaterializedNautilusTrialInput")
+    if not isinstance(runtime_profile, RuntimeIsolationProfile):
+        raise TypeError("runtime_profile must be a RuntimeIsolationProfile")
+    graph = materialized_input.graph
+    assembly = materialized_input.assembly
+    strategy_package = next(
+        (
+            package
+            for package in graph.packages.values()
+            if package.fingerprint == assembly.strategy_package_fingerprint
+        ),
+        None,
+    )
+    if strategy_package is None:
+        raise ValueError("materialized strategy package differs from the trial graph")
+    strategy = next(
+        (
+            item
+            for item in graph.strategies
+            if item.fingerprint == strategy_package.strategy_fingerprint
+        ),
+        None,
+    )
+    if strategy is None:
+        raise ValueError("materialized strategy source is not present in the trial graph")
+    if runtime_profile.runtime_abi != strategy_package.runtime_abi:
+        raise ValueError("runtime isolation ABI differs from the pinned strategy package")
+    runtime_request = StrategyRuntimeRequest(
+        request_id=request_id,
+        attempt_id=assembly.attempt_id,
+        package_fingerprint=assembly.strategy_package_fingerprint,
+        source_digest=strategy.source_digest,
+        input_bundle_digest=assembly.runtime_input_artifact.input_bundle_digest,
+        runtime_profile_fingerprint=runtime_profile.fingerprint,
+        entrypoint=strategy_package.entrypoint,
+        isolation_request=RuntimeIsolationRequest(
+            attempt_id=assembly.attempt_id,
+            dependency_digests=tuple(
+                dependency.artifact_digest for dependency in strategy.dependencies
+            ),
+        ),
+        submitted_at=submitted_at,
+    )
+    runtime_preflight = preflight_strategy_runtime(runtime_request, runtime_profile)
+    return NautilusTrialRuntimeEvidence(
+        materialized_input,
+        runtime_request,
+        runtime_preflight,
+    )
 
 
 class NautilusTrialRuntimeInputMaterializer:
@@ -207,6 +350,8 @@ class NautilusTrialRuntimeInputMaterializer:
 
 __all__ = [
     "MaterializedNautilusTrialInput",
+    "NautilusTrialRuntimeEvidence",
     "NautilusTrialMarketContext",
     "NautilusTrialRuntimeInputMaterializer",
+    "build_nautilus_trial_runtime_evidence",
 ]

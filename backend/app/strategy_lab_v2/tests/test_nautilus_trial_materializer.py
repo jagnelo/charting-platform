@@ -11,7 +11,7 @@ import pytest
 
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.artifacts import artifact_content_digest
-from app.strategy_lab_v2.canonical import canonical_json
+from app.strategy_lab_v2.canonical import canonical_json, content_digest
 from app.strategy_lab_v2.contracts import (
     ArtifactManifest,
     ArtifactRetention,
@@ -23,7 +23,9 @@ from app.strategy_lab_v2.nautilus_trial_assembly import NautilusTrialAssemblyErr
 from app.strategy_lab_v2.nautilus_trial_materializer import (
     NautilusTrialMarketContext,
     NautilusTrialRuntimeInputMaterializer,
+    build_nautilus_trial_runtime_evidence,
 )
+from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
 from app.strategy_lab_v2.strategy_package_resolution import (
     STRATEGY_PACKAGE_LOCK_MEMBER,
     STRATEGY_PACKAGE_MANIFEST_MEMBER,
@@ -156,12 +158,64 @@ def test_materializer_resolves_owner_graph_and_verified_inputs(tmp_path: Path) -
     assert result.assembly.strategy_package_fingerprint == next(
         iter(graph.experiment.strategy_package_fingerprints.values())
     )
+    assert result.assembly.runtime_input_artifact.trial_binding == result.assembly.trial_binding
+    assert result.assembly.trial_binding.snapshot_fingerprint == graph.snapshot.fingerprint
     bundle = load_materialized_nautilus_runtime_bundle(
         result.assembly.runtime_input_artifact,
         store,
         max_input_bytes=1_000_000,
     )
     assert bundle.input_bundle_digest == result.assembly.runtime_input_artifact.input_bundle_digest
+
+
+def test_runtime_evidence_is_derived_from_materialized_package_and_bundle(tmp_path: Path) -> None:
+    _values, graph, store = _build_inputs(tmp_path)
+    materializer = NautilusTrialRuntimeInputMaterializer(
+        artifact_store=store,
+        strategy_package_resolver=StrategyPackageArtifactResolver(
+            store,
+            runtime_abi=RUNTIME_ABI,
+        ),
+        series_decoder=JsonFrozenSeriesDecoder(),
+    )
+    materialized = materializer.materialize(
+        graph=graph,
+        market_context=NautilusTrialMarketContext(_values["instruments"], _values["venue"]),
+    )
+    strategy = graph.strategies[0]
+    profile = RuntimeIsolationProfile(
+        runtime_image_digest=content_digest("runtime-image"),
+        runtime_abi=RUNTIME_ABI,
+        allowed_dependency_digests=frozenset(
+            dependency.artifact_digest for dependency in strategy.dependencies
+        ),
+    )
+
+    evidence = build_nautilus_trial_runtime_evidence(
+        materialized,
+        profile,
+        request_id=content_digest("runtime-request"),
+        submitted_at=BASE,
+    )
+
+    assert evidence.runtime_request.attempt_id == graph.attempt.attempt_id
+    assert (
+        evidence.runtime_request.package_fingerprint
+        == materialized.assembly.strategy_package_fingerprint
+    )
+    assert (
+        evidence.runtime_request.input_bundle_digest
+        == materialized.assembly.runtime_input_artifact.input_bundle_digest
+    )
+    assert evidence.runtime_preflight.accepted is True
+
+    with pytest.raises(ValueError, match="ABI differs"):
+        build_nautilus_trial_runtime_evidence(
+            materialized,
+            replace(profile, runtime_abi="different-worker-abi"),
+            request_id=content_digest("runtime-request"),
+            submitted_at=BASE,
+        )
 
 
 def test_materializer_rejects_incomplete_canonical_market_context(tmp_path: Path) -> None:
