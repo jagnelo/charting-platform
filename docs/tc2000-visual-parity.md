@@ -7,6 +7,19 @@ search interaction has functional browser coverage, but the checked-in board
 does not capture that panel open, so its exact styling still lacks screenshot
 coverage.
 
+## 2026-10-03 — Focused Study sandbox-error replay at `7066a6d`
+
+The pinned Playwright 1.62.1 browser reran the two 1080p local screenshot cases
+at branch test SHA `7066a6d7b72a2b26edf23c5c9abb9141d26e67ae`. The state and
+interaction checks before capture passed; only the screenshot comparisons
+failed, by 13,300 pixels at 1080p/100 and 11,188 at 1080p/125. The current
+rendered parameter-schema default is `20`, while the corresponding saved local
+images show `2`. This identifies a visible fixture/snapshot mismatch but does
+not establish that the whole pixel delta has one cause or provide exact V25
+authority. No snapshot, threshold, mask, skip, or acceptance rule changed; any
+baseline update remains subject to the existing review requirement. This was a
+focused two-case replay, not a new full 104-case matrix result.
+
 ## 2026-10-03 — Latest pinned-browser matrix: 91/104 pass in the full run
 
 At clean product SHA `6f7559f378f12b9ed4ffc9a0510eb51958b73ba0`, the complete

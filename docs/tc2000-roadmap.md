@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-03
 
+## 2026-10-03 — Study sandbox-error state replay confirms a local snapshot mismatch
+
+At exact branch test SHA `7066a6d7b72a2b26edf23c5c9abb9141d26e67ae`, the
+pinned Playwright 1.62.1 browser replayed the two 1080p Study sandbox-error
+cases. Their interaction/state assertions passed, but the local screenshot
+checks differed by 13,300 pixels at 1080p/100 and 11,188 at 1080p/125. The
+current render shows a parameter-schema lookback default of `20`, while these
+two stored images show `2`. This is a local fixture/snapshot disagreement, not
+an exact V25 reference; keep the snapshots and 0.5% threshold unchanged pending
+the required review. The assigned TC stack was torn down and resource
+accounting returned zero containers, volumes, images, or sessions.
+
 ## 2026-10-03 — Indicator settings keyboard access is covered
 
 Test commit `695d79557f94581bf3dfed7b2b394496a8b59955` now checks that the

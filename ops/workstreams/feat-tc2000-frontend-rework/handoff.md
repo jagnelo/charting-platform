@@ -3,14 +3,41 @@
 ## 2026-10-03 — Checkpoint push held by private-repository egress review
 
 The accessibility checkpoint is committed locally as
-`98e38784b8c09b5acfde911318f2842fc4d33562`; the worktree is clean. The required
-push of `63d64bfe95c98bfe6e550bf69c213ae1cd64a629..98e38784b8c09b5acfde911318f2842fc4d33562`
+`98e38784b8c09b5acfde911318f2842fc4d33562`; its required push range
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629..98e38784b8c09b5acfde911318f2842fc4d33562`
 to `origin/feat/tc2000-frontend-rework` was rejected by the execution boundary
 before Git ran because it would export 1,628 commits from the private
-repository. No alternate push route or retry was attempted. The completed work
-remains locally committed and the product goal continues from this clean
-boundary; retry only after explicit authorization for this exact remote,
-branch, and range.
+repository. Since then, a separate push-safeguard record was committed as
+`7066a6d7b72a2b26edf23c5c9abb9141d26e67ae`; the current unpushed range is now
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629..7066a6d7b72a2b26edf23c5c9abb9141d26e67ae`
+(1,629 commits), and that expanded range has not been attempted. No alternate
+push route or retry was attempted. Do not retry until the user authorizes the
+exact current remote, branch, and range.
+
+## 2026-10-03 — Focused Study sandbox-error replay
+
+At exact branch test SHA `7066a6d7b72a2b26edf23c5c9abb9141d26e67ae`, the
+pinned Playwright 1.62.1 container ran the two 1080p sandbox-error visual cases.
+Both reached the screenshot assertion after their state checks passed, then
+failed by 13,300 pixels (1080p/100) and 11,188 pixels (1080p/125). The captured
+parameter schema displays lookback default `20`; the two expected local images
+display `2`. This is evidence of a local snapshot mismatch, not a V25 baseline
+decision; no image, mask, threshold, or skip changed. The host Chromium runner
+could not launch under the host sandbox, so the pinned container was used. Its
+actual/diff artifacts are under `/tmp/tc2000-sandbox-visual.LHyeMo/` for this
+session only. The TC Compose stack was removed afterward and resource status
+reported zero containers, volumes, generated images, and test sessions.
+
+The test-only diagnostic is closed; next select a material TC-owned Study/
+Strategy or V25 interaction gap from the current roadmap. Do not update the
+snapshot without the documented review. Keep provider/ETF consumer work
+sequenced after staging; keep the exact rejected push payload authorization
+separate from local implementation progress.
+
+This operational checkpoint records pre-record HEAD
+`7066a6d7b72a2b26edf23c5c9abb9141d26e67ae`. Its enclosing commit SHA is
+verified externally with `git rev-parse HEAD` after commit rather than stored
+self-referentially in these files.
 
 ## 2026-10-03 — Indicator settings keyboard access is covered
 
