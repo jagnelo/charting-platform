@@ -803,34 +803,34 @@ progress:
     - strategy-lab-v2-owner-bound-search-worker-graph-handoff
     - strategy-lab-v2-owner-hydrated-verified-runtime-input-materialization
     - strategy-lab-v2-trial-bound-runtime-evidence-and-worker-lineage
+    - strategy-lab-v2-host-composed-nautilus-backtest-dispatch
   total: 18
-  current_phase: strategy-lab-v2-trial-bound-runtime-evidence-and-worker-lineage
+  current_phase: strategy-lab-v2-host-composed-nautilus-backtest-dispatch
   current_blocker: >-
-    No external release, market-data, or upstream branch dependency blocks
-    package-owned dispatch composition. Exact-pinned Nautilus 2.0.0rc5 passes
-    the four local backtest simulator checks in its isolated image; forward
-    parity is a separate forward-shadow gate, not full conformance. Frozen
-    event tapes stream from verified artifacts; owner-scoped hydration
-    authenticates the immutable trial graph; and the runtime materializer now
-    derives both runtime input and isolation evidence from it. The serialized
-    runtime artifact carries graph/assembly lineage, which the search worker
-    checks against its owner-hydrated graph before execution. The internal
-    remaining gap is to compose this evidence into the host pre-dispatch
-    authorization/admission/request builder and make atomic PostgreSQL/outbox
-    staging validate all payload and evidence identities. Then complete
-    account/allocation-risk, broader simulator, persistence, and final
-    full-stack coverage. Provider-owned Arrow decoding remains an adapter seam
-    gated only by its approved staging contract; it does not block the host
-    composition work. Stable Nautilus 2.x and the final full_stack_browser gate
-    are not prerequisites for the next local slice.
+    No external release, market-data, or upstream branch dependency blocks the
+    next package-owned slice. Exact-pinned Nautilus 2.0.0rc5 passes the four
+    local backtest simulator checks in its isolated image; stable 2.x is not
+    required, while pre-releases remain barred from broker/live-capital use and
+    forward shadow separately requires event-tape parity. The host composer now
+    constructs a complete authoritative backtest WorkerExecutionRequest from
+    materialized trial evidence, exact conformance, sandbox, pool, admission,
+    and lease evidence; the application dispatch integration test feeds that
+    request through bound SearchDispatchEvidence and the atomic store path. The
+    remaining owned gap is a production host evidence resolver/preparation
+    boundary that obtains and composes owner-hydrated graph, authorization,
+    runtime profile, active lease, pool, and exact conformance evidence for real
+    queued candidates. Then complete target-position allocation/risk, broader
+    simulator/accounting and persistence coverage, and final full-stack
+    acceptance. Provider-owned Arrow decoding and shared router/schema/worker
+    registration remain gated on their upstream staging contracts, but do not
+    block this resolver work or other owned backend slices.
   next_action: >-
-    Compose the materialized runtime evidence into the host pre-dispatch
-    authorization/admission/request builder. Construct execution and sandbox
-    plans, encode the worker request using the same bound artifact reference,
-    and make atomic PostgreSQL/outbox staging reject drift across payload,
-    authorization, request, preflight, and trial binding. Keep synchronous
-    assembly in the dedicated preparation process and consume provider-owned
-    Arrow decoding only after its contract reaches staging. Then add
-    target-position allocation/risk and broaden simulator/accounting and
-    full-stack coverage. No stable Nautilus release or unrelated upstream
-    branch blocks this work.
+    Implement the production host SearchDispatchEvidenceResolver in the
+    dedicated preparation boundary. Resolve each candidate's owner-scoped
+    immutable trial graph and authorization, materialize verified runtime
+    inputs, attach the active lease/pool and exact conformance evidence, invoke
+    the host composer, and return the bound evidence to the atomic PostgreSQL
+    outbox dispatch. Keep synchronous assembly outside the FastAPI event loop.
+    Then continue target-position allocation/risk and broader simulator,
+    accounting, persistence, and full-stack acceptance. No stable Nautilus
+    release or unrelated upstream branch blocks this work.

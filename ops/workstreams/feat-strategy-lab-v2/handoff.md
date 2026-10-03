@@ -2,6 +2,43 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-03 - Host-composed Nautilus backtest dispatch
+
+Added `build_nautilus_trial_worker_request` as the host-side preparation
+composer. It checks authorization against the owner-hydrated materialized trial,
+requires a matching isolated backtest worker and active lease, resolves admission,
+builds the hardened sandbox and exact Nautilus execution plan from conformance
+evidence, and binds the resulting `WorkerExecutionRequest` to the same immutable
+runtime input artifact. It accepts only backtest scopes, so forward/live work
+cannot accidentally inherit this backtest preparation path.
+
+The application dispatch integration test now obtains its request through this
+composer and passes it through `SearchDispatchEvidence` to the atomic dispatch
+store. Focused safety tests cover RC5 authoritative local backtests, expired
+leases, missing backtest conformance, and rejection of forward scope.
+
+At clean, pushed source SHA
+`7c674917cfd6d40f04d806849169bcb39a09b722`, all 1,138 Strategy Lab v2 tests
+passed; Ruff passed for the package and runtime SDK; all three changed Python
+files passed formatting checks; MyPy passed across 333 files; and
+`git diff --check` was clean.
+
+There is no external release or upstream dependency blocking the next owned
+slice. Stable Nautilus 2.x is not required: the exact-pinned 2.0.0rc5 build
+remains eligible for local authoritative backtests after its four recorded
+simulator checks. Its pre-release status still bars broker/live-capital use,
+and forward shadow remains gated separately on event-tape parity. The next
+internal gap is the production `SearchDispatchEvidenceResolver`/dedicated
+preparation boundary that obtains owner-scoped graph and authorization plus
+runtime profile, active lease, worker pool, and exact conformance evidence for
+real queued candidates before calling the composer. Provider-owned Arrow
+decoding and shared router/schema/worker registration await upstream staging
+contracts; those gates do not block resolver or other package-owned work.
+
+The saved goal metadata still says “stable v2 conformance.” That wording is
+stale and conflicts with this branch's current `plan.yaml`, which permits a
+stable or pre-release build after exact-pin conformance. Follow the branch plan.
+
 ## 2026-10-03 - Content-bound search worker dispatch
 
 The search HTTP request is now a `SearchDispatchIntent`: clients provide the
