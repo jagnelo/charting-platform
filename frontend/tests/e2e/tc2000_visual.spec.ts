@@ -756,7 +756,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--running')).toBeVisible({ timeout: 10_000 })
     await expect(study).toContainText('running 12/100')
-    await expect(study.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible()
+    await expect(study.getByRole('button', { name: 'Cancel study run', exact: true })).toBeVisible()
     await expect(page).toHaveScreenshot('study-lab-running-gap.png', {
       animations: 'disabled',
       caret: 'hide',
