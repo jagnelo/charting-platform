@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-03
 
+## 2026-10-03 — Browser checks exercise the actual chart controls
+
+The earlier F8 smoke check looked for an H1 button and skipped its assertions
+when no matching element existed, even though the rebuilt `/chart` route uses
+the workstation's `Linked timeframe` dropdown. F8 now selects H1 through that
+control and checks that the chart status also switches to H1. F9 no longer
+silently skips when a broadly matched toolbar is absent: it opens the Lines
+menu, chooses Trend Line, and verifies the active state.
+
+At exact test SHA `9343a9e34a7f925c12e16c2f36892f7256774256`, the focused
+authenticated Chromium run passed `2/2`. The host lacks Docker Buildx, so the
+assigned branch stack was built and started using ordinary Compose; teardown
+removed its containers, four volumes, network, and four generated images. The
+resource audit then reported zero containers, volumes, sessions, or unknown
+components. The TC scope guard passed all 118 touched paths. No visual baseline,
+provider/ETF behavior, or acceptance policy changed.
+
 ## 2026-10-03 — Indicator settings honor quarter-pixel line widths
 
 Product commit `e4aab57c343d1ded1c9b3d7d8538b6c44d076e59` aligns the primary

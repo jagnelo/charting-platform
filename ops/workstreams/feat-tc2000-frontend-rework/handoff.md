@@ -1,5 +1,22 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-03 — Chart browser smoke checks assert real interactions
+
+Test commit `9343a9e34a7f925c12e16c2f36892f7256774256` fixes two legacy smoke
+checks that could silently pass without exercising a chart control. F8 now uses
+the actual workstation `Linked timeframe` dropdown, switches from Daily to H1,
+and confirms H1 reaches the chart status. F9 now requires the drawing toolbar,
+opens its Lines menu, selects Trend Line, and confirms the active-tool state.
+
+Both authenticated Chromium checks passed (`2/2`) at that exact test tip. The
+standard stack target could not use this host's absent Docker Buildx plugin;
+ordinary Docker Compose built and started only the assigned TC project with
+instruments seeded and market data disabled. Teardown removed its six
+containers, four volumes, network, and four generated images; the resource
+audit reported zero remaining containers, volumes, test sessions, or unknown
+components. Scope validation passed all 118 touched paths. No screenshot
+baseline or acceptance policy changed.
+
 ## 2026-10-03 — Indicator settings honor quarter-pixel line widths
 
 Product commit `e4aab57c343d1ded1c9b3d7d8538b6c44d076e59` fixes an inconsistency
