@@ -2,29 +2,49 @@
 
 ## 2026-10-03 — Searchable primary-workstation indicator picker
 
-The primary `/chart` workstation's Chart Plot Library now has a searchable
-indicator picker. It searches the existing catalog's type, short label, and
-picker description; an empty match is stated accessibly. Opening the panel by
-keyboard focuses the filter first, while the existing native picker, indicator
-creation, persistence, and Escape-to-trigger focus recovery remain intact. This
-is TC-owned frontend behavior only; no indicator engine, provider, ETF, image
-reference, mask, threshold, or acceptance rule changed.
+Product commit `6f7559f378f12b9ed4ffc9a0510eb51958b73ba0` makes the primary
+`/chart` Chart Plot Library's technical-indicator picker searchable by type,
+short name, or full catalog description. Keyboard entry focuses the filter
+first, no-match feedback is announced, and adding an item still uses the
+existing persisted indicator path. This is TC-owned frontend behavior; no
+engine, provider, ETF, screenshot reference, mask, threshold, or acceptance rule
+changed.
 
-Pre-commit diagnostics: the focused ChartPlotLibrary suite passed `41/41`,
-frontend type-check passed, and the rebuilt assigned frontend image passed its
-production `vue-tsc`/Vite build. Authenticated Chromium `F9e-plot-library-keyboard`
-passed `1/1`. The full frontend coverage run passed `127/128` files and
-`1,176/1,177` tests; its only failure was the existing 100,000-point range-band
-timing assertion at `1,030 ms` against a `1,000 ms` limit. The same test passed
-when immediately rerun alone (`1/1`), indicating a transient timing miss. These
-pre-commit diagnostics are not exact-SHA gate evidence; rerun the affected and
-full browser suites from a clean committed tree. The complete visual matrix
-also remains due at the new clean source tip. No visual oracle was updated.
+At this clean exact source SHA, frontend coverage passed `128/128` files and
+`1,177/1,177` tests, including the 100,000-point chart timing check. `vue-tsc`,
+production build, TC scope guard (`118` touched paths), visual manifest
+validation, and authenticated Chromium `F9e-plot-library-keyboard` (`1/1`)
+passed. The pinned 104-case matrix's raw full-run result was `91` passed and
+`13` failed. Ten are the repeatable protected screenshot differences:
+`workspace-floating` across all four viewports, Study structured-result across
+all four, and Study sandbox-error at both 1080p scales. Three additional
+first-run anomalies each passed on individual replay: unavailable freshness at
+1080p/100, keyboard-help readiness at 1440p/100 after browser
+`ERR_NETWORK_CHANGED`, and the Study-running capture at 1440p/125. Do not count
+those single-run anomalies as product regressions or silently accept them as
+new visuals. No baseline was changed; the 0.5% threshold and all other visual
+acceptance rules are unchanged.
 
-Changed paths for this checkpoint: `frontend/src/components/workstation/ChartPlotLibrary.vue`,
-`frontend/tests/unit/components/test_chart_plot_library.test.ts`,
-`frontend/tests/e2e/flows.spec.ts`, `docs/tc2000-roadmap.md`,
-`docs/tc2000-visual-parity.md`, `ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+The checked-in 104-case board does not capture the Chart Plot Library while
+open, so this slice has functional keyboard coverage but no exact screenshot
+coverage of the new filter's styling. The feature itself adds no new mismatch
+to the board cases; the ten repeatable visual differences remain under the
+existing review policy. The assigned Docker stack was removed, and resource
+accounting reported zero containers, volumes, images, or test sessions.
+
+Current local dependency refs are staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`65a467b43d7830b0875d9c3ad538e47a06d4a6db`, and ETF holdings
+`71d36f1aceaef21f77453495aeb05fdb92bfe81d`; neither dependency tip is in
+staging. Defer R2/R3 consumption and shared-path reconciliation; continue
+independent TC-owned R1/R5 work.
+
+Changed product paths were
+`frontend/src/components/workstation/ChartPlotLibrary.vue`,
+`frontend/tests/unit/components/test_chart_plot_library.test.ts`, and
+`frontend/tests/e2e/flows.spec.ts`. Workstream/roadmap updates include
+`docs/tc2000-roadmap.md`, `docs/tc2000-visual-parity.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
 `ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`,
 `ops/workstreams/feat-tc2000-frontend-rework/session.json`, and
 `ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`.

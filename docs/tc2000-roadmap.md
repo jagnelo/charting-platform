@@ -7,19 +7,30 @@ Last reconciled: 2026-10-03
 
 ## 2026-10-03 — Primary chart indicator discovery
 
-The primary `/chart` Chart Plot Library now filters the existing technical
-indicator catalog by short name, type, or full picker description. Keyboard
-entry focuses the filter first, the empty-result case is announced, and adding
-a result continues through the existing persisted indicator path. This makes
-the growing TC indicator catalog easier to navigate without duplicating engine
-logic or changing any market-data/ETF ownership. The focused unit suite passed
-`41/41`, type-check and the production frontend build passed, and the authenticated
-keyboard browser flow passed `1/1`. The broad frontend run had one unrelated
-100,000-point chart timing miss that passed on isolated rerun. Exact clean-tip
-full-suite and board-visual replay remain pending; no visual references or
-acceptance rules were changed.
+Product commit `6f7559f378f12b9ed4ffc9a0510eb51958b73ba0` makes the primary
+`/chart` Chart Plot Library's technical-indicator picker searchable by type,
+short name, or full catalog description. Keyboard entry focuses the filter
+first, no-match feedback is announced, and adding an item still uses the
+existing persisted indicator path. The change stays in TC-owned frontend
+behavior; it does not duplicate indicator-engine rules or touch provider/ETF
+ownership.
 
-## 2026-10-03 — Pinned visual matrix isolates ten current screenshot diffs
+At that clean commit, the full frontend coverage suite passed `128/128` files
+and `1,177/1,177` tests; `vue-tsc`, production build, scope guard, and the
+authenticated `F9e-plot-library-keyboard` browser flow passed. The four-project
+pinned visual board recorded `91/104` passes and `13` failures. Ten were the
+previously observed protected screenshot differences: floating workspaces in
+four viewports, structured Study results in four, and Study sandbox errors at
+both 1080p scales. Three additional anomalies (unavailable freshness at
+1080p/100, keyboard-help readiness at 1440p/100 after `ERR_NETWORK_CHANGED`,
+and Study running at 1440p/125) each passed when replayed individually. No
+reference, mask, threshold, skip, or acceptance rule changed. Exact screenshot
+coverage for the Chart Plot Library's open/search state is still missing from
+the checked-in 104-case board; its current evidence is functional keyboard
+coverage only. The assigned Docker stack was removed and resource accounting
+reported zero remaining worktree resources.
+
+## 2026-10-03 — Earlier pinned visual matrix at `1b5e2c7`
 
 At clean product SHA `1b5e2c7e6e877c086cc355f68e7841204432c119`, the board-guided
 104-case matrix completed in the pinned Playwright 1.62.1 browser image: `94`
@@ -43,11 +54,12 @@ The earlier board-guided 104-case matrix at clean SHA
 `fe8aaee56e035c7be52cfc887670cd29aedfc277` completed across four viewport
 projects with 98 failures and 6 passes. Sampled screenshot deltas include the
 default benchmark shell, workspace menu/drag states, freshness gaps, and Study
-Lab running/structured-result states. A later full replay in the matching
+Lab running/structured-result states. Later full replays in the matching
 Playwright 1.62.1 image showed the broad shell/menu/freshness failures came
-from host font rendering; see the pinned matrix above for the current exact
-result and the ten remaining state-specific screenshot diffs. No screenshot
-oracle was changed.
+from host font rendering. See the latest picker checkpoint above for the
+current exact result, and the earlier pinned run below it for the ten
+repeatable state-specific screenshot differences. No screenshot oracle was
+changed.
 
 The Study Lab running-state test also used an outdated accessible name for its
 Cancel control. Commit `88a8452c6f1c2c5ace45f7f13892dd7f36a777dc` corrects only

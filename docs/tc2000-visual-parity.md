@@ -1,13 +1,33 @@
 # TC2000 Version 25 Visual-Parity Specification
 
-The current full-matrix evidence below is from product SHA
-`1b5e2c7e6e877c086cc355f68e7841204432c119`. A later TC-owned change adds a
-search field inside the primary Chart Plot Library; the board matrix must be
-rerun at its clean committed source tip before claiming visual coverage of
-that change. No references, masks, thresholds, skips, or acceptance rules have
-been modified.
+The latest complete board run is at clean product SHA
+`6f7559f378f12b9ed4ffc9a0510eb51958b73ba0`. No references, masks, thresholds,
+skips, or acceptance rules have been modified. The new Chart Plot Library
+search interaction has functional browser coverage, but the checked-in board
+does not capture that panel open, so its exact styling still lacks screenshot
+coverage.
 
-## 2026-10-03 — Latest pinned-browser matrix: 94/104 pass
+## 2026-10-03 — Latest pinned-browser matrix: 91/104 pass in the full run
+
+At clean product SHA `6f7559f378f12b9ed4ffc9a0510eb51958b73ba0`, the complete
+104-case board ran in the pinned Playwright `1.62.1` image. The raw full-run
+result was `91` passed and `13` failed. Ten failures reproduce the previously
+observed screenshot differences: `workspace-floating` in all four viewports
+(8,995 or 9,825 pixels), Study structured-result in all four (109,320; 105,944;
+22,035; and 21,352 pixels), and Study sandbox-error at both 1080p scales.
+
+Three other first-run anomalies were not repeatable: the unavailable-freshness
+image at 1080p/100 differed by 10,602 pixels and passed its isolated replay;
+the 1440p/100 keyboard-help case stopped before capture after browser
+`ERR_NETWORK_CHANGED` messages and passed its isolated replay; and the
+1440p/125 Study-running image differed by 29,116 pixels and passed its isolated
+replay. Those are recorded as one-off run noise, not silently accepted image
+changes. The same protected 10 mismatches remain for review. The board did not
+capture the newly searchable Chart Plot Library while open; `F9e` verifies its
+keyboard behavior but not screenshot styling. Threshold (`0.5%`), references,
+masks, skips, and acceptance rules remain unchanged.
+
+## 2026-10-03 — Earlier pinned-browser matrix: 94/104 at `1b5e2c7`
 
 At clean product SHA `1b5e2c7e6e877c086cc355f68e7841204432c119`, the complete
 board-guided matrix ran all `104` cases across four viewport projects using
@@ -35,8 +55,9 @@ projects with 98 failures and 6 passes. Sampled failures include the default
 benchmark shell (47,571 differing pixels / 3% at 1080p/125%), workspace menu
 and drag-target states, freshness gaps, and Study Lab running/structured-result
 states. The later pinned-browser replay above shows the broad shell/menu/freshness
-deltas were host-rendering differences; its 94/104 result is the latest full
-matrix evidence. Neither run changed the accepted references or thresholds.
+deltas were host-rendering differences. Its 94/104 result at `1b5e2c7` was
+superseded by the latest 104-case run at `6f7559f` above. Neither run changed
+the accepted references or thresholds.
 
 The running Study Lab case also had a stale accessible-name assertion (`Cancel`
 instead of the actual `Cancel study run`); commit `88a8452c6f1c2c5ace45f7f13892dd7f36a777dc`
