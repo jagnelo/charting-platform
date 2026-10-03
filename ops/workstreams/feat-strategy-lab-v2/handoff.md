@@ -2,6 +2,44 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-03 - Trial-bound runtime evidence and worker lineage
+
+The runtime artifact reference now carries a non-circular immutable binding to
+its exact attempt, trial, experiment, portfolio, snapshot, strategy package,
+engine input, and invocation input. Trial assembly creates the binding alongside
+the content-addressed bundle. `MaterializedNautilusTrialInput` requires that
+binding to match its owner-hydrated graph and assembly. A new runtime-evidence
+builder derives `StrategyRuntimeRequest` and isolation preflight from that same
+materialized input, checks the package/runtime ABI, and takes dependency pins
+from the immutable strategy version. It is synchronous and belongs in the
+dedicated backtest preparation process, not an API or heartbeat loop.
+
+The authenticated search-worker handoff now requires the runtime request and
+artifact bundle digests to agree, requires the persisted trial binding, and
+cross-checks its attempt/trial/experiment/portfolio/snapshot/package identities
+against the owner-hydrated PostgreSQL graph before allowing execution. The
+binding travels inside the serialized worker request, so the existing durable
+payload digest covers it. The host's search-dispatch evidence/request builder
+still needs to use this new composition; dispatch continues to accept explicit
+host evidence and no API event-loop or provider fetch was added.
+
+At clean, pushed source SHA `8a98a0dca8fd3ae180ee28b9ee48a34b96f701a2`, all
+1,133 Strategy Lab v2 tests passed; MyPy passed across 331 files; Ruff passed
+for the package and runtime SDK; all eight changed Python files passed Ruff
+formatting; and `git diff --check HEAD^ HEAD` was clean. The commit is pushed to
+`origin/feat/strategy-lab-v2`.
+
+Stable Nautilus 2.x remains unnecessary. Exact-pinned `2.0.0rc5` is qualified
+for the four local backtest checks only; forward parity is separate. No
+external dependency blocks the next owned composition slice. Full-stack-browser
+is still final branch acceptance, not this slice's blocker.
+
+Next: connect the materialized runtime evidence and artifact binding to the
+host's pre-dispatch evidence/request builder. Construct admission, engine and
+sandbox plans, encode the worker request from the same artifact reference, and
+make the PostgreSQL/outbox staging path reject any drift among payload,
+authorization, request, preflight, and materialized binding before enqueue.
+
 ## 2026-10-03 - Owner-hydrated runtime input materialization
 
 Added a package-owned composition boundary that takes the already
