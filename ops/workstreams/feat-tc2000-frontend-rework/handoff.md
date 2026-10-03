@@ -1,5 +1,25 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-03 — Chart plot line-width validation
+
+Product commit `1ebfe964820265c661a553b73269112d1d0fe622` fixes the Chart Plot
+Library's line-width handler so the UI's stated `0.25–5` limits and `0.25`
+step are enforced in saved chart state. Empty input does not silently turn into
+zero or reset the width; low/high and off-step values are normalized to the
+nearest permitted quarter-pixel value. The change is presentation-only and
+does not touch indicator computation, provider/ETF contracts, visual
+references, or acceptance policy.
+
+At this clean exact source SHA, the full frontend coverage suite passed
+`128/128` files and `1,178/1,178` tests, with ChartPlotLibrary at `42/42`.
+`vue-tsc`, production build, and the TC scope guard (`118` paths) passed. The
+pre-existing Workstation bundle-size warning remains. No screenshot baseline
+was changed; the open Chart Plot Library state still has no direct capture in
+the checked-in 104-case board.
+
+Changed product paths: `frontend/src/components/workstation/ChartPlotLibrary.vue`
+and `frontend/tests/unit/components/test_chart_plot_library.test.ts`.
+
 ## 2026-10-03 — Searchable primary-workstation indicator picker
 
 Product commit `6f7559f378f12b9ed4ffc9a0510eb51958b73ba0` makes the primary

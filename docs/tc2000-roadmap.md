@@ -5,6 +5,17 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-03
 
+## 2026-10-03 — Chart plot line-width constraints
+
+Product commit `1ebfe964820265c661a553b73269112d1d0fe622` makes the primary
+Chart Plot Library enforce its displayed line-width contract: values are
+rounded to quarter-pixel steps and constrained to `0.25–5`, while clearing the
+field leaves the current width unchanged. The full frontend coverage suite
+passed `128/128` files and `1,178/1,178` tests at the clean commit; `vue-tsc`,
+the production build, and the 118-path TC scope guard also passed. The existing
+large Workstation bundle warning is unchanged. This is a TC-owned chart
+presentation fix and does not alter visual baselines or data-engine behavior.
+
 ## 2026-10-03 — Primary chart indicator discovery
 
 Product commit `6f7559f378f12b9ed4ffc9a0510eb51958b73ba0` makes the primary
