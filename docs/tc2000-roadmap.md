@@ -5,6 +5,16 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-03
 
+## 2026-10-03 — Indicator settings keyboard access is covered
+
+Test commit `695d79557f94581bf3dfed7b2b394496a8b59955` now checks that the
+indicator-settings dialog wraps Tab and Shift+Tab at its boundaries, and that
+Escape closes it and restores focus to the chart plot library. The focused
+ChartPlotLibrary suite passed `44/44`; full coverage passed `128/128` files and
+`1,182/1,182` tests, and the TC scope guard passed all 118 touched paths. This
+adds accessibility evidence without changing product code, screenshots, or
+acceptance policy. The prior product-tip type-check and build remain current.
+
 ## 2026-10-03 — Browser checks exercise the actual chart controls
 
 The earlier F8 smoke check looked for an H1 button and skipped its assertions

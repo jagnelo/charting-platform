@@ -1,5 +1,18 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-03 — Indicator settings keyboard access is covered
+
+Test commit `695d79557f94581bf3dfed7b2b394496a8b59955` adds a regression for
+the indicator settings dialog's keyboard boundaries: Tab from the last control
+wraps to Close, Shift+Tab from Close wraps to Apply, and Escape closes the
+dialog and returns focus to the chart plot library.
+
+At that exact test tip, the focused ChartPlotLibrary suite passed `44/44`, the
+full frontend coverage suite passed `128/128` files and `1,182/1,182` tests, and
+scope validation passed all 118 touched paths. The only change since the
+product-tip type-check/build was this unit test; no product, screenshot, or
+acceptance-policy behavior changed.
+
 ## 2026-10-03 — Chart browser smoke checks assert real interactions
 
 Test commit `9343a9e34a7f925c12e16c2f36892f7256774256` fixes two legacy smoke
