@@ -19,7 +19,13 @@ from app.strategy_lab_v2.admission import (
     ExecutionAdmissionLedger,
 )
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
-from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.dispatch import (
+    DispatchDecision,
+    DispatchEnvelope,
+    DispatchRequest,
+    DispatchResolution,
+    SearchDispatchIntent,
+)
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.engine_execution import NautilusExecutionScope
 from app.strategy_lab_v2.execution import ExecutionAuthorization
@@ -229,6 +235,43 @@ class PostgresSearchDispatchAdapter:
                     raise ValueError("PostgreSQL search dispatch identity is ambiguous")
                 return _single_dispatch_record(rows)
 
+    async def replay_idempotency(
+        self,
+        *,
+        principal: Any,
+        experiment_fingerprint: str,
+        candidate_index: int,
+        attempt_id: str,
+        dispatch_intent: SearchDispatchIntent,
+    ) -> SearchDispatchResolution | None:
+        """Replay a prior key before rebuilding leases or expensive runtime inputs."""
+
+        owner_id = _principal_id(principal)
+        _validate_digest(experiment_fingerprint, "experiment_fingerprint")
+        if (
+            not isinstance(candidate_index, int)
+            or isinstance(candidate_index, bool)
+            or candidate_index < 0
+        ):
+            raise ValueError("candidate_index must be a non-negative integer")
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        if not isinstance(dispatch_intent, SearchDispatchIntent):
+            raise TypeError("dispatch_intent must be a SearchDispatchIntent")
+        if dispatch_intent.attempt_id != attempt_id:
+            raise ValueError("dispatch intent must reference the dispatch attempt")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                return await self._resolve_idempotency_in_session(
+                    session,
+                    owner_id=owner_id,
+                    experiment_fingerprint=experiment_fingerprint,
+                    candidate_index=candidate_index,
+                    attempt_id=attempt_id,
+                    dispatch_intent=dispatch_intent,
+                )
+
     async def dispatch(
         self,
         *,
@@ -288,6 +331,21 @@ class PostgresSearchDispatchAdapter:
         session: AsyncSessionLike = self._session_factory()
         async with session:
             async with session.begin():
+                existing_resolution = await self._resolve_idempotency_in_session(
+                    session,
+                    owner_id=owner_id,
+                    experiment_fingerprint=experiment_fingerprint,
+                    candidate_index=candidate_index,
+                    attempt_id=attempt_id,
+                    dispatch_intent=SearchDispatchIntent(
+                        dispatch_request.idempotency_key,
+                        dispatch_request.attempt_id,
+                        dispatch_request.queue_name,
+                        dispatch_request.created_at,
+                    ),
+                )
+                if existing_resolution is not None:
+                    return existing_resolution
                 state = await self._search_state._load_state(
                     session, owner_id, experiment_fingerprint
                 )
@@ -349,6 +407,16 @@ class PostgresSearchDispatchAdapter:
                     )
                 if resolution.decision is SearchDispatchDecision.REPLAY_EXISTING:
                     return resolution
+                persisted_lease = await self._worker_state._load_lease(
+                    session,
+                    authorization.lease_id,
+                )
+                if persisted_lease is None:
+                    raise ValueError("worker authorization lease is not persisted")
+                if persisted_lease != worker_request.lease_state:
+                    raise ValueError("worker handoff lease differs from persisted PostgreSQL lease")
+                if persisted_lease.lease.status_at(now) is not AttemptLeaseStatus.ACTIVE:
+                    raise ValueError("persisted worker lease is not active at dispatch time")
                 if prior_payload is None:
                     await self._insert_payload(session, payload_record)
                 await self._persist_resolution(
@@ -419,6 +487,87 @@ class PostgresSearchDispatchAdapter:
             resolution.envelope.request,
         )
         await self._insert_outbox(session, outbox)
+
+    async def _resolve_idempotency_in_session(
+        self,
+        session: AsyncSessionLike,
+        *,
+        owner_id: str,
+        experiment_fingerprint: str,
+        candidate_index: int,
+        attempt_id: str,
+        dispatch_intent: SearchDispatchIntent,
+    ) -> SearchDispatchResolution | None:
+        rows = await self._select_dispatch_rows(
+            session,
+            "WHERE owner_id = :owner_id AND idempotency_key = :idempotency_key",
+            {"owner_id": owner_id, "idempotency_key": dispatch_intent.idempotency_key},
+        )
+        existing = _single_dispatch_record(rows, owner_id=owner_id)
+        if existing is None:
+            return None
+        payload = await self._load_payload(session, existing.request.payload_digest)
+        if payload is None:
+            raise ValueError(
+                "persisted search dispatch is missing its authenticated worker payload"
+            )
+        worker_request = decode_worker_handoff(payload)
+        _validate_worker_request_binding(
+            worker_request,
+            experiment_fingerprint=existing.experiment_fingerprint,
+            attempt_id=existing.request.attempt_id,
+            authorization=worker_request.authorization,
+            runtime_request=worker_request.runtime_request,
+            runtime_preflight=worker_request.runtime_preflight,
+            reservation_id=worker_request.admission.reservation_id,
+            queue_name=existing.request.queue_name,
+            now=worker_request.observed_at,
+        )
+        profile = await self._worker_state._load_profile(
+            session,
+            worker_request.authorization.lease_worker_id,
+        )
+        if profile is None:
+            raise ValueError("persisted search dispatch worker profile is missing")
+        pool = await self._worker_state._load_pool(session, profile)
+        ledger = await self._load_admission_ledger(session, owner_id)
+        state = await self._search_state._load_state(
+            session,
+            owner_id,
+            existing.experiment_fingerprint,
+        )
+        if state is None:
+            raise ValueError("persisted search dispatch experiment state is missing")
+        same_intent = (
+            existing.experiment_fingerprint == experiment_fingerprint
+            and existing.candidate_index == candidate_index
+            and existing.request.attempt_id == attempt_id
+            and existing.request.idempotency_key == dispatch_intent.idempotency_key
+            and existing.request.queue_name == dispatch_intent.queue_name
+            and existing.request.created_at == dispatch_intent.created_at
+        )
+        if not same_intent:
+            return SearchDispatchResolution(
+                SearchDispatchDecision.CONFLICT,
+                state,
+                ledger,
+                pool,
+                rejection_reason="idempotency key is already bound to a different dispatch intent",
+            )
+        dispatch_resolution = DispatchResolution(
+            DispatchDecision.REPLAY_EXISTING,
+            existing.request.fingerprint,
+            existing.request.fingerprint,
+        )
+        envelope = DispatchEnvelope(existing.request.fingerprint, existing.request)
+        return SearchDispatchResolution(
+            SearchDispatchDecision.REPLAY_EXISTING,
+            state,
+            ledger,
+            pool,
+            dispatch_resolution,
+            envelope,
+        )
 
     async def _load_admission_ledger(
         self, session: AsyncSessionLike, owner_id: str

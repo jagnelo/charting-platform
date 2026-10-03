@@ -8,7 +8,7 @@ import pytest
 
 from app.strategy_lab_v2.admission import ExecutionAdmissionLedger, resolve_execution_admission
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.dispatch import DispatchRequest, SearchDispatchIntent
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.engine_execution import (
     EngineExecutionDecision,
@@ -164,6 +164,8 @@ class FakeSession:
         self.candidates: dict[tuple[str, str, int], dict[str, Any]] = {}
         self.profiles: dict[str, dict[str, Any]] = {}
         self.reservations: dict[str, dict[str, Any]] = {}
+        self.leases: dict[str, dict[str, Any]] = {}
+        self.lease_observations: dict[str, dict[str, Any]] = {}
         self.admissions: dict[tuple[str, str], dict[str, Any]] = {}
         self.dispatches: dict[tuple[str, str], dict[str, Any]] = {}
         self.payloads: dict[str, dict[str, Any]] = {}
@@ -195,6 +197,16 @@ class FakeSession:
         if normalized.startswith("SELECT worker_id"):
             row = self.profiles.get(values["worker_id"])
             return FakeResult([] if row is None else [row])
+        if "FROM strategy_lab_v2_execution_leases" in sql:
+            row = self.leases.get(values["lease_id"])
+            return FakeResult([] if row is None else [row])
+        if "FROM strategy_lab_v2_lease_observations" in sql:
+            rows = [
+                row
+                for row in self.lease_observations.values()
+                if row["lease_id"] == values["lease_id"]
+            ]
+            return FakeResult(sorted(rows, key=lambda row: row["sequence"]))
         if normalized.startswith("SELECT reservation_id"):
             rows = [
                 row
@@ -225,6 +237,10 @@ class FakeSession:
                     "request_fingerprint" not in values
                     or row["request_fingerprint"] == values["request_fingerprint"]
                 )
+                and (
+                    "idempotency_key" not in values
+                    or row["idempotency_key"] == values["idempotency_key"]
+                )
             ]
             return FakeResult(sorted(rows, key=lambda row: row["request_fingerprint"]))
         if "FROM strategy_lab_v2_dispatch_payloads" in sql:
@@ -251,6 +267,16 @@ class FakeSession:
             if values["reservation_id"] in self.reservations:
                 return FakeResult(rowcount=0)
             self.reservations[values["reservation_id"]] = values
+            return FakeResult(rowcount=1)
+        if normalized.startswith("INSERT INTO strategy_lab_v2_execution_leases"):
+            if values["lease_id"] in self.leases:
+                return FakeResult(rowcount=0)
+            self.leases[values["lease_id"]] = values
+            return FakeResult(rowcount=1)
+        if normalized.startswith("INSERT INTO strategy_lab_v2_lease_observations"):
+            if values["observation_id"] in self.lease_observations:
+                return FakeResult(rowcount=0)
+            self.lease_observations[values["observation_id"]] = values
             return FakeResult(rowcount=1)
         if normalized.startswith("INSERT INTO strategy_lab_v2_execution_admissions"):
             key = (values["owner_id"], values["request_fingerprint"])
@@ -293,6 +319,11 @@ class FakeSession:
         raise AssertionError(f"unexpected SQL: {sql}")
 
 
+async def _persist_handoff_lease(worker_state: PostgresWorkerStateAdapter, payload) -> None:
+    request = decode_worker_handoff(DispatchPayload.from_mapping(payload))
+    await worker_state.persist_lease(request.lease_state.lease)
+
+
 @pytest.mark.asyncio
 async def test_postgres_search_dispatch_stages_and_replays_all_rows_atomically(tmp_path) -> None:
     session = FakeSession()
@@ -316,6 +347,7 @@ async def test_postgres_search_dispatch_stages_and_replays_all_rows_atomically(t
         pool=pool,
         reservation_id=reservation_id,
     )
+    await _persist_handoff_lease(worker_state, payload)
     request = DispatchRequest(
         "dispatch-key",
         authorization.attempt_id,
@@ -344,6 +376,38 @@ async def test_postgres_search_dispatch_stages_and_replays_all_rows_atomically(t
     assert len(session.payloads) == 1
     assert len(session.outboxes) == 1
     assert session.candidates[("owner-1", EXPERIMENT, 0)]["phase"] == "running"
+
+    replay_before_preparation = await adapter.replay_idempotency(
+        principal="owner-1",
+        experiment_fingerprint=EXPERIMENT,
+        candidate_index=0,
+        attempt_id=authorization.attempt_id,
+        dispatch_intent=SearchDispatchIntent(
+            request.idempotency_key,
+            request.attempt_id,
+            request.queue_name,
+            request.created_at,
+        ),
+    )
+    assert replay_before_preparation is not None
+    assert replay_before_preparation.decision is SearchDispatchDecision.REPLAY_EXISTING
+    assert replay_before_preparation.envelope is not None
+    assert replay_before_preparation.envelope.request == request
+
+    conflicting_retry = await adapter.replay_idempotency(
+        principal="owner-1",
+        experiment_fingerprint=EXPERIMENT,
+        candidate_index=1,
+        attempt_id=authorization.attempt_id,
+        dispatch_intent=SearchDispatchIntent(
+            request.idempotency_key,
+            request.attempt_id,
+            request.queue_name,
+            request.created_at,
+        ),
+    )
+    assert conflicting_retry is not None
+    assert conflicting_retry.decision is SearchDispatchDecision.CONFLICT
 
     replay = await adapter.dispatch(
         principal="owner-1",
@@ -389,6 +453,7 @@ async def test_postgres_search_dispatch_rejects_admission_drift_before_any_inser
         pool=pool,
         reservation_id=reservation_id,
     )
+    await _persist_handoff_lease(worker_state, worker_payload)
     worker_request = decode_worker_handoff(DispatchPayload.from_mapping(worker_payload))
     drifted_admission = replace(
         worker_request.admission,
@@ -441,6 +506,76 @@ async def test_postgres_search_dispatch_rejects_admission_drift_before_any_inser
 
 
 @pytest.mark.asyncio
+async def test_postgres_search_dispatch_rejects_persisted_lease_drift_before_any_insert(
+    tmp_path,
+) -> None:
+    session = FakeSession()
+    search_state = PostgresSearchStateAdapter(lambda: session)
+    worker_state = PostgresWorkerStateAdapter(lambda: session)
+    adapter = PostgresSearchDispatchAdapter(
+        lambda: session,
+        search_state=search_state,
+        worker_state=worker_state,
+    )
+    authorization, runtime_request, runtime_preflight, pool = _fixture()
+    await search_state.initialize(
+        principal="owner-1",
+        state=new_search_execution_state(EXPERIMENT, (authorization.trial_id,), now=NOW),
+    )
+    await worker_state.ensure_profile(pool.profile)
+    reservation_id = _reservation("lease-drift")
+    original_payload = _worker_payload(
+        tmp_path,
+        authorization=authorization,
+        runtime_request=runtime_request,
+        runtime_preflight=runtime_preflight,
+        pool=pool,
+        reservation_id=reservation_id,
+    )
+    original = decode_worker_handoff(DispatchPayload.from_mapping(original_payload))
+    await worker_state.persist_lease(original.lease_state.lease)
+
+    drifted_lease = replace(
+        original.lease_state.lease,
+        expires_at=original.lease_state.lease.expires_at + timedelta(days=1),
+    )
+    drifted_request = replace(
+        original,
+        lease_state=LeaseObservationState(drifted_lease),
+    )
+    payload = encode_worker_handoff(drifted_request)
+    dispatch_request = DispatchRequest(
+        "dispatch-key",
+        authorization.attempt_id,
+        DispatchPayload.from_mapping(payload).payload_digest,
+        "strategy-backtest",
+        NOW,
+    )
+
+    with pytest.raises(ValueError, match="differs from persisted PostgreSQL lease"):
+        await adapter.dispatch(
+            principal="owner-1",
+            experiment_fingerprint=EXPERIMENT,
+            candidate_index=0,
+            attempt_id=authorization.attempt_id,
+            authorization=authorization,
+            runtime_request=runtime_request,
+            runtime_preflight=runtime_preflight,
+            reservation_id=reservation_id,
+            dispatch_request=dispatch_request,
+            payload=payload,
+            now=NOW,
+        )
+
+    assert not session.admissions
+    assert not session.reservations
+    assert not session.dispatches
+    assert not session.payloads
+    assert not session.outboxes
+    assert session.candidates[("owner-1", EXPERIMENT, 0)]["phase"] == "pending"
+
+
+@pytest.mark.asyncio
 async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_identity(
     tmp_path,
 ) -> None:
@@ -465,6 +600,7 @@ async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_id
         pool=pool,
         reservation_id=reservation_id,
     )
+    await _persist_handoff_lease(worker_state, payload)
     request = DispatchRequest(
         "dispatch-key",
         authorization.attempt_id,

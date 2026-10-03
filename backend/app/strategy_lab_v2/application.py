@@ -518,18 +518,9 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise ValueError("attempt_id must not be empty")
         if not isinstance(dispatch_intent, SearchDispatchIntent):
             raise TypeError("dispatch_intent must be a SearchDispatchIntent")
+        if dispatch_intent.attempt_id != attempt_id:
+            raise ValueError("search dispatch intent differs from the requested attempt")
         search_dispatch_evidence = getattr(self, "_search_dispatch_evidence", None)
-        if self._search_dispatch is None and search_dispatch_evidence is None:
-            raise ApiAdapterError(
-                ApiError(
-                    ApiErrorCode.PRECONDITION_FAILED,
-                    "search dispatch is not configured",
-                    request_id,
-                    501,
-                    False,
-                    {"reason": "the host has not supplied atomic worker persistence"},
-                )
-            )
         callback_kwargs = {
             "principal": owner,
             "request_id": request_id,
@@ -544,9 +535,35 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             if not isinstance(resolution, SearchDispatchResolution):
                 raise TypeError("search_dispatch must return a SearchDispatchResolution")
             return resolution
+        dispatch_store = getattr(self, "_search_dispatch_store", None)
+        replay_resolver = getattr(dispatch_store, "replay_idempotency", None)
+        if callable(replay_resolver):
+            replay_result = replay_resolver(
+                principal=owner,
+                experiment_fingerprint=experiment_fingerprint,
+                candidate_index=candidate_index,
+                attempt_id=attempt_id,
+                dispatch_intent=dispatch_intent,
+            )
+            replay = await replay_result if inspect.isawaitable(replay_result) else replay_result
+            if replay is not None:
+                if not isinstance(replay, SearchDispatchResolution):
+                    raise TypeError(
+                        "replay_idempotency must return SearchDispatchResolution or None"
+                    )
+                return replay
+        if search_dispatch_evidence is None:
+            raise ApiAdapterError(
+                ApiError(
+                    ApiErrorCode.PRECONDITION_FAILED,
+                    "search dispatch is not configured",
+                    request_id,
+                    501,
+                    False,
+                    {"reason": "the host has not supplied atomic worker persistence"},
+                )
+            )
         evidence_resolver = search_dispatch_evidence
-        if evidence_resolver is None:  # pragma: no cover - guarded above
-            raise AssertionError("search dispatch evidence resolver unexpectedly missing")
         evidence_result = evidence_resolver(**callback_kwargs)
         evidence = (
             await evidence_result if inspect.isawaitable(evidence_result) else evidence_result
@@ -558,8 +575,6 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise ValueError("search dispatch experiment differs from the materialized trial graph")
         if materialized_graph.attempt.attempt_id != attempt_id:
             raise ValueError("search dispatch attempt differs from the materialized trial graph")
-        if dispatch_intent.attempt_id != attempt_id:
-            raise ValueError("search dispatch intent differs from the materialized trial attempt")
         worker_payload = encode_worker_handoff(evidence.worker_request)
         payload = DispatchPayload.from_mapping(worker_payload)
         dispatch_request = dispatch_intent.bind_payload(payload.payload_digest)

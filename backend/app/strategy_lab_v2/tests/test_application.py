@@ -58,7 +58,11 @@ from app.strategy_lab_v2.result_completion import (
 )
 from app.strategy_lab_v2.result_publication import ResultPublicationDecision
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
-from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution, resolve_search_dispatch
+from app.strategy_lab_v2.search_dispatch import (
+    SearchDispatchDecision,
+    SearchDispatchResolution,
+    resolve_search_dispatch,
+)
 from app.strategy_lab_v2.search_state import SearchCandidatePhase, new_search_execution_state
 from app.strategy_lab_v2.storage import (
     StorageTransactionDecision,
@@ -581,6 +585,57 @@ async def test_application_search_dispatch_fails_closed_without_host_binding() -
 
     assert raised.value.error.code is ApiErrorCode.PRECONDITION_FAILED
     assert raised.value.error.status_code == 501
+
+
+@pytest.mark.asyncio
+async def test_application_search_dispatch_replays_before_building_runtime_evidence() -> None:
+    _authorization, _runtime_request, _runtime_preflight, pool = _fixture()
+    experiment_fingerprint = content_digest("experiment")
+    attempt_id = "attempt-1"
+    dispatch_intent = SearchDispatchIntent(
+        "dispatch-key",
+        attempt_id,
+        "strategy-backtest",
+        NOW,
+    )
+    replay = SearchDispatchResolution(
+        SearchDispatchDecision.CONFLICT,
+        new_search_execution_state(
+            experiment_fingerprint,
+            (content_digest("trial"),),
+            now=NOW,
+        ),
+        ExecutionAdmissionLedger(),
+        pool,
+        rejection_reason="test replay conflict",
+    )
+    observed: dict[str, Any] = {}
+
+    class Store:
+        async def replay_idempotency(self, **kwargs: Any) -> SearchDispatchResolution:
+            observed.update(kwargs)
+            return replay
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._search_dispatch = None
+    adapter._search_dispatch_evidence = None
+    adapter._search_dispatch_store = Store()
+    resolved = await adapter.dispatch_search_candidate(
+        principal=_User(42),
+        request_id="request-1",
+        experiment_fingerprint=experiment_fingerprint,
+        candidate_index=0,
+        attempt_id=attempt_id,
+        dispatch_intent=dispatch_intent,
+    )
+
+    assert resolved is replay
+    assert observed["principal"].id == "42"
+    assert observed["experiment_fingerprint"] == experiment_fingerprint
+    assert observed["candidate_index"] == 0
+    assert observed["attempt_id"] == attempt_id
+    assert observed["dispatch_intent"] == dispatch_intent
+    assert "request_id" not in observed
 
 
 @pytest.mark.asyncio

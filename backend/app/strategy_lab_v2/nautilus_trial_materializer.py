@@ -266,6 +266,18 @@ class NautilusTrialRuntimeInputMaterializer:
         )
         self._max_intents_per_event = max_intents_per_event
 
+    @property
+    def artifact_store(self) -> LocalArtifactStore:
+        """The content-addressed store shared by package and runtime inputs."""
+
+        return self._artifact_store
+
+    @property
+    def strategy_package_resolver(self) -> StrategyPackageArtifactResolver:
+        """The exact resolver used to authenticate the trial's source package."""
+
+        return self._strategy_package_resolver
+
     def materialize(
         self,
         *,
