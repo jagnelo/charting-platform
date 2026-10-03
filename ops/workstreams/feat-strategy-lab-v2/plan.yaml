@@ -801,35 +801,38 @@ progress:
     - strategy-lab-v2-default-disk-backed-event-tape-resolution
     - strategy-lab-v2-owner-scoped-fingerprint-batch-and-trial-domain-hydration
     - strategy-lab-v2-owner-bound-search-worker-graph-handoff
+    - strategy-lab-v2-owner-hydrated-verified-runtime-input-materialization
   total: 18
-  current_phase: strategy-lab-v2-owner-bound-search-worker-graph-handoff
+  current_phase: strategy-lab-v2-owner-hydrated-runtime-input-materialization
   current_blocker: >-
     No external release, market-data, or upstream branch dependency blocks
-    this owned implementation. Exact-pinned Nautilus 2.0.0rc5 now passes the
+    package-owned worker composition. Exact-pinned Nautilus 2.0.0rc5 passes the
     four local backtest simulator checks in its isolated image, and result
-    publication binds authoritative backtest scope to the exact wheel/image,
-    release channel, conformance evidence, and execution plan. Forward parity
-    remains a separate forward-shadow gate, so this does not complete full
-    Nautilus conformance. The required full_stack_browser profile is final
-    acceptance, not a prerequisite for the next local slice. The default frozen
-    event-tape resolver now uses verified disk-spooled streaming, and owner-scoped
-    fingerprint reads hydrate and cross-check the immutable attempt/trial/
-    experiment/portfolio/snapshot/strategy/package graph, and authenticated
-    search dispatch now hydrates with the dispatch owner and rejects drift in
-    experiment, package, source, or entrypoint bindings. Remaining internal
-    work is to assemble—not merely validate—a worker runtime request from that
-    graph, resolving verified snapshot bytes and canonical instrument/venue/
-    account adapters, then atomically binding runtime artifacts to attempt and
-    dispatch before target-position allocation/risk and broader product/accounting
-    coverage. Provider, ETF, and TC2000 staging boundaries constrain only their
-    eventual shared-contract integration; they do not stop owned worker work.
+    publication binds backtest authority to the exact wheel/image, release
+    channel, conformance evidence, and execution plan. Forward parity remains
+    a separate forward-shadow gate; this does not complete full Nautilus
+    conformance. The final full_stack_browser profile is not a prerequisite for
+    the next local slice. Frozen event tapes are verified and disk-streamed;
+    owner-scoped fingerprint reads hydrate the immutable attempt/trial/
+    experiment/portfolio/snapshot/strategy/package graph; and authenticated
+    dispatch rejects graph/package/source/entrypoint drift. A package-owned
+    materializer now resolves the exact package and frozen artifacts and builds
+    a runtime input from that graph using injected market context and series
+    decoding. Remaining internal work is to connect this materialized input to
+    pre-dispatch evidence, authorization/admission, encoded worker payload, and
+    atomic attempt/dispatch provenance, then complete account/allocation-risk,
+    broader simulator, persistence, and full-stack coverage. Provider, ETF, and
+    TC2000 staging boundaries constrain only their eventual shared-contract
+    integration; provider-owned Arrow decoding remains a seam, not a blocker to
+    the host-owned composition work. Stable Nautilus 2.x is not a prerequisite.
   next_action: >-
-    Replace the preassembled-request search worker boundary with production
-    runtime-input assembly from the owner-hydrated attempt graph. Resolve the
-    exact package and verified frozen data artifacts through injected adapters;
-    bind the resulting runtime artifact and provenance atomically to the attempt
-    and dispatch. Keep canonical instrument identity provider-pluggable and
-    consume provider-owned Arrow decoding only after its contract reaches staging.
-    Then add target-position allocation/risk and broaden product/accounting/report
-    conformance. No stable Nautilus release or unrelated upstream branch blocks
-    this work.
+    Wire the owner-hydrated runtime materializer into host pre-dispatch evidence
+    and request composition. Derive runtime request, isolation preflight,
+    authorization/admission, and the encoded worker payload from the same exact
+    materialized input, then bind its fingerprint to attempt and dispatch within
+    the existing atomic PostgreSQL/outbox transaction. Keep this composition in
+    the dedicated serial worker boundary and consume provider-owned Arrow
+    decoding only after its contract reaches staging. Then add
+    target-position allocation/risk and broaden accounting, simulator, and
+    full-stack coverage. No stable Nautilus release or unrelated upstream
+    branch blocks this work.

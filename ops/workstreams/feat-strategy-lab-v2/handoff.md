@@ -2,6 +2,42 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-03 - Owner-hydrated runtime input materialization
+
+Added a package-owned composition boundary that takes the already
+owner-hydrated immutable attempt/trial/experiment/portfolio/snapshot/strategy
+graph, canonical instrument/venue context, the exact package resolver and
+verified local artifact store, plus an injected provider-owned frozen-series
+decoder. It resolves the pinned strategy package and frozen series/event-tape
+artifacts, assembles the Nautilus runtime input, and ties the result back to the
+graph and exact attempt/experiment/portfolio/snapshot/package identities. It
+rejects mismatched stores, package bindings, or instrument sets. It performs no
+provider/network acquisition and does not import Nautilus; synchronous assembly
+must run in a dedicated backtest preparation process rather than an API or
+heartbeat event loop.
+
+At exact clean source SHA `84617e4adaf6b82d2ef796febff67c2631375eb5`, all
+1,132 Strategy Lab v2 tests passed; MyPy passed across 331 files; Ruff passed
+for the package; the two new Python files passed Ruff formatting; and
+`git diff --check` was clean. The implementation commit is pushed to
+`origin/feat/strategy-lab-v2`.
+
+This materializes the runtime input in package-owned code, but it is not yet
+wired into search dispatch, persisted as an atomic attempt/dispatch binding, or
+connected to the provider-owned Arrow decoder implementation. Those are the
+next worker-composition and staging-contract integration slices. Stable
+Nautilus 2.x is not a prerequisite: the pinned 2.0.0rc5 build remains qualified
+for the four local backtest checks only; forward event-tape parity is separate.
+The full-stack-browser profile remains final branch acceptance, not a blocker
+for the next local implementation slice.
+
+Next: feed this exact materialized input into host pre-dispatch evidence and
+request composition, derive preflight/admission and the encoded worker payload
+from it, then bind its fingerprint atomically to the attempt and dispatch via
+the existing PostgreSQL/outbox path. Keep assembly in the dedicated serial
+worker boundary and retain the provider-owned decoder seam until its contract
+reaches staging.
+
 ## 2026-10-03 - Owner-bound search worker graph handoff
 
 The authenticated search-dispatch worker callback now hydrates the dispatched
