@@ -101,25 +101,28 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8 — timeframe selector switches timeframe', async ({ page, browserDiagnostics }) => {
-    await page.goto('/chart')
-    // Click H1
-    const h1btn = page.locator('button:has-text("H1"), .tf-btn:has-text("H1")')
-    if (await h1btn.count() > 0) {
-      await h1btn.first().click()
-      // Verify active state
-      await expect(h1btn.first()).toHaveClass(/active|selected/)
-    }
+  test('F8 — linked timeframe selector switches the chart timeframe', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    const timeframe = page.getByRole('combobox', { name: 'Linked timeframe' })
+    await expect(timeframe).toBeVisible()
+    await expect(timeframe).toHaveValue('D1')
+    await timeframe.selectOption('H1')
+    await expect(timeframe).toHaveValue('H1')
+    await expect(page.locator('.workstation__footer')).toContainText('H1')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
   test('F9 — drawing toolbar is visible and tools are clickable', async ({ page, browserDiagnostics }) => {
-    await page.goto('/chart')
-    // Drawing toolbar should exist
-    const toolbar = page.locator('.drawing-toolbar, [class*="toolbar"]')
-    if (await toolbar.count() > 0) {
-      await expect(toolbar.first()).toBeVisible()
-    }
+    await page.goto('/chart/SPY')
+    const toolbar = page.locator('.drawing-toolbar')
+    await expect(toolbar).toBeVisible()
+    const lines = toolbar.getByRole('button', { name: 'Lines' })
+    await lines.click()
+    const menu = toolbar.getByRole('menu', { name: 'Lines drawing tools' })
+    await expect(menu).toBeVisible()
+    await menu.getByRole('menuitem', { name: 'Trend Line' }).click()
+    await expect(lines).toHaveAttribute('aria-expanded', 'false')
+    await expect(lines).toHaveClass(/active/)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
