@@ -20,19 +20,22 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No blocker prevents independent TC-owned frontend work. Six protected
-  screenshot differences still require the review specified by
-  `docs/tc2000-visual-parity.md`; do not change baselines, masks, thresholds,
-  skips, fallbacks, or acceptance rules without that review. The current local
-  refs are staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider
-  platform `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, and ETF holdings
-  `a13fccfd0bf9666ff471aac566cf0bc4f367c4e1`; neither dependency tip is in
-  staging, so consumer integration and shared-path reconciliation remain
-  deferred. These gates do not stop independent R1/R5/R6 implementation. The
-  latest product slice, `aa6472fb3582d5d60d685e26f72f809b4397e5ef`, validates
-  chart indicator settings against the existing backend registry; focused
-  tests, type-checking, scope validation, and host Docker preflight pass. The
-  exact full integration/browser gate is still required at the clean tip.
+  No blocker prevents independent TC-owned frontend work. The full 104-case
+  board-guided visual matrix at clean SHA `fe8aaee56e035c7be52cfc887670cd29aedfc277`
+  finished with 98 failures and 6 passes. Sampled failures are stable screenshot
+  differences, including the default benchmark shell (47,571 pixels, 3% at
+  1080p/125%) and Study Lab's running gap (16,052 pixels, 1% at 1080p/100%),
+  above the unchanged 0.5% threshold. One stale Cancel-button accessible-name
+  assertion was corrected in `88a8452c6f1c2c5ace45f7f13892dd7f36a777dc`; the
+  focused rerun reached the screenshot assertion, which still fails. Do not
+  alter baselines, masks, thresholds, skips, fallbacks, or acceptance rules
+  without the review required by `docs/tc2000-visual-parity.md`. Current refs are
+  staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+  `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, and ETF holdings
+  `4842960e5049c42c42a5011324844a30241b4b29`; neither dependency tip is in
+  staging, so R2/R3 consumer integration and shared-path reconciliation remain
+  deferred. These gates do not stop independent R1/R5/R6 work. The full
+  integration/browser gate remains required at the final clean exact tip.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."

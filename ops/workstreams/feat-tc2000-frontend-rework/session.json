@@ -48,12 +48,7 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [
-    "frontend/src/components/workstation/IndicatorSettingsDialog.vue",
-    "frontend/tests/unit/components/test_chart_plot_library.test.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -112,14 +107,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "79bad5f59547c36251020252bc643d2298ded191",
+  "head": "88a8452c6f1c2c5ace45f7f13892dd7f36a777dc",
   "implementation_sha": "eddce5b9d988c055edd3f94955fa57bc7cca11a3",
   "interrupted": false,
-  "last_checkpoint": "2026-10-02T21:38:46.042046+00:00",
+  "last_checkpoint": "2026-10-03T00:27:09+00:00",
   "last_human_progress_update": "2026-10-02T21:54:16.032911+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue comparing mapped V25 chart interactions and TC-owned Study/Strategy behavior; implement the next independent gap, keep protected screenshot policies unchanged, and wait for provider/ETF changes to reach staging before integration.",
-  "plan_hash": "fc44a7eaa17c18b730dc8ef458abb989b6e29dd9769032b41da2d5edef00196f",
+  "next_action": "Diagnose the current board-visual screenshot deltas without changing protected oracles, continue an independent TC-owned workstation or Study/Strategy gap, then rerun changed cases and the full matrix at a clean exact tip. Wait for both dependency tips to reach staging before consumer integration.",
+  "plan_hash": "edf207e71f132cde331a63c3df573b966f6a56ab3c4df1ef68b7b5eefefb38ce",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -132,17 +127,17 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Six protected screenshot differences await review; provider/ETF integration awaits staging. Neither blocks independent TC frontend work.",
-    "current_phase": "R6_indicator_settings_registry_validation",
-    "next_action": "Continue mapped V25 chart-interaction and TC Study/Strategy promotion gaps; run the full gate at each clean exact tip; wait for both upstream branches to reach staging before consumer integration.",
+    "current_blocker": "No blocker prevents independent TC work. The 104-case board visual matrix at fe8aaee reported 98 failures and 6 passes; sampled states show stable screenshot diffs above the unchanged threshold. The Cancel accessible-name test mismatch is fixed, but the focused case still differs visually. Provider and ETF branch tips are both outside staging, so only their consumer integration is deferred.",
+    "current_phase": "R6_board_visual_matrix",
+    "next_action": "Diagnose board-visual deltas and implement the next independent TC-owned workstation or Study/Strategy gap without changing baselines or thresholds; rerun changed cases and the full matrix at a clean exact tip, and wait for both dependencies to reach staging before integration.",
     "total": 9,
-    "updated_at": "2026-10-02T21:54:16.032893+00:00"
+    "updated_at": "2026-10-03T00:27:09+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "bc90fda2c70e82d0f7ebe98c0e8d43414910449d",
-    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..bc90fda2c70e82d0f7ebe98c0e8d43414910449d",
+    "current_local_head": "88a8452c6f1c2c5ace45f7f13892dd7f36a777dc",
+    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..88a8452c6f1c2c5ace45f7f13892dd7f36a777dc",
     "failure_category": "The branch remains unpushed under the existing private-origin safeguard; this session made no push attempt and only committed within the assigned local worktree.",
     "head_at_product_checkpoint": "eddce5b9d988c055edd3f94955fa57bc7cca11a3",
     "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..eddce5b9d988c055edd3f94955fa57bc7cca11a3",

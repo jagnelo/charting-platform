@@ -15891,3 +15891,33 @@ unknown resources. The provider-platform and ETF tips still have not reached
 staging, and six protected screenshot differences still await the review
 specified by `docs/tc2000-visual-parity.md`; neither blocks independent TC UI
 and Study/Strategy work. No push or branch integration was attempted.
+
+## 2026-10-03 — Board visual matrix and Study run selector
+
+The full board-guided visual matrix ran at clean SHA
+`fe8aaee56e035c7be52cfc887670cd29aedfc277` across all four viewport projects.
+The run completed with 98 failures and 6 passes. Sampled failures include the
+default benchmark shell at 1080p/125% (47,571 differing pixels, 3%), the
+workspace menu state, freshness-gap states, and Study Lab states. The default
+shell visibly includes an all-family readiness row absent from its saved
+reference; this was added intentionally in earlier work and needs visual
+reconciliation, not a baseline refresh. No screenshots, masks, thresholds, or
+acceptance rules were changed.
+
+The running Study Lab case had a stale test selector: it searched for
+accessible name `Cancel`, while the control is correctly labelled `Cancel
+study run`. Commit `88a8452c6f1c2c5ace45f7f13892dd7f36a777dc` corrects that
+selector. A focused rerun against the identical source content then passed the
+running-status and Cancel assertions and reached the screenshot check, which
+still failed by 16,052 pixels (1%) against the unchanged 0.5% threshold. That
+focused run was diagnostic and is not counted as a clean exact-SHA gate.
+
+After browser validation, the exact branch Compose stack was removed: six
+containers, four fixture volumes, its network, and four generated images.
+Cleanup reported no remaining branch test sessions or images; a follow-up
+inventory found no containers or volumes for the project. Current staging,
+provider, and ETF tips are respectively `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`,
+`65a467b43d7830b0875d9c3ad538e47a06d4a6db`, and
+`4842960e5049c42c42a5011324844a30241b4b29`; both dependency tips remain outside
+staging. Continue independent R1/R5/R6 work, preserve visual acceptance policy,
+and defer R2/R3 integration until staging promotion.
