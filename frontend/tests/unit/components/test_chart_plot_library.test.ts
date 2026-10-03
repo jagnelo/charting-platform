@@ -75,6 +75,31 @@ describe('ChartPlotLibrary', () => {
     wrapper.unmount()
   })
 
+  it('keeps chart line widths inside the advertised range and quarter-pixel step', async () => {
+    const chart = usePanelStore('plot-library-line-width-constraints-test')
+    chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-line-width-constraints-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    const width = wrapper.get('input[aria-label="SMA(20) line width"]')
+
+    await width.setValue('0.1')
+    await width.trigger('change')
+    expect(chart.indicators[0].style.lineWidth).toBe(0.25)
+
+    await width.setValue('1.13')
+    await width.trigger('change')
+    expect(chart.indicators[0].style.lineWidth).toBe(1.25)
+
+    await width.setValue('7.3')
+    await width.trigger('change')
+    expect(chart.indicators[0].style.lineWidth).toBe(5)
+
+    await width.setValue('')
+    await width.trigger('change')
+    expect(chart.indicators[0].style.lineWidth).toBe(5)
+    wrapper.unmount()
+  })
+
   it('edits an indicator from the primary plot library without dropping its existing configuration', async () => {
     const chart = usePanelStore('plot-library-indicator-settings-test')
     const original = { type: 'sma' as const, params: { period: 20, custom_source: 'close' }, style: { color: '#ff0000', lineWidth: 1.5 }, pane: 'main' as const, lockedTimeframes: ['D1' as const, 'W1' as const], hidden: true }
