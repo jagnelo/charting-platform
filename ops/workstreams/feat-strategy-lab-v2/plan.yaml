@@ -321,7 +321,7 @@ remaining_gaps:
   - The provider-platform workstream has not reached staging; canonical acquisition and capability adapter wiring is deferred.
   - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
   - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
-  - Exact-pinned stable or pre-release Nautilus v2 can qualify local backtests after the complete conformance suite; the stable-tag wait described in older progress notes is superseded. RC compatibility currently executes, but the exact RC build has not yet passed that complete suite; broker-free forward shadow still requires event-tape parity.
+  - Exact-pinned stable or pre-release Nautilus v2 can qualify local backtests after the complete conformance suite; stable 2.x is not a prerequisite. The isolated Nautilus 2.0.0rc5 image fixture passed multi-instrument accounting, native order/fill/cost reporting, deterministic replay, and lifecycle at source SHA f102f310499431b0c892483ec15e376f5503319f. The raw fixture receipt remains non-authoritative until consumed by the scoped conformance/publication path; forward shadow still requires event-tape parity, and pre-releases remain barred from broker/real-capital use.
   - The isolated Nautilus runtime bundle now has a pinned-input content-addressed artifact contract. Durable worker handoff v2 carries its compact artifact manifest plus semantic bundle digest; the worker binds both to the attempt/request and verifies the exact mounted bytes and memory-derived size bound before Docker launch. Production assembly from frozen trial/snapshot/portfolio inputs remains open.
   - The combined backend coverage gate now collects package-owned v2 tests and passes its 75% threshold. The dedicated worker entrypoint is now exposed through an explicit opt-in `strategy-lab-v2` Compose profile with a separate artifact volume, health-gated PostgreSQL/Redis dependencies, read-only root, dropped capabilities, bounded temporary filesystem, fail-closed Docker-socket binding, and a package-owned authenticated single-output evidence resolver default; host multi-artifact policy, live activation, and stable Nautilus execution remain open.
   - Alembic revision `ff0a1b2c3d4e` now creates the complete additive Strategy Lab v2 adapter schema and the active-worker reservation index without touching legacy Strategy Lab tables; the FastAPI lifespan now invokes the explicit startup migration service when namespaced migration settings enable it, while remaining API projections, terminal/result callback wiring, and stable Nautilus execution remain open.
@@ -804,33 +804,34 @@ progress:
     - strategy-lab-v2-owner-hydrated-verified-runtime-input-materialization
     - strategy-lab-v2-trial-bound-runtime-evidence-and-worker-lineage
     - strategy-lab-v2-host-composed-nautilus-backtest-dispatch
+    - strategy-lab-v2-production-search-dispatch-evidence-preparation
   total: 18
-  current_phase: strategy-lab-v2-host-composed-nautilus-backtest-dispatch
+  current_phase: strategy-lab-v2-production-search-dispatch-evidence-preparation
   current_blocker: >-
-    No external release, market-data, or upstream branch dependency blocks the
-    next package-owned slice. Exact-pinned Nautilus 2.0.0rc5 passes the four
-    local backtest simulator checks in its isolated image; stable 2.x is not
-    required, while pre-releases remain barred from broker/live-capital use and
-    forward shadow separately requires event-tape parity. The host composer now
-    constructs a complete authoritative backtest WorkerExecutionRequest from
-    materialized trial evidence, exact conformance, sandbox, pool, admission,
-    and lease evidence; the application dispatch integration test feeds that
-    request through bound SearchDispatchEvidence and the atomic store path. The
-    remaining owned gap is a production host evidence resolver/preparation
-    boundary that obtains and composes owner-hydrated graph, authorization,
-    runtime profile, active lease, pool, and exact conformance evidence for real
-    queued candidates. Then complete target-position allocation/risk, broader
-    simulator/accounting and persistence coverage, and final full-stack
-    acceptance. Provider-owned Arrow decoding and shared router/schema/worker
-    registration remain gated on their upstream staging contracts, but do not
-    block this resolver work or other owned backend slices.
+    No external release or upstream branch dependency blocks package-owned
+    implementation. Exact-pinned Nautilus 2.0.0rc5 has passed the four actual
+    local backtest checks in its isolated image; stable 2.x is not required.
+    The raw fixture receipt remains non-authoritative until the scoped
+    conformance/publication path consumes it. Pre-releases cannot control real
+    capital or connect to brokers, and forward shadow separately requires
+    event-tape parity. The owner-scoped preparation resolver now hydrates and
+    verifies the trial graph, materializes frozen inputs, checks persisted pool
+    and lease state, binds exact runtime conformance, and builds the authenticated
+    backtest handoff. PostgreSQL atomically verifies persisted lease identity
+    before enqueue and resolves idempotency retries before evidence preparation.
+    Provider/ETF/TC2000 staged contracts gate only their shared-path integration
+    (canonical Arrow decoding, shared registration/schema/worker wiring); they do
+    not block current package-owned work. Remaining major work includes wiring
+    target-position allocation/risk into native engine execution, broader
+    accounting/persistence and integration validation, and the full-stack final
+    gate.
   next_action: >-
-    Implement the production host SearchDispatchEvidenceResolver in the
-    dedicated preparation boundary. Resolve each candidate's owner-scoped
-    immutable trial graph and authorization, materialize verified runtime
-    inputs, attach the active lease/pool and exact conformance evidence, invoke
-    the host composer, and return the bound evidence to the atomic PostgreSQL
-    outbox dispatch. Keep synchronous assembly outside the FastAPI event loop.
-    Then continue target-position allocation/risk and broader simulator,
-    accounting, persistence, and full-stack acceptance. No stable Nautilus
-    release or unrelated upstream branch blocks this work.
+    Wire the existing pure component-target allocator and shared-risk gate into
+    the Nautilus strategy bridge. Build an adapter-verified account exposure
+    snapshot from native portfolio/account state, resolve simultaneous component
+    targets, translate only approved target deltas into correctly sized native
+    orders using exact instrument economics and precision, and fail closed on
+    unsupported product/FX/margin cases. Add image-backed accounting and
+    multi-component contention coverage; keep forward parity and live-capital
+    restrictions separate. No stable Nautilus release or unrelated upstream
+    branch blocks this package-owned work.

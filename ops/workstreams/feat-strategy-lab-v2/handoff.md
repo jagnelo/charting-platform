@@ -2,6 +2,39 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-03 - Production search-dispatch preparation and idempotent replay
+
+Added `NautilusTrialSearchDispatchEvidenceResolver` as the package-owned
+preparation boundary for queued backtests. It owner-hydrates and checks the
+attempt graph, resolves the pinned strategy package, materializes verified
+frozen inputs, reads the persisted worker pool and lease, verifies isolation and
+lease identity/activity, binds the exact engine/capability evidence, and
+composes the authenticated backtest worker request. This synchronous assembly
+belongs in the dedicated local preparation process, not the FastAPI event loop.
+
+PostgreSQL dispatch now confirms the handoff lease against persisted lease state
+inside the enqueue transaction. An owner-scoped idempotency lookup can replay or
+reject a prior key before expensive evidence resolution; the transaction repeats
+that check to cover concurrent requests. Regression tests verify exact replay,
+conflicting coordinates, lease/admission drift rejection without partial rows,
+and application fast-path replay even when preparation is unavailable.
+
+At pushed source SHA `15bd364c7a1587c44930baac7a30607f3e55129a`, all 1,144
+Strategy Lab v2 tests passed; MyPy passed across 335 package/runtime files; Ruff,
+all seven changed-file format checks, and `git diff --check` passed.
+
+Nautilus stable 2.x is not a blocker. The exact RC5 image-backed fixture has
+already passed the four local backtest checks (validation entry at source SHA
+`f102f310499431b0c892483ec15e376f5503319f`). The fixture receipt itself remains
+non-authoritative until scoped conformance evidence is used by publication.
+RCs remain barred from broker/real-capital use, and forward shadow remains
+separately gated by event-tape parity. Provider, ETF, and TC2000 contracts gate
+only their later shared-path integration, not package-owned implementation.
+
+Next: wire `TargetPositionIntent` through the existing component allocator and
+shared-risk gate into the Nautilus bridge, using adapter-verified native
+account/instrument economics and fail-closed handling for unsupported cases.
+
 ## 2026-10-03 - Host-composed Nautilus backtest dispatch
 
 Added `build_nautilus_trial_worker_request` as the host-side preparation
