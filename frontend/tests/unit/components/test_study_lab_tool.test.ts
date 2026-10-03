@@ -84,6 +84,27 @@ describe('StudyLabTool', () => {
     wrapper.unmount()
   })
 
+  it('does not let a late validation response bless source edited while it was pending', async () => {
+    const pendingValidation = deferred<unknown>()
+    apiPost.mockImplementation((path: string) => path === '/code/validate' ? pendingValidation.promise : Promise.resolve({}))
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+    const source = wrapper.find('[aria-label="Study Python source"]')
+    const validate = wrapper.get('button[aria-label="Validate study"]')
+    const run = wrapper.get('button[aria-label="Run study"]')
+
+    await validate.trigger('click')
+    expect(validate.attributes('disabled')).toBeDefined()
+    await source.setValue("output.scalar('edited-during-validation', 1)")
+    pendingValidation.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+    await flushPromises()
+
+    expect(run.attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('Study source changed since validation. Validate the current source before running.')
+    expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    wrapper.unmount()
+  })
+
   it('discloses selected Market Map source lineage without replacing the canonical source ID', () => {
     const wrapper = mountTool({
       activeSymbol: 'SPY',
