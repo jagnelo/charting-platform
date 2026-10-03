@@ -1,5 +1,74 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-03 — Indicator settings honor quarter-pixel line widths
+
+Product commit `e4aab57c343d1ded1c9b3d7d8538b6c44d076e59` fixes an inconsistency
+between the chart's main plot list and its settings dialog. The dialog now
+rounds to quarter-pixel steps, clamps to `0.25–5`, restores the last valid value
+when cleared, and marks invalid input accessibly instead of leaving Apply
+enabled for a value the browser cannot submit.
+
+At this exact source SHA, the focused ChartPlotLibrary suite passed `43/43`, the
+full frontend suite passed `128/128` files and `1,181/1,181` tests, `vue-tsc`,
+the Vite production build, and the TC scope guard all passed. An initial full
+coverage run exceeded the existing 100,000-point rendering timing check by 32
+ms; its isolated retry took 985 ms and the next full coverage run passed. No
+timing threshold was changed. The pre-existing Workstation bundle-size warning
+remains. No browser test or screenshot baseline was changed for this narrow
+dialog consistency fix.
+
+## 2026-10-03 — Study execution validates the current source
+
+Product commit `57035ba3fd29ecb8610e97de1c40f0e56325a110` fixes a stale-state
+gap in the primary workstation Study Lab. Run was enabled by any earlier
+successful validation, even after the editor contents changed. The tool now
+ties validation to the exact submitted source, shows an accessible
+"Study source changed" status after edits, disables Run, and guards again in
+the action handler. A validation response for old contents cannot validate a
+newer edit. No Python runner, persisted artifact, provider, or ETF contract was
+changed.
+
+At clean exact source SHA `bca2cd5cb5f0b40f99c7f0135ae979a2dee417dd`, frontend
+coverage passed `128/128` files and `1,179/1,179` tests, including
+StudyLabTool `43/43`; `vue-tsc`, the Vite production build, and the TC scope
+guard (`118` touched paths) passed. The existing Workstation bundle-size
+warning remains. Authenticated Chromium flow `F8t-source-freshness` passed
+`1/1`: it proved Run becomes disabled after an edit, no asset/run request is
+sent from stale validation, and the edited source can run after it is
+revalidated. The flow stubbed those API responses, so it proves the browser
+interaction rather than Python execution.
+
+Follow-up test-only commit `1fef32d748ec04bdeadbbb96ef13cc267163904a` adds a
+second regression for a slower validation response arriving after the user has
+edited the source. At this exact source tip, the full frontend suite passed
+`128/128` files and `1,180/1,180` tests, including StudyLabTool `44/44`, and
+type-check, production build, and scope validation passed. The authenticated
+browser flow above was run at `bca2cd5c`; the follow-up changed only the unit
+test file, not the product component or E2E spec.
+
+The normal `make test-stack-up` path stopped before starting containers because
+this host has no Docker Buildx plugin. Ordinary Compose built and started only
+this branch's stack (`E2E_SEED_INSTRUMENTS=true`, `E2E_SEED_MARKET_DATA=false`);
+the focused browser flow passed, and `make test-stack-down` removed the stack,
+four test volumes, network, and four generated images. Resource accounting then
+reported zero containers, volumes, images, test sessions, or unknown
+components. No screenshots, masks, thresholds, visual references, or
+acceptance rules changed. The latest complete pinned visual matrix remains the
+raw `91/104` run at `6f7559f3`; ten repeatable protected screenshot differences
+remain, and three single-run anomalies each passed isolated replay. That matrix
+was not rerun at this Study-only tip.
+
+Current local refs: staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`65a467b43d7830b0875d9c3ad538e47a06d4a6db`, and ETF holdings
+`cfec6a5a0d8f6102bc757bbd431a5fd288b77674`. Neither dependency tip is in
+staging; defer R2/R3 consumption and shared-path reconciliation until both
+reach staging. Continue independent TC-owned R1/R5/R6 work.
+
+Changed product paths: `frontend/src/components/workstation/StudyLabTool.vue`,
+`frontend/tests/unit/components/test_study_lab_tool.test.ts`, and
+`frontend/tests/e2e/flows.spec.ts`.
+
 ## 2026-10-03 — Chart plot line-width validation
 
 Product commit `1ebfe964820265c661a553b73269112d1d0fe622` fixes the Chart Plot

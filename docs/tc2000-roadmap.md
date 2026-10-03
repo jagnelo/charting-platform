@@ -5,6 +5,50 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-03
 
+## 2026-10-03 — Indicator settings honor quarter-pixel line widths
+
+Product commit `e4aab57c343d1ded1c9b3d7d8538b6c44d076e59` aligns the primary
+chart's indicator-settings dialog with the plot list: line widths round to
+quarter-pixel steps and clamp to `0.25–5`; clearing the field restores its last
+valid value. Invalid widths are exposed with `aria-invalid` and cannot be
+applied.
+
+At this exact source tip, the focused ChartPlotLibrary suite passed `43/43`, the
+full coverage-enabled frontend suite passed `128/128` files and `1,181/1,181`
+tests, type-check and production build passed, and the TC scope guard passed all
+118 touched paths. One initial full-suite run exceeded the existing 100,000-
+point rendering timing check by 32 ms; the isolated retry completed in 985 ms,
+and the subsequent complete suite passed. The timing threshold was not changed.
+The existing Workstation bundle-size warning remains. No visual oracle,
+provider/ETF behavior, or acceptance policy changed.
+
+## 2026-10-03 — Study execution validates the current source
+
+Product commit `57035ba3fd29ecb8610e97de1c40f0e56325a110` binds the primary
+workstation Study Lab's Run action to the exact Python source most recently
+validated. Editing code now marks the earlier result stale, announces that the
+current source must be validated again, and disables Run; the action handler
+repeats the guard. Validation responses are recorded against the submitted
+source, so a response arriving after a further edit cannot enable the newer
+code accidentally.
+
+At clean exact tip `bca2cd5cb5f0b40f99c7f0135ae979a2dee417dd`, the full frontend
+coverage suite passed `128/128` files and `1,179/1,179` tests, and frontend
+type-check plus production build passed. The focused authenticated Chromium
+flow `F8t-source-freshness` passed `1/1` against the assigned branch stack,
+including stale-source blocking and successful revalidation. Its API calls for
+validation, asset creation, and run creation were stubbed so this receipt proves
+the browser interaction, not Python execution. No screenshot oracle or provider
+or ETF behavior changed. The ordinary Compose fallback was used because this
+host lacks Docker Buildx; cleanup found zero branch test resources.
+
+Test-only commit `1fef32d748ec04bdeadbbb96ef13cc267163904a` adds coverage for a
+validation response that arrives after another source edit. At that exact tip,
+the full frontend suite passed `128/128` files and `1,180/1,180` tests, with
+StudyLabTool at `44/44`; type-check and production build also passed. The
+browser flow above remains the latest real-browser receipt because this
+follow-up changed only unit tests, not the product component or E2E spec.
+
 ## 2026-10-03 — Chart plot line-width constraints
 
 Product commit `1ebfe964820265c661a553b73269112d1d0fe622` makes the primary
