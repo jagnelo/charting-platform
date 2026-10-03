@@ -2,6 +2,51 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-03 - Scoped RC backtest result publication provenance
+
+Nautilus result materialization now carries typed, content-fingerprinted engine
+provenance: exact v2 package/release channel, source/wheel/runtime-image pin,
+conformance evidence and report, authoritative execution scope, and execution
+plan. The new provenance builder recomputes the conformance report and verifies
+the ready plan, engine/build/snapshot identity, hardened sandbox plan/image,
+scope-required checks, and pre-release restrictions. `plan_result_publication`
+independently recomputes conformance, requires exact plan/result/evidence
+identity, and permits `BACKTEST_AUTHORITATIVE` publication when its four
+simulator checks pass without pretending forward parity passed. PostgreSQL
+canonical decoding now recognizes the nested conformance provenance records.
+
+At clean source SHA `f102f310499431b0c892483ec15e376f5503319f`, all 1,121 Strategy Lab v2 tests passed; scoped
+MyPy passed across 321 files; Ruff and format checks passed for all 17 changed
+Python files. The exact-pinned RC5 image rebuilt as
+`sha256:66ace07d47af15aee57b75dcfaffe2a72df720c35355524efe628cd8f7c3d144`.
+Its actual native fixture ran with networking disabled, read-only root,
+capabilities dropped, no-new-privileges, UID 65532, and bounded CPU, memory,
+file size, PIDs, and temporary storage. `NautilusRcFixtureReceipt` accepted the
+actual JSON: multi-instrument accounting, native order/fill/cost, deterministic
+replay, and lifecycle passed; forward event-tape parity remains explicitly
+deferred; the fixture receipt itself remains non-authoritative. Fixture digest:
+`sha256:b233d6aa9953894f65628247455f6b349590c21946fac0a84797e3e9a78eee3e`.
+
+This closes the local backtest result-provenance/publication seam, not the full
+Strategy Lab goal. Source and native market-event tapes are still
+materialized; worker dispatch/resource hydration, canonical account/instrument
+adapters, target-position allocation/risk, broader asset/product conformance,
+forward parity, and final full-stack-browser validation remain. No stable
+Nautilus tag or upstream branch blocks continued implementation. Provider, ETF,
+and TC2000 contract consumption is only a later shared-path integration gate.
+
+The source commit is pushed to `origin/feat/strategy-lab-v2`; local `HEAD` and
+the tracked remote are both `f102f310499431b0c892483ec15e376f5503319f`.
+
+This checkpoint updates the branch-owned
+`ops/workstreams/feat-strategy-lab-v2/plan.yaml`, `handoff.md`,
+`validation.jsonl`, and `session.json` only.
+
+Next replace full native event-tape bundle materialization with verified,
+content-addressed stream/catalog chunks consumed incrementally by exact-pinned
+RC5, preserving same-time ordering and deterministic replay. Then continue
+owner-scoped trial hydration and atomic runtime dispatch.
+
 ## 2026-10-02 - Bounded Nautilus invocation-result artifact handoff
 
 The invocation-result side of the Nautilus worker handoff is now streamed to a
