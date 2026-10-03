@@ -53,8 +53,10 @@ def _context_and_lookup(
         process,
         NOW,
     )
-    result, evidence, conformance, runtime, integrity = _result()
-    publication = plan_result_publication(result, evidence, conformance, runtime, integrity)
+    result, evidence, conformance, runtime, integrity, execution_plan = _result()
+    publication = plan_result_publication(
+        result, evidence, conformance, runtime, integrity, execution_plan=execution_plan
+    )
     submission_request = SubmissionRequest(
         "worker-evidence-key",
         "backtest",
@@ -411,7 +413,11 @@ async def test_sandbox_artifact_resolver_rejects_multi_artifact_manifest(tmp_pat
     context, lookup = _context_and_lookup(tmp_path)
     assert lookup.inputs.manifest is not None
     artifact = lookup.inputs.manifest.output_artifacts[0]
-    second = replace(artifact, content_digest=content_digest("second-artifact"), storage_key=content_digest("second-artifact"))
+    second = replace(
+        artifact,
+        content_digest=content_digest("second-artifact"),
+        storage_key=content_digest("second-artifact"),
+    )
     manifest = replace(lookup.inputs.manifest, output_artifacts=(artifact, second))
     multi = WorkerTerminalEvidenceLookup(
         lookup.binding,
@@ -424,7 +430,9 @@ async def test_sandbox_artifact_resolver_rejects_multi_artifact_manifest(tmp_pat
 
 
 @pytest.mark.asyncio
-async def test_sandbox_artifact_resolver_accepts_explicit_multi_file_mapping(tmp_path: Path) -> None:
+async def test_sandbox_artifact_resolver_accepts_explicit_multi_file_mapping(
+    tmp_path: Path,
+) -> None:
     context, lookup = _context_and_lookup(tmp_path)
     assert lookup.inputs.manifest is not None
     first = lookup.inputs.manifest.output_artifacts[0]

@@ -21,12 +21,15 @@ class EngineReleaseChannel(StrEnum):
     DEVELOPMENT = "development"
 
 
-NAUTILUS_RELEASE_PIN_VERSION = "strategy-lab.nautilus-release-pin.v1"
+NAUTILUS_RELEASE_PIN_VERSION = "strategy-lab.nautilus-release-pin.v2"
 # The current v2 release-candidate track is intentionally exact rather than a
 # floating ``--pre`` install. Runtime/source/image digests are still supplied
 # by the isolated deployment adapter when it constructs NautilusReleasePin.
 NAUTILUS_V2_RC_PACKAGE_VERSION = "2.0.0rc5"
 NAUTILUS_V2_RC_RELEASE_TAG = "v2.0.0rc5"
+NAUTILUS_V2_RC_WHEEL_SHA256 = (
+    "sha256:eab45fafd2312deda1236554c49a9798bfc76bc8465af864878e2f70189ebebe"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,14 +37,16 @@ class NautilusReleasePin:
     """Exact, isolated runtime material used for one Nautilus build.
 
     The release pin is evidence supplied by the deployment/runtime adapter; it
-    never discovers packages or starts an engine. An authoritative local run
-    needs this identity and a complete fixture pass. Stable or release-candidate
-    builds may qualify; development builds cannot be authoritative.
+    never discovers packages or starts an engine. An authoritative local
+    backtest needs this identity and all four simulator checks; full/forward
+    scope also needs event-tape parity. Stable or release-candidate builds may
+    qualify, while development builds cannot be authoritative.
     """
 
     package_version: str
     release_tag: str
     source_digest: str
+    wheel_digest: str
     runtime_image_digest: str
     python_version: str
     rust_version: str
@@ -58,11 +63,61 @@ class NautilusReleasePin:
         ):
             _nonempty(getattr(self, name), name)
         require_sha256_digest(self.source_digest, field_name="source_digest")
+        require_sha256_digest(self.wheel_digest, field_name="wheel_digest")
         require_sha256_digest(self.runtime_image_digest, field_name="runtime_image_digest")
         if not isinstance(self.legacy_runtime_isolated, bool):
             raise TypeError("legacy_runtime_isolated must be a boolean")
         if not self.package_version.startswith("2."):
             raise ValueError("Nautilus release pin must target v2")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
+class NautilusResultProvenance:
+    """Exact engine materials and gates bound to one Nautilus result."""
+
+    release_pin: NautilusReleasePin
+    release_channel: EngineReleaseChannel
+    conformance_evidence_fingerprint: str
+    conformance_report_fingerprint: str
+    execution_plan_fingerprint: str
+    execution_scope: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.release_pin, NautilusReleasePin):
+            raise TypeError("release_pin must be a NautilusReleasePin")
+        if not isinstance(self.release_channel, EngineReleaseChannel):
+            raise TypeError("release_channel must be an EngineReleaseChannel")
+        for name in (
+            "conformance_evidence_fingerprint",
+            "conformance_report_fingerprint",
+            "execution_plan_fingerprint",
+        ):
+            require_sha256_digest(getattr(self, name), field_name=name)
+        if not isinstance(self.execution_scope, str) or self.execution_scope not in {
+            "full",
+            "backtest_compatibility",
+            "backtest_authoritative",
+            "forward_compatibility",
+        }:
+            raise ValueError("execution_scope is not a supported Nautilus scope")
+        if not self.release_pin.package_version.startswith("2."):
+            raise ValueError("Nautilus result provenance must target v2")
+        if self.release_channel is EngineReleaseChannel.RELEASE_CANDIDATE and not (
+            re.search(
+                r"(?:alpha|beta|rc|pre)(?:[-._]?\d+)?",
+                self.release_pin.package_version,
+                re.IGNORECASE,
+            )
+        ):
+            raise ValueError("release-candidate provenance requires a prerelease version")
+        if self.release_channel is EngineReleaseChannel.STABLE and not _stable_release_version(
+            self.release_pin.package_version, self.release_pin.release_tag
+        ):
+            raise ValueError("stable provenance cannot identify a prerelease")
 
     @property
     def fingerprint(self) -> str:

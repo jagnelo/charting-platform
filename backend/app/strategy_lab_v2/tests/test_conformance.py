@@ -25,6 +25,7 @@ PIN = NautilusReleasePin(
     package_version="2.0.0",
     release_tag="v2.0.0",
     source_digest=content_digest("nautilus-source-v2.0.0"),
+    wheel_digest=content_digest("nautilus-wheel-v2.0.0"),
     runtime_image_digest=content_digest("nautilus-runtime-v2.0.0"),
     python_version="3.12.11",
     rust_version="1.88.0",

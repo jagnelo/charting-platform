@@ -14,6 +14,13 @@ from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.conformance import (
+    EngineConformanceEvidence,
+    EngineConformanceReport,
+    EngineReleaseChannel,
+    NautilusResultProvenance,
+    evaluate_engine_conformance,
+)
 from app.strategy_lab_v2.contracts import (
     ArtifactManifest,
     AttemptState,
@@ -25,6 +32,12 @@ from app.strategy_lab_v2.contracts import (
     ScientificTrial,
     StrategyPackage,
 )
+from app.strategy_lab_v2.engine_execution import (
+    EngineExecutionDecision,
+    NautilusExecutionPlan,
+    NautilusExecutionScope,
+)
+from app.strategy_lab_v2.sandbox import SandboxCommandPlan, sandbox_runtime_image_digest
 
 
 def _nonempty(value: str, field_name: str) -> None:
@@ -35,6 +48,73 @@ def _nonempty(value: str, field_name: str) -> None:
 def _aware(value: datetime, field_name: str) -> None:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError(f"{field_name} must be timezone-aware")
+
+
+def build_nautilus_result_provenance(
+    execution_plan: NautilusExecutionPlan,
+    conformance_evidence: EngineConformanceEvidence,
+    conformance_report: EngineConformanceReport,
+    sandbox_plan: SandboxCommandPlan,
+) -> NautilusResultProvenance:
+    """Build result provenance only from a matching gated Nautilus invocation."""
+
+    if not isinstance(execution_plan, NautilusExecutionPlan):
+        raise TypeError("execution_plan must be a NautilusExecutionPlan")
+    if not isinstance(conformance_evidence, EngineConformanceEvidence):
+        raise TypeError("conformance_evidence must be an EngineConformanceEvidence")
+    if not isinstance(conformance_report, EngineConformanceReport):
+        raise TypeError("conformance_report must be an EngineConformanceReport")
+    if not isinstance(sandbox_plan, SandboxCommandPlan):
+        raise TypeError("sandbox_plan must be a SandboxCommandPlan")
+    if execution_plan.decision is not EngineExecutionDecision.READY:
+        raise ValueError("result provenance requires a ready Nautilus execution plan")
+    if execution_plan.engine_id.lower() != "nautilus":
+        raise ValueError("result provenance requires a Nautilus execution plan")
+    expected_report = evaluate_engine_conformance(conformance_evidence)
+    if (
+        conformance_evidence.fingerprint != conformance_report.evidence_fingerprint
+        or expected_report.fingerprint != conformance_report.fingerprint
+        or execution_plan.conformance_report_fingerprint != conformance_report.fingerprint
+    ):
+        raise ValueError("result provenance conformance evidence does not match its plan")
+    if (
+        execution_plan.engine_version != conformance_evidence.engine_version
+        or execution_plan.engine_build_digest != conformance_evidence.build_digest
+        or execution_plan.engine_id.lower() != conformance_evidence.engine_id.lower()
+    ):
+        raise ValueError("result provenance engine identity does not match conformance evidence")
+    if execution_plan.sandbox_plan_fingerprint != sandbox_plan.fingerprint:
+        raise ValueError("result provenance sandbox plan does not match execution plan")
+    if not conformance_report.release_pin_valid or conformance_evidence.release_pin is None:
+        raise ValueError("result provenance requires a valid isolated v2 release pin")
+    if (
+        sandbox_runtime_image_digest(sandbox_plan)
+        != conformance_evidence.release_pin.runtime_image_digest
+    ):
+        raise ValueError("result provenance sandbox image does not match the release pin")
+    if execution_plan.execution_scope.required_checks - conformance_evidence.passed_checks:
+        raise ValueError("result provenance is missing required scope conformance checks")
+    if execution_plan.authoritative:
+        if execution_plan.execution_scope not in {
+            NautilusExecutionScope.FULL,
+            NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
+        }:
+            raise ValueError("authoritative result provenance requires an authoritative scope")
+        if (
+            execution_plan.execution_scope is NautilusExecutionScope.FULL
+            and not conformance_report.authoritative
+        ):
+            raise ValueError("full-scope authority requires complete conformance")
+        if conformance_evidence.release_channel is EngineReleaseChannel.DEVELOPMENT:
+            raise ValueError("development Nautilus builds cannot be authoritative")
+    return NautilusResultProvenance(
+        release_pin=conformance_evidence.release_pin,
+        release_channel=conformance_evidence.release_channel,
+        conformance_evidence_fingerprint=conformance_evidence.fingerprint,
+        conformance_report_fingerprint=conformance_report.fingerprint,
+        execution_plan_fingerprint=execution_plan.fingerprint,
+        execution_scope=execution_plan.execution_scope.value,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +133,7 @@ class EngineResultEvidence:
     artifact_content_digests: tuple[str, ...]
     observed_at: datetime
     authoritative: bool = False
+    engine_provenance: NautilusResultProvenance | None = None
 
     def __post_init__(self) -> None:
         require_sha256_digest(self.trial_id, field_name="trial_id")
@@ -80,6 +161,20 @@ class EngineResultEvidence:
         _aware(self.observed_at, "observed_at")
         if not isinstance(self.authoritative, bool):
             raise TypeError("engine result authoritative must be a boolean")
+        if self.engine_name.lower() == "nautilus":
+            if not isinstance(self.engine_provenance, NautilusResultProvenance):
+                raise ValueError("Nautilus result evidence requires exact execution provenance")
+            if self.engine_provenance.release_pin.package_version != self.engine_version:
+                raise ValueError("Nautilus result version must match its release pin")
+            if self.authoritative and self.engine_provenance.execution_scope not in {
+                "full",
+                "backtest_authoritative",
+            }:
+                raise ValueError("authoritative Nautilus evidence requires an authoritative scope")
+            if self.authoritative and self.engine_provenance.release_channel.value == "development":
+                raise ValueError("development Nautilus builds cannot be authoritative")
+        elif self.engine_provenance is not None:
+            raise ValueError("Nautilus provenance cannot be attached to another engine")
         object.__setattr__(self, "observed_at", self.observed_at.astimezone(UTC))
         object.__setattr__(self, "artifact_content_digests", tuple(sorted(artifacts)))
 
@@ -110,20 +205,32 @@ class ResultMaterializationResolution:
         require_sha256_digest(self.candidate_fingerprint, field_name="candidate_fingerprint")
         if self.manifest is not None and not isinstance(self.manifest, RunResultManifest):
             raise TypeError("manifest must be a RunResultManifest")
-        if self.decision in {
-            ResultMaterializationDecision.MATERIALIZE,
-            ResultMaterializationDecision.REPLAY_EXISTING,
-        } and self.manifest is None:
+        if (
+            self.decision
+            in {
+                ResultMaterializationDecision.MATERIALIZE,
+                ResultMaterializationDecision.REPLAY_EXISTING,
+            }
+            and self.manifest is None
+        ):
             raise ValueError("successful materialization requires a manifest")
-        if self.decision in {
-            ResultMaterializationDecision.CONFLICT,
-            ResultMaterializationDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ResultMaterializationDecision.CONFLICT,
+                ResultMaterializationDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("conflicts and rejections require a reason")
-        if self.decision in {
-            ResultMaterializationDecision.MATERIALIZE,
-            ResultMaterializationDecision.REPLAY_EXISTING,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ResultMaterializationDecision.MATERIALIZE,
+                ResultMaterializationDecision.REPLAY_EXISTING,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful materialization cannot contain a rejection reason")
 
     @property
@@ -250,6 +357,7 @@ def materialize_run_result(
         output_artifacts=artifacts,
         created_at=created_at,
         engine_authoritative=evidence.authoritative,
+        engine_provenance=evidence.engine_provenance,
     )
     candidate_fingerprint = manifest.fingerprint
     if existing is None:

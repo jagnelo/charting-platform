@@ -20,6 +20,7 @@ from typing import Any, Protocol, TypeVar, cast
 from app.strategy_lab_v2 import (
     admission,
     capabilities,
+    conformance,
     contracts,
     engine_execution,
     execution,
@@ -278,11 +279,11 @@ class PostgresResultMaterializationAdapter:
             if persisted.decision is ResultManifestStateDecision.REGISTERED
             else ResultMaterializationDecision.REPLAY_EXISTING
         )
-        return ResultMaterializationResolution(decision, candidate.candidate_fingerprint, candidate.manifest)
+        return ResultMaterializationResolution(
+            decision, candidate.candidate_fingerprint, candidate.manifest
+        )
 
-    async def load(
-        self, *, principal: Any, attempt_id: str
-    ) -> PersistedResultManifest | None:
+    async def load(self, *, principal: Any, attempt_id: str) -> PersistedResultManifest | None:
         """Read the canonical manifest projection for one owner-scoped attempt."""
 
         _validate_attempt(attempt_id)
@@ -319,12 +320,12 @@ class PostgresResultMaterializationAdapter:
                 )
                 ordered = tuple(sorted(records, key=lambda item: item.attempt_id))
                 if records != ordered:
-                    raise ValueError("PostgreSQL result manifests are not deterministically ordered")
+                    raise ValueError(
+                        "PostgreSQL result manifests are not deterministically ordered"
+                    )
                 return records
 
-    async def load_manifest(
-        self, *, principal: Any, attempt_id: str
-    ) -> RunResultManifest | None:
+    async def load_manifest(self, *, principal: Any, attempt_id: str) -> RunResultManifest | None:
         """Read and fully rehydrate one authenticated result manifest."""
 
         record = await self.load(principal=principal, attempt_id=attempt_id)
@@ -338,9 +339,7 @@ class PostgresResultMaterializationAdapter:
         records = await self.load_all(principal=principal)
         return tuple(_decode_authenticated_manifest(record) for record in records)
 
-    async def load_artifacts(
-        self, *, principal: Any
-    ) -> tuple[PersistedArtifactReference, ...]:
+    async def load_artifacts(self, *, principal: Any) -> tuple[PersistedArtifactReference, ...]:
         """Read owner-scoped artifact references from authenticated manifests.
 
         Artifact metadata is immutable result provenance, so the manifest table
@@ -499,9 +498,7 @@ def decode_canonical_contract(payload: str, expected_type: type[_ContractT]) -> 
         root = json.loads(payload)
         decoded = _decode_canonical_value(root)
         if not isinstance(decoded, expected_type):
-            raise ValueError(
-                f"canonical payload root is not a {expected_type.__qualname__}"
-            )
+            raise ValueError(f"canonical payload root is not a {expected_type.__qualname__}")
         if canonical_json(decoded) != payload:
             raise ValueError("canonical payload is not canonical")
     except (TypeError, ValueError, json.JSONDecodeError) as error:
@@ -518,8 +515,10 @@ def _decode_canonical_value(value: Any) -> Any:
             raise ValueError("null canonical value is malformed")
         return None
     if tag in {"bool", "str"}:
-        if len(value) != 2 or (tag == "bool" and not isinstance(value[1], bool)) or (
-            tag == "str" and not isinstance(value[1], str)
+        if (
+            len(value) != 2
+            or (tag == "bool" and not isinstance(value[1], bool))
+            or (tag == "str" and not isinstance(value[1], str))
         ):
             raise ValueError(f"{tag} canonical value is malformed")
         return value[1]
@@ -631,15 +630,15 @@ def _decode_canonical_dataclass(value: list[Any]) -> Any:
         if item[0] in decoded_fields:
             raise ValueError("dataclass canonical value contains duplicate fields")
         decoded_fields[item[0]] = _decode_canonical_value(item[1])
-    dataclass_fields = tuple(field for field in fields(dataclass_type) if not field.name.startswith("_"))
+    dataclass_fields = tuple(
+        field for field in fields(dataclass_type) if not field.name.startswith("_")
+    )
     expected_fields = {field.name for field in dataclass_fields}
     if set(decoded_fields) != expected_fields:
         raise ValueError("dataclass canonical value fields do not match its schema")
     try:
         constructor_values = {
-            field.name: decoded_fields[field.name]
-            for field in dataclass_fields
-            if field.init
+            field.name: decoded_fields[field.name] for field in dataclass_fields if field.init
         }
         return dataclass_type(**constructor_values)
     except (TypeError, ValueError) as error:
@@ -651,6 +650,7 @@ def _canonical_dataclass_registry() -> dict[str, type[Any]]:
     for module in (
         admission,
         capabilities,
+        conformance,
         contracts,
         engine_execution,
         execution,
@@ -676,6 +676,7 @@ def _canonical_enum_registry() -> dict[str, type[Enum]]:
     for module in (
         admission,
         capabilities,
+        conformance,
         contracts,
         engine_execution,
         execution,

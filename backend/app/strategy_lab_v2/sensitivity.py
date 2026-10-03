@@ -895,6 +895,7 @@ def _fixed_execution_context(result: RunResultManifest) -> tuple[Any, ...]:
         result.engine_name,
         result.engine_version,
         result.engine_build_digest,
+        result.engine_provenance,
         result.allocation_definition_version,
         result.dependency_catalog_digest,
         result.assumptions_digest,

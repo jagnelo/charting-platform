@@ -58,10 +58,7 @@ class FakeSession:
                     values.get("publication_fingerprint") is None
                     or row["publication_fingerprint"] == values["publication_fingerprint"]
                 )
-                and (
-                    values.get("attempt_id") is None
-                    or row["attempt_id"] == values["attempt_id"]
-                )
+                and (values.get("attempt_id") is None or row["attempt_id"] == values["attempt_id"])
             ]
             return FakeResult(sorted(rows, key=lambda row: row["publication_fingerprint"]))
         if normalized.startswith("INSERT INTO"):
@@ -75,10 +72,12 @@ class FakeSession:
 
 @pytest.mark.asyncio
 async def test_result_publication_adapter_registers_replays_and_scopes() -> None:
-    result, evidence, conformance, runtime, integrity = _result()
+    result, evidence, conformance, runtime, integrity, execution_plan = _result()
     plan = __import__(
         "app.strategy_lab_v2.result_publication", fromlist=["plan_result_publication"]
-    ).plan_result_publication(result, evidence, conformance, runtime, integrity)
+    ).plan_result_publication(
+        result, evidence, conformance, runtime, integrity, execution_plan=execution_plan
+    )
     session = FakeSession()
     adapter = PostgresResultPublicationAdapter(lambda: session)
     registered = await adapter.ensure(principal="owner-a", plan=plan)
@@ -92,10 +91,12 @@ async def test_result_publication_adapter_registers_replays_and_scopes() -> None
 
 @pytest.mark.asyncio
 async def test_result_publication_adapter_preserves_rejected_plans_and_conflicts() -> None:
-    result, evidence, conformance, runtime, integrity = _result()
+    result, evidence, conformance, runtime, integrity, execution_plan = _result()
     from app.strategy_lab_v2.result_publication import plan_result_publication
 
-    plan = plan_result_publication(result, evidence, conformance, runtime, integrity)
+    plan = plan_result_publication(
+        result, evidence, conformance, runtime, integrity, execution_plan=execution_plan
+    )
     rejected = replace(
         plan,
         decision=ResultPublicationDecision.REJECT,
@@ -104,21 +105,25 @@ async def test_result_publication_adapter_preserves_rejected_plans_and_conflicts
     session = FakeSession()
     adapter = PostgresResultPublicationAdapter(lambda: session)
     await adapter.ensure(principal="owner-a", plan=rejected)
-    assert await adapter.load_for_attempt(principal="owner-a", attempt_id=plan.attempt_id) == (rejected,)
+    assert await adapter.load_for_attempt(principal="owner-a", attempt_id=plan.attempt_id) == (
+        rejected,
+    )
     changed = replace(rejected, rejection_reasons=("different_gate",))
     changed_result = await adapter.ensure(principal="owner-a", plan=changed)
     assert changed_result.decision is PublicationStateDecision.REGISTERED
-    assert await adapter.load_for_attempt(
-        principal="owner-a", attempt_id=plan.attempt_id
-    ) == tuple(sorted((rejected, changed), key=lambda item: item.fingerprint))
+    assert await adapter.load_for_attempt(principal="owner-a", attempt_id=plan.attempt_id) == tuple(
+        sorted((rejected, changed), key=lambda item: item.fingerprint)
+    )
 
 
 @pytest.mark.asyncio
 async def test_result_publication_adapter_rejects_tampered_rows() -> None:
-    result, evidence, conformance, runtime, integrity = _result()
+    result, evidence, conformance, runtime, integrity, execution_plan = _result()
     from app.strategy_lab_v2.result_publication import plan_result_publication
 
-    plan = plan_result_publication(result, evidence, conformance, runtime, integrity)
+    plan = plan_result_publication(
+        result, evidence, conformance, runtime, integrity, execution_plan=execution_plan
+    )
     session = FakeSession()
     adapter = PostgresResultPublicationAdapter(lambda: session)
     await adapter.ensure(principal="owner-a", plan=plan)

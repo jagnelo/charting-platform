@@ -17,6 +17,11 @@ from app.strategy_lab_v2.capabilities import (
     PreflightClass,
     preflight_capabilities,
 )
+from app.strategy_lab_v2.conformance import (
+    EngineReleaseChannel,
+    NautilusReleasePin,
+    NautilusResultProvenance,
+)
 from app.strategy_lab_v2.contracts import (
     AdjustmentMode,
     ArtifactManifest,
@@ -402,9 +407,7 @@ def test_search_grid_random_and_latin_hypercube_are_deterministic() -> None:
     assert [item.replicate_index for item in independent_replicates] == [0, 1, 2]
     assert all(item.randomization.replicate_count == 3 for item in independent_replicates)
     assert len({item.seed for item in independent_replicates}) == 3
-    assert len(
-        {item.randomization.seed_group_fingerprint for item in independent_replicates}
-    ) == 3
+    assert len({item.randomization.seed_group_fingerprint for item in independent_replicates}) == 3
     assert all(item.randomization.has_schedule_provenance for item in independent_replicates)
 
 
@@ -445,8 +448,7 @@ def test_trial_seed_sharing_is_explicit_replicated_and_identity_bound() -> None:
         peers = [
             other
             for other in plans
-            if other.scenario == item.scenario
-            and other.replicate_index == item.replicate_index
+            if other.scenario == item.scenario and other.replicate_index == item.replicate_index
         ]
         assert len(peers) == 3
         assert {other.seed for other in peers} == {item.seed}
@@ -496,8 +498,14 @@ def test_trial_seed_sharing_is_explicit_replicated_and_identity_bound() -> None:
         replicate_count=3,
         scope_fingerprint=content_digest({"experiment": "another-scope"}),
     )
-    assert plans[0].randomization.seed_group_fingerprint != other_master_seed[0].randomization.seed_group_fingerprint
-    assert plans[0].randomization.seed_group_fingerprint != other_scope[0].randomization.seed_group_fingerprint
+    assert (
+        plans[0].randomization.seed_group_fingerprint
+        != other_master_seed[0].randomization.seed_group_fingerprint
+    )
+    assert (
+        plans[0].randomization.seed_group_fingerprint
+        != other_scope[0].randomization.seed_group_fingerprint
+    )
 
     preflight = preflight_capabilities((_requirement(),), (_cell(),))
     first = ScientificTrial.create(
@@ -623,9 +631,7 @@ def test_sdk_intents_are_typed_scoped_and_context_is_read_only() -> None:
         random_seed=7,
         parameters={"fast": 4},
         market_events={"daily-bars": (market_event,)},
-        positions={
-            "US.AAPL": PositionSnapshot("US.AAPL", Decimal(2), Decimal(180), Decimal(360))
-        },
+        positions={"US.AAPL": PositionSnapshot("US.AAPL", Decimal(2), Decimal(180), Decimal(360))},
     )
     assert context.parameters["fast"] == 4
     assert context.market_events["daily-bars"][0].values["close"] == Decimal("190.25")
@@ -689,9 +695,7 @@ def test_sdk_intents_are_typed_scoped_and_context_is_read_only() -> None:
             random_seed=7,
             parameters={},
             market_events={
-                "daily-bars": (
-                    replace(market_event, event_time=START - timedelta(seconds=1)),
-                )
+                "daily-bars": (replace(market_event, event_time=START - timedelta(seconds=1)),)
             },
         )
     with pytest.raises(ValueError, match="declared interval"):
@@ -702,9 +706,7 @@ def test_sdk_intents_are_typed_scoped_and_context_is_read_only() -> None:
             random_seed=7,
             parameters={},
             market_events={
-                "daily-bars": (
-                    replace(market_event, event_time=END + timedelta(days=1)),
-                )
+                "daily-bars": (replace(market_event, event_time=END + timedelta(days=1)),)
             },
         )
     intents = validate_strategy_output(
@@ -793,9 +795,7 @@ def test_scientific_contracts_canonicalize_dependency_and_strategy_order() -> No
         StrategyDependency("z-model", "2.0.0", content_digest("z-model")),
         StrategyDependency("a-model", "1.0.0", content_digest("a-model")),
     )
-    first_strategy = StrategyVersion(
-        "s-1", "v-1", "2.0", SOURCE_DIGEST, dependencies=dependencies
-    )
+    first_strategy = StrategyVersion("s-1", "v-1", "2.0", SOURCE_DIGEST, dependencies=dependencies)
     second_strategy = StrategyVersion(
         "s-1", "v-1", "2.0", SOURCE_DIGEST, dependencies=tuple(reversed(dependencies))
     )
@@ -903,7 +903,14 @@ def test_sdk_public_boundaries_reject_malformed_runtime_values() -> None:
     with pytest.raises(TypeError, match="order type"):
         OrderIntent("US.AAPL", OrderSide.BUY, Decimal("1"), "market")  # type: ignore[arg-type]
     with pytest.raises(TypeError, match="manifest"):
-        build_strategy_context("bad", event_time=END, event_sequence=0, random_seed=1, parameters={}, market_events={})  # type: ignore[arg-type]
+        build_strategy_context(
+            "bad",  # type: ignore[arg-type]
+            event_time=END,
+            event_sequence=0,
+            random_seed=1,
+            parameters={},
+            market_events={},
+        )
     with pytest.raises(TypeError, match="manifest"):
         validate_strategy_output("bad", ())  # type: ignore[arg-type]
 
@@ -938,9 +945,7 @@ def test_metric_contracts_include_basis_sample_size_and_null_reason() -> None:
         for item in calculate_trade_metrics((Decimal(10), Decimal(-5)), base_currency="USD")
     }
     assert trade_metrics["profit_factor"].value == Decimal(2)
-    no_trades = {
-        item.name: item for item in calculate_trade_metrics((), base_currency="USD")
-    }
+    no_trades = {item.name: item for item in calculate_trade_metrics((), base_currency="USD")}
     assert no_trades["win_rate"].value is None
     assert no_trades["win_rate"].null_reason == "no completed trades"
 
@@ -1175,6 +1180,23 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
         ),
         created_at=created,
         engine_authoritative=True,
+        engine_provenance=NautilusResultProvenance(
+            NautilusReleasePin(
+                package_version="2.0.0",
+                release_tag="v2.0.0",
+                source_digest=content_digest("nautilus-source"),
+                wheel_digest=content_digest("nautilus-wheel"),
+                runtime_image_digest=content_digest("nautilus-image"),
+                python_version="3.12.11",
+                rust_version="1.88.0",
+                legacy_runtime_isolated=True,
+            ),
+            EngineReleaseChannel.STABLE,
+            content_digest("conformance-evidence"),
+            content_digest("conformance-report"),
+            content_digest("execution-plan"),
+            "full",
+        ),
     )
 
     raw_payload = b"engine-result"
@@ -1197,9 +1219,7 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
         verify_run_result_artifacts(raw_result, (integrity, integrity))
 
     def result_for_trial(trial: ScientificTrial, attempt_id: str) -> RunResultManifest:
-        attempt = RunAttempt(
-            attempt_id, trial.trial_id, 1, AttemptState.SUCCEEDED, created
-        )
+        attempt = RunAttempt(attempt_id, trial.trial_id, 1, AttemptState.SUCCEEDED, created)
         trial_metrics = replace(
             metric_set,
             metric_set_id=f"metrics-{attempt_id}",
@@ -1297,17 +1317,16 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
             artifact_for(pairing_claim.fingerprint),
         ),
     )
-    paired_evidence = SensitivityComparisonEvidence(
-        paired_baseline, paired_variant, pairing_claim
-    )
+    paired_evidence = SensitivityComparisonEvidence(paired_baseline, paired_variant, pairing_claim)
     paired_delta = compare_one_factor_metric(
         paired_evidence, metric_name="total_return", basis=MetricBasis.NET
     )
     assert isinstance(paired_delta, MetricDeltaUnavailable)
     assert paired_delta.evidence_level is SensitivityEvidenceLevel.PAIRING_CLAIM_UNVERIFIED
-    assert paired_evidence.fingerprint == SensitivityComparisonEvidence(
-        paired_baseline, paired_variant, pairing_claim
-    ).fingerprint
+    assert (
+        paired_evidence.fingerprint
+        == SensitivityComparisonEvidence(paired_baseline, paired_variant, pairing_claim).fingerprint
+    )
     assert paired_evidence.evidence_level is SensitivityEvidenceLevel.PAIRING_CLAIM_UNVERIFIED
 
     incomplete_baseline = replace(

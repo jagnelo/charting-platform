@@ -32,6 +32,7 @@ def _inputs():
         tuple(item.content_digest for item in result.output_artifacts),
         NOW,
         True,
+        result.engine_provenance,
     )
     return result, evidence
 
@@ -152,9 +153,29 @@ def test_result_materialization_conflicts_with_changed_existing_content() -> Non
 def test_result_materialization_validates_types_and_time() -> None:
     result, evidence = _inputs()
     with pytest.raises(TypeError, match="trial"):
-        materialize_run_result("bad", result.attempt, result.strategy_packages, result.portfolio, result.snapshot, evidence, result.metric_set, result.output_artifacts, created_at=NOW)  # type: ignore[arg-type]
+        materialize_run_result(
+            "bad",  # type: ignore[arg-type]
+            result.attempt,
+            result.strategy_packages,
+            result.portfolio,
+            result.snapshot,
+            evidence,
+            result.metric_set,
+            result.output_artifacts,
+            created_at=NOW,
+        )
     with pytest.raises(ValueError, match="timezone-aware"):
-        materialize_run_result(result.trial, result.attempt, result.strategy_packages, result.portfolio, result.snapshot, evidence, result.metric_set, result.output_artifacts, created_at=datetime(2024, 1, 1))
+        materialize_run_result(
+            result.trial,
+            result.attempt,
+            result.strategy_packages,
+            result.portfolio,
+            result.snapshot,
+            evidence,
+            result.metric_set,
+            result.output_artifacts,
+            created_at=datetime(2024, 1, 1),
+        )
 
 
 def test_engine_evidence_canonicalizes_artifact_order() -> None:
@@ -174,5 +195,6 @@ def test_engine_evidence_canonicalizes_artifact_order() -> None:
         (second, first),
         NOW,
         True,
+        result.engine_provenance,
     )
     assert evidence.artifact_content_digests == tuple(sorted((first, second)))

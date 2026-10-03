@@ -12,6 +12,7 @@ WORKDIR /opt/strategy-lab-v2
 
 RUN test -n "${NAUTILUS_WHEEL_URL}" \
     && test -n "${NAUTILUS_WHEEL_SHA256}" \
+    && test "${NAUTILUS_WHEEL_SHA256}" = "eab45fafd2312deda1236554c49a9798bfc76bc8465af864878e2f70189ebebe" \
     && test -n "${NAUTILUS_WHEEL_FILENAME}"
 
 ADD --checksum=sha256:${NAUTILUS_WHEEL_SHA256} ${NAUTILUS_WHEEL_URL} /tmp/${NAUTILUS_WHEEL_FILENAME}

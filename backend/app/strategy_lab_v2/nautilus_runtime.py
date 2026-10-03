@@ -20,6 +20,7 @@ from app.strategy_lab_v2.conformance import (
     NAUTILUS_RELEASE_PIN_VERSION,
     NAUTILUS_V2_RC_PACKAGE_VERSION,
     NAUTILUS_V2_RC_RELEASE_TAG,
+    NAUTILUS_V2_RC_WHEEL_SHA256,
     ConformanceCheck,
     EngineReleaseChannel,
     NautilusReleasePin,
@@ -179,20 +180,24 @@ class NautilusRcCompatibilityRuntime:
 
     The package/tag are deliberately not caller-selectable: changing either
     value creates a different release track and requires a new reviewed
-    contract.  Runtime/source digests are supplied by the image/build adapter
-    and bind the resulting process to immutable material.
+    contract. The exact package-wheel digest is pinned alongside source/image
+    digests supplied by the image/build adapter.
     """
 
     source_digest: str
     runtime_image_digest: str
     python_version: str
     rust_version: str
+    wheel_digest: str = NAUTILUS_V2_RC_WHEEL_SHA256
     legacy_runtime_isolated: bool = True
     contract_version: str = NAUTILUS_RELEASE_PIN_VERSION
 
     def __post_init__(self) -> None:
         require_sha256_digest(self.source_digest, field_name="source_digest")
         require_sha256_digest(self.runtime_image_digest, field_name="runtime_image_digest")
+        require_sha256_digest(self.wheel_digest, field_name="wheel_digest")
+        if self.wheel_digest != NAUTILUS_V2_RC_WHEEL_SHA256:
+            raise ValueError("the exact Nautilus RC5 wheel digest cannot be overridden")
         for name in ("python_version", "rust_version", "contract_version"):
             _nonempty(getattr(self, name), name)
         if not isinstance(self.legacy_runtime_isolated, bool):
@@ -226,6 +231,7 @@ class NautilusRcCompatibilityRuntime:
             package_version=self.package_version,
             release_tag=self.release_tag,
             source_digest=self.source_digest,
+            wheel_digest=self.wheel_digest,
             runtime_image_digest=self.runtime_image_digest,
             python_version=self.python_version,
             rust_version=self.rust_version,

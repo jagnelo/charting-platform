@@ -107,6 +107,7 @@ def _conformance(
             package_version=version,
             release_tag="v2.0.0" if channel is EngineReleaseChannel.STABLE else "v2.0.0rc5",
             source_digest=content_digest("nautilus-source"),
+            wheel_digest=content_digest("nautilus-wheel"),
             runtime_image_digest=content_digest("runtime-image"),
             python_version="3.12.11",
             rust_version="1.88.0",

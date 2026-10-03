@@ -15,6 +15,7 @@ from app.strategy_lab_v2.canonical import (
     freeze_json,
     require_sha256_digest,
 )
+from app.strategy_lab_v2.conformance import NautilusResultProvenance
 from app.strategy_lab_v2.decimal_math import deterministic_decimal_math
 from app.strategy_lab_v2.observations import ObservationPoint
 from app.strategy_lab_v2.rebalance import CalendarRebalancePolicy
@@ -309,9 +310,7 @@ OPTION_DELTA_NOTIONAL_RISK_MODEL = ProductRiskModel(
 FX_BASE_NOTIONAL_RISK_MODEL = ProductRiskModel(
     product_class=ProductClass.FX,
     exposure_measure=RiskExposureMeasure.SIGNED_BASE_CURRENCY_NOTIONAL,
-    definition_digest=content_digest(
-        {"model": "fx-pair-base-currency-notional", "version": 1}
-    ),
+    definition_digest=content_digest({"model": "fx-pair-base-currency-notional", "version": 1}),
 )
 
 SUPPORTED_PRODUCT_RISK_MODELS = (
@@ -1215,7 +1214,9 @@ class SessionReturnDistribution:
         if not isinstance(self.returns_flow_adjusted, bool):
             raise TypeError("returns_flow_adjusted must be a bool")
         if self.returns_flow_adjusted and self.external_flows_occurred is not True:
-            raise ValueError("flow-adjusted distributions require external-flow occurrence evidence")
+            raise ValueError(
+                "flow-adjusted distributions require external-flow occurrence evidence"
+            )
         if self.external_cash_flow_reports_complete != (self.external_flows_occurred is not None):
             raise ValueError(
                 "complete flow reports require occurrence evidence; incomplete reports must be unknown"
@@ -1352,6 +1353,7 @@ class RunResultManifest:
     output_artifacts: tuple[ArtifactManifest, ...]
     created_at: datetime
     engine_authoritative: bool = False
+    engine_provenance: NautilusResultProvenance | None = None
 
     def __post_init__(self) -> None:
         for name, record, record_type in (
@@ -1384,6 +1386,23 @@ class RunResultManifest:
             raise TypeError("result engine_authoritative must be a boolean")
         for name in ("engine_name", "engine_version", "allocation_definition_version"):
             _nonempty(getattr(self, name), name)
+        if self.engine_name.lower() == "nautilus":
+            if not isinstance(self.engine_provenance, NautilusResultProvenance):
+                raise ValueError("Nautilus results require exact release and execution provenance")
+            if self.engine_provenance.release_pin.package_version != self.engine_version:
+                raise ValueError("Nautilus result version must match its release pin")
+            if self.engine_authoritative and self.engine_provenance.execution_scope not in {
+                "full",
+                "backtest_authoritative",
+            }:
+                raise ValueError("authoritative Nautilus results require an authoritative scope")
+            if (
+                self.engine_authoritative
+                and self.engine_provenance.release_channel.value == "development"
+            ):
+                raise ValueError("development Nautilus builds cannot authoritatively publish")
+        elif self.engine_provenance is not None:
+            raise ValueError("Nautilus release provenance cannot be attached to another engine")
         packages = tuple(self.strategy_packages)
         artifacts = tuple(self.output_artifacts)
         if any(not isinstance(item, StrategyPackage) for item in packages):
@@ -1471,6 +1490,7 @@ class RunResultManifest:
                 "engine_version": self.engine_version,
                 "engine_build_digest": self.engine_build_digest,
                 "engine_authoritative": self.engine_authoritative,
+                "engine_provenance": self.engine_provenance,
                 "dependency_catalog_digest": self.dependency_catalog_digest,
                 "assumptions_digest": self.assumptions_digest,
                 "seed": self.seed,

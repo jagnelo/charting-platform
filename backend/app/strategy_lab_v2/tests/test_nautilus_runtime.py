@@ -10,6 +10,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.conformance import (
     NAUTILUS_V2_RC_PACKAGE_VERSION,
     NAUTILUS_V2_RC_RELEASE_TAG,
+    NAUTILUS_V2_RC_WHEEL_SHA256,
     ConformanceCheck,
     EngineConformanceEvidence,
     EngineReleaseChannel,
@@ -82,6 +83,7 @@ def test_rc_runtime_declaration_binds_exact_pin_and_non_authority() -> None:
     assert runtime.release_channel is EngineReleaseChannel.RELEASE_CANDIDATE
     assert runtime.authoritative is False
     assert runtime.release_pin.package_version == runtime.package_version
+    assert runtime.release_pin.wheel_digest == NAUTILUS_V2_RC_WHEEL_SHA256
     assert runtime.release_pin.fingerprint.startswith("sha256:")
     assert runtime.fingerprint.startswith("sha256:")
 
@@ -114,6 +116,17 @@ def test_rc_runtime_rejects_shared_legacy_environment() -> None:
             python_version="3.12.11",
             rust_version="1.88.0",
             legacy_runtime_isolated=False,
+        )
+
+
+def test_rc_runtime_rejects_a_different_wheel_digest() -> None:
+    with pytest.raises(ValueError, match="cannot be overridden"):
+        NautilusRcCompatibilityRuntime(
+            source_digest=content_digest("nautilus-v2-rc5-source"),
+            runtime_image_digest=content_digest("nautilus-v2-rc5-image"),
+            python_version="3.12.11",
+            rust_version="1.88.0",
+            wheel_digest=content_digest("different-wheel"),
         )
 
 

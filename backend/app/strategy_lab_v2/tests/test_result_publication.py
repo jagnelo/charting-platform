@@ -13,6 +13,7 @@ from app.strategy_lab_v2.capabilities import (
     preflight_capabilities,
 )
 from app.strategy_lab_v2.conformance import (
+    NAUTILUS_V2_RC_WHEEL_SHA256,
     ConformanceCheck,
     EngineConformanceEvidence,
     EngineConformanceReport,
@@ -41,6 +42,11 @@ from app.strategy_lab_v2.contracts import (
     StrategyPackageFormat,
     StrategyVersion,
 )
+from app.strategy_lab_v2.engine_execution import (
+    EngineExecutionDecision,
+    NautilusExecutionPlan,
+    NautilusExecutionScope,
+)
 from app.strategy_lab_v2.rebalance import (
     CalendarRebalancePolicy,
     RebalanceCadence,
@@ -50,6 +56,7 @@ from app.strategy_lab_v2.result_integrity import (
     ResultIntegrityReceipt,
     verify_run_result_artifacts,
 )
+from app.strategy_lab_v2.result_materialization import build_nautilus_result_provenance
 from app.strategy_lab_v2.result_publication import (
     ResultPublicationDecision,
     plan_result_publication,
@@ -60,6 +67,7 @@ from app.strategy_lab_v2.runtime import (
     RuntimeIsolationRequest,
     preflight_runtime_isolation,
 )
+from app.strategy_lab_v2.sandbox import SandboxCommandPlan
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 START = datetime(2020, 1, 1, tzinfo=UTC)
@@ -72,6 +80,7 @@ NAUTILUS_PIN = NautilusReleasePin(
     package_version="2.0.0",
     release_tag="v2.0.0",
     source_digest=content_digest("nautilus-source"),
+    wheel_digest=content_digest("nautilus-wheel"),
     runtime_image_digest=content_digest("nautilus-runtime"),
     python_version="3.12.11",
     rust_version="1.88.0",
@@ -79,13 +88,49 @@ NAUTILUS_PIN = NautilusReleasePin(
 )
 
 
-def _result() -> tuple[
-    RunResultManifest,
-    EngineConformanceEvidence,
-    EngineConformanceReport,
-    RuntimeIsolationReport,
-    ResultIntegrityReceipt,
-]:
+def _sandbox_plan(pin: NautilusReleasePin, attempt_id: str) -> SandboxCommandPlan:
+    return SandboxCommandPlan(
+        content_digest("runtime-request"),
+        content_digest("profile"),
+        (
+            "docker",
+            "run",
+            "--rm",
+            "--init",
+            "--network=none",
+            "--read-only",
+            "--cap-drop=ALL",
+            "--security-opt=no-new-privileges:true",
+            "--user=65532:65532",
+            "--workdir=/workspace",
+            "--memory=536870912",
+            "--ulimit=cpu=300",
+            "--ulimit=fsize=1024",
+            "--pids-limit=256",
+            "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864",
+            "--mount=type=bind,src=/tmp/strategy-input,dst=/inputs/bundle,readonly",
+            "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result",
+            f"--env=STRATEGY_ATTEMPT_ID={attempt_id}",
+            f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
+            f"runtime@{pin.runtime_image_digest}",
+            "python",
+            "runner",
+        ),
+        10,
+        1024,
+    )
+
+
+def _result() -> (
+    tuple[
+        RunResultManifest,
+        EngineConformanceEvidence,
+        EngineConformanceReport,
+        RuntimeIsolationReport,
+        ResultIntegrityReceipt,
+        NautilusExecutionPlan,
+    ]
+):
     requirement = CapabilityRequirement(
         instrument_id="US.AAPL",
         product_class=ProductClass.EQUITY,
@@ -177,13 +222,47 @@ def _result() -> tuple[
         trial.trial_id,
         attempt.attempt_id,
         "strategy-lab.metrics.v2",
-        (MetricValue("return", Decimal("0.1"), "fraction", "strategy-lab.metrics.v2", MetricBasis.NET, 10),),
+        (
+            MetricValue(
+                "return", Decimal("0.1"), "fraction", "strategy-lab.metrics.v2", MetricBasis.NET, 10
+            ),
+        ),
         NOW,
     )
     payload = b"result"
     artifact_digest = artifact_content_digest(payload)
     artifact = ArtifactManifest(
         artifact_digest, len(payload), "application/octet-stream", "1", artifact_digest
+    )
+    evidence = EngineConformanceEvidence(
+        "nautilus",
+        "2.0.0",
+        BUILD,
+        EngineReleaseChannel.STABLE,
+        content_digest({"fixture": "all"}),
+        frozenset(ConformanceCheck),
+        NOW,
+        NAUTILUS_PIN,
+    )
+    conformance = evaluate_engine_conformance(evidence)
+    sandbox_plan = _sandbox_plan(NAUTILUS_PIN, attempt.attempt_id)
+    execution_plan = NautilusExecutionPlan(
+        trial.trial_id,
+        attempt.attempt_id,
+        snapshot.fingerprint,
+        "nautilus",
+        "2.0.0",
+        BUILD,
+        content_digest("authorization"),
+        content_digest("runtime-preflight"),
+        conformance.fingerprint,
+        sandbox_plan.fingerprint,
+        EngineExecutionDecision.READY,
+        True,
+        execution_scope=NautilusExecutionScope.FULL,
+    )
+    provenance = build_nautilus_result_provenance(
+        execution_plan, evidence, conformance, sandbox_plan
     )
     result = RunResultManifest(
         trial=trial,
@@ -201,43 +280,43 @@ def _result() -> tuple[
         output_artifacts=(artifact,),
         created_at=NOW,
         engine_authoritative=True,
+        engine_provenance=provenance,
     )
     integrity = verify_run_result_artifacts(
         result,
         (verify_artifact_payload(artifact, payload),),
     )
-    evidence = EngineConformanceEvidence(
-        "nautilus",
-        "2.0.0",
-        BUILD,
-        EngineReleaseChannel.STABLE,
-        content_digest({"fixture": "all"}),
-        frozenset(ConformanceCheck),
-        NOW,
-        NAUTILUS_PIN,
-    )
-    conformance = evaluate_engine_conformance(evidence)
     runtime = preflight_runtime_isolation(
-        RuntimeIsolationProfile(BUILD, "cp312-manylinux", allowed_dependency_digests=frozenset({DEPENDENCY})),
+        RuntimeIsolationProfile(
+            BUILD, "cp312-manylinux", allowed_dependency_digests=frozenset({DEPENDENCY})
+        ),
         RuntimeIsolationRequest(attempt.attempt_id, (DEPENDENCY,)),
     )
-    return result, evidence, conformance, runtime, integrity
+    return result, evidence, conformance, runtime, integrity, execution_plan
 
 
 def test_result_publication_requires_all_authoritative_gates() -> None:
-    result, evidence, conformance, runtime, integrity = _result()
-    plan = plan_result_publication(result, evidence, conformance, runtime, integrity)
+    result, evidence, conformance, runtime, integrity, execution_plan = _result()
+    plan = plan_result_publication(
+        result, evidence, conformance, runtime, integrity, execution_plan=execution_plan
+    )
     assert plan.decision is ResultPublicationDecision.PUBLISH
     assert plan.accepted
     assert plan.attempt_id == result.attempt_id
     replay = plan_result_publication(
-        result, evidence, conformance, runtime, integrity, already_published=True
+        result,
+        evidence,
+        conformance,
+        runtime,
+        integrity,
+        execution_plan=execution_plan,
+        already_published=True,
     )
     assert replay.decision is ResultPublicationDecision.REPLAY_EXISTING
 
 
 def test_result_publication_rejects_non_authoritative_or_unverified_inputs() -> None:
-    result, evidence, conformance, runtime, integrity = _result()
+    result, evidence, conformance, runtime, integrity, execution_plan = _result()
     candidate = evaluate_engine_conformance(
         EngineConformanceEvidence(
             evidence.engine_id,
@@ -250,13 +329,21 @@ def test_result_publication_rejects_non_authoritative_or_unverified_inputs() -> 
             evidence.release_pin,
         )
     )
-    rejected = plan_result_publication(result, evidence, candidate, runtime, integrity)
+    rejected = plan_result_publication(
+        result, evidence, candidate, runtime, integrity, execution_plan=execution_plan
+    )
     assert rejected.decision is ResultPublicationDecision.REJECT
     assert "engine_conformance_not_authoritative" in rejected.rejection_reasons
+    assert "isolated_v2_release_pin_required" in rejected.rejection_reasons
 
     non_authoritative_manifest = replace(result, engine_authoritative=False)
     rejected_manifest = plan_result_publication(
-        non_authoritative_manifest, evidence, conformance, runtime, integrity
+        non_authoritative_manifest,
+        evidence,
+        conformance,
+        runtime,
+        integrity,
+        execution_plan=execution_plan,
     )
     assert rejected_manifest.decision is ResultPublicationDecision.REJECT
     assert "result_manifest_not_authoritative" in rejected_manifest.rejection_reasons
@@ -268,12 +355,14 @@ def test_result_publication_rejects_non_authoritative_or_unverified_inputs() -> 
 
 
 def test_result_publication_rejects_build_or_runtime_mismatch() -> None:
-    result, evidence, conformance, runtime, integrity = _result()
+    result, evidence, conformance, runtime, integrity, execution_plan = _result()
     bad_runtime = preflight_runtime_isolation(
         RuntimeIsolationProfile(BUILD, "cp312-manylinux", network_disabled=False),
         RuntimeIsolationRequest(result.attempt_id),
     )
-    rejected = plan_result_publication(result, evidence, conformance, bad_runtime, integrity)
+    rejected = plan_result_publication(
+        result, evidence, conformance, bad_runtime, integrity, execution_plan=execution_plan
+    )
     assert rejected.decision is ResultPublicationDecision.REJECT
     assert "runtime_isolation_not_accepted" in rejected.rejection_reasons
     mismatched = replace(
@@ -286,5 +375,134 @@ def test_result_publication_rejects_build_or_runtime_mismatch() -> None:
         conformance,
         runtime,
         integrity,
+        execution_plan=execution_plan,
     )
     assert "engine_build_mismatch" in rejected.rejection_reasons
+
+
+def test_release_candidate_can_publish_backtest_without_forward_tape_parity() -> None:
+    result, stable_evidence, _, runtime, _, _ = _result()
+    backtest_checks = frozenset(
+        check
+        for check in ConformanceCheck
+        if check is not ConformanceCheck.FORWARD_EVENT_TAPE_PARITY
+    )
+    release_pin = replace(
+        NAUTILUS_PIN,
+        package_version="2.0.0rc5",
+        release_tag="v2.0.0rc5",
+        wheel_digest=NAUTILUS_V2_RC_WHEEL_SHA256,
+    )
+    evidence = EngineConformanceEvidence(
+        "nautilus",
+        "2.0.0rc5",
+        BUILD,
+        EngineReleaseChannel.RELEASE_CANDIDATE,
+        content_digest("rc5-backtest-fixture"),
+        backtest_checks,
+        NOW,
+        release_pin,
+    )
+    conformance = evaluate_engine_conformance(evidence)
+    sandbox_plan = _sandbox_plan(release_pin, result.attempt_id)
+    execution_plan = NautilusExecutionPlan(
+        result.trial_id,
+        result.attempt_id,
+        result.snapshot_fingerprint,
+        "nautilus",
+        "2.0.0rc5",
+        BUILD,
+        content_digest("authorization"),
+        content_digest("runtime-preflight"),
+        conformance.fingerprint,
+        sandbox_plan.fingerprint,
+        EngineExecutionDecision.READY,
+        True,
+        execution_scope=NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
+    )
+    provenance = build_nautilus_result_provenance(
+        execution_plan, evidence, conformance, sandbox_plan
+    )
+    result = replace(
+        result,
+        engine_version="2.0.0rc5",
+        engine_authoritative=True,
+        engine_provenance=provenance,
+    )
+    integrity = verify_run_result_artifacts(
+        result,
+        (verify_artifact_payload(result.output_artifacts[0], b"result"),),
+    )
+
+    publication = plan_result_publication(
+        result,
+        evidence,
+        conformance,
+        runtime,
+        integrity,
+        execution_plan=execution_plan,
+    )
+
+    assert not conformance.authoritative
+    assert conformance.missing_checks == frozenset({ConformanceCheck.FORWARD_EVENT_TAPE_PARITY})
+    assert publication.decision is ResultPublicationDecision.PUBLISH
+
+
+def test_authoritative_publication_requires_bound_scope_and_complete_backtest_checks() -> None:
+    result, evidence, conformance, runtime, integrity, execution_plan = _result()
+    without_plan = plan_result_publication(result, evidence, conformance, runtime, integrity)
+    assert "authoritative_execution_plan_missing" in without_plan.rejection_reasons
+
+    backtest_plan = replace(
+        execution_plan,
+        execution_scope=NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
+    )
+    wrong_scope = plan_result_publication(
+        result,
+        evidence,
+        conformance,
+        runtime,
+        integrity,
+        execution_plan=backtest_plan,
+    )
+    assert "result_execution_scope_mismatch" in wrong_scope.rejection_reasons
+
+    partial_evidence = replace(
+        evidence,
+        passed_checks=frozenset(
+            check
+            for check in ConformanceCheck
+            if check is not ConformanceCheck.MULTI_INSTRUMENT_ACCOUNTING
+        ),
+    )
+    partial_report = evaluate_engine_conformance(partial_evidence)
+    partial_plan = replace(
+        execution_plan,
+        conformance_report_fingerprint=partial_report.fingerprint,
+        execution_scope=NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
+    )
+    assert result.engine_provenance is not None
+    partial_provenance = replace(
+        result.engine_provenance,
+        conformance_evidence_fingerprint=partial_evidence.fingerprint,
+        conformance_report_fingerprint=partial_report.fingerprint,
+        execution_plan_fingerprint=partial_plan.fingerprint,
+        execution_scope=NautilusExecutionScope.BACKTEST_AUTHORITATIVE.value,
+    )
+    partial_result = replace(
+        result,
+        engine_provenance=partial_provenance,
+    )
+    partial_integrity = verify_run_result_artifacts(
+        partial_result,
+        (verify_artifact_payload(partial_result.output_artifacts[0], b"result"),),
+    )
+    rejected = plan_result_publication(
+        partial_result,
+        partial_evidence,
+        partial_report,
+        runtime,
+        partial_integrity,
+        execution_plan=partial_plan,
+    )
+    assert "required_engine_conformance_failed" in rejected.rejection_reasons

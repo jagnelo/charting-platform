@@ -503,18 +503,22 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `conformance.py` defines the engine release/conformance evidence gate. The
   required multi-instrument accounting, native order/fill/cost, deterministic
   replay, lifecycle, and forward-event-tape checks are explicit. A complete
-  exact-pinned release candidate is eligible for isolated compatibility,
-  replay, and event-tape execution, but remains non-authoritative; only a
-  complete stable release can be marked authoritative.
+  exact-pinned stable or release-candidate build can qualify after passing the
+  four simulator checks. Local backtest authority is scope-specific; forward
+  event-tape parity is additionally required for forward-shadow execution.
+  Release pins include the exact Nautilus wheel checksum and runtime-image
+  digest, and pre-releases remain barred from broker/real-capital use.
 - `engine_execution.py` records the conformance scope required by each
   isolated process. `BACKTEST_COMPATIBILITY` permits the exact-pinned RC to
-  run local backtest/replay work when only forward parity is deferred;
-  `FORWARD_COMPATIBILITY` and `FULL` require all checks, and authoritative
-  plans additionally require the full scope and stable release evidence.
+  run non-authoritative backtest/replay work when only forward parity is
+  deferred. `BACKTEST_AUTHORITATIVE` requires the four simulator checks and
+  permits an exact stable or release-candidate build; `FORWARD_COMPATIBILITY`
+  and `FULL` require all checks. Forward authority is separate from local
+  backtest authority.
 - `nautilus_runtime.py` defines the exact `2.0.0rc5` compatibility-runtime
-  declaration. It binds source and runtime-image digests, Python/Rust versions,
-  legacy-runtime isolation, and the release pin consumed by conformance; it
-  never imports Nautilus or discovers packages.
+  declaration. It binds source, wheel, and runtime-image digests, Python/Rust
+  versions, legacy-runtime isolation, and the release pin consumed by
+  conformance; it never imports Nautilus or discovers packages.
 - `nautilus_runtime_probe.py` is the isolated-image smoke entrypoint. It checks
   the installed package version, imports the v2 backtest bindings, constructs
   and disposes a `BacktestEngine`, and emits only structured lifecycle evidence;
@@ -532,13 +536,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   canonical-event adapter exists.
 - `NautilusRcFixtureReceipt` records that image-backed result as four passed
   checks plus one deferred forward-parity check, preserving the exact runtime,
-  image, and fixture digests without creating `EngineConformanceEvidence` or
-  authority prematurely.
+  wheel, image, and fixture digests. Those four checks may support local
+  backtest authority once publication receives the matching scoped execution
+  evidence; the deferred parity check still blocks forward scope.
 - `resolve_nautilus_rc_conformance(...)` is the typed bridge from that parsed
   image receipt to the ordinary engine evidence/report pair. It verifies the
   runtime, probe, image, package, and fixture identities, exposes the four
-  passed checks to `BACKTEST_COMPATIBILITY`, and preserves the missing
-  forward-parity check and non-authoritative label.
+  passed checks to backtest scopes, and preserves the missing forward-parity
+  check so only forward/full scope is held back.
 - `nautilus_event_adapter.py` defines the provider-neutral canonical-event wire
   boundary for that future adapter. It binds an already verified frozen event
   tape to the SDK manifest, converts timestamps to exact UTC nanoseconds,
@@ -575,8 +580,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   strategy session from native callbacks, and serializes the invocation result
   batch through the existing protocol. Supported `OrderIntent` values become
   native orders; `TargetPositionIntent` remains fail-closed until the platform
-  allocation/risk handoff is wired. Every RC result remains non-authoritative,
-  with forward parity deferred until the host/Rust canonical-event callback
+  allocation/risk handoff is wired. The raw RC runtime receipt remains
+  non-authoritative; a separate local-backtest publication gate can promote
+  only outputs bound to the four simulator checks and exact execution plan.
+  Forward parity remains deferred until the host/Rust canonical-event callback
   exists.
 - `nautilus_runtime_adapter_probe.py` is the image-local end-to-end fixture for
   that bridge. It runs two native quote events through a buy-once strategy,
@@ -591,7 +598,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   projection path.
 - `require_rc_fixture_binding(...)` binds the parsed image-backed RC fixture
   receipt to the runtime probe, release pin, and partial conformance suite,
-  while preserving the deferred forward-parity and non-authoritative labels.
+  preserving that fixture's non-authoritative status and the deferred
+  forward-parity check.
 - Materialization resolves the effective `event_type` from the bound snapshot
   preflight, including explicitly recorded degraded substitutions, rather than
   silently reverting to the requested manifest value.
@@ -599,10 +607,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   its payload-bearing `MarketEvent` and wire record, rejecting ID, sequence, or
   timestamp drift before a future live adapter can hand data to the engine.
 - `result_publication.py` composes conformance, runtime isolation, and exact
-  result-artifact integrity into a storage-neutral publish plan. Only a stable
-  authoritative build with matching evidence can publish; already-published
-  manifests replay idempotently, while build, runtime, conformance, or artifact
-  mismatches reject without changing the result record.
+  result-artifact integrity into a storage-neutral publish plan. A local
+  authoritative backtest must match its exact Nautilus release pin, conformance
+  report, and authoritative execution-plan fingerprint and pass all four
+  simulator checks; it does not wait for forward parity. Full scope additionally
+  requires the complete report. Already-published manifests replay idempotently,
+  while build, release, scope, runtime, conformance, or artifact mismatches
+  reject without changing the result record.
 - `progress_checkpoint.py` adds restart-safe progress checkpoints retaining
   every applied update fingerprint. Only the next contiguous sequence advances
   state; exact repeats replay, gaps wait for missing updates, and stale or
@@ -1211,12 +1222,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   the contradiction to strategy invocation.
 - `engine_execution.py` binds the final Nautilus invocation gate to execution
   authorization, runtime preflight, sandbox request identity, data-snapshot
-  identity, hardened sandbox argv validation, and complete conformance
+  identity, hardened sandbox argv validation, and scope-specific conformance
   evidence. Only a compatible Nautilus build with a valid isolated v2 release
-  pin can run; authoritative runs additionally require stable release evidence,
-  an authoritative authorization, and an exact match between the release pin's
-  runtime-image digest and the sandbox image that will actually execute. No
-  engine process is started while any gate is missing.
+  pin can run; authoritative local backtests additionally require the four
+  simulator checks, an authoritative authorization, and an exact match between
+  the release pin's runtime-image digest and the sandbox image that will
+  actually execute. Full/forward scope requires forward parity. No engine
+  process is started while any required gate is missing.
 - `redis_transport.py` publishes dispatch envelopes to Redis Streams through a
   Lua compare-and-set script. The idempotency key and stream append are staged
   atomically, exact retries replay, changed payloads conflict, and failed
@@ -1469,15 +1481,16 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed
-  the existing stable-release gate without importing or starting Nautilus. Its
+  the exact-release gate without importing or starting Nautilus. Its
   executable `execute_conformance_suite(...)` runs every required check through
   an injected engine boundary, reduces runner exceptions to deterministic
   failed observations, and returns suite/evidence/report as one identity-bound
   resolution. Evidence construction rejects omitted checks while preserving
   complete suites with failed observations as compatibility evidence, and
-  normalizes aware test timestamps to UTC. `NautilusReleasePin` binds the exact v2 package/tag, source and
-  runtime-image digests, Python/Rust versions, and legacy-runtime isolation;
-  complete stable fixture evidence without a valid isolated pin remains
+  normalizes aware test timestamps to UTC. `NautilusReleasePin` binds the exact
+  v2 package/tag, source, wheel, and runtime-image digests, Python/Rust versions,
+  and legacy-runtime isolation; complete fixture evidence without a valid
+  isolated pin remains
   compatible evidence but can never be authoritative.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
@@ -1529,11 +1542,12 @@ Nautilus is the planned authoritative simulator, isolated from the legacy 1.x
 environment. The current exact `2.0.0rc5` release candidate may be installed
 in a separate Python/Rust/runtime-image boundary and used now for local
 backtest and replay runs. An exact-pinned stable or pre-release v2 build may
-publish authoritative local backtest results only after the full platform
-conformance suite passes: multi-instrument accounting, native execution/cost
-models, deterministic replay, reporting, and engine lifecycle. Results retain
-the package version/channel and wheel/image digests; pre-releases remain barred
-from broker connections or real capital. Broker-free forward-shadow activation
-additionally requires backtest/forward event-tape parity. The local Compose
+publish authoritative local backtest results after the four simulator checks
+pass: multi-instrument accounting, native execution/cost reports, deterministic
+replay, and engine lifecycle. Results retain the exact release pin, channel,
+conformance fingerprints, execution scope/plan, and wheel/image digests;
+pre-releases remain barred from broker connections or real capital. Broker-free
+forward-shadow activation additionally requires backtest/forward event-tape
+parity. The local Compose
 worker/storage and API phases follow shared-path reconciliation, and the
 TC2000-native UI remains a separate authorization boundary.
