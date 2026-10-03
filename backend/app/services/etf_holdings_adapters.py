@@ -18055,6 +18055,8 @@ class HedgeyeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 snapshot_date = datetime.strptime(match.group("date"), "%Y-%m-%d").date()
             except ValueError:
                 continue
+            if snapshot_date > date.today():
+                continue
             if latest_date is None or snapshot_date > latest_date:
                 latest_date = snapshot_date
                 latest_rows = [item for item in raw_rows if isinstance(item, dict)]
@@ -32941,6 +32943,8 @@ class McElhennySheffieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 "McElhenny Sheffield MSMR holdings table did not expose an effective date."
             )
+        if composition_date > date.today():
+            raise ValueError("McElhenny Sheffield MSMR holdings date is in the future.")
 
         for index, row in enumerate(rows, start=1):
             row.source_row_id = (

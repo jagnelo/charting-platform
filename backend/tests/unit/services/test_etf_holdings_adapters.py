@@ -5054,6 +5054,10 @@ async def test_hedgeye_adapter_selects_the_latest_requested_fund_snapshot(monkey
                 '{"SecurityName":"Cash & Other","StockTicker":"Cash&Other","CUSIP":"Cash&Other",'
                 '"Shares":50,"MarketValue":50,"Weightings":"0.05%","MoneyMarketFlag":"Y",'
                 '"Account":"HECA"}]},"account":"HECA","title":"2026-07-11-HECA"'
+                '"date":"2099-12-31","holdings":{"data":['
+                '{"SecurityName":"Future Fund","StockTicker":"FUTR","CUSIP":"123456789",'
+                '"Shares":1,"MarketValue":1,"Weightings":"1.00%","MoneyMarketFlag":"",'
+                '"Account":"HECA"}]},"account":"HECA","title":"2099-12-31-HECA"'
                 '"date":"2026-07-12","holdings":{"data":['
                 '{"SecurityName":"Other Fund","StockTicker":"OTHER","CUSIP":"000000000",'
                 '"Shares":1,"MarketValue":1,"Weightings":"1.00%","MoneyMarketFlag":"",'
@@ -5077,6 +5081,23 @@ async def test_hedgeye_adapter_selects_the_latest_requested_fund_snapshot(monkey
     assert result.rows[0].weight == Decimal("0.03")
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "cash"
+
+
+@pytest.mark.asyncio
+async def test_hedgeye_adapter_rejects_future_only_holdings_snapshot(monkeypatch):
+    adapter = get_holdings_adapter("hedgeye")
+    assert adapter is not None
+    future_page = (
+        '<script>"date":"2099-12-31","holdings":{"data":['
+        '{"SecurityName":"Future Fund","StockTicker":"FUTR","CUSIP":"123456789",'
+        '"Shares":1,"MarketValue":1,"Weightings":"1.00%","MoneyMarketFlag":"",'
+        '"Account":"HECA"}]},"account":"HECA"</script>'
+    )
+    FakeAsyncClient.queue = [FakeResponse(text=future_page)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="complete daily holdings rows for HECA"):
+        await adapter.fetch_latest(symbol="HECA")
 
 
 @pytest.mark.asyncio
@@ -6991,6 +7012,16 @@ async def test_max_adapter_fetches_jetu_index_constituents(monkeypatch):
     assert result.legal_metadata["disclosure_type"] == "etn_index_components"
     assert result.legal_metadata["composition_date"] == "2026-09-02"
 
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="",
+            content_type="text/html",
+            url="https://www.maxetns.com/product/JETU.P/",
+        )
+    ]
+    with pytest.raises(ValueError, match="did not verify JETU identity"):
+        await adapter.fetch_latest(symbol="JETU")
+
     assert adapter.probe(symbol="SPYU", name="", identifiers={}).status == "needs_issuer_route"
     with pytest.raises(ValueError, match="CARD/CARU/JETD/JETU"):
         await adapter.fetch_latest(symbol="SPYU")
@@ -7048,6 +7079,17 @@ async def test_mcelhenny_sheffield_adapter_fetches_msmr_product_page_holdings(mo
     )
     assert result.legal_metadata["composition_date"] == "2026-09-01"
     assert result.legal_metadata["page_as_of_date"] == "2026-08-31"
+
+    future_page = page_html.replace("08/31/2026", "12/30/2099").replace("09/01/2026", "12/31/2099")
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=future_page,
+            content_type="text/html",
+            url="https://mscmfunds.com/msmr-etf/",
+        )
+    ]
+    with pytest.raises(ValueError, match="holdings date is in the future"):
+        await adapter.fetch_latest(symbol="MSMR")
 
     with pytest.raises(ValueError, match="MSMR only"):
         await adapter.fetch_latest(symbol="OTHER")
@@ -15710,6 +15752,14 @@ async def test_vistashares_adapter_rejects_incomplete_and_cross_account_csv(monk
         FakeResponse(text=csv_template.format(account="AIS"), url=csv_url),
     ]
     with pytest.raises(ValueError, match="contained account AIS"):
+        await adapter.fetch_latest(symbol="QUSA")
+
+    future_csv = csv_template.format(account="QUSA").replace("09/24/2026", "12/31/2099")
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_template.format(count=1), content_type="text/html", url=page_url),
+        FakeResponse(text=future_csv, content_type="text/csv", url=csv_url),
+    ]
+    with pytest.raises(ValueError, match="holdings date is in the future"):
         await adapter.fetch_latest(symbol="QUSA")
 
 

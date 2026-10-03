@@ -111,7 +111,7 @@
   "head": "a13fccfd0bf9666ff471aac566cf0bc4f367c4e1",
   "implementation_sha": "4da62c54d1465835e4562115e12513c984cd7962",
   "last_checkpoint": "2026-10-02T17:10:58Z",
-  "last_human_progress_update": "2026-10-03T00:37:04.908464+00:00",
+  "last_human_progress_update": "2026-10-03T11:28:10.320475+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Preserve this clean ETF worktree while waiting for provider-platform to reach staging. Resume the ETF_HOLDINGS bridge only then. Resolve the unrelated generic visual gate only if its scope is authorized; rerun full integration and exact-SHA CI before ready_for_human_review.",
   "plan_hash": "712359fe94957bf4a7ac54ef26a7f48e756f93e0230ceb484e595c11b1f04702",
@@ -134,11 +134,11 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. AC7 is still red at unrelated generic visual-parity E2E outside this workstream's scope; AC10 awaits provider-platform reaching staging; AC14 requires post-integration deployment and 30 days of observation.",
-    "current_phase": "ci_failure_corrected_local_validation",
-    "next_action": "Commit and push the narrative-invariant correction and failed-run receipt, then inspect exact-SHA CI for the new pushed tip.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes are accounted for. AC7 is red at the generic F9c chart overlay E2E failure outside ETF owned paths; exact-SHA CI after current adapter fixes is pending. AC10 awaits provider-platform staging; AC14 is post-integration and deployment.",
+    "current_phase": "full_gate_diagnosed_generic_e2e",
+    "next_action": "Commit the ETF future-date and identity fixes with current receipts, push only feat/etf-holdings-constituents, then inspect exact-SHA CI and preserve the generic E2E blocker.",
     "total": 14,
-    "updated_at": "2026-10-03T00:37:04.908445+00:00"
+    "updated_at": "2026-10-03T11:28:10.320440+00:00"
   },
   "remote": "a13fccfd0bf9666ff471aac566cf0bc4f367c4e1",
   "remote_sha": "a13fccfd0bf9666ff471aac566cf0bc4f367c4e1",

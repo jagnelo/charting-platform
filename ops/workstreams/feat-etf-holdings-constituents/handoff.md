@@ -6631,3 +6631,76 @@ validator passes. The failed Actions run and local reproduction are recorded
 in `validation.jsonl`; exact-SHA CI on the corrective receipt commit is the
 next step. The branch remains pushed only at `51cb7a0e` until that commit is
 created; no other branch or worktree was modified.
+
+## Current provider-date corrections and full-gate reproduction — 2026-10-03
+
+The complete branch-declared runner passed on the current working tree based
+on `71d36f1aceaef21f77453495aeb05fdb92bfe81d`: 590 deterministic ETF adapter
+tests; default live contracts (3 passed, 533 opt-in skipped); the 536-case
+opt-in issuer matrix (506 passed, 30 narrowly classified external/access or
+current-source-variant skips); Ruff and workstream validation; frontend
+type-check; 17 ETF panel/view tests; and production build. This does not replace
+the outstanding exact-SHA CI receipt.
+
+The matrix exposed source dates that must not be represented as current. On
+2026-10-03 the official Hedgeye HECA page described its holdings as of
+2026-10-02 while embedding a newer 2026-10-05 payload with 17 rows and a
+2026-10-02 payload with 19. `HedgeyeHoldingsAdapter` now ignores any future
+snapshot and selects the latest non-future snapshot. The current official
+source is [Hedgeye HECA](https://www.hedgeyeam.com/heca). McElhenny Sheffield's
+official MSMR page exposed a table effective 2026-10-05 while its page was as
+of 2026-10-02; the adapter now fails closed with a specific future-date error.
+The live contract's minimum is five ETF positions, not the historical seven
+row floor. The source page is
+[McElhenny Sheffield MSMR](https://mscmfunds.com/msmr-etf/). Seven official
+VistaShares CSV routes (RTOO/AIS/AMMO/QUSA/OMAH/ACKY/DRKY) exposed future
+2026-10-05 holdings on October 3 and remain strict future-date skips. MAX
+JETU's official product URL returned HTTP 200 with an empty body; identity
+verification still fails closed and the live result is a narrow observed
+variant skip, not support. Focused deterministic tests passed for future-only
+Hedgeye data, McElhenny future effective dates, VistaShares future CSV dates,
+and MAX JETU's empty identity page.
+
+The regular `make test-e2e` reproduction against the pre-existing healthy ETF
+stack exited successfully: 145 passed, 109 skipped, and six tests reported
+flaky after succeeding on retry. To satisfy the required full local profile,
+`make validate-integration INTEGRATION_BRANCH=feat-etf-holdings-constituents`
+was then run against the freshly rebuilt stack. Workstream validation,
+dependencies, migration head/compatibility, Ruff/format, frontend type-check,
+combined backend unit/integration coverage, all 945 frontend unit tests,
+frontend production build, Compose/provider probes, and research-runner
+security/resource probes completed successfully. Its fresh-stack functional
+Playwright stage exited 1: 152 passed, 106 skipped, one test failed, and one
+was flaky. The persistent failure is generic `F9c-template-comparison`
+(`frontend/tests/e2e/flows.spec.ts:257`): the `Plots 0` chart plot-library
+overlay intercepts Playwright's click on `Remove RSP`, which times out even on
+retry. This path is outside this workstream's ETF `owned_paths`; it was not
+changed. The visual stage was consequently not reached in this gate, although
+visual policy checks passed. Branch-declared ETF validation had already
+passed independently on the same implementation tree.
+
+The full-gate trap completed documented exact-worktree cleanup: six ETF
+Compose containers, the ETF Compose network, four worktree-owned Docker
+volumes, and four worktree-tagged images were removed; no retained volume
+remains. The removed volume contents have no local recovery copy and will be
+recreated/reseeded by a future stack start. No other worktree's containers,
+volumes, images, or network were touched. Playwright artifacts are under
+`/tmp/etf-playwright-ci-rerun.HgGX2B`.
+
+AC7 remains open because the required full Docker/browser gate is not green;
+the actionable current blocker is the unrelated chart overlay interaction,
+not an ETF adapter or holdings-panel failure. Do not patch generic chart/UI
+files on this branch. AC10 remains dependent on the shared provider-platform
+contract reaching staging, and AC14 remains a post-integration/deployment
+30-day observation. The `15 Tier-0 and 156 Tier-1` accounting remains intact.
+
+## Remote ref recheck — 2026-10-03
+
+A read-only `git ls-remote` confirmed origin refs: ETF
+`71d36f1aceaef21f77453495aeb05fdb92bfe81d`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, and provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`. The local origin-tracking refs
+match staging and ETF; the ETF HEAD contains staging, so there is no newer
+staging change to merge. The provider-platform commit is not an ancestor of
+staging, so no shared `ETF_HOLDINGS` contract is available to bridge yet. No
+remote ref was changed and no other branch/worktree was accessed for writing.

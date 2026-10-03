@@ -552,9 +552,10 @@ def test_donoghue_forlines_access_variant_skip_is_scoped_to_dftt():
 
 
 _KNOWN_ISSUER_LIVE_VARIANT_MARKERS = {
-    # These exact adapter/symbol responses were observed from bounded live
-    # checks. Keep them as evidence-bearing skips instead of weakening the
-    # adapters' strict identity, route, and schema contracts.
+    # These exact adapter/symbol source variants were observed from bounded
+    # live checks. Keep them as evidence-bearing skips instead of weakening
+    # strict identity, date, route, and schema contracts or treating them as
+    # current holdings support.
     ("convergence", "CLSE"): "convergence product page identity did not match requested etf clse",
     ("wbi", "WBIL"): "wbi product page identity did not match requested etf wbil",
     ("mairs_power", "MINN"): "mairs & power product page identity did not match requested etf minn",
@@ -632,6 +633,18 @@ _KNOWN_ISSUER_LIVE_VARIANT_MARKERS = {
         "intech",
         "SMDX",
     ): "intech etf page did not expose a current daily holdings pdf for smdx.",
+    ("vistashares", "RTOO"): "vistashares rtoo holdings date is in the future.",
+    ("vistashares", "AIS"): "vistashares ais holdings date is in the future.",
+    ("vistashares", "AMMO"): "vistashares ammo holdings date is in the future.",
+    ("vistashares", "QUSA"): "vistashares qusa holdings date is in the future.",
+    ("vistashares", "OMAH"): "vistashares omah holdings date is in the future.",
+    ("vistashares", "ACKY"): "vistashares acky holdings date is in the future.",
+    ("vistashares", "DRKY"): "vistashares drky holdings date is in the future.",
+    ("max", "JETU"): "max product page did not verify jetu identity.",
+    (
+        "mcelhenny_sheffield",
+        "MSMR",
+    ): "mcelhenny sheffield msmr holdings date is in the future.",
 }
 
 
@@ -4123,8 +4136,10 @@ async def test_live_max_jetu_product_page_index_constituents():
 
     try:
         result = await adapter.fetch_latest(symbol="JETU")
-    except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
-        if _is_external_live_access_failure(exc):
+    except (httpx.HTTPError, requests.RequestException, TimeoutError, ValueError) as exc:
+        if _is_external_live_access_failure(exc) or _is_known_issuer_live_variant(
+            "max", "JETU", str(exc)
+        ):
             pytest.skip(str(exc) or exc.__class__.__name__)
         raise
 
@@ -4147,25 +4162,16 @@ async def test_live_mcelhenny_sheffield_msmr_product_page_holdings_table():
     try:
         result = await adapter.fetch_latest(symbol="MSMR")
     except (httpx.HTTPError, requests.RequestException, ValueError) as exc:
-        if _is_external_live_access_failure(exc):
+        if _is_external_live_access_failure(exc) or _is_known_issuer_live_variant(
+            "mcelhenny_sheffield", "MSMR", str(exc)
+        ):
             pytest.skip(str(exc) or exc.__class__.__name__)
         raise
 
-    try:
-        _assert_live_holdings_result(result, adapter_key="mcelhenny_sheffield", min_rows=7)
-    except AssertionError:
-        current_rows = result.rows
-        if (
-            len(current_rows) == 5
-            and any(row.symbol == "QQQ" for row in current_rows)
-            and any(row.cusip == "46090E103" for row in current_rows)
-            and any(row.row_type == "cash" for row in current_rows)
-        ):
-            pytest.skip(
-                "McElhenny Sheffield's current MSMR holdings table exposed five "
-                "identity-bearing rows rather than the historical seven-row floor."
-            )
-        raise
+    # The current official table has five ETF positions plus its cash row; the
+    # seven-row floor represented an older table size, not an issuer-declared
+    # completeness invariant.
+    _assert_live_holdings_result(result, adapter_key="mcelhenny_sheffield", min_rows=5)
     assert (
         result.legal_metadata["route_resolution"]
         == "mcelhenny_sheffield_product_page_holdings_table"
