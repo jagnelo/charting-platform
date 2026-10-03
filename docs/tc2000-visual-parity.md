@@ -1,5 +1,25 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-10-03 — Latest full board-matrix result
+
+The full 104-case board-guided matrix at clean SHA
+`fe8aaee56e035c7be52cfc887670cd29aedfc277` completed across all four viewport
+projects with 98 failures and 6 passes. Sampled failures include the default
+benchmark shell (47,571 differing pixels / 3% at 1080p/125%), workspace menu
+and drag-target states, freshness gaps, and Study Lab running/structured-result
+states. This supersedes the earlier 104/104 pass receipt below as the latest
+full-matrix evidence; it does not change the accepted references or thresholds.
+
+The running Study Lab case also had a stale accessible-name assertion (`Cancel`
+instead of the actual `Cancel study run`); commit `88a8452c6f1c2c5ace45f7f13892dd7f36a777dc`
+corrected it. A focused diagnostic reached the unchanged screenshot assertion
+and still differed by 16,052 pixels / 1% at 1080p/100%. The focused run was
+performed before the commit on identical source contents, so it is diagnostic,
+not a clean exact-SHA gate. No baseline, mask, threshold, skip, or acceptance
+rule changed. Investigate current product/layout versus protected-state
+differences before any baseline review; the complete post-fix matrix remains
+pending.
+
 ## 2026-10-02 — Protected screenshot state mismatch diagnosis
 
 At feature tip `e52009bf9`, a version-matched Playwright 1.62.1 replay of the

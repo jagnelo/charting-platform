@@ -3,7 +3,28 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-10-02
+Last reconciled: 2026-10-03
+
+## 2026-10-03 — Full visual matrix exposes broader current diffs
+
+The full board-guided 104-case matrix at clean SHA
+`fe8aaee56e035c7be52cfc887670cd29aedfc277` completed across four viewport
+projects with 98 failures and 6 passes. Sampled screenshot deltas include the
+default benchmark shell, workspace menu/drag states, freshness gaps, and Study
+Lab running/structured-result states. The result is broader than the six
+protected diffs recorded by the targeted October 2 replay, so the cause must be
+reconciled before claiming visual readiness; screenshot oracles remain
+unchanged.
+
+The Study Lab running-state test also used an outdated accessible name for its
+Cancel control. Commit `88a8452c6f1c2c5ace45f7f13892dd7f36a777dc` corrects only
+that selector. A focused diagnostic then passed the running-status and button
+assertions but still failed the saved screenshot by 16,052 pixels / 1% versus
+the existing 0.5% threshold. This was run pre-commit against identical source
+contents and is not a clean exact-SHA gate. No product behavior or visual
+acceptance policy changed. Continue independent R1/R5 work and diagnose these
+deltas; provider/ETF integration remains deferred until both tips reach
+staging.
 
 ## 2026-10-02 — Current workstation interaction receipts
 
