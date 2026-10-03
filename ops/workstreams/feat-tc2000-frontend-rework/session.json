@@ -141,9 +141,9 @@
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "695d79557f94581bf3dfed7b2b394496a8b59955",
-    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..695d79557f94581bf3dfed7b2b394496a8b59955",
-    "failure_category": "The branch remains unpushed under the existing private-origin safeguard; this session made no push attempt and only committed within the assigned local worktree.",
+    "current_local_head": "98e38784b8c09b5acfde911318f2842fc4d33562",
+    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..98e38784b8c09b5acfde911318f2842fc4d33562",
+    "failure_category": "The execution boundary rejected the exact elevated push before Git ran because it would export 1,628 commits from the private repository without explicit authorization. No alternate route or retry was attempted; retry only after exact-payload authorization.",
     "head_at_product_checkpoint": "695d79557f94581bf3dfed7b2b394496a8b59955",
     "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..695d79557f94581bf3dfed7b2b394496a8b59955",
     "remote": "origin",

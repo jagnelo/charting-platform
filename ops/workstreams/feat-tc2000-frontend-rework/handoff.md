@@ -1,5 +1,17 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-03 — Checkpoint push held by private-repository egress review
+
+The accessibility checkpoint is committed locally as
+`98e38784b8c09b5acfde911318f2842fc4d33562`; the worktree is clean. The required
+push of `63d64bfe95c98bfe6e550bf69c213ae1cd64a629..98e38784b8c09b5acfde911318f2842fc4d33562`
+to `origin/feat/tc2000-frontend-rework` was rejected by the execution boundary
+before Git ran because it would export 1,628 commits from the private
+repository. No alternate push route or retry was attempted. The completed work
+remains locally committed and the product goal continues from this clean
+boundary; retry only after explicit authorization for this exact remote,
+branch, and range.
+
 ## 2026-10-03 — Indicator settings keyboard access is covered
 
 Test commit `695d79557f94581bf3dfed7b2b394496a8b59955` adds a regression for
