@@ -58,6 +58,7 @@ from app.strategy_lab_v2.legacy import (
     LegacyImportResolution,
 )
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent, ForwardEventObservation
+from app.strategy_lab_v2.nautilus_trial_materializer import NautilusTrialRuntimeEvidence
 from app.strategy_lab_v2.outcomes import ExecutionOutcome
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_forward_account import ForwardAccountStateResolution
@@ -107,33 +108,58 @@ class _PrincipalIdentity:
     id: str
 
 
-CapabilityPreflightResolver = Callable[
-    ..., Awaitable[CapabilitySummary] | CapabilitySummary
+CapabilityPreflightResolver = Callable[..., Awaitable[CapabilitySummary] | CapabilitySummary]
+SearchDispatchResolver = Callable[
+    ..., Awaitable[SearchDispatchResolution] | SearchDispatchResolution
 ]
-SearchDispatchResolver = Callable[..., Awaitable[SearchDispatchResolution] | SearchDispatchResolution]
 
 
 @dataclass(frozen=True, slots=True)
 class SearchDispatchEvidence:
-    """Host-owned evidence required before durable candidate dispatch."""
+    """Materialized trial evidence required before durable candidate dispatch."""
 
     authorization: ExecutionAuthorization
-    runtime_request: StrategyRuntimeRequest
-    runtime_preflight: StrategyRuntimePreflight
+    trial_runtime_evidence: NautilusTrialRuntimeEvidence
     reservation_id: str
     now: datetime
 
     def __post_init__(self) -> None:
         if not isinstance(self.authorization, ExecutionAuthorization):
             raise TypeError("authorization must be an ExecutionAuthorization")
-        if not isinstance(self.runtime_request, StrategyRuntimeRequest):
-            raise TypeError("runtime_request must be a StrategyRuntimeRequest")
-        if not isinstance(self.runtime_preflight, StrategyRuntimePreflight):
-            raise TypeError("runtime_preflight must be a StrategyRuntimePreflight")
+        if not isinstance(self.trial_runtime_evidence, NautilusTrialRuntimeEvidence):
+            raise TypeError("trial_runtime_evidence must be a NautilusTrialRuntimeEvidence")
         if not isinstance(self.reservation_id, str) or not self.reservation_id.strip():
             raise ValueError("reservation_id must not be empty")
-        if self.now.tzinfo is None or self.now.utcoffset() is None:
+        if (
+            not isinstance(self.now, datetime)
+            or self.now.tzinfo is None
+            or self.now.utcoffset() is None
+        ):
             raise ValueError("now must be timezone-aware")
+        graph = self.trial_runtime_evidence.materialized_input.graph
+        runtime_request = self.trial_runtime_evidence.runtime_request
+        if self.authorization.attempt_id != graph.attempt.attempt_id:
+            raise ValueError("authorization must reference the materialized trial attempt")
+        if self.authorization.trial_id != graph.trial.trial_id:
+            raise ValueError("authorization must reference the materialized scientific trial")
+        if self.authorization.trial_preflight_fingerprint != graph.trial.preflight_fingerprint:
+            raise ValueError(
+                "authorization preflight differs from the materialized scientific trial"
+            )
+        if self.authorization.source_digest != runtime_request.source_digest:
+            raise ValueError("authorization source differs from materialized runtime evidence")
+
+    @property
+    def runtime_request(self) -> StrategyRuntimeRequest:
+        """Return the request derived from the verified runtime input bundle."""
+
+        return self.trial_runtime_evidence.runtime_request
+
+    @property
+    def runtime_preflight(self) -> StrategyRuntimePreflight:
+        """Return the isolation preflight bound to the derived runtime request."""
+
+        return self.trial_runtime_evidence.runtime_preflight
 
 
 SearchDispatchEvidenceResolver = Callable[
@@ -353,7 +379,11 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
 
         if not isinstance(experiment_fingerprint, str) or not experiment_fingerprint.strip():
             raise ValueError("experiment_fingerprint must not be empty")
-        if not isinstance(candidate_index, int) or isinstance(candidate_index, bool) or candidate_index < 0:
+        if (
+            not isinstance(candidate_index, int)
+            or isinstance(candidate_index, bool)
+            or candidate_index < 0
+        ):
             raise ValueError("candidate_index must be a non-negative integer")
         if not isinstance(attempt_id, str) or not attempt_id.strip():
             raise ValueError("attempt_id must not be empty")
@@ -382,7 +412,11 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
 
         if not isinstance(experiment_fingerprint, str) or not experiment_fingerprint.strip():
             raise ValueError("experiment_fingerprint must not be empty")
-        if not isinstance(candidate_index, int) or isinstance(candidate_index, bool) or candidate_index < 0:
+        if (
+            not isinstance(candidate_index, int)
+            or isinstance(candidate_index, bool)
+            or candidate_index < 0
+        ):
             raise ValueError("candidate_index must be a non-negative integer")
         if not isinstance(attempt_id, str) or not attempt_id.strip():
             raise ValueError("attempt_id must not be empty")
@@ -436,7 +470,11 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise ValueError("request_id must not be empty")
         if not isinstance(experiment_fingerprint, str) or not experiment_fingerprint.strip():
             raise ValueError("experiment_fingerprint must not be empty")
-        if not isinstance(candidate_index, int) or isinstance(candidate_index, bool) or candidate_index < 0:
+        if (
+            not isinstance(candidate_index, int)
+            or isinstance(candidate_index, bool)
+            or candidate_index < 0
+        ):
             raise ValueError("candidate_index must be a non-negative integer")
         if not isinstance(attempt_id, str) or not attempt_id.strip():
             raise ValueError("attempt_id must not be empty")
@@ -475,9 +513,16 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         if evidence_resolver is None:  # pragma: no cover - guarded above
             raise AssertionError("search dispatch evidence resolver unexpectedly missing")
         evidence_result = evidence_resolver(**callback_kwargs)
-        evidence = await evidence_result if inspect.isawaitable(evidence_result) else evidence_result
+        evidence = (
+            await evidence_result if inspect.isawaitable(evidence_result) else evidence_result
+        )
         if not isinstance(evidence, SearchDispatchEvidence):
             raise TypeError("search_dispatch_evidence must return SearchDispatchEvidence")
+        materialized_graph = evidence.trial_runtime_evidence.materialized_input.graph
+        if materialized_graph.experiment.fingerprint != experiment_fingerprint:
+            raise ValueError("search dispatch experiment differs from the materialized trial graph")
+        if materialized_graph.attempt.attempt_id != attempt_id:
+            raise ValueError("search dispatch attempt differs from the materialized trial graph")
         return await self._search_dispatch_store.dispatch(
             principal=owner,
             experiment_fingerprint=experiment_fingerprint,
@@ -614,11 +659,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         )
         resolved = await self._persistence.aggregate_store.apply(storage_request)
         committed = next(
-            (
-                aggregate
-                for aggregate in resolved.aggregates
-                if aggregate.key == aggregate_key
-            ),
+            (aggregate for aggregate in resolved.aggregates if aggregate.key == aggregate_key),
             None,
         )
         if committed is None:
@@ -1025,9 +1066,7 @@ def get_strategy_lab_v2_adapter() -> StrategyLabApiAdapter:
 def create_registered_strategy_lab_v2_router():
     """Build the authenticated, application-registered v2 router."""
 
-    principal_dependency = getattr(
-        import_module("app.auth.dependencies"), "get_current_user"
-    )
+    principal_dependency = getattr(import_module("app.auth.dependencies"), "get_current_user")
 
     return create_strategy_lab_router(
         adapter_dependency=get_strategy_lab_v2_adapter,

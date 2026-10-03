@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any, cast
@@ -22,9 +22,15 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary, CapabilitySummaryDecision
 from app.strategy_lab_v2.contracts import ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.execution import ExecutionAuthorization
 from app.strategy_lab_v2.forward_worker_authorization import ForwardWorkerAuthorization
 from app.strategy_lab_v2.lease_observations import LeaseObservationState
 from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease
+from app.strategy_lab_v2.nautilus_trial_materializer import (
+    NautilusTrialMarketContext,
+    NautilusTrialRuntimeInputMaterializer,
+    build_nautilus_trial_runtime_evidence,
+)
 from app.strategy_lab_v2.outcomes import OutcomeStatus
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_commands import PostgresCommandAdapter
@@ -43,18 +49,25 @@ from app.strategy_lab_v2.result_completion import (
     ResultCompletionResolution,
 )
 from app.strategy_lab_v2.result_publication import ResultPublicationDecision
+from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
 from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution, resolve_search_dispatch
 from app.strategy_lab_v2.search_state import SearchCandidatePhase, new_search_execution_state
 from app.strategy_lab_v2.storage import (
     StorageTransactionDecision,
     resolve_storage_transaction,
 )
+from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.tests.test_admission import _fixture, _reservation
 from app.strategy_lab_v2.tests.test_execution_summary import (
     _outcome,
     _progress,
     _publication,
     _receipt,
+)
+from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import JsonFrozenSeriesDecoder
+from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import (
+    RUNTIME_ABI,
+    _build_inputs,
 )
 from app.strategy_lab_v2.tests.test_postgres_forward_state import _instance
 from app.strategy_lab_v2.tests.test_postgres_forward_state import _receipt as _forward_receipt
@@ -243,15 +256,18 @@ async def test_application_search_and_forward_reads_are_owner_scoped() -> None:
     adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
     adapter._persistence = SimpleNamespace(search_state=SearchStore(), forward_state=ForwardStore())
 
-    assert await adapter.load_search_state(
-        principal=_User(42), experiment_fingerprint=experiment
-    ) == search_state
-    assert await adapter.load_forward_instance(
-        principal=_User(42), instance_id=instance.instance_id
-    ) == forward_instance
-    assert await adapter.load_forward_state(
-        principal=_User(42), instance_id=instance.instance_id
-    ) == forward_state
+    assert (
+        await adapter.load_search_state(principal=_User(42), experiment_fingerprint=experiment)
+        == search_state
+    )
+    assert (
+        await adapter.load_forward_instance(principal=_User(42), instance_id=instance.instance_id)
+        == forward_instance
+    )
+    assert (
+        await adapter.load_forward_state(principal=_User(42), instance_id=instance.instance_id)
+        == forward_state
+    )
 
     assert observed["search"]["principal"].id == "42"
     assert observed["search"]["experiment_fingerprint"] == experiment
@@ -515,11 +531,62 @@ async def test_application_search_dispatch_fails_closed_without_host_binding() -
 
 
 @pytest.mark.asyncio
-async def test_application_search_dispatch_evidence_resolver_uses_durable_store() -> None:
-    authorization, runtime_request, runtime_preflight, pool = _fixture()
+async def test_application_search_dispatch_evidence_resolver_uses_durable_store(
+    tmp_path,
+) -> None:
+    _values, graph, artifact_store = _build_inputs(tmp_path)
+    materializer = NautilusTrialRuntimeInputMaterializer(
+        artifact_store=artifact_store,
+        strategy_package_resolver=StrategyPackageArtifactResolver(
+            artifact_store,
+            runtime_abi=RUNTIME_ABI,
+        ),
+        series_decoder=JsonFrozenSeriesDecoder(),
+    )
+    materialized_input = materializer.materialize(
+        graph=graph,
+        market_context=NautilusTrialMarketContext(_values["instruments"], _values["venue"]),
+    )
+    strategy = graph.strategies[0]
+    runtime_profile = RuntimeIsolationProfile(
+        runtime_image_digest=content_digest("runtime-image"),
+        runtime_abi=RUNTIME_ABI,
+        allowed_dependency_digests=frozenset(
+            dependency.artifact_digest for dependency in strategy.dependencies
+        ),
+    )
+    runtime_evidence = build_nautilus_trial_runtime_evidence(
+        materialized_input,
+        runtime_profile,
+        request_id=content_digest("runtime-request"),
+        submitted_at=NOW,
+    )
+    authorization = ExecutionAuthorization(
+        graph.trial.trial_id,
+        graph.attempt.attempt_id,
+        strategy.source_digest,
+        graph.trial.preflight_fingerprint,
+        content_digest("capability-preflight"),
+        "lease-1",
+        "worker-1",
+        NOW,
+        True,
+    )
+    with pytest.raises(ValueError, match="authorization source"):
+        SearchDispatchEvidence(
+            replace(authorization, source_digest=content_digest("different-source")),
+            runtime_evidence,
+            _reservation("application-evidence"),
+            NOW,
+        )
+    pool = WorkerPoolState(
+        WorkerProfile("worker-1", WorkerKind.BACKTEST, runtime_profile.fingerprint)
+    )
+    runtime_request = runtime_evidence.runtime_request
+    runtime_preflight = runtime_evidence.runtime_preflight
     dispatch = DispatchRequest(
         "dispatch-key",
-        "attempt-1",
+        graph.attempt.attempt_id,
         content_digest("payload"),
         "strategy-backtest",
         NOW,
@@ -530,20 +597,19 @@ async def test_application_search_dispatch_evidence_resolver_uses_durable_store(
         observed.update(kwargs)
         return SearchDispatchEvidence(
             authorization,
-            runtime_request,
-            runtime_preflight,
+            runtime_evidence,
             _reservation("application-evidence"),
             NOW,
         )
 
     expected = resolve_search_dispatch(
         new_search_execution_state(
-            content_digest("experiment-evidence"),
-            (content_digest("trial-1"),),
+            graph.experiment.fingerprint,
+            (graph.trial.trial_id,),
             now=NOW,
         ),
         candidate_index=0,
-        attempt_id="attempt-1",
+        attempt_id=graph.attempt.attempt_id,
         authorization=authorization,
         runtime_request=runtime_request,
         runtime_preflight=runtime_preflight,
@@ -567,9 +633,9 @@ async def test_application_search_dispatch_evidence_resolver_uses_durable_store(
     resolved = await adapter.dispatch_search_candidate(
         principal=_User(42),
         request_id="request-1",
-        experiment_fingerprint=content_digest("experiment-evidence"),
+        experiment_fingerprint=graph.experiment.fingerprint,
         candidate_index=0,
-        attempt_id="attempt-1",
+        attempt_id=graph.attempt.attempt_id,
         dispatch_request=dispatch,
         payload={},
     )
@@ -578,7 +644,20 @@ async def test_application_search_dispatch_evidence_resolver_uses_durable_store(
     assert observed["principal"].id == "42"
     assert observed["store"]["principal"].id == "42"
     assert observed["store"]["reservation_id"] == _reservation("application-evidence")
+    assert observed["store"]["runtime_request"] == runtime_request
+    assert observed["store"]["runtime_preflight"] == runtime_preflight
     assert observed["store"]["payload"] == {}
+
+    with pytest.raises(ValueError, match="experiment differs from the materialized trial graph"):
+        await adapter.dispatch_search_candidate(
+            principal=_User(42),
+            request_id="request-2",
+            experiment_fingerprint=content_digest("different-experiment"),
+            candidate_index=0,
+            attempt_id=graph.attempt.attempt_id,
+            dispatch_request=dispatch,
+            payload={},
+        )
 
 
 @pytest.mark.asyncio
@@ -749,12 +828,8 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
             {
                 "attributes": {
                     "experiment_id": "momentum-search",
-                    "portfolio_fingerprint": portfolio.receipt.resource.meta[
-                        "domain_fingerprint"
-                    ],
-                    "strategy_fingerprints": [
-                        strategy.receipt.resource.meta["domain_fingerprint"]
-                    ],
+                    "portfolio_fingerprint": portfolio.receipt.resource.meta["domain_fingerprint"],
+                    "strategy_fingerprints": [strategy.receipt.resource.meta["domain_fingerprint"]],
                     "snapshot_fingerprint": content_digest("snapshot-v1"),
                     "capability_contract_digest": content_digest("capability-v1"),
                     "seed": 42,
