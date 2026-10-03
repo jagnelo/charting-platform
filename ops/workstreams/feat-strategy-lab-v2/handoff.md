@@ -2,6 +2,40 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-03 - Dispatch evidence bound to hydrated runtime inputs
+
+`SearchDispatchEvidence` now carries the materializer-produced runtime request
+and preflight as one typed value. Its constructor verifies the authorization's
+attempt, trial, trial preflight, and strategy source against that materialized
+graph. The application adapter additionally rejects an experiment or attempt
+that differs from the same graph before calling the durable dispatch store.
+
+At clean, pushed source SHA
+`cf4a0f63b3053e6f6dd14a2490b36a102c5bbfea`, all 1,133 Strategy Lab v2 tests
+passed; Ruff passed for the package and runtime SDK; both changed files passed
+format checks; MyPy passed across 331 files; and `git diff --check` was clean.
+
+No external dependency blocks this owned work. The exact pinned `2.0.0rc5`
+remains eligible for local backtest execution under the branch plan and its
+four recorded simulator checks; stable 2.x is not required. Its pre-release
+status still forbids broker/live-capital use, and forward-shadow needs separate
+event-tape parity.
+
+The built-in HTTP dispatch path still has an in-scope contract gap: the client
+currently supplies a `payload_digest`, but the API passes that same digest-only
+body as the payload whose independently computed digest PostgreSQL verifies.
+The next slice must build the immutable worker handoff from this bound runtime
+evidence, derive the durable payload digest from that encoded handoff, and have
+the PostgreSQL transaction verify the worker request against its locked
+admission and reservation before writing the outbox. This is implementation
+work, not a Nautilus-version or upstream-availability blocker. The later shared
+API/schema/worker registration still waits for the owned provider, ETF, and
+TC2000 contracts to reach staging.
+
+The saved goal metadata still contains older “stable v2” wording; the current
+branch plan explicitly permits stable or pre-release builds after exact-pin
+conformance. Follow the branch plan for this workstream.
+
 ## 2026-10-03 - Trial-bound runtime evidence and worker lineage
 
 The runtime artifact reference now carries a non-circular immutable binding to
