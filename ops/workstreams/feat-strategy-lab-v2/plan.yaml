@@ -798,8 +798,10 @@ progress:
     - strategy-lab-v2-streaming-strategy-runtime-consumer
     - strategy-lab-v2-nautilus-context-stream-sidecar-and-runtime-handoff
     - strategy-lab-v2-scoped-backtest-result-publication-provenance
+    - strategy-lab-v2-default-disk-backed-event-tape-resolution
+    - strategy-lab-v2-owner-scoped-fingerprint-batch-and-trial-domain-hydration
   total: 18
-  current_phase: strategy-lab-v2-native-result-and-event-streaming
+  current_phase: strategy-lab-v2-owner-scoped-worker-input-hydration
   current_blocker: >-
     No external release, market-data, or upstream branch dependency blocks
     this owned implementation. Exact-pinned Nautilus 2.0.0rc5 now passes the
@@ -808,19 +810,22 @@ progress:
     release channel, conformance evidence, and execution plan. Forward parity
     remains a separate forward-shadow gate, so this does not complete full
     Nautilus conformance. The required full_stack_browser profile is final
-    acceptance, not a prerequisite for the next local slice. Remaining internal
-    work includes incrementally streaming source/native event tapes, owner-scoped
-    trial hydration, canonical instrument and account adapters, atomic worker
-    dispatch, target-position allocation/risk, and broader product/accounting
-    coverage. Provider, ETF, and TC2000 staging boundaries apply only to their
-    eventual shared-contract integration.
+    acceptance, not a prerequisite for the next local slice. The default frozen
+    event-tape resolver now uses verified disk-spooled streaming, and owner-scoped
+    fingerprint reads hydrate and cross-check the immutable attempt/trial/
+    experiment/portfolio/snapshot/strategy/package graph. Remaining internal
+    work includes connecting that graph to production worker input materialization,
+    resolving verified snapshot bytes, canonical instrument/venue/account
+    adapters, atomic worker dispatch, target-position allocation/risk, and
+    broader product/accounting coverage. Provider, ETF, and TC2000 staging
+    boundaries apply only to their eventual shared-contract integration.
   next_action: >-
-    Replace full native event-tape bundle materialization with verified,
-    content-addressed stream/catalog chunks consumed incrementally by exact-
-    pinned RC5, preserving same-time ordering and deterministic replay. Then
-    hydrate fingerprint-linked resources through owner-scoped reads, inject
-    canonical instrument and venue/account adapters, and bind runtime references
-    into atomic dispatch. Reconcile the Arrow decoder only after the provider
-    contract reaches staging. Continue target-position allocation, broader
-    native product/accounting/report conformance, and full validation. Do not
-    wait for a stable upstream tag or modify parallel worktrees.
+    Connect the owner-scoped hydrated domain graph to the dedicated worker's
+    production handoff and runtime-input assembly: verify the queued attempt,
+    resolve the pinned strategy package and frozen series/event artifacts, and
+    preserve atomic attempt/dispatch/runtime provenance. Define/inject canonical
+    instrument and venue/account adapters without duplicating provider identity;
+    consume the provider Arrow decoder only after its contract reaches staging.
+    Then complete target-position allocation/risk and broader product/accounting/
+    report conformance. Do not wait for a stable upstream tag or modify parallel
+    worktrees.

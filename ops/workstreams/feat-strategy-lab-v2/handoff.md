@@ -2,6 +2,31 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-03 - Owner-scoped trial graph hydration
+
+`PostgresResourceReader` now resolves batches of typed domain records by their
+content fingerprints inside the principal's owner scope, rejects ambiguous
+owner-local duplicates, and rehydrates each record against its declared domain
+fingerprint. `NautilusTrialDomainHydrator` uses that read surface to resolve a
+queued/running attempt through its immutable trial, experiment, portfolio,
+snapshot, strategy versions, and pinned packages. It rejects missing/foreign
+resources and checks every cross-resource fingerprint, preflight, portfolio,
+and package binding before returning the immutable graph. This is now the next
+input to connect to worker runtime assembly; event/series bytes, instrument and
+account adapters, and dispatch binding remain separate work.
+
+At exact source SHA `516c1273a4a1d1df9b3f1e905a6c3d7670d76035`, all 1,127
+Strategy Lab v2 tests passed; MyPy passed across 329 files; package Ruff checks
+passed; and the four changed files passed Ruff formatting and `git diff --check`.
+The package-wide format probe reports 198 untouched files that would be
+reformatted, so no repository-wide formatting rewrite was applied. This host-
+side change does not alter the pinned Nautilus runtime image or require rebuilding
+it. The source commit is pushed to `origin/feat/strategy-lab-v2`.
+
+This advances persisted owner-scoped worker hydration only; it does not yet
+construct a worker request directly from the hydrated graph or complete atomic
+runtime dispatch. Stable Nautilus v2 availability is not a prerequisite.
+
 ## 2026-10-03 - Scoped RC backtest result publication provenance
 
 Nautilus result materialization now carries typed, content-fingerprinted engine
@@ -28,12 +53,14 @@ deferred; the fixture receipt itself remains non-authoritative. Fixture digest:
 `sha256:b233d6aa9953894f65628247455f6b349590c21946fac0a84797e3e9a78eee3e`.
 
 This closes the local backtest result-provenance/publication seam, not the full
-Strategy Lab goal. Source and native market-event tapes are still
-materialized; worker dispatch/resource hydration, canonical account/instrument
-adapters, target-position allocation/risk, broader asset/product conformance,
-forward parity, and final full-stack-browser validation remain. No stable
-Nautilus tag or upstream branch blocks continued implementation. Provider, ETF,
-and TC2000 contract consumption is only a later shared-path integration gate.
+Strategy Lab goal. At this checkpoint source and native market-event tapes were
+still materialized; a later source commit makes verified disk-spooled event-tape
+resolution the default. Production worker hydration/dispatch, canonical
+account/instrument adapters, target-position allocation/risk, broader
+asset/product conformance, forward parity, and final full-stack-browser
+validation remain. No stable Nautilus tag or upstream branch blocks continued
+implementation. Provider, ETF, and TC2000 contract consumption is only a later
+shared-path integration gate.
 
 The source commit is pushed to `origin/feat/strategy-lab-v2`; local `HEAD` and
 the tracked remote are both `f102f310499431b0c892483ec15e376f5503319f`.
