@@ -204,6 +204,37 @@ describe('ChartPlotLibrary', () => {
     wrapper.unmount()
   })
 
+  it('traps keyboard focus in indicator settings and restores the library focus on Escape', async () => {
+    const chart = usePanelStore('plot-library-indicator-settings-keyboard-test')
+    chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-indicator-settings-keyboard-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit SMA(20) settings"]').trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.querySelector<HTMLElement>('[aria-label="Indicator settings: SMA(20)"]')!
+    const close = dialog.querySelector<HTMLButtonElement>('button[aria-label="Close indicator settings"]')!
+    const period = dialog.querySelector<HTMLInputElement>('input[aria-label="Period"]')!
+    const apply = dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!
+    expect(document.activeElement).toBe(period)
+
+    apply.focus()
+    apply.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }))
+    await flushPromises()
+    expect(document.activeElement).toBe(close)
+
+    close.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }))
+    await flushPromises()
+    expect(document.activeElement).toBe(apply)
+
+    period.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await flushPromises()
+    expect(document.body.querySelector('[aria-label="Indicator settings: SMA(20)"]')).toBeNull()
+    expect(document.activeElement).toBe(wrapper.get('button[aria-label="Chart plot library"]').element)
+    wrapper.unmount()
+  })
+
   it('uses floating-point parameter limits from the indicator registry', async () => {
     const chart = usePanelStore('plot-library-indicator-float-constraints-test')
     chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#80cbc4', lineWidth: 1 }, pane: 'main' }])
