@@ -6575,3 +6575,36 @@ the feature branch. The feature branch worktree and origin ref are synchronized
 at that SHA. The full local Docker-backed visual gate remains separately
 non-green as described above, and the provider-platform prerequisite remains
 outside staging.
+
+## Branch-declared matrix and live-route corrections — 2026-10-03
+
+The complete branch-declared runner passed on the working tree based at
+`4842960e5049c42c42a5011324844a30241b4b29`: 589 deterministic ETF adapter
+tests; default live contracts (3 passed, 533 opt-in skipped); the 536-case
+opt-in live matrix (525 passed, 11 narrowly evidenced skips); Ruff; workstream
+validation; frontend type-check; 17 ETF panel/view tests; and the production
+build. The detailed receipt is appended to `validation.jsonl`. The generated
+build emits the existing advisory warning for chunks over 500 kB; it succeeds.
+
+The live matrix exposed two bounded source/date issues and both now have
+correct behavior without weakening adapter contracts. On the current official
+Intech page, LGDX/SMDX each display “Download All Holdings [CSV]” as inert page
+text, while the “Fund Holdings – Daily” card resolves to the issuer homepage;
+the rendered page supplies top-ten tables but no complete current artifact.
+The adapters therefore continue to fail closed and those exact live probes are
+evidence-bearing skips, not native promotions or current support. Baillie
+Gifford's daily workbooks are dated to the latest published business day; the
+live test now accepts a non-future composition date no more than four calendar
+days old, so a Friday file is valid on Saturday/weekends and holidays.
+
+Read-only remote refs were rechecked on 2026-10-03: this ETF branch's origin ref
+is still `4842960e5049c42c42a5011324844a30241b4b29`, staging is still
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, and
+`feat/market-data-provider-platform` is still
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`. No newer staging update exists to
+merge, and the provider branch has not reached staging. The previous local
+Docker full-integration profile remains non-green at generic visual-parity
+E2E; no ETF-owned visual assertion failure was identified and no out-of-scope
+snapshot/UI files were changed. Exact-SHA CI after these test changes remains
+pending. AC10 remains externally dependent on the shared provider-platform
+contracts reaching staging; AC14 remains post-integration/deployment.

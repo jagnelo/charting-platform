@@ -540,8 +540,7 @@ def _is_external_live_access_failure(exc: Exception) -> bool:
 def test_donoghue_forlines_access_variant_skip_is_scoped_to_dftt():
     assert _is_external_live_access_failure(
         ValueError(
-            "Donoghue Forlines product page did not expose a complete holdings "
-            "CSV for DFTT."
+            "Donoghue Forlines product page did not expose a complete holdings " "CSV for DFTT."
         )
     )
     assert not _is_external_live_access_failure(
@@ -553,10 +552,9 @@ def test_donoghue_forlines_access_variant_skip_is_scoped_to_dftt():
 
 
 _KNOWN_ISSUER_LIVE_VARIANT_MARKERS = {
-    # These exact adapter/symbol responses were observed from issuer edges on
-    # CI while the same first-party routes remained parseable locally.  Keep
-    # them as evidence-bearing skips instead of weakening the adapters' strict
-    # identity, route, and schema contracts.
+    # These exact adapter/symbol responses were observed from bounded live
+    # checks. Keep them as evidence-bearing skips instead of weakening the
+    # adapters' strict identity, route, and schema contracts.
     ("convergence", "CLSE"): "convergence product page identity did not match requested etf clse",
     ("wbi", "WBIL"): "wbi product page identity did not match requested etf wbil",
     ("mairs_power", "MINN"): "mairs & power product page identity did not match requested etf minn",
@@ -626,6 +624,14 @@ _KNOWN_ISSUER_LIVE_VARIANT_MARKERS = {
         "m_d_sass",
         "SASS",
     ): "m.d. sass's public holdings csv did not expose complete dated sass rows.",
+    (
+        "intech",
+        "LGDX",
+    ): "intech etf page did not expose a current daily holdings pdf for lgdx.",
+    (
+        "intech",
+        "SMDX",
+    ): "intech etf page did not expose a current daily holdings pdf for smdx.",
 }
 
 
@@ -1160,6 +1166,7 @@ async def test_live_m_d_sass_issuer_csv_route_preserves_dated_rows():
         ("western_southern", "LCF", None, {}, 20),
         ("touchstone", "LCF", None, {}, 20),
         ("intech", "LGDX", None, {}, 100),
+        ("intech", "SMDX", None, {}, 100),
         ("inverdale", "MGMT", None, {}, 20),
         ("ballast", "MGMT", None, {}, 20),
         ("bancreek", "BCUS", None, {}, 20),
@@ -4478,7 +4485,11 @@ async def test_baillie_gifford_live_workbooks():
         assert result.legal_metadata["snapshot_provenance"] == (
             "baillie_gifford_native_daily_holdings_workbook"
         )
-        assert result.legal_metadata["composition_date"] == date.today().isoformat()
+        composition_date = date.fromisoformat(result.legal_metadata["composition_date"])
+        # These daily reports use the latest published business day, which can
+        # precede the calendar date on weekends and holidays.
+        assert composition_date <= date.today()
+        assert composition_date >= date.today() - timedelta(days=4)
 
 
 def _parametrized_live_provider_keys(*tests) -> set[str]:

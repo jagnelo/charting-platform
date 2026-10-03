@@ -111,7 +111,7 @@
   "head": "a13fccfd0bf9666ff471aac566cf0bc4f367c4e1",
   "implementation_sha": "4da62c54d1465835e4562115e12513c984cd7962",
   "last_checkpoint": "2026-10-02T17:10:58Z",
-  "last_human_progress_update": "2026-10-02T21:53:47.584628+00:00",
+  "last_human_progress_update": "2026-10-03T00:32:47.550750+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Preserve this clean ETF worktree while waiting for provider-platform to reach staging. Resume the ETF_HOLDINGS bridge only then. Resolve the unrelated generic visual gate only if its scope is authorized; rerun full integration and exact-SHA CI before ready_for_human_review.",
   "plan_hash": "712359fe94957bf4a7ac54ef26a7f48e756f93e0230ceb484e595c11b1f04702",
@@ -134,11 +134,11 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "AC7 remains open: exact-SHA CI run 37067318436 on a13fccfd0bf9666ff471aac566cf0bc4f367c4e1 passed Backend, Branch-declared, Frontend Unit, and Playwright; the protected gate was skipped as designed. Local Docker full integration still fails only at unrelated visual parity, with 92 host-renderer diffs and named non-ETF Study Lab/EasyScan failures in the pinned-browser diagnostic. Those paths are outside this workstream owned_paths. Both ledgers retain 15 Tier-0 and 156 Tier-1 outcomes. AC10 awaits provider-platform reaching staging; AC14 is post-integration.",
-    "current_phase": "final_validation_and_dependency_wait",
-    "next_action": "Preserve this clean ETF worktree while waiting for provider-platform to reach staging. Resume the ETF_HOLDINGS bridge only then. Resolve the unrelated generic visual gate only if its scope is authorized; rerun full integration and exact-SHA CI before ready_for_human_review.",
+    "current_blocker": "AC7 is still red at unrelated generic visual-parity E2E and its files are outside this workstream's scope; AC10 awaits provider-platform reaching staging; AC14 requires post-integration deployment and 30 days of observation.",
+    "current_phase": "branch_declared_validation_complete",
+    "next_action": "Commit and push this ETF-only test and receipt update, then inspect exact-SHA CI; keep AC7's generic visual failure, AC10's unstaged provider dependency, and AC14's post-deployment shadow gate explicitly open.",
     "total": 14,
-    "updated_at": "2026-10-02T21:53:47.584607+00:00"
+    "updated_at": "2026-10-03T00:32:47.550731+00:00"
   },
   "remote": "a13fccfd0bf9666ff471aac566cf0bc4f367c4e1",
   "remote_sha": "a13fccfd0bf9666ff471aac566cf0bc4f367c4e1",
