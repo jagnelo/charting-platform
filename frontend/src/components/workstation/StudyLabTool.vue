@@ -6,7 +6,7 @@
         <input v-model.trim="symbol" aria-label="Study symbol" placeholder="Symbol" />
         <select v-model="factoryStudyKey" aria-label="Factory study" @change="applyFactoryStudy"><option value="custom">Custom Python</option><option v-for="template in factoryStudyTemplates" :key="template.key" :value="template.key">{{ template.name }}</option></select>
         <button type="button" aria-label="Validate study" :disabled="busy" @click="validate">Validate</button>
-        <button type="button" aria-label="Run study" :disabled="busy || !validation?.valid" @click="saveAndRun">Run</button>
+        <button type="button" aria-label="Run study" :disabled="busy || !validationMatchesSource || !validation?.valid" @click="saveAndRun">Run</button>
       </div>
       <div class="study-lab-tool__dataset" aria-label="Study dataset controls">
         <label>Timeframe <select v-model="timeframe" aria-label="Study timeframe"><option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
@@ -55,10 +55,13 @@
       <span><b>stats</b>: positive_close_streaks, streaks, mean, median, std, percentile, ranks, rolling, correlation, regression, distribution</span><span><b>research</b>: forward_returns, conditional_outcomes, regimes, historical_comparison, occurrences, cross_sectional_rank, breadth_snapshot, breadth_thrust, breadth_thrust_history, breadth_condition</span>
       <span><b>output</b>: scalar, boolean, series, table, events, bar, histogram, range, scatter, heatmap, dashboard</span>
     </details>
-    <section v-if="validation" class="study-lab-tool__validation" :role="validation.valid ? 'status' : 'alert'" :aria-live="validation.valid ? 'polite' : 'assertive'" aria-atomic="true" :class="{ 'study-lab-tool__validation--bad': !validation.valid }">
-      <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
-      <pre v-if="validation.diagnostics.length">{{ validation.diagnostics }}</pre>
-      <span v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</span>
+    <section v-if="validation" class="study-lab-tool__validation" :role="validationMatchesSource && !validation.valid ? 'alert' : 'status'" :aria-live="validationMatchesSource && !validation.valid ? 'assertive' : 'polite'" aria-atomic="true" :class="{ 'study-lab-tool__validation--bad': validationMatchesSource && !validation.valid }">
+      <template v-if="validationMatchesSource">
+        <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
+        <pre v-if="validation.diagnostics.length">{{ validation.diagnostics }}</pre>
+        <span v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</span>
+      </template>
+      <span v-else>Study source changed since validation. Validate the current source before running.</span>
     </section>
     <section v-if="run" class="study-lab-tool__run">
       <div><strong>Run #{{ run.id }}</strong><span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Study run status: ${runStatusLabel}`" :data-status="run.status" :class="`study-lab-tool__run-status--${run.status}`">{{ runStatusLabel }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" aria-label="Cancel study run" @click="cancel">Cancel</button><button v-if="canRerun" type="button" aria-label="Rerun study snapshot" :disabled="rerunBusy" @click="rerun(true)">{{ rerunBusy ? 'Rerunning…' : 'Rerun snapshot' }}</button><button v-if="canRerun" type="button" aria-label="Rerun study with latest data" :disabled="rerunBusy" @click="rerun(false)">{{ rerunBusy ? 'Rerunning…' : 'Rerun latest' }}</button></div>
@@ -274,6 +277,8 @@ const promotionBusy = ref(false)
 const promotionStatus = ref('')
 const rerunBusy = ref(false)
 const validation = ref<Validation | null>(null)
+const validatedSource = ref<string | null>(null)
+const validationMatchesSource = computed(() => validation.value !== null && validatedSource.value === source.value)
 const promotedScanId = ref<number | null>(null)
 const promotedSeriesConditionScans = ref<Record<string, { id?: number; codeVersionId?: number; columnCodeVersionId?: number }>>({})
 const seriesConditionOperator = ref<'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'ne'>('gte')
@@ -851,15 +856,20 @@ function eventRows(artifact: Artifact): Array<{ symbol: string; timestamp: strin
 }
 
 async function validate() {
+  const sourceToValidate = source.value
+  validatedSource.value = null
   busy.value = true; error.value = ''
-  try { validation.value = await api.post<Validation>('/code/validate', { source: source.value }) }
+  try {
+    validation.value = await api.post<Validation>('/code/validate', { source: sourceToValidate })
+    validatedSource.value = sourceToValidate
+  }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to validate study source' }
   finally { busy.value = false }
 }
 async function saveAndRun() {
   if (disposed) return
   const generation = ++runGeneration
-  if (!validation.value?.valid || parameterSchemaError.value) return
+  if (!validationMatchesSource.value || !validation.value?.valid || parameterSchemaError.value) return
   if (requiresDeclaredUniverse.value && !universeSymbols.value.split(',').some(value => value.trim())) {
     error.value = 'This factory study requires a declared comma-separated universe before it can run.'
     return
