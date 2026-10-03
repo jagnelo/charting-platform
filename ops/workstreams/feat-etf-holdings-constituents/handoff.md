@@ -6605,6 +6605,29 @@ is still `4842960e5049c42c42a5011324844a30241b4b29`, staging is still
 merge, and the provider branch has not reached staging. The previous local
 Docker full-integration profile remains non-green at generic visual-parity
 E2E; no ETF-owned visual assertion failure was identified and no out-of-scope
-snapshot/UI files were changed. Exact-SHA CI after these test changes remains
-pending. AC10 remains externally dependent on the shared provider-platform
-contracts reaching staging; AC14 remains post-integration/deployment.
+snapshot/UI files were changed. The first exact-SHA CI run after these test
+changes is documented below. AC10 remains externally dependent on the shared
+provider-platform contracts reaching staging; AC14 remains
+post-integration/deployment.
+
+## Exact-SHA CI narrative-invariant correction — 2026-10-03
+
+Actions run `37082570093` tested commit
+`51cb7a0e73493659ab9550bf3bc06a37f30de3c7`. Backend Tests and Branch-declared
+Tests failed (reported exits 1 and 2); Frontend Unit Tests passed; Playwright
+and the protected Exhaustive Integration Gate were skipped as designed on the
+feature branch. Public check annotations exposed only those exit codes. Local
+reproduction identified the exact cause: the session-progress update had
+replaced the required `15 Tier-0 and 156 Tier-1` phrase in
+`session.json`'s `progress.current_blocker`, which the backend workstream
+narrative invariant checks. The test change, provider behavior, and live
+routes were not implicated.
+
+The active session record has been corrected to retain that exact Tier-0/
+Tier-1 evidence while also identifying the remaining AC7, AC10, and AC14
+conditions. The complete deterministic adapter module now passes all 589
+tests, including the narrative invariant, and the branch-owned workstream
+validator passes. The failed Actions run and local reproduction are recorded
+in `validation.jsonl`; exact-SHA CI on the corrective receipt commit is the
+next step. The branch remains pushed only at `51cb7a0e` until that commit is
+created; no other branch or worktree was modified.
