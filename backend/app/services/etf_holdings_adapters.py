@@ -4323,7 +4323,16 @@ class VanguardHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     follow_redirects=True,
                 )
                 response.raise_for_status()
-                payload = response.json()
+                try:
+                    payload = response.json()
+                except json.JSONDecodeError as exc:
+                    content_type = _clean(response.headers.get("content-type")) or "unknown"
+                    raise ValueError(
+                        f"Vanguard {lookup_id} {holding_type} holdings endpoint returned "
+                        "non-JSON content "
+                        f"(status={response.status_code}, content_type={content_type}, "
+                        f"bytes={len(response.content)})."
+                    ) from exc
                 if not isinstance(payload, dict) or payload.get("status") in {404, "404"}:
                     continue
                 parsed_rows = self._parse_vanguard_payload(
@@ -4534,7 +4543,16 @@ class WellingtonHoldingsAdapter(VanguardHoldingsAdapter):
                     follow_redirects=True,
                 )
                 response.raise_for_status()
-                payload = response.json()
+                try:
+                    payload = response.json()
+                except json.JSONDecodeError as exc:
+                    content_type = _clean(response.headers.get("content-type")) or "unknown"
+                    raise ValueError(
+                        f"Vanguard {fund_id} {holding_type} holdings endpoint returned "
+                        "non-JSON content "
+                        f"(status={response.status_code}, content_type={content_type}, "
+                        f"bytes={len(response.content)})."
+                    ) from exc
                 if not isinstance(payload, dict) or payload.get("status") in {404, "404"}:
                     continue
                 parsed_rows = self._parse_vanguard_payload(

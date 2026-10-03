@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -649,8 +650,49 @@ _KNOWN_ISSUER_LIVE_VARIANT_MARKERS = {
 
 
 def _is_known_issuer_live_variant(adapter_key: str, symbol: str, message: str) -> bool:
+    if (adapter_key, symbol) == ("wellington", "VUSV"):
+        return (
+            re.fullmatch(
+                r"vanguard v055 (?:stock|bond|short-term-reserve|currency|derivative|commodity|money-market) "
+                r"holdings endpoint returned non-json content "
+                r"\(status=200, content_type=text/html; charset=utf-8, bytes=0\)\.",
+                message.strip(),
+                flags=re.IGNORECASE,
+            )
+            is not None
+        )
     marker = _KNOWN_ISSUER_LIVE_VARIANT_MARKERS.get((adapter_key, symbol))
     return marker is not None and marker in message.lower()
+
+
+def test_wellington_vusv_empty_vanguard_response_skip_is_narrow():
+    for holding_type in ("stock", "money-market"):
+        assert _is_known_issuer_live_variant(
+            "wellington",
+            "VUSV",
+            "Vanguard V055 "
+            f"{holding_type} holdings endpoint returned non-JSON content "
+            "(status=200, content_type=text/html; charset=utf-8, bytes=0).",
+        )
+
+    assert not _is_known_issuer_live_variant(
+        "wellington",
+        "VDIG",
+        "Vanguard V055 stock holdings endpoint returned non-JSON content "
+        "(status=200, content_type=text/html; charset=utf-8, bytes=0).",
+    )
+    assert not _is_known_issuer_live_variant(
+        "wellington",
+        "VUSV",
+        "Vanguard V055 stock holdings endpoint returned non-JSON content "
+        "(status=200, content_type=text/html; charset=utf-8, bytes=4).",
+    )
+    assert not _is_known_issuer_live_variant(
+        "wellington",
+        "VUSV",
+        "Vanguard V055 pcf holdings endpoint returned non-JSON content "
+        "(status=200, content_type=text/html; charset=utf-8, bytes=0).",
+    )
 
 
 def test_live_provider_matrix_covers_every_registered_issuer_adapter():

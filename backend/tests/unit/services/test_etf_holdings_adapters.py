@@ -8130,6 +8130,21 @@ async def test_vanguard_adapter_fetches_public_json_api(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_vanguard_adapter_fails_closed_on_non_json_holding_type(monkeypatch):
+    adapter = get_holdings_adapter("vanguard")
+    assert adapter is not None
+
+    FakeAsyncClient.queue = [FakeResponse(text="", content_type="text/html")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(
+        ValueError,
+        match=r"Vanguard VOO stock holdings endpoint returned non-JSON content",
+    ):
+        await adapter.fetch_latest(symbol="VOO")
+
+
+@pytest.mark.asyncio
 async def test_wellington_adapter_uses_verified_vanguard_publisher_route(monkeypatch):
     adapter = get_holdings_adapter("wellington")
     assert adapter is not None
@@ -8192,6 +8207,42 @@ async def test_wellington_adapter_uses_verified_vanguard_publisher_route(monkeyp
     assert result.legal_metadata["route_resolution"] == (
         "vanguard_publisher_pcf_json_for_wellington_managed_etf"
     )
+
+
+@pytest.mark.asyncio
+async def test_wellington_adapter_fails_closed_on_non_json_vanguard_holding_type(monkeypatch):
+    adapter = get_holdings_adapter("wellington")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<script id="fundProfileData" type="application/json">'
+                '{"fundProfile":{"fundId":"V055","ticker":"VUSV",'
+                '"longName":"Vanguard Wellington U.S. Value Active ETF"}}'
+                "</script>"
+            ),
+            content_type="text/html",
+        ),
+        *[
+            FakeResponse(text='{"size":0,"fund":{}}', content_type="application/json")
+            for _ in range(6)
+        ],
+        FakeResponse(text="", content_type="text/html"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(
+        ValueError,
+        match=r"Vanguard V055 money-market holdings endpoint returned non-JSON content",
+    ):
+        await adapter.fetch_latest(symbol="VUSV")
+
+    assert FakeAsyncClient.requested[-1][0].endswith(
+        "V055/portfolio-holding/money-market.json?start=1&count=20000"
+    )
+    assert not any("/pcf.json" in url for url, _ in FakeAsyncClient.requested)
 
 
 @pytest.mark.asyncio

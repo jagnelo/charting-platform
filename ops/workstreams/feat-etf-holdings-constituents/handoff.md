@@ -6704,3 +6704,58 @@ match staging and ETF; the ETF HEAD contains staging, so there is no newer
 staging change to merge. The provider-platform commit is not an ancestor of
 staging, so no shared `ETF_HOLDINGS` contract is available to bridge yet. No
 remote ref was changed and no other branch/worktree was accessed for writing.
+
+## Vanguard VUSV empty-response handling and matrix revalidation — 2026-10-03
+
+Exact-SHA Actions run `37119946097` tested `cfec6a5a0d8f6102bc757bbd431a5fd288b77674`.
+Backend Tests, Frontend Unit Tests, and Playwright passed; Branch-declared Tests
+failed with exit code 2, and the protected Exhaustive Integration Gate was
+skipped as designed on the feature branch. The public annotations exposed only
+the exit code and the job-log endpoint returned HTTP 403. Local reproduction
+showed the only opt-in matrix failure was Wellington VUSV against Vanguard fund
+V055: a publisher holdings-category endpoint intermittently returned HTTP 200
+with an empty `text/html; charset=utf-8` response. Two reproductions observed
+money-market and stock variants, respectively. This is malformed/unavailable
+source content, not a valid empty portfolio.
+
+`VanguardHoldingsAdapter` and `WellingtonHoldingsAdapter` now convert JSON
+decoding errors into descriptive `ValueError`s that include the fund, holding
+category, status, content type, and byte count. The Wellington case fails
+closed and does not attempt the PCF route after this malformed category
+response. The live skip is deliberately narrower than the failure behavior: it
+matches only `(wellington, VUSV)`, Vanguard fund V055, one of the seven known
+holding categories, status 200, exact `text/html; charset=utf-8`, and zero body
+bytes. Regression checks reject adjacent symbols, invalid categories, and
+nonempty bodies as skippable variants. No holdings are fabricated or promoted
+as supported by this source-variant skip.
+
+The complete branch-declared runner passed on the working tree based on
+`cfec6a5a0d8f6102bc757bbd431a5fd288b77674`: 592 deterministic adapter tests;
+default live contracts (3 passed, 534 opt-in skipped); and all 537 opt-in live
+cases (506 passed, 31 narrowly classified skips). Ruff, branch-owned
+workstream validation, frontend type-check, 17 ETF panel/view tests, and the
+frontend production build also passed. The 31 skips retain the pre-existing
+issuer access/source variants plus this exact VUSV empty-body signature; none
+is a native-provider promotion. The run does not replace exact-SHA CI after the
+fix.
+
+The Docker/browser full-integration gate is still a separate required check.
+Its latest fresh-stack run is recorded above and stopped at the generic
+`F9c-template-comparison` chart-overlay click interception after 152 functional
+E2E passes and 106 skips. That UI/test is outside ETF `owned_paths`; no generic
+chart code or assertion was changed. Next: commit and push the narrow ETF fix
+and receipts, inspect exact-SHA CI, then retry the full local gate once against
+the exact commit. The shared provider-platform branch remains outside staging
+and AC10 is not implementable until that staging dependency exists; AC14
+remains post-integration/deployment observation. The 15 Tier-0 and 156 Tier-1
+symbol outcomes remain accounted for.
+
+## Remote dependency status refresh — 2026-10-03
+
+Read-only `git ls-remote` at 12:38 UTC confirms origin ETF
+`cfec6a5a0d8f6102bc757bbd431a5fd288b77674`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, and provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`. Local origin-tracking refs match;
+the staging tip is an ancestor of this branch. No new staging merge is needed.
+The provider-platform branch still has not reached staging, so AC10 remains a
+real external dependency; no non-ETF branch or worktree was modified.
