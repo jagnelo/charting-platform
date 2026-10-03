@@ -50,7 +50,7 @@
           </label>
           <label class="indicator-settings-dialog__field">
             <span>Line width</span>
-            <input aria-label="Line width" type="number" min="0.25" max="5" step="0.25" v-model.number="draft.lineWidth" />
+            <input aria-label="Line width" type="number" min="0.25" max="5" step="0.25" :aria-invalid="lineWidthIsValid ? undefined : 'true'" v-model.number="draft.lineWidth" @change="normalizeLineWidth" />
           </label>
           <label class="indicator-settings-dialog__field">
             <span>Timeframes</span>
@@ -115,13 +115,15 @@ const numericConstraints = ref<Record<string, RegistryParam>>({})
 const fallbackInitialControl = ref<HTMLInputElement | null>(null)
 const dialogRoot = ref<HTMLElement | null>(null)
 const defaultIndicator = cloneDefaultIndicator(props.indicator.type)
+const initialLineWidth = Number(props.indicator.style.lineWidth ?? 0.75)
+const lastValidLineWidth = ref(initialLineWidth)
 const draft = ref({
   params: {
     ...normalizeIndicatorParams(props.indicator.type, defaultIndicator.params),
     ...normalizeIndicatorParams(props.indicator.type, props.indicator.params),
   },
   color: props.indicator.style.color,
-  lineWidth: props.indicator.style.lineWidth ?? 0.75,
+  lineWidth: initialLineWidth,
   timeframeMode: props.indicator.lockedTimeframes?.length ? 'locked' as const : 'all' as const,
   lockedTimeframes: [...(props.indicator.lockedTimeframes ?? [])],
 })
@@ -151,10 +153,13 @@ const canApply = computed(() => {
     return numericParamError(param) == null
   })
   return validParams
-    && Number.isFinite(draft.value.lineWidth)
-    && draft.value.lineWidth >= 0.25
-    && draft.value.lineWidth <= 5
+    && lineWidthIsValid.value
     && (draft.value.timeframeMode === 'all' || draft.value.lockedTimeframes.length > 0)
+})
+
+const lineWidthIsValid = computed(() => {
+  const width = Number(draft.value.lineWidth)
+  return Number.isFinite(width) && width >= 0.25 && width <= 5 && Number.isInteger(width * 4)
 })
 
 function setNumberParam(key: string, raw: string) {
@@ -168,6 +173,23 @@ function setSelectParam(key: string, value: string) {
 function setDateTimeParam(key: string, raw: string) {
   const timestamp = raw ? Date.parse(raw) / 1000 : Number.NaN
   draft.value.params[key] = Number.isFinite(timestamp) ? timestamp : null
+}
+
+function normalizeLineWidth(event: Event) {
+  const raw = (event.currentTarget as HTMLInputElement).value
+  if (!raw.trim()) {
+    draft.value.lineWidth = lastValidLineWidth.value
+    return
+  }
+  const requested = Number(raw)
+  if (!Number.isFinite(requested)) {
+    draft.value.lineWidth = lastValidLineWidth.value
+    return
+  }
+  const stepped = Math.round(requested * 4) / 4
+  const normalized = Math.min(5, Math.max(0.25, stepped))
+  draft.value.lineWidth = normalized
+  lastValidLineWidth.value = normalized
 }
 
 function dateTimeValue(value: unknown) {

@@ -166,6 +166,44 @@ describe('ChartPlotLibrary', () => {
     wrapper.unmount()
   })
 
+  it('keeps settings-dialog line widths on quarter-pixel steps and preserves the last value when cleared', async () => {
+    const chart = usePanelStore('plot-library-dialog-line-width-constraints-test')
+    chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    chart.instrument = { id: 42, symbol: 'SPY' } as any
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-dialog-line-width-constraints-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit SMA(20) settings"]').trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.querySelector<HTMLElement>('[aria-label="Indicator settings: SMA(20)"]')!
+    const lineWidth = dialog.querySelector<HTMLInputElement>('input[aria-label="Line width"]')!
+    const apply = dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!
+    lineWidth.value = '1.13'
+    lineWidth.dispatchEvent(new Event('input', { bubbles: true }))
+    lineWidth.dispatchEvent(new Event('change', { bubbles: true }))
+    await flushPromises()
+    expect(lineWidth.value).toBe('1.25')
+
+    lineWidth.value = '7.3'
+    lineWidth.dispatchEvent(new Event('input', { bubbles: true }))
+    lineWidth.dispatchEvent(new Event('change', { bubbles: true }))
+    await flushPromises()
+    expect(lineWidth.value).toBe('5')
+
+    lineWidth.value = ''
+    lineWidth.dispatchEvent(new Event('input', { bubbles: true }))
+    lineWidth.dispatchEvent(new Event('change', { bubbles: true }))
+    await flushPromises()
+    expect(lineWidth.value).toBe('5')
+    expect(apply.disabled).toBe(false)
+    apply.click()
+    await flushPromises()
+
+    expect(chart.indicators[0].style.lineWidth).toBe(5)
+    wrapper.unmount()
+  })
+
   it('uses floating-point parameter limits from the indicator registry', async () => {
     const chart = usePanelStore('plot-library-indicator-float-constraints-test')
     chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#80cbc4', lineWidth: 1 }, pane: 'main' }])
