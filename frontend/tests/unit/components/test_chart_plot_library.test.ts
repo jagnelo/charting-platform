@@ -57,6 +57,24 @@ describe('ChartPlotLibrary', () => {
     expect(chart.indicators).toHaveLength(2)
   })
 
+  it('filters the indicator picker by name or type and reports an empty result', async () => {
+    const chart = usePanelStore('plot-library-search-test')
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-search-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+
+    const search = wrapper.get('input[aria-label="Filter indicators"]')
+    const picker = wrapper.get('select[aria-label="Add indicator plot"]')
+    await search.setValue('relative strength index')
+    expect(picker.findAll('option').map(option => option.text())).toEqual(['Add indicator plot…', 'RSI - Relative Strength Index'])
+    await search.setValue('not-a-real-indicator')
+    expect(wrapper.get('[role="status"]').text()).toContain('No indicators match “not-a-real-indicator”.')
+
+    await search.setValue('sma')
+    await picker.setValue('sma')
+    expect(chart.indicators.map(indicator => indicator.type)).toEqual(['sma'])
+    wrapper.unmount()
+  })
+
   it('edits an indicator from the primary plot library without dropping its existing configuration', async () => {
     const chart = usePanelStore('plot-library-indicator-settings-test')
     const original = { type: 'sma' as const, params: { period: 20, custom_source: 'close' }, style: { color: '#ff0000', lineWidth: 1.5 }, pane: 'main' as const, lockedTimeframes: ['D1' as const, 'W1' as const], hidden: true }
@@ -229,12 +247,12 @@ describe('ChartPlotLibrary', () => {
     expect((wrapper.get('[aria-label="BB(20,2) output"]').element as HTMLSelectElement).value).toBe('bb_upper')
   })
 
-  it('opens from the keyboard, focuses the first plot control, and restores focus on Escape', async () => {
+  it('opens from the keyboard, focuses indicator search, and restores focus on Escape', async () => {
     const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-keyboard-test' } }, attachTo: document.body })
     const trigger = wrapper.get('button[aria-label="Chart plot library"]')
     await trigger.trigger('keydown', { key: 'ArrowDown' })
     expect(wrapper.get('[role="dialog"]').exists()).toBe(true)
-    expect(document.activeElement).toBe(wrapper.get('[aria-label="Add indicator plot"]').element)
+    expect(document.activeElement).toBe(wrapper.get('[aria-label="Filter indicators"]').element)
     await wrapper.get('[role="dialog"]').trigger('keydown', { key: 'Escape' })
     expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
     expect(document.activeElement).toBe(trigger.element)

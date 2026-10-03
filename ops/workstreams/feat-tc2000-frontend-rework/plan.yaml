@@ -20,22 +20,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No blocker prevents independent TC-owned frontend work. The full 104-case
-  board-guided visual matrix at clean SHA `fe8aaee56e035c7be52cfc887670cd29aedfc277`
-  finished with 98 failures and 6 passes. Sampled failures are stable screenshot
-  differences, including the default benchmark shell (47,571 pixels, 3% at
-  1080p/125%) and Study Lab's running gap (16,052 pixels, 1% at 1080p/100%),
-  above the unchanged 0.5% threshold. One stale Cancel-button accessible-name
-  assertion was corrected in `88a8452c6f1c2c5ace45f7f13892dd7f36a777dc`; the
-  focused rerun reached the screenshot assertion, which still fails. Do not
-  alter baselines, masks, thresholds, skips, fallbacks, or acceptance rules
-  without the review required by `docs/tc2000-visual-parity.md`. Current refs are
-  staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+  No blocker prevents independent TC-owned frontend work. At clean product SHA
+  `1b5e2c7e6e877c086cc355f68e7841204432c119`, the complete 104-case board-guided
+  matrix in pinned Playwright 1.62.1 completed with 94 passes and 10
+  screenshot-only failures: workspace-floating in all four viewports,
+  Study Lab structured-result in all four, and Study Lab sandbox-error at
+  1080p/100 and 1080p/125. The state/interaction assertions passed before each
+  screenshot; current product state differs from the saved references. Keep the
+  0.5% threshold, references, masks, skips, fallbacks, and acceptance rules
+  unchanged pending the review required by docs/tc2000-visual-parity.md. Current
+  refs are staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
   `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, and ETF holdings
-  `4842960e5049c42c42a5011324844a30241b4b29`; neither dependency tip is in
-  staging, so R2/R3 consumer integration and shared-path reconciliation remain
-  deferred. These gates do not stop independent R1/R5/R6 work. The full
-  integration/browser gate remains required at the final clean exact tip.
+  `71d36f1aceaef21f77453495aeb05fdb92bfe81d`; neither dependency tip is in
+  staging, so R2/R3 integration and shared-path reconciliation remain deferred.
+  Continue independent R1/R5/R6 work. The full integration/browser gate remains
+  required at the final clean exact tip.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."

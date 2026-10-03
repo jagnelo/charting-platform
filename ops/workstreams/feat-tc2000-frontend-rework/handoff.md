@@ -1,5 +1,34 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-03 — Searchable primary-workstation indicator picker
+
+The primary `/chart` workstation's Chart Plot Library now has a searchable
+indicator picker. It searches the existing catalog's type, short label, and
+picker description; an empty match is stated accessibly. Opening the panel by
+keyboard focuses the filter first, while the existing native picker, indicator
+creation, persistence, and Escape-to-trigger focus recovery remain intact. This
+is TC-owned frontend behavior only; no indicator engine, provider, ETF, image
+reference, mask, threshold, or acceptance rule changed.
+
+Pre-commit diagnostics: the focused ChartPlotLibrary suite passed `41/41`,
+frontend type-check passed, and the rebuilt assigned frontend image passed its
+production `vue-tsc`/Vite build. Authenticated Chromium `F9e-plot-library-keyboard`
+passed `1/1`. The full frontend coverage run passed `127/128` files and
+`1,176/1,177` tests; its only failure was the existing 100,000-point range-band
+timing assertion at `1,030 ms` against a `1,000 ms` limit. The same test passed
+when immediately rerun alone (`1/1`), indicating a transient timing miss. These
+pre-commit diagnostics are not exact-SHA gate evidence; rerun the affected and
+full browser suites from a clean committed tree. The complete visual matrix
+also remains due at the new clean source tip. No visual oracle was updated.
+
+Changed paths for this checkpoint: `frontend/src/components/workstation/ChartPlotLibrary.vue`,
+`frontend/tests/unit/components/test_chart_plot_library.test.ts`,
+`frontend/tests/e2e/flows.spec.ts`, `docs/tc2000-roadmap.md`,
+`docs/tc2000-visual-parity.md`, `ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`,
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`, and
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`.
+
 ## 2026-10-02 — Chart indicator settings use engine parameter constraints
 
 Product commit `aa6472fb3582d5d60d685e26f72f809b4397e5ef` fixes a chart-editor
@@ -15921,3 +15950,35 @@ provider, and ETF tips are respectively `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc3
 `4842960e5049c42c42a5011324844a30241b4b29`; both dependency tips remain outside
 staging. Continue independent R1/R5/R6 work, preserve visual acceptance policy,
 and defer R2/R3 integration until staging promotion.
+
+## 2026-10-03 — Pinned-browser full matrix at current product tip
+
+The exact clean product tree at `1b5e2c7e6e877c086cc355f68e7841204432c119`
+passed the board manifest check and ran the full 104-case matrix in the pinned
+`mcr.microsoft.com/playwright:v1.62.1-noble` image. Result: `94` passed and
+`10` failed in `12.3m`. The prior broad host-browser text/font differences did
+not reproduce in the pinned image: default shell, menus, drag targets,
+freshness states, editor states, and other covered surfaces passed.
+
+All ten failures were screenshot assertions after the interaction/state checks
+passed. `workspace-floating` failed in each viewport (8,995 pixels at 100%
+scale; 9,825 at 125%): the browser test intentionally waits for five hydrated
+seeded rows, but the committed image shows an empty table. The structured
+Study Lab result failed in all four viewports (109,320; 105,698; 22,099; and
+21,352 pixels), where current promotion controls/results are absent from the
+saved image. The sandbox-error Study Lab capture failed at the two 1080p scales
+(13,300 and 11,120 pixels); its 1440p cases passed. The screenshot threshold
+remains 0.5%; no references, masks, skips, or acceptance rules changed. Any
+reference update remains subject to the review documented in
+`docs/tc2000-visual-parity.md`.
+
+The host-browser diagnostic was stopped after ten cases once the known
+environmental font signature was confirmed; its partial results are not used
+as acceptance evidence. After the pinned matrix, `make test-stack-down` removed
+only this worktree's six containers, four fixture volumes, network, four
+generated images, and test sessions; no retained resources remain. Current
+refs are staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`65a467b43d7830b0875d9c3ad538e47a06d4a6db`, and ETF holdings
+`71d36f1aceaef21f77453495aeb05fdb92bfe81d`. Both dependency tips remain outside
+staging. Continue independent TC-owned R1/R5 work; defer R2/R3 consumer
+integration until staging promotion.

@@ -685,7 +685,7 @@ test.describe('Chart', () => {
     await trigger.press('ArrowDown')
     const menu = page.getByRole('dialog', { name: 'Chart plot library panel' })
     await expect(menu).toBeVisible()
-    await expect(menu.getByRole('combobox', { name: 'Add indicator plot' })).toBeFocused()
+    await expect(menu.getByRole('searchbox', { name: 'Filter indicators' })).toBeFocused()
     await menu.press('Escape')
     await expect(menu).toHaveCount(0)
     await expect(trigger).toBeFocused()

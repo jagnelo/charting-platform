@@ -1,14 +1,42 @@
 # TC2000 Version 25 Visual-Parity Specification
 
-## 2026-10-03 — Latest full board-matrix result
+The current full-matrix evidence below is from product SHA
+`1b5e2c7e6e877c086cc355f68e7841204432c119`. A later TC-owned change adds a
+search field inside the primary Chart Plot Library; the board matrix must be
+rerun at its clean committed source tip before claiming visual coverage of
+that change. No references, masks, thresholds, skips, or acceptance rules have
+been modified.
 
-The full 104-case board-guided matrix at clean SHA
+## 2026-10-03 — Latest pinned-browser matrix: 94/104 pass
+
+At clean product SHA `1b5e2c7e6e877c086cc355f68e7841204432c119`, the complete
+board-guided matrix ran all `104` cases across four viewport projects using
+the matching Playwright `1.62.1` image. It completed with `94` passes and `10`
+screenshot-only failures. The broad shell/menu/freshness diffs from the prior
+host-browser run did not reproduce in this pinned environment.
+
+The remaining failures are stable and state-specific: all four
+`workspace-floating` captures differ by `8,995` or `9,825` pixels because the
+current test waits for five seeded rows while the stored images show an empty
+table; all four `study-lab-structured-result-gap` captures differ by `109,320`,
+`105,698`, `22,099`, and `21,352` pixels respectively because the current
+structured result includes newer promotion controls/content; and the two
+1080p `study-lab-sandbox-error-gap` captures differ by `13,300` and `11,120`
+pixels. The interaction/state assertions before those screenshots passed.
+The four-project matrix, exact threshold (`0.5%`), references, masks, skips, and
+acceptance rules are unchanged. The mismatches require visual review before
+any baseline update; they are not silently accepted here.
+
+## 2026-10-03 — Earlier broad full-matrix result (superseded by pinned replay)
+
+The earlier 104-case board-guided matrix at clean SHA
 `fe8aaee56e035c7be52cfc887670cd29aedfc277` completed across all four viewport
 projects with 98 failures and 6 passes. Sampled failures include the default
 benchmark shell (47,571 differing pixels / 3% at 1080p/125%), workspace menu
 and drag-target states, freshness gaps, and Study Lab running/structured-result
-states. This supersedes the earlier 104/104 pass receipt below as the latest
-full-matrix evidence; it does not change the accepted references or thresholds.
+states. The later pinned-browser replay above shows the broad shell/menu/freshness
+deltas were host-rendering differences; its 94/104 result is the latest full
+matrix evidence. Neither run changed the accepted references or thresholds.
 
 The running Study Lab case also had a stale accessible-name assertion (`Cancel`
 instead of the actual `Cancel study run`); commit `88a8452c6f1c2c5ace45f7f13892dd7f36a777dc`

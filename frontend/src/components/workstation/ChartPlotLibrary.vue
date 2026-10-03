@@ -3,10 +3,12 @@
     <button ref="toggleButton" type="button" aria-label="Chart plot library" :aria-expanded="open" :aria-controls="plotLibraryMenuId" aria-haspopup="dialog" @click="toggleOpen()" @keydown="handleTriggerKeydown">Plots {{ chartStore.indicators.length + (pythonPlots?.length ?? 0) + (scanPlots?.length ?? 0) }}</button>
     <div v-if="open" :id="plotLibraryMenuId" ref="menuRoot" class="chart-plots__menu" role="dialog" aria-label="Chart plot library panel" :style="menuStyle" @keydown="handleMenuKeydown">
       <header><b>Chart plots</b><button type="button" aria-label="Close chart plot library" @click="closeToTrigger"><WorkstationGlyph kind="close" /></button></header>
-      <select ref="firstControl" aria-label="Add indicator plot" :value="''" @change="add(($event.target as HTMLSelectElement).value)">
+      <input ref="firstControl" v-model.trim="indicatorSearch" type="search" aria-label="Filter indicators" placeholder="Find an indicator…" autocomplete="off" />
+      <select aria-label="Add indicator plot" :value="''" @change="add(($event.target as HTMLSelectElement).value)">
         <option value="" disabled>Add indicator plot…</option>
-        <option v-for="item in catalog" :key="item.type" :value="item.type">{{ item.pickerLabel }}</option>
+        <option v-for="item in filteredCatalog" :key="item.type" :value="item.type">{{ item.pickerLabel }}</option>
       </select>
+      <p v-if="indicatorSearch && !filteredCatalog.length" role="status">No indicators match “{{ indicatorSearch }}”.</p>
       <label class="chart-plots__target">Copy target
         <select v-model="selectedCopyTarget" aria-label="Copy plot target">
           <option value="linked">Linked charts ({{ linkedChartCount }})</option>
@@ -99,6 +101,12 @@ const emit = defineEmits<{
   configuration: [windowKey: string, configuration: Record<string, unknown>]
 }>()
 const chartStore = usePanelStore(inject<string>('panelId', 'chart')); const open = ref(false); const catalog = INDICATOR_CATALOG; const workspaceStore = useWorkspaceStore()
+const indicatorSearch = ref('')
+const filteredCatalog = computed(() => {
+  const query = indicatorSearch.value.toLocaleLowerCase()
+  if (!query) return catalog
+  return catalog.filter(item => `${item.type} ${item.label} ${item.pickerLabel}`.toLocaleLowerCase().includes(query))
+})
 const editingIndex = ref<number | null>(null)
 const editingIndicator = computed(() => editingIndex.value == null ? null : chartStore.indicators[editingIndex.value] ?? null)
 const plotLibraryToken = globalThis.crypto?.randomUUID?.().replace(/-/g, '').slice(0, 12) ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -106,7 +114,7 @@ const plotLibraryMenuId = `chart-plot-library-menu-${plotLibraryToken}`
 const queryClient = useQueryClient()
 const toggleButton = ref<HTMLButtonElement | null>(null)
 const menuRoot = ref<HTMLElement | null>(null)
-const firstControl = ref<HTMLSelectElement | null>(null)
+const firstControl = ref<HTMLInputElement | null>(null)
 const menuStyle = ref<Record<string, string>>({})
 function positionMenu() {
   const rect = toggleButton.value?.getBoundingClientRect()
@@ -589,6 +597,6 @@ onBeforeUnmount(() => {
 })
 </script>
 <style scoped>
-.chart-plots{position:relative}.chart-plots button,.chart-plots select,.chart-plots input{border:1px solid #3a4954;background:#172027;color:#dce6ed;font:10px "Segoe UI",Arial,sans-serif}.chart-plots>button{height:18px;padding:0 5px;cursor:pointer}.chart-plots__menu{z-index:121;display:grid;gap:4px;max-height:340px;padding:6px;border:1px solid #4a5b67;background:#131a20;box-shadow:0 6px 16px #000b}.chart-plots__menu header{display:flex;align-items:center}.chart-plots__menu header button{margin-left:auto}.chart-plots select{min-width:0;padding:2px}.chart-plots p{margin:0;padding:3px 4px;color:#b4c3cd;border-top:1px solid #2d3942}.chart-plots p small{color:#8196a4}.chart-plots ol{display:grid;gap:2px;max-height:204px;margin:0;padding:0;overflow:auto;list-style:none}.chart-plots li{display:grid;grid-template-columns:18px minmax(0,1fr) 36px repeat(6,18px);align-items:center;gap:3px;padding:2px;border-top:1px solid #27323a}.chart-plots li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chart-plots li input[type=color]{width:17px;height:16px;padding:0}.chart-plots li input[type=number]{min-width:0;padding:1px}.chart-plots li button{height:17px;padding:0;cursor:pointer}.chart-plots li button:disabled{opacity:.35}.chart-plots li .chart-plots__indicator-settings-trigger{min-width:0;overflow:hidden;padding:0;border:0;background:transparent;text-align:left;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}.chart-plots li .chart-plots__indicator-settings-trigger:hover{text-decoration:underline}.muted{opacity:.5}
+.chart-plots{position:relative}.chart-plots button,.chart-plots select,.chart-plots input{border:1px solid #3a4954;background:#172027;color:#dce6ed;font:10px "Segoe UI",Arial,sans-serif}.chart-plots>button{height:18px;padding:0 5px;cursor:pointer}.chart-plots__menu{z-index:121;display:grid;gap:4px;max-height:340px;padding:6px;border:1px solid #4a5b67;background:#131a20;box-shadow:0 6px 16px #000b}.chart-plots__menu header{display:flex;align-items:center}.chart-plots__menu header button{margin-left:auto}.chart-plots__menu select{min-width:0;padding:2px}.chart-plots__menu input[type=search]{min-width:0;padding:3px 4px}.chart-plots p{margin:0;padding:3px 4px;color:#b4c3cd;border-top:1px solid #2d3942}.chart-plots p small{color:#8196a4}.chart-plots ol{display:grid;gap:2px;max-height:204px;margin:0;padding:0;overflow:auto;list-style:none}.chart-plots li{display:grid;grid-template-columns:18px minmax(0,1fr) 36px repeat(6,18px);align-items:center;gap:3px;padding:2px;border-top:1px solid #27323a}.chart-plots li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chart-plots li input[type=color]{width:17px;height:16px;padding:0}.chart-plots li input[type=number]{min-width:0;padding:1px}.chart-plots li button{height:17px;padding:0;cursor:pointer}.chart-plots li button:disabled{opacity:.35}.chart-plots li .chart-plots__indicator-settings-trigger{min-width:0;overflow:hidden;padding:0;border:0;background:transparent;text-align:left;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}.chart-plots li .chart-plots__indicator-settings-trigger:hover{text-decoration:underline}.muted{opacity:.5}
 .chart-plots__promotion{display:grid;grid-template-columns:72px 34px 62px minmax(60px,1fr) 36px;gap:3px}.chart-plots__promotion input,.chart-plots__promotion select{min-width:0}.chart-plots__promotion-status{margin:0;padding:2px 4px;color:#9ec6a0}
 </style>

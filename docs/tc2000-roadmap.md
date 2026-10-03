@@ -5,16 +5,49 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-03
 
-## 2026-10-03 — Full visual matrix exposes broader current diffs
+## 2026-10-03 — Primary chart indicator discovery
 
-The full board-guided 104-case matrix at clean SHA
+The primary `/chart` Chart Plot Library now filters the existing technical
+indicator catalog by short name, type, or full picker description. Keyboard
+entry focuses the filter first, the empty-result case is announced, and adding
+a result continues through the existing persisted indicator path. This makes
+the growing TC indicator catalog easier to navigate without duplicating engine
+logic or changing any market-data/ETF ownership. The focused unit suite passed
+`41/41`, type-check and the production frontend build passed, and the authenticated
+keyboard browser flow passed `1/1`. The broad frontend run had one unrelated
+100,000-point chart timing miss that passed on isolated rerun. Exact clean-tip
+full-suite and board-visual replay remain pending; no visual references or
+acceptance rules were changed.
+
+## 2026-10-03 — Pinned visual matrix isolates ten current screenshot diffs
+
+At clean product SHA `1b5e2c7e6e877c086cc355f68e7841204432c119`, the board-guided
+104-case matrix completed in the pinned Playwright 1.62.1 browser image: `94`
+passed and `10` failed. This supersedes the earlier broad host-browser result;
+the default shell, workspace menus, drag targets, freshness states, and other
+screens passed in the matching rendering environment. All ten failures were
+screenshot assertions after their state/interaction assertions passed:
+`workspace-floating` in all four viewports (the test captures the five hydrated
+seeded rows while the saved reference is empty), `study-lab-structured-result`
+in all four viewports (current structured outputs include promotion controls
+not shown in the saved references), and `study-lab-sandbox-error` at the two
+1080p scales. The 0.5% limit and all screenshot references remain unchanged;
+these intentional-state differences need visual review before any reference
+update. No provider or ETF code was changed. Their current tips are still not
+ancestors of staging, so R2/R3 integration remains deferred while R1/R5 work
+continues.
+
+## 2026-10-03 — Earlier broad host-rendered matrix (superseded)
+
+The earlier board-guided 104-case matrix at clean SHA
 `fe8aaee56e035c7be52cfc887670cd29aedfc277` completed across four viewport
 projects with 98 failures and 6 passes. Sampled screenshot deltas include the
 default benchmark shell, workspace menu/drag states, freshness gaps, and Study
-Lab running/structured-result states. The result is broader than the six
-protected diffs recorded by the targeted October 2 replay, so the cause must be
-reconciled before claiming visual readiness; screenshot oracles remain
-unchanged.
+Lab running/structured-result states. A later full replay in the matching
+Playwright 1.62.1 image showed the broad shell/menu/freshness failures came
+from host font rendering; see the pinned matrix above for the current exact
+result and the ten remaining state-specific screenshot diffs. No screenshot
+oracle was changed.
 
 The Study Lab running-state test also used an outdated accessible name for its
 Cancel control. Commit `88a8452c6f1c2c5ace45f7f13892dd7f36a777dc` corrects only
