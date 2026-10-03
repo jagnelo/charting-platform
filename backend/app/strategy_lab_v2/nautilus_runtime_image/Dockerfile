@@ -18,6 +18,11 @@ ADD --checksum=sha256:${NAUTILUS_WHEEL_SHA256} ${NAUTILUS_WHEEL_URL} /tmp/${NAUT
 RUN python -m pip install --no-cache-dir --no-deps /tmp/${NAUTILUS_WHEEL_FILENAME} \
     && rm -f /tmp/${NAUTILUS_WHEEL_FILENAME}
 
+# Native engine reports return pandas frames. Keep the reporting stack exact
+# and isolated instead of inheriting optional packages from the application.
+COPY app/strategy_lab_v2/nautilus_runtime_image/reporting-requirements.txt /opt/strategy-lab-v2/reporting-requirements.txt
+RUN python -m pip install --no-cache-dir --requirement /opt/strategy-lab-v2/reporting-requirements.txt
+
 COPY app/strategy_lab_v2/__init__.py app/strategy_lab_v2/__init__.py
 COPY app/strategy_lab_v2/canonical.py app/strategy_lab_v2/canonical.py
 COPY app/strategy_lab_v2/capabilities.py app/strategy_lab_v2/capabilities.py

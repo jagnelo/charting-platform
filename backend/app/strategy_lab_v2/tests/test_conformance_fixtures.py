@@ -421,6 +421,38 @@ def _rc_partial_resolution(
     )
 
 
+def _rc_accounting_run(instrument_count: int) -> dict[str, Any]:
+    quantity = 1000 * instrument_count
+    commission = 2 * instrument_count
+    account_total = "98897.79" if instrument_count == 1 else "97795.58"
+    return {
+        "account_total": account_total,
+        "instrument_count": instrument_count,
+        "total_orders": instrument_count,
+        "total_positions": instrument_count,
+        "orders_total": str(instrument_count),
+        "positions_total": str(instrument_count),
+        "native_reports": {
+            "commission_total": f"{commission:.2f}",
+            "commissions": ["2.00 USD"] * instrument_count,
+            "expected_commission_per_fill": "2.00",
+            "expected_quantity_per_instrument": "1000",
+            "expected_quantity_total": str(quantity),
+            "execution_prices": ["1.10021"] * instrument_count,
+            "fee_currency": "USD",
+            "fill_instrument_ids": [f"INSTRUMENT-{i}" for i in range(instrument_count)],
+            "fill_quantities": ["1000"] * instrument_count,
+            "filled_quantity": str(quantity),
+            "fills_report_rows": instrument_count,
+            "initial_account_total": "100000.00",
+            "best_ask": "1.10020",
+            "orders_report_rows": instrument_count,
+            "price_increment": "0.00001",
+            "total_fills": instrument_count,
+        },
+    }
+
+
 def _rc_receipt(runtime: NautilusRcCompatibilityRuntime) -> NautilusRcFixtureReceipt:
     return NautilusRcFixtureReceipt.from_mapping(
         {
@@ -428,8 +460,8 @@ def _rc_receipt(runtime: NautilusRcCompatibilityRuntime) -> NautilusRcFixtureRec
             "deterministic_replay": {"equal": True},
             "engine_lifecycle": "passed",
             "forward_event_tape_parity": "deferred_authoritative_fixture",
-            "multi_instrument_accounting": {"instrument_count": 2},
-            "native_order_fill_cost": {"total_orders": 1},
+            "multi_instrument_accounting": _rc_accounting_run(2),
+            "native_order_fill_cost": _rc_accounting_run(1),
         },
         runtime,
     )

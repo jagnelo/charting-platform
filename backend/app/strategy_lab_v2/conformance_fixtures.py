@@ -239,9 +239,10 @@ def resolve_nautilus_rc_conformance(
     """Bind a parsed RC image receipt to the engine execution gate.
 
     The returned report intentionally fails the complete conformance decision
-    because forward parity is deferred, while its four passed checks remain
-    available to ``BACKTEST_COMPATIBILITY`` execution.  No caller can use this
-    helper to manufacture stable authority.
+    because forward parity is deferred, while its four passed simulator checks
+    remain available to the separately gated ``BACKTEST_AUTHORITATIVE`` scope.
+    This is local backtest authority only: the release candidate cannot connect
+    to a broker or control real capital.
     """
 
     if not isinstance(runtime, NautilusRcCompatibilityRuntime):

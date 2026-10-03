@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -28,6 +29,148 @@ from app.strategy_lab_v2.conformance import (
 def _nonempty(value: str, field_name: str) -> None:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{field_name} must not be empty")
+
+
+def _decimal(value: Any, field_name: str) -> Decimal:
+    """Parse one finite fixture decimal, accepting Nautilus money display text."""
+
+    if isinstance(value, bool) or not isinstance(value, str | int | float | Decimal):
+        raise TypeError(f"{field_name} must be a decimal-compatible scalar")
+    try:
+        parsed = Decimal(str(value).split()[0])
+    except (InvalidOperation, IndexError) as exc:
+        raise ValueError(f"{field_name} must be a finite decimal") from exc
+    if not parsed.is_finite():
+        raise ValueError(f"{field_name} must be a finite decimal")
+    return parsed
+
+
+def _decimal_strings(value: Any, field_name: str) -> tuple[Decimal, ...]:
+    if not isinstance(value, list | tuple) or not value:
+        raise ValueError(f"{field_name} must be a non-empty list")
+    return tuple(_decimal(item, field_name) for item in value)
+
+
+def _money_strings(value: Any, field_name: str, currency: str) -> tuple[Decimal, ...]:
+    if not isinstance(value, list | tuple) or not value:
+        raise ValueError(f"{field_name} must be a non-empty list")
+    amounts: list[Decimal] = []
+    for item in value:
+        if not isinstance(item, str):
+            raise TypeError(f"{field_name} entries must be native money report strings")
+        parts = item.split()
+        if len(parts) != 2 or parts[1] != currency:
+            raise ValueError(f"{field_name} entries must use the expected {currency} currency")
+        amounts.append(_decimal(parts[0], field_name))
+    return tuple(amounts)
+
+
+def _require_native_accounting_run(run: Any) -> None:
+    if not isinstance(run, Mapping):
+        raise ValueError("native accounting fixture must be a mapping")
+    instrument_count = run.get("instrument_count")
+    if (
+        not isinstance(instrument_count, int)
+        or isinstance(instrument_count, bool)
+        or instrument_count < 1
+    ):
+        raise ValueError("native accounting fixture must identify its instrument count")
+    if (
+        run.get("total_orders") != instrument_count
+        or run.get("total_positions") != instrument_count
+        or _decimal(run.get("orders_total"), "orders_total") != instrument_count
+        or _decimal(run.get("positions_total"), "positions_total") != instrument_count
+    ):
+        raise ValueError("native orders and positions must reconcile per instrument")
+
+    reports = run.get("native_reports")
+    report_fields = {
+        "commission_total",
+        "commissions",
+        "expected_commission_per_fill",
+        "expected_quantity_per_instrument",
+        "expected_quantity_total",
+        "execution_prices",
+        "fee_currency",
+        "fill_instrument_ids",
+        "fill_quantities",
+        "filled_quantity",
+        "fills_report_rows",
+        "initial_account_total",
+        "best_ask",
+        "orders_report_rows",
+        "price_increment",
+        "total_fills",
+    }
+    if not isinstance(reports, Mapping) or set(reports) != report_fields:
+        raise ValueError("native fill/cost fixture must include exact native report evidence")
+
+    total_fills = reports["total_fills"]
+    fill_quantities = _decimal_strings(reports["fill_quantities"], "fill_quantities")
+    execution_prices = _decimal_strings(reports["execution_prices"], "execution_prices")
+    commissions = _money_strings(reports["commissions"], "commissions", reports["fee_currency"])
+    instrument_ids = reports["fill_instrument_ids"]
+    if (
+        not isinstance(total_fills, int)
+        or isinstance(total_fills, bool)
+        or total_fills != instrument_count
+        or reports["fills_report_rows"] != total_fills
+        or len(fill_quantities) != total_fills
+        or len(execution_prices) != total_fills
+        or len(commissions) != total_fills
+        or not isinstance(instrument_ids, list)
+        or len(instrument_ids) != total_fills
+        or len(set(instrument_ids)) != instrument_count
+        or reports["orders_report_rows"] != run["total_orders"]
+    ):
+        raise ValueError("native order and fill report rows do not reconcile")
+
+    expected_per_instrument = _decimal(
+        reports["expected_quantity_per_instrument"], "expected_quantity_per_instrument"
+    )
+    expected_total_quantity = _decimal(
+        reports["expected_quantity_total"], "expected_quantity_total"
+    )
+    filled_quantity = _decimal(reports["filled_quantity"], "filled_quantity")
+    if (
+        expected_per_instrument <= 0
+        or expected_total_quantity != expected_per_instrument * instrument_count
+        or filled_quantity != expected_total_quantity
+        or sum(fill_quantities, Decimal(0)) != filled_quantity
+        or any(quantity != expected_per_instrument for quantity in fill_quantities)
+    ):
+        raise ValueError("native fill report quantity does not reconcile per instrument")
+
+    best_ask = _decimal(reports["best_ask"], "best_ask")
+    price_increment = _decimal(reports["price_increment"], "price_increment")
+    if price_increment <= 0 or any(
+        execution_price != best_ask + price_increment for execution_price in execution_prices
+    ):
+        raise ValueError("native fill report did not apply the configured one-tick slippage")
+
+    expected_commission = _decimal(
+        reports["expected_commission_per_fill"], "expected_commission_per_fill"
+    )
+    commission_total = _decimal(reports["commission_total"], "commission_total")
+    if (
+        expected_commission <= 0
+        or any(commission != expected_commission for commission in commissions)
+        or sum(commissions, Decimal(0)) != commission_total
+    ):
+        raise ValueError("native fee report does not match the configured fixed fee")
+
+    initial_account_total = _decimal(reports["initial_account_total"], "initial_account_total")
+    account_total = _decimal(run.get("account_total"), "account_total")
+    expected_account_total = (
+        initial_account_total
+        - sum(
+            (quantity * price for quantity, price in zip(fill_quantities, execution_prices)),
+            Decimal(0),
+        )
+        - commission_total
+    )
+    if account_total != expected_account_total:
+        raise ValueError("native account report does not reconcile fills and commissions")
 
 
 @dataclass(frozen=True, slots=True)
@@ -228,8 +371,10 @@ class NautilusRcFixtureReceipt:
             raise ValueError("deterministic replay fixture did not match")
         if not isinstance(multi, Mapping) or multi.get("instrument_count", 0) < 2:
             raise ValueError("multi-instrument fixture did not cover two instruments")
-        if not isinstance(native, Mapping) or native.get("total_orders", 0) < 1:
-            raise ValueError("native order/fill fixture did not execute an order")
+        _require_native_accounting_run(multi)
+        _require_native_accounting_run(native)
+        if multi["instrument_count"] < 2 or native["instrument_count"] != 1:
+            raise ValueError("single- and multi-instrument fixtures must be distinct")
         if payload["forward_event_tape_parity"] != "deferred_authoritative_fixture":
             raise ValueError("forward event-tape parity must remain explicitly deferred")
         return cls(

@@ -4,6 +4,7 @@ from pathlib import Path
 
 DOCKERFILE = Path(__file__).parents[1] / "nautilus_runtime_image" / "Dockerfile"
 DOCKERIGNORE = DOCKERFILE.with_name("Dockerfile.dockerignore")
+REPORTING_REQUIREMENTS = DOCKERFILE.with_name("reporting-requirements.txt")
 
 
 def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() -> None:
@@ -17,6 +18,8 @@ def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() ->
     assert 'test -n "${NAUTILUS_WHEEL_URL}"' in source
     assert 'test -n "${NAUTILUS_WHEEL_FILENAME}"' in source
     assert "ADD --checksum=sha256:${NAUTILUS_WHEEL_SHA256}" in source
+    assert "COPY app/strategy_lab_v2/nautilus_runtime_image/reporting-requirements.txt" in source
+    assert "--requirement /opt/strategy-lab-v2/reporting-requirements.txt" in source
     assert "pyproject.toml" not in source
     assert "backend/.venv" not in source
     assert "COPY app/strategy_lab_v2/__init__.py app/strategy_lab_v2/__init__.py" in source
@@ -60,6 +63,20 @@ def test_rc_runtime_context_excludes_everything_outside_the_pinned_runtime_sourc
     assert "!app/strategy_lab_v2/nautilus_native_event_stream.py" in source
     assert "!strategy_runtime/protocol.py" in source
     assert "!strategy_runtime/runner.py" in source
+    assert "!app/strategy_lab_v2/nautilus_runtime_image/reporting-requirements.txt" in source
+
+
+def test_rc_runtime_reporting_stack_is_exactly_pinned() -> None:
+    source = REPORTING_REQUIREMENTS.read_text(encoding="utf-8")
+
+    assert source.splitlines() == [
+        "numpy==2.2.6",
+        "pandas==2.2.3",
+        "python-dateutil==2.9.0.post0",
+        "pytz==2025.2",
+        "six==1.17.0",
+        "tzdata==2025.2",
+    ]
 
 
 def test_rc_runtime_image_defaults_to_non_authoritative_rc5_runtime_cli_probe() -> None:

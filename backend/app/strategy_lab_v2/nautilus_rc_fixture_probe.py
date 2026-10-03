@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from decimal import Decimal
 from typing import Any
 
 from nautilus_trader.backtest import (  # type: ignore[attr-defined]
@@ -19,6 +20,10 @@ from nautilus_trader.backtest import (  # type: ignore[attr-defined]
     BacktestEngineConfig,
 )
 from nautilus_trader.common import LoggerConfig  # type: ignore[attr-defined]
+from nautilus_trader.execution import (  # type: ignore[attr-defined]
+    FixedFeeModel,
+    OneTickSlippageFillModel,
+)
 from nautilus_trader.model import (
     AccountType,
     Currency,
@@ -93,12 +98,15 @@ def _run(instruments: tuple[Any, ...]) -> dict[str, Any]:
     engine = BacktestEngine(
         BacktestEngineConfig(logging=LoggerConfig(bypass_logging=True), bypass_logging=True)
     )
+    usd = Currency.from_str("USD")
     try:
         engine.add_venue(
             Venue("SIM"),
             OmsType.NETTING,
             AccountType.CASH,
-            [Money(100000, Currency.from_str("USD"))],
+            [Money(100000, usd)],
+            fill_model=OneTickSlippageFillModel(),
+            fee_model=FixedFeeModel(Money(2, usd)),
         )
         for instrument in instruments:
             engine.add_instrument(instrument)
@@ -112,15 +120,40 @@ def _run(instruments: tuple[Any, ...]) -> dict[str, Any]:
         engine.run()
         result = engine.get_result()
         summary = result.summary
+        fill_rows = engine.generate_fills_report().to_dict(orient="records")
+        order_rows = engine.generate_orders_report().to_dict(orient="records")
+        first_quote = _quotes(instruments[0].id)[0]
+        filled_quantity = sum((Decimal(str(row["last_qty"])) for row in fill_rows), Decimal(0))
+        commission_total = sum(
+            (Decimal(str(row["commission"]).split()[0]) for row in fill_rows), Decimal(0)
+        )
         return {
             "iterations": result.iterations,
             "total_events": result.total_events,
             "total_orders": result.total_orders,
             "total_positions": result.total_positions,
-            "account_total": summary["account.SIM.balance.USD.total"],
+            "account_total": str(summary["account.SIM.balance.USD.total"]),
             "orders_total": summary["orders.total"],
             "positions_total": summary["positions.total"],
             "instrument_count": len(instruments),
+            "native_reports": {
+                "orders_report_rows": len(order_rows),
+                "total_fills": len(fill_rows),
+                "fills_report_rows": len(fill_rows),
+                "filled_quantity": str(filled_quantity),
+                "fill_quantities": [str(row["last_qty"]) for row in fill_rows],
+                "fill_instrument_ids": sorted(str(row["instrument_id"]) for row in fill_rows),
+                "execution_prices": [str(row["last_px"]) for row in fill_rows],
+                "commissions": [str(row["commission"]) for row in fill_rows],
+                "commission_total": str(commission_total),
+                "expected_commission_per_fill": "2.00",
+                "fee_currency": "USD",
+                "expected_quantity_per_instrument": "1000",
+                "expected_quantity_total": str(1000 * len(instruments)),
+                "initial_account_total": "100000.00",
+                "best_ask": str(first_quote.ask_price),
+                "price_increment": str(instruments[0].price_increment),
+            },
         }
     finally:
         engine.dispose()

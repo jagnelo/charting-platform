@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from decimal import Decimal
+from typing import Any
 
 import pytest
 
@@ -27,6 +29,49 @@ def _runtime() -> NautilusRcCompatibilityRuntime:
         python_version="3.12.11",
         rust_version="1.88.0",
     )
+
+
+def _native_fill_report(instrument_count: int = 1) -> dict[str, Any]:
+    total_fee = Decimal("2.00") * instrument_count
+    total_quantity = Decimal("1000") * instrument_count
+    account_total = Decimal("100000.00") - (Decimal("1.10021") * total_quantity) - total_fee
+    return {
+        "account_total": str(account_total),
+        "instrument_count": instrument_count,
+        "total_orders": instrument_count,
+        "total_positions": instrument_count,
+        "orders_total": str(instrument_count),
+        "positions_total": str(instrument_count),
+        "native_reports": {
+            "commission_total": str(total_fee),
+            "commissions": ["2.00 USD"] * instrument_count,
+            "expected_commission_per_fill": "2.00",
+            "expected_quantity_per_instrument": "1000",
+            "expected_quantity_total": str(total_quantity),
+            "execution_prices": ["1.10021"] * instrument_count,
+            "fee_currency": "USD",
+            "fill_instrument_ids": [f"INSTRUMENT-{i}" for i in range(instrument_count)],
+            "fill_quantities": ["1000"] * instrument_count,
+            "filled_quantity": str(total_quantity),
+            "fills_report_rows": instrument_count,
+            "initial_account_total": "100000.00",
+            "best_ask": "1.10020",
+            "orders_report_rows": instrument_count,
+            "price_increment": "0.00001",
+            "total_fills": instrument_count,
+        },
+    }
+
+
+def _fixture_payload() -> dict[str, Any]:
+    return {
+        "authoritative": False,
+        "deterministic_replay": {"equal": True},
+        "engine_lifecycle": "passed",
+        "forward_event_tape_parity": "deferred_authoritative_fixture",
+        "multi_instrument_accounting": _native_fill_report(2),
+        "native_order_fill_cost": _native_fill_report(),
+    }
 
 
 def test_rc_runtime_declaration_binds_exact_pin_and_non_authority() -> None:
@@ -116,14 +161,7 @@ def test_probe_evidence_rejects_schema_version_and_runtime_mismatches() -> None:
 
 def test_real_rc_fixture_receipt_preserves_deferred_forward_parity() -> None:
     runtime = _runtime()
-    payload = {
-        "authoritative": False,
-        "deterministic_replay": {"equal": True},
-        "engine_lifecycle": "passed",
-        "forward_event_tape_parity": "deferred_authoritative_fixture",
-        "multi_instrument_accounting": {"instrument_count": 2},
-        "native_order_fill_cost": {"total_orders": 1},
-    }
+    payload = _fixture_payload()
 
     receipt = NautilusRcFixtureReceipt.from_mapping(payload, runtime)
 
@@ -135,16 +173,51 @@ def test_real_rc_fixture_receipt_preserves_deferred_forward_parity() -> None:
     assert receipt.deferred_checks == frozenset({ConformanceCheck.FORWARD_EVENT_TAPE_PARITY})
 
 
+@pytest.mark.parametrize(
+    ("mutations", "message"),
+    [
+        ({"execution_prices": ["1.10020"]}, "one-tick slippage"),
+        ({"commissions": ["0.00 USD"]}, "fixed fee"),
+        ({"filled_quantity": "999"}, "quantity does not reconcile"),
+    ],
+)
+def test_real_rc_fixture_receipt_rejects_unproven_fill_cost_claims(
+    mutations: dict[str, object], message: str
+) -> None:
+    runtime = _runtime()
+    report = _native_fill_report()
+    report["native_reports"] = {**report["native_reports"], **mutations}
+    payload = _fixture_payload()
+    payload["native_order_fill_cost"] = report
+
+    with pytest.raises(ValueError, match=message):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+
+def test_real_rc_fixture_receipt_rejects_unreconciled_multi_instrument_accounting() -> None:
+    runtime = _runtime()
+    payload = _fixture_payload()
+    multi_run = payload["multi_instrument_accounting"]
+    multi_run["native_reports"]["fill_instrument_ids"] = ["SAME.SIM", "SAME.SIM"]
+
+    with pytest.raises(ValueError, match="report rows do not reconcile"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+
+def test_real_rc_fixture_receipt_rejects_unreconciled_account_cash() -> None:
+    runtime = _runtime()
+    payload = _fixture_payload()
+    payload["native_order_fill_cost"]["account_total"] = "98897.78 USD"
+
+    with pytest.raises(ValueError, match="account report does not reconcile"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+
 def test_real_rc_fixture_receipt_rejects_false_authority_or_parity_claim() -> None:
     runtime = _runtime()
-    payload = {
-        "authoritative": True,
-        "deterministic_replay": {"equal": True},
-        "engine_lifecycle": "passed",
-        "forward_event_tape_parity": "passed",
-        "multi_instrument_accounting": {"instrument_count": 2},
-        "native_order_fill_cost": {"total_orders": 1},
-    }
+    payload = _fixture_payload()
+    payload["authoritative"] = True
+    payload["forward_event_tape_parity"] = "passed"
 
     with pytest.raises(ValueError, match="cannot be authoritative"):
         NautilusRcFixtureReceipt.from_mapping(payload, runtime)
