@@ -43,6 +43,26 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('[aria-label="Study as of"]').element).toHaveProperty('value', '2024-02-01T15:30')
   })
 
+  it('associates parameter schema errors with the invalid schema field', async () => {
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+    const schema = wrapper.get('[aria-label="Study parameter schema"]')
+
+    expect(schema.attributes('aria-invalid')).toBeUndefined()
+    expect(schema.attributes('aria-describedby')).toBeUndefined()
+
+    await schema.setValue('{')
+
+    const errorId = schema.attributes('aria-describedby')
+    expect(schema.attributes('aria-invalid')).toBe('true')
+    expect(errorId).toMatch(/^study-parameter-schema-error-/)
+    expect(wrapper.get(`#${errorId}`).text()).toBe('Parameter schema must be a JSON object.')
+
+    await schema.setValue(JSON.stringify({ properties: { lookback: { type: 'integer', default: 20 } } }))
+    expect(schema.attributes('aria-invalid')).toBeUndefined()
+    expect(schema.attributes('aria-describedby')).toBeUndefined()
+    wrapper.unmount()
+  })
+
   it('gives study lifecycle controls stable accessible names', () => {
     const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
 

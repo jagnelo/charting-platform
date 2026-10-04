@@ -28,7 +28,7 @@
       >{{ selectedSourceLineage.label }} · Parent source {{ selectedSourceLineage.parentSourceId }}</p>
       <p v-if="requiresDeclaredUniverse" class="study-lab-tool__universe-warning" role="status" aria-live="polite" aria-atomic="true">This factory study needs a declared comma-separated universe; it will not fall back to the active symbol.</p>
       <section class="study-lab-tool__parameters" aria-label="Study parameter controls">
-        <label>Parameter schema <textarea v-model="parameterSchemaText" aria-label="Study parameter schema" spellcheck="false" placeholder='{"properties":{"lookback":{"type":"integer","default":20}}}' /></label>
+        <label>Parameter schema <textarea v-model="parameterSchemaText" aria-label="Study parameter schema" :aria-invalid="parameterSchemaError ? 'true' : undefined" :aria-describedby="parameterSchemaError ? parameterSchemaErrorId : undefined" spellcheck="false" placeholder='{"properties":{"lookback":{"type":"integer","default":20}}}' /></label>
         <div v-if="parameterDefinitions.length" class="study-lab-tool__parameter-grid">
           <label v-for="definition in parameterDefinitions" :key="definition.name">{{ definition.name }}
             <select v-if="definition.enum?.length" :value="String(parameterDrafts[definition.name] ?? '')" :aria-label="`Study parameter ${definition.name}`" @change="setParameterDraft(definition.name, ($event.target as HTMLSelectElement).value)">
@@ -37,7 +37,7 @@
             <input v-else :type="definition.type === 'boolean' ? 'checkbox' : definition.type === 'number' || definition.type === 'integer' ? 'number' : 'text'" :step="definition.type === 'integer' ? '1' : 'any'" :min="definition.minimum" :max="definition.maximum" :checked="definition.type === 'boolean' ? parameterDrafts[definition.name] === true : undefined" :value="definition.type === 'boolean' ? undefined : String(parameterDrafts[definition.name] ?? '')" :aria-label="`Study parameter ${definition.name}`" @change="setParameterDraft(definition.name, definition.type === 'boolean' ? ($event.target as HTMLInputElement).checked : ($event.target as HTMLInputElement).value)" />
           </label>
         </div>
-        <small v-if="parameterSchemaError" class="study-lab-tool__parameter-error">{{ parameterSchemaError }}</small>
+        <small v-if="parameterSchemaError" :id="parameterSchemaErrorId" class="study-lab-tool__parameter-error">{{ parameterSchemaError }}</small>
       </section>
     </header>
     <div class="study-lab-tool__editor-shell">
@@ -133,7 +133,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
@@ -262,6 +262,7 @@ const startDate = ref(configString('start_date', ''))
 const endDate = ref(configString('end_date', ''))
 const asOf = ref(configString('as_of', '').slice(0, 16))
 const parameterSchemaText = ref(typeof props.configuration?.parameter_schema === 'string' ? String(props.configuration.parameter_schema) : '')
+const parameterSchemaErrorId = `study-parameter-schema-error-${getCurrentInstance()?.uid ?? 0}`
 const parameterDrafts = ref<Record<string, string | boolean>>({})
 const openedStudyVersionId = ref<number | null>(configNumber('study_asset_version_id'))
 const openedStudySource = ref(configString('study_source', ''))

@@ -3452,6 +3452,16 @@ test.describe('TC2000 workstation', () => {
 
     const study = page.locator('.study-lab-tool')
     await expect(study).toBeVisible({ timeout: 10_000 })
+    const parameterSchema = study.getByRole('textbox', { name: 'Study parameter schema' })
+    await parameterSchema.fill('{')
+    await expect(parameterSchema).toHaveAttribute('aria-invalid', 'true')
+    const parameterSchemaErrorId = await parameterSchema.getAttribute('aria-describedby')
+    expect(parameterSchemaErrorId).toBeTruthy()
+    await expect(study.locator(`#${parameterSchemaErrorId}`)).toHaveText('Parameter schema must be a JSON object.')
+    await parameterSchema.fill('')
+    await expect(parameterSchema).not.toHaveAttribute('aria-invalid')
+    await expect(parameterSchema).not.toHaveAttribute('aria-describedby')
+
     await study.getByRole('textbox', { name: 'Study name' }).fill('E2E Study validation recovery')
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('broken'")
