@@ -7419,4 +7419,8 @@ deployment. Tier-0 and Tier-1 source ledgers remain fully counted. Continue
 within this worktree when new issuer evidence or a safe, owned AC7 diagnosis is
 available; proceed on AC10 here when the upstream branch is in staging. Do not
 edit another worktree, staging, generic visuals, or production. The current
-operational receipt itself still needs its final branch-local commit/push.
+vendor-recheck receipt was committed and pushed as
+`b3f8fd60a9d260cf5c68e6b516cc31b7c8bc53be` on the assigned ETF branch. The
+updated plan-hash synchronization and active-goal session checkpoint passed;
+the session receipt and its validation row are being committed as a final
+branch-local metadata checkpoint. The goal remains active, not blocked.
