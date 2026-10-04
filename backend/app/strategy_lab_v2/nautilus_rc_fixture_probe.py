@@ -46,6 +46,7 @@ from nautilus_trader.trading import Strategy, StrategyConfig  # type: ignore[att
 
 from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
     run_order_risk_probe,
+    run_rebalance_schedule_probe,
     run_target_allocation_probe,
 )
 
@@ -174,6 +175,7 @@ def run_fixture_suite() -> dict[str, Any]:
     multi_result = _run(multi)
     target_result = run_target_allocation_probe()
     raw_order_result = run_order_risk_probe()
+    rebalance_schedule_result = run_rebalance_schedule_probe()
     native_order_fill_cost = {
         **first,
         "raw_order_risk_probe": raw_order_result,
@@ -182,6 +184,7 @@ def run_fixture_suite() -> dict[str, Any]:
     return {
         "engine_lifecycle": "passed",
         "native_order_fill_cost": native_order_fill_cost,
+        "portfolio_rebalance_schedule": rebalance_schedule_result,
         "multi_instrument_accounting": multi_result,
         "deterministic_replay": {
             "first": first,

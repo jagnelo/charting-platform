@@ -237,6 +237,44 @@ def _require_raw_order_risk_probe(value: Any) -> None:
         raise ValueError("native raw-order risk submission and account state do not reconcile")
 
 
+def _require_rebalance_schedule_probe(value: Any) -> None:
+    cases = {"session_open", "session_close", "fail_on_misfire"}
+    if (
+        not isinstance(value, Mapping)
+        or set(value) != {"authoritative", *cases}
+        or value["authoritative"] is not False
+    ):
+        raise ValueError("native rebalance schedule probe fields are invalid")
+    expected = {
+        "session_open": ("orders_submitted", 1, 1, 1),
+        "session_close": ("orders_submitted", 1, 1, 1),
+        "fail_on_misfire": ("failed_misfire", 0, 0, 0),
+    }
+    for case_name, (status, count, orders, positions) in expected.items():
+        case = value[case_name]
+        if not isinstance(case, Mapping) or set(case) != {
+            "audit_fingerprint",
+            "execution_status",
+            "submitted_order_count",
+            "total_orders",
+            "total_positions",
+            "authoritative",
+        }:
+            raise ValueError(f"native {case_name} schedule evidence fields are invalid")
+        require_sha256_digest(
+            case["audit_fingerprint"],
+            field_name=f"{case_name}.audit_fingerprint",
+        )
+        if (
+            case["execution_status"] != status
+            or case["submitted_order_count"] != count
+            or case["total_orders"] != orders
+            or case["total_positions"] != positions
+            or case["authoritative"] is not False
+        ):
+            raise ValueError(f"native {case_name} schedule callbacks did not reconcile")
+
+
 @dataclass(frozen=True, slots=True)
 class NautilusRcCompatibilityRuntime:
     """One exact v2 RC runtime boundary.
@@ -426,6 +464,7 @@ class NautilusRcFixtureReceipt:
             "forward_event_tape_parity",
             "multi_instrument_accounting",
             "native_order_fill_cost",
+            "portfolio_rebalance_schedule",
         }
         if set(payload) != required:
             raise ValueError("fixture payload fields must match the exact receipt schema")
@@ -444,6 +483,7 @@ class NautilusRcFixtureReceipt:
         _require_native_accounting_run(native)
         _require_target_allocation_probe(native.get("target_allocation_probe"))
         _require_raw_order_risk_probe(native.get("raw_order_risk_probe"))
+        _require_rebalance_schedule_probe(payload["portfolio_rebalance_schedule"])
         if multi["instrument_count"] < 2 or native["instrument_count"] != 1:
             raise ValueError("single- and multi-instrument fixtures must be distinct")
         if payload["forward_event_tape_parity"] != "deferred_authoritative_fixture":

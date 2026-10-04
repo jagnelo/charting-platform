@@ -42,6 +42,11 @@ from app.strategy_lab_v2.nautilus_native_reports import (
     iter_nautilus_native_report_records,
 )
 from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_to_wire
+from app.strategy_lab_v2.nautilus_rebalance_schedule import (
+    NautilusRebalanceScheduleAudit,
+    RebalanceExecutionStatus,
+)
+from app.strategy_lab_v2.nautilus_rebalance_wire import rebalance_execution_plan_to_wire
 from app.strategy_lab_v2.nautilus_runtime_adapter import (
     NAUTILUS_CATALOG_INPUT_CHUNK_SIZE,
     NAUTILUS_CATALOG_REPLAY_CHUNK_SIZE,
@@ -54,6 +59,14 @@ from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_NATIVE_EVENT_STREAM_MEDIA_TYPE,
     NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3,
+)
+from app.strategy_lab_v2.rebalance import (
+    CalendarRebalancePolicy,
+    RebalanceCadence,
+    RebalanceExecutionPlan,
+    RebalanceMisfirePolicy,
+    RebalanceTrigger,
+    ScheduledRebalance,
 )
 from app.strategy_lab_v2.sdk import (
     MarketEvent,
@@ -318,15 +331,41 @@ def run_native_reports_schema_probe() -> dict[str, Any]:
     )
 
 
+def run_rebalance_schedule_probe() -> dict[str, Any]:
+    """Exercise open, close, and fail-on-misfire callbacks inside RC5."""
+
+    cases = {
+        "session_open": _run_native_execution_probe(
+            target_position=True,
+            rebalance_trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+        ),
+        "session_close": _run_native_execution_probe(
+            target_position=True,
+            rebalance_trigger=RebalanceTrigger.SESSION_CLOSE_AFTER_EVENTS,
+        ),
+        "fail_on_misfire": _run_native_execution_probe(
+            target_position=True,
+            rebalance_misfire_only=True,
+        ),
+    }
+    return {"authoritative": False, **cases}
+
+
 def _run_native_execution_probe(
     *,
     target_position: bool,
     include_native_report_diagnostics: bool = False,
+    rebalance_trigger: RebalanceTrigger | None = None,
+    rebalance_misfire_only: bool = False,
 ) -> dict[str, Any]:
+    if rebalance_trigger is not None and rebalance_misfire_only:
+        raise ValueError("rebalance trigger and misfire-only modes cannot be combined")
+    if (rebalance_trigger is not None or rebalance_misfire_only) and not target_position:
+        raise ValueError("rebalance probes require target-position intents")
     instrument_id = "AAPL.SIM"
     strategy_source = _TARGET_SOURCE if target_position else _RAW_ORDER_SOURCE
     later_time = _EVENT_TIME + timedelta(seconds=1)
-    events = (
+    events: tuple[MarketEvent, ...] = (
         MarketEvent(
             "prices",
             "target-event-1",
@@ -352,6 +391,18 @@ def _run_native_execution_probe(
             {"bid": "100.01", "ask": "100.03", "bid_size": "1000", "ask_size": "1000"},
         ),
     )
+    if rebalance_trigger is RebalanceTrigger.SESSION_CLOSE_AFTER_EVENTS:
+        events = (
+            *events,
+            MarketEvent(
+                "prices",
+                "target-event-4",
+                instrument_id,
+                later_time + timedelta(seconds=1),
+                4,
+                {"bid": "100.02", "ask": "100.04", "bid_size": "1000", "ask_size": "1000"},
+            ),
+        )
     requirement = CapabilityRequirement(
         instrument_id=instrument_id,
         product_class=ProductClass.EQUITY,
@@ -376,6 +427,41 @@ def _run_native_execution_probe(
         ),
         (StrategyDataDependency("prices", requirement, ("bid", "ask", "bid_size", "ask_size"), 1),),
     )
+    calendar_fingerprint = content_digest("nautilus-adapter-probe-calendar")
+    rebalance_policy = None
+    rebalance_plan = None
+    if rebalance_trigger is not None or rebalance_misfire_only:
+        trigger = rebalance_trigger or RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS
+        rebalance_policy = CalendarRebalancePolicy(
+            calendar_id="adapter-probe-calendar",
+            calendar_fingerprint=calendar_fingerprint,
+            cadence=RebalanceCadence.EACH_SESSION,
+            trigger=trigger,
+            misfire_policy=RebalanceMisfirePolicy.FAIL_RUN,
+        )
+        scheduled_time = later_time + timedelta(seconds=1) if rebalance_misfire_only else later_time
+        occurrence = ScheduledRebalance(
+            occurrence_id=content_digest(
+                {
+                    "policy": rebalance_policy.fingerprint,
+                    "event_time": scheduled_time,
+                    "session": scheduled_time.date(),
+                }
+            ),
+            policy_fingerprint=rebalance_policy.fingerprint,
+            calendar_fingerprint=calendar_fingerprint,
+            session_id=f"probe-session-{scheduled_time.date().isoformat()}",
+            session_label=scheduled_time.date(),
+            event_time=scheduled_time,
+            trigger=trigger,
+            cadence_period=f"session:{scheduled_time.date().isoformat()}",
+            misfire_policy=rebalance_policy.misfire_policy,
+        )
+        rebalance_plan = RebalanceExecutionPlan(
+            policy_fingerprint=rebalance_policy.fingerprint,
+            calendar_fingerprint=calendar_fingerprint,
+            occurrences=(occurrence,),
+        )
     portfolio = PortfolioComposition(
         portfolio_id="portfolio-target-probe",
         version_id="portfolio-v1",
@@ -392,6 +478,7 @@ def _run_native_execution_probe(
         shared_risk_policy=SharedRiskPolicy(
             risk_models=(CASH_EQUITY_NOTIONAL_RISK_MODEL,),
         ),
+        rebalance_policy=rebalance_policy,
     )
     event_records = [
         {
@@ -448,7 +535,7 @@ def _run_native_execution_probe(
         "parameters": {},
         "random_seed": 11,
         "evaluation_window": None,
-        "rebalance_plan": None,
+        "rebalance_plan": rebalance_execution_plan_to_wire(rebalance_plan),
         "strategy_bindings": [
             {
                 "component_id": "core",
@@ -478,7 +565,21 @@ def _run_native_execution_probe(
                 3,
                 11,
                 {},
-                {"prices": events},
+                # The manifest declares one prior event plus the current event.
+                {"prices": events[1:3]},
+            ),
+            *(
+                (
+                    StrategyContext(
+                        events[-1].event_time,
+                        events[-1].sequence,
+                        11,
+                        {},
+                        {"prices": events[-2:]},
+                    ),
+                )
+                if len(events) > 3
+                else ()
             ),
         ),
         entrypoint="strategy.main:Strategy",
@@ -496,7 +597,7 @@ def _run_native_execution_probe(
             raise RuntimeError("native report diagnostic tape timestamps are invalid")
         evaluation_window = EvaluationWindow(
             start=_EVENT_TIME,
-            end=later_time + timedelta(microseconds=1),
+            end=events[-1].event_time + timedelta(microseconds=1),
             purpose="native-report-schema-probe",
         )
         window_wire = {
@@ -569,6 +670,38 @@ def _run_native_execution_probe(
     if len(balance_parts) != 2 or balance_parts[1] != "USD":
         raise RuntimeError("native target allocation summary balance is not denominated in USD")
     remaining_cash = Decimal(balance_parts[0])
+    if rebalance_plan is not None:
+        audit = NautilusRebalanceScheduleAudit.from_wire(
+            result.get("rebalance_schedule_audit"),
+            attempt_id="attempt-target-probe",
+            plan=rebalance_plan,
+        )
+        if len(audit.outcomes) != 1:
+            raise RuntimeError("native rebalance probe did not audit its complete frozen plan")
+        outcome = audit.outcomes[0]
+        expected_status = (
+            RebalanceExecutionStatus.FAILED_MISFIRE
+            if rebalance_misfire_only
+            else RebalanceExecutionStatus.ORDERS_SUBMITTED
+        )
+        expected_orders = 0 if rebalance_misfire_only else 1
+        expected_positions = 0 if rebalance_misfire_only else 1
+        if (
+            outcome.execution_status is not expected_status
+            or outcome.submitted_order_count != expected_orders
+            or result.get("total_orders") != expected_orders
+            or result.get("total_positions") != expected_positions
+            or result.get("authoritative") is not False
+        ):
+            raise RuntimeError("native rebalance callback, audit, and account state disagree")
+        return {
+            "audit_fingerprint": audit.fingerprint,
+            "execution_status": outcome.execution_status.value,
+            "submitted_order_count": outcome.submitted_order_count,
+            "total_orders": result["total_orders"],
+            "total_positions": result["total_positions"],
+            "authoritative": False,
+        }
     if target_position:
         if (
             result.get("authoritative") is not False

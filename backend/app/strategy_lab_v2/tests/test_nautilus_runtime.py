@@ -96,6 +96,33 @@ def _fixture_payload() -> dict[str, Any]:
         "forward_event_tape_parity": "deferred_authoritative_fixture",
         "multi_instrument_accounting": _native_fill_report(2),
         "native_order_fill_cost": native_order_run,
+        "portfolio_rebalance_schedule": {
+            "authoritative": False,
+            "session_open": {
+                "audit_fingerprint": content_digest("rc-open-schedule-audit"),
+                "execution_status": "orders_submitted",
+                "submitted_order_count": 1,
+                "total_orders": 1,
+                "total_positions": 1,
+                "authoritative": False,
+            },
+            "session_close": {
+                "audit_fingerprint": content_digest("rc-close-schedule-audit"),
+                "execution_status": "orders_submitted",
+                "submitted_order_count": 1,
+                "total_orders": 1,
+                "total_positions": 1,
+                "authoritative": False,
+            },
+            "fail_on_misfire": {
+                "audit_fingerprint": content_digest("rc-misfire-schedule-audit"),
+                "execution_status": "failed_misfire",
+                "submitted_order_count": 0,
+                "total_orders": 0,
+                "total_positions": 0,
+                "authoritative": False,
+            },
+        },
     }
 
 
