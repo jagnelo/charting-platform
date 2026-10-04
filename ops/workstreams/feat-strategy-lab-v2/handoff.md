@@ -2,6 +2,49 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Shared component order-risk contract
+
+Extended the native-evidence order adapter with a multi-component path. It
+accepts component-attributed existing positions plus all components' proposed
+raw-order batches, verifies the attribution ledger reconciles exactly to the
+native account's net instrument exposures, then evaluates the combined orders
+against one platform shared-risk decision. Approved SDK intents remain grouped
+by component in deterministic order for downstream execution/attribution.
+Single-component callers retain their existing API through a compatibility
+wrapper.
+
+The bridge still executes one strategy session at a time; this change does not
+yet claim end-to-end multi-strategy native execution. It supplies the shared
+risk/account boundary that the forthcoming invocation multiplexer must call,
+and makes missing or inconsistent position attribution fail closed. Regression
+tests show that two component orders at 4% equity each pass a 10% gross limit
+but are rejected together under a 5% limit. The Strategy Lab v2 package suite
+passes all 1,159 tests, the changed module passes MyPy, Ruff and formatting
+checks pass, and `git diff --check` is clean.
+
+Stable Nautilus 2.x is not a blocker: the plan permits exact-pinned pre-releases
+for local backtests, and the isolated RC5 fixture already passes its applicable
+simulator conformance checks. Separate uncompleted work remains in
+multi-strategy runtime invocation/attribution, data capability and freeze
+integration, search/walk-forward execution depth, durable workers/API/storage,
+metrics, forward event parity, and the branch's final full-stack browser gate.
+Provider, ETF, and TC2000 staging only gates the shared-path integrations they
+own. Publishing local commits is currently blocked by the configured GitHub
+SSH agent having no key identities; this does not block package-local work.
+
+Next: build authenticated per-component invocation inputs and a deterministic
+native callback multiplexer that combines same-time orders before one shared
+allocation/risk decision, then attribute fills/positions back to components.
+
+Files changed in this slice:
+
+```text
+backend/app/strategy_lab_v2/nautilus_order_routing.py
+backend/app/strategy_lab_v2/tests/test_nautilus_order_routing.py
+ops/workstreams/feat-strategy-lab-v2/handoff.md
+ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+```
+
 ## 2026-10-04 - Native raw-order shared-risk routing
 
 Connected supported raw SDK `OrderIntent` batches to the engine-neutral
