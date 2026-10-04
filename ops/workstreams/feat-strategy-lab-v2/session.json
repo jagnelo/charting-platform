@@ -86,12 +86,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -127,9 +122,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "d86c70bd1d8bab68e6ec5684d3ecc9e8dcfc9e3e",
+  "head": "4ff5d8064be963788117bf266bb3439a5d79623a",
   "implementation_sha": "d86c70bd1d8bab68e6ec5684d3ecc9e8dcfc9e3e",
-  "last_checkpoint": "2026-10-04T20:13:32.845460+00:00",
+  "last_checkpoint": "2026-10-04T22:13:40.509119+00:00",
   "last_human_progress_update": "2026-10-04T22:08:08.400668+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Begin owner-authorized domain mutation flows on isolated Strategy Lab v2 paths; then continue worker recovery/scaling and persistent broker-free forward correctness.",
@@ -154,13 +149,13 @@
     "total": 18,
     "updated_at": "2026-10-04T22:08:08.400649+00:00"
   },
-  "remote": "d86c70bd1d8bab68e6ec5684d3ecc9e8dcfc9e3e",
+  "remote": "4ff5d8064be963788117bf266bb3439a5d79623a",
   "remote_sha": "d86c70bd1d8bab68e6ec5684d3ecc9e8dcfc9e3e",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "937bd5be-5a11-4429-b7d3-82e732844278",
-  "state": "active",
+  "state": "checkpointed",
   "takeover_history": [
     {
       "at": "2026-09-16T01:47:41.916851+00:00",

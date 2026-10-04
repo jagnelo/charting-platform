@@ -9628,8 +9628,8 @@ handoff path; the persisted `session.json` list is corrected to exact paths.
 Do not modify shared workflow scripts from this feature branch. The session is
 now marked active under the resumed claim, and its plan hash, implementation
 SHA, remote SHA, blocker, and next action are refreshed. The first checkpoint
-attempt preceded the explicit active-goal update; retry after this operational
-commit, when the worktree is clean. Docker API access is available under the
-scoped elevated check (server 29.1.3), but `docker buildx version` still
-reports an unknown command, so the full Compose/browser profile remains
-unrun.
+passed at `2026-10-04T22:13:40Z` on a clean boundary with
+`HEAD=origin/feat/strategy-lab-v2=4ff5d8064be963788117bf266bb3439a5d79623a`.
+Docker API access is available under the scoped elevated check (server
+29.1.3), but `docker buildx version` still reports an unknown command, so the
+full Compose/browser profile remains unrun.
