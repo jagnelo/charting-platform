@@ -814,36 +814,27 @@ progress:
     - strategy-lab-v2-isolated-search-preparation-rpc-v1
     - strategy-lab-v2-local-preparation-composition-v1
     - strategy-lab-v2-postgres-search-preparation-rpc-v1
+    - native-component-pnl-attribution-v1
   total: 18
-  current_phase: native-multi-component-rebalance-conformance-v1
+  current_phase: native-component-pnl-reconciliation-v1
   current_blocker: >-
-    No external release dependency blocks package-owned implementation.
-    Exact-pinned Nautilus 2.0.0rc5 has passed the four required local backtest
-    checks plus native open/close/fail-on-misfire rebalance callbacks. A native
-    two-component shared-account case now reconciles two orders to one net
-    position and account cash; contention ordering across distinct targets,
-    shared-risk rejection, and component attribution remain to be proven. The
-    prerelease is barred from broker or real-capital control, and forward shadow
-    keeps its separate event-tape parity gate. Exact source/image/receipt pins
-    are recorded in the branch handoff. A real PostgreSQL/Testcontainers integration persists
-    and rehydrates the owner-scoped trial graph, resolves package and
-    frozen-series bytes through the shared artifact root, rejects foreign-owner
-    hydration, and verifies RPC enqueue/exact replay with one admission,
-    dispatch, payload, and outbox message. The Strategy Lab suite passes 1,286
-    tests with narrow Unix-socket permission, Ruff and MyPy pass, and package
-    Compose/workstream checks are green. Provider/ETF/TC2000-owned decoding,
-    identity, membership, and code contracts remain staging-gated; that does not
-    block owned-path work. Missing Docker Buildx limits only final
-    Compose/browser runtime validation. Remaining domain-backed mutation flows,
-    remaining multi-component native rebalance qualification, broader snapshot/metric,
-    worker, and forward-shadow acceptance are unfinished implementation, not
-    external blockers.
+    No external release or upstream dependency blocks package-owned work.
+    Exact-pinned Nautilus 2.0.0rc5 passed its four local backtest checks and
+    native lifecycle/rebalance probes; component P&L v1 now reconciles verified
+    native report/equity evidence with explicit unallocated residuals. Exact
+    RC5 report emission for archived-cycle trade-ID joins remains to be proven.
+    The prerelease remains barred from broker or real-capital control, and
+    forward shadow retains its separate event-tape parity gate. The full
+    Compose/browser profile is pending Docker Buildx availability, which does
+    not block continued package-owned implementation. Provider/ETF/TC2000
+    contracts remain staging-gated only where shared-path consumption is needed.
+    Remaining domain-backed mutation flows, broad metric acceptance, workers,
+    and forward-shadow acceptance are implementation work, not external blockers.
   next_action: >-
-    Extend the exact-RC5 multi-component fixture with distinct competing
-    targets and priorities; prove contention ordering, shared-risk rejection,
-    component attribution, and native account reconciliation against the frozen
-    plan. Then continue remaining domain-backed
-    mutation, snapshot, metric, worker, and forward-shadow acceptance. Consume
-    provider/ETF/TC2000-owned contracts only after their approved branches reach
-    staging. Run final Compose/browser validation when Buildx is available;
-    never wait for a stable Nautilus v2 tag.
+    Add an exact-pinned RC5 native-output probe for archived/reopened positions,
+    native fill trade-ID joins, signed commissions/rebates, and shared-account
+    P&L reconciliation. Then continue remaining domain-backed mutation flows,
+    broader result metrics, worker recovery/scale acceptance, and persistent
+    forward-shadow correctness. Consume provider/ETF/TC2000-owned contracts
+    only after their approved branches reach staging. Run final Compose/browser
+    validation when Buildx is available; never wait for a stable Nautilus v2 tag.

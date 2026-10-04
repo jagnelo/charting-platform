@@ -2,6 +2,52 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Native component P&L attribution v1
+
+Committed and pushed implementation `11a5753de` (`feat(strategy-lab):
+attribute native component P&L`). Result metric materialization now derives
+account net P&L from the frozen first/last event-aligned equity marks, adds
+complete in-window base-currency native commissions/rebates for portfolio gross
+P&L, and attributes only closed OOS position cycles whose native order tags,
+fill identities, timestamps, fee currencies, and realized-P&L currency all
+agree. Archived position reports prefer retained native trade IDs because the
+report assigns snapshots generated position IDs; older report schemas retain a
+strict position/order-ID join. Duplicate or overlapping identities, incomplete
+fees, and foreign-currency costs fail closed; positions that cannot be proved
+component-owned remain in an explicit unallocated residual. Portfolio and
+component gross/net values must reconcile exactly before they enter the metric
+set. The `__unallocated__` ID is now reserved at the portfolio contract boundary.
+
+This is local adapter coverage, not yet a claim that the exact RC5 report
+emission path exposes every field required for attribution. Nautilus' current
+reporting guide describes closed-cycle snapshots and retained trade IDs; the
+exact pinned runtime report shape still needs a native-output probe before this
+path is treated as authoritative evidence: [Positions](https://nautilustrader.io/docs/latest/concepts/positions/),
+[Reports](https://nautilustrader.io/docs/latest/concepts/reports/).
+
+Validation: all Strategy Lab package tests passed (`1,285 passed`; local-socket
+RPC test separately passed `7 passed` in the prior checkpoint), changed-file
+Ruff and formatting checks passed, targeted MyPy passed for five production
+modules, and `git diff --check` passed. Full Compose/browser validation remains
+pending because Docker Buildx is unavailable. Provider/ETF/TC2000 staging and a
+stable Nautilus release are not blockers to continued owned-path implementation.
+
+Next: exercise this attribution against reports emitted by the exact pinned
+RC5 runtime, including an archived/reopened cycle and mixed-component/shared
+account case; then continue the remaining result-analytics and durable worker /
+forward-shadow acceptance. Do not claim global AC-METRICS or AC-NAUTILUS complete
+from this slice alone.
+
+Changed source paths: `backend/app/strategy_lab_v2/contracts.py`,
+`backend/app/strategy_lab_v2/nautilus_component_pnl.py`,
+`backend/app/strategy_lab_v2/nautilus_native_reports.py`,
+`backend/app/strategy_lab_v2/nautilus_result_metrics.py`,
+`backend/app/strategy_lab_v2/nautilus_result_materialization.py`, and their
+focused tests. Changed workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
 ## 2026-10-04 - RC5 native fill-to-component report linkage
 
 Extended the isolated RC5 priority-contention probe to join its component-tagged
