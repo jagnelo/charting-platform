@@ -33,7 +33,8 @@ blocked by the Docker validation boundary. Next: execute a multi-component RC5
 probe with mixed raw/target intents, native order/fill callbacks, and component
 quantity/exposure reconciliation; adjust only on observed runtime evidence.
 Publisher SSH authentication remains an operational hold on the unpublished
-branch range, not a development blocker.
+branch range, not a development blocker. This implementation slice is committed
+locally as `0973cde2f2c12f894458557178d4f87e31164ea4`.
 
 Files changed in this slice:
 

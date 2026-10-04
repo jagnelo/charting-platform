@@ -86,13 +86,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "backend/app/strategy_lab_v2/nautilus_strategy_bridge.py",
-    "backend/app/strategy_lab_v2/tests/test_nautilus_strategy_bridge.py",
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -111,9 +105,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "3eec8f11bd4bde0c6e14ae3fc4d8ac5a01f7eac9",
-  "implementation_sha": "3eec8f11bd4bde0c6e14ae3fc4d8ac5a01f7eac9",
-  "last_checkpoint": "2026-10-04T02:04:04.236333+00:00",
+  "head": "0973cde2f2c12f894458557178d4f87e31164ea4",
+  "implementation_sha": "0973cde2f2c12f894458557178d4f87e31164ea4",
+  "last_checkpoint": "2026-10-04T02:50:49+00:00",
   "last_human_progress_update": "2026-10-04T02:20:29+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Run an image-backed exact-pinned Nautilus RC5 bridge probe for multi-component same-event callbacks, mixed raw/target shared-risk routing, native order/fill handling, and component quantity/exposure reconciliation; preserve the existing package-local tests and continue adjacent backend gaps while Docker remains unavailable.",
