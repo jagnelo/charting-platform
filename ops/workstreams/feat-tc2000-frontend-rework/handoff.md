@@ -16872,6 +16872,48 @@ Changed ops files in this checkpoint:
 - ops/workstreams/feat-tc2000-frontend-rework/session.json
 - ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl
 
+## 2026-10-04 — Clean pinned full browser rerun
+
+The complete seeded Playwright 1.62.1 run executed all `282` cases in `17.5m`:
+`175` passed, `107` documented skips, and zero failures. The functional
+profile intentionally skips visual-board cases; the separate exact-tip 104-case
+visual matrix remains `94/104` with the same ten screenshot-only differences.
+All three transient cases from the earlier full run passed in this full rerun.
+Artifacts remain under `/tmp/tc2000-pinned-e2e.NIbQR4`.
+
+The assigned Compose project
+`charting-stack-feat-tc2000-frontend-rework-f63d60ae` was removed with
+`--rmi local`, including six containers, four fixture volumes, its network, and
+four generated images. No other Docker project, branch, or worktree was changed.
+The remaining open gates are those ten visual comparisons and the provider/ETF
+dependencies, whose current tips remain outside staging. Continue independent
+TC-owned implementation; do not mark the goal ready for human review.
+
+## 2026-10-04 — Current exact-tip visual gate refreshed
+
+At pushed TC branch tip `049267cee5301f2e33c8857305c48f2f3fd77521` (product
+source `05aac7f816aab492c7b2aadb1adb9ffc6e76f02a`), the pinned Playwright
+1.62.1 matrix completed `104` cases: `94` passed and `10` screenshot-only
+local-reference comparisons failed after their state and interaction checks
+passed. The exact cases and pixel deltas are recorded at the top of
+`docs/tc2000-visual-parity.md`. The initial host-browser run produced `8/104`
+passes but was not a valid baseline comparison; the pinned rerun reproduced the
+known ten-case set. No screenshot, threshold, mask, skip, fallback, or
+acceptance rule changed. The current run artifacts remain under
+`/tmp/tc2000-pinned-visual.DYoDfS`.
+
+The exact assigned Docker Compose project was cleaned with `--rmi local`,
+removing six containers, four fixture volumes, the project network, and four
+generated images. Direct GitHub refs refreshed to TC
+`049267cee5301f2e33c8857305c48f2f3fd77521`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`ea477adee73ec27c865b79e2da1476e4348e47a7`. Both dependency tips are outside
+staging; no upstream branch or worktree was changed. The exact full browser
+gate remains open, as do the ten screenshot-only review items and the R2/R3
+staging dependencies. Continue the goal; do not mark it ready for human review
+until its remaining branch-owned work and gates are satisfied.
+
 ## 2026-10-04 — Generic breadth reference-target lineage
 
 Product commit `05aac7f816aab492c7b2aadb1adb9ffc6e76f02a` adds a

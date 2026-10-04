@@ -20,30 +20,31 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No environment blocker prevents independent TC-owned work. Product tip
-  `05aac7f816aab492c7b2aadb1adb9ffc6e76f02a` adds reference-target lineage to
-  the generic breadth evidence panel using the existing TC API response only.
-  Frontend Vitest passed 129 files / 1,200 tests; type-check and production
-  build passed; the authenticated F8s-breadth-family-ratio Chromium regression
-  passed 1/1 on the rebuilt assigned stack. The latest exact pinned visual
-  matrix remains the c038aaf checkpoint at 94/104 with ten screenshot-only
-  differences after interaction/state assertions passed; no visual oracle or
-  policy changed. The full `make validate-integration` attempt did not produce
-  a backend test summary: backend coverage exited 152 near 84%. A later
-  unauthenticated provider-owned coverage-router test and a standalone no-op
-  FastAPI endpoint both hung in Starlette TestClient; the caller waited while
-  the AnyIO event-loop thread was idle, and neither produced a test result.
-  This reproduces a local Python test-client/runtime execution problem but
-  does not establish that it caused the earlier exit 152. Kernel evidence
-  separately identified an OOM kill in an ETF-owned research-runner cgroup,
-  with no causal link to the TC test exit; that project was not modified. The
-  exact-tip full integration/browser gate remains open.
-  Current remote staging/provider/ETF refs are respectively
-  `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`,
-  `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and
-  `115af366123c4e07e3a3109cc9ba19f2af136f18`. Neither upstream dependency tip
-  is in staging; defer consumer integration and shared-path reconciliation
-  until then, and continue distinct TC-owned UI/Study/Strategy work.
+  No environment blocker prevents independent TC-owned work. Current product
+  source `05aac7f816aab492c7b2aadb1adb9ffc6e76f02a` adds reference-target
+  lineage to the generic breadth evidence panel using the existing TC API
+  response only. Frontend coverage passed 129 files / 1,200 tests in the
+  serial profile; type-check and production build passed. Backend unit and
+  integration coverage passed 1,621 and 409 tests. The parallel frontend
+  coverage stage had one timing-only benchmark miss (1,012 ms versus its
+  1,000 ms bound); the complete serial frontend run passed. The exact pinned
+  Playwright 1.62.1 full browser suite completed 282 cases with 175 passed,
+  107 documented skips, and zero failures. Visual-board cases are intentionally
+  skipped by this functional profile and remain separately gated. The pinned
+  visual matrix at exact pushed branch tip
+  `049267cee5301f2e33c8857305c48f2f3fd77521` completed 104 cases: 94 passed
+  and the same ten screenshot-only local-reference differences remained after
+  interaction/state assertions passed. The initial host-browser 8/104 result
+  is environment-sensitive diagnostic output and not acceptance evidence. No
+  screenshot oracle or policy changed. Docker Buildx is unavailable, but the
+  assigned stack built with the default Compose builder and was fully removed
+  with its fixture volumes/network and generated images. Current GitHub refs are staging
+  `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+  `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+  `ea477adee73ec27c865b79e2da1476e4348e47a7`; neither dependency tip is an
+  ancestor of staging. Defer R2/R3 integration and shared-path reconciliation
+  until then; continue the independent exact-tip gate and distinct TC-owned
+  UI/Study/Strategy work.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."

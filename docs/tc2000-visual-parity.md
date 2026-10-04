@@ -1,13 +1,50 @@
 # TC2000 Version 25 Visual-Parity Specification
 
 The latest complete board run used product source
-`c038aafc6fe8378cdf11d4b76006100488c75556` at clean branch tip
-`0dc73b5b402c28f2762ac9fe487106bafe29dfa5`. It passed `94/104`; ten
+`05aac7f816aab492c7b2aadb1adb9ffc6e76f02a` at pushed branch tip
+`049267cee5301f2e33c8857305c48f2f3fd77521`. It passed `94/104`; ten
 screenshot comparisons remain open for the review recorded below. No
 references, masks, thresholds, skips, or acceptance rules have been modified.
 The Chart Plot Library search interaction has authenticated browser coverage,
 but the checked-in board does not capture that panel open, so its exact styling
 still lacks screenshot coverage.
+
+The separate pinned full functional browser run completed `282` cases with
+`175` passed, `107` documented skips, and zero failures. Visual board cases are
+intentionally skipped by that functional profile; this does not replace or
+change the 104-case visual result below.
+
+## 2026-10-04 — Latest pinned exact-tip matrix at `049267c`
+
+The serial four-viewport matrix ran all `104` cases in pinned Playwright
+1.62.1 at exact pushed branch tip `049267cee5301f2e33c8857305c48f2f3fd77521`
+(product source `05aac7f816aab492c7b2aadb1adb9ffc6e76f02a`). Result: `94`
+passed and `10` screenshot-only comparisons failed after each affected
+state/interaction assertion passed.
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | --- | --- | --- |
+| `visual-1080p-100` | 8,995 pixels | 109,320 pixels | 13,360 pixels |
+| `visual-1080p-125` | 9,825 pixels | 105,698 pixels | 11,188 pixels |
+| `visual-1440p-100` | 8,995 pixels | 22,035 pixels | Passed |
+| `visual-1440p-125` | 9,825 pixels | 21,352 pixels | Passed |
+
+These are the same ten documented local-reference cases: workspace-floating
+at all four viewports, Study structured-result at all four, and Study
+sandbox-error at the two 1080p scales. The small 1440p/100 structured-result
+pixel-count change from the earlier exact-tip run does not change its failure
+category. A host-browser diagnostic again produced broad environment-sensitive
+deltas (8/104 passed); it is not a valid comparison against these pinned Linux
+baselines. No snapshot, mask, threshold, skip, fallback, or acceptance rule
+changed. Artifacts are retained at `/tmp/tc2000-pinned-visual.DYoDfS`.
+
+The exact assigned Compose project was removed after the run, including six
+containers, four fixture volumes, its network, and four generated images.
+Read-only GitHub refs refreshed to TC `049267cee5301f2e33c8857305c48f2f3fd77521`,
+staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`ea477adee73ec27c865b79e2da1476e4348e47a7`. Neither dependency tip is an
+ancestor of staging; defer their integration and shared-path reconciliation.
 
 ## 2026-10-04 — Chart Plot Library open/search state inspected without a visual oracle
 

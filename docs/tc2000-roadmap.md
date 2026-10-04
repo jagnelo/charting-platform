@@ -5,6 +5,39 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-04
 
+## 2026-10-04 — Clean pinned full browser rerun
+
+The full seeded Playwright 1.62.1 run completed all `282` cases in `17.5m`:
+`175` passed, `107` documented skips, and zero failures. The functional
+profile intentionally skips the board's visual cases; those remain governed by
+the separate exact-tip visual matrix below, which still has ten screenshot-only
+differences. The three transient cases from the earlier full run all passed in
+this clean full rerun. The exact assigned Compose project was removed with its
+fixture volumes, network, containers, and locally generated images. Artifacts
+are retained under `/tmp/tc2000-pinned-e2e.NIbQR4`.
+
+## 2026-10-04 — Exact-tip pinned visual matrix at `049267c`
+
+At pushed branch tip `049267cee5301f2e33c8857305c48f2f3fd77521` (product
+source `05aac7f816aab492c7b2aadb1adb9ffc6e76f02a`), pinned Playwright 1.62.1
+completed all `104` visual cases in `11.7m`: `94` passed and `10` screenshot
+comparisons failed after their state and interaction assertions passed. The
+same ten cases remain open: workspace-floating in all viewports (8,995 / 9,825
+/ 8,995 / 9,825 pixels), Study structured-result in all viewports (109,320 /
+105,698 / 22,035 / 21,352 pixels), and Study sandbox-error at 1080p/100 and
+1080p/125 (13,360 / 11,188 pixels). Both 1440p sandbox-error cases passed.
+No visual oracle or policy changed.
+
+The earlier host-rendered `8/104` result is diagnostic-only and repeats the
+known host-versus-pinned font/rendering drift; it is not acceptance evidence.
+The assigned Compose project was removed with its six containers, four test
+volumes, network, and four generated images. GitHub refs refreshed to staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`ea477adee73ec27c865b79e2da1476e4348e47a7`; both dependency tips remain
+outside staging. Keep integration deferred and continue distinct TC-owned
+work.
+
 ## 2026-10-04 — Chart Plot Library search browser proof
 
 An authenticated Chromium flow now verifies that the Chart Plot Library opens
