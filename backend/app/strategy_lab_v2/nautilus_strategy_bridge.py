@@ -1897,6 +1897,7 @@ def build_native_strategy_bridge(
                 target_resolution = resolve_nautilus_component_target_position_batches(
                     portfolio=portfolio,
                     intents_by_component=target_intents_by_component,
+                    defer_shared_risk_validation=True,
                     run_attempt_id=engine_input["attempt_id"],
                     event_time=event_time,
                     event_sequence=event_sequence,

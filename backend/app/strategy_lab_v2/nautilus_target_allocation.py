@@ -229,17 +229,21 @@ def resolve_nautilus_component_target_position_batches(
     current_component_quantities: Mapping[str, Mapping[str, Decimal]],
     mark_prices: Mapping[str, Decimal],
     instruments: Mapping[str, Mapping[str, object]],
+    defer_shared_risk_validation: bool = False,
 ) -> NautilusComponentTargetAllocationResolution:
     """Allocate simultaneous component targets once, then size attributed deltas.
 
     The component exposure and quantity ledgers must reconcile exactly to the
-    native account before allocation. This keeps the platform's shared-account
-    risk decision authoritative without pretending native net positions reveal
-    which strategy owns each lot.
+    native account before allocation. By default, shared-account risk breaches
+    fail closed here. A caller that will combine these candidate orders with
+    other same-event orders may defer that verdict to the final shared-order
+    router; this is intended for the native bridge only.
     """
 
     if not isinstance(portfolio, PortfolioComposition):
         raise TypeError("portfolio must be a PortfolioComposition")
+    if not isinstance(defer_shared_risk_validation, bool):
+        raise TypeError("defer_shared_risk_validation must be a bool")
     if not isinstance(intents_by_component, Mapping) or not intents_by_component:
         raise NautilusRuntimeDataError("native component target batches are required")
     if not isinstance(current_component_exposures, Mapping) or not isinstance(
@@ -377,7 +381,7 @@ def resolve_nautilus_component_target_position_batches(
         raise NautilusRuntimeDataError(
             "component target allocation could not be validated"
         ) from error
-    if not allocation.risk_limits_satisfied:
+    if not allocation.risk_limits_satisfied and not defer_shared_risk_validation:
         raise NautilusRuntimeDataError("target-position allocation breaches shared portfolio risk")
     unexpected_rejections = tuple(
         item
