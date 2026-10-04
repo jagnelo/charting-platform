@@ -23,8 +23,8 @@ class EngineReleaseChannel(StrEnum):
 
 NAUTILUS_RELEASE_PIN_VERSION = "strategy-lab.nautilus-release-pin.v2"
 # The current v2 release-candidate track is intentionally exact rather than a
-# floating ``--pre`` install. Runtime/source/image digests are still supplied
-# by the isolated deployment adapter when it constructs NautilusReleasePin.
+# floating ``--pre`` install. It supports compatibility testing only. Runtime,
+# source, and image digests are supplied by the isolated deployment adapter.
 NAUTILUS_V2_RC_PACKAGE_VERSION = "2.0.0rc5"
 NAUTILUS_V2_RC_RELEASE_TAG = "v2.0.0rc5"
 NAUTILUS_V2_RC_WHEEL_SHA256 = (
@@ -38,9 +38,9 @@ class NautilusReleasePin:
 
     The release pin is evidence supplied by the deployment/runtime adapter; it
     never discovers packages or starts an engine. An authoritative local
-    backtest needs this identity and all four simulator checks; full/forward
-    scope also needs event-tape parity. Stable or release-candidate builds may
-    qualify, while development builds cannot be authoritative.
+    authoritative backtests require this identity, a stable v2 release, and
+    all four simulator checks; full/forward scope also needs event-tape parity.
+    Release candidates can qualify for isolated compatibility execution only.
     """
 
     package_version: str
@@ -118,6 +118,11 @@ class NautilusResultProvenance:
             self.release_pin.package_version, self.release_pin.release_tag
         ):
             raise ValueError("stable provenance cannot identify a prerelease")
+        if (
+            self.execution_scope == "backtest_authoritative"
+            and self.release_channel is not EngineReleaseChannel.STABLE
+        ):
+            raise ValueError("authoritative backtest provenance requires stable Nautilus v2")
 
     @property
     def fingerprint(self) -> str:
@@ -211,12 +216,12 @@ class EngineConformanceReport:
             raise TypeError("release_pin_valid must be a boolean")
         if self.authoritative and (
             self.decision is not ConformanceDecision.PASS
-            or self.release_channel is EngineReleaseChannel.DEVELOPMENT
+            or self.release_channel is not EngineReleaseChannel.STABLE
             or missing
             or not self.release_pin_valid
         ):
             raise ValueError(
-                "only a complete stable or release-candidate conformance pass with a "
+                "only a complete stable-v2 conformance pass with a "
                 "valid isolated release pin can be authoritative"
             )
         object.__setattr__(self, "missing_checks", missing)
@@ -231,10 +236,10 @@ class EngineConformanceReport:
     def execution_eligible(self) -> bool:
         """Whether the evidence may start an isolated engine process.
 
-        Compatibility execution is allowed for a complete release candidate,
-        but every actual process still needs a valid isolated v2 release pin.
-        This keeps an RC useful for local replay/backtest parity without
-        allowing an untracked package or shared legacy runtime to execute.
+        Compatibility execution is allowed for an exact-pinned release
+        candidate, but authoritative results require stable v2. Every actual
+        process still needs a valid isolated v2 release pin; no prerelease or
+        shared legacy runtime can publish official backtest results.
         """
 
         return self.compatible and self.release_pin_valid
@@ -261,7 +266,7 @@ def evaluate_engine_conformance(
         missing_checks=missing,
         authoritative=(
             decision is ConformanceDecision.PASS
-            and evidence.release_channel is not EngineReleaseChannel.DEVELOPMENT
+            and evidence.release_channel is EngineReleaseChannel.STABLE
             and release_pin_valid
         ),
         release_pin_valid=release_pin_valid,

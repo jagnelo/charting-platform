@@ -236,7 +236,7 @@ class LocalNautilusRcConformanceEvidenceSource:
     ) -> LocalNautilusRcConformanceEvidenceSource | None:
         """Load operator-pinned local evidence config without discovering artifacts.
 
-        No configured values means RC-backed authoritative execution stays
+        No configured values means RC-backed compatibility execution stays
         unavailable. Partial configuration is an error instead of silently
         selecting an arbitrary file or runtime image.
         """

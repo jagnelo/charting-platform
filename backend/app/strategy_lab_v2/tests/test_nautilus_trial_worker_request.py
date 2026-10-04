@@ -139,15 +139,26 @@ def _build_request(tmp_path: Path, **overrides):
     return request, runtime_evidence
 
 
-def test_worker_request_composes_authoritative_rc_backtest_from_trial_evidence(
+def test_worker_request_rejects_authoritative_rc_backtest_from_trial_evidence(
     tmp_path: Path,
 ) -> None:
-    request, runtime_evidence = _build_request(tmp_path)
+    with pytest.raises(ValueError, match="stable_nautilus_v2_required"):
+        _build_request(tmp_path)
+
+
+def test_worker_request_composes_non_authoritative_rc_compatibility_backtest(
+    tmp_path: Path,
+) -> None:
+    request, runtime_evidence = _build_request(
+        tmp_path,
+        execution_scope=NautilusExecutionScope.BACKTEST_COMPATIBILITY,
+        requested_authoritative=False,
+    )
 
     assert request.orchestration_plan.accepted
     assert request.execution_plan.engine_version == "2.0.0rc5"
-    assert request.execution_plan.execution_scope is NautilusExecutionScope.BACKTEST_AUTHORITATIVE
-    assert request.execution_plan.authoritative is True
+    assert request.execution_plan.execution_scope is NautilusExecutionScope.BACKTEST_COMPATIBILITY
+    assert request.execution_plan.authoritative is False
     assert request.runtime_input_artifact == (
         runtime_evidence.materialized_input.assembly.runtime_input_artifact
     )

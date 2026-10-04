@@ -242,10 +242,9 @@ def resolve_nautilus_rc_conformance(
     """Bind a parsed RC image receipt to the engine execution gate.
 
     The returned report intentionally fails the complete conformance decision
-    because forward parity is deferred, while its four passed simulator checks
-    remain available to the separately gated ``BACKTEST_AUTHORITATIVE`` scope.
-    This is local backtest authority only: the release candidate cannot connect
-    to a broker or control real capital.
+    because forward parity is deferred. Its four passed simulator checks remain
+    available to isolated compatibility backtests, but a prerelease cannot
+    authorize official results or connect to a broker/control real capital.
     """
 
     if not isinstance(runtime, NautilusRcCompatibilityRuntime):
@@ -280,13 +279,11 @@ def build_nautilus_backtest_execution_binding(
 ) -> ExecutionCapabilityBinding:
     """Bind verified Nautilus fixture evidence to an explicit backtest scope.
 
-    A release candidate can qualify for authoritative local backtests when its
-    exact isolated release pin and all four backtest checks pass, even though
-    the overall report remains non-authoritative because forward parity is
-    deferred. Product, execution-model, and account-model support is supplied
-    explicitly by the trusted host; it is never inferred from fixture success.
-    The resulting binding must still be used with a scoped execution plan,
-    which independently rejects prereleases for forward or full scope.
+    Only a stable v2 build can produce this authoritative capability binding.
+    Product, execution-model, and account-model support is supplied explicitly
+    by the trusted host; it is never inferred from fixture success. Four
+    backtest-specific simulator checks are required; forward event-tape parity
+    remains a separate gate.
     """
 
     if not isinstance(resolution, ConformanceExecutionResolution | NautilusRcConformanceResolution):
@@ -298,8 +295,8 @@ def build_nautilus_backtest_execution_binding(
     report = resolution.report
     if evidence.engine_id.lower() != "nautilus":
         raise ValueError("authoritative local backtests require Nautilus conformance evidence")
-    if evidence.release_channel is EngineReleaseChannel.DEVELOPMENT:
-        raise ValueError("development Nautilus builds cannot authorize backtests")
+    if evidence.release_channel is not EngineReleaseChannel.STABLE:
+        raise ValueError("stable Nautilus v2 is required for authoritative local backtests")
     expected_report = evaluate_engine_conformance(evidence)
     if report.fingerprint != expected_report.fingerprint:
         raise ValueError("conformance report does not match its evidence")
@@ -321,6 +318,46 @@ def build_nautilus_backtest_execution_binding(
     )
 
 
+def build_nautilus_backtest_compatibility_binding(
+    resolution: ConformanceExecutionResolution | NautilusRcConformanceResolution,
+    *,
+    product_classes: frozenset[ProductClass],
+    execution_models: frozenset[str],
+    account_models: frozenset[str],
+) -> ExecutionCapabilityBinding:
+    """Bind exact-pinned stable/RC fixture evidence for non-authoritative runs."""
+
+    if not isinstance(resolution, ConformanceExecutionResolution | NautilusRcConformanceResolution):
+        raise TypeError(
+            "resolution must be a ConformanceExecutionResolution or "
+            "NautilusRcConformanceResolution"
+        )
+    evidence = resolution.evidence
+    if evidence.engine_id.lower() != "nautilus":
+        raise ValueError("backtest compatibility requires Nautilus conformance evidence")
+    if evidence.release_channel is EngineReleaseChannel.DEVELOPMENT:
+        raise ValueError("development Nautilus builds cannot execute backtest compatibility")
+    expected_report = evaluate_engine_conformance(evidence)
+    if resolution.report.fingerprint != expected_report.fingerprint:
+        raise ValueError("conformance report does not match its evidence")
+    if not resolution.report.release_pin_valid:
+        raise ValueError("an exact isolated Nautilus v2 release pin is required")
+    missing = NautilusExecutionScope.BACKTEST_COMPATIBILITY.required_checks - evidence.passed_checks
+    if missing:
+        names = ", ".join(sorted(check.value for check in missing))
+        raise ValueError(f"Nautilus backtest compatibility is incomplete: {names}")
+    return ExecutionCapabilityBinding(
+        engine_name=evidence.engine_id,
+        engine_version=evidence.engine_version,
+        engine_build_digest=evidence.build_digest,
+        conformance_fingerprint=evidence.fingerprint,
+        product_classes=product_classes,
+        execution_models=execution_models,
+        account_models=account_models,
+        authoritative=False,
+    )
+
+
 def require_runtime_probe_binding(
     resolution: ConformanceExecutionResolution,
     runtime: NautilusRcCompatibilityRuntime,
@@ -328,9 +365,10 @@ def require_runtime_probe_binding(
 ) -> None:
     """Require complete RC fixture evidence to bind to its probed image.
 
-    A complete fixture suite may qualify the exact pinned release candidate
-    for local backtests. The probe alone does not: the complete observations,
-    engine identity, package version, and pinned image must all agree.
+    A complete fixture suite may qualify the exact-pinned release candidate
+    for non-authoritative compatibility backtests. The probe alone does not:
+    the complete observations, engine identity, package version, and pinned
+    image must all agree.
     """
 
     if not isinstance(resolution, ConformanceExecutionResolution):

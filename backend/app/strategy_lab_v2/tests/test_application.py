@@ -148,6 +148,8 @@ def _worker_request_for_trial(
         image_name="nautilus-runtime",
         output_path=tmp_path / "worker-result.json",
         now=NOW,
+        execution_scope=NautilusExecutionScope.BACKTEST_COMPATIBILITY,
+        requested_authoritative=False,
     )
 
 

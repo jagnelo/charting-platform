@@ -93,7 +93,6 @@ from app.strategy_lab_v2.rebalance import (
 )
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.result_completion import ResultCompletionLedger, finalize_execution_result
-from app.strategy_lab_v2.result_publication import ResultPublicationDecision
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
 from app.strategy_lab_v2.runtime_execution import new_runtime_execution_state
 from app.strategy_lab_v2.runtime_result_adapter import materialize_nautilus_result
@@ -131,8 +130,8 @@ from app.strategy_lab_v2.worker_process import (
 from app.strategy_lab_v2.worker_service import WorkerCompletionContext
 from app.strategy_lab_v2.worker_settlement import WorkerSettlementLedger
 from app.strategy_lab_v2.worker_terminal_adapter import (
+    PermanentWorkerTerminalEvidenceError,
     PostgresWorkerTerminalAdapter,
-    WorkerTerminalEvidence,
 )
 from app.strategy_lab_v2.workers import (
     WorkerKind,
@@ -158,7 +157,15 @@ class _MemoryCommitter:
         return resolution
 
 
-def _runtime_setup(tmp_path: Path):
+def _runtime_setup(tmp_path: Path, *, stable: bool = True):
+    engine_version = "2.0.0" if stable else NAUTILUS_V2_RC_PACKAGE_VERSION
+    release_tag = "v2.0.0" if stable else NAUTILUS_V2_RC_RELEASE_TAG
+    release_channel = (
+        EngineReleaseChannel.STABLE if stable else EngineReleaseChannel.RELEASE_CANDIDATE
+    )
+    wheel_digest = (
+        content_digest("nautilus-stable-test-wheel") if stable else NAUTILUS_V2_RC_WHEEL_SHA256
+    )
     values, graph, source_store = _build_inputs(tmp_path)
     trial = graph.trial
     trial = ScientificTrial.create(
@@ -193,7 +200,7 @@ def _runtime_setup(tmp_path: Path):
         market_context=NautilusTrialMarketContext(values["instruments"], values["venue"]),
     )
     profile = RuntimeIsolationProfile(
-        runtime_image_digest=content_digest("nautilus-rc5-test-image"),
+        runtime_image_digest=content_digest({"nautilus-test-image": engine_version}),
         runtime_abi="worker-abi-v1",
         allowed_dependency_digests=frozenset(
             dependency.artifact_digest for dependency in graph.strategies[0].dependencies
@@ -214,7 +221,7 @@ def _runtime_setup(tmp_path: Path):
         image_name="nautilus-strategy-runtime",
         input_bundle_path=source_store.path_for(runtime_input.artifact.storage_key),
         output_path=tmp_path / "runtime-result.json",
-        expected_version=NAUTILUS_V2_RC_PACKAGE_VERSION,
+        expected_version=engine_version,
         snapshot_fingerprint=graph.snapshot.fingerprint,
         context_stream_path=source_store.path_for(context_reference.artifact.storage_key),
         context_stream_digest=context_reference.artifact.content_digest,
@@ -233,10 +240,10 @@ def _runtime_setup(tmp_path: Path):
         native_reports_path=tmp_path / "native-reports.parquet",
     )
     pin = NautilusReleasePin(
-        package_version=NAUTILUS_V2_RC_PACKAGE_VERSION,
-        release_tag=NAUTILUS_V2_RC_RELEASE_TAG,
-        source_digest=content_digest("nautilus-rc5-source"),
-        wheel_digest=NAUTILUS_V2_RC_WHEEL_SHA256,
+        package_version=engine_version,
+        release_tag=release_tag,
+        source_digest=content_digest({"nautilus-source": engine_version}),
+        wheel_digest=wheel_digest,
         runtime_image_digest=profile.runtime_image_digest,
         python_version="3.12.11",
         rust_version="1.88.0",
@@ -249,9 +256,9 @@ def _runtime_setup(tmp_path: Path):
     )
     conformance_evidence = EngineConformanceEvidence(
         engine_id="nautilus",
-        engine_version=NAUTILUS_V2_RC_PACKAGE_VERSION,
-        build_digest=content_digest("nautilus-rc5-build"),
-        release_channel=EngineReleaseChannel.RELEASE_CANDIDATE,
+        engine_version=engine_version,
+        build_digest=content_digest({"nautilus-build": engine_version}),
+        release_channel=release_channel,
         fixture_digest=content_digest("four-backtest-conformance-fixtures"),
         passed_checks=checks,
         tested_at=BASE,
@@ -305,7 +312,7 @@ def _runtime_setup(tmp_path: Path):
         attempt_id=graph.attempt.attempt_id,
         data_snapshot_fingerprint=graph.snapshot.fingerprint,
         engine_id="nautilus",
-        engine_version=NAUTILUS_V2_RC_PACKAGE_VERSION,
+        engine_version=engine_version,
         engine_build_digest=conformance_evidence.build_digest,
         authorization_fingerprint=authorization.fingerprint,
         runtime_preflight_fingerprint=runtime.runtime_preflight.fingerprint,
@@ -365,8 +372,8 @@ def _runtime_setup(tmp_path: Path):
     return graph, source_store, request, conformance_evidence
 
 
-def _successful_context_and_lookup(tmp_path: Path):
-    graph, source_store, request, _conformance_evidence = _runtime_setup(tmp_path)
+def _successful_context_and_lookup(tmp_path: Path, *, stable: bool = True):
+    graph, source_store, request, _conformance_evidence = _runtime_setup(tmp_path, stable=stable)
     sandbox = request.sandbox_plan
     runtime_input = request.runtime_input_artifact
     bundle = load_materialized_nautilus_runtime_bundle(
@@ -540,31 +547,16 @@ def _terminal_writer(resolver) -> PostgresWorkerTerminalAdapter:
 
 
 @pytest.mark.asyncio
-async def test_successful_worker_receipt_materializes_and_publishes_rc5_backtest(tmp_path):
-    context, _lookup, resolver, publisher = _successful_context_and_lookup(tmp_path)
+async def test_rc5_worker_receipt_cannot_materialize_an_authoritative_backtest(tmp_path):
+    context, _lookup, resolver, publisher = _successful_context_and_lookup(tmp_path, stable=False)
 
-    evidence = await resolver(context)
+    with pytest.raises(
+        PermanentWorkerTerminalEvidenceError,
+        match="authoritative Nautilus result evidence failed validation",
+    ):
+        await resolver(context)
 
-    assert isinstance(evidence, WorkerTerminalEvidence)
-    assert evidence.principal == "owner-terminal-test"
-    assert evidence.result is not None
-    assert evidence.publication is not None
-    assert evidence.publication.decision is ResultPublicationDecision.PUBLISH
-    assert evidence.result.engine_version == NAUTILUS_V2_RC_PACKAGE_VERSION
-    assert evidence.result.engine_provenance is not None
-    assert evidence.result.engine_provenance.execution_scope == "backtest_authoritative"
-    assert (
-        evidence.result.engine_provenance.release_channel is EngineReleaseChannel.RELEASE_CANDIDATE
-    )
-    assert len(evidence.artifact_plans) == len(evidence.result.output_artifacts) == 2
-    assert all(
-        publisher.store.path_for(artifact.storage_key).is_file()
-        for artifact in evidence.result.output_artifacts
-    )
-
-    metrics = {item.name: item for item in evidence.result.metric_set.values}
-    assert metrics["oos_fill_count"].value == Decimal(1)
-    assert metrics["oos_reported_commission:USD"].value == Decimal("2.00")
+    assert not tuple(publisher.store.root.rglob("*"))
 
 
 @pytest.mark.asyncio

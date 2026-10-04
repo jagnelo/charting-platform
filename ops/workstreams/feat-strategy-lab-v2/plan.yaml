@@ -23,8 +23,9 @@ goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
   persistent broker-free shadow testing. Keep the strategy SDK engine-neutral,
-  use Nautilus as the authoritative simulator after exact-pinned v2 conformance,
-  and respect provider-platform, ETF, and TC2000 workstream ownership.
+  use Nautilus as the authoritative simulator only after an exact-pinned stable
+  v2 release passes conformance, and respect provider-platform, ETF, and TC2000
+  workstream ownership.
 scope:
   - >-
     Deliver an engine-neutral Strategy Lab v2 domain and strategy SDK for
@@ -43,13 +44,14 @@ scope:
     TC2000 CodeVersion/Study Lab outputs. Do not duplicate provider governance,
     data acquisition, membership history, code authoring, or research execution.
   - >-
-    Add authoritative local Nautilus BacktestNode execution when an exact-pinned
-    Nautilus v2 build passes the platform conformance suite; stable or
-    pre-release builds are eligible. Keep its version, Python environment, and
-    runtime image isolated from legacy Nautilus 1.226. Record exact version,
-    release channel, wheel digest, and image digest in every result. A
-    pre-release must never control real capital or connect to a broker, and
-    forward-shadow qualification additionally requires event-tape parity.
+    Add authoritative local Nautilus BacktestNode execution only when an
+    exact-pinned stable Nautilus v2 release passes the platform conformance
+    suite. Keep its version, Python environment, and runtime image isolated
+    from legacy Nautilus 1.226. Record exact version, release channel, wheel
+    digest, and image digest in every result. Exact-pinned prereleases may be
+    used for non-authoritative compatibility testing only; they never publish
+    official results, control real capital, or connect to a broker.
+    Forward-shadow qualification additionally requires event-tape parity.
   - >-
     Add isolated serial backtest workers and separately reserved persistent
     forward workers; PostgreSQL metadata/state, Redis durable dispatch and
@@ -120,13 +122,13 @@ execution_plan:
       services.
     - >-
       Add the isolated Rust canonical-data adapter and a separate exact-pinned
-      Nautilus v2 runtime. The current release candidate may be exercised now;
-      qualify local authoritative backtests on the four simulator checks:
-      multi-instrument accounting, native order/fill/cost reports, deterministic
-      replay, and lifecycle. Forward event-tape parity is a separate gate for
-      forward-shadow execution. Stable releases are eligible but not a
-      prerequisite and must pass the same backtest checks before replacing the
-      pin. Pre-releases remain barred from broker connections and real capital.
+      Nautilus v2 runtime. Exact-pinned release candidates may be exercised in
+      non-authoritative compatibility scope. Only a stable v2 release that
+      passes the four simulator checks—multi-instrument accounting, native
+      order/fill/cost reports, deterministic replay, and lifecycle—may publish
+      authoritative local backtests. Forward event-tape parity is a separate
+      gate for forward-shadow execution. Pre-releases remain barred from
+      authoritative results, broker connections, and real capital.
     - >-
       Complete full branch integration/security/reproducibility validation and
       hand off at ready_for_human_review. The UI and any deployed shadow soak
@@ -147,14 +149,14 @@ dependencies:
     staged code/output contracts; do not edit its active files before staging or
     create a parallel editor/research runner.
   - >-
-    No upstream stability label is required. The current exact 2.0.0rc5 build
-    may be pinned in a separate Python/Rust/runtime-image environment now;
-    qualify local authoritative backtests after the four simulator checks pass.
-    Forward event-tape parity gates forward-shadow execution separately.
-    Preserve exact release channel, wheel/image digest, conformance, scope, and
-    execution-plan provenance in every Nautilus result. Never use a pre-release
-    to control real capital. Each later engine build must independently pass
-    the applicable scope checks.
+    A stable Nautilus v2 release is required before authoritative simulator
+    results can be published. Until then, the exact 2.0.0rc5 build may be pinned
+    in its isolated Python/Rust/runtime-image environment for compatibility
+    testing only. Forward event-tape parity separately gates forward-shadow
+    execution. Preserve exact release channel, wheel/image digest, conformance,
+    scope, and execution-plan provenance in every Nautilus result. Never use a
+    pre-release for authoritative results, broker connections, or real capital.
+    Each later engine build must independently pass the applicable scope checks.
 acceptance_criteria:
   - id: AC-DOMAIN
     text: >-
@@ -221,16 +223,17 @@ acceptance_criteria:
       worker.
   - id: AC-NAUTILUS
     text: >-
-      An exact-pinned Nautilus v2 build (stable or pre-release) passes a platform
-      conformance suite for multi-instrument accounting, native order/fill/cost
-      models, reports, deterministic replay, and engine lifecycle before it can
-      publish authoritative local backtest results. Every result records exact
-      engine version/channel, wheel/image digests, conformance fingerprints,
-      execution scope, and plan fingerprint. Forward event-tape parity is a
-      separate requirement for broker-free forward-shadow execution.
-      Pre-releases never control real capital or connect to a broker. The platform owns
-      a Rust data adapter for canonical forward events; provider adapters are
-      not used as a second data source.
+      An exact-pinned stable Nautilus v2 build passes a platform conformance
+      suite for multi-instrument accounting, native order/fill/cost models,
+      reports, deterministic replay, and engine lifecycle before it can publish
+      authoritative local backtest results. Exact-pinned pre-releases may run
+      compatibility tests but cannot produce authoritative results. Every
+      result records exact engine version/channel, wheel/image digests,
+      conformance fingerprints, execution scope, and plan fingerprint. Forward
+      event-tape parity is a separate requirement for broker-free forward-shadow
+      execution. Pre-releases never control real capital or connect to a broker.
+      The platform owns a Rust data adapter for canonical forward events;
+      provider adapters are not used as a second data source.
   - id: AC-FORWARD
     text: >-
       Persistent broker-free shadow instances use immutable historical warm-up
@@ -311,7 +314,7 @@ deployment_impact: >-
   real data, provider secret distribution, or broker connectivity is authorized.
 status: in_progress
 remaining_gaps:
-  - The current engine-neutral package is only an initial core; deterministic static strategy-source preflight, pure artifact payload verification, bounded recovery planning, canonical execution event semantics, deterministic frozen event-tape semantics, REST cursor/error contracts, typed resource/collection envelopes, registration-neutral API serialization/router semantics, owner-scoped PostgreSQL resource-read projection semantics, owner-scoped PostgreSQL submission/dispatch staging semantics, owner-scoped PostgreSQL command-receipt semantics, atomic PostgreSQL execution-event/audit/outbox/cursor staging semantics, owner-scoped PostgreSQL outcome/progress checkpoint persistence semantics, owner-scoped PostgreSQL runtime execution state/materialization semantics, owner-scoped PostgreSQL result-manifest materialization persistence semantics, owner-scoped PostgreSQL runtime request/preflight receipt persistence semantics, owner-scoped PostgreSQL metric-set summary persistence semantics, PostgreSQL worker profile/reservation/lease persistence semantics, compare-and-set storage transaction semantics, PostgreSQL compare-and-set adapter semantics, hardened sandbox-command planning semantics, bounded sandbox process execution semantics, Nautilus-only execution-gating semantics, gated Nautilus plan-to-sandbox runner semantics, runtime-result materialization semantics, execution-handoff orchestration semantics, worker-handoff execution semantics, engine-result materialization semantics, terminal outcome/progress materialization semantics, atomic Redis Streams dispatch/consumer semantics, outbox-to-Redis relay semantics, bounded Redis worker-pump semantics, idempotent async submission semantics, atomic submission/dispatch staging semantics, typed execution outcomes, artifact lineage semantics, runtime-isolation preflight, engine conformance gating, authoritative result-publication gating, restart-safe progress checkpoints, serial worker-capacity reservation semantics, manifest-bound retention/pinning semantics, ordered worker lease observations, one-time forward warm-up handoff semantics, content-addressed live-event admission semantics, idempotent artifact commit finalization, execution-summary read-model semantics, retry/cancellation command semantics, capability/report projection semantics, additive forward counterfactual-replay command semantics, append-only execution audit journal semantics, transactional-outbox enqueue/acknowledgement semantics, atomic audit/outbox staging semantics, explicit legacy preservation/import report semantics, resumable cancellable search-candidate state semantics, provider coverage-attestation verification semantics, strategy-runtime request/receipt semantics, execution-admission/worker-binding semantics, atomic search-candidate/admission/dispatch staging semantics, atomic worker-release/retry-recovery staging semantics, idempotent worker-capacity settlement semantics, atomic result-completion/artifact-finalization semantics, atomic forward-event/correction-replay staging semantics, atomic forward-event/worker-dispatch staging semantics, atomic execution-event/audit/outbox transaction semantics, typed conformance-fixture evidence semantics, schedule-gated target allocation semantics, idempotent resource-creation API semantics, durable application-backed resource-creation aggregate semantics, and typed strategy/package/portfolio/experiment/attempt/snapshot/trial/metric-set/forward-instance resource registration semantics are present. A shared application persistence bundle now composes every PostgreSQL adapter over one session factory, and the application adapter now provides owner-scoped publication/completion and search/forward state read bridges; remaining domain-backed mutation flows, local Compose services, worker activation, and scope-bound authoritative backtest publication/forward parity remain unimplemented. Stable Nautilus v2 availability is not a prerequisite; exact-pinned RC5 is the current local qualification target.
+  - The current engine-neutral package is only an initial core; deterministic static strategy-source preflight, pure artifact payload verification, bounded recovery planning, canonical execution event semantics, deterministic frozen event-tape semantics, REST cursor/error contracts, typed resource/collection envelopes, registration-neutral API serialization/router semantics, owner-scoped PostgreSQL resource-read projection semantics, owner-scoped PostgreSQL submission/dispatch staging semantics, owner-scoped PostgreSQL command-receipt semantics, atomic PostgreSQL execution-event/audit/outbox/cursor staging semantics, owner-scoped PostgreSQL outcome/progress checkpoint persistence semantics, owner-scoped PostgreSQL runtime execution state/materialization semantics, owner-scoped PostgreSQL result-manifest materialization persistence semantics, owner-scoped PostgreSQL runtime request/preflight receipt persistence semantics, owner-scoped PostgreSQL metric-set summary persistence semantics, PostgreSQL worker profile/reservation/lease persistence semantics, compare-and-set storage transaction semantics, PostgreSQL compare-and-set adapter semantics, hardened sandbox-command planning semantics, bounded sandbox process execution semantics, Nautilus-only execution-gating semantics, gated Nautilus plan-to-sandbox runner semantics, runtime-result materialization semantics, execution-handoff orchestration semantics, worker-handoff execution semantics, engine-result materialization semantics, terminal outcome/progress materialization semantics, atomic Redis Streams dispatch/consumer semantics, outbox-to-Redis relay semantics, bounded Redis worker-pump semantics, idempotent async submission semantics, atomic submission/dispatch staging semantics, typed execution outcomes, artifact lineage semantics, runtime-isolation preflight, engine conformance gating, authoritative result-publication gating, restart-safe progress checkpoints, serial worker-capacity reservation semantics, manifest-bound retention/pinning semantics, ordered worker lease observations, one-time forward warm-up handoff semantics, content-addressed live-event admission semantics, idempotent artifact commit finalization, execution-summary read-model semantics, retry/cancellation command semantics, capability/report projection semantics, additive forward counterfactual-replay command semantics, append-only execution audit journal semantics, transactional-outbox enqueue/acknowledgement semantics, atomic audit/outbox staging semantics, explicit legacy preservation/import report semantics, resumable cancellable search-candidate state semantics, provider coverage-attestation verification semantics, strategy-runtime request/receipt semantics, execution-admission/worker-binding semantics, atomic search-candidate/admission/dispatch staging semantics, atomic worker-release/retry-recovery staging semantics, idempotent worker-capacity settlement semantics, atomic result-completion/artifact-finalization semantics, atomic forward-event/correction-replay staging semantics, atomic forward-event/worker-dispatch staging semantics, atomic execution-event/audit/outbox transaction semantics, typed conformance-fixture evidence semantics, schedule-gated target allocation semantics, idempotent resource-creation API semantics, durable application-backed resource-creation aggregate semantics, and typed strategy/package/portfolio/experiment/attempt/snapshot/trial/metric-set/forward-instance resource registration semantics are present. A shared application persistence bundle now composes every PostgreSQL adapter over one session factory, and the application adapter now provides owner-scoped publication/completion and search/forward state read bridges; remaining domain-backed mutation flows, local Compose services, worker activation, and scope-bound authoritative backtest publication/forward parity remain unimplemented. Stable Nautilus v2 is required before authoritative activation; exact-pinned RC5 remains useful only for non-authoritative compatibility qualification.
   - PostgreSQL artifact retention/pin persistence semantics are now implemented in a registration-neutral additive adapter with authenticated state fingerprints, idempotent pin add/release, and explicit-time retention resolution; shared migrations, authorization, and application API wiring remain open.
   - PostgreSQL artifact commit-ledger persistence semantics are now implemented in a registration-neutral additive adapter with locked, authenticated commit records, exact replay, and storage-key uniqueness protection; immutable byte publication and shared migration/application wiring remain open.
   - PostgreSQL artifact-lineage persistence semantics are now implemented in a registration-neutral additive adapter with owner-scoped deterministic indexes, semantic-key replay/conflict handling, and authenticated rows; manifest existence, foreign-key migrations, and application authorization remain open.
@@ -321,7 +324,7 @@ remaining_gaps:
   - The provider-platform workstream has not reached staging; canonical acquisition and capability adapter wiring is deferred.
   - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
   - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
-  - Exact-pinned stable or pre-release Nautilus v2 can qualify local backtests after the complete conformance suite; stable 2.x is not a prerequisite. The isolated Nautilus 2.0.0rc5 image fixture passed multi-instrument accounting, native order/fill/cost reporting, deterministic replay, and lifecycle at source SHA f102f310499431b0c892483ec15e376f5503319f. The raw fixture receipt remains non-authoritative until consumed by the scoped conformance/publication path; forward shadow still requires event-tape parity, and pre-releases remain barred from broker/real-capital use.
+  - Stable Nautilus v2 is required to qualify authoritative local backtests after the complete conformance suite. The isolated Nautilus 2.0.0rc5 image fixture passed multi-instrument accounting, native order/fill/cost reporting, deterministic replay, and lifecycle at source SHA f102f310499431b0c892483ec15e376f5503319f; that RC receipt remains compatibility evidence only and cannot authorize or publish authoritative results. Forward shadow still requires event-tape parity, and pre-releases remain barred from authoritative results, broker connections, and real-capital use.
   - The owner-authenticated worker-terminal path now consumes exact conformance evidence, rehydrates and checks the owner-scoped trial graph, materializes versioned native OOS metrics/results, publishes verified output bytes, and builds the publication plan. A worker-terminal success/redelivery test exercises the full persistence-port coordinator with pure completion/lease state and proves stable receipt identity when the callback observation time changes; artifact completion keys bind manifest/content/length/storage identity rather than the retry-varying create/reuse action. Real PostgreSQL/Redis/Compose adapter execution and full-stack/browser acceptance remain Docker-gated.
   - The isolated Nautilus runtime bundle now has a pinned-input content-addressed artifact contract. Durable worker handoff v2 carries its compact artifact manifest plus semantic bundle digest; the worker binds both to the attempt/request and verifies the exact mounted bytes and memory-derived size bound before Docker launch. Production assembly from frozen trial/snapshot/portfolio inputs remains open.
   - The combined backend coverage gate now collects package-owned v2 tests and passes its 75% threshold. The dedicated worker entrypoint is now exposed through an explicit opt-in `strategy-lab-v2` Compose profile with a separate artifact volume, health-gated PostgreSQL/Redis dependencies, read-only root, dropped capabilities, bounded temporary filesystem, fail-closed Docker-socket binding, and a package-owned authenticated single-output evidence resolver default; host multi-artifact policy, live activation, and scope-bound authoritative Nautilus v2 execution remain open.
@@ -611,15 +614,15 @@ remaining_gaps:
       fixture through an injected engine runner, canonicalizes observed output,
       reduces runner exceptions to deterministic failed evidence, and returns
       the fixture suite, engine evidence, and gated report as one identity-bound
-      resolution. Authoritative local-backtest execution remains gated on a
-      complete passing suite and a valid exact isolated stable-or-release-
-      candidate pin; a published stable Nautilus 2.x release is not required.
+      resolution. Authoritative local-backtest execution now requires a
+      complete passing suite and a valid exact isolated stable-v2 pin.
+      Release-candidate pins remain eligible only for compatibility execution.
   - >-
       `conformance.py` now binds a `NautilusReleasePin` to conformance evidence,
       recording the exact v2 package/tag, source and runtime-image digests,
-      Python/Rust versions, and legacy-runtime isolation. Complete stable or
-      release-candidate fixture evidence without a valid isolated pin remains
-      compatibility evidence but cannot become authoritative.
+      Python/Rust versions, and legacy-runtime isolation. Only complete stable
+      fixture evidence with a valid isolated pin can become authoritative;
+      release-candidate evidence remains compatibility-only.
   - >-
       `resource_mutations.py` and the registration-neutral API router now expose
       strict idempotent creation for mutable Strategy Lab resources. Exact
@@ -792,7 +795,6 @@ progress:
     - strategy-lab-v2-nautilus-time-batched-event-context-bridge
     - strategy-lab-v2-nautilus-immutable-trial-input-assembly
     - strategy-lab-v2-owner-scoped-typed-resource-rehydration
-    - strategy-lab-v2-exact-pinned-prerelease-authority-gate
     - strategy-lab-v2-verified-local-source-package-resolution
     - strategy-lab-v2-verified-frozen-event-tape-artifact-boundary
     - strategy-lab-v2-experiment-strategy-package-identity-binding
@@ -821,43 +823,31 @@ progress:
     - nautilus-futures-target-allocation-v1
     - nautilus-event-time-oos-drawdown-duration-v1
     - nautilus-event-time-oos-cagr-calmar-v1
+    - stable-nautilus-v2-authority-gate-v1
   total: 18
-  current_phase: nautilus-event-time-oos-cagr-calmar-v1
+  current_phase: nautilus-oos-metric-expansion-v14
   current_blocker: >-
-    No external release or upstream dependency blocks package-owned work.
-    Exact-pinned Nautilus 2.0.0rc5 passes the platform's local backtest checks,
-    native lifecycle/rebalance probes, and native archived-cycle trade-ID
-    attribution. Signed fixed-per-fill commission and rebate probes reconcile
-    native account and component P&L. The pre-release remains barred from broker
-    or real-capital control, and forward shadow retains its separate event-tape
-    parity gate. The exact RC5 source/image evidence now passes all four local
-    backtest checks, and the rebuilt runtime image passes the native futures
-    margin-admission and futures-target probes. Probe receipts deliberately
-    remain authoritative=false because they are qualification evidence, not
-    published trial results; trial preparation binds exact conformance evidence
-    to its execution plan, and the worker result-publication path applies the
-    backtest-scope gate. The final full Compose/browser profile is pending Docker
-    Buildx availability, which does not block continued package-owned
-    implementation. Provider/ETF/TC2000 contracts remain staging-gated only
-    where shared-path consumption is needed. Broader metrics, remaining
-    domain-backed mutation flows, workers, and forward-shadow acceptance are
-    implementation work, not external blockers. Version-7 native definitions
-    can materialize listed futures and vanilla options when complete contract
-    terms are supplied; direct futures orders and whole-contract futures target
-    allocation now pass native margin admission for base-currency settlement.
-    Native OOS metrics now include elapsed-UTC drawdown duration from the
-    verified event-time equity trace while withholding cadence-based metrics
-    without an explicit basis. Event-time OOS annualized return and Calmar now
-    use exact elapsed UTC duration with a versioned, recorded 365.2425-day
-    annualization convention. Option order admission remains fail-closed pending
-    its separate event-time risk inputs.
+    Stable Nautilus v2 is not currently published, so authoritative Nautilus
+    execution and official result publication remain gated on that upstream
+    release plus platform conformance. Exact-pinned RC5 remains available only
+    for non-authoritative compatibility testing. This does not block continued
+    package-owned backend implementation. Docker Buildx remains the environment
+    gate for final full Compose/browser validation. Provider/ETF/TC2000 contracts
+    are staging-gated only where shared-path consumption is needed. Remaining
+    metrics, domain-backed mutation flows, workers, and forward-shadow
+    acceptance are implementation work. Native OOS metrics include event-time
+    drawdown duration and elapsed-UTC annualized return and Calmar; cadence-based
+    metrics remain withheld without an explicit basis. Options order admission
+    remains fail-closed pending canonical event-time Greeks/delta and settlement
+    evidence.
   next_action: >-
-    Continue versioned native OOS metric coverage, then remaining
-    domain-backed mutation flows, worker recovery/scaling, and persistent
-    forward-shadow correctness. Preserve explicit sampling/calendar and
-    annualization bases; do not derive cadence-sensitive statistics from
-    irregular event marks. Keep options order admission fail-closed until
-    canonical event-time Greeks/delta and settlement evidence are available.
-    Consume provider/ETF/TC2000-owned contracts only after their approved
-    branches reach staging. Run final Compose/browser validation when Buildx is
-    available; never wait for a stable Nautilus v2 tag.
+    Continue versioned native OOS metric coverage, then domain-backed mutations,
+    worker recovery/scaling, and persistent forward-shadow correctness. Keep
+    explicit sampling/calendar and annualization bases; do not derive
+    cadence-sensitive statistics from irregular event marks. Keep options
+    order admission fail-closed until canonical event-time Greeks/delta and
+    settlement evidence are available. Keep prerelease Nautilus execution in
+    compatibility-only scope. When a stable v2 release is available, pin and
+    qualify it before enabling authoritative backtest publication. Consume
+    provider/ETF/TC2000-owned contracts only after their approved branches reach
+    staging. Run final Compose/browser validation when Buildx is available.

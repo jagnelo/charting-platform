@@ -127,12 +127,12 @@ def plan_nautilus_execution(
 ) -> NautilusExecutionPlan:
     """Resolve the final engine invocation gate without starting Nautilus.
 
-    Backtest scopes intentionally exclude forward event-tape parity. This lets
-    an exact-pinned runtime publish authoritative local backtests after the
-    simulator checks pass, without waiting for the separate forward adapter.
-    Forward compatibility and full-scope requests still require parity. An RC
-    can authorize local backtest results after the backtest suite passes, but
-    never broker connections or real-capital control.
+    Backtest scopes intentionally exclude forward event-tape parity. A stable,
+    exact-pinned v2 runtime may publish authoritative local backtests after the
+    four simulator checks pass, without waiting for the separate forward
+    adapter. Release candidates may run only in compatibility scope and cannot
+    authorize official results. Forward compatibility and full-scope requests
+    still require parity.
     """
 
     if not isinstance(authorization, ExecutionAuthorization):
@@ -192,11 +192,15 @@ def plan_nautilus_execution(
     ):
         reasons.append("authoritative_conformance_required")
     if (
-        requested_authoritative
-        and execution_scope is NautilusExecutionScope.BACKTEST_AUTHORITATIVE
-        and conformance_evidence.release_channel is EngineReleaseChannel.DEVELOPMENT
+        execution_scope is NautilusExecutionScope.BACKTEST_AUTHORITATIVE
+        and conformance_evidence.release_channel is not EngineReleaseChannel.STABLE
     ):
-        reasons.append("authoritative_release_channel_not_supported")
+        reasons.append("stable_nautilus_v2_required_for_authoritative_backtest_scope")
+    if (
+        requested_authoritative
+        and conformance_evidence.release_channel is not EngineReleaseChannel.STABLE
+    ):
+        reasons.append("authoritative_stable_release_required")
     if requested_authoritative:
         release_pin = conformance_evidence.release_pin
         if release_pin is None:

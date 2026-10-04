@@ -50,7 +50,7 @@ from app.strategy_lab_v2.workers import WorkerKind, WorkerPoolState, WorkerProfi
 PREPARED_AT = BASE + timedelta(seconds=4)
 
 
-def test_host_preparation_context_loads_operator_pinned_local_rc_evidence(
+def test_host_preparation_context_loads_operator_pinned_local_rc_as_compatibility(
     tmp_path: Path,
 ) -> None:
     _graph, _store, _package_resolver, _materializer, existing, _worker_reader = _setup(
@@ -95,7 +95,9 @@ def test_host_preparation_context_loads_operator_pinned_local_rc_evidence(
 
     assert configured.conformance_evidence == published.resolution.evidence
     assert configured.conformance_report.authoritative is False
-    assert configured.capability_binding.authoritative is True
+    assert configured.capability_binding.authoritative is False
+    assert configured.execution_scope.value == "backtest_compatibility"
+    assert configured.requested_authoritative is False
 
 
 class _Hydrator:
@@ -189,7 +191,7 @@ def _setup(tmp_path: Path, *, runtime_image_digest: str | None = None):
     )
     lease_state = LeaseObservationState(lease)
     worker_state_reader = _WorkerStateReader(pool, lease_state)
-    context = NautilusTrialPreparationContext.from_authoritative_backtest_conformance(
+    context = NautilusTrialPreparationContext.from_compatibility_backtest_conformance(
         conformance_resolution=conformance_resolution,
         product_classes=frozenset({ProductClass.EQUITY}),
         execution_models=frozenset({"bar-close-v1"}),
@@ -259,7 +261,10 @@ async def test_resolver_hydrates_materializes_authorizes_and_composes_search_evi
     assert evidence.authorization.attempt_id == graph.attempt.attempt_id
     assert evidence.authorization.trial_id == graph.trial.trial_id
     assert evidence.authorization.source_digest == graph.strategies[0].source_digest
-    assert evidence.worker_request.execution_plan.authoritative
+    assert not evidence.worker_request.execution_plan.authoritative
+    assert evidence.worker_request.execution_plan.execution_scope.value == (
+        "backtest_compatibility"
+    )
     assert evidence.worker_request.execution_plan.engine_version == "2.0.0rc5"
     assert evidence.trial_runtime_evidence.runtime_request.request_id == (
         observed["request"].runtime_request_id

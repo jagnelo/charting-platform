@@ -21,6 +21,7 @@ from app.strategy_lab_v2.conformance_fixtures import (
     NautilusRcConformanceResolution,
     build_conformance_evidence,
     build_event_tape_parity_observation,
+    build_nautilus_backtest_compatibility_binding,
     build_nautilus_backtest_execution_binding,
     execute_conformance_suite,
     require_complete_conformance_suite,
@@ -701,13 +702,13 @@ def test_local_conformance_source_verifies_content_and_exact_rc5_runtime_pins(
 
     assert resolution.evidence.release_pin == runtime.release_pin
     assert not resolution.report.authoritative
-    binding = build_nautilus_backtest_execution_binding(
+    binding = build_nautilus_backtest_compatibility_binding(
         resolution,
         product_classes=frozenset({ProductClass.EQUITY}),
         execution_models=frozenset({"market"}),
         account_models=frozenset({"cash"}),
     )
-    assert binding.authoritative
+    assert not binding.authoritative
 
 
 def test_local_conformance_source_rejects_modified_artifact_bytes(tmp_path: Any) -> None:
@@ -765,14 +766,14 @@ def test_local_conformance_source_loads_only_complete_operator_environment(
     assert resolution.report.authoritative is False
 
 
-def test_executable_rc_suite_binds_to_the_probed_runtime_image() -> None:
+def test_executable_rc_suite_binds_to_the_probed_image_but_stays_non_authoritative() -> None:
     runtime = _rc_runtime()
     resolution = _rc_resolution(runtime)
 
     require_runtime_probe_binding(resolution, runtime, _rc_probe(runtime))
 
     assert resolution.report.execution_eligible
-    assert resolution.report.authoritative
+    assert not resolution.report.authoritative
 
 
 def test_runtime_probe_binding_rejects_a_different_image_digest() -> None:
@@ -836,7 +837,7 @@ def test_rc_conformance_resolver_emits_non_authoritative_partial_evidence() -> N
     assert result.fingerprint.startswith("sha256:")
 
 
-def test_rc_conformance_can_bind_authoritative_local_backtest_scope() -> None:
+def test_rc_conformance_can_bind_only_non_authoritative_backtest_scope() -> None:
     runtime = _rc_runtime()
     receipt = _rc_receipt(runtime)
     resolution = resolve_nautilus_rc_conformance(
@@ -849,7 +850,7 @@ def test_rc_conformance_can_bind_authoritative_local_backtest_scope() -> None:
 
     assert not resolution.report.compatible
     assert not resolution.report.authoritative
-    binding = build_nautilus_backtest_execution_binding(
+    binding = build_nautilus_backtest_compatibility_binding(
         resolution,
         product_classes=frozenset({ProductClass.EQUITY}),
         execution_models=frozenset({"bar-close"}),
@@ -859,6 +860,51 @@ def test_rc_conformance_can_bind_authoritative_local_backtest_scope() -> None:
     assert binding.engine_name == "nautilus"
     assert binding.engine_version == "2.0.0rc5"
     assert binding.conformance_fingerprint == resolution.evidence.fingerprint
+    assert not binding.authoritative
+    with pytest.raises(ValueError, match="stable Nautilus v2"):
+        build_nautilus_backtest_execution_binding(
+            resolution,
+            product_classes=frozenset({ProductClass.EQUITY}),
+            execution_models=frozenset({"bar-close"}),
+            account_models=frozenset({"cash-equity"}),
+        )
+
+
+def test_stable_v2_conformance_can_bind_authoritative_local_backtests() -> None:
+    pin = NautilusReleasePin(
+        package_version="2.0.0",
+        release_tag="v2.0.0",
+        source_digest=content_digest("nautilus-stable-source"),
+        wheel_digest=content_digest("nautilus-stable-wheel"),
+        runtime_image_digest=content_digest("nautilus-stable-image"),
+        python_version="3.12.11",
+        rust_version="1.88.0",
+        legacy_runtime_isolated=True,
+    )
+    expected = {
+        check: content_digest({"check": check.value, "fixture": "stable-v2"})
+        for check in ConformanceCheck
+    }
+    resolution = execute_conformance_suite(
+        expected,
+        lambda check: {"check": check.value, "fixture": "stable-v2"},
+        suite_id="stable-v2-authoritative-backtest",
+        engine_id="nautilus",
+        engine_version="2.0.0",
+        build_digest=content_digest("nautilus-stable-build"),
+        release_channel=EngineReleaseChannel.STABLE,
+        tested_at=NOW,
+        release_pin=pin,
+    )
+
+    binding = build_nautilus_backtest_execution_binding(
+        resolution,
+        product_classes=frozenset({ProductClass.EQUITY}),
+        execution_models=frozenset({"bar-close"}),
+        account_models=frozenset({"cash-equity"}),
+    )
+
+    assert resolution.report.authoritative
     assert binding.authoritative
 
 
@@ -882,7 +928,7 @@ def test_rc_backtest_binding_rejects_missing_required_fixture_check() -> None:
     )
 
     with pytest.raises(ValueError, match="native_order_fill_cost"):
-        build_nautilus_backtest_execution_binding(
+        build_nautilus_backtest_compatibility_binding(
             resolution,
             product_classes=frozenset({ProductClass.EQUITY}),
             execution_models=frozenset({"bar-close"}),

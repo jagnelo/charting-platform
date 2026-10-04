@@ -2,6 +2,30 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## Current authority policy - stable Nautilus v2 required
+
+The active goal is authoritative only after stable Nautilus v2 conformance.
+This supersedes older handoff entries and plan language that allowed an exact-
+pinned pre-release to publish authoritative backtest results. RC5 remains
+available for isolated, non-authoritative compatibility testing; it cannot
+authorize authoritative trial execution, result provenance, or official result
+publication.
+This is not a reason to pause package-owned backend work. The final declared
+Compose/browser validation still requires Docker Buildx, and shared provider,
+ETF, and TC2000 paths remain gated only until their approved work reaches
+staging.
+
+## 2026-10-04 - Stable-v2 authority gate
+
+The implementation now requires a stable Nautilus v2 release for authoritative
+backtest plans and publication, while retaining exact-pinned release candidates
+in compatibility scope. Focused conformance, execution, materialization,
+publication, and search-preparation tests verify that RC evidence cannot be
+upgraded to authority. The current official upstream release list still labels
+2.0.0rc5 as a pre-release ([official release list](https://github.com/nautechsystems/nautilus_trader/releases)),
+so this authority activation gate is external; it does not block the remaining
+owned implementation work.
+
 ## 2026-10-04 - Event-time OOS annualized return and Calmar
 
 Implementation `c0f67e080` advances the native OOS metric definition to
@@ -22,9 +46,10 @@ metrics, and result-materialization tests passed. Ruff, format checks,
 commit `c0f67e080` is published to `origin/feat/strategy-lab-v2`.
 
 Changed source paths: `backend/app/strategy_lab_v2/metrics.py` and
-`backend/app/strategy_lab_v2/tests/test_metrics.py`. Stable Nautilus v2 remains
-unnecessary; the exact-pinned RC5 local-backtest qualification and separate
-Buildx-only final Compose/browser gate remain as recorded below.
+`backend/app/strategy_lab_v2/tests/test_metrics.py`. RC5's exact-pinned
+qualification remains compatibility evidence only; stable v2 conformance is
+required before authoritative Nautilus results can be published. The separate
+Buildx gate still applies only to final Compose/browser validation.
 
 ## 2026-10-04 - Event-time OOS drawdown duration
 

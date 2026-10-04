@@ -122,7 +122,7 @@ async def test_context_binding_rejects_another_valid_rc_report(tmp_path: Path) -
     graph, _store, _packages, _materializer, context, _worker_state = _setup(tmp_path / "trial")
     pinned = _resolution()
     drifted = _resolution(BASE + timedelta(seconds=1))
-    mismatched_context = NautilusTrialPreparationContext.from_authoritative_backtest_conformance(
+    mismatched_context = NautilusTrialPreparationContext.from_compatibility_backtest_conformance(
         conformance_resolution=drifted,
         product_classes=frozenset({context.market_context.instruments[0].product_class}),
         execution_models=frozenset({"bar-close-v1"}),
@@ -165,7 +165,7 @@ async def test_context_binding_accepts_async_exact_rc_context(tmp_path: Path) ->
 
 
 @pytest.mark.asyncio
-async def test_context_binding_rejects_non_backtest_or_non_authoritative_scope(
+async def test_context_binding_rejects_non_compatibility_scope(
     tmp_path: Path,
 ) -> None:
     graph, _store, _packages, _materializer, context, _worker_state = _setup(tmp_path / "trial")
@@ -180,7 +180,7 @@ async def test_context_binding_rejects_non_backtest_or_non_authoritative_scope(
         runtime_abi=RUNTIME_ABI,
     )
 
-    with pytest.raises(ValueError, match="only supports authoritative local backtests"):
+    with pytest.raises(ValueError, match="RC search preparation must remain non-authoritative"):
         await bound(_request(graph.attempt.attempt_id), graph)
 
 
