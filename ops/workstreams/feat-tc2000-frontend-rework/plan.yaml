@@ -29,15 +29,19 @@ current_blocker: >-
   matrix remains the c038aaf checkpoint at 94/104 with ten screenshot-only
   differences after interaction/state assertions passed; no visual oracle or
   policy changed. The full `make validate-integration` attempt did not produce
-  a backend test summary: backend coverage exited 152 near 84%; an isolated
-  retry stalled near 8% without a test result and was stopped. Kernel evidence
+  a backend test summary: backend coverage exited 152 near 84%. A later
+  unauthenticated provider-owned coverage-router test and a standalone no-op
+  FastAPI endpoint both hung in Starlette TestClient; the caller waited while
+  the AnyIO event-loop thread was idle, and neither produced a test result.
+  This reproduces a local Python test-client/runtime execution problem but
+  does not establish that it caused the earlier exit 152. Kernel evidence
   separately identified an OOM kill in an ETF-owned research-runner cgroup,
-  but no causal link to the TC test exit was established and that project was
-  not modified. The exact-tip full integration/browser gate remains open.
+  with no causal link to the TC test exit; that project was not modified. The
+  exact-tip full integration/browser gate remains open.
   Current remote staging/provider/ETF refs are respectively
   `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`,
   `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and
-  `f78b37999419dd5e957b6082491d9122519416e8`. Neither upstream dependency tip
+  `115af366123c4e07e3a3109cc9ba19f2af136f18`. Neither upstream dependency tip
   is in staging; defer consumer integration and shared-path reconciliation
   until then, and continue distinct TC-owned UI/Study/Strategy work.
 planning_state: ready

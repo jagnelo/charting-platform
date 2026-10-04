@@ -16899,6 +16899,49 @@ staging. Continue distinct TC-owned workstation/Study/Strategy work; consume
 provider/ETF contracts and reconcile shared paths only after both reach
 staging. Keep the goal active and the full exact-tip gate open.
 
+## 2026-10-04 — Backend TestClient stall isolated from TC product code
+
+The previous `make validate-integration` attempt still has no backend pytest
+summary: coverage exited 152. A focused read-only diagnostic narrowed the
+current test stall without changing provider-owned code. The unauthenticated
+`test_requires_auth` case in `backend/tests/unit/routers/test_coverage_router.py`
+did not return within its bounded run; faulthandler showed the test thread
+waiting in Starlette `TestClient.get()` and the AnyIO portal thread idle in
+`selectors.select()`. A separate in-process smoke test using only a no-op
+FastAPI route and `TestClient` also failed to return for more than 20 seconds
+and was interrupted (130). Neither produced an assertion result. This
+reproduces a local TestClient/AnyIO runtime or execution-path problem outside
+the coverage endpoint; it does not establish the cause of the earlier 152 exit.
+No coverage router, provider code, test fixture, or other branch was edited.
+
+The required `make agent-context` invocation identified the assigned
+implementation branch but could not write the shared `.ai/runtime` allocation
+lock through this filesystem boundary. With a temporary UV cache, the existing
+session-status check was then run through the approved elevated execution path:
+claim `e7ed8602-bc49-4daa-be2c-7cc01bf37f6b` matches this exact worktree, local
+HEAD and origin both resolve to `6f15aea068af5ca384a7240fce3467f9bd9c3200`,
+and Docker is available with zero owned containers, volumes, sessions, or
+known bytes. The session status wrote that accurate preflight state into
+`session.json`; this checkpoint reconciles it rather than taking over a
+different session. `make agent-session-start` is not appropriate because this
+is the already claimed, continuing session.
+
+This is a diagnostic checkpoint only, not a product or gate pass. AC1/9 remains
+the only completed criterion. Keep the backend full gate open, do not attribute
+exit 152 to the unrelated ETF cgroup OOM, and continue the next bounded
+TC-owned workstation/Study/Strategy UI slice. Provider/ETF consumers and shared
+path reconciliation remain deferred until both upstream tips reach staging.
+
+Direct GitHub refs refreshed at 2026-10-04 19:45 UTC: TC remains
+`6f15aea068af5ca384a7240fce3467f9bd9c3200`, staging remains
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform remains
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings advanced to
+`115af366123c4e07e3a3109cc9ba19f2af136f18`. The current ETF tip is not an
+ancestor of staging; consumer integration is still deferred. GitHub DNS failed
+through the default sandbox route, but the same read-only `git ls-remote`
+succeeded through the permitted elevated Git path. No other branch/worktree was
+changed.
+
 Changed ops files in this checkpoint:
 - ops/workstreams/feat-tc2000-frontend-rework/plan.yaml
 - ops/workstreams/feat-tc2000-frontend-rework/handoff.md
