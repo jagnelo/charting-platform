@@ -24,8 +24,11 @@ the plan permits the exact-pinned pre-release for local backtests after
 applicable conformance, and prohibits pre-releases from broker/real-capital
 use. No package-local implementation is blocked by that validation boundary.
 
-The exact feature-branch push remains an SSH authentication hold (`ssh-askpass`
-missing / configured key rejected); it does not block local commits or coding.
+Pushing the exact range
+`1e3a861454f3c77bdac5efbb6957103f56f13238..b61956be73e1513e25053eed61efe54cd9a1c28c`
+failed because `/usr/bin/ssh-askpass` is missing and the configured SSH key was
+rejected (`Permission denied (publickey)`). This does not block local commits
+or coding.
 Provider, ETF, and TC2000 shared-path integrations still wait for their approved
 work to reach staging and semantic reconciliation, but that does not block
 owned-path Strategy Lab backend work. Next: continue remaining package-owned
