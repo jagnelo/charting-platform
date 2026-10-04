@@ -3,7 +3,36 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-10-04
+Last reconciled: 2026-10-05
+
+## 2026-10-05 — Aggregate gate and browser evidence refreshed
+
+The serial aggregate run passed workstream/dependency/migration, lint/format,
+backend and frontend validation, type-check/build, and Compose contract stages.
+The earlier backend exit `152` did not recur: backend unit/integration suites
+passed `1,621/1,621` and `409/409` with `82.26%` combined coverage; frontend
+coverage passed `129` files / `1,200` tests. `make validate-integration` then
+stopped at stack-up because its helper requires Docker Buildx and the host CLI
+rejects `docker buildx create --name ...` with `unknown flag: --name`. Ordinary
+Compose built and started the assigned six-service stack successfully, all
+services became healthy, runner sandbox/resource probes passed, and scoped
+cleanup left zero assigned resources.
+
+The pinned Playwright 1.62.1 functional run completed `282` cases: `172`
+passed, `107` documented skips, and three local-stack requests failed with
+`ERR_NETWORK_CHANGED`. A focused `11/11` retry, including all three failures,
+passed. The previous full run on the same application and test source was
+`175` passed, `107` skipped, zero failed; keep the newer full-run result open
+until a clean full rerun confirms it. The pinned visual matrix remains `94/104`
+with the same ten screenshot-only differences after state assertions. No visual
+oracle or policy changed.
+
+Direct GitHub refs at this checkpoint: TC `49028b70c593bd5d81e7694c4f6cc3bde4e3cd23`,
+staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`529fc81f60fcbf5f14a7afc7e9aa62461a48e855`. Neither dependency tip is in
+staging, so R2/R3 integration and shared-path reconciliation remain deferred.
+Continue only TC-owned UI/Study/Strategy work meanwhile.
 
 ## 2026-10-04 — Clean pinned full browser rerun
 

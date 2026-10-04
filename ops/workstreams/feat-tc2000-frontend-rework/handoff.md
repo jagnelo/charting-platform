@@ -1,5 +1,39 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Aggregate gate and browser findings
+
+The serial `make validate-integration` run no longer exits `152` during backend
+coverage. Workstream/dependency/migration, lint/format, backend coverage,
+frontend coverage, type-check/build, and Compose contract stages pass. Backend
+unit and integration coverage passed `1,621/1,621` and `409/409` with `82.26%`
+combined coverage; frontend coverage passed `129` files / `1,200` tests. The
+aggregate then stops at `stack-up`: the Make target calls `docker buildx
+inspect/create --name`, but this host Docker CLI rejects `--name` as an unknown
+flag. This is a helper/builder mismatch, not Docker being unavailable. The
+assigned project was built with ordinary Compose, all six services became
+healthy, and the research-runner sandbox/resource probes passed. Cleanup
+removed the assigned containers, four fixture volumes, network, and four
+generated images; no TC resources remain.
+
+Pinned Playwright 1.62.1 completed the full functional suite on that seeded
+stack: `172` passed, `107` documented skips, and three cases failed on
+`ERR_NETWORK_CHANGED` requests to the local app. All `11` cases in a focused
+retry containing those failures passed, and all app containers were healthy
+with zero restarts. This supports a transient-network interpretation but does
+not erase the full-run failures. An earlier complete run against the same app
+and browser-test source passed `175`, skipped `107`, and failed zero. Keep the
+latest full browser result open pending a clean full rerun. The pinned visual
+matrix remains `94/104` with the same ten screenshot-only differences; no
+oracle or acceptance policy changed.
+
+Direct GitHub refs refreshed: TC `49028b70c593bd5d81e7694c4f6cc3bde4e3cd23`,
+staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`529fc81f60fcbf5f14a7afc7e9aa62461a48e855`. Neither upstream dependency tip
+is an ancestor of staging. Continue independent TC-owned UI/Study/Strategy
+work; defer R2/R3 consumption and shared-path reconciliation. The exact full
+integration gate remains open at the Buildx helper stage.
+
 ## 2026-10-04 — Chart Plot Library search E2E checkpoint
 
 Added `F9e-plot-library-search` to the TC-owned authenticated browser flows. It

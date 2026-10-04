@@ -20,34 +20,34 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No environment blocker prevents independent TC-owned work. Current product
-  source `05aac7f816aab492c7b2aadb1adb9ffc6e76f02a` adds reference-target
-  lineage to the generic breadth evidence panel using the existing TC API
-  response only. Frontend coverage passed 129 files / 1,200 tests in the
-  serial profile; type-check and production build passed. Backend unit and
-  integration coverage passed 1,621 and 409 tests. The parallel frontend
-  coverage stage had one timing-only benchmark miss (1,012 ms versus its
-  1,000 ms bound); the complete serial frontend run passed. The last aggregate
-  `make validate-integration` attempt exited 152 during backend coverage near
-  84% without a test summary, although the standalone backend suites passed;
-  rerun the aggregate gate serially and diagnose its execution exit. The exact pinned
-  Playwright 1.62.1 full browser suite completed 282 cases with 175 passed,
-  107 documented skips, and zero failures. Visual-board cases are intentionally
-  skipped by this functional profile and remain separately gated. The pinned
-  visual matrix at exact pushed branch tip
-  `049267cee5301f2e33c8857305c48f2f3fd77521` completed 104 cases: 94 passed
-  and the same ten screenshot-only local-reference differences remained after
-  interaction/state assertions passed. The initial host-browser 8/104 result
-  is environment-sensitive diagnostic output and not acceptance evidence. No
-  screenshot oracle or policy changed. Docker Buildx is unavailable, but the
-  assigned stack built with the default Compose builder and was fully removed
-  with its fixture volumes/network and generated images. Current GitHub refs are staging
+  No human or ownership gate blocks independent TC-owned work. Product source
+  `05aac7f816aab492c7b2aadb1adb9ffc6e76f02a` adds generic-breadth reference
+  target lineage using the existing TC analysis response only. Serial frontend
+  coverage passed 129 files / 1,200 tests, type-check and production build
+  passed, and backend unit/integration coverage passed 1,621 / 409 tests with
+  82.26% combined coverage. The earlier backend exit 152 did not recur. The
+  aggregate `make validate-integration` passed code, compose-contract, and
+  runner-probe stages, then stopped at stack-up because its Makefile helper
+  requires Docker Buildx (`docker buildx create --name ...` is rejected as
+  `unknown flag: --name` by this host CLI). This is not a Docker availability
+  failure: ordinary Compose built and started the assigned six-service stack,
+  which became healthy; research-runner sandbox/resource probes passed and
+  scoped teardown left zero assigned resources. On that seeded stack, pinned
+  Playwright 1.62.1 ran 282 functional cases: 172 passed, 107 documented skips,
+  and three failed with `ERR_NETWORK_CHANGED` during local-stack requests.
+  The 11-case focused retry, including all three failures, passed; this is
+  consistent with a transient network interruption but does not replace the
+  full-suite result. The previous full run at the same product/test source
+  passed 175 with 107 documented skips and zero failures. The pinned visual
+  matrix remains 94/104 with the same ten screenshot-only differences after
+  state assertions; no visual oracle or policy changed. Current GitHub refs:
+  TC `49028b70c593bd5d81e7694c4f6cc3bde4e3cd23`, staging
   `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
   `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
-  `ea477adee73ec27c865b79e2da1476e4348e47a7`; neither dependency tip is an
+  `529fc81f60fcbf5f14a7afc7e9aa62461a48e855`. Neither dependency tip is an
   ancestor of staging. Defer R2/R3 integration and shared-path reconciliation
-  until then; continue the independent exact-tip gate and distinct TC-owned
-  UI/Study/Strategy work.
+  until then; continue distinct TC-owned UI/Study/Strategy work and retain the
+  exact full-stack/browser gate findings.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -295,14 +295,17 @@ progress:
     dependencies reach staging; never consume their branch tips directly or
     mutate another worktree.
   current_blocker: >-
-    Product tip 05aac7f816aab492c7b2aadb1adb9ffc6e76f02a passes frontend
-    coverage (129 files / 1,200 tests), type-check, production build, backend
-    unit/integration suites (1,621/409), and the pinned full browser suite
-    (175 passed, 107 documented skips, zero failures). The aggregate
-    `make validate-integration` attempt exited 152 during backend coverage near
-    84% without a test summary; this execution failure remains to be diagnosed
-    by a controlled serial rerun and is not evidence of a product test failure.
-    The separate pinned visual gate remains 94/104 with the same ten
+    Product source 05aac7f816aab492c7b2aadb1adb9ffc6e76f02a passes frontend
+    coverage (129 files / 1,200 tests), type-check/build, and backend
+    unit/integration suites (1,621/409; 82.26% combined). The old exit 152 did
+    not recur. Aggregate validation stops at stack-up because the helper's
+    Buildx `create --name` command is rejected as `unknown flag: --name`; normal
+    Compose successfully built and ran the assigned healthy stack, and runner
+    probes passed. The latest pinned functional browser run was 172 passed,
+    107 documented skips, and three `ERR_NETWORK_CHANGED` failures; all 11
+    focused retries passed, but the full result remains non-green. A previous
+    full run on the same app/test source passed 175 with 107 skips and zero
+    failures. The separate pinned visual gate remains 94/104 with the same ten
     screenshot-only differences. Do not change screenshots, masks, thresholds,
     skips, fallbacks, or acceptance rules. Provider/ETF consumer integration
     and semantic overlap reconciliation remain deferred until both branches
