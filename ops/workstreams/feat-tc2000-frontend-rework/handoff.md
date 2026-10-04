@@ -1,5 +1,49 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-04 — Optional tool chunks and Market Map cold-start deduplication
+
+Product commit `cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2` keeps the heavy
+Market Map tool out of the workstation's initial download, alongside the
+other optional tools, and prevents automatic source selection from racing the
+mount path's initial Market Map request. The unit regression checks that an
+automatically selected source sends exactly one request.
+
+At that exact product tip, the full frontend coverage suite passed, including
+MarketMapTool (`56/56`). The assigned Compose frontend image ran `vue-tsc` and
+the production Vite build successfully; WorkstationView is `473.36 kB` (`120.30
+kB` gzip). The authenticated pinned Playwright 1.62.1 Chromium flow passed
+(`1/1`): all five optional chunks were absent on the factory workspace's cold
+load and loaded when each tool was opened, including Market Map; browser
+console/page/request diagnostics were clean. TC scope validation passed all
+119 touched paths. The stack was removed with its branch-scoped containers,
+volumes, network, and four generated images. Resource status found no assigned
+containers, volumes, images, or test sessions; Docker's global disk-usage
+component was unavailable, so overall disk accounting remains incomplete.
+
+The current local origin-tracking refs are staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`,
+provider platform `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`3cf8552456ec6b7f417b27e0f28279efdedb33e1`. Neither dependency tip is an
+ancestor of the local staging ref, so R2/R3 integration and shared-path
+reconciliation remain deferred. These are local refs, not a fresh network
+fetch. No provider/ETF-owned behavior, screenshot reference, visual mask,
+threshold, skip, or acceptance rule changed.
+
+At product checkpoint `cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2`, the feature
+branch had 1,632 local commits not present in origin tracking ref
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629`. This operational checkpoint adds
+one local commit. A prior push of a smaller exact range was rejected by the
+private-repository egress safeguard; the expanded range has not been retried
+or routed elsewhere. This does not stop local TC implementation.
+
+This operations checkpoint records pre-record HEAD
+`cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2` and updates
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`, and
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`. Verify the enclosing
+checkpoint commit with `git rev-parse HEAD` after it is created. Next, continue
+independent R1/R5/R6 work by comparing remaining mapped V25 interactions and
+Study/Strategy gaps. The goal remains active; no blocker prevents that work.
+
 ## 2026-10-03 — Checkpoint push held by private-repository egress review
 
 The accessibility checkpoint is committed locally as

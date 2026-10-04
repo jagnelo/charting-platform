@@ -49,14 +49,12 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "docs/tc2000-roadmap.md",
-    "docs/tc2000-visual-parity.md",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
+    "accounting_complete": false,
     "available": true,
     "build_cache_bytes": null,
     "container_count": 0,
@@ -71,8 +69,10 @@
     "threshold_bytes": 5000000000,
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
+    "unknown_components": [
+      "docker-system-df"
+    ],
+    "volume_bytes": null,
     "volume_count": 0,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -113,11 +113,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7066a6d7b72a2b26edf23c5c9abb9141d26e67ae",
+  "head": "cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2",
   "implementation_sha": "695d79557f94581bf3dfed7b2b394496a8b59955",
   "interrupted": false,
-  "last_checkpoint": "2026-10-03T12:35:13.665124+00:00",
-  "last_human_progress_update": "2026-10-03T12:33:22.945664+00:00",
+  "last_checkpoint": "2026-10-04T00:51:21.099776+00:00",
+  "last_human_progress_update": "2026-10-04T00:50:55.937078+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue TC-owned workstation and Study/Strategy work. Compare the remaining mapped V25 interactions and promotion gaps against current tests, select the next concrete product gap, and validate at its exact tip. Keep screenshot oracles unchanged; provider/ETF consumer work remains sequenced after staging promotion.",
   "plan_hash": "a8b9fd261373739a3aa0373aef5c19b973842f2399ee3af913b9de2a842f3c60",
@@ -133,18 +133,18 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "No blocker prevents independent TC-owned work. The focused 1080p Study sandbox-error screenshots differ from their local snapshots and require review before any baseline change; both upstream branches remain outside staging.",
-    "current_phase": "R6_study_sandbox_error_visual_replay",
-    "next_action": "Compare the remaining TC-owned Study/Strategy promotion and mapped V25 interaction gaps; implement one material frontend-led gap, preserving all screenshot oracles and deferring provider/ETF integration until staging.",
+    "current_blocker": "No blocker prevents independent TC-owned work. Provider and ETF integration awaits both branches reaching staging; protected screenshot mismatches remain unchanged and require the documented review before baseline changes.",
+    "current_phase": "R6_optional_workstation_chunks_market_map_cold_start",
+    "next_action": "Continue independent R1/R5/R6 work: compare remaining mapped V25 interactions and TC-owned Study/Strategy gaps, implement the next material gap, and validate it. Recheck provider and ETF ancestry before starting R2/R3.",
     "total": 9,
-    "updated_at": "2026-10-03T12:33:22.945628+00:00"
+    "updated_at": "2026-10-04T00:50:55.937024+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "7066a6d7b72a2b26edf23c5c9abb9141d26e67ae",
-    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..7066a6d7b72a2b26edf23c5c9abb9141d26e67ae",
-    "failure_category": "The execution boundary rejected the exact push attempt through 98e38784b8c09b5acfde911318f2842fc4d33562 before Git ran because it would export 1,628 private-repository commits without explicit authorization. The current range is 63d64bfe95c98bfe6e550bf69c213ae1cd64a629..7066a6d7b72a2b26edf23c5c9abb9141d26e67ae (1,629 commits) after a separate local operational checkpoint; this expanded range has not been attempted. No alternate route or retry; require exact-payload authorization.",
+    "current_local_head": "cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2",
+    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2",
+    "failure_category": "The execution boundary rejected the exact push attempt through 98e38784b8c09b5acfde911318f2842fc4d33562 before Git ran because it would export 1,628 private-repository commits without explicit authorization. At product checkpoint cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2, the current range was 63d64bfe95c98bfe6e550bf69c213ae1cd64a629..cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2 (1,632 commits) and had not been attempted. This operations checkpoint adds one more local commit. Do not route elsewhere or retry without authorization for the exact expanded payload.",
     "head_at_product_checkpoint": "695d79557f94581bf3dfed7b2b394496a8b59955",
     "last_attempted_local_head": "98e38784b8c09b5acfde911318f2842fc4d33562",
     "last_attempted_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..98e38784b8c09b5acfde911318f2842fc4d33562",
