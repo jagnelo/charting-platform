@@ -1,5 +1,45 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-04 — Current pinned visual matrix
+
+The full 104-case matrix passed `94/104` at clean branch tip
+`58975ea6bee3e506f64d97506aadf4026c626357` (product source
+`defefaaafde1db3fc302dc50be923d06ccf84ea0`) in the pinned Playwright 1.62.1
+image. Ten screenshot checks failed after their state/interaction assertions:
+workspace-floating at all four viewports (`8,995`, `9,825`, `8,995`, `9,825`
+pixels); Study structured-result at all four (`109,320`, `105,698`, `22,035`,
+`21,352` pixels); and Study sandbox-error at 1080p/100 and 1080p/125 (`13,360`
+and `11,120` pixels). Both 1440p sandbox-error cases passed. The previous
+Study-running capture race did not recur; its four cases passed. This is the
+same ten state differences already documented, not a new mismatch category.
+
+The reference manifest passed validation. Acceptance flexibility used:
+deterministic local board-guided screenshots for represented states; this is
+not exact V25 pixel approval. No references, masks, thresholds, skips, or
+acceptance rules changed. The assigned stack was torn down (six containers,
+four volumes, one network, four generated images); the resource audit found no
+remaining containers, volumes, images, sessions, or unknown resources. The
+temporary browser artifacts were removed.
+
+The goal remains active at `1/9` acceptance criteria. Nothing blocks independent
+TC work. Provider and ETF tips remain outside staging; consumer integration
+and shared-path reconciliation wait for staging. Ten screenshot differences
+remain for the documented review, and the final exact-tip gate is still
+pending. Next independent slice: make older persisted Study runs reachable from
+the Research Results pane, which currently requests only the newest 25.
+
+At tested tip `58975ea6bee3e506f64d97506aadf4026c626357`, the local tracking
+range from `63d64bfe95c98bfe6e550bf69c213ae1cd64a629` contains `1,648`
+commits. It remains unpushed under the exact-payload safeguard; do not use an
+alternate route. The following operational record will be a separate local
+commit, with its final HEAD verified externally.
+
+Updated paths: `docs/tc2000-visual-parity.md`, `docs/tc2000-roadmap.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`,
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`, and
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`.
+
 ## 2026-10-04 — Study output comparison dates
 
 Product commit `defefaaafde1db3fc302dc50be923d06ccf84ea0` adds the latest

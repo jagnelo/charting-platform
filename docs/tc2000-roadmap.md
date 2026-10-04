@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-04
 
+## 2026-10-04 — Current exact-source visual matrix remains at 94/104
+
+At clean branch tip `58975ea6bee3e506f64d97506aadf4026c626357` (product source
+`defefaaafde1db3fc302dc50be923d06ccf84ea0`), the full pinned Playwright 1.62.1
+four-viewport visual matrix passed `94/104`. Its ten screenshot-only failures
+are the same documented differences: workspace-floating in all four projects,
+Study structured-result in all four, and Study sandbox-error at both 1080p
+scales. State/interaction checks passed before each screenshot assertion; the
+prior Study-running capture race passed in all four projects. Teardown and
+resource audit returned zero retained branch resources. Acceptance flexibility
+used: board-guided local regression screenshots for represented states, not
+exact V25 approval. No screenshot, mask, threshold, skip, or acceptance policy
+changed. Provider and ETF dependency tips remain outside staging, so consumer
+integration is still deferred.
+
 ## 2026-10-04 — Study output comparisons disclose observation dates
 
 Product commit `defefaaafde1db3fc302dc50be923d06ccf84ea0` shows the latest

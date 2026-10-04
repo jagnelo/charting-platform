@@ -20,21 +20,24 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No blocker prevents independent TC-owned frontend work. At product SHA
-  `7427de7e80f02977ca24336348049c43a8c71f97`, the complete 104-case board-guided
-  matrix in pinned Playwright 1.62.1 completed with 93 passes and 11 screenshot
-  mismatches. Ten are stable state differences in workspace-floating (four
-  viewports), Study structured-result (four), and Study sandbox-error (two
-  1080p viewports); their state/interaction assertions passed. The eleventh was
-  a Study-running capture race and its four-viewport replay now passes after the
-  test holds unrelated chart data pending. Keep the 0.5% threshold, references,
-  masks, skips, fallbacks, and acceptance rules unchanged; the ten stable
-  screenshot differences await the review described in
-  docs/tc2000-visual-parity.md. Local tracking refs show that provider-platform
-  and ETF tips have not reached staging, so consumer integration and shared-path
-  reconciliation remain deferred. A fresh remote ref check could not run because
-  GitHub DNS resolution failed. Continue independent R1/R5/R6 work. The full
-  integration/browser gate remains required at the final clean exact tip.
+  No blocker prevents independent TC-owned frontend work. At clean branch tip
+  `58975ea6bee3e506f64d97506aadf4026c626357` (product source
+  `defefaaafde1db3fc302dc50be923d06ccf84ea0`), the full pinned Playwright
+  1.62.1 visual matrix passed 94/104. Ten screenshot assertions failed after
+  their state checks: workspace-floating (four viewports), Study structured
+  result (four), and Study sandbox-error (two 1080p viewports). The earlier
+  Study-running capture race passed all four viewports. Preserve the 0.5%
+  threshold, references, masks, skips, fallbacks, and acceptance rules; the ten
+  stable screenshot differences still need the review documented in
+  docs/tc2000-visual-parity.md. Local refs show staging at
+  `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform at
+  `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, and ETF at
+  `70359fb5e54a1e5238263647b58bdea2f78ddce0`; neither dependency tip is in
+  staging, so consumer integration and shared-path reconciliation remain
+  deferred. The current 1,648-commit local push range remains held by the exact
+  payload safeguard; do not use an alternate route. Continue independent
+  R1/R5/R6 work. The full integration/browser gate remains required at the
+  final clean exact tip.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -272,26 +275,25 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R5_study_parameter_schema_accessibility
+  current_phase: R6_current_pinned_visual_matrix
   next_action: >-
-    Continue the TC-owned V25 workstation and Study/Strategy roadmap; select
-    the next material frontend gap and validate it at its exact product tip.
-    Keep protected screenshot policies unchanged. Wait for both upstream
-    changes to reach staging before consumer integration or semantic
-    reconciliation.
+    Make older persisted Study runs reachable from the Research Results pane,
+    currently limited to the newest 25, using bounded TC-owned pagination and
+    without changing result lineage or provider/ETF ownership. Validate the
+    exact product tip and keep protected screenshot policies unchanged. Wait
+    for both upstream changes to reach staging before consumer integration or
+    semantic reconciliation.
   current_blocker: >-
-    No external dependency blocks independent TC frontend work. Ten protected
-    screenshot differences await the review required by
-    `docs/tc2000-visual-parity.md`; the focused sandbox-error replay at product
-    source `816fd82` reproduced the two 1080p differences (17,559 and 16,644
-    pixels) with a visible placeholder mismatch (`20` versus saved `2`). No
-    baseline was changed. Provider/ETF consumer integration waits for both
-    tips to reach staging. GitHub DNS resolution failed during the last
-    read-only ref refresh, and the earlier push range was rejected by the
-    repository egress safeguard; do not use an alternate route. These gates do
-    not prevent independent UI or Study/Strategy work. The exact full
-    integration/browser gate remains pending.
+    No external dependency blocks independent TC frontend work. The full
+    visual matrix at branch tip `58975ea6bee3e506f64d97506aadf4026c626357`
+    passed 94/104 with ten existing screenshot-only mismatches; preserve the
+    screenshots and acceptance policy pending documented review. Provider and
+    ETF consumer integration wait for staging. The current local push range
+    contains 1,648 commits and is held by the exact-payload safeguard; do not
+    use another route. These gates do not prevent independent TC work. The
+    final exact-tip integration/browser gate remains pending.
 historical_implementation_records:
+  - "At clean branch tip 58975ea6bee3e506f64d97506aadf4026c626357 (product source defefaaafde1db3fc302dc50be923d06ccf84ea0), the pinned Playwright 1.62.1 four-viewport matrix passed 94/104. Ten screenshot-only mismatches remained: workspace-floating in four viewports, Study structured-result in four, and Study sandbox-error at 1080p/100 and 1080p/125. All pre-screenshot state checks passed, and all four Study-running states passed. No reference, mask, threshold, skip, or acceptance rule changed. Exact-project teardown and resource accounting left zero containers, volumes, images, test sessions, or unknown resources. Acceptance flexibility used: deterministic board-guided local screenshots for represented states, not exact V25 approval."
   - "Product commit d37a0f98769f01f3dc88e075c3ed3aa97381ad1f associates malformed Study parameter-schema input with its accessible error using aria-invalid and a unique per-instance aria-describedby target; correcting the JSON clears both. Focused StudyLabTool coverage passed 45/45, full frontend Vitest passed 128 files / 1,189 tests, type-check and Docker production build passed, the updated authenticated Chromium F8t flow passed 1/1 with clean browser diagnostics, and the TC scope guard accepted 122 paths with all six self-tests. The unchanged two-case sandbox-error screenshot replay at source 816fd82 remained at 17,559 / 16,644 differing pixels because the visible example placeholder is 20 while the saved image shows 2; no screenshot oracle or policy changed. Scoped Docker cleanup removed all assigned resources. No provider/ETF-owned behavior changed."
   - "Product commit a7b1c11ce3927beb17cc52391a8a04b615430cb1 aligns primary and legacy chart symbol-link choices with the ten canonical workstation groups: eight normal groups, Yellow wildcard receive, and Grey isolation; persisted legacy null values migrate to Grey and invalid entries are ignored. The pinned authenticated F8m chart-panels flow passed 1/1, proving Purple-to-Yellow symbol propagation and Grey isolation. Focused linking tests passed 9/9, the full frontend coverage suite passed, vue-tsc/Vite production build passed, TC scope validation passed for 122 touched paths with all six self-tests, and the four-viewport Study-running screenshot replay passed 4/4 after its fixture held unrelated OHLCV loading. The latest full visual board at pre-change product SHA 7427de7 completed 93/104; ten stable screenshot-state differences remain for review, with no references, masks, thresholds, skips, or acceptance policy changed. No provider-platform or ETF-owned behavior changed."
   - "Product commit aa6472fb3582d5d60d685e26f72f809b4397e5ef makes the primary chart's indicator-settings dialog consume the existing `/indicators/registry` parameter types and min/max constraints. Integer periods reject fractions, backend minimums apply to number inputs, and Apply stays disabled if limits are absent or the registry request fails. Focused ChartPlotLibrary coverage passed 40/40, frontend type-check passed, TC ownership guard passed for 118 paths and all six self-tests, and the host-level Docker preflight passed with zero retained resources. An unprivileged preflight had only recorded the sandbox's denied Docker socket; the explicit host-context retry succeeded. The exact full integration/browser gate remains pending. No backend/provider/ETF ownership, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."

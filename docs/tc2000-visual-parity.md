@@ -1,11 +1,37 @@
 # TC2000 Version 25 Visual-Parity Specification
 
-The latest complete board run used product SHA
-`7427de7e80f02977ca24336348049c43a8c71f97` before the symbol-linking change.
-No references, masks, thresholds, skips, or acceptance rules have been
-modified. The new Chart Plot Library search interaction has functional browser
-coverage, but the checked-in board does not capture that panel open, so its
-exact styling still lacks screenshot coverage.
+The latest complete board run used product source
+`defefaaafde1db3fc302dc50be923d06ccf84ea0` at clean branch tip
+`58975ea6bee3e506f64d97506aadf4026c626357`. It passed `94/104`; ten stable
+screenshot comparisons still need the review recorded below. No references,
+masks, thresholds, skips, or acceptance rules have been modified. The new Chart
+Plot Library search interaction has functional browser coverage, but the
+checked-in board does not capture that panel open, so its exact styling still
+lacks screenshot coverage.
+
+## 2026-10-04 — Latest pinned-browser matrix: 94/104 pass at `58975ea`
+
+The full four-viewport matrix ran with the pinned Playwright 1.62.1 image against
+the clean tree at `58975ea6bee3e506f64d97506aadf4026c626357` (product source
+`defefaaafde1db3fc302dc50be923d06ccf84ea0`). Result: `94` passed and `10`
+screenshot assertions failed after their state/interaction checks passed. The
+four `workspace-floating` differences were `8,995`, `9,825`, `8,995`, and
+`9,825` pixels across 1080p/100, 1080p/125, 1440p/100, and 1440p/125. The four
+Study structured-result differences were `109,320`, `105,698`, `22,035`, and
+`21,352` pixels in the same order. Study sandbox-error differed by `13,360` and
+`11,120` pixels in the two 1080p projects; both 1440p cases passed. The earlier
+Study-running capture race did not recur: all four running-state cases passed.
+
+These are the same ten documented state differences, not a new failure
+category. The assigned stack teardown removed its six containers, four volumes,
+network, and four generated images; resource accounting found zero remaining
+containers, volumes, images, test sessions, or unknown resources. Browser
+artifacts were removed from the temporary output directory. Acceptance
+flexibility used: the represented states are compared against deterministic
+local board-guided screenshots, not treated as exact V25 pixel approval. No
+reference, mask, threshold, skip, fallback, or acceptance rule changed; the ten
+visual gaps remain open for the review required by
+`docs/tc2000-visual-parity.md`.
 
 ## 2026-10-04 — Focused Study sandbox-error replay at `816fd82`
 
