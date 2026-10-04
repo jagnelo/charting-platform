@@ -338,17 +338,12 @@ def _attribute_closed_positions(
         ):
             continue
         position_id = row.get("position_id")
-        order_ids_value = row.get("client_order_ids")
+        position_order_ids = _position_order_ids(row)
         if not isinstance(position_id, str) or not position_id:
             continue
-        if isinstance(order_ids_value, str):
-            order_ids = (order_ids_value,)
-        elif isinstance(order_ids_value, list | tuple):
-            order_ids = tuple(order_ids_value)
-        else:
+        if position_order_ids is None:
             continue
-        if not order_ids or any(not isinstance(item, str) or not item for item in order_ids):
-            continue
+        order_ids = position_order_ids
         if len(order_ids) != len(set(order_ids)):
             continue
 
@@ -420,16 +415,24 @@ def _position_cycle_fills(
     order_ids: tuple[str, ...],
     connection: sqlite3.Connection,
 ) -> tuple[list[tuple[Any, ...]] | None, tuple[str, ...]]:
+    event_identities = _position_event_identities(row)
+    if "events" in row and event_identities is None:
+        return None, ()
     raw_trade_ids = row.get("trade_ids")
-    if raw_trade_ids is not None:
+    if raw_trade_ids is not None or event_identities is not None:
         if not isinstance(raw_trade_ids, list | tuple):
-            return None, ()
-        trade_ids = tuple(raw_trade_ids)
+            if raw_trade_ids is not None or event_identities is None:
+                return None, ()
+            trade_ids = event_identities[1]
+        else:
+            trade_ids = tuple(raw_trade_ids)
         if (
             not trade_ids
             or any(not isinstance(item, str) or not item for item in trade_ids)
             or len(trade_ids) != len(set(trade_ids))
         ):
+            return None, ()
+        if event_identities is not None and set(event_identities[1]) != set(trade_ids):
             return None, ()
         fills: list[tuple[Any, ...]] = []
         for trade_id in trade_ids:
@@ -469,6 +472,60 @@ def _position_cycle_fills(
         )
     ]
     return fills, ()
+
+
+def _position_order_ids(row: Mapping[str, Any]) -> tuple[str, ...] | None:
+    raw_order_ids = row.get("client_order_ids")
+    order_ids: tuple[str, ...]
+    if isinstance(raw_order_ids, str):
+        order_ids = (raw_order_ids,)
+    elif isinstance(raw_order_ids, list | tuple):
+        order_ids = tuple(raw_order_ids)
+    elif raw_order_ids is None:
+        order_ids = ()
+    else:
+        return None
+    if any(not isinstance(item, str) or not item for item in order_ids):
+        return None
+
+    event_identities = _position_event_identities(row)
+    if "events" in row and event_identities is None:
+        return None
+    if event_identities is not None:
+        event_order_ids = event_identities[0]
+        if order_ids and set(order_ids) != set(event_order_ids):
+            return None
+        order_ids = event_order_ids
+    return order_ids or None
+
+
+def _position_event_identities(
+    row: Mapping[str, Any],
+) -> tuple[tuple[str, ...], tuple[str, ...]] | None:
+    if "events" not in row:
+        return None
+    events = row["events"]
+    if not isinstance(events, list | tuple) or not events:
+        return None
+    order_ids: list[str] = []
+    trade_ids: list[str] = []
+    for event in events:
+        if not isinstance(event, Mapping) or event.get("type") != "OrderFilled":
+            return None
+        client_order_id = event.get("client_order_id")
+        trade_id = event.get("trade_id")
+        if (
+            not isinstance(client_order_id, str)
+            or not client_order_id
+            or not isinstance(trade_id, str)
+            or not trade_id
+        ):
+            return None
+        order_ids.append(client_order_id)
+        trade_ids.append(trade_id)
+    if len(trade_ids) != len(set(trade_ids)):
+        return None
+    return tuple(dict.fromkeys(order_ids)), tuple(trade_ids)
 
 
 def _result_point(end_ns: int) -> ObservationPoint:

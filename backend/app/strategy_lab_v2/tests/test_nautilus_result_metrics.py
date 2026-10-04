@@ -282,7 +282,18 @@ def test_build_nautilus_oos_metric_set_reconciles_native_component_pnl_and_costs
             "positions": pd.DataFrame(
                 [
                     {
-                        "client_order_ids": ["buy-1", "sell-1"],
+                        "events": [
+                            {
+                                "client_order_id": "buy-1",
+                                "trade_id": "trade-1",
+                                "type": "OrderFilled",
+                            },
+                            {
+                                "client_order_id": "sell-1",
+                                "trade_id": "trade-2",
+                                "type": "OrderFilled",
+                            },
+                        ],
                         "trade_ids": ["trade-1", "trade-2"],
                         "ts_opened": 105,
                         "ts_closed": 151,

@@ -45,6 +45,7 @@ from nautilus_trader.testkit.providers import (
 from nautilus_trader.trading import Strategy, StrategyConfig  # type: ignore[attr-defined]
 
 from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
+    run_native_component_cycle_pnl_probe,
     run_order_risk_probe,
     run_rebalance_schedule_probe,
     run_target_allocation_probe,
@@ -175,6 +176,7 @@ def run_fixture_suite() -> dict[str, Any]:
     multi_result = _run(multi)
     target_result = run_target_allocation_probe()
     raw_order_result = run_order_risk_probe()
+    component_pnl_result = run_native_component_cycle_pnl_probe()
     rebalance_schedule_result = run_rebalance_schedule_probe()
     native_order_fill_cost = {
         **first,
@@ -183,6 +185,7 @@ def run_fixture_suite() -> dict[str, Any]:
     }
     return {
         "engine_lifecycle": "passed",
+        "native_component_pnl_attribution": component_pnl_result,
         "native_order_fill_cost": native_order_fill_cost,
         "portfolio_rebalance_schedule": rebalance_schedule_result,
         "multi_instrument_accounting": multi_result,

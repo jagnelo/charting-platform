@@ -134,6 +134,26 @@ class Strategy:
         )]
 """
 
+_POSITION_CYCLE_SOURCE = """
+class Strategy:
+    def __init__(self):
+        self.step = 0
+
+    def on_event(self, context):
+        sides = (OrderSide.BUY, OrderSide.SELL, OrderSide.BUY, OrderSide.SELL)
+        if self.step >= len(sides):
+            return []
+        side = sides[self.step]
+        self.step += 1
+        return [OrderIntent(
+            instrument_id="AAPL.SIM",
+            side=side,
+            quantity=Decimal("100"),
+            order_type=OrderType.MARKET,
+            time_in_force=TimeInForce.DAY,
+        )]
+"""
+
 
 def _payload() -> dict[str, object]:
     manifest = _manifest()
@@ -335,6 +355,16 @@ def run_native_reports_schema_probe() -> dict[str, Any]:
     )
 
 
+def run_native_component_cycle_pnl_probe() -> dict[str, Any]:
+    """Verify RC position snapshots, fill identities, component tags, and P&L."""
+
+    return _run_native_execution_probe(
+        target_position=False,
+        include_native_report_diagnostics=True,
+        position_cycle_reopen=True,
+    )
+
+
 def run_rebalance_schedule_probe() -> dict[str, Any]:
     """Exercise open, close, and fail-on-misfire callbacks inside RC5."""
 
@@ -375,6 +405,7 @@ def _run_native_execution_probe(
     *,
     target_position: bool,
     include_native_report_diagnostics: bool = False,
+    position_cycle_reopen: bool = False,
     rebalance_trigger: RebalanceTrigger | None = None,
     rebalance_misfire_only: bool = False,
     multi_component_rebalance: bool = False,
@@ -386,6 +417,14 @@ def _run_native_execution_probe(
     )
     if component_scenario_count > 1:
         raise ValueError("native component probe scenarios are mutually exclusive")
+    if position_cycle_reopen and (
+        target_position
+        or not include_native_report_diagnostics
+        or component_scenario_count
+        or rebalance_trigger is not None
+        or rebalance_misfire_only
+    ):
+        raise ValueError("native position-cycle probe options are inconsistent")
     if rebalance_trigger is not None and rebalance_misfire_only:
         raise ValueError("rebalance trigger and misfire-only modes cannot be combined")
     if (rebalance_trigger is not None or rebalance_misfire_only) and not target_position:
@@ -397,34 +436,60 @@ def _run_native_execution_probe(
     ):
         raise ValueError("component probes require an open-boundary target rebalance")
     instrument_id = "AAPL.SIM"
-    strategy_source = _TARGET_SOURCE if target_position else _RAW_ORDER_SOURCE
-    later_time = _EVENT_TIME + timedelta(seconds=1)
-    events: tuple[MarketEvent, ...] = (
-        MarketEvent(
-            "prices",
-            "target-event-1",
-            instrument_id,
-            _EVENT_TIME,
-            1,
-            {"bid": "99.99", "ask": "100.01", "bid_size": "1000", "ask_size": "1000"},
-        ),
-        MarketEvent(
-            "prices",
-            "target-event-2",
-            instrument_id,
-            _EVENT_TIME,
-            2,
-            {"bid": "100.00", "ask": "100.02", "bid_size": "1000", "ask_size": "1000"},
-        ),
-        MarketEvent(
-            "prices",
-            "target-event-3",
-            instrument_id,
-            later_time,
-            3,
-            {"bid": "100.01", "ask": "100.03", "bid_size": "1000", "ask_size": "1000"},
-        ),
+    strategy_source = (
+        _POSITION_CYCLE_SOURCE
+        if position_cycle_reopen
+        else _TARGET_SOURCE
+        if target_position
+        else _RAW_ORDER_SOURCE
     )
+    later_time = _EVENT_TIME + timedelta(seconds=1)
+    if position_cycle_reopen:
+        cycle_quotes = (
+            ("99.99", "100.01"),
+            ("100.00", "100.02"),
+            ("101.99", "102.01"),
+            ("103.99", "104.01"),
+            ("105.99", "106.01"),
+        )
+        events = tuple(
+            MarketEvent(
+                "prices",
+                f"position-cycle-event-{index}",
+                instrument_id,
+                _EVENT_TIME + timedelta(seconds=max(index - 2, 0)),
+                index,
+                {"bid": bid, "ask": ask, "bid_size": "1000", "ask_size": "1000"},
+            )
+            for index, (bid, ask) in enumerate(cycle_quotes, start=1)
+        )
+    else:
+        events = (
+            MarketEvent(
+                "prices",
+                "target-event-1",
+                instrument_id,
+                _EVENT_TIME,
+                1,
+                {"bid": "99.99", "ask": "100.01", "bid_size": "1000", "ask_size": "1000"},
+            ),
+            MarketEvent(
+                "prices",
+                "target-event-2",
+                instrument_id,
+                _EVENT_TIME,
+                2,
+                {"bid": "100.00", "ask": "100.02", "bid_size": "1000", "ask_size": "1000"},
+            ),
+            MarketEvent(
+                "prices",
+                "target-event-3",
+                instrument_id,
+                later_time,
+                3,
+                {"bid": "100.01", "ask": "100.03", "bid_size": "1000", "ask_size": "1000"},
+            ),
+        )
     if rebalance_trigger is RebalanceTrigger.SESSION_CLOSE_AFTER_EVENTS:
         events = (
             *events,
@@ -620,35 +685,17 @@ def _run_native_execution_probe(
         ],
         "input_version": "strategy-lab.nautilus-engine-input.v5",
     }
-    invocation_contexts = (
+    invocation_contexts = tuple(
         StrategyContext(
-            _EVENT_TIME,
-            2,
-            11,
-            {},
-            {"prices": events[:2]},
-        ),
-        StrategyContext(
-            later_time,
-            3,
+            event.event_time,
+            event.sequence,
             11,
             {},
             # The manifest declares one prior event plus the current event.
-            {"prices": events[1:3]},
-        ),
-        *(
-            (
-                StrategyContext(
-                    events[-1].event_time,
-                    events[-1].sequence,
-                    11,
-                    {},
-                    {"prices": events[-2:]},
-                ),
-            )
-            if len(events) > 3
-            else ()
-        ),
+            {"prices": events[max(index - 1, 0) : index + 1]},
+        )
+        for index, event in enumerate(events)
+        if index > 0
     )
     batch = serialize_invocation_batch(
         source=strategy_source,
@@ -739,6 +786,7 @@ def _run_native_execution_probe(
         raise RuntimeError("native shared-risk probe submitted an over-limit component batch")
 
     native_report_diagnostics = None
+    native_report_records: dict[str, list[Mapping[str, Any]]] = {}
     component_order_tag = None
     component_fill_attribution: dict[str, str] | None = None
     if include_native_report_diagnostics:
@@ -800,6 +848,8 @@ def _run_native_execution_probe(
                 reports_reference,
                 reports_path,
             ):
+                if position_cycle_reopen:
+                    native_report_records.setdefault(kind, []).append(record)
                 sample = report_samples.setdefault(
                     kind,
                     {"columns": sorted(record), "sample_record": record},
@@ -852,6 +902,8 @@ def _run_native_execution_probe(
                 "samples": report_samples,
                 "verified_equity_observations": equity_reference.observation_count,
             }
+            if position_cycle_reopen:
+                return _component_cycle_pnl_evidence(native_report_records, result)
     else:
         result = execute_native_backtest()
     summary = result.get("summary")
@@ -954,6 +1006,202 @@ def _run_native_execution_probe(
     if native_report_diagnostics is not None:
         probe_result["native_report_diagnostics"] = native_report_diagnostics
     return probe_result
+
+
+def _component_cycle_pnl_evidence(
+    reports: Mapping[str, list[Mapping[str, Any]]],
+    result: Mapping[str, Any],
+) -> dict[str, Any]:
+    orders = reports.get("orders", [])
+    fills = reports.get("fills", [])
+    positions = reports.get("positions", [])
+    accounts = reports.get("account", [])
+    if (
+        result.get("authoritative") is not False
+        or result.get("total_orders") != 4
+        or len(orders) != 4
+        or len(fills) != 4
+        or len(positions) != 2
+        or not accounts
+    ):
+        raise RuntimeError("native reopened-position probe did not emit two complete cycles")
+
+    component_tag = f"{NAUTILUS_COMPONENT_ORDER_TAG_PREFIX}core"
+    orders_by_client_id: dict[str, Mapping[str, Any]] = {}
+    for order in orders:
+        client_order_id = order.get("client_order_id")
+        tags = order.get("tags")
+        if (
+            not isinstance(client_order_id, str)
+            or not client_order_id
+            or client_order_id in orders_by_client_id
+            or not isinstance(tags, list | tuple)
+            or tags.count(component_tag) != 1
+        ):
+            raise RuntimeError("native cycle orders lack unique component-tagged identities")
+        orders_by_client_id[client_order_id] = order
+
+    fills_by_trade_id: dict[str, Mapping[str, Any]] = {}
+    fill_position_ids: set[str] = set()
+    total_costs = Decimal(0)
+    total_rebates = Decimal(0)
+    for fill in fills:
+        trade_id = fill.get("trade_id")
+        client_order_id = fill.get("client_order_id")
+        position_id = fill.get("position_id")
+        commission = fill.get("commission")
+        if (
+            not isinstance(trade_id, str)
+            or not trade_id
+            or trade_id in fills_by_trade_id
+            or client_order_id not in orders_by_client_id
+            or not isinstance(position_id, str)
+            or not position_id
+        ):
+            raise RuntimeError("native fill reports lack unique trade/order/position identities")
+        fills_by_trade_id[trade_id] = fill
+        fill_position_ids.add(position_id)
+        if not isinstance(commission, str):
+            raise RuntimeError("native fill commission report is missing")
+        commission_parts = commission.split()
+        if len(commission_parts) != 2 or commission_parts[1] != "USD":
+            raise RuntimeError("native cycle commission is not explicitly denominated in USD")
+        try:
+            commission_amount = Decimal(commission_parts[0])
+        except ArithmeticError as error:
+            raise RuntimeError("native cycle commission is not an exact decimal") from error
+        if not commission_amount.is_finite():
+            raise RuntimeError("native cycle commission is not finite")
+        if commission_amount >= 0:
+            total_costs += commission_amount
+        else:
+            total_rebates += commission_amount.copy_abs()
+    if set(orders_by_client_id) != {fill.get("client_order_id") for fill in fills}:
+        raise RuntimeError("native cycle order and fill identities do not reconcile")
+
+    position_net = Decimal(0)
+    attributed_trade_ids: set[str] = set()
+    archived_snapshot_count = 0
+    archived_identity_mismatch = False
+    for position in positions:
+        position_id = position.get("position_id")
+        trade_ids = position.get("trade_ids")
+        events = position.get("events")
+        is_snapshot = position.get("is_snapshot")
+        if (
+            not isinstance(position_id, str)
+            or not position_id
+            or not isinstance(trade_ids, list | tuple)
+            or not trade_ids
+            or not isinstance(events, list | tuple)
+            or not events
+            or not isinstance(is_snapshot, bool)
+            or position.get("ts_closed") is None
+        ):
+            raise RuntimeError("native closed position report lacks cycle identity or closure")
+        trade_ids_tuple = tuple(trade_ids)
+        event_trade_ids: list[str] = []
+        event_order_ids: set[str] = set()
+        for event in events:
+            if not isinstance(event, Mapping) or event.get("type") != "OrderFilled":
+                raise RuntimeError("native closed position contains an unsupported retained event")
+            event_trade_id = event.get("trade_id")
+            event_client_order_id = event.get("client_order_id")
+            if (
+                not isinstance(event_trade_id, str)
+                or event_trade_id not in fills_by_trade_id
+                or not isinstance(event_client_order_id, str)
+                or not event_client_order_id
+            ):
+                raise RuntimeError("native retained fill event cannot join to execution reports")
+            event_trade_ids.append(event_trade_id)
+            event_order_ids.add(event_client_order_id)
+        if (
+            any(not isinstance(item, str) or not item for item in trade_ids_tuple)
+            or len(trade_ids_tuple) != len(set(trade_ids_tuple))
+            or set(trade_ids_tuple) != set(event_trade_ids)
+            or not set(trade_ids_tuple).issubset(fills_by_trade_id)
+            or len(event_trade_ids) != len(set(event_trade_ids))
+            or event_order_ids
+            != {fills_by_trade_id[item].get("client_order_id") for item in trade_ids_tuple}
+            or attributed_trade_ids.intersection(trade_ids_tuple)
+        ):
+            raise RuntimeError("native position trade IDs do not reconcile uniquely to fills")
+        cycle_component_ids = {
+            "core"
+            for trade_id in trade_ids_tuple
+            if fills_by_trade_id[trade_id].get("client_order_id") in orders_by_client_id
+            and component_tag
+            in orders_by_client_id[str(fills_by_trade_id[trade_id].get("client_order_id"))].get(
+                "tags", []
+            )
+        }
+        if cycle_component_ids != {"core"}:
+            raise RuntimeError("native closed position is not uniquely owned by the core component")
+        realized_pnl = position.get("realized_pnl")
+        if not isinstance(realized_pnl, str):
+            raise RuntimeError("native closed position realized P&L is missing")
+        pnl_parts = realized_pnl.split()
+        if len(pnl_parts) != 2 or pnl_parts[1] != "USD":
+            raise RuntimeError("native position realized P&L is not in account base currency")
+        try:
+            position_net += Decimal(pnl_parts[0])
+        except ArithmeticError as error:
+            raise RuntimeError("native position realized P&L is not an exact decimal") from error
+        attributed_trade_ids.update(trade_ids_tuple)
+        if is_snapshot:
+            archived_snapshot_count += 1
+            archived_identity_mismatch = archived_identity_mismatch or (
+                position_id not in fill_position_ids
+            )
+
+    if (
+        attributed_trade_ids != set(fills_by_trade_id)
+        or archived_snapshot_count < 1
+        or not archived_identity_mismatch
+    ):
+        raise RuntimeError("native archived cycles do not cover the full fill report exactly")
+
+    account = accounts[-1]
+    if account.get("currency") != "USD" or account.get("base_currency") != "USD":
+        raise RuntimeError("native final account report is not denominated in USD")
+    summary = result.get("summary")
+    summary_balance = (
+        summary.get("account.SIM.balance.USD.total") if isinstance(summary, Mapping) else None
+    )
+    if not isinstance(summary_balance, str):
+        raise RuntimeError("native cycle result has no USD account balance summary")
+    try:
+        account_balance = Decimal(str(account["total"]).split()[0])
+        summary_balance_amount = Decimal(summary_balance.split()[0])
+    except (ArithmeticError, KeyError, IndexError) as error:
+        raise RuntimeError("native account balance is not an exact decimal") from error
+    if account_balance != summary_balance_amount or not account_balance.is_finite():
+        raise RuntimeError("native account report differs from the final engine account balance")
+    account_net = account_balance - Decimal("100000")
+    portfolio_gross = account_net + total_costs - total_rebates
+    component_gross = position_net + total_costs - total_rebates
+    if position_net != account_net or component_gross != portfolio_gross:
+        raise RuntimeError("native component P&L does not exactly reconcile to account P&L")
+    return {
+        "authoritative": False,
+        "archived_snapshot_cycles": archived_snapshot_count,
+        "base_currency": "USD",
+        "closed_position_cycles": len(positions),
+        "component_gross_pnl": str(component_gross),
+        "component_id": "core",
+        "component_net_pnl": str(position_net),
+        "component_order_count": len(orders_by_client_id),
+        "exact_account_reconciliation": True,
+        "fill_count": len(fills_by_trade_id),
+        "native_trade_id_join_count": len(attributed_trade_ids),
+        "portfolio_gross_pnl": str(portfolio_gross),
+        "portfolio_net_pnl": str(account_net),
+        "reported_cost_deductions": str(total_costs),
+        "reported_rebates": str(total_rebates),
+        "snapshot_index_differs_from_fill_position_id": archived_identity_mismatch,
+        "total_orders": result["total_orders"],
+    }
 
 
 def run_context_stream_cli_probe(

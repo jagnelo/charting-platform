@@ -237,6 +237,68 @@ def _require_raw_order_risk_probe(value: Any) -> None:
         raise ValueError("native raw-order risk submission and account state do not reconcile")
 
 
+def _require_native_component_pnl_probe(value: Any) -> None:
+    fields = {
+        "authoritative",
+        "archived_snapshot_cycles",
+        "base_currency",
+        "closed_position_cycles",
+        "component_gross_pnl",
+        "component_id",
+        "component_net_pnl",
+        "component_order_count",
+        "exact_account_reconciliation",
+        "fill_count",
+        "native_trade_id_join_count",
+        "portfolio_gross_pnl",
+        "portfolio_net_pnl",
+        "reported_cost_deductions",
+        "reported_rebates",
+        "snapshot_index_differs_from_fill_position_id",
+        "total_orders",
+    }
+    if not isinstance(value, Mapping) or set(value) != fields:
+        raise ValueError("native component P&L probe fields are invalid")
+    count_fields = (
+        "archived_snapshot_cycles",
+        "closed_position_cycles",
+        "component_order_count",
+        "fill_count",
+        "native_trade_id_join_count",
+        "total_orders",
+    )
+    if any(
+        not isinstance(value[name], int) or isinstance(value[name], bool) for name in count_fields
+    ):
+        raise ValueError("native component P&L identity counts must be integers")
+    component_net = _decimal(value["component_net_pnl"], "component_net_pnl")
+    component_gross = _decimal(value["component_gross_pnl"], "component_gross_pnl")
+    portfolio_net = _decimal(value["portfolio_net_pnl"], "portfolio_net_pnl")
+    portfolio_gross = _decimal(value["portfolio_gross_pnl"], "portfolio_gross_pnl")
+    cost_deductions = _decimal(value["reported_cost_deductions"], "reported_cost_deductions")
+    rebates = _decimal(value["reported_rebates"], "reported_rebates")
+    if (
+        value["authoritative"] is not False
+        or value["component_id"] != "core"
+        or value["base_currency"] != "USD"
+        or value["exact_account_reconciliation"] is not True
+        or value["snapshot_index_differs_from_fill_position_id"] is not True
+        or value["archived_snapshot_cycles"] < 1
+        or value["closed_position_cycles"] != 2
+        or value["component_order_count"] != 4
+        or value["fill_count"] != 4
+        or value["native_trade_id_join_count"] != 4
+        or value["total_orders"] != 4
+        or cost_deductions < 0
+        or rebates < 0
+        or component_net != portfolio_net
+        or component_gross != portfolio_gross
+        or component_gross != component_net + cost_deductions - rebates
+        or portfolio_gross != portfolio_net + cost_deductions - rebates
+    ):
+        raise ValueError("native archived-cycle component P&L does not reconcile to account")
+
+
 def _require_rebalance_schedule_probe(value: Any) -> None:
     cases = {
         "session_open",
@@ -539,6 +601,7 @@ class NautilusRcFixtureReceipt:
             "engine_lifecycle",
             "forward_event_tape_parity",
             "multi_instrument_accounting",
+            "native_component_pnl_attribution",
             "native_order_fill_cost",
             "portfolio_rebalance_schedule",
         }
@@ -559,6 +622,7 @@ class NautilusRcFixtureReceipt:
         _require_native_accounting_run(native)
         _require_target_allocation_probe(native.get("target_allocation_probe"))
         _require_raw_order_risk_probe(native.get("raw_order_risk_probe"))
+        _require_native_component_pnl_probe(payload["native_component_pnl_attribution"])
         _require_rebalance_schedule_probe(payload["portfolio_rebalance_schedule"])
         if multi["instrument_count"] < 2 or native["instrument_count"] != 1:
             raise ValueError("single- and multi-instrument fixtures must be distinct")

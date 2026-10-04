@@ -91,6 +91,25 @@ def _fixture_payload() -> dict[str, Any]:
     }
     return {
         "authoritative": False,
+        "native_component_pnl_attribution": {
+            "authoritative": False,
+            "archived_snapshot_cycles": 1,
+            "base_currency": "USD",
+            "closed_position_cycles": 2,
+            "component_gross_pnl": "4.00",
+            "component_id": "core",
+            "component_net_pnl": "3.00",
+            "component_order_count": 4,
+            "exact_account_reconciliation": True,
+            "fill_count": 4,
+            "native_trade_id_join_count": 4,
+            "portfolio_gross_pnl": "4.00",
+            "portfolio_net_pnl": "3.00",
+            "reported_cost_deductions": "1.50",
+            "reported_rebates": "0.50",
+            "snapshot_index_differs_from_fill_position_id": True,
+            "total_orders": 4,
+        },
         "deterministic_replay": {"equal": True},
         "engine_lifecycle": "passed",
         "forward_event_tape_parity": "deferred_authoritative_fixture",
@@ -331,6 +350,24 @@ def test_real_rc_fixture_receipt_rejects_unreconciled_raw_order_risk() -> None:
     )
 
     with pytest.raises(ValueError, match="raw-order risk submission and account state"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+
+def test_real_rc_fixture_receipt_rejects_unjoined_archived_cycle_trade_ids() -> None:
+    runtime = _runtime()
+    payload = _fixture_payload()
+    payload["native_component_pnl_attribution"]["native_trade_id_join_count"] = 3
+
+    with pytest.raises(ValueError, match="does not reconcile to account"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+
+def test_real_rc_fixture_receipt_rejects_component_account_pnl_drift() -> None:
+    runtime = _runtime()
+    payload = _fixture_payload()
+    payload["native_component_pnl_attribution"]["portfolio_net_pnl"] = "2.00"
+
+    with pytest.raises(ValueError, match="does not reconcile to account"):
         NautilusRcFixtureReceipt.from_mapping(payload, runtime)
 
 
