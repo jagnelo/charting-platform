@@ -319,6 +319,8 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         if host_bindings_factory is not None:
             if not callable(host_bindings_factory):
                 raise TypeError("host_bindings_factory must be callable")
+            if _is_async_callable(host_bindings_factory):
+                raise TypeError("host_bindings_factory must be synchronous")
             if any(
                 binding is not None
                 for binding in (capability_preflight, search_dispatch, search_dispatch_evidence)
@@ -331,6 +333,8 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         if host_bindings_factory is not None:
             bindings = host_bindings_factory(session_factory, self._persistence)
             if inspect.isawaitable(bindings):
+                if inspect.iscoroutine(bindings):
+                    bindings.close()
                 raise TypeError("host_bindings_factory must configure bindings synchronously")
             if not isinstance(bindings, StrategyLabV2ApiBindings):
                 raise TypeError("host_bindings_factory must return StrategyLabV2ApiBindings")

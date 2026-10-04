@@ -46,8 +46,8 @@ resolvers. Coverage evidence and engine claims are never accepted from the
 request body. The registered API remains fail-closed until the production host
 composes the provider-platform coverage resolver and local Nautilus binding.
 The registered PostgreSQL adapter accepts that host composition through the
-local `STRATEGY_LAB_V2_API_BINDINGS=module:factory` setting. The factory receives
-the shared async session factory and persistence bundle, and returns typed
+local `STRATEGY_LAB_V2_API_BINDINGS=module:factory` setting. Its synchronous
+factory receives the shared async session factory and persistence bundle, and returns typed
 `StrategyLabV2ApiBindings`; configured request resolvers must be async. Search
 dispatch bindings should proxy to the isolated local preparation service and
 return its durable dispatch resolution rather than materializing a trial in

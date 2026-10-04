@@ -392,6 +392,44 @@ def test_application_host_binding_factory_must_return_typed_bindings() -> None:
         )
 
 
+def test_application_host_binding_factory_rejects_async_factory_before_call() -> None:
+    calls = 0
+
+    async def build_bindings(_session_factory: Any, _persistence: Any) -> StrategyLabV2ApiBindings:
+        nonlocal calls
+        calls += 1
+        return StrategyLabV2ApiBindings(capability_preflight=cast(Any, lambda: None))
+
+    with pytest.raises(TypeError, match="host_bindings_factory must be synchronous"):
+        PostgresStrategyLabV2Adapter(
+            lambda: object(),
+            host_bindings_factory=cast(Any, build_bindings),
+        )
+
+    assert calls == 0
+
+
+def test_application_host_binding_factory_closes_awaitable_returned_by_sync_factory() -> None:
+    async def build_bindings(_session_factory: Any, _persistence: Any) -> StrategyLabV2ApiBindings:
+        return StrategyLabV2ApiBindings(capability_preflight=cast(Any, lambda: None))
+
+    created: list[Any] = []
+
+    def invalid_sync_factory(_session_factory: Any, _persistence: Any) -> Any:
+        coroutine = build_bindings(None, None)
+        created.append(coroutine)
+        return coroutine
+
+    with pytest.raises(TypeError, match="configure bindings synchronously"):
+        PostgresStrategyLabV2Adapter(
+            lambda: object(),
+            host_bindings_factory=cast(Any, invalid_sync_factory),
+        )
+
+    assert len(created) == 1
+    assert created[0].cr_frame is None
+
+
 def test_api_host_bindings_reject_sync_request_resolvers() -> None:
     def synchronous_resolver(**_kwargs: Any) -> None:
         return None
