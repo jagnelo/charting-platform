@@ -3,8 +3,9 @@ import { computed, ref } from 'vue'
 import { api } from '@/lib/api'
 import { isEditorTarget as isWorkstationEditorTarget } from '@/lib/workstation/keyboard'
 import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
+import type { LinkGroup } from '@/stores/dashboardLinks'
 
-export type LinkGroup = 'blue' | 'red' | 'green' | 'purple' | 'orange' | 'cyan' | 'pink' | 'brown' | 'yellow' | 'grey'
+export type { LinkGroup } from '@/stores/dashboardLinks'
 
 export interface WorkspaceWindowState {
   id: number

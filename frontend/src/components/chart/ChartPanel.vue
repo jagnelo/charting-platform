@@ -106,9 +106,6 @@
           @click.stop
           @keydown.esc.stop.prevent="linkMenuOpen = false"
         >
-          <button type="button" role="menuitemradio" class="plm-item" :class="{ active: !linkGroup }" :aria-checked="!linkGroup ? 'true' : 'false'" @click="setLinkGroup(null)">
-            <span class="plm-dot plm-dot--none" /> None
-          </button>
           <button
             v-for="group in PANEL_LINK_GROUPS"
             :key="group.id"

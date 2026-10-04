@@ -2023,6 +2023,46 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8m-chart-panels — eight symbol groups, yellow wildcard, and grey isolation', async ({ page, browserDiagnostics }) => {
+    await page.goto('/legacy/chart/SPY')
+    await expect(page.locator('.chart-view')).toBeVisible()
+    await page.getByRole('button', { name: 'Two columns', exact: true }).click()
+
+    const panels = page.locator('.chart-panel')
+    await expect(panels).toHaveCount(2)
+    const source = panels.nth(0)
+    const wildcard = panels.nth(1)
+    const sourceLink = source.getByRole('button', { name: /Symbol link group/ })
+    const wildcardLink = wildcard.getByRole('button', { name: /Symbol link group/ })
+
+    await sourceLink.click()
+    await page.getByRole('menuitemradio', { name: 'Purple', exact: true }).click()
+    await wildcardLink.click()
+    await page.getByRole('menuitemradio', { name: 'Yellow', exact: true }).click()
+    await expect(sourceLink).toHaveAttribute('aria-label', 'Symbol link group: purple')
+    await expect(wildcardLink).toHaveAttribute('aria-label', 'Symbol link group: yellow')
+
+    async function selectPanelSymbol(panel: typeof source, from: string, to: string) {
+      await panel.getByRole('button', { name: `Change chart symbol from ${from}` }).click()
+      const search = panel.getByRole('combobox', { name: 'Search chart symbol' })
+      await search.fill(to)
+      const result = panel.getByRole('option', { name: new RegExp(`^${to}\\b`) }).first()
+      await expect(result).toBeVisible({ timeout: 10_000 })
+      await result.click()
+    }
+
+    await selectPanelSymbol(source, 'SPY', 'QQQ')
+    await expect(source.locator('.psym')).toHaveText('QQQ', { timeout: 10_000 })
+    await expect(wildcard.locator('.psym')).toHaveText('QQQ', { timeout: 10_000 })
+
+    await wildcardLink.click()
+    await page.getByRole('menuitemradio', { name: 'Grey', exact: true }).click()
+    await selectPanelSymbol(source, 'QQQ', 'SPY')
+    await expect(source.locator('.psym')).toHaveText('SPY', { timeout: 10_000 })
+    await expect(wildcard.locator('.psym')).toHaveText('QQQ', { timeout: 10_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8n — timeframe links propagate within a group while grey stays local', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     await page.getByRole('tab', { name: '4 Timeframe', exact: true }).click()

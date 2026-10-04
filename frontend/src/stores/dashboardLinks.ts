@@ -16,12 +16,24 @@ export const LINK_GROUP_COLORS = [
   '#e57373',
 ]
 
-const LEGACY_LINK_GROUPS: Record<string, { color: string; label: string }> = {
-  blue: { color: '#64b5f6', label: 'Blue' },
-  green: { color: '#81c784', label: 'Green' },
-  yellow: { color: '#ffb74d', label: 'Yellow' },
-  red: { color: '#ef5350', label: 'Red' },
-}
+export const WORKSTATION_LINK_GROUPS = [
+  { id: 'blue', label: 'Blue', color: '#64b5f6' },
+  { id: 'red', label: 'Red', color: '#ef5350' },
+  { id: 'green', label: 'Green', color: '#81c784' },
+  { id: 'purple', label: 'Purple', color: '#ba68c8' },
+  { id: 'orange', label: 'Orange', color: '#ffb74d' },
+  { id: 'cyan', label: 'Cyan', color: '#4dd0e1' },
+  { id: 'pink', label: 'Pink', color: '#f06292' },
+  { id: 'brown', label: 'Brown', color: '#a1887f' },
+  { id: 'yellow', label: 'Yellow', color: '#ffca28' },
+  { id: 'grey', label: 'Grey', color: '#9e9e9e' },
+] as const
+
+export type LinkGroup = typeof WORKSTATION_LINK_GROUPS[number]['id']
+
+const WORKSTATION_LINK_GROUP_META = Object.fromEntries(
+  WORKSTATION_LINK_GROUPS.map(group => [group.id, group]),
+)
 
 function groupIndex(group: string): number {
   const match = group.match(/^group-(\d+)$/)
@@ -34,8 +46,8 @@ function groupIndex(group: string): number {
 
 export function dashboardLinkGroupColor(group: string | undefined | null): string {
   if (!group) return 'transparent'
-  const legacy = LEGACY_LINK_GROUPS[group]
-  if (legacy) return legacy.color
+  const workstationGroup = WORKSTATION_LINK_GROUP_META[group as LinkGroup]
+  if (workstationGroup) return workstationGroup.color
   const index = groupIndex(group)
   if (index < LINK_GROUP_COLORS.length) return LINK_GROUP_COLORS[index]
   const hue = Math.round((210 + index * 137.508) % 360)
@@ -44,8 +56,8 @@ export function dashboardLinkGroupColor(group: string | undefined | null): strin
 
 export function dashboardLinkGroupLabel(group: string | undefined | null): string {
   if (!group) return 'Unlinked'
-  const legacy = LEGACY_LINK_GROUPS[group]
-  if (legacy) return legacy.label
+  const workstationGroup = WORKSTATION_LINK_GROUP_META[group as LinkGroup]
+  if (workstationGroup) return workstationGroup.label
   const match = group.match(/^group-(\d+)$/)
   return match ? `Group ${match[1]}` : group
 }

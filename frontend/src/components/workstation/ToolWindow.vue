@@ -43,7 +43,7 @@
 <script setup lang="ts">
 import { getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { LinkGroup } from '@/stores/workspace'
-import { dashboardLinkGroupColor, dashboardLinkGroupLabel } from '@/stores/dashboardLinks'
+import { dashboardLinkGroupColor, dashboardLinkGroupLabel, WORKSTATION_LINK_GROUPS } from '@/stores/dashboardLinks'
 
 withDefaults(defineProps<{
   windowKey?: string
@@ -193,7 +193,7 @@ function runMenuAction(action: 'maximize' | 'float' | 'close') {
   else emit('close')
 }
 
-const groups: LinkGroup[] = ['blue', 'red', 'green', 'purple', 'orange', 'cyan', 'pink', 'brown', 'yellow', 'grey']
+const groups: LinkGroup[] = WORKSTATION_LINK_GROUPS.map(group => group.id)
 </script>
 
 <style scoped>

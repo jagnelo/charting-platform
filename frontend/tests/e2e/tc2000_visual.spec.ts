@@ -748,6 +748,12 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await page.route(/\/api\/v1\/research\/runs\/778$/, async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(runningRun) })
     })
+    await page.route(/\/api\/v1\/ohlcv(?:\/|$)/, async () => {
+      // This capture is about the Study run state, not chart-data readiness.
+      // Keep the unrelated chart in its saved loading state even when a seeded
+      // stack can satisfy the OHLCV request before the screenshot is taken.
+      await new Promise(() => undefined)
+    })
     await page.goto('/chart')
     await expect(page.locator('.workstation')).toBeVisible()
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
