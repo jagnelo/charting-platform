@@ -5,6 +5,7 @@ from typing import Any, cast
 
 import pytest
 
+import app.strategy_lab_v2.application as application_module
 from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
 from app.strategy_lab_v2.api_contracts import ApiErrorCode
 from app.strategy_lab_v2.api_resources import ApiResourceType
@@ -13,6 +14,8 @@ from app.strategy_lab_v2.application import (
     PostgresStrategyLabV2Adapter,
     ResultPublicationCompletionResolution,
     SearchDispatchEvidence,
+    StrategyLabV2ApiBindings,
+    _load_api_bindings_factory,
     _principal_identity,
     create_registered_strategy_lab_v2_router,
     get_strategy_lab_v2_adapter,
@@ -344,6 +347,115 @@ def test_application_adapter_composes_all_durable_api_adapters() -> None:
     assert adapter._search_dispatch_store is adapter._persistence.search_dispatch
     assert isinstance(adapter._execution_state, PostgresExecutionStateAdapter)
     assert isinstance(adapter._commands, PostgresCommandAdapter)
+
+
+def test_application_adapter_composes_trusted_host_bindings_over_shared_persistence() -> None:
+    def session_factory() -> object:
+        return object()
+
+    observed: dict[str, Any] = {}
+
+    async def capability_preflight(**_kwargs: Any) -> CapabilitySummary:
+        raise AssertionError("resolver is captured here, not invoked")
+
+    async def search_dispatch(**_kwargs: Any) -> SearchDispatchResolution:
+        raise AssertionError("resolver is captured here, not invoked")
+
+    def build_bindings(
+        supplied_session_factory: Any,
+        persistence: PostgresStrategyLabV2Persistence,
+    ) -> StrategyLabV2ApiBindings:
+        observed["session_factory"] = supplied_session_factory
+        observed["persistence"] = persistence
+        return StrategyLabV2ApiBindings(
+            capability_preflight=capability_preflight,
+            search_dispatch=search_dispatch,
+        )
+
+    adapter = PostgresStrategyLabV2Adapter(
+        session_factory,
+        host_bindings_factory=build_bindings,
+    )
+
+    assert observed["session_factory"] is session_factory
+    assert observed["persistence"] is adapter._persistence
+    assert adapter._capability_preflight is capability_preflight
+    assert adapter._search_dispatch is search_dispatch
+    assert adapter._search_dispatch_evidence is None
+
+
+def test_application_host_binding_factory_must_return_typed_bindings() -> None:
+    with pytest.raises(TypeError, match="StrategyLabV2ApiBindings"):
+        PostgresStrategyLabV2Adapter(
+            lambda: object(),
+            host_bindings_factory=lambda _session_factory, _persistence: {},  # type: ignore[arg-type,return-value]
+        )
+
+
+def test_api_host_bindings_reject_sync_request_resolvers() -> None:
+    def synchronous_resolver(**_kwargs: Any) -> None:
+        return None
+
+    with pytest.raises(TypeError, match="must be asynchronous"):
+        StrategyLabV2ApiBindings(capability_preflight=cast(Any, synchronous_resolver))
+    with pytest.raises(TypeError, match="must be asynchronous"):
+        StrategyLabV2ApiBindings(search_dispatch=cast(Any, synchronous_resolver))
+
+
+def test_load_api_bindings_factory_uses_local_module_attribute(monkeypatch: Any) -> None:
+    async def capability_preflight(**_kwargs: Any) -> CapabilitySummary:
+        raise AssertionError("factory resolver is captured here, not invoked")
+
+    def factory(_session_factory: Any, _persistence: Any) -> StrategyLabV2ApiBindings:
+        return StrategyLabV2ApiBindings(capability_preflight=capability_preflight)
+
+    module = SimpleNamespace(build_bindings=factory, invalid="not callable")
+    monkeypatch.setattr("app.strategy_lab_v2.application.import_module", lambda _name: module)
+
+    assert _load_api_bindings_factory(None) is None
+    assert _load_api_bindings_factory(" ") is None
+    assert _load_api_bindings_factory("local_host:build_bindings") is factory
+    with pytest.raises(ValueError, match="module:attribute"):
+        _load_api_bindings_factory("invalid")
+    with pytest.raises(TypeError, match="target must be callable"):
+        _load_api_bindings_factory("local_host:invalid")
+
+
+def test_registered_adapter_loads_configured_local_host_bindings(monkeypatch: Any) -> None:
+    def session_factory() -> object:
+        return object()
+
+    async def capability_preflight(**_kwargs: Any) -> CapabilitySummary:
+        raise AssertionError("configured resolver must remain lazy")
+
+    def build_bindings(
+        supplied_session_factory: Any,
+        persistence: PostgresStrategyLabV2Persistence,
+    ) -> StrategyLabV2ApiBindings:
+        assert supplied_session_factory is session_factory
+        assert isinstance(persistence, PostgresStrategyLabV2Persistence)
+        return StrategyLabV2ApiBindings(capability_preflight=capability_preflight)
+
+    real_import_module = application_module.import_module
+
+    def import_module(module_name: str) -> Any:
+        if module_name == "app.database":
+            return SimpleNamespace(AsyncSessionLocal=session_factory)
+        if module_name == "local_strategy_lab_host":
+            return SimpleNamespace(build_bindings=build_bindings)
+        return real_import_module(module_name)
+
+    monkeypatch.setattr(application_module, "_default_adapter", None)
+    monkeypatch.setattr(application_module, "import_module", import_module)
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_API_BINDINGS",
+        "local_strategy_lab_host:build_bindings",
+    )
+
+    adapter = get_strategy_lab_v2_adapter()
+
+    assert isinstance(adapter, PostgresStrategyLabV2Adapter)
+    assert adapter._capability_preflight is capability_preflight
 
 
 @pytest.mark.asyncio

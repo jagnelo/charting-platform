@@ -10,6 +10,7 @@ engine; those lifecycle concerns remain explicit follow-up gates.
 from __future__ import annotations
 
 import inspect
+import os
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -219,6 +220,38 @@ SearchDispatchEvidenceResolver = Callable[
 
 
 @dataclass(frozen=True, slots=True)
+class StrategyLabV2ApiBindings:
+    """Trusted local capabilities installed by the application host.
+
+    Production search dispatch is exposed as an asynchronous resolver so the
+    host can proxy preparation to an isolated local service instead of running
+    trial hydration and artifact materialization in the API process.
+    """
+
+    capability_preflight: CapabilityPreflightResolver | None = None
+    search_dispatch: SearchDispatchResolver | None = None
+
+    def __post_init__(self) -> None:
+        if self.capability_preflight is not None and not callable(self.capability_preflight):
+            raise TypeError("capability_preflight must be callable")
+        if self.capability_preflight is not None and not _is_async_callable(
+            self.capability_preflight
+        ):
+            raise TypeError("capability_preflight host binding must be asynchronous")
+        if self.search_dispatch is not None and not callable(self.search_dispatch):
+            raise TypeError("search_dispatch must be callable")
+        if self.search_dispatch is not None and not _is_async_callable(self.search_dispatch):
+            raise TypeError("search_dispatch host binding must be asynchronous")
+        if self.capability_preflight is None and self.search_dispatch is None:
+            raise ValueError("at least one Strategy Lab v2 API host binding is required")
+
+
+StrategyLabV2ApiBindingsFactory = Callable[
+    [Callable[[], Any], PostgresStrategyLabV2Persistence], StrategyLabV2ApiBindings
+]
+
+
+@dataclass(frozen=True, slots=True)
 class ResultPublicationCompletionResolution:
     """Application-owned result publication and terminal completion outcome.
 
@@ -269,6 +302,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         capability_preflight: CapabilityPreflightResolver | None = None,
         search_dispatch: SearchDispatchResolver | None = None,
         search_dispatch_evidence: SearchDispatchEvidenceResolver | None = None,
+        host_bindings_factory: StrategyLabV2ApiBindingsFactory | None = None,
     ) -> None:
         if not callable(session_factory):
             raise TypeError("session_factory must be callable")
@@ -282,11 +316,29 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise TypeError("search_dispatch_evidence must be callable")
         if search_dispatch is not None and search_dispatch_evidence is not None:
             raise ValueError("search_dispatch and search_dispatch_evidence are mutually exclusive")
+        if host_bindings_factory is not None:
+            if not callable(host_bindings_factory):
+                raise TypeError("host_bindings_factory must be callable")
+            if any(
+                binding is not None
+                for binding in (capability_preflight, search_dispatch, search_dispatch_evidence)
+            ):
+                raise ValueError(
+                    "host bindings cannot be combined with explicit resolver arguments"
+                )
         self._clock = clock
+        self._persistence = PostgresStrategyLabV2Persistence.build(session_factory, clock=clock)
+        if host_bindings_factory is not None:
+            bindings = host_bindings_factory(session_factory, self._persistence)
+            if inspect.isawaitable(bindings):
+                raise TypeError("host_bindings_factory must configure bindings synchronously")
+            if not isinstance(bindings, StrategyLabV2ApiBindings):
+                raise TypeError("host_bindings_factory must return StrategyLabV2ApiBindings")
+            capability_preflight = bindings.capability_preflight
+            search_dispatch = bindings.search_dispatch
         self._capability_preflight = capability_preflight
         self._search_dispatch = search_dispatch
         self._search_dispatch_evidence = search_dispatch_evidence
-        self._persistence = PostgresStrategyLabV2Persistence.build(session_factory, clock=clock)
         self._resources = self._persistence.resources
         self._capabilities = self._persistence.capability
         self._search_dispatch_store = self._persistence.search_dispatch
@@ -1252,8 +1304,35 @@ def get_strategy_lab_v2_adapter() -> StrategyLabApiAdapter:
         # the application graph is resolved only when FastAPI asks for the
         # registered dependency.
         session_factory = getattr(import_module("app.database"), "AsyncSessionLocal")
-        _default_adapter = PostgresStrategyLabV2Adapter(session_factory)
+        bindings_factory = _load_api_bindings_factory(
+            os.environ.get("STRATEGY_LAB_V2_API_BINDINGS")
+        )
+        _default_adapter = PostgresStrategyLabV2Adapter(
+            session_factory,
+            host_bindings_factory=bindings_factory,
+        )
     return _default_adapter
+
+
+def _load_api_bindings_factory(spec: str | None) -> StrategyLabV2ApiBindingsFactory | None:
+    """Load an explicitly configured local application adapter factory."""
+
+    if spec is None or not spec.strip():
+        return None
+    module_name, separator, attribute = spec.partition(":")
+    if not separator or not module_name.strip() or not attribute.strip():
+        raise ValueError("Strategy Lab v2 API bindings must use module:attribute syntax")
+    module = import_module(module_name.strip())
+    factory = getattr(module, attribute.strip(), None)
+    if not callable(factory):
+        raise TypeError("Strategy Lab v2 API bindings target must be callable")
+    return factory
+
+
+def _is_async_callable(callback: Callable[..., Any]) -> bool:
+    return inspect.iscoroutinefunction(callback) or inspect.iscoroutinefunction(
+        getattr(callback, "__call__", None)
+    )
 
 
 def create_registered_strategy_lab_v2_router():
@@ -1271,6 +1350,8 @@ __all__ = [
     "CapabilityPreflightResolver",
     "PostgresStrategyLabV2Adapter",
     "ResultPublicationCompletionResolution",
+    "StrategyLabV2ApiBindings",
+    "StrategyLabV2ApiBindingsFactory",
     "create_registered_strategy_lab_v2_router",
     "get_strategy_lab_v2_adapter",
 ]
