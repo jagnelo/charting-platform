@@ -30,6 +30,7 @@ from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
 from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusEngineInput,
     component_strategy_binding_to_wire,
+    evaluation_window_to_wire,
 )
 from app.strategy_lab_v2.nautilus_event_adapter import NautilusEventRecord
 from app.strategy_lab_v2.nautilus_native_event_stream import (
@@ -1155,6 +1156,7 @@ def build_nautilus_runtime_bundle(
             "entrypoint": engine_input.entrypoint,
             "parameters": _wire_value(engine_input.parameters),
             "random_seed": engine_input.random_seed,
+            "evaluation_window": evaluation_window_to_wire(engine_input.evaluation_window),
             "strategy_bindings": [
                 component_strategy_binding_to_wire(binding)
                 for binding in engine_input.strategy_bindings

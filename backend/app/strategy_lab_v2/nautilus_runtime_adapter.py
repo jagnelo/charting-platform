@@ -56,6 +56,7 @@ _ENGINE_INPUT_FIELDS = frozenset(
         "entrypoint",
         "parameters",
         "random_seed",
+        "evaluation_window",
         "strategy_bindings",
         "input_version",
     }
@@ -84,6 +85,32 @@ def _integer(value: Any, field_name: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool):
         raise NautilusRuntimeDataError(f"{field_name} must be an integer")
     return value
+
+
+def _evaluation_window(value: Any) -> Mapping[str, Any] | None:
+    if value is None:
+        return None
+    window = _mapping(value, "evaluation window")
+    if set(window) != {
+        "fingerprint",
+        "purpose",
+        "warmup_start_ns",
+        "start_ns",
+        "end_ns",
+    }:
+        raise NautilusRuntimeDataError("evaluation window fields are invalid")
+    require_sha256_digest(window["fingerprint"], field_name="evaluation_window.fingerprint")
+    _text(window["purpose"], "evaluation_window.purpose")
+    start_ns = _integer(window["start_ns"], "evaluation_window.start_ns")
+    end_ns = _integer(window["end_ns"], "evaluation_window.end_ns")
+    if start_ns < 0 or end_ns <= start_ns:
+        raise NautilusRuntimeDataError("evaluation window bounds are invalid")
+    warmup_start_ns = window["warmup_start_ns"]
+    if warmup_start_ns is not None:
+        warmup_start_ns = _integer(warmup_start_ns, "evaluation_window.warmup_start_ns")
+        if warmup_start_ns < 0 or warmup_start_ns > start_ns:
+            raise NautilusRuntimeDataError("evaluation warm-up bound is invalid")
+    return window
 
 
 def _validate_engine_input(
@@ -119,8 +146,9 @@ def _validate_engine_input(
         portfolio = portfolio_composition_from_wire(item["portfolio"])
     except (TypeError, ValueError) as error:
         raise NautilusRuntimeDataError("engine input portfolio policy is invalid") from error
-    if item["input_version"] != "strategy-lab.nautilus-engine-input.v3":
+    if item["input_version"] != "strategy-lab.nautilus-engine-input.v4":
         raise NautilusRuntimeDataError("engine input version is unsupported")
+    evaluation_window = _evaluation_window(item["evaluation_window"])
     try:
         strategy_bindings = component_strategy_bindings_from_wire(item["strategy_bindings"])
     except (TypeError, ValueError) as error:
@@ -169,6 +197,19 @@ def _validate_engine_input(
             for event in events
         ):
             raise NautilusRuntimeDataError("event tape contains an instrument without a definition")
+        if evaluation_window is not None:
+            lower_ns = evaluation_window["warmup_start_ns"]
+            if lower_ns is None:
+                lower_ns = evaluation_window["start_ns"]
+            if any(
+                not lower_ns
+                <= _integer(event.get("event_time_ns"), "event.event_time_ns")
+                < evaluation_window["end_ns"]
+                for event in events
+            ):
+                raise NautilusRuntimeDataError(
+                    "event tape contains an event outside its evaluation input window"
+                )
         return venue, instrument_items, events, len(events), False
     event_count = _integer(tape["event_count"], "event tape event_count")
     if event_count < 1:

@@ -53,6 +53,49 @@ def _record_time_bucket(value: Any) -> int:
     return value // 1_000
 
 
+def _evaluation_window_bounds(
+    engine_input: Mapping[str, Any],
+) -> tuple[int, int, int] | None:
+    value = engine_input.get("evaluation_window")
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise NautilusRuntimeDataError("evaluation window must be a mapping")
+    start_ns = value.get("start_ns")
+    end_ns = value.get("end_ns")
+    warmup_start_ns = value.get("warmup_start_ns")
+    if (
+        not isinstance(start_ns, int)
+        or isinstance(start_ns, bool)
+        or start_ns < 0
+        or not isinstance(end_ns, int)
+        or isinstance(end_ns, bool)
+        or end_ns <= start_ns
+        or (
+            warmup_start_ns is not None
+            and (
+                not isinstance(warmup_start_ns, int)
+                or isinstance(warmup_start_ns, bool)
+                or warmup_start_ns < 0
+                or warmup_start_ns > start_ns
+            )
+        )
+    ):
+        raise NautilusRuntimeDataError("evaluation window bounds are invalid")
+    lower_ns = start_ns if warmup_start_ns is None else warmup_start_ns
+    return lower_ns, start_ns, end_ns
+
+
+def _suppress_warmup_intents(
+    result: Any,
+    event_time_ns: int,
+    bounds: tuple[int, int, int] | None,
+) -> Any:
+    if bounds is not None and event_time_ns < bounds[1] and result.intents:
+        return replace(result, intents=())
+    return result
+
+
 def _native_decimal(value: Any, field_name: str) -> Decimal:
     if isinstance(value, Decimal):
         result = value
@@ -1162,6 +1205,7 @@ def build_native_strategy_bridge(
         raise NautilusRuntimeDataError(
             "native bridge requires authenticated component strategy bindings"
         )
+    evaluation_window_bounds = _evaluation_window_bounds(engine_input)
     strategy_bindings: dict[str, Mapping[str, Any]] = {}
     for item in raw_strategy_bindings:
         assert isinstance(item, Mapping)
@@ -1844,6 +1888,12 @@ def build_native_strategy_bridge(
                 raise NautilusRuntimeDataError(
                     "Nautilus callback order differs from the authenticated event tape"
                 )
+            if evaluation_window_bounds is not None:
+                lower_ns, _evaluation_start_ns, end_ns = evaluation_window_bounds
+                if not lower_ns <= int(ts_event) < end_ns:
+                    raise NautilusRuntimeDataError(
+                        "Nautilus callback is outside the authenticated evaluation input window"
+                    )
             if (
                 native_event_stream is not None
                 and int(ts_init) != expected_record["native_init_time_ns"]
@@ -1898,6 +1948,13 @@ def build_native_strategy_bridge(
                     )
                 result = invocation_sessions[component_id].invoke(
                     replace(context, positions=positions)
+                )
+                # Warm-up advances strategy-local state, but neither native orders nor
+                # strategy-output artifacts may treat those intents as OOS decisions.
+                result = _suppress_warmup_intents(
+                    result,
+                    int(ts_event),
+                    evaluation_window_bounds,
                 )
                 callback_results.append((component_id, result))
                 if result_stream_writer is None:

@@ -763,7 +763,7 @@ class TrialRandomization:
 
 @dataclass(frozen=True, slots=True)
 class EvaluationWindow:
-    """Explicit evaluation interval, optionally preceded by immutable warm-up."""
+    """Half-open evaluation interval [start, end), optionally preceded by warm-up."""
 
     start: datetime
     end: datetime

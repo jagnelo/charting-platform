@@ -93,6 +93,7 @@ def _payload() -> dict[str, object]:
         "entrypoint": "strategy.main:Strategy",
         "parameters": {"window": 20},
         "random_seed": 17,
+        "evaluation_window": None,
         "strategy_bindings": [
             {
                 "component_id": "component-1",
@@ -104,7 +105,7 @@ def _payload() -> dict[str, object]:
                 "max_intents_per_event": 100,
             }
         ],
-        "input_version": "strategy-lab.nautilus-engine-input.v3",
+        "input_version": "strategy-lab.nautilus-engine-input.v4",
     }
 
 
@@ -150,6 +151,21 @@ def test_runtime_adapter_rejects_event_without_catalog_definition() -> None:
     payload["event_tape"] = tape
 
     with pytest.raises(NautilusRuntimeDataError, match="without a definition"):
+        run_native_backtest(payload)
+
+
+def test_runtime_adapter_rejects_events_outside_the_bound_evaluation_input_window() -> None:
+    payload = _payload()
+    start_ns = 1_704_067_201_000_000_000
+    payload["evaluation_window"] = {
+        "fingerprint": content_digest("evaluation-window"),
+        "purpose": "out_of_sample",
+        "warmup_start_ns": None,
+        "start_ns": start_ns,
+        "end_ns": start_ns + 3_600_000_000_000,
+    }
+
+    with pytest.raises(NautilusRuntimeDataError, match="outside its evaluation input window"):
         run_native_backtest(payload)
 
 

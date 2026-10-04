@@ -188,6 +188,7 @@ def _payload() -> dict[str, object]:
         "entrypoint": "strategy.main:Strategy",
         "parameters": {"window": 20},
         "random_seed": 17,
+        "evaluation_window": None,
         "strategy_bindings": [
             {
                 "component_id": "component-1",
@@ -199,7 +200,7 @@ def _payload() -> dict[str, object]:
                 "max_intents_per_event": 100,
             }
         ],
-        "input_version": "strategy-lab.nautilus-engine-input.v3",
+        "input_version": "strategy-lab.nautilus-engine-input.v4",
     }
 
 
@@ -414,6 +415,7 @@ def _run_native_execution_probe(*, target_position: bool) -> dict[str, Any]:
         "entrypoint": "strategy.main:Strategy",
         "parameters": {},
         "random_seed": 11,
+        "evaluation_window": None,
         "strategy_bindings": [
             {
                 "component_id": "core",
@@ -425,7 +427,7 @@ def _run_native_execution_probe(*, target_position: bool) -> dict[str, Any]:
                 "max_intents_per_event": 100,
             }
         ],
-        "input_version": "strategy-lab.nautilus-engine-input.v3",
+        "input_version": "strategy-lab.nautilus-engine-input.v4",
     }
     batch = serialize_invocation_batch(
         source=strategy_source,

@@ -299,7 +299,14 @@ def test_trial_assembly_materializes_reproducible_pinned_bundle(tmp_path) -> Non
 
 
 def test_trial_assembly_consumes_default_disk_spooled_event_tape(tmp_path) -> None:
-    values = _inputs()
+    values = _inputs(
+        evaluation_window=EvaluationWindow(
+            start=BASE + timedelta(days=1),
+            end=BASE + timedelta(days=3),
+            purpose="out_of_sample",
+            warmup_start=BASE + timedelta(hours=12),
+        )
+    )
     source_events = values["event_tape"].events
     source_rows = [
         {
@@ -373,7 +380,16 @@ def test_trial_assembly_consumes_default_disk_spooled_event_tape(tmp_path) -> No
         "adapter_version",
         "event_count",
     }
-    assert payload["engine_input"]["event_tape"]["event_count"] == 2
+    assert payload["engine_input"]["event_tape"]["event_count"] == 1
+    native_events = tuple(
+        deserialize_nautilus_native_event_stream(
+            BytesIO(store.read(bundle.native_event_stream.artifact.storage_key)),
+            expected_source_tape_fingerprint=bundle.native_event_stream.source_tape_fingerprint,
+            expected_adapter_version=bundle.native_event_stream.adapter_version,
+            expected_event_count=bundle.native_event_stream.event_count,
+        )
+    )
+    assert [event["sequence"] for event in native_events] == [2]
 
 
 def test_trial_assembly_applies_immutable_strategy_defaults(tmp_path) -> None:
@@ -465,24 +481,71 @@ def test_trial_assembly_rejects_an_executable_experiment_without_package_binding
         )
 
 
-@pytest.mark.parametrize(
-    ("trial_overrides", "message"),
-    [
-        ({"scenario": {"volatility_scale": 2}}, "scenario transforms"),
-        (
-            {"evaluation_window": EvaluationWindow(BASE, BASE + timedelta(days=1), "test")},
-            "evaluation windows",
-        ),
-    ],
-)
-def test_trial_assembly_rejects_unapplied_scenario_and_evaluation_window(
-    tmp_path, trial_overrides, message
-) -> None:
-    values = _inputs(**trial_overrides)
+def test_trial_assembly_rejects_unapplied_scenario_transforms(tmp_path) -> None:
+    values = _inputs(scenario={"volatility_scale": 2})
 
-    with pytest.raises(NautilusTrialAssemblyError, match=message):
+    with pytest.raises(NautilusTrialAssemblyError, match="scenario transforms"):
         assemble_nautilus_trial_runtime_input(
             **values,
+            artifact_store=LocalArtifactStore(tmp_path / "artifacts"),
+        )
+
+
+def test_trial_assembly_replays_warmup_but_binds_only_the_evaluation_window(tmp_path) -> None:
+    window = EvaluationWindow(
+        start=BASE + timedelta(days=1),
+        end=BASE + timedelta(days=3),
+        purpose="out_of_sample",
+        warmup_start=BASE,
+    )
+    values = _inputs(evaluation_window=window)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+
+    assembly = assemble_nautilus_trial_runtime_input(**values, artifact_store=store)
+    bundle = load_materialized_nautilus_runtime_bundle(
+        assembly.runtime_input_artifact,
+        store,
+        max_input_bytes=1_000_000,
+    )
+    assert bundle.context_stream is not None
+    _source, _manifest, contexts, _entrypoint, _max_intents = deserialize_invocation_context_stream(
+        BytesIO(store.read(bundle.context_stream.artifact.storage_key)),
+        expected_context_count=bundle.context_stream.context_count,
+    )
+    payload = json.loads(bundle.wire_bytes)
+    engine_input = payload["engine_input"]
+    assert engine_input["evaluation_window"] == {
+        "fingerprint": window.fingerprint,
+        "purpose": "out_of_sample",
+        "warmup_start_ns": 1_704_205_800_000_000_000,
+        "start_ns": 1_704_292_200_000_000_000,
+        "end_ns": 1_704_465_000_000_000_000,
+    }
+    assert engine_input["event_tape"]["event_count"] == 2
+    assert len(tuple(contexts)) == 2
+    assert bundle.native_event_stream is not None
+    native_events = tuple(
+        deserialize_nautilus_native_event_stream(
+            BytesIO(store.read(bundle.native_event_stream.artifact.storage_key)),
+            expected_source_tape_fingerprint=bundle.native_event_stream.source_tape_fingerprint,
+            expected_adapter_version=bundle.native_event_stream.adapter_version,
+            expected_event_count=bundle.native_event_stream.event_count,
+        )
+    )
+    assert [event["sequence"] for event in native_events] == [1, 2]
+
+
+def test_trial_assembly_rejects_evaluation_window_without_scoring_events(tmp_path) -> None:
+    window = EvaluationWindow(
+        start=BASE + timedelta(days=2),
+        end=BASE + timedelta(days=3),
+        purpose="out_of_sample",
+        warmup_start=BASE,
+    )
+
+    with pytest.raises(NautilusTrialAssemblyError, match="no scoring events"):
+        assemble_nautilus_trial_runtime_input(
+            **_inputs(evaluation_window=window),
             artifact_store=LocalArtifactStore(tmp_path / "artifacts"),
         )
 

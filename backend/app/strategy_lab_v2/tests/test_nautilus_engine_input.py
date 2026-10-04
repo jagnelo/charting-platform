@@ -8,6 +8,7 @@ import pytest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
     FX_BASE_NOTIONAL_RISK_MODEL,
+    EvaluationWindow,
     PortfolioComponent,
     PortfolioComposition,
     ProductClass,
@@ -22,6 +23,7 @@ from app.strategy_lab_v2.nautilus_engine_input import (
     build_nautilus_engine_input,
     component_strategy_binding_to_wire,
     component_strategy_bindings_from_wire,
+    evaluation_window_to_wire,
 )
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventRecord,
@@ -160,8 +162,30 @@ def test_engine_input_binds_tape_catalog_and_shared_account() -> None:
     assert tuple(binding.component_id for binding in engine_input.strategy_bindings) == (
         "component-1",
     )
-    assert engine_input.input_version == "strategy-lab.nautilus-engine-input.v3"
+    assert engine_input.input_version == "strategy-lab.nautilus-engine-input.v4"
     assert engine_input.fingerprint.startswith("sha256:")
+
+
+def test_evaluation_window_wire_preserves_identity_and_half_open_bounds() -> None:
+    from datetime import UTC, datetime, timedelta
+
+    start = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
+    window = EvaluationWindow(
+        start=start + timedelta(hours=1),
+        end=start + timedelta(hours=3),
+        purpose="out_of_sample",
+        warmup_start=start,
+    )
+
+    wire = evaluation_window_to_wire(window)
+
+    assert wire == {
+        "fingerprint": window.fingerprint,
+        "purpose": "out_of_sample",
+        "warmup_start_ns": 1_704_205_800_000_000_000,
+        "start_ns": 1_704_209_400_000_000_000,
+        "end_ns": 1_704_216_600_000_000_000,
+    }
 
 
 def test_engine_input_is_deterministic_and_freezes_parameters() -> None:

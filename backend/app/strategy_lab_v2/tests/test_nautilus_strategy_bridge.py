@@ -20,10 +20,17 @@ from app.strategy_lab_v2.nautilus_strategy_bridge import (
     _iter_stream_component_context_trigger_groups,
     _iter_stream_context_trigger_indexes,
     _match_contexts_to_events,
+    _suppress_warmup_intents,
     iter_component_context_trigger_groups,
 )
-from app.strategy_lab_v2.sdk import MarketEvent, OrderSide, StrategyContext
+from app.strategy_lab_v2.sdk import (
+    MarketEvent,
+    OrderSide,
+    StrategyContext,
+    TargetPositionIntent,
+)
 from strategy_runtime import InvocationContextStreamBinding
+from strategy_runtime.runner import InvocationStatus, StrategyInvocationResult
 
 EVENT_TIME = datetime(2024, 1, 1, tzinfo=UTC)
 EVENT_TIME_NS = 1_704_067_200_000_000_000
@@ -114,6 +121,32 @@ def test_event_time_binding_uses_sdk_microsecond_precision_for_modern_dates() ->
     matched = _match_contexts_to_events((context,), (_record(event),))
 
     assert matched == {"event-1": context}
+
+
+def test_evaluation_warmup_invocations_cannot_publish_order_intents() -> None:
+    order = TargetPositionIntent("EURUSD.SIM", Decimal("0.5"))
+    result = StrategyInvocationResult(
+        source_digest="sha256:" + "1" * 64,
+        manifest_fingerprint="sha256:" + "2" * 64,
+        context_fingerprint="sha256:" + "3" * 64,
+        entrypoint="strategy.main:Strategy",
+        status=InvocationStatus.SUCCEEDED,
+        intents=(order,),
+    )
+
+    suppressed = _suppress_warmup_intents(
+        result,
+        event_time_ns=EVENT_TIME_NS,
+        bounds=(EVENT_TIME_NS - 1, EVENT_TIME_NS + 1, EVENT_TIME_NS + 10_000),
+    )
+    evaluation = _suppress_warmup_intents(
+        result,
+        event_time_ns=EVENT_TIME_NS + 1,
+        bounds=(EVENT_TIME_NS - 1, EVENT_TIME_NS + 1, EVENT_TIME_NS + 10_000),
+    )
+
+    assert suppressed.intents == ()
+    assert evaluation.intents == (order,)
 
 
 def test_stream_trigger_indexes_bind_batches_to_the_last_same_time_callback() -> None:

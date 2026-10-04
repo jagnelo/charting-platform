@@ -12,12 +12,14 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import (
     AttemptState,
     DataSnapshot,
+    EvaluationWindow,
     ExperimentDefinition,
     PortfolioComposition,
     RunAttempt,
@@ -59,6 +61,20 @@ from strategy_runtime import InvocationContextStreamSource
 
 class NautilusTrialAssemblyError(ValueError):
     """A durable trial cannot be represented by the current Nautilus input contract."""
+
+
+def _timestamp_ns(value: datetime) -> int:
+    normalized = value.astimezone(UTC)
+    epoch = datetime(1970, 1, 1, tzinfo=UTC)
+    delta = normalized - epoch
+    return (delta.days * 86_400 + delta.seconds) * 1_000_000_000 + delta.microseconds * 1_000
+
+
+def _in_evaluation_input_window(value: datetime, window: EvaluationWindow | None) -> bool:
+    if window is None:
+        return True
+    lower = window.warmup_start or window.start
+    return lower <= value < window.end
 
 
 @dataclass(frozen=True, slots=True)
@@ -392,10 +408,6 @@ def assemble_nautilus_trial_runtime_input(
         raise NautilusTrialAssemblyError(
             "Nautilus runtime assembly does not yet apply scenario transforms"
         )
-    if trial.evaluation_window is not None:
-        raise NautilusTrialAssemblyError(
-            "Nautilus runtime assembly does not yet gate warm-up and evaluation windows"
-        )
     if attempt.trial_id != trial.trial_id:
         raise NautilusTrialAssemblyError("run attempt references a different scientific trial")
     if attempt.state not in {AttemptState.QUEUED, AttemptState.RUNNING}:
@@ -518,17 +530,67 @@ def assemble_nautilus_trial_runtime_input(
                 snapshot,
                 strategy_manifest,
             )
+            if trial.evaluation_window is not None:
+                lower = trial.evaluation_window.warmup_start or trial.evaluation_window.start
+                lower_ns = _timestamp_ns(lower)
+                start_ns = _timestamp_ns(trial.evaluation_window.start)
+                end_ns = _timestamp_ns(trial.evaluation_window.end)
+                selected_records = tuple(
+                    record
+                    for record in native_tape.events
+                    if lower_ns <= record.event_time_ns < end_ns
+                )
+                if not any(record.event_time_ns >= start_ns for record in selected_records):
+                    raise NautilusTrialAssemblyError(
+                        "evaluation window contains no scoring events in the frozen tape"
+                    )
+                native_tape = NautilusEventTape(
+                    native_tape.source_tape_fingerprint,
+                    selected_records,
+                    native_tape.adapter_version,
+                )
             native_records = native_tape.events
             event_count = len(native_tape.events)
         else:
             native_tape = NautilusEventTape(event_tape.tape_fingerprint, ())
-            native_records = iter_materialized_nautilus_event_records(
-                event_tape,
-                snapshot,
-                strategy_manifest,
-                artifact_store,
-            )
-            event_count = event_tape.event_count
+
+            def iter_windowed_native_records() -> Iterable[NautilusEventRecord]:
+                records = iter_materialized_nautilus_event_records(
+                    event_tape,
+                    snapshot,
+                    strategy_manifest,
+                    artifact_store,
+                )
+                for record in records:
+                    if trial.evaluation_window is None:
+                        yield record
+                    else:
+                        lower = (
+                            trial.evaluation_window.warmup_start or trial.evaluation_window.start
+                        )
+                        event_time = record.event_time_ns
+                        if (
+                            _timestamp_ns(lower)
+                            <= event_time
+                            < _timestamp_ns(trial.evaluation_window.end)
+                        ):
+                            yield record
+
+            if trial.evaluation_window is None:
+                event_count = event_tape.event_count
+            else:
+                event_count = 0
+                scoring_event_count = 0
+                scoring_start_ns = _timestamp_ns(trial.evaluation_window.start)
+                for record in iter_windowed_native_records():
+                    event_count += 1
+                    if record.event_time_ns >= scoring_start_ns:
+                        scoring_event_count += 1
+                if scoring_event_count == 0:
+                    raise NautilusTrialAssemblyError(
+                        "evaluation window contains no scoring events in the frozen tape"
+                    )
+            native_records = iter_windowed_native_records()
         native_event_stream = materialize_nautilus_native_event_stream_artifact(
             artifact_store,
             events=native_records,
@@ -549,7 +611,12 @@ def assemble_nautilus_trial_runtime_input(
                 dependency.dependency_id
                 for dependency in component_input.strategy_manifest.data_dependencies
             }
-            return (event for event in source_events if event.dependency_id in dependency_ids)
+            return (
+                event
+                for event in source_events
+                if event.dependency_id in dependency_ids
+                and _in_evaluation_input_window(event.event_time, trial.evaluation_window)
+            )
 
         if len(inputs_by_component) == 1:
             component_id, component_input = next(iter(sorted(inputs_by_component.items())))
@@ -616,6 +683,7 @@ def assemble_nautilus_trial_runtime_input(
             parameters=primary_parameters,
             random_seed=trial.seed,
             strategy_bindings=strategy_bindings,
+            evaluation_window=trial.evaluation_window,
         )
         bundle = build_nautilus_runtime_bundle(
             engine_input,
@@ -643,6 +711,8 @@ def assemble_nautilus_trial_runtime_input(
             artifact_store,
             trial_binding=trial_binding,
         )
+    except NautilusTrialAssemblyError:
+        raise
     except (TypeError, ValueError) as error:
         raise NautilusTrialAssemblyError(
             "immutable Nautilus trial inputs failed validation"

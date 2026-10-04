@@ -11,10 +11,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
 from app.strategy_lab_v2.contracts import (
+    EvaluationWindow,
     PortfolioComponent,
     PortfolioComposition,
     ProductClass,
@@ -30,7 +32,7 @@ from app.strategy_lab_v2.nautilus_strategy_binding import (
     component_strategy_bindings_from_wire,
 )
 
-NAUTILUS_ENGINE_INPUT_VERSION = "strategy-lab.nautilus-engine-input.v3"
+NAUTILUS_ENGINE_INPUT_VERSION = "strategy-lab.nautilus-engine-input.v4"
 
 
 def _nonempty(value: str, field_name: str) -> None:
@@ -185,6 +187,7 @@ class NautilusEngineInput:
     parameters: Mapping[str, object]
     random_seed: int
     strategy_bindings: tuple[NautilusComponentStrategyBinding, ...] = ()
+    evaluation_window: EvaluationWindow | None = None
     input_version: str = NAUTILUS_ENGINE_INPUT_VERSION
 
     def __post_init__(self) -> None:
@@ -200,6 +203,10 @@ class NautilusEngineInput:
             raise TypeError("venue must be a NautilusVenueDefinition")
         if not isinstance(self.portfolio, PortfolioComposition):
             raise TypeError("portfolio must be a PortfolioComposition")
+        if self.evaluation_window is not None and not isinstance(
+            self.evaluation_window, EvaluationWindow
+        ):
+            raise TypeError("evaluation_window must use EvaluationWindow")
         if self.portfolio.base_currency != self.venue.base_currency:
             raise ValueError("portfolio and venue base currencies must match")
         if self.portfolio.rebalance_policy is not None:
@@ -307,6 +314,7 @@ def build_nautilus_engine_input(
     parameters: Mapping[str, object],
     random_seed: int,
     strategy_bindings: Sequence[NautilusComponentStrategyBinding] | None = None,
+    evaluation_window: EvaluationWindow | None = None,
 ) -> NautilusEngineInput:
     """Construct and validate the complete engine-input boundary."""
 
@@ -324,7 +332,33 @@ def build_nautilus_engine_input(
         parameters=parameters,
         random_seed=random_seed,
         strategy_bindings=tuple(strategy_bindings or ()),
+        evaluation_window=evaluation_window,
     )
+
+
+def evaluation_window_to_wire(value: EvaluationWindow | None) -> dict[str, object] | None:
+    """Serialize the exact half-open warm-up/evaluation range for the isolated engine."""
+
+    if value is None:
+        return None
+    if not isinstance(value, EvaluationWindow):
+        raise TypeError("evaluation_window must use EvaluationWindow")
+
+    def timestamp_ns(timestamp: datetime) -> int:
+        normalized = timestamp.astimezone(UTC)
+        epoch = datetime(1970, 1, 1, tzinfo=UTC)
+        delta = normalized - epoch
+        return (delta.days * 86_400 + delta.seconds) * 1_000_000_000 + delta.microseconds * 1_000
+
+    return {
+        "fingerprint": value.fingerprint,
+        "purpose": value.purpose,
+        "warmup_start_ns": (
+            None if value.warmup_start is None else timestamp_ns(value.warmup_start)
+        ),
+        "start_ns": timestamp_ns(value.start),
+        "end_ns": timestamp_ns(value.end),
+    }
 
 
 def portfolio_composition_to_wire(portfolio: PortfolioComposition) -> dict[str, object]:
@@ -531,6 +565,7 @@ __all__ = [
     "NautilusInstrumentDefinition",
     "NautilusVenueDefinition",
     "build_nautilus_engine_input",
+    "evaluation_window_to_wire",
     "component_strategy_binding_to_wire",
     "component_strategy_bindings_from_wire",
 ]
