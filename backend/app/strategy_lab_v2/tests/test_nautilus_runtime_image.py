@@ -56,6 +56,10 @@ def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() ->
         "COPY app/strategy_lab_v2/nautilus_portfolio_wire.py app/strategy_lab_v2/nautilus_portfolio_wire.py"
         in source
     )
+    assert (
+        "COPY app/strategy_lab_v2/nautilus_rebalance_wire.py app/strategy_lab_v2/nautilus_rebalance_wire.py"
+        in source
+    )
     assert "COPY app/strategy_lab_v2/allocation.py app/strategy_lab_v2/allocation.py" in source
     assert "COPY app/strategy_lab_v2/risk_models.py app/strategy_lab_v2/risk_models.py" in source
     assert (

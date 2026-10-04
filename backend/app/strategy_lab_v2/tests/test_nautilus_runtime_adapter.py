@@ -94,6 +94,7 @@ def _payload() -> dict[str, object]:
         "parameters": {"window": 20},
         "random_seed": 17,
         "evaluation_window": None,
+        "rebalance_plan": None,
         "strategy_bindings": [
             {
                 "component_id": "component-1",
@@ -105,7 +106,7 @@ def _payload() -> dict[str, object]:
                 "max_intents_per_event": 100,
             }
         ],
-        "input_version": "strategy-lab.nautilus-engine-input.v4",
+        "input_version": "strategy-lab.nautilus-engine-input.v5",
     }
 
 

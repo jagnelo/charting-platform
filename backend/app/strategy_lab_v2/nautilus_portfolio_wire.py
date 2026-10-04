@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict
 from decimal import Decimal
 from enum import Enum
@@ -16,6 +17,13 @@ from app.strategy_lab_v2.contracts import (
     SharedRiskPolicy,
     TargetConflictPolicy,
 )
+from app.strategy_lab_v2.rebalance import (
+    CalendarRebalancePolicy,
+    RebalanceCadence,
+    RebalanceMisfirePolicy,
+    RebalanceSelection,
+    RebalanceTrigger,
+)
 
 
 def portfolio_composition_to_wire(portfolio: PortfolioComposition) -> dict[str, Any]:
@@ -23,8 +31,6 @@ def portfolio_composition_to_wire(portfolio: PortfolioComposition) -> dict[str, 
 
     if not isinstance(portfolio, PortfolioComposition):
         raise TypeError("portfolio must be a PortfolioComposition")
-    if portfolio.rebalance_policy is not None:
-        raise ValueError("calendar rebalancing is not represented by the current engine input")
     result = _wire_value(asdict(portfolio))
     assert isinstance(result, dict)
     result["fingerprint"] = portfolio.fingerprint
@@ -45,8 +51,7 @@ def portfolio_composition_from_wire(value: object) -> PortfolioComposition:
         "fingerprint",
     }:
         raise ValueError("portfolio execution policy fields are invalid")
-    if value["rebalance_policy"] is not None:
-        raise ValueError("calendar rebalancing is not represented by the current engine input")
+    rebalance_policy = _rebalance_policy_from_wire(value["rebalance_policy"])
     components_wire = value["components"]
     if not isinstance(components_wire, list):
         raise ValueError("portfolio components must be a list")
@@ -123,6 +128,7 @@ def portfolio_composition_from_wire(value: object) -> PortfolioComposition:
         initial_capital=_decimal(value["initial_capital"], "initial_capital"),
         base_currency=_text(value["base_currency"], "base_currency"),
         components=tuple(components),
+        rebalance_policy=rebalance_policy,
         shared_risk_policy=SharedRiskPolicy(
             max_gross_exposure_fraction=_decimal(
                 policy_wire["max_gross_exposure_fraction"], "max_gross_exposure_fraction"
@@ -153,6 +159,30 @@ def portfolio_composition_from_wire(value: object) -> PortfolioComposition:
     if value["fingerprint"] != portfolio.fingerprint:
         raise ValueError("portfolio execution policy fingerprint is invalid")
     return portfolio
+
+
+def _rebalance_policy_from_wire(value: object) -> CalendarRebalancePolicy | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping) or set(value) != {
+        "calendar_id",
+        "calendar_fingerprint",
+        "cadence",
+        "trigger",
+        "selection",
+        "misfire_policy",
+        "definition_version",
+    }:
+        raise ValueError("calendar rebalance policy fields are invalid")
+    return CalendarRebalancePolicy(
+        calendar_id=_text(value["calendar_id"], "calendar_id"),
+        calendar_fingerprint=_text(value["calendar_fingerprint"], "calendar_fingerprint"),
+        cadence=RebalanceCadence(_text(value["cadence"], "cadence")),
+        trigger=RebalanceTrigger(_text(value["trigger"], "trigger")),
+        selection=RebalanceSelection(_text(value["selection"], "selection")),
+        misfire_policy=RebalanceMisfirePolicy(_text(value["misfire_policy"], "misfire_policy")),
+        definition_version=_text(value["definition_version"], "definition_version"),
+    )
 
 
 def _wire_value(value: Any) -> Any:

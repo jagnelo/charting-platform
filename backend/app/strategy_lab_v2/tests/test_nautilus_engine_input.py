@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -24,10 +26,20 @@ from app.strategy_lab_v2.nautilus_engine_input import (
     component_strategy_binding_to_wire,
     component_strategy_bindings_from_wire,
     evaluation_window_to_wire,
+    portfolio_composition_from_wire,
+    portfolio_composition_to_wire,
 )
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventRecord,
     NautilusEventTape,
+)
+from app.strategy_lab_v2.rebalance import (
+    CalendarRebalancePolicy,
+    RebalanceCadence,
+    RebalanceExecutionPlan,
+    RebalanceMisfirePolicy,
+    RebalanceTrigger,
+    ScheduledRebalance,
 )
 
 
@@ -162,8 +174,70 @@ def test_engine_input_binds_tape_catalog_and_shared_account() -> None:
     assert tuple(binding.component_id for binding in engine_input.strategy_bindings) == (
         "component-1",
     )
-    assert engine_input.input_version == "strategy-lab.nautilus-engine-input.v4"
+    assert engine_input.input_version == "strategy-lab.nautilus-engine-input.v5"
     assert engine_input.fingerprint.startswith("sha256:")
+
+
+def test_engine_input_requires_policy_bound_rebalance_plan() -> None:
+    calendar_fingerprint = content_digest("calendar")
+    policy = CalendarRebalancePolicy(
+        calendar_id="XNYS",
+        calendar_fingerprint=calendar_fingerprint,
+        cadence=RebalanceCadence.MONTHLY,
+        trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+    )
+    plan_policy_portfolio = replace(_portfolio(), rebalance_policy=policy)
+    event_time = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
+    occurrence_identity = {
+        "policy_fingerprint": policy.fingerprint,
+        "calendar_fingerprint": calendar_fingerprint,
+        "session_id": "XNYS:2024-01-02",
+        "session_label": date(2024, 1, 2),
+        "event_time": event_time,
+        "trigger": RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+        "cadence_period": "month:2024-01",
+    }
+    plan = RebalanceExecutionPlan(
+        policy_fingerprint=policy.fingerprint,
+        calendar_fingerprint=calendar_fingerprint,
+        occurrences=(
+            ScheduledRebalance(
+                occurrence_id=content_digest(occurrence_identity),
+                policy_fingerprint=policy.fingerprint,
+                calendar_fingerprint=calendar_fingerprint,
+                session_id="XNYS:2024-01-02",
+                session_label=date(2024, 1, 2),
+                event_time=event_time,
+                trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+                cadence_period="month:2024-01",
+                misfire_policy=RebalanceMisfirePolicy.FAIL_RUN,
+            ),
+        ),
+    )
+    common: dict[str, Any] = dict(
+        trial_id="trial-rebalance",
+        attempt_id="attempt-rebalance",
+        data_snapshot_fingerprint=content_digest("snapshot-rebalance"),
+        event_tape=_tape(),
+        instruments=(_instrument(),),
+        venue=_venue(),
+        portfolio=plan_policy_portfolio,
+        strategy_source_digest=content_digest("source"),
+        strategy_manifest_fingerprint=content_digest("manifest"),
+        entrypoint="strategy.main:Strategy",
+        parameters={},
+        random_seed=17,
+    )
+
+    with pytest.raises(ValueError, match="requires a frozen execution plan"):
+        build_nautilus_engine_input(**common)
+    engine_input = build_nautilus_engine_input(rebalance_plan=plan, **common)
+
+    assert engine_input.rebalance_plan == plan
+    assert (
+        portfolio_composition_from_wire(portfolio_composition_to_wire(plan_policy_portfolio))
+        == plan_policy_portfolio
+    )
 
 
 def test_evaluation_window_wire_preserves_identity_and_half_open_bounds() -> None:

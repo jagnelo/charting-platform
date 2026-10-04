@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -21,6 +22,12 @@ from app.strategy_lab_v2.nautilus_strategy_bridge import _route_component_callba
 from app.strategy_lab_v2.nautilus_target_allocation import (
     resolve_nautilus_component_target_position_batches,
     resolve_nautilus_target_position_intents,
+)
+from app.strategy_lab_v2.rebalance import (
+    CalendarRebalancePolicy,
+    RebalanceCadence,
+    RebalanceMisfirePolicy,
+    RebalanceTrigger,
 )
 from app.strategy_lab_v2.sdk import (
     OrderIntent,
@@ -169,6 +176,21 @@ def test_portfolio_allocation_policy_round_trips_with_exact_fingerprint() -> Non
     tampered["shared_risk_policy"]["max_gross_exposure_fraction"] = "2"
     with pytest.raises(ValueError, match="fingerprint"):
         portfolio_composition_from_wire(tampered)
+
+
+def test_portfolio_calendar_rebalance_policy_round_trips_with_exact_fingerprint() -> None:
+    portfolio = replace(
+        _portfolio(),
+        rebalance_policy=CalendarRebalancePolicy(
+            calendar_id="XNYS",
+            calendar_fingerprint=content_digest("calendar"),
+            cadence=RebalanceCadence.MONTHLY,
+            trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+            misfire_policy=RebalanceMisfirePolicy.SKIP_OCCURRENCE,
+        ),
+    )
+
+    assert portfolio_composition_from_wire(portfolio_composition_to_wire(portfolio)) == portfolio
 
 
 def test_target_fraction_is_allocated_then_translated_to_a_lot_sized_market_order() -> None:

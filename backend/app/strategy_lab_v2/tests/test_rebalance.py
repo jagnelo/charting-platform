@@ -11,12 +11,14 @@ from app.strategy_lab_v2.rebalance import (
     CalendarDayStatus,
     CalendarRebalancePolicy,
     RebalanceCadence,
+    RebalanceExecutionPlan,
     RebalanceMisfirePolicy,
     RebalanceSelection,
     RebalanceTrigger,
     SessionCalendarSnapshot,
     SessionSegment,
     TradingSession,
+    compile_rebalance_execution_plan,
     schedule_rebalances,
     schedule_rebalances_for_interval,
 )
@@ -209,6 +211,33 @@ def test_interval_schedule_rejects_naive_or_empty_interval() -> None:
             interval_start=datetime(2024, 1, 3, tzinfo=UTC),
             interval_end=datetime(2024, 1, 2, tzinfo=UTC),
         )
+
+
+def test_compiled_rebalance_plan_binds_calendar_policy_and_occurrences() -> None:
+    calendar = _calendar(
+        date(2024, 1, 1),
+        date(2024, 1, 31),
+        {date(2024, 1, 2): _trading_day(date(2024, 1, 2))},
+    )
+    policy = _policy(
+        calendar,
+        RebalanceCadence.MONTHLY,
+        RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+    )
+    plan = compile_rebalance_execution_plan(
+        calendar,
+        policy,
+        from_session_label=date(2024, 1, 1),
+        through_session_label=date(2024, 1, 31),
+        interval_start=datetime(2024, 1, 2, 14, 30, tzinfo=UTC),
+        interval_end=datetime(2024, 1, 3, tzinfo=UTC),
+    )
+
+    assert isinstance(plan, RebalanceExecutionPlan)
+    assert plan.policy_fingerprint == policy.fingerprint
+    assert plan.calendar_fingerprint == calendar.fingerprint
+    assert len(plan.occurrences) == 1
+    assert plan.fingerprint == content_digest(plan)
 
 
 def test_monthly_last_session_uses_early_close_and_close_after_all_segments() -> None:

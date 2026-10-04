@@ -262,6 +262,47 @@ class ScheduledRebalance:
         _nonempty(self.cadence_period, "cadence_period")
 
 
+REBALANCE_EXECUTION_PLAN_VERSION = "strategy-lab.rebalance-execution-plan.v1"
+
+
+@dataclass(frozen=True, slots=True)
+class RebalanceExecutionPlan:
+    """Calendar- and policy-bound occurrences frozen for one trial interval."""
+
+    policy_fingerprint: str
+    calendar_fingerprint: str
+    occurrences: tuple[ScheduledRebalance, ...]
+    definition_version: str = REBALANCE_EXECUTION_PLAN_VERSION
+
+    def __post_init__(self) -> None:
+        if self.definition_version != REBALANCE_EXECUTION_PLAN_VERSION:
+            raise ValueError("unsupported rebalance execution-plan version")
+        require_sha256_digest(self.policy_fingerprint, field_name="policy_fingerprint")
+        require_sha256_digest(self.calendar_fingerprint, field_name="calendar_fingerprint")
+        occurrences = tuple(self.occurrences)
+        if any(not isinstance(item, ScheduledRebalance) for item in occurrences):
+            raise TypeError("occurrences must contain ScheduledRebalance values")
+        if any(
+            item.policy_fingerprint != self.policy_fingerprint
+            or item.calendar_fingerprint != self.calendar_fingerprint
+            for item in occurrences
+        ):
+            raise ValueError("rebalance occurrences differ from their frozen plan identity")
+        if tuple(sorted(occurrences, key=lambda item: item.event_time)) != occurrences:
+            raise ValueError("rebalance occurrences must be ordered by event time")
+        occurrence_ids = [item.occurrence_id for item in occurrences]
+        event_times = [item.event_time for item in occurrences]
+        if len(occurrence_ids) != len(set(occurrence_ids)):
+            raise ValueError("rebalance occurrence ids must be unique")
+        if len(event_times) != len(set(event_times)):
+            raise ValueError("rebalance occurrences must not share an event boundary")
+        object.__setattr__(self, "occurrences", occurrences)
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
 def calendar_period_key(value: date, cadence: RebalanceCadence) -> str:
     if cadence is RebalanceCadence.EACH_SESSION:
         return f"session:{value.isoformat()}"
@@ -453,4 +494,30 @@ def schedule_rebalances_for_interval(
             through_session_label=through_session_label,
         )
         if normalized_start <= occurrence.event_time < normalized_end
+    )
+
+
+def compile_rebalance_execution_plan(
+    calendar: SessionCalendarSnapshot,
+    policy: CalendarRebalancePolicy,
+    *,
+    from_session_label: date,
+    through_session_label: date,
+    interval_start: datetime,
+    interval_end: datetime,
+) -> RebalanceExecutionPlan:
+    """Freeze exact calendar occurrences and both source identities together."""
+
+    occurrences = schedule_rebalances_for_interval(
+        calendar,
+        policy,
+        from_session_label=from_session_label,
+        through_session_label=through_session_label,
+        interval_start=interval_start,
+        interval_end=interval_end,
+    )
+    return RebalanceExecutionPlan(
+        policy_fingerprint=policy.fingerprint,
+        calendar_fingerprint=calendar.fingerprint,
+        occurrences=occurrences,
     )

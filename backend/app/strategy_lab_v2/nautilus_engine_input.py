@@ -31,8 +31,16 @@ from app.strategy_lab_v2.nautilus_strategy_binding import (
     component_strategy_binding_to_wire,
     component_strategy_bindings_from_wire,
 )
+from app.strategy_lab_v2.rebalance import (
+    CalendarRebalancePolicy,
+    RebalanceCadence,
+    RebalanceExecutionPlan,
+    RebalanceMisfirePolicy,
+    RebalanceSelection,
+    RebalanceTrigger,
+)
 
-NAUTILUS_ENGINE_INPUT_VERSION = "strategy-lab.nautilus-engine-input.v4"
+NAUTILUS_ENGINE_INPUT_VERSION = "strategy-lab.nautilus-engine-input.v5"
 
 
 def _nonempty(value: str, field_name: str) -> None:
@@ -189,6 +197,7 @@ class NautilusEngineInput:
     strategy_bindings: tuple[NautilusComponentStrategyBinding, ...] = ()
     evaluation_window: EvaluationWindow | None = None
     input_version: str = NAUTILUS_ENGINE_INPUT_VERSION
+    rebalance_plan: RebalanceExecutionPlan | None = None
 
     def __post_init__(self) -> None:
         for name in ("trial_id", "attempt_id", "entrypoint"):
@@ -209,8 +218,17 @@ class NautilusEngineInput:
             raise TypeError("evaluation_window must use EvaluationWindow")
         if self.portfolio.base_currency != self.venue.base_currency:
             raise ValueError("portfolio and venue base currencies must match")
-        if self.portfolio.rebalance_policy is not None:
-            raise ValueError("calendar rebalancing is not represented by the current engine input")
+        policy = self.portfolio.rebalance_policy
+        if policy is None:
+            if self.rebalance_plan is not None:
+                raise ValueError("rebalance plan requires a portfolio calendar policy")
+        elif not isinstance(self.rebalance_plan, RebalanceExecutionPlan):
+            raise ValueError("calendar rebalance policy requires a frozen execution plan")
+        elif (
+            self.rebalance_plan.policy_fingerprint != policy.fingerprint
+            or self.rebalance_plan.calendar_fingerprint != policy.calendar_fingerprint
+        ):
+            raise ValueError("rebalance execution plan differs from the portfolio policy")
         instruments = tuple(self.instruments)
         if not instruments or any(
             not isinstance(item, NautilusInstrumentDefinition) for item in instruments
@@ -315,6 +333,7 @@ def build_nautilus_engine_input(
     random_seed: int,
     strategy_bindings: Sequence[NautilusComponentStrategyBinding] | None = None,
     evaluation_window: EvaluationWindow | None = None,
+    rebalance_plan: RebalanceExecutionPlan | None = None,
 ) -> NautilusEngineInput:
     """Construct and validate the complete engine-input boundary."""
 
@@ -333,6 +352,7 @@ def build_nautilus_engine_input(
         random_seed=random_seed,
         strategy_bindings=tuple(strategy_bindings or ()),
         evaluation_window=evaluation_window,
+        rebalance_plan=rebalance_plan,
     )
 
 
@@ -366,9 +386,8 @@ def portfolio_composition_to_wire(portfolio: PortfolioComposition) -> dict[str, 
 
     if not isinstance(portfolio, PortfolioComposition):
         raise TypeError("portfolio must be a PortfolioComposition")
-    if portfolio.rebalance_policy is not None:
-        raise ValueError("calendar rebalancing is not represented by the current engine input")
     policy = portfolio.shared_risk_policy
+    rebalance_policy = portfolio.rebalance_policy
     return {
         "fingerprint": portfolio.fingerprint,
         "portfolio_id": portfolio.portfolio_id,
@@ -408,7 +427,19 @@ def portfolio_composition_to_wire(portfolio: PortfolioComposition) -> dict[str, 
             ],
             "definition_version": policy.definition_version,
         },
-        "rebalance_policy": None,
+        "rebalance_policy": (
+            None
+            if rebalance_policy is None
+            else {
+                "calendar_id": rebalance_policy.calendar_id,
+                "calendar_fingerprint": rebalance_policy.calendar_fingerprint,
+                "cadence": rebalance_policy.cadence.value,
+                "trigger": rebalance_policy.trigger.value,
+                "selection": rebalance_policy.selection.value,
+                "misfire_policy": rebalance_policy.misfire_policy.value,
+                "definition_version": rebalance_policy.definition_version,
+            }
+        ),
     }
 
 
@@ -428,8 +459,36 @@ def portfolio_composition_from_wire(value: object) -> PortfolioComposition:
         "rebalance_policy",
     }:
         raise ValueError("portfolio execution policy fields are invalid")
-    if value["rebalance_policy"] is not None:
-        raise ValueError("calendar rebalancing is not represented by the current engine input")
+    rebalance_policy_wire = value["rebalance_policy"]
+    rebalance_policy = None
+    if rebalance_policy_wire is not None:
+        if not isinstance(rebalance_policy_wire, Mapping) or set(rebalance_policy_wire) != {
+            "calendar_id",
+            "calendar_fingerprint",
+            "cadence",
+            "trigger",
+            "selection",
+            "misfire_policy",
+            "definition_version",
+        }:
+            raise ValueError("calendar rebalance policy fields are invalid")
+        rebalance_policy = CalendarRebalancePolicy(
+            calendar_id=_wire_text(rebalance_policy_wire["calendar_id"], "calendar_id"),
+            calendar_fingerprint=_wire_text(
+                rebalance_policy_wire["calendar_fingerprint"], "calendar_fingerprint"
+            ),
+            cadence=RebalanceCadence(_wire_text(rebalance_policy_wire["cadence"], "cadence")),
+            trigger=RebalanceTrigger(_wire_text(rebalance_policy_wire["trigger"], "trigger")),
+            selection=RebalanceSelection(
+                _wire_text(rebalance_policy_wire["selection"], "selection")
+            ),
+            misfire_policy=RebalanceMisfirePolicy(
+                _wire_text(rebalance_policy_wire["misfire_policy"], "misfire_policy")
+            ),
+            definition_version=_wire_text(
+                rebalance_policy_wire["definition_version"], "definition_version"
+            ),
+        )
     components_wire = value["components"]
     if not isinstance(components_wire, list):
         raise ValueError("portfolio components must be a list")
@@ -507,6 +566,7 @@ def portfolio_composition_from_wire(value: object) -> PortfolioComposition:
         initial_capital=_wire_decimal(value["initial_capital"], "initial_capital"),
         base_currency=_wire_text(value["base_currency"], "base_currency"),
         components=tuple(components),
+        rebalance_policy=rebalance_policy,
         shared_risk_policy=SharedRiskPolicy(
             max_gross_exposure_fraction=_wire_decimal(
                 policy_wire["max_gross_exposure_fraction"], "max_gross_exposure_fraction"

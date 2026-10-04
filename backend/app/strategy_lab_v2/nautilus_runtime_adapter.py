@@ -36,6 +36,7 @@ from app.strategy_lab_v2.nautilus_native_reports import (
     NautilusNativeReportsWriter,
 )
 from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_from_wire
+from app.strategy_lab_v2.nautilus_rebalance_wire import rebalance_execution_plan_from_wire
 from app.strategy_lab_v2.nautilus_runtime_data import (
     NautilusRuntimeDataError,
     materialize_native_event,
@@ -67,6 +68,7 @@ _ENGINE_INPUT_FIELDS = frozenset(
         "parameters",
         "random_seed",
         "evaluation_window",
+        "rebalance_plan",
         "strategy_bindings",
         "input_version",
     }
@@ -154,9 +156,26 @@ def _validate_engine_input(
     venue = _mapping(item["venue"], "venue definition")
     try:
         portfolio = portfolio_composition_from_wire(item["portfolio"])
+        rebalance_plan = rebalance_execution_plan_from_wire(item["rebalance_plan"])
     except (TypeError, ValueError) as error:
-        raise NautilusRuntimeDataError("engine input portfolio policy is invalid") from error
-    if item["input_version"] != "strategy-lab.nautilus-engine-input.v4":
+        raise NautilusRuntimeDataError(
+            "engine input portfolio or rebalance plan is invalid"
+        ) from error
+    rebalance_policy = portfolio.rebalance_policy
+    if (rebalance_policy is None) != (rebalance_plan is None):
+        raise NautilusRuntimeDataError(
+            "engine input rebalance plan does not match portfolio policy"
+        )
+    if (
+        rebalance_policy is not None
+        and rebalance_plan is not None
+        and (
+            rebalance_plan.policy_fingerprint != rebalance_policy.fingerprint
+            or rebalance_plan.calendar_fingerprint != rebalance_policy.calendar_fingerprint
+        )
+    ):
+        raise NautilusRuntimeDataError("engine input rebalance plan identity is mismatched")
+    if item["input_version"] != "strategy-lab.nautilus-engine-input.v5":
         raise NautilusRuntimeDataError("engine input version is unsupported")
     evaluation_window = _evaluation_window(item["evaluation_window"])
     try:

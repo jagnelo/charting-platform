@@ -39,6 +39,7 @@ from app.strategy_lab_v2.nautilus_native_event_stream import (
     serialize_nautilus_native_event_stream,
 )
 from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_to_wire
+from app.strategy_lab_v2.nautilus_rebalance_wire import rebalance_execution_plan_to_wire
 from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_COMPONENT_CONTEXT_STREAM_MEDIA_TYPE,
     NAUTILUS_COMPONENT_CONTEXT_STREAM_SCHEMA,
@@ -1157,6 +1158,7 @@ def build_nautilus_runtime_bundle(
             "parameters": _wire_value(engine_input.parameters),
             "random_seed": engine_input.random_seed,
             "evaluation_window": evaluation_window_to_wire(engine_input.evaluation_window),
+            "rebalance_plan": rebalance_execution_plan_to_wire(engine_input.rebalance_plan),
             "strategy_bindings": [
                 component_strategy_binding_to_wire(binding)
                 for binding in engine_input.strategy_bindings
