@@ -2,6 +2,48 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Currency-separated native OOS position metrics
+
+Official Nautilus OOS results now include closed-position win/loss/break-even
+counts and rates per native P&L currency, gross winning P&L, gross losing-P&L
+magnitude, and per-currency position profit factor. These supplement the
+existing sign-only cross-currency quality rates and per-currency net P&L; no
+amounts are combined or FX-converted. Currency-level results fail closed when
+any OOS-closed position has missing realized P&L or close-time coverage, and a
+profit factor without any losing position is explicitly null rather than
+misstated as zero or infinity. Every native report metric now records the
+34-digit ROUND_HALF_EVEN arithmetic context. The metric definition version is
+bumped to v8 so changed formulas cannot collide with v7 result identities.
+
+Implementation commit: `fde37514c4a0c09db17b322d98d220e7a02eef59`.
+
+Validation: all 1,216 Strategy Lab v2 tests passed; package Ruff, format checks
+for four changed Python files, MyPy across 350 package/runtime sources, and
+`git diff --check` passed. The only `metrics.py` change is the one-line catalog
+version bump; unrelated formatter reflows in that pre-existing file were
+preserved. The exact-tip Docker probe could not be reached from this session:
+`docker info` returned permission denied for `/var/run/docker.sock`. This blocks
+only image-backed and full Compose/browser acceptance, not local implementation.
+Stable Nautilus 2.x remains unnecessary; exact-pinned RC5 is eligible for local
+backtests after its four checks, while forward parity and real-capital/broker
+prohibitions remain unchanged.
+
+Changed paths:
+
+- `backend/app/strategy_lab_v2/metrics.py`
+- `backend/app/strategy_lab_v2/nautilus_result_metrics.py`
+- `backend/app/strategy_lab_v2/tests/test_core.py`
+- `backend/app/strategy_lab_v2/tests/test_nautilus_result_metrics.py`
+- `backend/app/strategy_lab_v2/tests/test_observations.py`
+- `docs/strategy-lab-v2.md`
+- `ops/workstreams/feat-strategy-lab-v2/handoff.md`
+- `ops/workstreams/feat-strategy-lab-v2/session.json`
+- `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
+
+Next: continue the remaining API, worker, and forward acceptance gaps without
+inventing provider, lease, capability, or conformance inputs; finish the
+exact-tip Docker/Compose/browser profile when Docker API access is available.
+
 ## 2026-10-04 - Native OOS position realized-P&L quality metrics
 
 Official Nautilus OOS metric sets now include position-level realized-P&L

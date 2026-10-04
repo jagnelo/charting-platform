@@ -87,13 +87,13 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
-    "available": true,
+    "available": false,
     "build_cache_bytes": null,
     "container_count": 0,
     "containers": [],
@@ -113,7 +113,7 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "docker_ready": {
-    "ready": true,
+    "ready": false,
     "started_desktop": false,
     "wait_seconds": 0
   },
@@ -126,12 +126,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ded3714158d5428508241ac380d945f4f835c723",
-  "implementation_sha": "485b7ce7c42b6cc84e96658c57a271c8758fa058",
+  "head": "fde37514c4a0c09db17b322d98d220e7a02eef59",
+  "implementation_sha": "fde37514c4a0c09db17b322d98d220e7a02eef59",
   "last_checkpoint": "2026-10-04T07:20:58.403141+00:00",
-  "last_human_progress_update": "2026-10-04T07:18:27.714137+00:00",
+  "last_human_progress_update": "2026-10-04T07:42:31+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue remaining backend API, worker, and forward acceptance gaps; then run full-stack/browser validation at the exact branch tip",
+  "next_action": "Continue package-owned API, worker, and forward acceptance while preserving fail-closed host inputs; run the exact RC5 image and full-stack/browser validation when Docker API access is available.",
   "parent_branch": "staging",
   "plan_hash": "57ffdec75c2e4ef3259ac995c7e23d839fb47b9105cbb7afc39e85f264daf8a7",
   "planning_required": false,
@@ -148,11 +148,11 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "No external dependency blocks package-owned implementation. Provider contracts require authorized staging integration before shared-path consumption; missing SSH identity blocks remote publishing only.",
-    "current_phase": "native-oos-position-realized-trade-quality",
-    "next_action": "Continue remaining backend API, worker, and forward acceptance gaps; then run full-stack/browser validation at the exact branch tip",
+    "current_blocker": "Docker API access is denied at /var/run/docker.sock in this session, blocking only exact-tip image/Compose/browser acceptance; package-owned implementation can continue. Provider, ETF, and TC2000 paths remain gated until their authorized work reaches staging.",
+    "current_phase": "native-oos-position-currency-quality-metrics-v8",
+    "next_action": "Continue package-owned API, worker, and forward acceptance while preserving fail-closed authoritative host inputs. Run exact-pinned RC5 image and full-stack/browser validation when Docker API access is available.",
     "total": 18,
-    "updated_at": "2026-10-04T07:18:27.714117+00:00"
+    "updated_at": "2026-10-04T07:45:18+00:00"
   },
   "remote": "1e3a861454f3c77bdac5efbb6957103f56f13238",
   "remote_sha": "1e3a861454f3c77bdac5efbb6957103f56f13238",
