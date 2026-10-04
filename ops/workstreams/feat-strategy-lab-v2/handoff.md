@@ -8403,6 +8403,56 @@ Changed source paths: `backend/app/strategy_lab_v2/application.py`,
 `ops/workstreams/feat-strategy-lab-v2/session.json`, and
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
 
+## 2026-10-04 - Backtest-scoped Nautilus conformance binding
+
+Committed and pushed `fa0cb4c3d5bf6a7869e1be05d4866d298c384237` and
+`5d2a93797ea8240682e0cf5120379628fd99588e`. The first adds a typed binding
+from a verified Nautilus conformance resolution to authoritative local
+backtests only when the exact isolated v2 release pin and all four simulator
+checks pass. The binding still requires the trusted host to declare product,
+execution-model, and account-model support; it does not infer those from the
+fixtures. The second composes that binding, conformance report/evidence, and
+worker runtime through `NautilusTrialPreparationContext`, requiring the
+runtime image digest to equal the release pin before search dispatch can be
+prepared. RC authority is explicitly limited to `BACKTEST_AUTHORITATIVE`;
+forward/full scopes retain their independent gates.
+
+The full Strategy Lab package suite passed 1,234 tests at `5d2a937`; Ruff,
+formatting, MyPy across 346 sources, and `git diff --check` passed. The
+combined backend coverage gate passed 2,885 tests at 83.42% (above the 75%
+threshold). The repository cleanup completed with no assigned containers,
+images, or retained volumes. A separate read-only, network-disabled container
+run of local image digest `sha256:e39663e985471102fc735f87e43e720421deb8ed23cdd7896c6c2f49a88fd6fd`
+passed the RC5 engine fixtures; the output correctly retains
+`authoritative: false` for overall conformance and defers forward event-tape
+parity. That existing local image has no source-build label, so this run is
+runtime evidence only and is not claimed as a reproducible image-build gate.
+
+Stable Nautilus 2.x is not a dependency. The remaining concrete integration
+gap is a production local host factory that loads exact conformance evidence
+from an operator-controlled pinned source and supplies canonical provider
+coverage/market metadata to isolated search preparation. Keep those data
+capabilities unsupported until the provider-platform contract reaches its
+approved staging boundary; do not invent support. The preparation context
+contract now binds the RC evidence safely, but the dedicated local preparation
+service/client and production factory are not yet registered. Docker Buildx
+still limits only the full Compose/browser profile.
+
+Next: add the local pinned conformance-evidence source and dedicated
+preparation-process/client composition, while preserving a fail-closed
+capability result until canonical provider coverage and instrument metadata are
+available. Then continue through remaining worker, data, portfolio, metrics,
+and forward acceptance; do not narrow the goal to this gate.
+
+Changed source paths: `backend/app/strategy_lab_v2/conformance_fixtures.py`,
+`backend/app/strategy_lab_v2/tests/test_conformance_fixtures.py`,
+`backend/app/strategy_lab_v2/search_dispatch_preparation.py`, and
+`backend/app/strategy_lab_v2/tests/test_search_dispatch_preparation.py`.
+Changed workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
 The branch session checkpoint passed under the existing claim. Its resource
 snapshot was complete and empty (no owned containers, volumes, or active
 Testcontainers sessions). The helper's dirty-path formatter dropped the first

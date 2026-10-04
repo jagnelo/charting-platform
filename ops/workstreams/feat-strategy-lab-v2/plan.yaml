@@ -808,34 +808,35 @@ progress:
     - strategy-lab-v2-trial-bound-runtime-evidence-and-worker-lineage
     - strategy-lab-v2-host-composed-nautilus-backtest-dispatch
     - strategy-lab-v2-production-search-dispatch-evidence-preparation
+    - nautilus-backtest-scoped-conformance-context-binding-v1
   total: 18
-  current_phase: trusted-api-host-binding-registration-v1
+  current_phase: local-host-conformance-source-and-preparation-service-v1
   current_blocker: >-
-    Stable Nautilus 2.x is not a release blocker: exact-pinned stable or
-    pre-release v2 builds are eligible for authoritative local backtests after
-    scope-specific conformance. Pre-releases remain barred from broker
-    connections and real-capital control; forward shadow separately requires
-    event-tape parity. The registered PostgreSQL API now loads a typed local
-    module:factory binding for asynchronous capability-preflight and search
-    dispatch resolvers, sharing its persistence bundle and preserving the
-    fail-closed 501 when no host binding is configured. A concrete production
-    factory is still needed to supply canonical provider coverage cells, exact
-    Nautilus release/conformance evidence, and the isolated search-preparation
-    context; no client-supplied or inferred evidence may fill those gaps.
-    Provider/ETF/TC2000 contracts remain owned by their workstreams and are
-    consumed only at approved staging boundaries. Docker Engine and Compose
-    are reachable, but the host has no Docker Buildx CLI plugin. This blocks
-    exact-tip Compose/browser validation only. At commit
-    ce14d39e4bc8d00387ea1466e6437f7ab713d1ff, the combined backend coverage
-    gate passed 2,880 tests at 83.41%. The current follow-up factory-safety tip
-    passes all 1,231 Strategy Lab tests; the combined backend coverage gate has
-    not been rerun at this tip.
+    Stable Nautilus 2.x is not a release blocker. Exact-pinned pre-release v2
+    can authorize local backtests after its exact image pin and all four
+    backtest conformance checks pass; pre-releases remain barred from broker
+    connections and real-capital control, and forward shadow retains its
+    separate event-tape parity gate. Commits fa0cb4c3d5bf6a7869e1be05d4866d298c384237
+    and 5d2a93797ea8240682e0cf5120379628fd99588e now create the backtest-scoped
+    execution binding and construct search-preparation context from one typed
+    conformance resolution, rejecting worker runtime image drift. Package
+    tests pass 1,234; the combined backend gate passes 2,885 at 83.42%. A local
+    RC5 image fixture also passed, but its image lacks source-build provenance
+    labels and is not claimed as a reproducible build gate. The production API
+    host still lacks a pinned local conformance-evidence source, a registered
+    preparation service/client, and canonical provider coverage/market
+    metadata. Keep preflight fail-closed for missing canonical data rather
+    than inferring capability. Provider/ETF/TC2000 contracts remain owned by
+    their workstreams and may be consumed only at approved staging boundaries.
+    Docker Buildx is absent; this limits the exact-tip Compose/browser profile
+    only, not backend implementation or focused/integration tests.
   next_action: >-
-    Implement the concrete local host composition for the capability service
-    and exact-pinned Nautilus binding using only canonical, trusted sources;
-    keep capability preflight unsupported until the provider-platform coverage
-    contract is available rather than synthesizing cells. Place search
-    preparation behind an isolated local service and async API proxy, then
-    continue remaining worker and forward acceptance. Run exact-tip
-    PostgreSQL/Redis/Compose/browser validation when Docker Buildx is available.
-    Do not wait for stable Nautilus 2.x.
+    Implement an operator-controlled, content-addressed source for exact local
+    Nautilus conformance evidence, then register a dedicated local
+    search-preparation process and async API client that constructs the
+    backtest context from that evidence. Do not run hydration/materialization
+    on FastAPI's event loop. Keep provider capability unsupported until the
+    canonical provider coverage and instrument metadata contracts are approved
+    at staging; in parallel continue independent worker, portfolio, metrics,
+    snapshot, and forward implementation. Run the Compose/browser profile when
+    a Buildx-capable Docker CLI is available. Never wait for a stable v2 tag.
