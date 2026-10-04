@@ -30,7 +30,12 @@ across 358 package sources; six changed Python files formatted; workstream
 validator and `git diff --check` clean; exact-source RC5 image build and all
 fixture probes passed. Implementation commit
 `c0eb70737c34ee4576c8591d7b84c42c58b26e16` is pushed, and local/remote refs
-matched at the verified checkpoint. The operational record commit is separate.
+matched at the verified checkpoint. The active-session/Docker checkpoint then
+passed at clean synchronized pre-record tip
+`855c5abeac8ae1025ec7aa179651a0409d7f4a6a`, with zero assigned containers,
+volumes, or Testcontainers sessions. This final operational record commit is
+separate; its exact enclosing SHA is verified externally with `git rev-parse`
+after publication.
 Owned paths:
 `backend/app/strategy_lab_v2/nautilus_runtime.py`,
 `nautilus_rc_fixture_probe.py`, `nautilus_runtime_adapter_probe.py`, and the

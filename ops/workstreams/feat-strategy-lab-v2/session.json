@@ -86,9 +86,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-strategy-lab-v2/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -124,9 +122,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "2de8583a084e79d89ec4c20dc648fe7742077119",
+  "head": "855c5abeac8ae1025ec7aa179651a0409d7f4a6a",
   "implementation_sha": "2de8583a084e79d89ec4c20dc648fe7742077119",
-  "last_checkpoint": "2026-10-04T14:15:40.250529+00:00",
+  "last_checkpoint": "2026-10-04T14:44:06.956598+00:00",
   "last_human_progress_update": "2026-10-04T14:42:26.755283+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
@@ -148,7 +146,7 @@
     "total": 18,
     "updated_at": "2026-10-04T14:42:26.755265+00:00"
   },
-  "remote": "2de8583a084e79d89ec4c20dc648fe7742077119",
+  "remote": "855c5abeac8ae1025ec7aa179651a0409d7f4a6a",
   "remote_sha": "2de8583a084e79d89ec4c20dc648fe7742077119",
   "remote_synchronized": true,
   "retained_docker_resources": [],
