@@ -4918,11 +4918,15 @@ test.describe('TC2000 workstation', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 99, stable_key: 'breadth-sp500', name: 'SPY breadth', versions: [{ id: 99, version_number: 1, output_contract: 'study' }] }) })
     })
     await page.route('**/api/v1/analysis/breadth', async route => {
-      if (route.request().method() === 'POST') customBreadthRequests.push(JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>)
+      const request = route.request().method() === 'POST'
+        ? JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>
+        : {}
+      if (route.request().method() === 'POST') customBreadthRequests.push(request)
+      const referenceUniverse = request.reference_universe as Record<string, unknown> | undefined
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ calculation_version: 'analysis-v1', data_provenance: 'canonical_local_database', refreshed_at: '2026-06-28T00:00:00Z', freshness: 'partial', freshness_detail: { bars_ready: 1, bars_missing: 1 }, definition_version: 1, definition_hash: 'family-breadth', universe: { kind: 'benchmark_family', family_key: 'sp500', role: 'equal_weight', proxy_symbol: 'RSP', membership_version: 42 }, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', as_of: '2026-06-27T00:00:00Z', requested_count: 2, eligible_count: 1, pass_count: 1, excluded_count: 1, percentage: 1, coverage: 0.5, members: [{ instrument_id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', value: true, metric: 0.12, observation_time: '2026-06-27T00:00:00Z', diagnostics: [{ path: '$', kind: 'all', status: 'pass', value: true, metric: 0.12 }, { path: '$.conditions[0]', kind: 'comparison', status: 'pass', value: true, metric: 0.12 }] }], exclusions: [{ code: 'missing_bars', message: 'One member has no aligned D1 bars.', instrument_id: 2 }] }),
+        body: JSON.stringify({ calculation_version: 'analysis-v1', data_provenance: 'canonical_local_database', refreshed_at: '2026-06-28T00:00:00Z', freshness: 'partial', freshness_detail: { bars_ready: 1, bars_missing: 1 }, definition_version: 1, definition_hash: 'family-breadth', universe: { kind: 'benchmark_family', family_key: 'sp500', role: 'equal_weight', proxy_symbol: 'RSP', membership_version: 42 }, condition: referenceUniverse ? { reference_universe: referenceUniverse, reference_target: { target: 'equal_weight_member_return_index', method: 'derived_equal_weight_return_index', universe: { kind: 'market_group', stable_key: 'sp500-sectors' }, membership_version: 55, member_count: 6, point_count: 4, covered_member_points: 20, mean_covered_members: 5, alignment: 'exact_timestamp_no_forward_fill' } } : {}, timeframe: 'D1', adjustment: 'split_adjusted', as_of: '2026-06-27T00:00:00Z', requested_count: 2, eligible_count: 1, pass_count: 1, excluded_count: 1, percentage: 1, coverage: 0.5, members: [{ instrument_id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', value: true, metric: 0.12, observation_time: '2026-06-27T00:00:00Z', diagnostics: [{ path: '$', kind: 'all', status: 'pass', value: true, metric: 0.12 }, { path: '$.conditions[0]', kind: 'comparison', status: 'pass', value: true, metric: 0.12 }] }], exclusions: [{ code: 'missing_bars', message: 'One member has no aligned D1 bars.', instrument_id: 2 }] }),
       })
     })
     await page.route('**/api/v1/analysis/breadth/history', async route => {
@@ -5352,7 +5356,16 @@ test.describe('TC2000 workstation', () => {
     expect(groupReferenceRequest?.benchmark).toBeUndefined()
     expect(groupReferenceRequest?.reference_universe).toMatchObject({ kind: 'group', key: 'sp500-sectors', point_in_time: true })
     expect(groupReferenceRequest?.condition).toMatchObject({ kind: 'series_comparison', params: { relation: 'ratio' } })
-    await breadth.getByLabel('Breadth reference target').selectOption('symbol')
+    const referenceEvidence = evidence.getByLabel('Generic breadth reference target evidence')
+    await expect(referenceEvidence).toContainText('Equal-weight group aggregate · sp500-sectors')
+    await expect(referenceEvidence).toContainText('Derived equal weight return index')
+    await expect(referenceEvidence).toContainText('version 55 · 6 members')
+    await expect(referenceEvidence).toContainText('83.3% average · 5.0/6 members per point')
+    await expect(referenceEvidence).toContainText('4 aligned points · 20 covered member-points')
+    await expect(referenceEvidence).toContainText('Exact timestamp · no forward fill')
+    await expect(evidence).toContainText('Input freshness')
+    await expect(evidence).toContainText('Run input freshness includes evaluated members and reference-universe members.')
+    await breadth.getByLabel('Breadth reference target', { exact: true }).selectOption('symbol')
     await breadth.locator('select[aria-label="Breadth condition composition"]').selectOption('any')
     const anyRequest = await evaluateCustomBreadth()
     expect(anyRequest?.condition).toMatchObject({ kind: 'any', params: { conditions: expect.any(Array) } })

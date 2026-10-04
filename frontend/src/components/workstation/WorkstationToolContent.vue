@@ -667,11 +667,25 @@
             <div><dt>Observations</dt><dd>{{ genericBreadthObservationLabel }}</dd></div>
             <div><dt>Sampling</dt><dd>{{ breadthTimeframeLabel }} · {{ breadthAdjusted ? 'split adjusted' : 'raw' }}</dd></div>
             <div><dt>Data source</dt><dd>{{ genericBreadthProvenanceLabel }}</dd></div>
-            <div><dt>Freshness</dt><dd>{{ genericBreadthFreshnessLabel }}</dd></div>
+            <div><dt>{{ genericBreadthReferenceTargetEvidence?.kind === 'aggregate' ? 'Input freshness' : 'Freshness' }}</dt><dd>{{ genericBreadthFreshnessLabel }}</dd></div>
             <div v-if="genericBreadthFreshnessBreakdown"><dt>Freshness details</dt><dd>{{ genericBreadthFreshnessBreakdown }}</dd></div>
             <div v-if="genericBreadth.calculation_version"><dt>Calculation</dt><dd>{{ genericBreadth.calculation_version }}</dd></div>
             <div><dt>Definition</dt><dd><code>{{ genericBreadth.definition_hash }}</code></dd></div>
           </dl>
+          <section v-if="genericBreadthReferenceTargetEvidence" aria-label="Generic breadth reference target evidence">
+            <strong>Reference-target lineage</strong>
+            <dl>
+              <div><dt>Target</dt><dd>{{ genericBreadthReferenceTargetEvidence.target }}</dd></div>
+              <template v-if="genericBreadthReferenceTargetEvidence.kind === 'aggregate'">
+                <div><dt>Derived method</dt><dd>{{ genericBreadthReferenceTargetEvidence.derivation ?? 'Not reported' }}</dd></div>
+                <div><dt>Membership</dt><dd>{{ genericBreadthReferenceTargetEvidence.membership ?? 'Not reported' }}</dd></div>
+                <div><dt>Mean member coverage</dt><dd>{{ genericBreadthReferenceTargetEvidence.coverage ?? 'Not reported' }}</dd></div>
+                <div><dt>Aligned series</dt><dd>{{ genericBreadthReferenceTargetEvidence.alignedSeries ?? 'Not reported' }}</dd></div>
+                <div><dt>Timestamp alignment</dt><dd>{{ genericBreadthReferenceTargetEvidence.alignment ?? 'Not reported' }}</dd></div>
+                <div><dt>Freshness scope</dt><dd>Run input freshness includes evaluated members and reference-universe members.</dd></div>
+              </template>
+            </dl>
+          </section>
           <section aria-label="Generic breadth excluded member reasons">
             <strong>Exclusions</strong>
             <ul v-if="genericBreadthExclusionReasons.length">
@@ -940,6 +954,7 @@ import { indicatorColumnFromPlot, indicatorOutputFromConfig, pythonColumnFromPlo
 import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
 import { benchmarkFamilyConstituentSourceId } from '@/lib/workstation/benchmarkFamilySources'
 import { buildBreadthStudyAssetPayload, type BreadthDefinition } from '@/lib/workstation/breadthDefinitions'
+import { breadthReferenceTargetEvidence } from '@/lib/workstation/breadthReferenceEvidence'
 import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type IndicatorType, type OHLCVBar, type Timeframe } from '@/types'
 
 const AsyncToolLoading = defineComponent({
@@ -2750,6 +2765,7 @@ const genericBreadthError = computed(() => {
 })
 const genericBreadthPercentage = computed(() => genericBreadth.value?.percentage == null ? 'Unavailable' : `${(genericBreadth.value.percentage * 100).toFixed(1)}%`)
 const genericBreadthCoverage = computed(() => genericBreadth.value == null ? 'Unavailable' : `${(genericBreadth.value.coverage * 100).toFixed(1)}%`)
+const genericBreadthReferenceTargetEvidence = computed(() => breadthReferenceTargetEvidence(genericBreadth.value?.condition))
 const breadthTimeframeLabel = computed(() => ({ D1: 'Daily', W1: 'Weekly', MN: 'Monthly' }[genericBreadth.value?.timeframe ?? ''] ?? genericBreadth.value?.timeframe ?? 'Unavailable'))
 const genericBreadthUniverseLabel = computed(() => {
   const universe = genericBreadth.value?.universe
