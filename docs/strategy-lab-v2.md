@@ -53,6 +53,37 @@ dispatch bindings should proxy to the isolated local preparation service and
 return its durable dispatch resolution rather than materializing a trial in
 the API process. An absent setting preserves the current typed 501 response.
 
+The local transport is versioned JSON over a shared Unix-domain socket, not a
+network listener. The API sends only its authenticated owner identity and
+dispatch coordinates; the preparation process performs owner-scoped hydration,
+loads the operator-pinned local Nautilus evidence, builds the immutable worker
+handoff, and commits the dispatch through the shared PostgreSQL adapters before
+returning a fingerprint-checked typed resolution. The service runs one
+preparation at a time in its own process, requires a shared 32-byte-or-longer
+local bearer token, and has no Docker socket or provider credentials. Transport
+errors are retryable and the existing idempotency key makes a retry safe.
+
+Compose includes this process only in the explicit `strategy-lab-v2` profile.
+To connect it, configure `STRATEGY_LAB_V2_API_BINDINGS` as
+`app.strategy_lab_v2.search_dispatch_rpc:build_api_bindings`, set the same
+absolute `STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH` and
+`STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN` for the API and preparation service,
+and provide `STRATEGY_LAB_V2_PREPARATION_BINDINGS_FACTORY=module:factory`.
+Generate the shared token locally (for example, `openssl rand -hex 32`) and
+keep it in the local environment file. The bindings factory is called with the
+shared `PostgresStrategyLabV2Persistence`, artifact root, and verified
+`NautilusRcConformanceResolution`. It returns only the provider-owned frozen
+series decoder, runtime ABI, and canonical market/runtime context resolver.
+The preparation service itself composes owner-scoped PostgreSQL hydration and
+worker-state reads, local artifact/package verification, runtime materialization,
+and the search-dispatch resolver; it also enforces that the context uses the
+operator-pinned RC evidence and exact worker-image digest. Start the
+`strategy-lab-v2-preparation` and `strategy-lab-v2-worker` profile services only
+after those local settings and the read-only evidence directory are present.
+The service never invents provider coverage or instrument metadata; those
+capabilities remain unsupported until their approved staging contract is
+available.
+
 Data acquisition and repair belong to the shared market-data platform. The
 resulting series are verified and frozen into a content-addressed snapshot
 before simulation; a simulator must not fetch market data. Each series binds an

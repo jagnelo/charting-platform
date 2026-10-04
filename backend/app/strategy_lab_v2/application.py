@@ -303,6 +303,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         search_dispatch: SearchDispatchResolver | None = None,
         search_dispatch_evidence: SearchDispatchEvidenceResolver | None = None,
         host_bindings_factory: StrategyLabV2ApiBindingsFactory | None = None,
+        persistence: PostgresStrategyLabV2Persistence | None = None,
     ) -> None:
         if not callable(session_factory):
             raise TypeError("session_factory must be callable")
@@ -329,7 +330,14 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                     "host bindings cannot be combined with explicit resolver arguments"
                 )
         self._clock = clock
-        self._persistence = PostgresStrategyLabV2Persistence.build(session_factory, clock=clock)
+        if persistence is not None and not isinstance(
+            persistence, PostgresStrategyLabV2Persistence
+        ):
+            raise TypeError("persistence must be a PostgresStrategyLabV2Persistence")
+        self._persistence = persistence or PostgresStrategyLabV2Persistence.build(
+            session_factory,
+            clock=clock,
+        )
         if host_bindings_factory is not None:
             bindings = host_bindings_factory(session_factory, self._persistence)
             if inspect.isawaitable(bindings):

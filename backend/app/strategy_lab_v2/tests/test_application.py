@@ -349,6 +349,15 @@ def test_application_adapter_composes_all_durable_api_adapters() -> None:
     assert isinstance(adapter._commands, PostgresCommandAdapter)
 
 
+def test_application_adapter_reuses_injected_persistence_bundle() -> None:
+    persistence = PostgresStrategyLabV2Persistence.build(lambda: object())
+
+    adapter = PostgresStrategyLabV2Adapter(lambda: object(), persistence=persistence)
+
+    assert adapter._persistence is persistence
+    assert adapter._search_dispatch_store is persistence.search_dispatch
+
+
 def test_application_adapter_composes_trusted_host_bindings_over_shared_persistence() -> None:
     def session_factory() -> object:
         return object()

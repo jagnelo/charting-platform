@@ -2,6 +2,150 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - PostgreSQL owner-hydrated preparation integration
+
+The real PostgreSQL/Testcontainers dispatch test now exercises the package-owned
+search-preparation composition end to end. It writes the immutable strategy,
+package, portfolio, snapshot, experiment, trial, and attempt resources through
+`PostgresStrategyLabV2Adapter`; composes `NautilusTrialDomainHydrator` with the
+PostgreSQL resource/worker-state readers, shared local artifact root, package
+resolver, frozen-series decoder, runtime materializer, and exact RC conformance
+binding; then sends the request through the authenticated Unix-socket service
+and PostgreSQL dispatch/outbox adapters. A foreign owner cannot hydrate the
+attempt, the context resolver receives the reconstructed persisted graph, and
+an exact retry replays the prior response without repeating preparation or
+creating duplicate admission/dispatch/payload/outbox rows.
+
+Validation at this worktree tip: the PostgreSQL integration passed (`1 passed in
+8.39s`) and the full Strategy Lab package suite passed (`1,261 passed in
+26.09s`). Ruff and formatting passed for all nine changed Python files; MyPy
+passed across 360 package/runtime sources; Compose configuration, all 30
+workstream records, and `git diff --check` passed. The package suite required
+scoped socket access because one unit test binds a Unix-domain socket. The
+combined PostgreSQL/Redis backend coverage gate was not rerun. Docker Buildx is
+still missing, so the full Compose/browser runtime profile remains outstanding.
+
+Stable Nautilus 2.x is not required: the branch-owned plan accepts exact-pinned
+stable or pre-release builds. The isolated `2.0.0rc5` build has passed the four
+local backtest checks and is bound only to authoritative offline backtests;
+broker/real-capital use is prohibited and forward shadow separately requires
+event-tape parity. The saved Codex goal text still contains stale “after stable
+v2 conformance” wording; follow this branch plan instead and do not wait for a
+stable tag. Provider canonical metadata and series decoding remain fail-closed
+until their approved contract reaches staging.
+
+Next: the calendar rebalance planner exists, but trial assembly and Nautilus
+engine input explicitly reject every rebalance policy. Implement and validate
+frozen-calendar-bound schedule semantics through those runtime boundaries,
+preserving calendar identity, exact session boundaries, and misfire behavior.
+Then continue portfolio, metric, snapshot, worker, and forward acceptance.
+
+Changed source/config/doc paths: `backend/app/strategy_lab_v2/application.py`,
+`backend/app/strategy_lab_v2/postgres_result_materialization.py`,
+`backend/app/strategy_lab_v2/search_dispatch_rpc.py`,
+`backend/app/strategy_lab_v2/search_preparation_composition.py`,
+`backend/app/strategy_lab_v2/search_preparation_service.py`,
+`backend/app/strategy_lab_v2/tests/test_application.py`,
+`backend/app/strategy_lab_v2/tests/test_search_dispatch_rpc.py`,
+`backend/app/strategy_lab_v2/tests/test_search_preparation_composition.py`,
+`backend/tests/integration/strategy_lab_v2/test_search_dispatch_rpc_postgres.py`,
+`docker-compose.yml`, and `docs/strategy-lab-v2.md`. Workstream records are
+also updated in this checkpoint.
+
+## 2026-10-04 - Locally composed search-preparation dependencies
+
+Replaced the preparation service's generic evidence-resolver factory with a
+narrow `SearchPreparationHostBindings` seam. The service now loads and verifies
+the operator-pinned local RC evidence itself, then composes the owner-scoped
+PostgreSQL hydrator and worker-state reader, shared content-addressed artifact
+store, strategy-package resolver, frozen-series materializer, and dispatch
+evidence resolver. The trusted host binding supplies only the runtime ABI,
+provider-owned frozen-series decoder, and canonical market/runtime context
+resolver. A context cannot substitute a different RC evidence/report, image
+digest, or runtime ABI. Provider series decoding and canonical product metadata
+remain fail-closed until the shared provider contract is approved in staging.
+
+Validation: all 1,260 Strategy Lab package tests passed, including the real
+Unix-socket round trip and new preparation-composition tests; Ruff passed, the
+changed-file format check passed, MyPy passed across 360 sources, root
+Compose configuration parsed, and `git diff --check` passed. This slice did not
+rerun PostgreSQL/Redis integration tests or database-backed dispatch/replay
+validation. Docker Buildx remains unavailable, limiting only the exact-tip
+Compose/browser runtime gate. The ordinary backend still declares Nautilus
+1.226.0; the Strategy Lab simulator is deliberately isolated in the pinned RC5
+runtime image, so the legacy/API dependency is not its execution authority and
+must remain separate during worker integration.
+
+Next: add database-backed search dispatch/replay validation. Then continue the
+remaining portfolio, snapshot/provider, metric, worker, and forward acceptance;
+consume provider-owned series and canonical metadata only after the approved
+shared contract reaches staging. Do not wait for stable Nautilus 2.x.
+
+Changed paths: `backend/app/strategy_lab_v2/search_preparation_composition.py`,
+`backend/app/strategy_lab_v2/search_preparation_service.py`,
+`backend/app/strategy_lab_v2/tests/test_search_preparation_composition.py`,
+`docker-compose.yml`, `docs/strategy-lab-v2.md`, and the branch workstream
+records.
+
+## 2026-10-04 - Isolated search-preparation RPC and Compose boundary
+
+Added the local search-dispatch RPC in `search_dispatch_rpc.py` and the
+single-process ASGI service in `search_preparation_service.py`. The public API
+sends only a fingerprinted owner identity, experiment/attempt coordinates, and
+idempotent dispatch intent through a Unix-domain socket protected by a shared
+local bearer token. The preparation process performs owner-scoped hydration,
+runtime materialization, and atomic PostgreSQL/outbox dispatch; its result is
+decoded through the canonical allowlist and checked against a typed content
+fingerprint before the API returns it. Malformed/duplicate fields fail closed,
+service failures become typed retryable or terminal API errors, and the service
+serializes preparation in its own process. A real temporary Unix-socket test
+exercised request authentication, exact owner propagation, resolution round
+trip, and socket permissions.
+
+`PostgresStrategyLabV2Adapter` can now reuse an injected shared persistence
+bundle, allowing the preparation process's evidence resolver and dispatch
+adapter to use the same application-owned PostgreSQL graph. The opt-in
+`strategy-lab-v2-preparation` Compose service has a read-only root, bounded
+resources, no Docker socket/provider credentials, an internal-only PostgreSQL
+network, the shared content-addressed artifact volume, a read-only pinned RC
+evidence mount, and a shared Unix-socket volume. The API-side host factory is
+explicitly selected with
+`STRATEGY_LAB_V2_API_BINDINGS=app.strategy_lab_v2.search_dispatch_rpc:build_api_bindings`.
+The preparation service requires an operator-selected
+`STRATEGY_LAB_V2_PREPARATION_EVIDENCE_FACTORY=module:factory` which returns the
+trusted typed evidence resolver; its context must consume the existing exact
+RC evidence source and must not claim provider support absent staging-approved
+coverage/market metadata. The new factory seam does not itself imply that this
+operator context has been configured or that search dispatch is production
+active.
+
+Validation: 1,255 Strategy Lab package tests pass; Ruff passes; MyPy passes for
+352 package/runtime sources; the real local Unix-socket RPC test passes; root
+Compose configuration parses successfully; and `git diff --check` is clean.
+Buildx is not installed, so the final Compose image/browser runtime profile was
+not run. The combined backend PostgreSQL/Redis coverage gate was not rerun for
+this slice (its prior 2,885-test/83.42% pass remains at `5d2a937`). No provider,
+ETF, or TC2000 worktree was accessed. Exact-pinned RC5 remains eligible for
+isolated backtests after its four scoped checks, with forward parity separate
+and no broker/real-capital authority.
+
+Changed source/config/docs paths: `backend/app/strategy_lab_v2/application.py`,
+`backend/app/strategy_lab_v2/postgres_result_materialization.py`,
+`backend/app/strategy_lab_v2/search_dispatch_rpc.py`,
+`backend/app/strategy_lab_v2/search_preparation_service.py`,
+`backend/app/strategy_lab_v2/tests/test_application.py`,
+`backend/app/strategy_lab_v2/tests/test_search_dispatch_rpc.py`,
+`docker-compose.yml`, and `docs/strategy-lab-v2.md`. Updated branch records:
+`ops/workstreams/feat-strategy-lab-v2/plan.yaml`, `handoff.md`,
+`validation.jsonl`, and `session.json`.
+
+Next: replace the explicit evidence-factory placeholder with reusable local
+composition of the existing PostgreSQL hydrator/worker-state adapters, local
+artifact/package resolvers, and operator-pinned RC evidence source; keep
+canonical market-context support fail-closed pending the provider workstream's
+staging contract. Then add real database-backed dispatch/replay validation and
+continue portfolio, metrics, snapshot, worker, and forward acceptance.
+
 ## 2026-10-04 - Reproducible local Nautilus RC evidence build and host binding
 
 Stable Nautilus 2.x remains unnecessary. Added
