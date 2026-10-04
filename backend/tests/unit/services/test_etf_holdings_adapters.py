@@ -29250,6 +29250,4 @@ def test_north_square_q3_recheck_keeps_symbols_unavailable_without_complete_down
         assert audit.outcome == "unavailable"
         assert audit.evidence_state == "non_executable_public_source"
         assert audit.investigated_at == date(2026, 10, 4)
-        assert "web:north-square-filepoint-etf-reports-no-q3-2026-10-04" in (
-            audit.evidence_refs
-        )
+        assert "web:north-square-filepoint-etf-reports-no-q3-2026-10-04" in (audit.evidence_refs)

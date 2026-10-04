@@ -422,7 +422,7 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: north_square_q3_publication_recheck_full_adapter_suite_passed_final_gates_open
+current_phase: full_integration_rerun_reached_browser_gate_one_out_of_scope_interaction_failure
 current_blocker: >-
   The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The
   ETF-only recovery and source-review changeset was committed as
@@ -480,15 +480,36 @@ current_blocker: >-
   stack-up; no cross-worktree registry mutation, stack startup, or cleanup was
   performed. This environment restriction is separate from the previously
   completed gate's 93/104 generic visual mismatch and leaves AC7 open.
+  A later retry used the repository's normal full gate with an Ubuntu
+  `docker-buildx` package extracted only into a temporary `/tmp` Docker CLI
+  config; no privileged/system package installation or password use occurred.
+  The gate passed workstream/dependency/migration checks, Ruff/format/type-check,
+  backend coverage (1,877 passed; 81.13%), frontend tests (945 passed; 82.08%),
+  production build, Compose contracts, branch-scoped stack build/health, and
+  research-runner security/resource probes. Provider probes were skipped because
+  there were no provider-related changes. Playwright ran 260 cases and recorded
+  one failure: `F9c-template-comparison` timed out clicking `Remove RSP` because
+  the general chart `Plots 0` control intercepted the pointer. This is outside
+  ETF-owned paths. The gate exited at `e2e-functional`; the separate visual and
+  trailing branch-test stages did not run. Scoped cleanup removed the ETF
+  containers, volumes, network, images, and uniquely named Buildx builder; no
+  other worktree resources or host-wide cache were touched. AC7 and AC8 remain
+  open. The GitHub status and workflow-run lookups for synchronized SHA
+  `f78b37999419dd5e957b6082491d9122519416e8` returned empty lists, so exact-SHA
+  CI is not claimed. The provider-platform branch remains 1,856 commits ahead
+  of staging at staging SHA `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; AC10
+  remains dependency-gated and AC14 remains post-integration/deployment.
 next_action: >-
-  The 2026-10-04 North Square Q3 publication check, provider-ledger date/evidence
-  repairs, regressions, full 593-test adapter suite, 113 capability/refresh
-  tests, and default live contract are recorded. Keep the goal active. AC7
-  remains open on the generic visual/exact-SHA gate, AC10 awaits the shared
-  provider-platform branch reaching staging before this branch implements its
-  bridge, and AC14 is the later 30-day post-integration/deployment shadow.
+  Keep the goal active; the branch has no ETF-specific browser failure. AC7 is
+  open because the full gate currently stops on the general chart-template
+  interaction failure `F9c-template-comparison`; do not hide it by weakening
+  the assertion, changing generic visual baselines, or making unrelated chart
+  UI changes in this ETF workstream. Exact-SHA CI for f78b37999419dd5e957b6082491d9122519416e8 is
+  not exposed by the connected status/workflow interfaces. AC10 awaits the
+  shared provider-platform branch reaching staging before this branch implements
+  its bridge; AC14 is the later 30-day post-integration/deployment shadow.
   Recheck North Square's FilePoint table later in October after the stated Q3
-  publication window and proceed only if a complete, current, identity-bound
-  executable file appears. Continue other independently actionable issuer
-  research or safe AC7 diagnosis within this worktree. Do not alter generic
-  visual tests or snapshots, staging, another worktree, or production.
+  publication window and promote only if a complete, current, identity-bound
+  executable file appears. Continue only safe, ETF-owned AC7 diagnosis in this
+  worktree. Do not alter generic visual tests or snapshots, staging, another
+  worktree, or production.

@@ -7475,3 +7475,35 @@ Docker gate therefore remains the 2026-10-04 run that passed functional
 Playwright and failed only at generic visual E2E with 93/104 unrelated
 screenshots. AC7 remains open until a full gate can run in an environment that
 permits the repository's runtime allocator and frontend tool subprocesses.
+
+## Full-integration rerun reached browser validation — 2026-10-04
+
+I repaired the local Docker CLI prerequisite for this run without changing the
+host package database: the Ubuntu `docker-buildx` binary was downloaded and
+placed under a temporary `/tmp` Docker CLI config. The supplied root password
+was not used or handled. With that config, the canonical gate passed
+workstream validation, dependency/lock/migration checks, Ruff and formatting,
+frontend type-check, backend coverage (1,877 passed; 81.13%), frontend tests
+(945 passed; 82.08%), production build, Compose contracts, all branch-scoped
+stack image builds and health checks, and research-runner sandbox/resource
+probes. Provider probes were correctly skipped because this checkpoint contains
+no provider-related changes.
+
+Playwright ran 260 cases and reported one failure, `F9c-template-comparison` in
+the general chart suite: the click on `Remove RSP` timed out because the chart
+plot-library `Plots 0` control intercepted pointer events. The failure is
+outside ETF-owned paths; no ETF E2E failure was reported. The integration target
+therefore stopped at `e2e-functional`, before its separate visual parity and
+branch-declared test stages. Its cleanup removed the ETF-specific containers,
+volumes, network, images, and Buildx builder; no unrelated worktree or host-wide
+Docker cleanup was performed.
+
+This gate result is recorded against worktree base
+`f78b37999419dd5e957b6082491d9122519416e8`, with only the mechanical Ruff
+formatting correction in `backend/tests/unit/services/test_etf_holdings_adapters.py`
+pending. GitHub returned no combined statuses and no PR-triggered workflow runs
+for that SHA, so exact-SHA CI is not claimed. AC7 remains open on the general
+chart interaction failure, and AC8 remains open. Read-only provider/staging
+comparison still shows the provider-platform branch 1,856 commits ahead of
+staging (`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`); AC10 remains dependency-
+gated and AC14 remains post-integration/deployment. The goal remains active.
