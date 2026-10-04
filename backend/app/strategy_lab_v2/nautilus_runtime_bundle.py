@@ -1138,6 +1138,12 @@ def build_nautilus_runtime_bundle(
                     "activation_ns": item.activation_ns,
                     "expiration_ns": item.expiration_ns,
                     "bar_type": item.bar_type,
+                    "asset_class": (None if item.asset_class is None else item.asset_class.value),
+                    "underlying": item.underlying,
+                    "option_kind": (None if item.option_kind is None else item.option_kind.value),
+                    "strike_price": (None if item.strike_price is None else str(item.strike_price)),
+                    "margin_init": None if item.margin_init is None else str(item.margin_init),
+                    "margin_maint": None if item.margin_maint is None else str(item.margin_maint),
                 }
                 for item in engine_input.instruments
             ],

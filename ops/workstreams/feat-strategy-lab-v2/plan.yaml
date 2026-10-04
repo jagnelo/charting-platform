@@ -816,8 +816,9 @@ progress:
     - strategy-lab-v2-postgres-search-preparation-rpc-v1
     - native-component-pnl-attribution-v1
     - nautilus-native-signed-fee-reconciliation-v1
-  total: 18
-  current_phase: native-signed-fee-reconciliation-v1
+    - nautilus-listed-derivative-instrument-materialization-v1
+  total: 19
+  current_phase: nautilus-listed-derivative-instrument-materialization-v1
   current_blocker: >-
     No external release or upstream dependency blocks package-owned work.
     Exact-pinned Nautilus 2.0.0rc5 passes the platform's local backtest checks,
@@ -830,10 +831,18 @@ progress:
     Provider/ETF/TC2000 contracts remain staging-gated only where shared-path
     consumption is needed. Broader metrics, remaining domain-backed mutation
     flows, workers, and forward-shadow acceptance are implementation work, not
-    external blockers.
+    external blockers. Version-7 native definitions can materialize listed
+    futures and vanilla options only when complete contract terms are supplied;
+    native order routing remains fail-closed until futures margin capacity and
+    event-time option-delta evidence are integrated.
   next_action: >-
-    Continue through remaining domain-backed mutation flows, comprehensive
-    versioned result metrics, worker recovery/scale acceptance, and persistent
-    forward-shadow correctness. Consume provider/ETF/TC2000-owned contracts only
-    after their approved branches reach staging. Run final Compose/browser
-    validation when Buildx is available; never wait for a stable Nautilus v2 tag.
+    Continue toward executable listed-futures support by deriving event-aligned
+    margin requirements and capacity from the pinned native margin account and
+    applying the existing margin-risk gate before order submission. Keep options
+    order admission fail-closed until canonical event-time Greeks/delta and
+    settlement evidence are available. Continue remaining domain-backed
+    mutation flows, comprehensive versioned result metrics, worker recovery and
+    scaling, and persistent forward-shadow correctness. Consume
+    provider/ETF/TC2000-owned contracts only after their approved branches reach
+    staging. Run final Compose/browser validation when Buildx is available;
+    never wait for a stable Nautilus v2 tag.

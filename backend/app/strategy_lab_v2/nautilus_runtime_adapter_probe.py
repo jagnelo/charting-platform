@@ -228,6 +228,12 @@ def _payload() -> dict[str, object]:
                 "activation_ns": None,
                 "expiration_ns": None,
                 "bar_type": "EURUSD.SIM-1-MINUTE-MID-INTERNAL",
+                "asset_class": None,
+                "underlying": None,
+                "option_kind": None,
+                "strike_price": None,
+                "margin_init": None,
+                "margin_maint": None,
             }
         ],
         "venue": {
@@ -257,7 +263,7 @@ def _payload() -> dict[str, object]:
                 "max_intents_per_event": 100,
             }
         ],
-        "input_version": "strategy-lab.nautilus-engine-input.v6",
+        "input_version": "strategy-lab.nautilus-engine-input.v7",
     }
 
 
@@ -681,6 +687,12 @@ def _run_native_execution_probe(
                 "activation_ns": None,
                 "expiration_ns": None,
                 "bar_type": None,
+                "asset_class": None,
+                "underlying": None,
+                "option_kind": None,
+                "strike_price": None,
+                "margin_init": None,
+                "margin_maint": None,
             }
         ],
         "venue": {
@@ -711,7 +723,7 @@ def _run_native_execution_probe(
             }
             for component_id in component_ids
         ],
-        "input_version": "strategy-lab.nautilus-engine-input.v6",
+        "input_version": "strategy-lab.nautilus-engine-input.v7",
     }
     invocation_contexts = tuple(
         StrategyContext(

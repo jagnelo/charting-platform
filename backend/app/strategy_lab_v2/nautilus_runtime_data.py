@@ -18,6 +18,41 @@ class NautilusRuntimeDataError(ValueError):
     """Stable schema/materialization failure for the isolated runtime."""
 
 
+_INSTRUMENT_FIELDS_V6 = frozenset(
+    {
+        "instrument_id",
+        "raw_symbol",
+        "venue_id",
+        "product_class",
+        "base_currency",
+        "quote_currency",
+        "price_precision",
+        "size_precision",
+        "price_increment",
+        "size_increment",
+        "multiplier",
+        "min_quantity",
+        "max_quantity",
+        "activation_ns",
+        "expiration_ns",
+        "bar_type",
+    }
+)
+_INSTRUMENT_FIELDS_V7 = _INSTRUMENT_FIELDS_V6 | frozenset(
+    {
+        "asset_class",
+        "underlying",
+        "option_kind",
+        "strike_price",
+        "margin_init",
+        "margin_maint",
+    }
+)
+_NAUTILUS_ASSET_CLASSES = frozenset(
+    {"ALTERNATIVE", "COMMODITY", "CRYPTOCURRENCY", "DEBT", "EQUITY", "FX", "INDEX"}
+)
+
+
 def _required_text(value: Any, field_name: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise NautilusRuntimeDataError(f"{field_name} must be a non-empty string")
@@ -67,28 +102,11 @@ def _instrument_id(value: str) -> Any:
 
 
 def materialize_native_instrument(definition: Mapping[str, Any]) -> Any:
-    """Construct one explicit FX/crypto/equity instrument in Nautilus."""
+    """Construct one explicit spot, futures, or vanilla-option instrument."""
 
     item = _required_mapping(definition, "instrument definition")
-    required = {
-        "instrument_id",
-        "raw_symbol",
-        "venue_id",
-        "product_class",
-        "base_currency",
-        "quote_currency",
-        "price_precision",
-        "size_precision",
-        "price_increment",
-        "size_increment",
-        "multiplier",
-        "min_quantity",
-        "max_quantity",
-        "activation_ns",
-        "expiration_ns",
-        "bar_type",
-    }
-    if set(item) != required:
+    instrument_fields = frozenset(item)
+    if instrument_fields not in {_INSTRUMENT_FIELDS_V6, _INSTRUMENT_FIELDS_V7}:
         raise NautilusRuntimeDataError("instrument definition fields are invalid")
     instrument_id = _required_text(item["instrument_id"], "instrument_id")
     raw_symbol = _required_text(item["raw_symbol"], "raw_symbol")
@@ -102,6 +120,12 @@ def materialize_native_instrument(definition: Mapping[str, Any]) -> Any:
     price_increment = _decimal(item["price_increment"], "price_increment", positive=True)
     size_increment = _decimal(item["size_increment"], "size_increment", positive=True)
     multiplier = _decimal(item["multiplier"], "multiplier", positive=True)
+    asset_class = item.get("asset_class")
+    underlying = item.get("underlying")
+    option_kind = item.get("option_kind")
+    strike_price = item.get("strike_price")
+    margin_init = item.get("margin_init")
+    margin_maint = item.get("margin_maint")
     for field_name in ("min_quantity", "max_quantity"):
         if item[field_name] is not None:
             _decimal(item[field_name], field_name, positive=True)
@@ -112,10 +136,67 @@ def materialize_native_instrument(definition: Mapping[str, Any]) -> Any:
         if item["expiration_ns"] <= item["activation_ns"]:
             raise NautilusRuntimeDataError("expiration_ns must be after activation_ns")
 
+    derivative = product_class in {"future", "option"}
+    native_asset_class: str | None = None
+    native_option_kind: str | None = None
+    if derivative:
+        if not isinstance(asset_class, str) or asset_class not in _NAUTILUS_ASSET_CLASSES:
+            raise NautilusRuntimeDataError("listed derivatives require a supported asset_class")
+        native_asset_class = asset_class
+        underlying = _required_text(underlying, "underlying")
+        if item["activation_ns"] is None or item["expiration_ns"] is None:
+            raise NautilusRuntimeDataError(
+                "listed derivatives require activation and expiration timestamps"
+            )
+        if item["base_currency"] is not None:
+            raise NautilusRuntimeDataError(
+                "listed derivatives must not declare a spot base_currency"
+            )
+        if (
+            size_precision != 0
+            or size_increment != 1
+            or item["min_quantity"] is None
+            or _decimal(item["min_quantity"], "min_quantity")
+            != _decimal(item["min_quantity"], "min_quantity").to_integral_value()
+        ):
+            raise NautilusRuntimeDataError(
+                "listed derivatives require explicit whole-contract lot terms"
+            )
+        margin_init = _decimal(margin_init, "margin_init", positive=True)
+        margin_maint = _decimal(margin_maint, "margin_maint", positive=True)
+        if margin_maint > margin_init:
+            raise NautilusRuntimeDataError("margin_maint must not exceed margin_init")
+        if product_class == "future":
+            if option_kind is not None or strike_price is not None:
+                raise NautilusRuntimeDataError("futures must not declare option-only terms")
+        else:
+            if not isinstance(option_kind, str) or option_kind not in {"CALL", "PUT"}:
+                raise NautilusRuntimeDataError("listed options require option_kind CALL or PUT")
+            native_option_kind = option_kind
+            strike_price = _decimal(strike_price, "strike_price", positive=True)
+    elif any(
+        value is not None
+        for value in (
+            asset_class,
+            underlying,
+            option_kind,
+            strike_price,
+            margin_init,
+            margin_maint,
+        )
+    ):
+        raise NautilusRuntimeDataError(
+            "non-derivative instruments must not declare listed derivative terms"
+        )
+
     from nautilus_trader.model import (  # type: ignore[import-not-found,attr-defined]
+        AssetClass,
         Currency,
         CurrencyPair,
         Equity,
+        FuturesContract,
+        OptionContract,
+        OptionKind,
         Price,
         Quantity,
         Symbol,
@@ -173,6 +254,59 @@ def materialize_native_instrument(definition: Mapping[str, Any]) -> Any:
                 if item["max_quantity"] is not None
                 else None
             ),
+        )
+    if product_class == "future":
+        assert native_asset_class is not None
+        return FuturesContract(
+            native_id,
+            Symbol(raw_symbol),
+            getattr(AssetClass, native_asset_class),
+            underlying,
+            item["activation_ns"],
+            item["expiration_ns"],
+            Currency.from_str(quote_currency),
+            price_precision,
+            price_step,
+            Quantity(multiplier, size_precision),
+            size_step,
+            0,
+            0,
+            max_quantity=(
+                Quantity(_decimal(item["max_quantity"], "max_quantity"), size_precision)
+                if item["max_quantity"] is not None
+                else None
+            ),
+            min_quantity=Quantity(_decimal(item["min_quantity"], "min_quantity"), size_precision),
+            margin_init=margin_init,
+            margin_maint=margin_maint,
+        )
+    if product_class == "option":
+        assert native_asset_class is not None
+        assert native_option_kind is not None
+        return OptionContract(
+            native_id,
+            Symbol(raw_symbol),
+            getattr(AssetClass, native_asset_class),
+            underlying,
+            getattr(OptionKind, native_option_kind),
+            Price(strike_price, price_precision),
+            Currency.from_str(quote_currency),
+            item["activation_ns"],
+            item["expiration_ns"],
+            price_precision,
+            price_step,
+            Quantity(multiplier, size_precision),
+            size_step,
+            0,
+            0,
+            max_quantity=(
+                Quantity(_decimal(item["max_quantity"], "max_quantity"), size_precision)
+                if item["max_quantity"] is not None
+                else None
+            ),
+            min_quantity=Quantity(_decimal(item["min_quantity"], "min_quantity"), size_precision),
+            margin_init=margin_init,
+            margin_maint=margin_maint,
         )
     raise NautilusRuntimeDataError(
         f"product_class {product_class!r} requires an explicit native adapter"

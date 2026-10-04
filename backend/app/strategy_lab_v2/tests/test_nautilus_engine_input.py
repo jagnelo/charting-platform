@@ -17,11 +17,13 @@ from app.strategy_lab_v2.contracts import (
     SharedRiskPolicy,
 )
 from app.strategy_lab_v2.nautilus_engine_input import (
+    NautilusAssetClass,
     NautilusCashDefinition,
     NautilusComponentStrategyBinding,
     NautilusEngineInput,
     NautilusFixedPerFillFeeModelDefinition,
     NautilusInstrumentDefinition,
+    NautilusOptionKind,
     NautilusVenueDefinition,
     build_nautilus_engine_input,
     component_strategy_binding_to_wire,
@@ -175,8 +177,65 @@ def test_engine_input_binds_tape_catalog_and_shared_account() -> None:
     assert tuple(binding.component_id for binding in engine_input.strategy_bindings) == (
         "component-1",
     )
-    assert engine_input.input_version == "strategy-lab.nautilus-engine-input.v6"
+    assert engine_input.input_version == "strategy-lab.nautilus-engine-input.v7"
     assert engine_input.fingerprint.startswith("sha256:")
+
+
+def test_listed_future_definition_requires_and_fingerprints_contract_economics() -> None:
+    future = NautilusInstrumentDefinition(
+        instrument_id="ESH27.GLBX",
+        raw_symbol="ESH27",
+        venue_id="GLBX",
+        product_class=ProductClass.FUTURE,
+        quote_currency="USD",
+        price_precision=2,
+        size_precision=0,
+        price_increment=Decimal("0.25"),
+        size_increment=Decimal("1"),
+        multiplier=Decimal("50"),
+        min_quantity=Decimal("1"),
+        activation_ns=1_767_225_600_000_000_000,
+        expiration_ns=1_800_748_800_000_000_000,
+        asset_class=NautilusAssetClass.EQUITY,
+        underlying="ES",
+        margin_init=Decimal("0.12"),
+        margin_maint=Decimal("0.11"),
+    )
+
+    assert future.fingerprint.startswith("sha256:")
+    assert future.fingerprint != replace(future, margin_init=Decimal("0.13")).fingerprint
+
+
+def test_listed_option_definition_requires_complete_vanilla_terms() -> None:
+    option = NautilusInstrumentDefinition(
+        instrument_id="AAPL270115C00200000.OPRA",
+        raw_symbol="AAPL270115C00200000",
+        venue_id="OPRA",
+        product_class=ProductClass.OPTION,
+        quote_currency="USD",
+        price_precision=2,
+        size_precision=0,
+        price_increment=Decimal("0.01"),
+        size_increment=Decimal("1"),
+        multiplier=Decimal("100"),
+        min_quantity=Decimal("1"),
+        activation_ns=1_767_225_600_000_000_000,
+        expiration_ns=1_800_748_800_000_000_000,
+        asset_class=NautilusAssetClass.EQUITY,
+        underlying="AAPL",
+        option_kind=NautilusOptionKind.CALL,
+        strike_price=Decimal("200"),
+        margin_init=Decimal("0.20"),
+        margin_maint=Decimal("0.18"),
+    )
+
+    assert option.fingerprint.startswith("sha256:")
+    with pytest.raises(ValueError, match="strike_price"):
+        replace(option, strike_price=None)
+    with pytest.raises(ValueError, match="activation and expiration"):
+        replace(option, expiration_ns=None)
+    with pytest.raises(ValueError, match="whole-contract lot terms"):
+        replace(option, size_increment=Decimal("0.5"))
 
 
 def test_venue_fee_model_supports_signed_fees_and_is_fingerprinted() -> None:

@@ -16,6 +16,7 @@ from app.strategy_lab_v2.contracts import (
 from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_to_wire
 from app.strategy_lab_v2.nautilus_runtime_adapter import (
     NautilusRuntimeDataError,
+    _validate_engine_input,
     run_native_backtest,
 )
 from app.strategy_lab_v2.nautilus_runtime_data import materialize_native_fee_model
@@ -118,6 +119,32 @@ def test_runtime_adapter_rejects_unknown_engine_input_fields_before_native_impor
 
     with pytest.raises(NautilusRuntimeDataError, match="engine input fields"):
         run_native_backtest(payload)
+
+
+def test_runtime_adapter_keeps_v6_spot_wire_compatibility() -> None:
+    _validate_engine_input(_payload())
+
+
+def test_runtime_adapter_requires_v7_instrument_fields_to_match_version() -> None:
+    payload = _payload()
+    payload["input_version"] = "strategy-lab.nautilus-engine-input.v7"
+
+    with pytest.raises(NautilusRuntimeDataError, match="do not match the declared input version"):
+        _validate_engine_input(payload)
+
+    instrument = payload["instruments"][0]
+    assert isinstance(instrument, dict)
+    instrument.update(
+        {
+            "asset_class": None,
+            "underlying": None,
+            "option_kind": None,
+            "strike_price": None,
+            "margin_init": None,
+            "margin_maint": None,
+        }
+    )
+    _validate_engine_input(payload)
 
 
 def test_runtime_fee_model_rejects_unknown_shapes_before_native_import() -> None:

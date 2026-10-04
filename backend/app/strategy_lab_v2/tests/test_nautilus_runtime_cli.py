@@ -9,16 +9,20 @@ from app.strategy_lab_v2 import nautilus_runtime_cli
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
+    FUTURE_CONTRACT_NOTIONAL_RISK_MODEL,
     FX_BASE_NOTIONAL_RISK_MODEL,
+    OPTION_DELTA_NOTIONAL_RISK_MODEL,
     PortfolioComponent,
     PortfolioComposition,
     ProductClass,
     SharedRiskPolicy,
 )
 from app.strategy_lab_v2.nautilus_engine_input import (
+    NautilusAssetClass,
     NautilusCashDefinition,
     NautilusFixedPerFillFeeModelDefinition,
     NautilusInstrumentDefinition,
+    NautilusOptionKind,
     NautilusVenueDefinition,
     build_nautilus_engine_input,
 )
@@ -43,11 +47,25 @@ def _runtime_bundle(
     native_event_stream_store: LocalArtifactStore | None = None,
     component_context_stream: bool = False,
     fee_model: NautilusFixedPerFillFeeModelDefinition | None = None,
+    instrument_definition: NautilusInstrumentDefinition | None = None,
 ):
+    instrument = instrument_definition or NautilusInstrumentDefinition(
+        "EURUSD.SIM",
+        "EURUSD",
+        "SIM",
+        ProductClass.FX,
+        "USD",
+        5,
+        0,
+        Decimal("0.00001"),
+        Decimal("1"),
+        base_currency="EUR",
+        bar_type="EURUSD.SIM-1-MINUTE-MID-INTERNAL",
+    )
     first_event = NautilusEventRecord(
         "prices",
         "adapter-event-1",
-        "EURUSD.SIM",
+        instrument.instrument_id,
         "quote",
         1,
         1,
@@ -61,7 +79,7 @@ def _runtime_bundle(
     second_event = NautilusEventRecord(
         "prices",
         "adapter-event-2",
-        "EURUSD.SIM",
+        instrument.instrument_id,
         "quote",
         2,
         2,
@@ -73,23 +91,12 @@ def _runtime_bundle(
         },
     )
     event_tape = NautilusEventTape(content_digest("source-tape"), (first_event, second_event))
-    instrument = NautilusInstrumentDefinition(
-        "EURUSD.SIM",
-        "EURUSD",
-        "SIM",
-        ProductClass.FX,
-        "USD",
-        5,
-        0,
-        Decimal("0.00001"),
-        Decimal("1"),
-        base_currency="EUR",
-        bar_type="EURUSD.SIM-1-MINUTE-MID-INTERNAL",
-    )
     venue = NautilusVenueDefinition(
-        "SIM",
+        instrument.venue_id,
         "netting",
-        "cash",
+        "margin"
+        if instrument.product_class in {ProductClass.FUTURE, ProductClass.OPTION}
+        else "cash",
         (NautilusCashDefinition("USD", Decimal("100000")),),
         "USD",
         fee_model,
@@ -115,7 +122,15 @@ def _runtime_bundle(
                     capital_weight=Decimal("1"),
                 ),
             ),
-            shared_risk_policy=SharedRiskPolicy(risk_models=(FX_BASE_NOTIONAL_RISK_MODEL,)),
+            shared_risk_policy=SharedRiskPolicy(
+                risk_models=(
+                    {
+                        ProductClass.FX: FX_BASE_NOTIONAL_RISK_MODEL,
+                        ProductClass.FUTURE: FUTURE_CONTRACT_NOTIONAL_RISK_MODEL,
+                        ProductClass.OPTION: OPTION_DELTA_NOTIONAL_RISK_MODEL,
+                    }[instrument.product_class],
+                )
+            ),
         ),
         strategy_source_digest=content_digest(_SOURCE),
         strategy_manifest_fingerprint=manifest.fingerprint,
@@ -190,6 +205,45 @@ def test_runtime_bundle_serializes_signed_fixed_per_fill_fee_model() -> None:
         "currency": "USD",
     }
     assert bundle.input_bundle_digest != _runtime_bundle().input_bundle_digest
+
+
+@pytest.mark.parametrize("product_class", (ProductClass.FUTURE, ProductClass.OPTION))
+def test_runtime_bundle_serializes_complete_listed_derivative_metadata(product_class):
+    option = product_class is ProductClass.OPTION
+    instrument = NautilusInstrumentDefinition(
+        "CLZ26.NYMEX" if not option else "CLZ26C080.NYMEX",
+        "CLZ26" if not option else "CLZ26C080",
+        "NYMEX",
+        product_class,
+        "USD",
+        2,
+        0,
+        Decimal("0.01"),
+        Decimal("1"),
+        multiplier=Decimal("1000" if not option else "100"),
+        min_quantity=Decimal("1"),
+        activation_ns=1_767_225_600_000_000_000,
+        expiration_ns=1_800_748_800_000_000_000,
+        asset_class=NautilusAssetClass.COMMODITY,
+        underlying="CL",
+        option_kind=NautilusOptionKind.CALL if option else None,
+        strike_price=Decimal("80") if option else None,
+        margin_init=Decimal("0.12"),
+        margin_maint=Decimal("0.11"),
+    )
+
+    payload = json.loads(_runtime_bundle(instrument_definition=instrument).wire_bytes)
+    engine_input = payload["engine_input"]
+    wire_instrument = engine_input["instruments"][0]
+
+    assert engine_input["input_version"] == "strategy-lab.nautilus-engine-input.v7"
+    assert wire_instrument["product_class"] == product_class.value
+    assert wire_instrument["asset_class"] == "COMMODITY"
+    assert wire_instrument["underlying"] == "CL"
+    assert wire_instrument["option_kind"] == ("CALL" if option else None)
+    assert wire_instrument["strike_price"] == ("80" if option else None)
+    assert wire_instrument["margin_init"] == "0.12"
+    assert wire_instrument["margin_maint"] == "0.11"
 
 
 def test_cli_runs_only_digest_attempt_snapshot_and_version_bound_bundle(

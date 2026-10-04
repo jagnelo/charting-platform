@@ -57,6 +57,13 @@ from strategy_runtime import (
 
 NAUTILUS_RUNTIME_ADAPTER_VERSION = "strategy-lab.nautilus-runtime-adapter.v1"
 
+_ENGINE_INPUT_VERSIONS = frozenset(
+    {
+        "strategy-lab.nautilus-engine-input.v6",
+        "strategy-lab.nautilus-engine-input.v7",
+    }
+)
+
 _ENGINE_INPUT_FIELDS = frozenset(
     {
         "trial_id",
@@ -76,6 +83,29 @@ _ENGINE_INPUT_FIELDS = frozenset(
         "strategy_bindings",
         "input_version",
     }
+)
+_INSTRUMENT_INPUT_FIELDS_V6 = frozenset(
+    {
+        "instrument_id",
+        "raw_symbol",
+        "venue_id",
+        "product_class",
+        "base_currency",
+        "quote_currency",
+        "price_precision",
+        "size_precision",
+        "price_increment",
+        "size_increment",
+        "multiplier",
+        "min_quantity",
+        "max_quantity",
+        "activation_ns",
+        "expiration_ns",
+        "bar_type",
+    }
+)
+_INSTRUMENT_INPUT_FIELDS_V7 = _INSTRUMENT_INPUT_FIELDS_V6 | frozenset(
+    {"asset_class", "underlying", "option_kind", "strike_price", "margin_init", "margin_maint"}
 )
 _TAPE_FIELDS = frozenset({"source_tape_fingerprint", "events", "adapter_version"})
 _STREAM_TAPE_FIELDS = frozenset({"source_tape_fingerprint", "event_count", "adapter_version"})
@@ -179,8 +209,17 @@ def _validate_engine_input(
         )
     ):
         raise NautilusRuntimeDataError("engine input rebalance plan identity is mismatched")
-    if item["input_version"] != "strategy-lab.nautilus-engine-input.v6":
+    if item["input_version"] not in _ENGINE_INPUT_VERSIONS:
         raise NautilusRuntimeDataError("engine input version is unsupported")
+    instrument_fields = (
+        _INSTRUMENT_INPUT_FIELDS_V6
+        if item["input_version"] == "strategy-lab.nautilus-engine-input.v6"
+        else _INSTRUMENT_INPUT_FIELDS_V7
+    )
+    if any(set(instrument) != instrument_fields for instrument in instrument_items):
+        raise NautilusRuntimeDataError(
+            "engine input instrument fields do not match the declared input version"
+        )
     evaluation_window = _evaluation_window(item["evaluation_window"])
     try:
         strategy_bindings = component_strategy_bindings_from_wire(item["strategy_bindings"])

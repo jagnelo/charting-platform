@@ -13,6 +13,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
+from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
 from app.strategy_lab_v2.contracts import (
@@ -40,7 +41,26 @@ from app.strategy_lab_v2.rebalance import (
     RebalanceTrigger,
 )
 
-NAUTILUS_ENGINE_INPUT_VERSION = "strategy-lab.nautilus-engine-input.v6"
+NAUTILUS_ENGINE_INPUT_VERSION = "strategy-lab.nautilus-engine-input.v7"
+
+
+class NautilusAssetClass(StrEnum):
+    """Native Nautilus asset taxonomy, kept independent of its runtime package."""
+
+    ALTERNATIVE = "ALTERNATIVE"
+    COMMODITY = "COMMODITY"
+    CRYPTOCURRENCY = "CRYPTOCURRENCY"
+    DEBT = "DEBT"
+    EQUITY = "EQUITY"
+    FX = "FX"
+    INDEX = "INDEX"
+
+
+class NautilusOptionKind(StrEnum):
+    """Vanilla listed option right understood by NautilusTrader."""
+
+    CALL = "CALL"
+    PUT = "PUT"
 
 
 def _nonempty(value: str, field_name: str) -> None:
@@ -87,6 +107,12 @@ class NautilusInstrumentDefinition:
     activation_ns: int | None = None
     expiration_ns: int | None = None
     bar_type: str | None = None
+    asset_class: NautilusAssetClass | None = None
+    underlying: str | None = None
+    option_kind: NautilusOptionKind | None = None
+    strike_price: Decimal | None = None
+    margin_init: Decimal | None = None
+    margin_maint: Decimal | None = None
 
     def __post_init__(self) -> None:
         for name in ("instrument_id", "raw_symbol", "venue_id"):
@@ -126,6 +152,52 @@ class NautilusInstrumentDefinition:
             raise ValueError("expiration_ns must be after activation_ns")
         if self.bar_type is not None:
             _nonempty(self.bar_type, "bar_type")
+
+        derivative = self.product_class in {ProductClass.FUTURE, ProductClass.OPTION}
+        derivative_fields = (
+            self.asset_class,
+            self.underlying,
+            self.option_kind,
+            self.strike_price,
+            self.margin_init,
+            self.margin_maint,
+        )
+        if derivative:
+            if not isinstance(self.asset_class, NautilusAssetClass):
+                raise TypeError("listed derivatives require a NautilusAssetClass")
+            if self.underlying is None:
+                raise ValueError("listed derivatives require an underlying")
+            _nonempty(self.underlying, "underlying")
+            if self.activation_ns is None or self.expiration_ns is None:
+                raise ValueError("listed derivatives require activation and expiration timestamps")
+            if self.base_currency is not None:
+                raise ValueError("listed derivatives must not declare a spot base_currency")
+            if (
+                self.size_precision != 0
+                or self.size_increment != Decimal(1)
+                or self.min_quantity is None
+                or self.min_quantity != self.min_quantity.to_integral_value()
+            ):
+                raise ValueError("listed derivatives require explicit whole-contract lot terms")
+            if self.margin_init is None or self.margin_maint is None:
+                raise ValueError(
+                    "listed derivatives require explicit initial and maintenance margin"
+                )
+            _positive_decimal(self.margin_init, "margin_init")
+            _positive_decimal(self.margin_maint, "margin_maint")
+            if self.margin_maint > self.margin_init:
+                raise ValueError("margin_maint must not exceed margin_init")
+            if self.product_class is ProductClass.FUTURE:
+                if any(value is not None for value in (self.option_kind, self.strike_price)):
+                    raise ValueError("futures must not declare option-only terms")
+            else:
+                if not isinstance(self.option_kind, NautilusOptionKind):
+                    raise TypeError("listed options require a NautilusOptionKind")
+                if self.strike_price is None:
+                    raise ValueError("listed options require a strike_price")
+                _positive_decimal(self.strike_price, "strike_price")
+        elif any(value is not None for value in derivative_fields):
+            raise ValueError("non-derivative instruments must not declare listed derivative terms")
 
     @property
     def fingerprint(self) -> str:
