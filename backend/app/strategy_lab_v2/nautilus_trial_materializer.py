@@ -29,6 +29,7 @@ from app.strategy_lab_v2.nautilus_trial_assembly import (
     assemble_nautilus_trial_runtime_input,
     strategy_runtime_identity,
 )
+from app.strategy_lab_v2.rebalance import SessionCalendarSnapshot
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolationRequest
 from app.strategy_lab_v2.runtime_execution import (
     StrategyRuntimePreflight,
@@ -48,6 +49,7 @@ class NautilusTrialMarketContext:
 
     instruments: tuple[NautilusInstrumentDefinition, ...]
     venue: NautilusVenueDefinition
+    session_calendar: SessionCalendarSnapshot | None = None
 
     def __post_init__(self) -> None:
         instruments = tuple(self.instruments)
@@ -57,6 +59,10 @@ class NautilusTrialMarketContext:
             raise TypeError("instruments must contain NautilusInstrumentDefinition values")
         if not isinstance(self.venue, NautilusVenueDefinition):
             raise TypeError("venue must be a NautilusVenueDefinition")
+        if self.session_calendar is not None and not isinstance(
+            self.session_calendar, SessionCalendarSnapshot
+        ):
+            raise TypeError("session_calendar must be a SessionCalendarSnapshot")
         instrument_ids = tuple(item.instrument_id for item in instruments)
         if len(set(instrument_ids)) != len(instrument_ids):
             raise ValueError("market context instrument ids must be unique")
@@ -336,6 +342,7 @@ class NautilusTrialRuntimeInputMaterializer:
             artifact_store=self._artifact_store,
             max_intents_per_event=self._max_intents_per_event,
             component_inputs=tuple(resolved_component_inputs),
+            session_calendar=market_context.session_calendar,
         )
         return MaterializedNautilusTrialInput(graph, assembly)
 

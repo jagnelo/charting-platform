@@ -23,6 +23,7 @@ from app.strategy_lab_v2.nautilus_strategy_bridge import (
     _suppress_warmup_intents,
     iter_component_context_trigger_groups,
 )
+from app.strategy_lab_v2.rebalance import RebalanceMisfirePolicy, RebalanceTrigger
 from app.strategy_lab_v2.sdk import (
     MarketEvent,
     OrderSide,
@@ -521,6 +522,240 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(monkeypa
 
     results = deserialize_invocation_batch_result(bridge.result_output())
     assert [result.status.value for result in results] == ["failed", "succeeded"]
+
+
+@pytest.mark.parametrize(
+    (
+        "trigger",
+        "expected_status",
+        "boundary_offset",
+        "misfire_policy",
+        "expected_execution_status",
+    ),
+    (
+        (
+            RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+            "apply_before_event",
+            timedelta(0),
+            RebalanceMisfirePolicy.FAIL_RUN,
+            "applied_without_cached_targets",
+        ),
+        (
+            RebalanceTrigger.SESSION_CLOSE_AFTER_EVENTS,
+            "apply_after_event_group",
+            timedelta(0),
+            RebalanceMisfirePolicy.FAIL_RUN,
+            "applied_without_cached_targets",
+        ),
+        (
+            RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+            "fail_misfire",
+            timedelta(days=1),
+            RebalanceMisfirePolicy.FAIL_RUN,
+            "failed_misfire",
+        ),
+    ),
+)
+def test_native_bridge_runs_rebalance_at_exact_open_or_after_same_time_group(
+    monkeypatch,
+    trigger: RebalanceTrigger,
+    expected_status: str,
+    boundary_offset: timedelta,
+    misfire_policy: RebalanceMisfirePolicy,
+    expected_execution_status: str,
+) -> None:
+    import sys
+    from dataclasses import replace
+    from io import BytesIO
+    from types import ModuleType, SimpleNamespace
+    from typing import Any
+
+    from app.strategy_lab_v2.canonical import content_digest
+    from app.strategy_lab_v2.nautilus_native_event_stream import (
+        serialize_nautilus_native_event_stream,
+    )
+    from app.strategy_lab_v2.nautilus_portfolio_wire import (
+        portfolio_composition_from_wire,
+        portfolio_composition_to_wire,
+    )
+    from app.strategy_lab_v2.nautilus_rebalance_wire import (
+        rebalance_execution_plan_to_wire,
+    )
+    from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
+        _SOURCE,
+        _invocation_batch,
+        _payload,
+    )
+    from app.strategy_lab_v2.nautilus_strategy_bridge import build_native_strategy_bridge
+    from app.strategy_lab_v2.rebalance import (
+        CalendarRebalancePolicy,
+        RebalanceCadence,
+        RebalanceExecutionPlan,
+        ScheduledRebalance,
+    )
+    from strategy_runtime import deserialize_invocation_batch, serialize_invocation_context_stream
+
+    class _FromString:
+        def __new__(cls, value: str) -> Any:
+            return value
+
+        @classmethod
+        def from_str(cls, value: str) -> str:
+            return value
+
+    class _FakePortfolio:
+        def net_position(self, _instrument_id: str) -> None:
+            return None
+
+    class _FakeStrategyConfig:
+        def __new__(cls, *_args: object) -> Any:
+            return object.__new__(cls)
+
+    class _FakeStrategy:
+        def __init__(self, _config: object) -> None:
+            self.portfolio = _FakePortfolio()
+
+        def subscribe_quotes(self, _instrument_id: str) -> None:
+            return None
+
+        def subscribe_trades(self, _instrument_id: str) -> None:
+            return None
+
+        def subscribe_bars(self, _bar_type: str) -> None:
+            return None
+
+    class _FakeScalar:
+        def __init__(self, *_args: object) -> None:
+            return None
+
+    model_module = ModuleType("nautilus_trader.model")
+    for name in (
+        "BarType",
+        "Currency",
+        "InstrumentId",
+        "OrderSide",
+        "StrategyId",
+        "TimeInForce",
+        "Venue",
+    ):
+        setattr(model_module, name, _FromString)
+    for name in ("Price", "Quantity"):
+        setattr(model_module, name, _FakeScalar)
+    trading_module = ModuleType("nautilus_trader.trading")
+    setattr(trading_module, "Strategy", _FakeStrategy)
+    setattr(trading_module, "StrategyConfig", _FakeStrategyConfig)
+    package_module = ModuleType("nautilus_trader")
+    setattr(package_module, "model", model_module)
+    setattr(package_module, "trading", trading_module)
+    monkeypatch.setitem(sys.modules, "nautilus_trader", package_module)
+    monkeypatch.setitem(sys.modules, "nautilus_trader.model", model_module)
+    monkeypatch.setitem(sys.modules, "nautilus_trader.trading", trading_module)
+
+    payload = _payload()
+    original_portfolio = portfolio_composition_from_wire(payload["portfolio"])
+    calendar_fingerprint = content_digest("bridge-rebalance-calendar")
+    policy = CalendarRebalancePolicy(
+        calendar_id="XNYS",
+        calendar_fingerprint=calendar_fingerprint,
+        cadence=RebalanceCadence.EACH_SESSION,
+        trigger=trigger,
+        misfire_policy=misfire_policy,
+    )
+    boundary_time = _EVENT_TIME + boundary_offset
+    occurrence_identity = {
+        "policy_fingerprint": policy.fingerprint,
+        "calendar_fingerprint": calendar_fingerprint,
+        "session_id": f"XNYS:{boundary_time.date().isoformat()}",
+        "session_label": boundary_time.date(),
+        "event_time": boundary_time,
+        "trigger": trigger,
+        "cadence_period": f"session:{boundary_time.date().isoformat()}",
+    }
+    occurrence = ScheduledRebalance(
+        occurrence_id=content_digest(occurrence_identity),
+        policy_fingerprint=policy.fingerprint,
+        calendar_fingerprint=calendar_fingerprint,
+        session_id=f"XNYS:{boundary_time.date().isoformat()}",
+        session_label=boundary_time.date(),
+        event_time=boundary_time,
+        trigger=trigger,
+        cadence_period=f"session:{boundary_time.date().isoformat()}",
+        misfire_policy=misfire_policy,
+    )
+    plan = RebalanceExecutionPlan(
+        policy_fingerprint=policy.fingerprint,
+        calendar_fingerprint=calendar_fingerprint,
+        occurrences=(occurrence,),
+    )
+    portfolio = replace(original_portfolio, rebalance_policy=policy)
+    payload["portfolio"] = portfolio_composition_to_wire(portfolio)
+    payload["rebalance_plan"] = rebalance_execution_plan_to_wire(plan)
+
+    _, manifest, contexts, _, _ = deserialize_invocation_batch(_invocation_batch())
+    context_stream = BytesIO()
+    context_count = serialize_invocation_context_stream(
+        context_stream,
+        source=_SOURCE,
+        manifest=manifest,
+        contexts=contexts,
+        entrypoint="strategy.main:Strategy",
+    )
+    raw_tape = payload["event_tape"]
+    assert isinstance(raw_tape, dict)
+    event_records = raw_tape["events"]
+    assert isinstance(event_records, list)
+    native_event_stream = BytesIO()
+    serialize_nautilus_native_event_stream(
+        native_event_stream,
+        event_records,
+        source_tape_fingerprint=raw_tape["source_tape_fingerprint"],
+        adapter_version=raw_tape["adapter_version"],
+        expected_event_count=len(event_records),
+    )
+    payload["event_tape"] = {
+        "source_tape_fingerprint": raw_tape["source_tape_fingerprint"],
+        "adapter_version": raw_tape["adapter_version"],
+        "event_count": len(event_records),
+    }
+    raw_instruments = payload["instruments"]
+    assert isinstance(raw_instruments, list)
+    instrument_definitions = [item for item in raw_instruments if isinstance(item, dict)]
+    assert len(instrument_definitions) == len(raw_instruments)
+
+    bridge = build_native_strategy_bridge(
+        payload,
+        instrument_definitions,
+        (),
+        invocation_context_stream=context_stream,
+        native_event_stream=native_event_stream,
+        expected_context_count=context_count,
+    )
+    bridge.strategy.on_start()
+    for index, raw_record in enumerate(event_records):
+        assert isinstance(raw_record, dict)
+        event_time_ns = raw_record["event_time_ns"]
+        values = raw_record["values"]
+        assert isinstance(event_time_ns, int)
+        assert isinstance(values, dict)
+        bridge.strategy.on_quote(
+            SimpleNamespace(
+                instrument_id=raw_record["instrument_id"],
+                ts_event=event_time_ns,
+                ts_init=event_time_ns if index == 0 else event_time_ns + 1,
+                bid_price=Decimal(values["bid"]),
+                ask_price=Decimal(values["ask"]),
+            )
+        )
+        if trigger is RebalanceTrigger.SESSION_CLOSE_AFTER_EVENTS and index == 0:
+            assert bridge.rebalance_schedule_output() == []
+
+    assert bridge.result_output()
+    schedule_evidence = bridge.rebalance_schedule_output()
+    assert len(schedule_evidence) == 1
+    transition = schedule_evidence[0]["transition"]
+    assert isinstance(transition, dict)
+    assert transition["action"] == expected_status
+    assert schedule_evidence[0]["execution_status"] == expected_execution_status
 
 
 def _component_fill_ledger() -> NautilusComponentFillLedger:

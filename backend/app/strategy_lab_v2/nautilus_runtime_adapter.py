@@ -36,6 +36,9 @@ from app.strategy_lab_v2.nautilus_native_reports import (
     NautilusNativeReportsWriter,
 )
 from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_from_wire
+from app.strategy_lab_v2.nautilus_rebalance_schedule import (
+    NautilusRebalanceScheduleAudit,
+)
 from app.strategy_lab_v2.nautilus_rebalance_wire import rebalance_execution_plan_from_wire
 from app.strategy_lab_v2.nautilus_runtime_data import (
     NautilusRuntimeDataError,
@@ -378,6 +381,10 @@ def run_native_backtest(
         event_count,
         expects_native_event_stream,
     ) = _validate_engine_input(payload)
+    try:
+        rebalance_plan = rebalance_execution_plan_from_wire(payload.get("rebalance_plan"))
+    except (TypeError, ValueError) as error:
+        raise NautilusRuntimeDataError("engine input rebalance plan is invalid") from error
     if expects_native_event_stream != (native_event_stream is not None):
         raise NautilusRuntimeDataError(
             "native event stream does not match the engine input tape reference"
@@ -471,6 +478,7 @@ def run_native_backtest(
         result: Any,
         invocation_result_output: Any,
         account_equity_trace: NautilusAccountEquityTraceReference | None,
+        rebalance_schedule_transitions: list[dict[str, object]],
         native_reports: NautilusNativeReportsReference | None,
     ) -> dict[str, Any]:
         summary = getattr(result, "summary", {})
@@ -497,6 +505,25 @@ def run_native_backtest(
                 "strategy_invocation_result_digest": content_digest(invocation_result_wire),
                 "strategy_invocation_count": result_invocation_count(invocation_result_wire),
             }
+        if rebalance_plan is None:
+            if rebalance_schedule_transitions:
+                raise NautilusRuntimeDataError(
+                    "rebalance callbacks produced outcomes without a frozen plan"
+                )
+            rebalance_audit_wire = None
+        else:
+            try:
+                rebalance_audit = NautilusRebalanceScheduleAudit.from_callback_outcomes(
+                    attempt_id=_text(payload.get("attempt_id"), "attempt_id"),
+                    plan=rebalance_plan,
+                    outcomes=rebalance_schedule_transitions,
+                )
+                rebalance_audit_wire = rebalance_audit.to_wire()
+            except (TypeError, ValueError) as error:
+                raise NautilusRuntimeDataError(
+                    "rebalance audit is incomplete or invalid"
+                ) from error
+
         evidence = {
             "adapter_version": NAUTILUS_RUNTIME_ADAPTER_VERSION,
             "authoritative": False,
@@ -531,6 +558,7 @@ def run_native_backtest(
                 else {}
             ),
             **result_evidence,
+            "rebalance_schedule_audit": rebalance_audit_wire,
             "iterations": int(result.iterations),
             "total_events": int(result.total_events),
             "total_orders": int(result.total_orders),
@@ -625,9 +653,14 @@ def run_native_backtest(
                     )
                 invocation_result_output = strategy_bridge.result_output()
                 account_equity_trace = strategy_bridge.account_equity_trace_output()
+                rebalance_schedule_transitions = strategy_bridge.rebalance_schedule_output()
                 native_reports = export_native_reports(node, run_id=run_config.id)
                 return make_evidence(
-                    results[0], invocation_result_output, account_equity_trace, native_reports
+                    results[0],
+                    invocation_result_output,
+                    account_equity_trace,
+                    rebalance_schedule_transitions,
+                    native_reports,
                 )
             finally:
                 try:
@@ -672,8 +705,15 @@ def run_native_backtest(
         result = engine.get_result()
         invocation_result_output = strategy_bridge.result_output()
         account_equity_trace = strategy_bridge.account_equity_trace_output()
+        rebalance_schedule_transitions = strategy_bridge.rebalance_schedule_output()
         native_reports = export_native_reports(engine)
-        return make_evidence(result, invocation_result_output, account_equity_trace, native_reports)
+        return make_evidence(
+            result,
+            invocation_result_output,
+            account_equity_trace,
+            rebalance_schedule_transitions,
+            native_reports,
+        )
     finally:
         try:
             engine.dispose()

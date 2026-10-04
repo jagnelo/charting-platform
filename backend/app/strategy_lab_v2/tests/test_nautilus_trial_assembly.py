@@ -50,6 +50,7 @@ from app.strategy_lab_v2.nautilus_engine_input import (
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     deserialize_nautilus_native_event_stream,
 )
+from app.strategy_lab_v2.nautilus_rebalance_wire import rebalance_execution_plan_from_wire
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     load_materialized_nautilus_runtime_bundle,
 )
@@ -58,6 +59,16 @@ from app.strategy_lab_v2.nautilus_trial_assembly import (
     NautilusTrialAssemblyError,
     assemble_nautilus_trial_runtime_input,
     strategy_package_set_fingerprint,
+)
+from app.strategy_lab_v2.rebalance import (
+    CalendarDay,
+    CalendarDayStatus,
+    CalendarRebalancePolicy,
+    RebalanceCadence,
+    RebalanceTrigger,
+    SessionCalendarSnapshot,
+    SessionSegment,
+    TradingSession,
 )
 from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
 from strategy_runtime import (
@@ -250,6 +261,36 @@ def _inputs(*, scenario=None, evaluation_window=None):
     }
 
 
+def _calendar_snapshot() -> SessionCalendarSnapshot:
+    first = BASE.date() - timedelta(days=1)
+    last = BASE.date() + timedelta(days=3)
+    days: list[CalendarDay] = []
+    label = first
+    while label <= last:
+        if label.weekday() < 5:
+            opening = datetime(label.year, label.month, label.day, 14, 30, tzinfo=UTC)
+            closing = datetime(label.year, label.month, label.day, 21, 0, tzinfo=UTC)
+            session = TradingSession(
+                f"session-{label.isoformat()}",
+                label,
+                (SessionSegment(opening, closing),),
+            )
+            days.append(CalendarDay(label, CalendarDayStatus.TRADING, session))
+        else:
+            days.append(CalendarDay(label, CalendarDayStatus.CLOSED))
+        label += timedelta(days=1)
+    return SessionCalendarSnapshot(
+        calendar_id="TEST-UTC",
+        definition_version="test-calendar-v1",
+        timezone_name="UTC",
+        timezone_database_version="test-fixed-utc",
+        coverage_start=first,
+        coverage_end=last,
+        days=tuple(days),
+        source_evidence_digest=content_digest("test-session-calendar"),
+    )
+
+
 def test_trial_assembly_materializes_reproducible_pinned_bundle(tmp_path) -> None:
     values = _inputs()
     store = LocalArtifactStore(tmp_path / "artifacts")
@@ -296,6 +337,104 @@ def test_trial_assembly_materializes_reproducible_pinned_bundle(tmp_path) -> Non
         )
     )
     assert [event["sequence"] for event in events] == [1, 2]
+
+
+def test_trial_assembly_freezes_rebalance_plan_to_evaluation_window(tmp_path) -> None:
+    values = _inputs(
+        evaluation_window=EvaluationWindow(
+            start=BASE + timedelta(days=1),
+            end=BASE + timedelta(days=2),
+            purpose="out_of_sample",
+            warmup_start=BASE,
+        )
+    )
+    calendar = _calendar_snapshot()
+    policy = CalendarRebalancePolicy(
+        calendar_id=calendar.calendar_id,
+        calendar_fingerprint=calendar.fingerprint,
+        cadence=RebalanceCadence.EACH_SESSION,
+        trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+    )
+    portfolio = replace(values["portfolio"], rebalance_policy=policy)
+    experiment = replace(values["experiment"], portfolio_fingerprint=portfolio.fingerprint)
+    previous_trial = values["trial"]
+    trial = ScientificTrial.create(
+        experiment_fingerprint=experiment.fingerprint,
+        snapshot_fingerprint=previous_trial.snapshot_fingerprint,
+        preflight_report=previous_trial.preflight_report,
+        parameter_set=previous_trial.parameter_set,
+        scenario=previous_trial.scenario,
+        seed=previous_trial.seed,
+        randomization=previous_trial.randomization,
+        evaluation_window=previous_trial.evaluation_window,
+    )
+    values.update(
+        portfolio=portfolio,
+        experiment=experiment,
+        trial=trial,
+        attempt=replace(values["attempt"], trial_id=trial.trial_id),
+    )
+    store = LocalArtifactStore(tmp_path / "artifacts")
+
+    assembly = assemble_nautilus_trial_runtime_input(
+        **values,
+        artifact_store=store,
+        session_calendar=calendar,
+    )
+    bundle = load_materialized_nautilus_runtime_bundle(
+        assembly.runtime_input_artifact,
+        store,
+        max_input_bytes=1_000_000,
+    )
+    engine_input = json.loads(bundle.wire_bytes)["engine_input"]
+
+    assert len(engine_input["rebalance_plan"]["occurrences"]) == 1
+    assert engine_input["rebalance_plan"]["calendar_fingerprint"] == calendar.fingerprint
+    decoded_plan = rebalance_execution_plan_from_wire(engine_input["rebalance_plan"])
+    assert decoded_plan is not None
+    assert decoded_plan.occurrences[0].event_time == BASE + timedelta(days=1)
+
+
+def test_trial_assembly_rejects_rebalance_without_trusted_calendar(tmp_path) -> None:
+    values = _inputs(
+        evaluation_window=EvaluationWindow(
+            start=BASE,
+            end=BASE + timedelta(days=1),
+            purpose="out_of_sample",
+        )
+    )
+    calendar = _calendar_snapshot()
+    policy = CalendarRebalancePolicy(
+        calendar_id=calendar.calendar_id,
+        calendar_fingerprint=calendar.fingerprint,
+        cadence=RebalanceCadence.EACH_SESSION,
+        trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+    )
+    portfolio = replace(values["portfolio"], rebalance_policy=policy)
+    experiment = replace(values["experiment"], portfolio_fingerprint=portfolio.fingerprint)
+    previous_trial = values["trial"]
+    trial = ScientificTrial.create(
+        experiment_fingerprint=experiment.fingerprint,
+        snapshot_fingerprint=previous_trial.snapshot_fingerprint,
+        preflight_report=previous_trial.preflight_report,
+        parameter_set=previous_trial.parameter_set,
+        scenario=previous_trial.scenario,
+        seed=previous_trial.seed,
+        randomization=previous_trial.randomization,
+        evaluation_window=previous_trial.evaluation_window,
+    )
+    values.update(
+        portfolio=portfolio,
+        experiment=experiment,
+        trial=trial,
+        attempt=replace(values["attempt"], trial_id=trial.trial_id),
+    )
+
+    with pytest.raises(NautilusTrialAssemblyError, match="trusted frozen session calendar"):
+        assemble_nautilus_trial_runtime_input(
+            **values,
+            artifact_store=LocalArtifactStore(tmp_path / "artifacts"),
+        )
 
 
 def test_trial_assembly_consumes_default_disk_spooled_event_tape(tmp_path) -> None:

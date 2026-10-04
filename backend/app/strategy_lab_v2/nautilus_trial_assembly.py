@@ -53,6 +53,11 @@ from app.strategy_lab_v2.nautilus_runtime_bundle import (
     materialize_nautilus_native_event_stream_artifact,
     materialize_nautilus_runtime_bundle,
 )
+from app.strategy_lab_v2.rebalance import (
+    RebalanceExecutionPlan,
+    SessionCalendarSnapshot,
+    compile_rebalance_execution_plan,
+)
 from app.strategy_lab_v2.replay import iter_event_tape_contexts
 from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
@@ -314,6 +319,7 @@ def assemble_nautilus_trial_runtime_input(
     artifact_store: LocalArtifactStore,
     max_intents_per_event: int = 100,
     component_inputs: Sequence[NautilusComponentTrialInput] | None = None,
+    session_calendar: SessionCalendarSnapshot | None = None,
 ) -> NautilusTrialRuntimeAssembly:
     """Bind one persisted trial's exact inputs and publish its pinned worker bundle.
 
@@ -400,10 +406,29 @@ def assemble_nautilus_trial_runtime_input(
     ):
         raise ValueError("max_intents_per_event must be a positive integer")
 
+    rebalance_plan: RebalanceExecutionPlan | None = None
     if portfolio.rebalance_policy is not None:
-        raise NautilusTrialAssemblyError(
-            "Nautilus runtime assembly does not yet apply portfolio rebalance schedules"
-        )
+        if not isinstance(session_calendar, SessionCalendarSnapshot):
+            raise NautilusTrialAssemblyError(
+                "calendar rebalance policy requires a trusted frozen session calendar"
+            )
+        if trial.evaluation_window is None:
+            raise NautilusTrialAssemblyError(
+                "calendar rebalance policy requires an explicit trial evaluation window"
+            )
+        try:
+            rebalance_plan = compile_rebalance_execution_plan(
+                session_calendar,
+                portfolio.rebalance_policy,
+                from_session_label=session_calendar.coverage_start,
+                through_session_label=session_calendar.coverage_end,
+                interval_start=trial.evaluation_window.start,
+                interval_end=trial.evaluation_window.end,
+            )
+        except (TypeError, ValueError) as error:
+            raise NautilusTrialAssemblyError(
+                "frozen session calendar cannot compile the trial rebalance plan"
+            ) from error
     if trial.scenario:
         raise NautilusTrialAssemblyError(
             "Nautilus runtime assembly does not yet apply scenario transforms"
@@ -684,6 +709,7 @@ def assemble_nautilus_trial_runtime_input(
             random_seed=trial.seed,
             strategy_bindings=strategy_bindings,
             evaluation_window=trial.evaluation_window,
+            rebalance_plan=rebalance_plan,
         )
         bundle = build_nautilus_runtime_bundle(
             engine_input,
@@ -746,6 +772,7 @@ def assemble_nautilus_trial_runtime_input_from_package(
     venue: NautilusVenueDefinition,
     artifact_store: LocalArtifactStore,
     max_intents_per_event: int = 100,
+    session_calendar: SessionCalendarSnapshot | None = None,
 ) -> NautilusTrialRuntimeAssembly:
     """Resolve a pinned strategy package before building its worker input."""
 
@@ -768,6 +795,7 @@ def assemble_nautilus_trial_runtime_input_from_package(
         venue=venue,
         artifact_store=artifact_store,
         max_intents_per_event=max_intents_per_event,
+        session_calendar=session_calendar,
     )
 
 

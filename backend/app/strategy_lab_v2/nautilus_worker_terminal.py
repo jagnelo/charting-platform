@@ -65,6 +65,14 @@ from app.strategy_lab_v2.worker_terminal_adapter import (
 
 
 class ResultArtifactPublisher(Protocol):
+    async def publish(
+        self,
+        manifest: ArtifactManifest,
+        payload: bytes,
+        *,
+        committed_at: datetime,
+    ) -> ArtifactPublicationResolution: ...
+
     async def publish_file(
         self,
         manifest: ArtifactManifest,
@@ -222,6 +230,14 @@ async def _materialize_successful_oos_result(
         or binding.snapshot_fingerprint != snapshot.fingerprint
     ):
         raise ValueError("authenticated trial graph differs from the executed worker input")
+    schedule_audit = run_result.rebalance_schedule_audit
+    if (portfolio.rebalance_policy is None) != (schedule_audit is None):
+        raise ValueError("Nautilus rebalance policy and schedule audit must be present together")
+    if schedule_audit is not None:
+        if schedule_audit.attempt_id != attempt.attempt_id:
+            raise ValueError("Nautilus rebalance audit references a different attempt")
+        if not callable(getattr(artifact_publisher, "publish", None)):
+            raise ValueError("artifact publisher cannot persist rebalance schedule evidence")
     if (
         request.execution_plan.trial_id != trial.trial_id
         or request.execution_plan.attempt_id != attempt.attempt_id
@@ -236,7 +252,17 @@ async def _materialize_successful_oos_result(
         request.sandbox_plan,
     )
     invocation_reference = run_result.invocation_result_stream
-    output_artifacts = (invocation_reference.artifact,) if invocation_reference is not None else ()
+    schedule_audit_artifact = (
+        schedule_audit.artifact_manifest() if schedule_audit is not None else None
+    )
+    output_artifacts = tuple(
+        item
+        for item in (
+            None if invocation_reference is None else invocation_reference.artifact,
+            schedule_audit_artifact,
+        )
+        if item is not None
+    )
     result_artifacts = _unique_artifacts(
         (*output_artifacts, equity_reference.artifact, reports_reference.artifact)
     )
@@ -304,7 +330,11 @@ async def _materialize_successful_oos_result(
     result = materialized.manifest
 
     artifact_sources = _artifact_sources(
-        result.output_artifacts,
+        tuple(
+            artifact
+            for artifact in result.output_artifacts
+            if schedule_audit_artifact is None or artifact != schedule_audit_artifact
+        ),
         equity_reference,
         reports_reference,
         invocation_reference,
@@ -313,11 +343,19 @@ async def _materialize_successful_oos_result(
     artifact_plans = []
     integrity_receipts = []
     for artifact in result.output_artifacts:
-        publication_result = await artifact_publisher.publish_file(
-            artifact,
-            artifact_sources[artifact.content_digest],
-            committed_at=terminal_at,
-        )
+        if schedule_audit_artifact is not None and artifact == schedule_audit_artifact:
+            assert schedule_audit is not None
+            publication_result = await artifact_publisher.publish(
+                artifact,
+                schedule_audit.artifact_bytes(),
+                committed_at=terminal_at,
+            )
+        else:
+            publication_result = await artifact_publisher.publish_file(
+                artifact,
+                artifact_sources[artifact.content_digest],
+                committed_at=terminal_at,
+            )
         if not isinstance(publication_result, ArtifactPublicationResolution):
             raise TypeError("artifact publisher returned an invalid publication resolution")
         if publication_result.decision is ArtifactPublicationDecision.REJECT:

@@ -24,6 +24,11 @@ from app.strategy_lab_v2.nautilus_equity_trace import NautilusAccountEquityTrace
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     deserialize_nautilus_native_event_stream,
 )
+from app.strategy_lab_v2.nautilus_rebalance_schedule import (
+    NautilusRebalanceScheduleCursor,
+    RebalanceBoundaryAction,
+    RebalanceBoundaryTransition,
+)
 from app.strategy_lab_v2.nautilus_runtime_data import NautilusRuntimeDataError
 from app.strategy_lab_v2.sdk import (
     MarketEvent,
@@ -852,6 +857,7 @@ class NativeStrategyBridge:
     strategy: Any
     result_output: Any
     account_equity_trace_output: Any
+    rebalance_schedule_output: Any
     input_fingerprint: str
     input_protocol: str
 
@@ -1252,10 +1258,6 @@ def build_native_strategy_bridge(
         )
     ):
         raise NautilusRuntimeDataError("engine input rebalance plan identity is mismatched")
-    if rebalance_plan is not None:
-        raise NautilusRuntimeDataError(
-            "native rebalance schedule callbacks are not yet implemented"
-        )
     portfolio_components = {item.component_id: item for item in portfolio.components}
     component_priorities = {item.component_id: item.priority for item in portfolio.components}
     if set(strategy_bindings) != set(portfolio_components):
@@ -1593,11 +1595,25 @@ def build_native_strategy_bridge(
                 raise NautilusRuntimeDataError("native event stream count is invalid")
             expected_event_count = native_event_count
 
-    native_event_callbacks = (
+    native_event_callback_iterator = (
         iter_native_event_records()
         if invocation_context_stream is not None
         else iter(event_definitions)
     )
+    next_native_event_record = next(native_event_callback_iterator, None)
+
+    def take_native_event_record() -> tuple[Mapping[str, Any] | None, Mapping[str, Any] | None]:
+        nonlocal next_native_event_record
+        current = next_native_event_record
+        if current is None:
+            return None, None
+        if not isinstance(current, Mapping):
+            raise NautilusRuntimeDataError("native event record is invalid")
+        next_native_event_record = next(native_event_callback_iterator, None)
+        following = next_native_event_record
+        if following is not None and not isinstance(following, Mapping):
+            raise NautilusRuntimeDataError("native event lookahead record is invalid")
+        return current, following
 
     component_trigger_stream = context_trigger_groups
     current_trigger = next(component_trigger_stream, None)
@@ -1624,6 +1640,22 @@ def build_native_strategy_bridge(
     invocation_results: list[Any] | None = [] if result_stream_writer is None else None
     invocation_result_count = 0
     callback_failure_types: list[str] = []
+    rebalance_run_failed = False
+    rebalance_cursor = (
+        NautilusRebalanceScheduleCursor(rebalance_plan) if rebalance_plan is not None else None
+    )
+    rebalance_schedule_evidence: list[dict[str, object]] = []
+    rebalance_targets_by_component: dict[str, dict[str, TargetPositionIntent]] = {
+        component_id: {} for component_id in portfolio_components
+    }
+    rebalance_sequences = (
+        {}
+        if rebalance_plan is None
+        else {
+            occurrence.occurrence_id: index
+            for index, occurrence in enumerate(rebalance_plan.occurrences)
+        }
+    )
 
     from nautilus_trader.model import (  # type: ignore[import-not-found,attr-defined]
         BarType,
@@ -1664,6 +1696,7 @@ def build_native_strategy_bridge(
         *,
         event_time: datetime,
         required_mark_ids: Sequence[str],
+        allow_asof_marks: bool = False,
     ) -> dict[str, Any]:
         if venue_definition["account_type"].upper() != "CASH":
             raise NautilusRuntimeDataError(
@@ -1683,6 +1716,14 @@ def build_native_strategy_bridge(
             component_id: {} for component_id in portfolio_components
         }
         required_ids = set(required_mark_ids)
+
+        def mark_is_usable(mark_entry: tuple[Decimal, int] | None) -> bool:
+            if mark_entry is None:
+                return False
+            if allow_asof_marks:
+                return mark_entry[1] <= _datetime_microsecond_ns(event_time)
+            return _record_time_bucket(mark_entry[1]) == _datetime_microsecond_bucket(event_time)
+
         for sdk_instrument_id in declared_instruments:
             definition = instrument_by_id[sdk_instrument_id]
             native_id = InstrumentId.from_str(sdk_instrument_id)
@@ -1695,21 +1736,19 @@ def build_native_strategy_bridge(
             if total_quantity == 0 and not any(component_quantities_for_instrument.values()):
                 if sdk_instrument_id in required_ids:
                     mark_entry = latest_marks.get(sdk_instrument_id)
-                    if mark_entry is None or _record_time_bucket(mark_entry[1]) != (
-                        _datetime_microsecond_bucket(event_time)
-                    ):
+                    if not mark_is_usable(mark_entry):
                         raise NautilusRuntimeDataError(
-                            "native orders require an event-aligned native valuation mark"
+                            "native orders require an event-aligned or prior valuation mark"
                         )
+                    assert mark_entry is not None
                     marks[sdk_instrument_id] = mark_entry[0]
                 continue
             mark_entry = latest_marks.get(sdk_instrument_id)
-            if mark_entry is None or _record_time_bucket(mark_entry[1]) != (
-                _datetime_microsecond_bucket(event_time)
-            ):
+            if not mark_is_usable(mark_entry):
                 raise NautilusRuntimeDataError(
-                    "open component holdings require event-aligned native marks for allocation"
+                    "open component holdings require event-aligned or prior native marks"
                 )
+            assert mark_entry is not None
             mark = mark_entry[0]
             marks[sdk_instrument_id] = mark
             if total_quantity:
@@ -1879,210 +1918,25 @@ def build_native_strategy_bridge(
                 failure = f"{failure}: {error}"
             callback_failure_types.append(failure)
 
-        def _on_native_event(
+        def _record_rebalance_transition(
             self,
-            event_type: str,
-            event: Any,
-            instrument_id: Any,
-            ts_event: int,
-            ts_init: int,
+            transition: RebalanceBoundaryTransition,
+            *,
+            execution_status: str,
+            submitted_order_count: int = 0,
         ) -> None:
-            try:
-                self._dispatch_native_event(event_type, event, instrument_id, ts_event, ts_init)
-            except Exception as error:
-                failure = f"{type(error).__module__}.{type(error).__qualname__}"
-                if isinstance(error, NautilusRuntimeDataError):
-                    failure = f"{failure}: {error}"
-                callback_failure_types.append(failure)
+            rebalance_schedule_evidence.append(
+                {
+                    "transition": transition.to_wire(),
+                    "execution_status": execution_status,
+                    "submitted_order_count": submitted_order_count,
+                }
+            )
 
-        def _dispatch_native_event(
-            self,
-            event_type: str,
-            event: Any,
-            instrument_id: Any,
-            ts_event: int,
-            ts_init: int,
-        ) -> None:
-            nonlocal callback_index, current_trigger, invocation_result_count
-            try:
-                expected_record = next(native_event_callbacks)
-            except StopIteration:
-                raise NautilusRuntimeDataError("Nautilus emitted an unexpected extra event")
-            expected_key = (
-                expected_record["event_type"],
-                expected_record["instrument_id"],
-                expected_record["event_time_ns"],
-            )
-            observed_key = (event_type, str(instrument_id), int(ts_event))
-            if observed_key != expected_key:
-                raise NautilusRuntimeDataError(
-                    "Nautilus callback order differs from the authenticated event tape"
-                )
-            if evaluation_window_bounds is not None:
-                lower_ns, _evaluation_start_ns, end_ns = evaluation_window_bounds
-                if not lower_ns <= int(ts_event) < end_ns:
-                    raise NautilusRuntimeDataError(
-                        "Nautilus callback is outside the authenticated evaluation input window"
-                    )
-            if (
-                native_event_stream is not None
-                and int(ts_init) != expected_record["native_init_time_ns"]
-            ):
-                raise NautilusRuntimeDataError(
-                    "Nautilus callback init order differs from the authenticated event stream"
-                )
-            fill_ledger.reconcile(native_account_quantities(self.portfolio))
-            contexts: tuple[ComponentContextTrigger, ...] = ()
-            if current_trigger is not None:
-                if current_trigger.trigger_index < callback_index:
-                    raise NautilusRuntimeDataError(
-                        "Nautilus did not invoke the expected strategy context callback"
-                    )
-                if current_trigger.trigger_index == callback_index:
-                    contexts = current_trigger.contexts
-                    current_trigger = next(component_trigger_stream, None)
-            native_event_index = callback_index
-            callback_index += 1
-            latest_marks[str(instrument_id)] = (
-                _native_event_mark_price(event_type, event),
-                int(ts_event),
-            )
-            if account_equity_trace_writer is not None:
-                # This runs before strategy invocation/order routing. Therefore
-                # the first in-window mark is the OOS opening valuation, not a
-                # warm-up-contaminated comparison against initial portfolio cash.
-                native_account = self.portfolio.account(venue=native_venue_id)
-                if native_account is None:
-                    raise NautilusRuntimeDataError("native portfolio has no account for its venue")
-                account_base = getattr(native_account, "base_currency", None)
-                if getattr(account_base, "code", str(account_base)) != portfolio.base_currency:
-                    raise NautilusRuntimeDataError("native cash account base currency differs")
-                account_equity_trace_writer.write(
-                    event_id=expected_record["event_id"],
-                    event_time_ns=int(ts_event),
-                    event_index=native_event_index,
-                    source_sequence=expected_record["sequence"],
-                    account_equity=_native_money_amount_for_currency(
-                        self.portfolio.equity(venue=native_venue_id),
-                        portfolio.base_currency,
-                        "account equity",
-                    ),
-                    account_cash_balance=_native_money_amount_for_currency(
-                        native_account.balances_total(),
-                        portfolio.base_currency,
-                        "account cash balance",
-                    ),
-                )
-            if not contexts:
-                return
-            callback_results: list[tuple[str, Any]] = []
-            raw_intents_by_component: dict[str, tuple[Any, ...]] = {}
-            target_intents_by_component: dict[str, tuple[Any, ...]] = {}
-            for trigger in contexts:
-                component_id = trigger.component_id
-                context = trigger.context
-                strategy_binding_for_component = strategy_bindings[component_id]
-                component_manifest = manifests_by_component[component_id]
-                if content_digest(context.parameters) != strategy_binding_for_component.get(
-                    "parameters_digest"
-                ):
-                    raise NautilusRuntimeDataError(
-                        "strategy context parameters differ from component binding"
-                    )
-                if context.random_seed != engine_input["random_seed"]:
-                    raise NautilusRuntimeDataError(
-                        "strategy context seed differs from engine input"
-                    )
-                positions: dict[str, Any] = {}
-                for requirement in component_manifest.capability_requirements:
-                    sdk_instrument_id = requirement.instrument_id
-                    quantity = fill_ledger.quantity(component_id, sdk_instrument_id)
-                    positions[sdk_instrument_id] = PositionSnapshot(
-                        instrument_id=sdk_instrument_id,
-                        quantity=quantity,
-                        average_price=None,
-                        market_value=None,
-                    )
-                result = invocation_sessions[component_id].invoke(
-                    replace(context, positions=positions)
-                )
-                # Warm-up advances strategy-local state, but neither native orders nor
-                # strategy-output artifacts may treat those intents as OOS decisions.
-                result = _suppress_warmup_intents(
-                    result,
-                    int(ts_event),
-                    evaluation_window_bounds,
-                )
-                callback_results.append((component_id, result))
-                if result_stream_writer is None:
-                    assert invocation_results is not None
-                    invocation_results.append(result)
-                else:
-                    result_stream_writer.write(result)
-                invocation_result_count += 1
-                if result.status is InvocationStatus.SUCCEEDED and result.intents:
-                    target_intents = tuple(
-                        intent
-                        for intent in result.intents
-                        if isinstance(intent, TargetPositionIntent)
-                    )
-                    if target_intents:
-                        if len(target_intents) != len(result.intents):
-                            raise NautilusRuntimeDataError(
-                                "target-position and raw order intents cannot be mixed"
-                                " for one component callback"
-                            )
-                        target_intents_by_component[component_id] = target_intents
-                    else:
-                        raw_intents = tuple(
-                            intent for intent in result.intents if isinstance(intent, OrderIntent)
-                        )
-                        if len(raw_intents) != len(result.intents):
-                            raise NautilusRuntimeDataError(
-                                "strategy emitted an unsupported typed intent"
-                            )
-                        raw_intents_by_component[component_id] = raw_intents
-            if any(
-                result.status is not InvocationStatus.SUCCEEDED
-                for _component_id, result in callback_results
-            ):
-                return
-            if not raw_intents_by_component and not target_intents_by_component:
-                return
-
-            event_time = contexts[0].context.event_time
-            event_sequence = max(trigger.context.event_sequence for trigger in contexts)
-            required_mark_ids = tuple(
-                intent.instrument_id
-                for intents in (
-                    *raw_intents_by_component.values(),
-                    *target_intents_by_component.values(),
-                )
-                for intent in intents
-            )
-            native_state = native_risk_state(
-                self,
-                event_time=event_time,
-                required_mark_ids=required_mark_ids,
-            )
-            if target_intents_by_component:
-                assert isinstance(venue_definition, Mapping)
-                if venue_definition["account_type"].upper() != "CASH":
-                    raise NautilusRuntimeDataError(
-                        "target-position sizing currently requires a cash account"
-                    )
-            order_resolution = _route_component_callback_orders(
-                portfolio=portfolio,
-                raw_intents_by_component=raw_intents_by_component,
-                target_intents_by_component=target_intents_by_component,
-                run_attempt_id=engine_input["attempt_id"],
-                event_time=event_time,
-                event_sequence=event_sequence,
-                native_state=native_state,
-                instruments=instrument_by_id,
-            )
+        def _submit_order_resolution(self, order_resolution: Any | None) -> int:
             if order_resolution is None:
-                return
+                return 0
+            submitted_order_count = 0
             for component_id, intents in order_resolution.component_order_intents:
                 for intent in intents:
                     if isinstance(intent, TargetPositionIntent):
@@ -2137,10 +1991,342 @@ def build_native_strategy_bridge(
                         quantity=intent.quantity,
                     )
                     self.submit_order(order)
+                    submitted_order_count += 1
+            return submitted_order_count
+
+        def _apply_rebalance_transition(
+            self,
+            transition: RebalanceBoundaryTransition,
+        ) -> None:
+            nonlocal rebalance_run_failed
+            if transition.action is RebalanceBoundaryAction.SKIP_MISFIRE:
+                self._record_rebalance_transition(
+                    transition,
+                    execution_status="skipped_misfire",
+                )
+                return
+            if transition.action is RebalanceBoundaryAction.FAIL_MISFIRE:
+                rebalance_run_failed = True
+                self._record_rebalance_transition(
+                    transition,
+                    execution_status="failed_misfire",
+                )
+                return
+
+            if rebalance_cursor is None or rebalance_plan is None:
+                raise NautilusRuntimeDataError("rebalance callback has no authenticated plan")
+            if rebalance_run_failed:
+                self._record_rebalance_transition(
+                    transition,
+                    execution_status="not_applied_run_aborted",
+                )
+                return
+            occurrence = transition.occurrence
+            intents_by_component = {
+                component_id: tuple(targets.values())
+                for component_id, targets in rebalance_targets_by_component.items()
+                if targets
+            }
+            if not intents_by_component:
+                self._record_rebalance_transition(
+                    transition,
+                    execution_status="applied_without_cached_targets",
+                )
+                return
+            required_mark_ids = tuple(
+                sorted(
+                    {
+                        intent.instrument_id
+                        for intents in intents_by_component.values()
+                        for intent in intents
+                    }
+                )
+            )
+            native_state = native_risk_state(
+                self,
+                event_time=occurrence.event_time,
+                required_mark_ids=required_mark_ids,
+                allow_asof_marks=True,
+            )
+            order_resolution = _route_component_callback_orders(
+                portfolio=portfolio,
+                raw_intents_by_component={},
+                target_intents_by_component=intents_by_component,
+                run_attempt_id=engine_input["attempt_id"],
+                event_time=occurrence.event_time,
+                event_sequence=rebalance_sequences[occurrence.occurrence_id],
+                native_state=native_state,
+                instruments=instrument_by_id,
+            )
+            submitted = self._submit_order_resolution(order_resolution)
+            self._record_rebalance_transition(
+                transition,
+                execution_status=("orders_submitted" if submitted else "applied_without_orders"),
+                submitted_order_count=submitted,
+            )
+
+        def _after_event_group(
+            self,
+            event_time_ns: int,
+            following_record: Mapping[str, Any] | None,
+        ) -> None:
+            if rebalance_cursor is None:
+                return
+            following_time_ns = (
+                None if following_record is None else following_record.get("event_time_ns")
+            )
+            if following_time_ns == event_time_ns:
+                return
+            if following_time_ns is not None and (
+                not isinstance(following_time_ns, int) or isinstance(following_time_ns, bool)
+            ):
+                raise NautilusRuntimeDataError("rebalance lookahead timestamp is invalid")
+            transitions = rebalance_cursor.after_event_group(
+                event_time_ns,
+                next_event_time_ns=following_time_ns,
+            )
+            for transition in transitions:
+                self._apply_rebalance_transition(transition)
+
+        def _on_native_event(
+            self,
+            event_type: str,
+            event: Any,
+            instrument_id: Any,
+            ts_event: int,
+            ts_init: int,
+        ) -> None:
+            try:
+                self._dispatch_native_event(event_type, event, instrument_id, ts_event, ts_init)
+            except Exception as error:
+                failure = f"{type(error).__module__}.{type(error).__qualname__}"
+                if isinstance(error, NautilusRuntimeDataError):
+                    failure = f"{failure}: {error}"
+                callback_failure_types.append(failure)
+
+        def _dispatch_native_event(
+            self,
+            event_type: str,
+            event: Any,
+            instrument_id: Any,
+            ts_event: int,
+            ts_init: int,
+        ) -> None:
+            nonlocal callback_index, current_trigger, invocation_result_count
+            expected_record, following_record = take_native_event_record()
+            if expected_record is None:
+                raise NautilusRuntimeDataError("Nautilus emitted an unexpected extra event")
+            expected_key = (
+                expected_record["event_type"],
+                expected_record["instrument_id"],
+                expected_record["event_time_ns"],
+            )
+            observed_key = (event_type, str(instrument_id), int(ts_event))
+            if observed_key != expected_key:
+                raise NautilusRuntimeDataError(
+                    "Nautilus callback order differs from the authenticated event tape"
+                )
+            if evaluation_window_bounds is not None:
+                lower_ns, _evaluation_start_ns, end_ns = evaluation_window_bounds
+                if not lower_ns <= int(ts_event) < end_ns:
+                    raise NautilusRuntimeDataError(
+                        "Nautilus callback is outside the authenticated evaluation input window"
+                    )
+            if (
+                native_event_stream is not None
+                and int(ts_init) != expected_record["native_init_time_ns"]
+            ):
+                raise NautilusRuntimeDataError(
+                    "Nautilus callback init order differs from the authenticated event stream"
+                )
+            if rebalance_cursor is not None:
+                for transition in rebalance_cursor.before_event(int(ts_event)):
+                    self._apply_rebalance_transition(transition)
+            fill_ledger.reconcile(native_account_quantities(self.portfolio))
+            contexts: tuple[ComponentContextTrigger, ...] = ()
+            if current_trigger is not None:
+                if current_trigger.trigger_index < callback_index:
+                    raise NautilusRuntimeDataError(
+                        "Nautilus did not invoke the expected strategy context callback"
+                    )
+                if current_trigger.trigger_index == callback_index:
+                    contexts = current_trigger.contexts
+                    current_trigger = next(component_trigger_stream, None)
+            native_event_index = callback_index
+            callback_index += 1
+            latest_marks[str(instrument_id)] = (
+                _native_event_mark_price(event_type, event),
+                int(ts_event),
+            )
+            if account_equity_trace_writer is not None:
+                # This runs before strategy invocation/order routing. Therefore
+                # the first in-window mark is the OOS opening valuation, not a
+                # warm-up-contaminated comparison against initial portfolio cash.
+                native_account = self.portfolio.account(venue=native_venue_id)
+                if native_account is None:
+                    raise NautilusRuntimeDataError("native portfolio has no account for its venue")
+                account_base = getattr(native_account, "base_currency", None)
+                if getattr(account_base, "code", str(account_base)) != portfolio.base_currency:
+                    raise NautilusRuntimeDataError("native cash account base currency differs")
+                account_equity_trace_writer.write(
+                    event_id=expected_record["event_id"],
+                    event_time_ns=int(ts_event),
+                    event_index=native_event_index,
+                    source_sequence=expected_record["sequence"],
+                    account_equity=_native_money_amount_for_currency(
+                        self.portfolio.equity(venue=native_venue_id),
+                        portfolio.base_currency,
+                        "account equity",
+                    ),
+                    account_cash_balance=_native_money_amount_for_currency(
+                        native_account.balances_total(),
+                        portfolio.base_currency,
+                        "account cash balance",
+                    ),
+                )
+            if not contexts:
+                self._after_event_group(int(ts_event), following_record)
+                return
+            callback_results: list[tuple[str, Any]] = []
+            raw_intents_by_component: dict[str, tuple[Any, ...]] = {}
+            target_intents_by_component: dict[str, tuple[Any, ...]] = {}
+            for trigger in contexts:
+                component_id = trigger.component_id
+                context = trigger.context
+                strategy_binding_for_component = strategy_bindings[component_id]
+                component_manifest = manifests_by_component[component_id]
+                if content_digest(context.parameters) != strategy_binding_for_component.get(
+                    "parameters_digest"
+                ):
+                    raise NautilusRuntimeDataError(
+                        "strategy context parameters differ from component binding"
+                    )
+                if context.random_seed != engine_input["random_seed"]:
+                    raise NautilusRuntimeDataError(
+                        "strategy context seed differs from engine input"
+                    )
+                positions: dict[str, Any] = {}
+                for requirement in component_manifest.capability_requirements:
+                    sdk_instrument_id = requirement.instrument_id
+                    quantity = fill_ledger.quantity(component_id, sdk_instrument_id)
+                    positions[sdk_instrument_id] = PositionSnapshot(
+                        instrument_id=sdk_instrument_id,
+                        quantity=quantity,
+                        average_price=None,
+                        market_value=None,
+                    )
+                result = invocation_sessions[component_id].invoke(
+                    replace(context, positions=positions)
+                )
+                if rebalance_cursor is not None:
+                    if result.status is not InvocationStatus.SUCCEEDED:
+                        raise NautilusRuntimeDataError(
+                            "calendar rebalance strategy invocation did not succeed"
+                        )
+                    if any(not isinstance(item, TargetPositionIntent) for item in result.intents):
+                        raise NautilusRuntimeDataError(
+                            "calendar rebalance policies support target-position intents only"
+                        )
+                    instrument_ids = [item.instrument_id for item in result.intents]
+                    if len(instrument_ids) != len(set(instrument_ids)):
+                        raise NautilusRuntimeDataError(
+                            "strategy repeated a target instrument in one rebalance callback"
+                        )
+                # Warm-up advances strategy-local state, but neither native orders nor
+                # strategy-output artifacts may treat those intents as OOS decisions.
+                result = _suppress_warmup_intents(
+                    result,
+                    int(ts_event),
+                    evaluation_window_bounds,
+                )
+                if rebalance_cursor is not None and not rebalance_run_failed:
+                    for intent in result.intents:
+                        if not isinstance(intent, TargetPositionIntent):
+                            raise NautilusRuntimeDataError(
+                                "calendar rebalance policy emitted an unsupported intent"
+                            )
+                        rebalance_targets_by_component[component_id][intent.instrument_id] = intent
+                callback_results.append((component_id, result))
+                if result_stream_writer is None:
+                    assert invocation_results is not None
+                    invocation_results.append(result)
+                else:
+                    result_stream_writer.write(result)
+                invocation_result_count += 1
+                if result.status is InvocationStatus.SUCCEEDED and result.intents:
+                    target_intents = tuple(
+                        intent
+                        for intent in result.intents
+                        if isinstance(intent, TargetPositionIntent)
+                    )
+                    if target_intents:
+                        if len(target_intents) != len(result.intents):
+                            raise NautilusRuntimeDataError(
+                                "target-position and raw order intents cannot be mixed"
+                                " for one component callback"
+                            )
+                        target_intents_by_component[component_id] = target_intents
+                    else:
+                        raw_intents = tuple(
+                            intent for intent in result.intents if isinstance(intent, OrderIntent)
+                        )
+                        if len(raw_intents) != len(result.intents):
+                            raise NautilusRuntimeDataError(
+                                "strategy emitted an unsupported typed intent"
+                            )
+                        raw_intents_by_component[component_id] = raw_intents
+            if any(
+                result.status is not InvocationStatus.SUCCEEDED
+                for _component_id, result in callback_results
+            ):
+                return
+            if rebalance_cursor is not None:
+                self._after_event_group(int(ts_event), following_record)
+                return
+            if not raw_intents_by_component and not target_intents_by_component:
+                self._after_event_group(int(ts_event), following_record)
+                return
+
+            event_time = contexts[0].context.event_time
+            event_sequence = max(trigger.context.event_sequence for trigger in contexts)
+            required_mark_ids = tuple(
+                intent.instrument_id
+                for intents in (
+                    *raw_intents_by_component.values(),
+                    *target_intents_by_component.values(),
+                )
+                for intent in intents
+            )
+            native_state = native_risk_state(
+                self,
+                event_time=event_time,
+                required_mark_ids=required_mark_ids,
+            )
+            if target_intents_by_component:
+                assert isinstance(venue_definition, Mapping)
+                if venue_definition["account_type"].upper() != "CASH":
+                    raise NautilusRuntimeDataError(
+                        "target-position sizing currently requires a cash account"
+                    )
+            order_resolution = _route_component_callback_orders(
+                portfolio=portfolio,
+                raw_intents_by_component=raw_intents_by_component,
+                target_intents_by_component=target_intents_by_component,
+                run_attempt_id=engine_input["attempt_id"],
+                event_time=event_time,
+                event_sequence=event_sequence,
+                native_state=native_state,
+                instruments=instrument_by_id,
+            )
+            self._submit_order_resolution(order_resolution)
+            self._after_event_group(int(ts_event), following_record)
 
     strategy = _InvocationStrategy(_InvocationStrategyConfig())
 
     def result_output() -> Any:
+        if rebalance_cursor is not None:
+            for transition in rebalance_cursor.finish():
+                strategy._apply_rebalance_transition(transition)
         if callback_failure_types:
             failure_types = ",".join(sorted(set(callback_failure_types)))
             raise NautilusRuntimeDataError(f"native strategy callback failed with {failure_types}")
@@ -2149,7 +2335,7 @@ def build_native_strategy_bridge(
             raise NautilusRuntimeDataError(
                 "Nautilus did not invoke every event in the authenticated event tape"
             )
-        if next(native_event_callbacks, None) is not None:
+        if next_native_event_record is not None:
             raise NautilusRuntimeDataError(
                 "native event stream contains records beyond the executed tape"
             )
@@ -2171,10 +2357,14 @@ def build_native_strategy_bridge(
             return None
         return account_equity_trace_writer.finish()
 
+    def rebalance_schedule_output() -> list[dict[str, object]]:
+        return list(rebalance_schedule_evidence)
+
     return NativeStrategyBridge(
         strategy=strategy,
         result_output=result_output,
         account_equity_trace_output=account_equity_trace_output,
+        rebalance_schedule_output=rebalance_schedule_output,
         input_fingerprint=input_fingerprint,
         input_protocol=input_protocol,
     )

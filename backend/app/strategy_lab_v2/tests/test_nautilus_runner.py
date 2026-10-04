@@ -4,6 +4,7 @@ import json
 import os
 import shlex
 from dataclasses import replace
+from datetime import UTC, datetime
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
@@ -16,6 +17,13 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
 from app.strategy_lab_v2.engine_execution import EngineExecutionDecision, NautilusExecutionPlan
 from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsWriter
+from app.strategy_lab_v2.nautilus_rebalance_schedule import (
+    NautilusRebalanceScheduleAudit,
+    NautilusRebalanceScheduleCursor,
+    RebalanceExecutionStatus,
+    RebalanceScheduleOutcome,
+)
+from app.strategy_lab_v2.nautilus_rebalance_wire import rebalance_execution_plan_to_wire
 from app.strategy_lab_v2.nautilus_runner import NautilusRunStatus, run_nautilus_plan
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     NAUTILUS_RUNTIME_ARTIFACT_MEDIA_TYPE,
@@ -27,6 +35,12 @@ from app.strategy_lab_v2.nautilus_runtime_bundle import (
 from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
     NAUTILUS_CONTEXT_STREAM_SCHEMA,
+)
+from app.strategy_lab_v2.rebalance import (
+    RebalanceExecutionPlan,
+    RebalanceMisfirePolicy,
+    RebalanceTrigger,
+    ScheduledRebalance,
 )
 from app.strategy_lab_v2.sandbox import SandboxCommandPlan, nautilus_runtime_command
 from strategy_runtime import (
@@ -271,14 +285,60 @@ def test_runner_rejects_runtime_input_artifact_byte_drift_before_spawn(tmp_path:
     assert "nautilus_runtime_command_required" in snapshot_result.rejection_reasons
 
 
-def test_runner_verifies_and_binds_invocation_result_stream(tmp_path: Path) -> None:
+def test_runner_verifies_invocation_stream_and_persists_failed_rebalance_audit(
+    tmp_path: Path,
+) -> None:
     input_path = tmp_path / "bundle.json"
     context_path = tmp_path / "contexts.ndjson"
     result_path = tmp_path / "result.json"
     stream_path = tmp_path / "invocations.ndjson"
     equity_trace_path = tmp_path / "account-equity.parquet"
     native_reports_path = tmp_path / "native-reports.parquet"
-    input_bytes = b"verified bundle"
+    policy_fingerprint = content_digest("policy")
+    calendar_fingerprint = content_digest("calendar")
+    boundary = datetime(2024, 1, 3, tzinfo=UTC)
+    occurrence_identity = {
+        "policy_fingerprint": policy_fingerprint,
+        "calendar_fingerprint": calendar_fingerprint,
+        "session_id": "XNYS:2024-01-03",
+        "session_label": boundary.date(),
+        "event_time": boundary,
+        "trigger": RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+        "cadence_period": "session:2024-01-03",
+    }
+    occurrence = ScheduledRebalance(
+        occurrence_id=content_digest(occurrence_identity),
+        policy_fingerprint=policy_fingerprint,
+        calendar_fingerprint=calendar_fingerprint,
+        session_id="XNYS:2024-01-03",
+        session_label=boundary.date(),
+        event_time=boundary,
+        trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+        cadence_period="session:2024-01-03",
+        misfire_policy=RebalanceMisfirePolicy.FAIL_RUN,
+    )
+    rebalance_plan = RebalanceExecutionPlan(
+        policy_fingerprint,
+        calendar_fingerprint,
+        (occurrence,),
+    )
+    transition = NautilusRebalanceScheduleCursor(rebalance_plan).finish()[0]
+    schedule_audit = NautilusRebalanceScheduleAudit(
+        "attempt-1",
+        rebalance_plan.fingerprint,
+        (
+            RebalanceScheduleOutcome(
+                transition,
+                RebalanceExecutionStatus.FAILED_MISFIRE,
+                0,
+            ),
+        ),
+    )
+    runtime_bundle = {
+        "schema": "strategy-lab.test-runtime-bundle.v1",
+        "engine_input": {"rebalance_plan": rebalance_execution_plan_to_wire(rebalance_plan)},
+    }
+    input_bytes = json.dumps(runtime_bundle, separators=(",", ":"), sort_keys=True).encode()
     context_bytes = b"verified contexts"
     input_path.write_bytes(input_bytes)
     context_path.write_bytes(context_bytes)
@@ -327,6 +387,7 @@ def test_runner_verifies_and_binds_invocation_result_stream(tmp_path: Path) -> N
                 "all_succeeded": True,
             },
             "native_execution_reports": native_reports.to_wire(),
+            "rebalance_schedule_audit": schedule_audit.to_wire(),
         },
         separators=(",", ":"),
         sort_keys=True,
@@ -376,12 +437,20 @@ def test_runner_verifies_and_binds_invocation_result_stream(tmp_path: Path) -> N
         sandbox.argv[20],
         *runtime_command,
     )
+    argv = tuple(
+        (
+            f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest(runtime_bundle)}"
+            if item.startswith("--env=STRATEGY_INPUT_BUNDLE_DIGEST=")
+            else item
+        )
+        for item in argv
+    )
     sandbox = replace(sandbox, argv=argv)
     input_digest = artifact_content_digest(input_bytes)
     context_artifact_digest = artifact_content_digest(context_bytes)
     runtime_artifact = NautilusRuntimeInputArtifactReference(
         "attempt-1",
-        content_digest("inputs"),
+        content_digest(runtime_bundle),
         ArtifactManifest(
             input_digest,
             len(input_bytes),
@@ -410,10 +479,12 @@ def test_runner_verifies_and_binds_invocation_result_stream(tmp_path: Path) -> N
         runtime_input_artifact=runtime_artifact,
     )
 
-    assert result.status is NautilusRunStatus.SUCCEEDED
-    assert result.result_failure_digest is None
+    assert result.status is NautilusRunStatus.FAILED
+    assert not result.authoritative
+    assert result.result_failure_digest is not None
     assert isinstance(result.invocation_result_stream, NautilusInvocationResultStreamReference)
     assert result.invocation_result_stream.artifact.content_digest == summary.content_digest
     assert result.invocation_result_stream.artifact.byte_length == len(stream_bytes)
     assert result.invocation_result_stream.result_count == 1
     assert result.native_reports == native_reports
+    assert result.rebalance_schedule_audit == schedule_audit

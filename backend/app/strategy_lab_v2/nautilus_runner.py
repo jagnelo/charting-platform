@@ -38,6 +38,11 @@ from app.strategy_lab_v2.nautilus_native_reports import (
     NautilusNativeReportsReference,
     verify_nautilus_native_reports_file,
 )
+from app.strategy_lab_v2.nautilus_rebalance_schedule import (
+    NautilusRebalanceScheduleAudit,
+    RebalanceExecutionStatus,
+)
+from app.strategy_lab_v2.nautilus_rebalance_wire import rebalance_execution_plan_from_wire
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     NautilusInvocationResultStreamReference,
     NautilusNativeEventStreamArtifactReference,
@@ -100,6 +105,7 @@ class NautilusRunResult:
     rejection_reasons: tuple[str, ...] = ()
     account_equity_trace: NautilusAccountEquityTraceReference | None = None
     native_reports: NautilusNativeReportsReference | None = None
+    rebalance_schedule_audit: NautilusRebalanceScheduleAudit | None = None
 
     def __post_init__(self) -> None:
         require_sha256_digest(
@@ -132,6 +138,10 @@ class NautilusRunResult:
             self.native_reports, NautilusNativeReportsReference
         ):
             raise TypeError("native_reports must be a NautilusNativeReportsReference")
+        if self.rebalance_schedule_audit is not None and not isinstance(
+            self.rebalance_schedule_audit, NautilusRebalanceScheduleAudit
+        ):
+            raise TypeError("rebalance_schedule_audit must be a NautilusRebalanceScheduleAudit")
         if self.result_failure_digest is not None:
             require_sha256_digest(self.result_failure_digest, field_name="result_failure_digest")
         reasons = tuple(self.rejection_reasons)
@@ -145,6 +155,7 @@ class NautilusRunResult:
                 or self.invocation_result_stream is not None
                 or self.account_equity_trace is not None
                 or self.native_reports is not None
+                or self.rebalance_schedule_audit is not None
                 or self.result_failure_digest is not None
                 or self.authoritative
                 or not reasons
@@ -332,6 +343,7 @@ def run_nautilus_plan(
     invocation_result_stream = None
     account_equity_trace = None
     native_reports = None
+    rebalance_schedule_audit = None
     result_failure_digest = None
     if status is NautilusRunStatus.SUCCEEDED and runtime_input_artifact is not None:
         context_reference = runtime_input_artifact.context_stream
@@ -351,6 +363,44 @@ def run_nautilus_plan(
                 if native_reports_path is None:
                     raise ValueError("Nautilus native report mount is missing")
                 result_wire = _read_sandbox_result(sandbox_plan, sandbox_result)
+                raw_rebalance_audit = result_wire.get("rebalance_schedule_audit")
+                if (
+                    execution_plan.authoritative
+                    or runtime_input_artifact.trial_binding is not None
+                    or raw_rebalance_audit is not None
+                ):
+                    runtime_bundle = _read_runtime_input_bundle(
+                        sandbox_plan,
+                        max_input_bytes=max(1, memory_limit_bytes // 8),
+                    )
+                    if content_digest(runtime_bundle) != runtime_input_artifact.input_bundle_digest:
+                        raise ValueError("Nautilus runtime input bundle changed after execution")
+                    engine_input = runtime_bundle.get("engine_input")
+                    if not isinstance(engine_input, Mapping):
+                        raise ValueError("Nautilus runtime input engine input is invalid")
+                    rebalance_plan = rebalance_execution_plan_from_wire(
+                        engine_input.get("rebalance_plan")
+                    )
+                    if rebalance_plan is None:
+                        if raw_rebalance_audit is not None:
+                            raise ValueError("Nautilus result has a rebalance audit without a plan")
+                    else:
+                        rebalance_schedule_audit = NautilusRebalanceScheduleAudit.from_wire(
+                            raw_rebalance_audit,
+                            attempt_id=execution_plan.attempt_id,
+                            plan=rebalance_plan,
+                        )
+                        if any(
+                            outcome.execution_status is RebalanceExecutionStatus.FAILED_MISFIRE
+                            for outcome in rebalance_schedule_audit.outcomes
+                        ):
+                            status = NautilusRunStatus.FAILED
+                            result_failure_digest = content_digest(
+                                {
+                                    "failure": "rebalance_misfire",
+                                    "audit_fingerprint": rebalance_schedule_audit.fingerprint,
+                                }
+                            )
                 native_reports = NautilusNativeReportsReference.from_wire(
                     result_wire.get("native_execution_reports")
                 )
@@ -397,6 +447,7 @@ def run_nautilus_plan(
                 status = NautilusRunStatus.FAILED
                 account_equity_trace = None
                 native_reports = None
+                rebalance_schedule_audit = None
                 result_failure_digest = content_digest(
                     "Nautilus result artifact verification failure"
                 )
@@ -410,6 +461,7 @@ def run_nautilus_plan(
         result_failure_digest,
         account_equity_trace=account_equity_trace,
         native_reports=native_reports,
+        rebalance_schedule_audit=rebalance_schedule_audit,
     )
 
 

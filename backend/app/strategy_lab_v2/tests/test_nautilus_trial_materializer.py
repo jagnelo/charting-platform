@@ -17,6 +17,7 @@ from app.strategy_lab_v2.contracts import (
     ArtifactManifest,
     ArtifactRetention,
     DataSeriesManifest,
+    EvaluationWindow,
     ScientificTrial,
 )
 from app.strategy_lab_v2.nautilus_runtime_bundle import load_materialized_nautilus_runtime_bundle
@@ -25,6 +26,11 @@ from app.strategy_lab_v2.nautilus_trial_materializer import (
     NautilusTrialMarketContext,
     NautilusTrialRuntimeInputMaterializer,
     build_nautilus_trial_runtime_evidence,
+)
+from app.strategy_lab_v2.rebalance import (
+    CalendarRebalancePolicy,
+    RebalanceCadence,
+    RebalanceTrigger,
 )
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
 from app.strategy_lab_v2.sdk import StrategySdkManifest
@@ -38,6 +44,7 @@ from app.strategy_lab_v2.strategy_package_resolution import (
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import (
     BASE,
     JsonFrozenSeriesDecoder,
+    _calendar_snapshot,
     _inputs,
 )
 from app.strategy_lab_v2.trial_hydration import HydratedNautilusTrial
@@ -256,6 +263,66 @@ def test_materializer_resolves_owner_graph_and_verified_inputs(tmp_path: Path) -
         max_input_bytes=1_000_000,
     )
     assert bundle.input_bundle_digest == result.assembly.runtime_input_artifact.input_bundle_digest
+
+
+def test_materializer_passes_trusted_calendar_into_frozen_trial_plan(tmp_path: Path) -> None:
+    values, graph, store = _build_inputs(tmp_path)
+    calendar = _calendar_snapshot()
+    policy = CalendarRebalancePolicy(
+        calendar_id=calendar.calendar_id,
+        calendar_fingerprint=calendar.fingerprint,
+        cadence=RebalanceCadence.EACH_SESSION,
+        trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+    )
+    portfolio = replace(graph.portfolio, rebalance_policy=policy)
+    experiment = replace(graph.experiment, portfolio_fingerprint=portfolio.fingerprint)
+    previous_trial = graph.trial
+    trial = ScientificTrial.create(
+        experiment_fingerprint=experiment.fingerprint,
+        snapshot_fingerprint=previous_trial.snapshot_fingerprint,
+        preflight_report=previous_trial.preflight_report,
+        parameter_set=previous_trial.parameter_set,
+        scenario=previous_trial.scenario,
+        seed=previous_trial.seed,
+        randomization=previous_trial.randomization,
+        evaluation_window=EvaluationWindow(
+            start=BASE + timedelta(days=1),
+            end=BASE + timedelta(days=2),
+            purpose="out_of_sample",
+            warmup_start=BASE,
+        ),
+    )
+    graph = replace(
+        graph,
+        attempt=replace(graph.attempt, trial_id=trial.trial_id),
+        trial=trial,
+        experiment=experiment,
+        portfolio=portfolio,
+    )
+    materializer = NautilusTrialRuntimeInputMaterializer(
+        artifact_store=store,
+        strategy_package_resolver=StrategyPackageArtifactResolver(
+            store,
+            runtime_abi=RUNTIME_ABI,
+        ),
+        series_decoder=JsonFrozenSeriesDecoder(),
+    )
+
+    materialized = materializer.materialize(
+        graph=graph,
+        market_context=NautilusTrialMarketContext(
+            values["instruments"], values["venue"], session_calendar=calendar
+        ),
+    )
+    bundle = load_materialized_nautilus_runtime_bundle(
+        materialized.assembly.runtime_input_artifact,
+        store,
+        max_input_bytes=1_000_000,
+    )
+
+    payload = json.loads(bundle.wire_bytes)
+    assert len(payload["engine_input"]["rebalance_plan"]["occurrences"]) == 1
+    assert payload["engine_input"]["rebalance_plan"]["calendar_fingerprint"] == calendar.fingerprint
 
 
 def test_materializer_resolves_every_strategy_in_a_shared_portfolio(tmp_path: Path) -> None:
