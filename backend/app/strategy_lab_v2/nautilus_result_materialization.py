@@ -92,6 +92,7 @@ def materialize_nautilus_oos_run_result(
         native_reports_reference,
         native_reports_path,
         created_at=created_at,
+        portfolio=portfolio,
     )
 
     artifacts_by_digest: dict[str, ArtifactManifest] = {}

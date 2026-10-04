@@ -17,7 +17,7 @@ from app.strategy_lab_v2.canonical import (
 )
 from app.strategy_lab_v2.conformance import NautilusResultProvenance
 from app.strategy_lab_v2.decimal_math import deterministic_decimal_math
-from app.strategy_lab_v2.observations import ObservationPoint
+from app.strategy_lab_v2.observations import UNALLOCATED_COMPONENT_ID, ObservationPoint
 from app.strategy_lab_v2.rebalance import CalendarRebalancePolicy
 
 if TYPE_CHECKING:
@@ -408,6 +408,8 @@ class PortfolioComposition:
         component_ids = [item.component_id for item in self.components]
         if len(set(component_ids)) != len(component_ids):
             raise ValueError("portfolio component ids must be unique")
+        if UNALLOCATED_COMPONENT_ID in component_ids:
+            raise ValueError(f"{UNALLOCATED_COMPONENT_ID} is reserved for unallocated attribution")
         if sum((item.capital_weight for item in self.components), Decimal(0)) > Decimal(1):
             raise ValueError("portfolio capital weights must not exceed one")
         object.__setattr__(self, "components", tuple(self.components))

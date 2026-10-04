@@ -406,9 +406,27 @@ class NautilusNativeReportsWriter:
             columns = tuple(str(column) for column in frame.columns)
             if any(not column for column in columns) or len(set(columns)) != len(columns):
                 raise ValueError("native report columns must be unique non-empty strings")
+            index_names = tuple(frame.index.names)
+            if any(name is not None and not isinstance(name, str) for name in index_names):
+                raise ValueError("native report index names must be strings or None")
+            named_index_fields = tuple(
+                (level, name)
+                for level, name in enumerate(index_names)
+                if name is not None and name and name not in columns
+            )
+            appended_names = tuple(name for _, name in named_index_fields)
+            if len(appended_names) != len(set(appended_names)):
+                raise ValueError("native report named index fields must be unique")
+            record_columns = (*columns, *appended_names)
             count = 0
             for row_index, values in enumerate(frame.itertuples(index=False, name=None)):
-                record_json = _json_record(columns, tuple(values))
+                index_value = frame.index[row_index]
+                index_values = (index_value,) if len(index_names) == 1 else tuple(index_value)
+                record_values = (
+                    *tuple(values),
+                    *(index_values[level] for level, _ in named_index_fields),
+                )
+                record_json = _json_record(record_columns, record_values)
                 self._buffer.append(
                     {
                         "report_kind": kind,

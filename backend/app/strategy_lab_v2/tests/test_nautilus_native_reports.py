@@ -149,6 +149,67 @@ def test_native_reports_preserve_bounded_structured_values(tmp_path) -> None:
     )
 
 
+def test_native_reports_preserve_named_indices_used_for_order_fill_and_position_joins(
+    tmp_path,
+) -> None:
+    path = tmp_path / "indexed-native-reports.parquet"
+    reports = _reports()
+    reports["orders"] = pd.DataFrame(
+        [{"venue_order_id": "venue-1", "tags": ["strategy-lab-v2:component:alpha"]}],
+        index=pd.Index(["client-1"], name="client_order_id"),
+    )
+    reports["fills"] = pd.DataFrame(
+        [{"venue_order_id": "venue-1", "position_id": "position-1", "last_qty": "2"}],
+        index=pd.Index(["client-1"], name="client_order_id"),
+    )
+    reports["positions"] = pd.DataFrame(
+        [{"instrument_id": "AAPL.SIM", "realized_pnl": "5.00 USD"}],
+        index=pd.Index(["position-1"], name="position_id"),
+    )
+    writer = NautilusNativeReportsWriter(
+        path,
+        engine_input=_engine_input(),
+        portfolio=_portfolio(),
+    )
+    writer.write_reports(reports)
+    reference = writer.finish()
+
+    rows = {
+        kind: row
+        for kind, _, row in iter_nautilus_native_report_records(reference, path)
+        if kind in {"fills", "orders", "positions"}
+    }
+    assert rows["orders"]["client_order_id"] == "client-1"
+    assert rows["fills"]["client_order_id"] == "client-1"
+    assert rows["fills"]["position_id"] == "position-1"
+    assert rows["positions"]["position_id"] == "position-1"
+
+
+def test_native_reports_do_not_duplicate_named_indices_already_present_as_columns(
+    tmp_path,
+) -> None:
+    path = tmp_path / "indexed-column-native-reports.parquet"
+    reports = _reports()
+    reports["orders"] = pd.DataFrame(
+        [{"client_order_id": "client-1", "status": "FILLED"}],
+        index=pd.Index(["client-1"], name="client_order_id"),
+    )
+    writer = NautilusNativeReportsWriter(
+        path,
+        engine_input=_engine_input(),
+        portfolio=_portfolio(),
+    )
+    writer.write_reports(reports)
+    reference = writer.finish()
+
+    order = next(
+        row
+        for kind, _, row in iter_nautilus_native_report_records(reference, path)
+        if kind == "orders"
+    )
+    assert order == {"client_order_id": "client-1", "status": "FILLED"}
+
+
 def test_native_reports_verify_rejects_byte_drift_and_incomplete_reference(tmp_path) -> None:
     path = tmp_path / "native-reports.parquet"
     writer = NautilusNativeReportsWriter(

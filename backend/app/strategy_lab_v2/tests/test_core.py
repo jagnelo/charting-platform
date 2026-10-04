@@ -984,6 +984,11 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
     assert portfolio.base_currency == "USD"
     assert portfolio.unallocated_capital_weight == Decimal("0.40")
     assert portfolio.fingerprint == content_digest(portfolio)
+    with pytest.raises(ValueError, match="reserved for unallocated attribution"):
+        replace(
+            portfolio,
+            components=(replace(component, component_id="__unallocated__"),),
+        )
     with pytest.raises(TypeError, match="CalendarRebalancePolicy or None"):
         replace(
             portfolio,

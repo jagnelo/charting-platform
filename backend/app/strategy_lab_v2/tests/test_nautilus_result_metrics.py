@@ -7,7 +7,12 @@ import pandas as pd  # type: ignore[import-untyped]
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
+from app.strategy_lab_v2.contracts import (
+    ArtifactManifest,
+    ArtifactRetention,
+    PortfolioComponent,
+    PortfolioComposition,
+)
 from app.strategy_lab_v2.metrics import METRIC_DEFINITION_VERSION
 from app.strategy_lab_v2.nautilus_equity_trace import (
     NAUTILUS_ACCOUNT_EQUITY_TRACE_MEDIA_TYPE,
@@ -21,7 +26,34 @@ from app.strategy_lab_v2.nautilus_result_metrics import (
 )
 
 
-def _reference(*, windowed: bool = True) -> NautilusAccountEquityTraceReference:
+def _portfolio_composition() -> PortfolioComposition:
+    return PortfolioComposition(
+        portfolio_id="portfolio-1",
+        version_id="portfolio-version-1",
+        initial_capital=Decimal("1000"),
+        base_currency="USD",
+        components=(
+            PortfolioComponent(
+                component_id="alpha",
+                strategy_fingerprint=content_digest("strategy-alpha"),
+                instrument_ids=("AAPL.SIM",),
+                capital_weight=Decimal("0.5"),
+            ),
+            PortfolioComponent(
+                component_id="beta",
+                strategy_fingerprint=content_digest("strategy-beta"),
+                instrument_ids=("AAPL.SIM",),
+                capital_weight=Decimal("0.5"),
+            ),
+        ),
+    )
+
+
+def _reference(
+    *,
+    windowed: bool = True,
+    portfolio: PortfolioComposition | None = None,
+) -> NautilusAccountEquityTraceReference:
     artifact_digest = content_digest("account-equity-trace")
     artifact = ArtifactManifest(
         content_digest=artifact_digest,
@@ -35,7 +67,9 @@ def _reference(*, windowed: bool = True) -> NautilusAccountEquityTraceReference:
         artifact=artifact,
         trial_id=content_digest("trial"),
         attempt_id="attempt-1",
-        portfolio_fingerprint=content_digest("portfolio"),
+        portfolio_fingerprint=(
+            content_digest("portfolio") if portfolio is None else portfolio.fingerprint
+        ),
         snapshot_fingerprint=content_digest("snapshot"),
         source_tape_fingerprint=content_digest("source-tape"),
         evaluation_window_fingerprint=(content_digest("evaluation-window") if windowed else None),
@@ -195,6 +229,142 @@ def test_build_nautilus_oos_metric_set_filters_and_binds_native_reports(tmp_path
             created_at=datetime(2026, 10, 4, tzinfo=UTC),
         ).metric_set_id
     )
+
+
+def test_build_nautilus_oos_metric_set_reconciles_native_component_pnl_and_costs(tmp_path) -> None:
+    portfolio = _portfolio_composition()
+    equity_reference = _reference(portfolio=portfolio)
+    reports_path = tmp_path / "component-native-reports.parquet"
+    writer = NautilusNativeReportsWriter(
+        reports_path,
+        engine_input={
+            "trial_id": equity_reference.trial_id,
+            "attempt_id": equity_reference.attempt_id,
+            "data_snapshot_fingerprint": equity_reference.snapshot_fingerprint,
+            "event_tape": {
+                "source_tape_fingerprint": equity_reference.source_tape_fingerprint,
+            },
+            "evaluation_window": {
+                "fingerprint": equity_reference.evaluation_window_fingerprint,
+                "start_ns": equity_reference.scoring_start_ns,
+                "end_ns": equity_reference.scoring_end_ns,
+            },
+        },
+        portfolio={"fingerprint": portfolio.fingerprint},
+    )
+    writer.write_reports(
+        {
+            "account": pd.DataFrame([{"currency": "USD", "total": "1,060.00"}]),
+            "orders": pd.DataFrame(
+                [
+                    {"tags": ["strategy-lab-v2:component:alpha"]},
+                    {"tags": ["strategy-lab-v2:component:alpha"]},
+                ],
+                index=pd.Index(["buy-1", "sell-1"], name="client_order_id"),
+            ),
+            "fills": pd.DataFrame(
+                [
+                    {
+                        "position_id": "position-1",
+                        "trade_id": "trade-1",
+                        "commission": "1.50 USD",
+                        "ts_event": 110,
+                    },
+                    {
+                        "position_id": "position-1",
+                        "trade_id": "trade-2",
+                        "commission": "-0.50 USD",
+                        "ts_event": 150,
+                    },
+                ],
+                index=pd.Index(["buy-1", "sell-1"], name="client_order_id"),
+            ),
+            "positions": pd.DataFrame(
+                [
+                    {
+                        "client_order_ids": ["buy-1", "sell-1"],
+                        "trade_ids": ["trade-1", "trade-2"],
+                        "ts_opened": 105,
+                        "ts_closed": 151,
+                        "realized_pnl": "28.00 USD",
+                    }
+                ],
+                # Archived cycles use generated report IDs, distinct from
+                # the fill's original position_id; trade IDs prove the join.
+                index=pd.Index(["position-1.snapshot-1"], name="position_id"),
+            ),
+        }
+    )
+    reports_reference = writer.finish()
+
+    metric_set = build_nautilus_oos_metric_set(
+        equity_reference,
+        (Decimal("1000"), Decimal("1030"), Decimal("1060")),
+        reports_reference,
+        reports_path,
+        created_at=datetime(2026, 10, 4, tzinfo=UTC),
+        portfolio=portfolio,
+    )
+    metrics = {item.name: item for item in metric_set.values}
+
+    assert metrics["portfolio_attributed_net_pnl"].value == Decimal("60")
+    assert metrics["portfolio_attributed_gross_pnl"].value == Decimal("61")
+    assert metrics["component_net_pnl:alpha"].value == Decimal("28.00")
+    assert metrics["component_gross_pnl:alpha"].value == Decimal("29.00")
+    assert metrics["component_net_pnl:beta"].value == Decimal(0)
+    assert metrics["component_net_pnl:__unallocated__"].value == Decimal("32.00")
+    assert metrics["component_gross_pnl:__unallocated__"].value == Decimal("32.00")
+
+
+def test_component_pnl_is_unavailable_when_native_fee_currency_needs_fx(tmp_path) -> None:
+    portfolio = _portfolio_composition()
+    equity_reference = _reference(portfolio=portfolio)
+    reports_path = tmp_path / "foreign-fee-native-reports.parquet"
+    writer = NautilusNativeReportsWriter(
+        reports_path,
+        engine_input={
+            "trial_id": equity_reference.trial_id,
+            "attempt_id": equity_reference.attempt_id,
+            "data_snapshot_fingerprint": equity_reference.snapshot_fingerprint,
+            "event_tape": {
+                "source_tape_fingerprint": equity_reference.source_tape_fingerprint,
+            },
+            "evaluation_window": {
+                "fingerprint": equity_reference.evaluation_window_fingerprint,
+                "start_ns": equity_reference.scoring_start_ns,
+                "end_ns": equity_reference.scoring_end_ns,
+            },
+        },
+        portfolio={"fingerprint": portfolio.fingerprint},
+    )
+    writer.write_reports(
+        {
+            "account": pd.DataFrame([{"currency": "USD", "total": "1,010.00"}]),
+            "orders": pd.DataFrame(
+                [{"tags": ["strategy-lab-v2:component:alpha"]}],
+                index=pd.Index(["order-1"], name="client_order_id"),
+            ),
+            "fills": pd.DataFrame(
+                [{"position_id": "position-1", "commission": "1.00 EUR", "ts_event": 110}],
+                index=pd.Index(["order-1"], name="client_order_id"),
+            ),
+            "positions": pd.DataFrame(columns=["client_order_ids", "ts_opened", "ts_closed"]),
+        }
+    )
+    reports_reference = writer.finish()
+
+    metric_set = build_nautilus_oos_metric_set(
+        equity_reference,
+        (Decimal("1000"), Decimal("1010"), Decimal("1010")),
+        reports_reference,
+        reports_path,
+        created_at=datetime(2026, 10, 4, tzinfo=UTC),
+        portfolio=portfolio,
+    )
+    metrics = {item.name: item for item in metric_set.values}
+
+    assert metrics["component_net_pnl:alpha"].value is None
+    assert "no FX conversion is inferred" in (metrics["component_net_pnl:alpha"].null_reason or "")
 
 
 def test_native_realized_position_quality_is_currency_safe_and_oos_scoped(tmp_path) -> None:

@@ -19,6 +19,7 @@ from app.strategy_lab_v2.contracts import (
     MetricEvidenceReference,
     MetricSet,
     MetricValue,
+    PortfolioComposition,
 )
 from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_decimal_math
 from app.strategy_lab_v2.metrics import (
@@ -91,6 +92,7 @@ def build_nautilus_oos_metric_set(
     native_reports_path: str | Path,
     *,
     created_at: datetime,
+    portfolio: PortfolioComposition | None = None,
 ) -> MetricSet:
     """Build one OOS metric set from byte-verified native engine outputs.
 
@@ -101,6 +103,14 @@ def build_nautilus_oos_metric_set(
     """
 
     _require_matching_oos_references(equity_reference, native_reports_reference)
+    if portfolio is not None:
+        if not isinstance(portfolio, PortfolioComposition):
+            raise TypeError("portfolio must be a PortfolioComposition")
+        if (
+            portfolio.fingerprint != equity_reference.portfolio_fingerprint
+            or portfolio.fingerprint != native_reports_reference.portfolio_fingerprint
+        ):
+            raise ValueError("component attribution portfolio differs from native result scope")
     if (
         not isinstance(created_at, datetime)
         or created_at.tzinfo is None
@@ -108,13 +118,38 @@ def build_nautilus_oos_metric_set(
     ):
         raise ValueError("created_at must be timezone-aware")
 
+    equity_endpoints: list[Decimal] = []
+
+    def capture_equity_endpoints() -> Iterable[Decimal]:
+        for mark in equity_marks:
+            if not equity_endpoints:
+                equity_endpoints.extend((mark, mark))
+            else:
+                equity_endpoints[1] = mark
+            yield mark
+
     equity_values = calculate_event_aligned_equity_metrics(
-        equity_marks,
+        capture_equity_endpoints(),
         base_currency=equity_reference.base_currency,
         evidence_digest=equity_reference.artifact.content_digest,
         expected_mark_count=equity_reference.observation_count,
     )
     native_values = _native_oos_report_metrics(native_reports_reference, native_reports_path)
+    component_values: tuple[MetricValue, ...] = ()
+    if portfolio is not None:
+        from app.strategy_lab_v2.nautilus_component_pnl import (
+            build_nautilus_component_pnl_metrics,
+        )
+
+        if not equity_endpoints:
+            raise ValueError("native equity trace has no OOS account marks")
+        component_values = build_nautilus_component_pnl_metrics(
+            equity_reference,
+            native_reports_reference,
+            native_reports_path,
+            portfolio,
+            account_net_pnl=equity_endpoints[1] - equity_endpoints[0],
+        )
     identity = content_digest(
         {
             "attempt_id": equity_reference.attempt_id,
@@ -130,7 +165,7 @@ def build_nautilus_oos_metric_set(
         trial_id=equity_reference.trial_id,
         attempt_id=equity_reference.attempt_id,
         definition_version=METRIC_DEFINITION_VERSION,
-        values=(*equity_values, *native_values),
+        values=(*equity_values, *native_values, *component_values),
         created_at=created_at,
     )
 
