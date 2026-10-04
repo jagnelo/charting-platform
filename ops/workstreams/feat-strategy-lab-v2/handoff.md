@@ -2,6 +2,48 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Defer mixed-intent risk to the shared order gate
+
+Closed a gap in same-event mixed raw/target execution. The native bridge now
+asks target allocation to produce candidate orders without treating that
+intermediate target-only portfolio snapshot as the final shared-risk decision;
+the combined raw-plus-target order router remains the required fail-closed
+gate before any native order submission. Standalone target-allocation callers
+still reject shared-risk breaches by default. Regression tests cover (1) a
+target batch with a raw order crossing a gross limit, rejected at 20.5% and
+accepted at 21%, and (2) a target-only interim net breach that is offset by a
+same-event raw short order and accepted by the final combined gate at 40% gross,
+zero net exposure.
+
+Validation: all 1,181 Strategy Lab v2 tests pass; package Ruff and changed-file
+formatting pass; MyPy reports no issues across 341 package/runtime sources;
+`git diff --check` and the workstream validator pass. The exact-pinned Nautilus
+2.0.0rc5 image-backed bridge/fill probe remains unrun because the current
+sandbox denies Docker API access. Stable Nautilus 2.x is not a release gate:
+the plan permits the exact-pinned pre-release for local backtests after
+applicable conformance, and prohibits pre-releases from broker/real-capital
+use. No package-local implementation is blocked by that validation boundary.
+
+The exact feature-branch push remains an SSH authentication hold (`ssh-askpass`
+missing / configured key rejected); it does not block local commits or coding.
+Provider, ETF, and TC2000 shared-path integrations still wait for their approved
+work to reach staging and semantic reconciliation, but that does not block
+owned-path Strategy Lab backend work. Next: continue remaining package-owned
+acceptance gaps and run the RC5 mixed-component callback/fill probe when Docker
+API access is available. This slice is committed as
+`0d1d6e27caa696088521abe9867bc79e6a0b1669`.
+
+Files changed in this slice:
+
+```text
+backend/app/strategy_lab_v2/nautilus_strategy_bridge.py
+backend/app/strategy_lab_v2/nautilus_target_allocation.py
+backend/app/strategy_lab_v2/tests/test_nautilus_target_allocation.py
+ops/workstreams/feat-strategy-lab-v2/handoff.md
+ops/workstreams/feat-strategy-lab-v2/session.json
+ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+```
+
 ## 2026-10-04 - Multi-component native bridge orchestration
 
 Extended the native bridge to bind every portfolio component to its own
