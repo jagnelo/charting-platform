@@ -20,6 +20,7 @@ from app.strategy_lab_v2.conformance_fixtures import (
     NautilusRcConformanceResolution,
     build_conformance_evidence,
     build_event_tape_parity_observation,
+    build_nautilus_backtest_execution_binding,
     execute_conformance_suite,
     require_complete_conformance_suite,
     require_rc_fixture_binding,
@@ -27,6 +28,7 @@ from app.strategy_lab_v2.conformance_fixtures import (
     resolve_nautilus_forward_parity,
     resolve_nautilus_rc_conformance,
 )
+from app.strategy_lab_v2.contracts import ProductClass
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventTape,
@@ -561,6 +563,60 @@ def test_rc_conformance_resolver_emits_non_authoritative_partial_evidence() -> N
     assert not result.report.compatible
     assert not result.report.authoritative
     assert result.fingerprint.startswith("sha256:")
+
+
+def test_rc_conformance_can_bind_authoritative_local_backtest_scope() -> None:
+    runtime = _rc_runtime()
+    receipt = _rc_receipt(runtime)
+    resolution = resolve_nautilus_rc_conformance(
+        runtime,
+        _rc_probe(runtime),
+        receipt,
+        build_digest=content_digest("nautilus-v2-rc5-build"),
+        tested_at=NOW,
+    )
+
+    assert not resolution.report.compatible
+    assert not resolution.report.authoritative
+    binding = build_nautilus_backtest_execution_binding(
+        resolution,
+        product_classes=frozenset({ProductClass.EQUITY}),
+        execution_models=frozenset({"bar-close"}),
+        account_models=frozenset({"cash-equity"}),
+    )
+
+    assert binding.engine_name == "nautilus"
+    assert binding.engine_version == "2.0.0rc5"
+    assert binding.conformance_fingerprint == resolution.evidence.fingerprint
+    assert binding.authoritative
+
+
+def test_rc_backtest_binding_rejects_missing_required_fixture_check() -> None:
+    runtime = _rc_runtime()
+    receipt = _rc_receipt(runtime)
+    missing_check = ConformanceCheck.NATIVE_ORDER_FILL_COST
+    incomplete_receipt = NautilusRcFixtureReceipt(
+        runtime_fingerprint=receipt.runtime_fingerprint,
+        runtime_image_digest=receipt.runtime_image_digest,
+        fixture_digest=receipt.fixture_digest,
+        passed_checks=receipt.passed_checks - {missing_check},
+        deferred_checks=receipt.deferred_checks | {missing_check},
+    )
+    resolution = resolve_nautilus_rc_conformance(
+        runtime,
+        _rc_probe(runtime),
+        incomplete_receipt,
+        build_digest=content_digest("nautilus-v2-rc5-build"),
+        tested_at=NOW,
+    )
+
+    with pytest.raises(ValueError, match="native_order_fill_cost"):
+        build_nautilus_backtest_execution_binding(
+            resolution,
+            product_classes=frozenset({ProductClass.EQUITY}),
+            execution_models=frozenset({"bar-close"}),
+            account_models=frozenset({"cash-equity"}),
+        )
 
 
 def test_rc_conformance_resolver_rejects_probe_identity_drift() -> None:

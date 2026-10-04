@@ -16,6 +16,9 @@ from app.strategy_lab_v2.conformance import (
     NautilusReleasePin,
     evaluate_engine_conformance,
 )
+from app.strategy_lab_v2.contracts import ProductClass
+from app.strategy_lab_v2.engine_execution import NautilusExecutionScope
+from app.strategy_lab_v2.execution_capabilities import ExecutionCapabilityBinding
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventParityReceipt,
     NautilusForwardEventParityReceipt,
@@ -266,6 +269,56 @@ def resolve_nautilus_rc_conformance(
     )
     report = evaluate_engine_conformance(evidence)
     return NautilusRcConformanceResolution(runtime, probe, receipt, evidence, report)
+
+
+def build_nautilus_backtest_execution_binding(
+    resolution: ConformanceExecutionResolution | NautilusRcConformanceResolution,
+    *,
+    product_classes: frozenset[ProductClass],
+    execution_models: frozenset[str],
+    account_models: frozenset[str],
+) -> ExecutionCapabilityBinding:
+    """Bind verified Nautilus fixture evidence to an explicit backtest scope.
+
+    A release candidate can qualify for authoritative local backtests when its
+    exact isolated release pin and all four backtest checks pass, even though
+    the overall report remains non-authoritative because forward parity is
+    deferred. Product, execution-model, and account-model support is supplied
+    explicitly by the trusted host; it is never inferred from fixture success.
+    The resulting binding must still be used with a scoped execution plan,
+    which independently rejects prereleases for forward or full scope.
+    """
+
+    if not isinstance(resolution, ConformanceExecutionResolution | NautilusRcConformanceResolution):
+        raise TypeError(
+            "resolution must be a ConformanceExecutionResolution or "
+            "NautilusRcConformanceResolution"
+        )
+    evidence = resolution.evidence
+    report = resolution.report
+    if evidence.engine_id.lower() != "nautilus":
+        raise ValueError("authoritative local backtests require Nautilus conformance evidence")
+    if evidence.release_channel is EngineReleaseChannel.DEVELOPMENT:
+        raise ValueError("development Nautilus builds cannot authorize backtests")
+    expected_report = evaluate_engine_conformance(evidence)
+    if report.fingerprint != expected_report.fingerprint:
+        raise ValueError("conformance report does not match its evidence")
+    if not report.release_pin_valid:
+        raise ValueError("an exact isolated Nautilus v2 release pin is required")
+    missing = NautilusExecutionScope.BACKTEST_AUTHORITATIVE.required_checks - evidence.passed_checks
+    if missing:
+        names = ", ".join(sorted(check.value for check in missing))
+        raise ValueError(f"Nautilus backtest conformance is incomplete: {names}")
+    return ExecutionCapabilityBinding(
+        engine_name=evidence.engine_id,
+        engine_version=evidence.engine_version,
+        engine_build_digest=evidence.build_digest,
+        conformance_fingerprint=evidence.fingerprint,
+        product_classes=product_classes,
+        execution_models=execution_models,
+        account_models=account_models,
+        authoritative=True,
+    )
 
 
 def require_runtime_probe_binding(
