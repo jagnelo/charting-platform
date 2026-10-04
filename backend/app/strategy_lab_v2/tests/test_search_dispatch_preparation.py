@@ -9,11 +9,9 @@ import pytest
 
 from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.conformance import EngineReleaseChannel
-from app.strategy_lab_v2.contracts import AttemptState
+from app.strategy_lab_v2.conformance_fixtures import resolve_nautilus_rc_conformance
+from app.strategy_lab_v2.contracts import AttemptState, ProductClass
 from app.strategy_lab_v2.dispatch import SearchDispatchIntent
-from app.strategy_lab_v2.engine_execution import NautilusExecutionScope
-from app.strategy_lab_v2.execution_capabilities import ExecutionCapabilityBinding
 from app.strategy_lab_v2.lease_observations import LeaseObservationState
 from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease, transition_attempt
 from app.strategy_lab_v2.nautilus_trial_materializer import (
@@ -27,7 +25,11 @@ from app.strategy_lab_v2.search_dispatch_preparation import (
     SearchDispatchPreparationRequest,
 )
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
-from app.strategy_lab_v2.tests.test_engine_execution import _conformance
+from app.strategy_lab_v2.tests.test_conformance_fixtures import (
+    _rc_probe,
+    _rc_receipt,
+    _rc_runtime,
+)
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import (
     BASE,
     JsonFrozenSeriesDecoder,
@@ -81,7 +83,7 @@ class _WorkerStateReader:
         return self.lease_state
 
 
-def _setup(tmp_path: Path):
+def _setup(tmp_path: Path, *, runtime_image_digest: str | None = None):
     values, queued_graph, artifact_store = _build_inputs(tmp_path)
     graph = replace(
         queued_graph,
@@ -101,8 +103,9 @@ def _setup(tmp_path: Path):
         series_decoder=JsonFrozenSeriesDecoder(),
     )
     strategy = graph.strategies[0]
+    runtime = _rc_runtime()
     runtime_profile = RuntimeIsolationProfile(
-        runtime_image_digest=content_digest("runtime-image"),
+        runtime_image_digest=runtime_image_digest or runtime.runtime_image_digest,
         runtime_abi=RUNTIME_ABI,
         allowed_dependency_digests=frozenset(
             dependency.artifact_digest for dependency in strategy.dependencies
@@ -123,38 +126,38 @@ def _setup(tmp_path: Path):
         BASE + timedelta(seconds=2),
         BASE + timedelta(hours=1),
     )
-    conformance, report = _conformance(
-        channel=EngineReleaseChannel.RELEASE_CANDIDATE,
-        checks=NautilusExecutionScope.BACKTEST_AUTHORITATIVE.required_checks,
-    )
-    decisions = graph.trial.preflight_report.decisions
-    capability = ExecutionCapabilityBinding(
-        engine_name=conformance.engine_id,
-        engine_version=conformance.engine_version,
-        engine_build_digest=conformance.build_digest,
-        conformance_fingerprint=conformance.fingerprint,
-        product_classes=frozenset(item.requirement.product_class for item in decisions),
-        execution_models=frozenset(item.requirement.execution_model for item in decisions),
-        account_models=frozenset(item.requirement.account_model for item in decisions),
-        authoritative=True,
+    conformance_resolution = resolve_nautilus_rc_conformance(
+        runtime,
+        _rc_probe(runtime),
+        _rc_receipt(runtime),
+        build_digest=content_digest("nautilus-v2-rc5-build"),
+        tested_at=BASE,
     )
     lease_state = LeaseObservationState(lease)
     worker_state_reader = _WorkerStateReader(pool, lease_state)
-    context = NautilusTrialPreparationContext(
+    context = NautilusTrialPreparationContext.from_authoritative_backtest_conformance(
+        conformance_resolution=conformance_resolution,
+        product_classes=frozenset({ProductClass.EQUITY}),
+        execution_models=frozenset({"bar-close-v1"}),
+        account_models=frozenset({"cash-equity-v1"}),
         market_context=NautilusTrialMarketContext(values["instruments"], values["venue"]),
         runtime_profile=runtime_profile,
         worker_profile=pool.profile,
         admission_ledger=ExecutionAdmissionLedger(),
         reservation_id=content_digest("dispatch-preparation-reservation"),
         lease_id=lease.lease_id,
-        capability_binding=capability,
-        conformance_evidence=conformance,
-        conformance_report=report,
         image_name="nautilus-runtime",
         output_path=tmp_path / "dispatch-result.json",
         now=PREPARED_AT,
     )
     return graph, artifact_store, package_resolver, materializer, context, worker_state_reader
+
+
+def test_authoritative_backtest_context_rejects_runtime_image_drift(tmp_path: Path) -> None:
+    with pytest.raises(
+        ValueError, match="runtime profile differs from the exact Nautilus release pin"
+    ):
+        _setup(tmp_path, runtime_image_digest=content_digest("different-runtime-image"))
 
 
 @pytest.mark.asyncio

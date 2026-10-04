@@ -21,6 +21,12 @@ from app.strategy_lab_v2.application import SearchDispatchEvidence
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.conformance import EngineConformanceEvidence, EngineConformanceReport
+from app.strategy_lab_v2.conformance_fixtures import (
+    ConformanceExecutionResolution,
+    NautilusRcConformanceResolution,
+    build_nautilus_backtest_execution_binding,
+)
+from app.strategy_lab_v2.contracts import ProductClass
 from app.strategy_lab_v2.dispatch import SearchDispatchIntent
 from app.strategy_lab_v2.engine_execution import NautilusExecutionScope
 from app.strategy_lab_v2.execution import authorize_execution
@@ -136,6 +142,70 @@ class NautilusTrialPreparationContext:
     execution_scope: NautilusExecutionScope = NautilusExecutionScope.BACKTEST_AUTHORITATIVE
     requested_authoritative: bool = True
     docker_binary: str = "docker"
+
+    @classmethod
+    def from_authoritative_backtest_conformance(
+        cls,
+        *,
+        conformance_resolution: ConformanceExecutionResolution | NautilusRcConformanceResolution,
+        product_classes: frozenset[ProductClass],
+        execution_models: frozenset[str],
+        account_models: frozenset[str],
+        market_context: NautilusTrialMarketContext,
+        runtime_profile: RuntimeIsolationProfile,
+        worker_profile: WorkerProfile,
+        admission_ledger: ExecutionAdmissionLedger,
+        reservation_id: str,
+        lease_id: str,
+        image_name: str,
+        output_path: str | Path,
+        now: datetime,
+        docker_binary: str = "docker",
+    ) -> NautilusTrialPreparationContext:
+        """Construct a backtest-only host context from one exact conformance result.
+
+        The engine binding, evidence/report pair, and isolated runtime image are
+        derived together. This prevents a host from pairing valid RC evidence
+        with a different image or accidentally broadening its authority to
+        forward/full execution scopes.
+        """
+
+        if not isinstance(
+            conformance_resolution,
+            ConformanceExecutionResolution | NautilusRcConformanceResolution,
+        ):
+            raise TypeError("conformance_resolution must be a complete or Nautilus RC resolution")
+        if not isinstance(runtime_profile, RuntimeIsolationProfile):
+            raise TypeError("runtime_profile must be a RuntimeIsolationProfile")
+        release_pin = conformance_resolution.evidence.release_pin
+        if (
+            release_pin is None
+            or runtime_profile.runtime_image_digest != release_pin.runtime_image_digest
+        ):
+            raise ValueError("runtime profile differs from the exact Nautilus release pin")
+        capability_binding = build_nautilus_backtest_execution_binding(
+            conformance_resolution,
+            product_classes=product_classes,
+            execution_models=execution_models,
+            account_models=account_models,
+        )
+        return cls(
+            market_context=market_context,
+            runtime_profile=runtime_profile,
+            worker_profile=worker_profile,
+            admission_ledger=admission_ledger,
+            reservation_id=reservation_id,
+            lease_id=lease_id,
+            capability_binding=capability_binding,
+            conformance_evidence=conformance_resolution.evidence,
+            conformance_report=conformance_resolution.report,
+            image_name=image_name,
+            output_path=output_path,
+            now=now,
+            execution_scope=NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
+            requested_authoritative=True,
+            docker_binary=docker_binary,
+        )
 
     def __post_init__(self) -> None:
         expected = {
