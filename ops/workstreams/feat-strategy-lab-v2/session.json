@@ -87,28 +87,14 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl",
     "ops/workstreams/feat-strategy-lab-v2/session.json"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-strategy-lab-v2-7794d9e5",
-      "charting-stack-feat-strategy-lab-v2-7794d9e5"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -124,14 +110,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "421e6dd9987ed472c8686e328897ec5472a701cc",
-  "implementation_sha": "421e6dd9987ed472c8686e328897ec5472a701cc",
+  "head": "0b3e2277ffc11128b52c493e14242c3387e0e02b",
+  "implementation_sha": "0b3e2277ffc11128b52c493e14242c3387e0e02b",
   "last_checkpoint": "2026-10-04T20:13:32.845460+00:00",
-  "last_human_progress_update": "2026-10-04T20:11:45.444248+00:00",
+  "last_human_progress_update": "2026-10-04T20:52:06.004123+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "Produce and persist verified native OOS session-close equity intervals through result materialization; then continue domain mutations, worker recovery/scaling, and broker-free forward-shadow acceptance.",
   "parent_branch": "staging",
-  "plan_hash": "44fc905590e4368cd91841e8a5dff4c6c561d06c8961fcefb34ba0a3c0a97d37",
+  "plan_hash": "a4e236bfd35c3af9cd574f9f96d9b28277fd4b82f978b83fc5be59c6cfb905c2",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -144,14 +130,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "Stable Nautilus v2 gates authoritative execution/publication; Docker Buildx and current socket access limit final Compose/browser validation only. Options admission remains gated on canonical event-time Greeks/delta and settlement evidence. Shared provider/ETF/TC2000 contracts are staged only after their branches reach staging.",
-    "current_phase": "nautilus-oos-metric-expansion-v15",
-    "next_action": "Continue OOS risk metrics using explicit verified session intervals; then domain-backed mutations, worker recovery/scaling, and broker-free forward-shadow correctness.",
+    "current_blocker": "No stable-release blocker for local backtests. Docker Buildx/socket permissions gate only final Compose/browser validation; canonical option Greek/settlement and upstream staging gates affect only their scoped paths.",
+    "current_phase": "nautilus-rc-backtest-authority-v1",
+    "next_action": "Produce and persist verified native OOS session-close equity intervals through result materialization; then continue domain mutations, worker recovery/scaling, and broker-free forward-shadow acceptance.",
     "total": 18,
-    "updated_at": "2026-10-04T20:11:45.444227+00:00"
+    "updated_at": "2026-10-04T20:52:06.004105+00:00"
   },
-  "remote": "421e6dd9987ed472c8686e328897ec5472a701cc",
-  "remote_sha": "421e6dd9987ed472c8686e328897ec5472a701cc",
+  "remote": "0b3e2277ffc11128b52c493e14242c3387e0e02b",
+  "remote_sha": "0b3e2277ffc11128b52c493e14242c3387e0e02b",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

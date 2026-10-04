@@ -2,18 +2,56 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
-## Current authority policy - stable Nautilus v2 required
+## Current authority policy - scope-qualified Nautilus v2
 
-The active goal is authoritative only after stable Nautilus v2 conformance.
-This supersedes older handoff entries and plan language that allowed an exact-
-pinned pre-release to publish authoritative backtest results. RC5 remains
-available for isolated, non-authoritative compatibility testing; it cannot
-authorize authoritative trial execution, result provenance, or official result
-publication.
-This is not a reason to pause package-owned backend work. The final declared
-Compose/browser validation still requires Docker Buildx, and shared provider,
-ETF, and TC2000 paths remain gated only until their approved work reaches
+Exact-pinned stable or release-candidate Nautilus v2 builds may publish local
+backtests after the four backtest conformance checks pass and the result binds
+the exact release channel, source/wheel/image digests, conformance evidence,
+execution scope, and plan fingerprint. RC authority is restricted to local
+backtests; stable v2 plus event-tape parity remains required for forward-shadow
+authority. No prerelease may connect to a broker or control real capital.
+
+This removes an upstream stable-release date from backtest completion. Docker
+Buildx still gates only final Compose/browser validation; provider, ETF, and
+TC2000 shared paths remain gated only until their approved work reaches
 staging.
+
+## 2026-10-04 - Scope-qualified Nautilus RC backtest authority
+
+Commit `0b3e2277ffc11128b52c493e14242c3387e0e02b` removes the wait-for-stable
+release dependency from authoritative local backtests. An exact-pinned stable
+or release-candidate v2 build can publish a local backtest when all four
+backtest checks pass and the output binds its release channel, exact source,
+wheel and image digests, conformance evidence, execution scope, and plan. RC
+authority is limited to local backtests; full/forward scope still requires
+stable v2 plus event-tape parity, and prereleases cannot connect to brokers or
+control real capital.
+
+The gate is enforced end to end across conformance capability binding, worker
+request/search-preparation construction, engine execution planning, result
+provenance/materialization, and result publication. Regression coverage now
+proves a pinned RC5 backtest reaches authoritative worker-result publication,
+while missing simulator checks, full-scope RC authority, and forward parity
+remain fail-closed. This supersedes earlier historical handoff passages that
+restricted every prerelease result to compatibility-only status; the durable
+branch plan and current policy above are authoritative. The copied goal text in
+`session.json` still reflects the older stable-only wording; treat that as
+stale execution metadata, not as a release dependency.
+
+Validation at this source: the full Strategy Lab package passed `1,333` tests
+with only the sandbox-denied Unix-socket case deselected; that case passed
+separately with scoped local-socket permission. Ruff check/format passed for
+all 14 changed Python files, targeted MyPy passed for all eight changed
+production modules, and `git diff --check` passed. The existing exact RC5
+four-check runtime/conformance receipt remains the engine evidence; this
+policy-only increment did not rebuild the Nautilus image. Docker Buildx and
+socket access remain environment gates for the final Compose/browser profile,
+not for continued package-owned implementation.
+
+Next: produce and persist verified native OOS session-close equity intervals
+through result materialization. Do not infer closes or cadence from irregular
+market-event callbacks. Continue the remaining domain mutation, worker
+recovery/scaling, and broker-free forward-shadow acceptance afterward.
 
 ## 2026-10-04 - Native OOS absolute drawdown
 
