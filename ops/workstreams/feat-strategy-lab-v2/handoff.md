@@ -9680,3 +9680,44 @@ preserve the rule that the simulator never acquires market data. Continue later
 with worker recovery/scaling and forward event-tape parity. Do not wait for a
 stable Nautilus label or claim Compose/browser validation until Buildx is
 available.
+
+## 2026-10-04 - Multi-strategy authorization and OOS conflict contract
+
+The search-dispatch resolver previously materialized every portfolio component
+but authorized only `experiment.strategy_fingerprints[0]`. For portfolios with
+multiple distinct strategies, the worker runtime request carried the aggregate
+`strategy-source-set.v1` digest while `ExecutionAuthorization` carried only the
+primary strategy digest; worker-request composition therefore rejected the
+trial before dispatch. A regression reproduced that exact failure. Source-set
+validation now binds all component strategy fingerprints and source digests,
+preserves the prior single-strategy digest, and carries the full accepted
+validation result from package resolution through materialization into dispatch
+authorization. Commit `c5106e8c7f26c96e469657a4c708474989a97f3e` is pushed to
+`origin/feat/strategy-lab-v2`.
+
+The full Strategy Lab package suite then reported 1,344 passing tests; its only
+default-sandbox failure was the Unix-domain-socket RPC test, which passed in a
+scoped rerun (1,345 total passing). Ruff check/format passed, and focused MyPy
+passed for the changed source modules. The branch-wide MyPy command still
+reports seven test-annotation errors across five untouched Strategy Lab test
+modules; no production-source errors remain after the OOS fix below.
+
+The PostgreSQL OOS-result adapter also returned its wrapper object on the
+pre-existing-result conflict path instead of the declared
+`ResultMaterializationResolution`. It now returns the wrapped typed resolution;
+a conflict-path regression verifies the public result type and rejection
+reason. The focused OOS persistence test, focused production-module MyPy, and
+Ruff check/format pass. Commit
+`cc76aafa8e2bc92132607d2c48546e1536247f7d` is pushed to
+`origin/feat/strategy-lab-v2`.
+
+The exact-pinned RC5/stable release policy is unchanged: no stable release tag
+is required for authoritative local backtests after the four backtest checks.
+Forward parity remains a separate fifth check. Next, continue the
+backtest-worker-to-publication acceptance path and close the full MyPy test
+annotations; the production frozen-series/context binding must consume the
+provider-platform contract only after that approved work reaches staging. The
+missing Docker Buildx plugin still limits only the final Compose/browser gate.
+This checkpoint updates `ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`, and
+`ops/workstreams/feat-strategy-lab-v2/session.json`.
