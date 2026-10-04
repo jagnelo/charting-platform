@@ -87,21 +87,7 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "backend/app/strategy_lab_v2/nautilus_rc_fixture_probe.py",
-    "backend/app/strategy_lab_v2/nautilus_runtime.py",
-    "backend/app/strategy_lab_v2/nautilus_runtime_adapter_probe.py",
-    "backend/app/strategy_lab_v2/nautilus_runtime_image/Dockerfile",
-    "backend/app/strategy_lab_v2/nautilus_runtime_image/Dockerfile.dockerignore",
-    "backend/app/strategy_lab_v2/nautilus_strategy_bridge.py",
-    "backend/app/strategy_lab_v2/tests/test_conformance_fixtures.py",
-    "backend/app/strategy_lab_v2/tests/test_engine_execution.py",
-    "backend/app/strategy_lab_v2/tests/test_nautilus_runtime.py",
-    "backend/app/strategy_lab_v2/tests/test_nautilus_runtime_image.py",
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl",
-    "backend/app/strategy_lab_v2/nautilus_order_routing.py",
-    "backend/app/strategy_lab_v2/tests/test_nautilus_order_routing.py"
+    "ops/workstreams/feat-strategy-lab-v2/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -138,12 +124,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "e78aa6162374db77249f4fb461257edb90976b21",
+  "head": "25e0a6250e7cdefacef241929c1f5a936b5f7bb3",
   "implementation_sha": "0f5736ddedbb75fdc0336bde6ec223635cc091bf",
-  "last_checkpoint": "2026-10-04T01:05:31.539121+00:00",
-  "last_human_progress_update": "2026-10-04T01:05:02.035777+00:00",
+  "last_checkpoint": "2026-10-04T01:12:32.679377+00:00",
+  "last_human_progress_update": "2026-10-04T01:12:19.833665+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Replace the single-component Nautilus bridge constraint with deterministic multi-strategy shared-account execution, allocate component capital and risk together, and preserve per-component order/position attribution.",
+  "next_action": "Build authenticated per-component invocation inputs and a deterministic native callback multiplexer, then preserve order/fill/position attribution through one shared allocation-risk decision.",
   "parent_branch": "staging",
   "plan_hash": "3f8f16a536269570eb9d78bc283916498afac57845f70a0c58aef81519de6176",
   "planning_required": false,
@@ -159,11 +145,11 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "No external dependency blocks package-owned implementation; GitHub push synchronization is temporarily unavailable because this session has no loaded SSH identity. Upstream staged contracts gate only later shared-path integrations.",
-    "current_phase": "strategy-lab-v2-native-raw-order-risk-routing",
-    "next_action": "Replace the single-component Nautilus bridge constraint with deterministic multi-strategy shared-account execution, allocate component capital and risk together, and preserve per-component order/position attribution.",
+    "current_blocker": "none",
+    "current_phase": "native-multi-component-risk-contract",
+    "next_action": "Build authenticated per-component invocation inputs and a deterministic native callback multiplexer, then preserve order/fill/position attribution through one shared allocation-risk decision.",
     "total": 18,
-    "updated_at": "2026-10-04T01:05:02.035755+00:00"
+    "updated_at": "2026-10-04T01:12:19.833642+00:00"
   },
   "remote": "1e3a861454f3c77bdac5efbb6957103f56f13238",
   "remote_sha": "0f5736ddedbb75fdc0336bde6ec223635cc091bf",
