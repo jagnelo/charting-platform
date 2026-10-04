@@ -87,30 +87,23 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
+    "backend/app/strategy_lab_v2/nautilus_runner.py",
+    "backend/app/strategy_lab_v2/nautilus_trial_worker_request.py",
+    "backend/app/strategy_lab_v2/tests/test_nautilus_trial_worker_request.py",
+    "backend/app/strategy_lab_v2/tests/test_worker_callbacks.py",
+    "backend/app/strategy_lab_v2/worker_callbacks.py",
+    "backend/app/strategy_lab_v2/worker_process.py",
+    "backend/app/strategy_lab_v2/worker_terminal_adapter.py",
+    "backend/app/strategy_lab_v2/nautilus_worker_terminal.py",
+    "backend/app/strategy_lab_v2/tests/test_nautilus_worker_terminal.py",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-strategy-lab-v2-7794d9e5",
-      "charting-stack-feat-strategy-lab-v2-7794d9e5"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -126,7 +119,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "d6c9e721069f157ac3b1202a15316d70abdc8056",
+  "head": "28607bfcba635c756b8ea1599da6ef1706c89724",
   "implementation_sha": "d6c9e721069f157ac3b1202a15316d70abdc8056",
   "last_checkpoint": "2026-10-04T06:00:49.858025+00:00",
   "last_human_progress_update": "2026-10-04T06:00:33.719226+00:00",
@@ -148,11 +141,11 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "No external dependency blocks implementation. RC5 passed the four backtest checks. Internal completion requires wiring authenticated domain and conformance inputs into the worker terminal resolver and persisting the OOS result/publication; SSH blocks remote sync only; full-stack-browser remains final acceptance.",
-    "current_phase": "postgres-nautilus-oos-manifest-persistence",
-    "next_action": "Connect the OOS materializer to worker terminal evidence using owner-authenticated trial/package/portfolio/snapshot resolution and exact conformance provenance; then persist artifact publication without weakening prerelease local-only limits.",
+    "current_blocker": "No external dependency blocks implementation. The worker-terminal resolver now authenticates trial and conformance inputs, publishes verified native OOS result artifacts, and constructs official result/publication evidence. Remaining code work includes complete terminal persistence/replay integration and other API/worker/forward acceptance gaps. Docker API access blocks image-backed and full-stack-browser validation; SSH authentication blocks remote sync only. Provider/ETF/TC2000 staging gates apply only to shared-path reconciliation.",
+    "current_phase": "worker-terminal-oos-result-publication",
+    "next_action": "Add a complete worker-terminal success/replay integration test across publication, result persistence, metrics, completion, and capacity release; then continue remaining domain-backed mutation and dedicated worker/runtime activation gaps.",
     "total": 18,
-    "updated_at": "2026-10-04T06:00:33.719208+00:00"
+    "updated_at": "2026-10-04T06:30:00.000000+00:00"
   },
   "remote": "1e3a861454f3c77bdac5efbb6957103f56f13238",
   "remote_sha": "1e3a861454f3c77bdac5efbb6957103f56f13238",
@@ -160,7 +153,7 @@
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "7c50d5d3-c421-4827-add4-736006a8f07b",
-  "state": "checkpointed",
+  "state": "in_progress",
   "takeover_history": [
     {
       "at": "2026-09-16T01:47:41.916851+00:00",

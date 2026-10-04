@@ -2,6 +2,51 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Owner-authenticated Nautilus OOS terminal publication
+
+The actual worker-completion evidence path now consumes the parent-owned exact
+Nautilus conformance evidence and rechecks it against the immutable execution
+plan. It hydrates the attempt's domain graph through the authenticated owner,
+checks that trial/portfolio/snapshot/attempt lineage matches the executed input,
+re-verifies native account-equity and execution-report bytes, builds OOS metrics
+and the result manifest, publishes each result artifact with byte-integrity
+evidence, and creates the scoped result-publication plan. Deterministic
+validation failures are rejected instead of retried forever; transient lookup
+or storage failures remain retryable. Terminal result identity is tied to the
+process receipt timestamp so callback redelivery cannot change it.
+
+The existing terminal writer now receives this evidence through the default
+worker callback composition. A successful local RC5-shaped receipt test checks
+the published artifacts, official local-backtest provenance, OOS fill/cost
+metrics, stable result identity after callback redelivery, and permanent
+validation rejection. This is an application-boundary test, not a complete
+PostgreSQL/Redis/Compose worker acceptance test. Exact RC5's isolated fixture
+has separately passed the four local-backtest checks; stable Nautilus 2.x is not
+a prerequisite. Pre-releases remain unable to connect to brokers or control
+real capital, and forward-shadow qualification still has its separate
+event-tape-parity gate.
+
+Validation: all 1,212 Strategy Lab v2 tests passed; Ruff passed; all nine
+changed Python files passed formatting; MyPy found no issues across 350
+package/runtime sources; the workstream validator passed; and `git diff
+--check` passed. The current environment denies access to `/var/run/docker.sock`,
+so image-backed revalidation and the required full-stack/browser profile remain
+open. SSH public-key/askpass failure still prevents remote publication only.
+
+No external dependency blocks the next owned coding slice. Remaining work
+includes an end-to-end terminal success/replay test through the persistence
+ports, the plan's other domain-backed mutation and worker-runtime gaps, forward
+parity, and final Docker-backed acceptance. Provider/ETF/TC2000 staging gates
+apply only to consuming their contracts on shared paths.
+
+Changed paths: worker request conformance binding, native OOS terminal
+materialization and publication, worker callback composition, permanent
+evidence-failure handling, and their package-owned tests.
+
+Next: exercise the complete terminal persistence success/replay sequence,
+including metric/result completion and worker-capacity settlement, then proceed
+to the remaining owned acceptance gaps. Do not wait for stable Nautilus 2.x.
+
 ## 2026-10-04 - Native OOS reports, metrics, and RC5 qualification probe
 
 The host now streams and verifies the exact content-addressed native Nautilus

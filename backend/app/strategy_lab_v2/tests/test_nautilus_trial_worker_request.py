@@ -151,6 +151,7 @@ def test_worker_request_composes_authoritative_rc_backtest_from_trial_evidence(
     assert request.runtime_input_artifact == (
         runtime_evidence.materialized_input.assembly.runtime_input_artifact
     )
+    assert request.conformance_evidence is not None
     assert request.admission.reservation_id == content_digest("worker-request-reservation")
     assert request.sandbox_plan.request_fingerprint == request.runtime_request.fingerprint
 

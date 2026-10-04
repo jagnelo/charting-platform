@@ -239,6 +239,7 @@ def build_nautilus_trial_worker_request(
         now,
         now,
         runtime_input_artifact=runtime_artifact,
+        conformance_evidence=conformance_evidence,
         docker_binary=docker_binary,
     )
 

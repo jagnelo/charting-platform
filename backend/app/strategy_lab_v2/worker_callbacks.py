@@ -9,6 +9,9 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any, cast
 
+from app.strategy_lab_v2.nautilus_worker_terminal import (
+    create_nautilus_oos_worker_terminal_evidence_resolver,
+)
 from app.strategy_lab_v2.persistence import SearchDispatchBindingResolver
 from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.search_worker_handoff import (
@@ -20,9 +23,6 @@ from app.strategy_lab_v2.trial_hydration import (
 )
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
 from app.strategy_lab_v2.worker_evidence import WorkerSubmissionBinding
-from app.strategy_lab_v2.worker_evidence_resolution import (
-    create_sandbox_artifact_plan_resolver,
-)
 from app.strategy_lab_v2.worker_handoff import materialize_worker_handoff
 from app.strategy_lab_v2.worker_service import WorkerServiceCallbacks, WorkerTerminalWriter
 from app.strategy_lab_v2.worker_terminal_adapter import WorkerTerminalEvidenceResolver
@@ -119,33 +119,50 @@ def default_evidence_resolver_factory(
     *,
     search_dispatch_binding_resolver: SearchDispatchBindingResolver | None = None,
 ) -> WorkerTerminalEvidenceResolver:
-    """Compose the package-owned single-output evidence path.
+    """Compose owner-authenticated Nautilus OOS result publication.
 
-    The callback remains opt-in through ``STRATEGY_LAB_V2_EVIDENCE_RESOLVER``;
-    this factory only supplies the explicit composition once the host chooses
-    it. Authentication/attempt lookup stays in the persistence bundle and
-    artifact source policy stays in the sandbox mapper.
+    The configured resolver uses the durable owner/attempt lookup, rehydrates
+    the exact typed trial graph, derives OOS metrics from verified native
+    output, and creates the per-artifact publication evidence required by the
+    terminal writer. Exact conformance evidence comes from the immutable
+    parent-owned worker request and is checked against its execution plan.
     """
 
     if not isinstance(artifact_root, Path):
         raise TypeError("artifact_root must be a Path")
     artifact_publication = getattr(persistence, "artifact_publication", None)
-    evidence_resolver = getattr(persistence, "worker_terminal_evidence_resolver", None)
+    lookup_loader = getattr(persistence, "load_worker_terminal_evidence_for_request", None)
+    resources = getattr(persistence, "resources", None)
     if not callable(artifact_publication):
         raise TypeError("persistence must expose artifact_publication()")
-    if not callable(evidence_resolver):
-        raise TypeError("persistence must expose worker_terminal_evidence_resolver()")
+    if not callable(lookup_loader):
+        raise TypeError("persistence must expose load_worker_terminal_evidence_for_request()")
+    if resources is None or not all(
+        callable(getattr(resources, method, None))
+        for method in (
+            "get_domain_contract",
+            "get_domain_contract_by_fingerprint",
+            "get_domain_contracts_by_fingerprint",
+        )
+    ):
+        raise TypeError("persistence must expose owner-scoped domain resource reads")
     publisher = artifact_publication(artifact_root)
-    artifact_plan_resolver = create_sandbox_artifact_plan_resolver(publisher)
-    if search_dispatch_binding_resolver is None:
-        resolver = evidence_resolver(artifact_plan_resolver)
-    else:
-        resolver = evidence_resolver(
-            artifact_plan_resolver,
+    hydrator = NautilusTrialDomainHydrator(cast(OwnerScopedDomainReader, resources))
+
+    async def lookup(*, request_fingerprint: str, attempt_id: str):
+        return await lookup_loader(
+            request_fingerprint=request_fingerprint,
+            attempt_id=attempt_id,
             search_dispatch_binding_resolver=search_dispatch_binding_resolver,
         )
+
+    resolver = create_nautilus_oos_worker_terminal_evidence_resolver(
+        lookup,
+        publisher,
+        hydrator,
+    )
     if not callable(resolver):
-        raise TypeError("persistence returned an invalid terminal evidence resolver")
+        raise TypeError("Nautilus OOS resolver factory returned an invalid callback")
     return cast(WorkerTerminalEvidenceResolver, resolver)
 
 

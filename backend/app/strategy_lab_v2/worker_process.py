@@ -22,6 +22,10 @@ from typing import Any
 
 from app.strategy_lab_v2.admission import ExecutionAdmission
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.conformance import (
+    EngineConformanceEvidence,
+    evaluate_engine_conformance,
+)
 from app.strategy_lab_v2.engine_execution import NautilusExecutionPlan
 from app.strategy_lab_v2.execution import ExecutionAuthorization
 from app.strategy_lab_v2.execution_orchestration import ExecutionOrchestrationPlan
@@ -64,6 +68,10 @@ class WorkerExecutionRequest:
     started_at: datetime
     observed_at: datetime
     runtime_input_artifact: NautilusRuntimeInputArtifactReference = field(kw_only=True)
+    conformance_evidence: EngineConformanceEvidence | None = field(
+        default=None,
+        kw_only=True,
+    )
     docker_binary: str = "docker"
 
     def __post_init__(self) -> None:
@@ -94,6 +102,18 @@ class WorkerExecutionRequest:
             raise TypeError(
                 "runtime_input_artifact must be a NautilusRuntimeInputArtifactReference"
             )
+        if self.conformance_evidence is not None:
+            if not isinstance(self.conformance_evidence, EngineConformanceEvidence):
+                raise TypeError("conformance_evidence must be EngineConformanceEvidence or None")
+            evidence = self.conformance_evidence
+            if (
+                evidence.engine_id.lower() != self.execution_plan.engine_id.lower()
+                or evidence.engine_version != self.execution_plan.engine_version
+                or evidence.build_digest != self.execution_plan.engine_build_digest
+                or evaluate_engine_conformance(evidence).fingerprint
+                != self.execution_plan.conformance_report_fingerprint
+            ):
+                raise ValueError("worker conformance evidence differs from the execution plan")
         if self.runtime_input_artifact.attempt_id != self.runtime_request.attempt_id:
             raise ValueError("runtime input artifact must reference the runtime attempt")
         if (

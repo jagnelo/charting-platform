@@ -380,7 +380,7 @@ def run_nautilus_plan(
                         sandbox_plan,
                         runtime_input_artifact,
                     )
-                    expected_events = _expected_native_equity_events(
+                    expected_events = expected_native_equity_events(
                         runtime_input_artifact,
                         sandbox_plan,
                     )
@@ -585,10 +585,18 @@ def _verify_native_reports_input_binding(
         raise ValueError("Nautilus native reports differ from their frozen trial input")
 
 
-def _expected_native_equity_events(
+def expected_native_equity_events(
     runtime_input_artifact: NautilusRuntimeInputArtifactReference,
     sandbox_plan: SandboxCommandPlan,
 ) -> Any:
+    """Return the bounded authenticated event sequence used to verify equity.
+
+    The same frozen event identity is needed when the parent process
+    independently rematerializes official result metrics after worker
+    completion, so expose this host-side reader rather than duplicating its
+    stream validation at the publication boundary.
+    """
+
     native_reference = runtime_input_artifact.native_event_stream
     if native_reference is not None:
         path = sandbox_native_event_stream_path(sandbox_plan)

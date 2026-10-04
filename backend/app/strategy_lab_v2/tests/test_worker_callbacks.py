@@ -12,6 +12,7 @@ from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.search_worker_handoff import AuthenticatedSearchDispatchMaterializer
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
+from app.strategy_lab_v2.tests.test_worker_evidence_resolution import _context_and_lookup
 from app.strategy_lab_v2.worker_callbacks import (
     create,
     create_default_search_dispatch_binding_resolver,
@@ -62,19 +63,27 @@ class _Persistence:
 class _ComposedPersistence:
     def __init__(self) -> None:
         self.root: Path | None = None
-        self.plan_resolver: Any = None
-        self.binding_resolver: Any = None
+        self.lookup_arguments: dict[str, Any] | None = None
+
+    class _Resources:
+        async def get_domain_contract(self, **_kwargs: Any) -> None:
+            return None
+
+        async def get_domain_contract_by_fingerprint(self, **_kwargs: Any) -> None:
+            return None
+
+        async def get_domain_contracts_by_fingerprint(self, **_kwargs: Any) -> dict[str, Any]:
+            return {}
+
+    resources = _Resources()
 
     def artifact_publication(self, root: Path) -> object:
         self.root = root
         return _Publisher()
 
-    def worker_terminal_evidence_resolver(
-        self, resolver: Any, *, search_dispatch_binding_resolver: Any = None
-    ) -> Any:
-        self.plan_resolver = resolver
-        self.binding_resolver = search_dispatch_binding_resolver
-        return resolver
+    async def load_worker_terminal_evidence_for_request(self, **kwargs: Any) -> None:
+        self.lookup_arguments = kwargs
+        return None
 
 
 class _SearchDispatchPersistence(_Persistence):
@@ -105,6 +114,9 @@ class _SearchDispatchPersistence(_Persistence):
 
 class _Publisher:
     async def publish_sandbox_result(self, *_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("test publisher should not be invoked during composition")
+
+    async def publish_file(self, *_args: Any, **_kwargs: Any) -> Any:
         raise AssertionError("test publisher should not be invoked during composition")
 
 
@@ -185,10 +197,12 @@ def test_default_evidence_resolver_factory_composes_persistence_and_artifacts() 
 
     assert callable(resolver)
     assert persistence.root == Path("/tmp/artifacts")
-    assert callable(persistence.plan_resolver)
 
 
-def test_default_evidence_resolver_factory_propagates_search_binding() -> None:
+@pytest.mark.asyncio
+async def test_default_evidence_resolver_factory_propagates_search_binding(
+    tmp_path: Path,
+) -> None:
     persistence = _ComposedPersistence()
 
     async def binding(_dispatch: SearchDispatchRecord) -> None:
@@ -201,7 +215,11 @@ def test_default_evidence_resolver_factory_propagates_search_binding() -> None:
     )
 
     assert callable(resolver)
-    assert persistence.binding_resolver is binding
+    context, _lookup = _context_and_lookup(tmp_path)
+    with pytest.raises(LookupError, match="not found"):
+        await resolver(context)
+    assert persistence.lookup_arguments is not None
+    assert persistence.lookup_arguments["search_dispatch_binding_resolver"] is binding
 
 
 @pytest.mark.asyncio

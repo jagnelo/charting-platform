@@ -101,9 +101,7 @@ class WorkerTerminalEvidence:
             raise TypeError("result must be a RunResultManifest")
         if self.error is not None and not isinstance(self.error, ApiError):
             raise TypeError("error must be an ApiError")
-        if self.publication is not None and not isinstance(
-            self.publication, ResultPublicationPlan
-        ):
+        if self.publication is not None and not isinstance(self.publication, ResultPublicationPlan):
             raise TypeError("publication must be a ResultPublicationPlan")
         plans = tuple(self.artifact_plans)
         if any(not isinstance(item, ArtifactPublicationPlan) for item in plans):
@@ -118,6 +116,10 @@ class WorkerTerminalEvidence:
 WorkerTerminalEvidenceResolver = Callable[
     ["WorkerCompletionContext"], Awaitable[WorkerTerminalEvidence]
 ]
+
+
+class PermanentWorkerTerminalEvidenceError(ValueError):
+    """A terminal evidence failure that retrying the same receipt cannot fix."""
 
 
 class PostgresWorkerTerminalAdapter:
@@ -181,15 +183,23 @@ class PostgresWorkerTerminalAdapter:
             return _retry(entry_fingerprint, "worker process did not produce terminal evidence")
         execution = process.execution
         if execution.decision.value == "rejected":
-            return _reject(entry_fingerprint, execution.rejection_reason or "worker execution rejected")
+            return _reject(
+                entry_fingerprint, execution.rejection_reason or "worker execution rejected"
+            )
         if execution.nautilus_result is None:
             return _retry(entry_fingerprint, "worker execution omitted Nautilus evidence")
         try:
             evidence = await self._evidence_resolver(context)
+        except PermanentWorkerTerminalEvidenceError as error:
+            return _reject(entry_fingerprint, str(error))
         except Exception as error:  # pragma: no cover - application boundary
-            return _retry(entry_fingerprint, f"terminal evidence lookup failed: {type(error).__name__}")
+            return _retry(
+                entry_fingerprint, f"terminal evidence lookup failed: {type(error).__name__}"
+            )
         if not isinstance(evidence, WorkerTerminalEvidence):
-            return _reject(entry_fingerprint, "terminal evidence resolver returned an invalid record")
+            return _reject(
+                entry_fingerprint, "terminal evidence resolver returned an invalid record"
+            )
         request = context.request
         if evidence.submission.request.attempt_id != request.admission.attempt_id:
             return _reject(entry_fingerprint, "terminal evidence references a different attempt")
@@ -203,9 +213,13 @@ class PostgresWorkerTerminalAdapter:
                 observed_at=context.observed_at,
             )
         except Exception as error:  # pragma: no cover - persistence boundary
-            return _retry(entry_fingerprint, f"runtime evidence persistence failed: {type(error).__name__}")
+            return _retry(
+                entry_fingerprint, f"runtime evidence persistence failed: {type(error).__name__}"
+            )
         if runtime.decision in {RuntimeStateDecision.REJECT, RuntimeStateDecision.NOT_FOUND}:
-            return _reject(entry_fingerprint, runtime.rejection_reason or "runtime evidence was rejected")
+            return _reject(
+                entry_fingerprint, runtime.rejection_reason or "runtime evidence was rejected"
+            )
         if runtime.state is None:
             return _retry(entry_fingerprint, "runtime evidence persistence returned no state")
         try:
@@ -216,7 +230,11 @@ class PostgresWorkerTerminalAdapter:
             ledger = await self._settlements.load_ledger(principal=evidence.principal)
             projection_ledger = ledger
             existing_settlement = next(
-                (item for item in ledger.records if item.attempt_id == request.admission.attempt_id),
+                (
+                    item
+                    for item in ledger.records
+                    if item.attempt_id == request.admission.attempt_id
+                ),
                 None,
             )
             reservation_active = any(
@@ -246,7 +264,9 @@ class PostgresWorkerTerminalAdapter:
         except Exception as error:  # pragma: no cover - application boundary
             return _retry(entry_fingerprint, f"terminal projection failed: {type(error).__name__}")
         if terminal.decision in {WorkerTerminalDecision.REJECT, WorkerTerminalDecision.CONFLICT}:
-            return _reject(entry_fingerprint, terminal.rejection_reason or "terminal projection rejected")
+            return _reject(
+                entry_fingerprint, terminal.rejection_reason or "terminal projection rejected"
+            )
         settlement = terminal.settlement_resolution
         if settlement is None or settlement.record is None or settlement.observation is None:
             return _retry(entry_fingerprint, "terminal projection omitted settlement evidence")
@@ -255,18 +275,20 @@ class PostgresWorkerTerminalAdapter:
                 principal=evidence.principal, record=settlement.record
             )
         except Exception as error:  # pragma: no cover - persistence boundary
-            return _retry(entry_fingerprint, f"settlement receipt persistence failed: {type(error).__name__}")
+            return _retry(
+                entry_fingerprint, f"settlement receipt persistence failed: {type(error).__name__}"
+            )
 
-        state_resolution = await self._persist_public_state(
-            evidence, terminal
-        )
+        state_resolution = await self._persist_public_state(evidence, terminal)
         if state_resolution is None:
             return _retry(entry_fingerprint, "public terminal state persistence failed")
         persisted_outcome, persisted_progress = state_resolution
         completion = None
         if persisted_outcome.status.value == "succeeded":
             if evidence.publication is None or evidence.result is None:
-                return _reject(entry_fingerprint, "successful terminal evidence is missing publication")
+                return _reject(
+                    entry_fingerprint, "successful terminal evidence is missing publication"
+                )
             try:
                 publication = await self._result_publication.ensure(
                     principal=evidence.principal, plan=evidence.publication
@@ -304,24 +326,33 @@ class PostgresWorkerTerminalAdapter:
                     result_artifacts=evidence.result.output_artifacts,
                 )
             except Exception as error:  # pragma: no cover - persistence boundary
-                return _retry(entry_fingerprint, f"result completion persistence failed: {type(error).__name__}")
+                return _retry(
+                    entry_fingerprint,
+                    f"result completion persistence failed: {type(error).__name__}",
+                )
             if completion.decision in {
                 ResultCompletionDecision.CONFLICT,
                 ResultCompletionDecision.REJECT,
             }:
-                return _reject(entry_fingerprint, completion.rejection_reason or "result completion rejected")
+                return _reject(
+                    entry_fingerprint, completion.rejection_reason or "result completion rejected"
+                )
             try:
                 await self._metrics.ensure(
                     principal=evidence.principal,
                     metric_set=evidence.result.metric_set,
                 )
             except Exception as error:  # pragma: no cover - persistence boundary
-                return _retry(entry_fingerprint, f"metric-set persistence failed: {type(error).__name__}")
+                return _retry(
+                    entry_fingerprint, f"metric-set persistence failed: {type(error).__name__}"
+                )
         publication = publication.plan if persisted_outcome.status.value == "succeeded" else None
         try:
             summary = await self._execution_summaries.ensure(
                 principal=evidence.principal,
-                summary=_summary(evidence.submission, persisted_outcome, persisted_progress, publication),
+                summary=_summary(
+                    evidence.submission, persisted_outcome, persisted_progress, publication
+                ),
             )
             capacity = await self._worker_state.release_capacity(
                 profile=pool.profile,
@@ -330,9 +361,14 @@ class PostgresWorkerTerminalAdapter:
                 observation=settlement.observation,
             )
         except Exception as error:  # pragma: no cover - persistence boundary
-            return _retry(entry_fingerprint, f"terminal settlement persistence failed: {type(error).__name__}")
+            return _retry(
+                entry_fingerprint, f"terminal settlement persistence failed: {type(error).__name__}"
+            )
         if capacity.decision is WorkerCapacityDecision.REJECT:
-            return _retry(entry_fingerprint, capacity.rejection_reason or "worker capacity release was rejected")
+            return _retry(
+                entry_fingerprint,
+                capacity.rejection_reason or "worker capacity release was rejected",
+            )
         receipt_digest = _digest(
             context,
             terminal,
@@ -410,11 +446,15 @@ def _digest(*values: Any) -> str:
 
 
 def _retry(entry_fingerprint: str, reason: str) -> WorkerHandleResult:
-    return WorkerHandleResult(entry_fingerprint, WorkerHandleDecision.RETRY, rejection_reason=reason)
+    return WorkerHandleResult(
+        entry_fingerprint, WorkerHandleDecision.RETRY, rejection_reason=reason
+    )
 
 
 def _reject(entry_fingerprint: str, reason: str) -> WorkerHandleResult:
-    return WorkerHandleResult(entry_fingerprint, WorkerHandleDecision.REJECT, rejection_reason=reason)
+    return WorkerHandleResult(
+        entry_fingerprint, WorkerHandleDecision.REJECT, rejection_reason=reason
+    )
 
 
 __all__ = [
