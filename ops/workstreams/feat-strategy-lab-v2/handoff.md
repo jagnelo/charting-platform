@@ -9001,6 +9001,51 @@ Changed source paths: `backend/app/strategy_lab_v2/application.py`,
 `ops/workstreams/feat-strategy-lab-v2/session.json`, and
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
 
+## 2026-10-04 - Native component P&L RC5 reconciliation
+
+Completed the in-progress component-attribution slice against the actual
+Nautilus `2.0.0rc5` report schema. Position cycles expose their order/trade
+identity through retained `OrderFilled` events rather than a top-level
+`client_order_ids` field, so attribution now validates event identities against
+the native fill/trade reports and rejects incomplete or inconsistent joins.
+The exact-image probe exercises two closed cycles, an archived/reopened
+position, USD-native P&L, and shared-account equity reconciliation.
+
+The isolated, network-disabled source build passed with source digest
+`sha256:972d8fb6811639d0b319963cdaf8bf2884f1c6599279372f34bad2ca3a83331f`,
+image digest
+`sha256:626b4edfb96240026d65e61794782290fb13021da7cfb90933d9975ba0fcfde8`,
+and receipt artifact
+`sha256:07f4b67f5a2401cdfcc09ff46fc2e5d6f9296dd342f25458f6eb2351114d956a`.
+The component probe recorded two closed cycles, four orders/fills/trade-ID
+joins, one archived snapshot whose identity differs from fill position IDs,
+and exact account reconciliation at USD 395.00 gross/net. This evidence remains
+non-authoritative release-candidate evidence; it does not grant broker or
+real-capital control, nor forward-shadow authority.
+
+Validation passed: 1,287 Strategy Lab package tests plus 7 isolated
+Unix-socket RPC tests; Ruff, formatting for all eight changed Python files,
+MyPy across 365 package/runtime sources, and `git diff --check`. The first
+package run exposed stale synthetic fixture schemas and the first native run
+exposed a missing initial event-context group; both were corrected and the
+complete gates rerun successfully.
+
+No stable Nautilus release is required by this branch plan. The saved goal's
+wording still says “after stable v2 conformance,” which is stale relative to
+the durable plan's exact-pinned stable-or-pre-release rule; treat that as a
+goal-metadata inconsistency, not an implementation blocker. Current blocker is
+none. Next: continue broader metric coverage, worker recovery/scaling, and
+persistent broker-free forward-shadow acceptance. Docker Buildx remains an
+environment limitation only for the final full Compose/browser profile.
+
+Changed source paths: `backend/app/strategy_lab_v2/nautilus_component_pnl.py`,
+`backend/app/strategy_lab_v2/nautilus_rc_fixture_probe.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_adapter_probe.py`, and their
+focused runtime/conformance/execution tests. Changed workstream paths:
+`ops/workstreams/feat-strategy-lab-v2/handoff.md` and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
 ## 2026-10-04 - Backtest-scoped Nautilus conformance binding
 
 Committed and pushed `fa0cb4c3d5bf6a7869e1be05d4866d298c384237` and

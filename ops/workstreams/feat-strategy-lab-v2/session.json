@@ -87,6 +87,7 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
@@ -125,10 +126,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "0de4ed6084260c6b14f5d81184d4f38527423b80",
-  "implementation_sha": "0de4ed6084260c6b14f5d81184d4f38527423b80",
-  "last_checkpoint": "2026-10-04T16:26:23.658421+00:00",
-  "last_human_progress_update": "2026-10-04T16:24:36.976913+00:00",
+  "head": "bc80a056f045675e1e9683f3fe3d9b5a8efeb3e2",
+  "implementation_sha": "bc80a056f045675e1e9683f3fe3d9b5a8efeb3e2",
+  "last_checkpoint": "2026-10-04T16:48:43.120045+00:00",
+  "last_human_progress_update": "2026-10-04T16:47:58.206106+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -145,13 +146,13 @@
   "progress": {
     "completed": [],
     "current_blocker": "none",
-    "current_phase": "native-component-pnl-reconciliation-v1",
-    "next_action": "Add an exact-pinned RC5 native-output probe for archived and reopened positions, native fill trade-ID joins, signed commissions and rebates, and shared-account P&L reconciliation; then continue broader metrics, worker recovery/scaling, and persistent forward-shadow acceptance.",
+    "current_phase": "native-component-pnl-reconciliation-v1-complete",
+    "next_action": "Continue native metric coverage, worker recovery and scaling acceptance, and persistent broker-free forward-shadow acceptance; run the final full Compose/browser profile when Docker Buildx is available.",
     "total": 18,
-    "updated_at": "2026-10-04T16:24:36.976894+00:00"
+    "updated_at": "2026-10-04T16:47:58.206089+00:00"
   },
-  "remote": "0de4ed6084260c6b14f5d81184d4f38527423b80",
-  "remote_sha": "0de4ed6084260c6b14f5d81184d4f38527423b80",
+  "remote": "bc80a056f045675e1e9683f3fe3d9b5a8efeb3e2",
+  "remote_sha": "bc80a056f045675e1e9683f3fe3d9b5a8efeb3e2",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
