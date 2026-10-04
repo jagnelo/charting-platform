@@ -121,6 +121,8 @@ def test_resolver_reconstructs_verified_source_manifest_and_lock(tmp_path) -> No
     assert resolved.dependency_lock == canonical_json(strategy.dependencies).encode("utf-8")
     assert resolved.archive_manifest.content_digest == package.archive_digest
     assert resolved.archive_manifest.retention_class is ArtifactRetention.PINNED_INPUT
+    assert resolved.source_validation.accepted
+    assert resolved.source_validation.source_digest == strategy.source_digest
 
 
 def test_resolver_rejects_manifest_and_dependency_lock_digest_drift(tmp_path) -> None:

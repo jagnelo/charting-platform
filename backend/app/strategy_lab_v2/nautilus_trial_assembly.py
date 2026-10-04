@@ -61,6 +61,7 @@ from app.strategy_lab_v2.rebalance import (
 from app.strategy_lab_v2.replay import iter_event_tape_contexts
 from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
+from app.strategy_lab_v2.strategy_validation import source_set_digest
 from strategy_runtime import InvocationContextStreamSource
 
 
@@ -135,15 +136,10 @@ def strategy_source_set_digest(strategies: Sequence[StrategyVersion]) -> str:
         or any(not isinstance(item, StrategyVersion) for item in strategies)
     ):
         raise ValueError("strategies must be a non-empty sequence of StrategyVersion values")
-    sources = tuple(sorted({(item.fingerprint, item.source_digest) for item in strategies}))
-    if len(sources) == 1:
-        return sources[0][1]
-    return content_digest(
-        {
-            "schema": "strategy-lab.strategy-source-set.v1",
-            "sources": sources,
-        }
-    )
+    source_digests = {item.fingerprint: item.source_digest for item in strategies}
+    if len(source_digests) != len({item.fingerprint for item in strategies}):
+        raise ValueError("strategy source identities must be unique")
+    return source_set_digest(source_digests)
 
 
 def strategy_runtime_identity(

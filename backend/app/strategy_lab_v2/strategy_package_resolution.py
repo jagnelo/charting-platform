@@ -25,7 +25,10 @@ from app.strategy_lab_v2.contracts import (
     StrategyVersion,
 )
 from app.strategy_lab_v2.sdk import StrategySdkManifest
-from app.strategy_lab_v2.strategy_validation import validate_strategy_source
+from app.strategy_lab_v2.strategy_validation import (
+    StrategySourceValidation,
+    validate_strategy_source,
+)
 from strategy_runtime import deserialize_strategy_manifest
 
 STRATEGY_SOURCE_ARCHIVE_MEDIA_TYPE = "application/vnd.charting.strategy-lab.source-package+zip"
@@ -51,6 +54,7 @@ class ResolvedStrategyPackage:
     manifest: StrategySdkManifest
     dependency_lock: bytes
     archive_manifest: ArtifactManifest
+    source_validation: StrategySourceValidation
 
     def __post_init__(self) -> None:
         require_sha256_digest(self.package_fingerprint, field_name="package_fingerprint")
@@ -63,10 +67,16 @@ class ResolvedStrategyPackage:
             raise ValueError("resolved dependency lock must be non-empty bytes")
         if not isinstance(self.archive_manifest, ArtifactManifest):
             raise TypeError("archive_manifest must be an ArtifactManifest")
+        if not isinstance(self.source_validation, StrategySourceValidation):
+            raise TypeError("source_validation must be a StrategySourceValidation")
         if self.manifest.strategy.fingerprint != self.strategy_fingerprint:
             raise ValueError("resolved manifest references a different strategy")
         if content_digest(self.source) != self.manifest.strategy.source_digest:
             raise ValueError("resolved source does not match its strategy digest")
+        if self.source_validation.source_digest != content_digest(self.source):
+            raise ValueError("source validation does not match the resolved source bytes")
+        if not self.source_validation.accepted:
+            raise ValueError("resolved source must pass engine-neutral static validation")
 
     @property
     def fingerprint(self) -> str:
@@ -77,6 +87,7 @@ class ResolvedStrategyPackage:
                 "manifest_fingerprint": self.manifest.fingerprint,
                 "package_fingerprint": self.package_fingerprint,
                 "source_digest": content_digest(self.source),
+                "source_validation": self.source_validation,
                 "strategy_fingerprint": self.strategy_fingerprint,
             }
         )
@@ -231,6 +242,7 @@ class StrategyPackageArtifactResolver:
             manifest=manifest,
             dependency_lock=lock_bytes,
             archive_manifest=archive_manifest,
+            source_validation=source_validation,
         )
 
 

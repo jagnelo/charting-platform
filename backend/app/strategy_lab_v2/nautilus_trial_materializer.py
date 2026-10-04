@@ -38,6 +38,10 @@ from app.strategy_lab_v2.runtime_execution import (
 )
 from app.strategy_lab_v2.sdk import StrategyDataDependency, StrategySdkManifest
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
+from app.strategy_lab_v2.strategy_validation import (
+    StrategySourceValidation,
+    combine_strategy_source_validations,
+)
 from app.strategy_lab_v2.trial_hydration import (
     HydratedNautilusTrial,
 )
@@ -118,12 +122,15 @@ class MaterializedNautilusTrialInput:
 
     graph: HydratedNautilusTrial
     assembly: NautilusTrialRuntimeAssembly
+    source_validation: StrategySourceValidation
 
     def __post_init__(self) -> None:
         if not isinstance(self.graph, HydratedNautilusTrial):
             raise TypeError("graph must be a HydratedNautilusTrial")
         if not isinstance(self.assembly, NautilusTrialRuntimeAssembly):
             raise TypeError("assembly must be a NautilusTrialRuntimeAssembly")
+        if not isinstance(self.source_validation, StrategySourceValidation):
+            raise TypeError("source_validation must be a StrategySourceValidation")
         bindings = (
             (self.assembly.attempt_id, self.graph.attempt.attempt_id),
             (self.assembly.trial_fingerprint, self.graph.trial.trial_id),
@@ -138,6 +145,10 @@ class MaterializedNautilusTrialInput:
         identity = strategy_runtime_identity(self.graph.strategies, self.graph.packages)
         if self.assembly.strategy_package_fingerprint != identity.package_fingerprint:
             raise ValueError("materialized runtime package set differs from the experiment")
+        if self.source_validation.source_digest != identity.source_digest:
+            raise ValueError("materialized source validation differs from the strategy package set")
+        if not self.source_validation.accepted:
+            raise ValueError("materialized strategy source set did not pass static validation")
 
     @property
     def fingerprint(self) -> str:
@@ -145,6 +156,7 @@ class MaterializedNautilusTrialInput:
             {
                 "assembly": self.assembly,
                 "domain_graph_fingerprint": self.graph.fingerprint,
+                "source_validation": self.source_validation,
             }
         )
 
@@ -308,6 +320,7 @@ class NautilusTrialRuntimeInputMaterializer:
         strategies_by_fingerprint = {item.fingerprint: item for item in graph.strategies}
         resolved_component_inputs: list[NautilusComponentTrialInput] = []
         resolved_manifests: list[StrategySdkManifest] = []
+        resolved_validations: dict[str, StrategySourceValidation] = {}
         for component in graph.portfolio.components:
             strategy = strategies_by_fingerprint.get(component.strategy_fingerprint)
             strategy_package = graph.packages.get(component.strategy_fingerprint)
@@ -329,6 +342,12 @@ class NautilusTrialRuntimeInputMaterializer:
                 )
             )
             resolved_manifests.append(resolved_package.manifest)
+            resolved_validations[strategy.fingerprint] = resolved_package.source_validation
+        source_validation = combine_strategy_source_validations(resolved_validations)
+        if not source_validation.accepted:
+            raise NautilusTrialAssemblyError(
+                "one or more strategy sources failed engine-neutral static validation"
+            )
         tape_manifest = _build_frozen_tape_manifest(graph, resolved_manifests)
         expected_instruments = {
             dependency.requirement.instrument_id for dependency in tape_manifest.data_dependencies
@@ -355,7 +374,7 @@ class NautilusTrialRuntimeInputMaterializer:
             session_calendar=market_context.session_calendar,
             session_periods_per_year=market_context.session_periods_per_year,
         )
-        return MaterializedNautilusTrialInput(graph, assembly)
+        return MaterializedNautilusTrialInput(graph, assembly, source_validation)
 
     @staticmethod
     def _require_portfolio_instruments(

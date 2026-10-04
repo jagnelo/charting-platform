@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.strategy_validation import validate_strategy_source
+from app.strategy_lab_v2.strategy_validation import (
+    source_set_digest,
+    validate_strategy_source,
+    validate_strategy_source_set,
+)
 
 
 def test_strategy_source_validation_accepts_safe_deterministic_source() -> None:
@@ -16,6 +20,44 @@ def signal(value):
     assert result.accepted
     assert result.violations == ()
     assert result.source_digest == content_digest(source)
+
+
+def test_strategy_source_set_binds_every_source_and_validates_each_component() -> None:
+    first_fingerprint = content_digest("strategy-one")
+    second_fingerprint = content_digest("strategy-two")
+    first_source = "def signal(value):\n    return value\n"
+    second_source = "import os\n\ndef signal(value):\n    return os.getcwd()\n"
+
+    result = validate_strategy_source_set(
+        {
+            second_fingerprint: second_source,
+            first_fingerprint: first_source,
+        }
+    )
+
+    assert not result.accepted
+    assert result.source_digest == source_set_digest(
+        {
+            first_fingerprint: content_digest(first_source),
+            second_fingerprint: content_digest(second_source),
+        }
+    )
+    assert any(
+        second_fingerprint in item and "forbidden_import" in item for item in result.violations
+    )
+    assert all(first_fingerprint not in item for item in result.violations)
+
+
+def test_single_strategy_source_set_preserves_legacy_source_identity() -> None:
+    strategy_fingerprint = content_digest("one-strategy")
+    source = "def signal(value):\n    return value\n"
+
+    result = validate_strategy_source_set({strategy_fingerprint: source})
+
+    assert result == validate_strategy_source(source)
+    assert source_set_digest({strategy_fingerprint: content_digest(source)}) == content_digest(
+        source
+    )
 
 
 def test_strategy_source_validation_rejects_filesystem_network_and_dynamic_code() -> None:
@@ -58,7 +100,9 @@ def run(obj):
     assert not result.accepted
     assert any("forbidden_import" in item for item in result.violations)
     assert any("forbidden_attribute" in item and "__class__" in item for item in result.violations)
-    assert any("forbidden_attribute" in item and "__globals__" in item for item in result.violations)
+    assert any(
+        "forbidden_attribute" in item and "__globals__" in item for item in result.violations
+    )
     assert any("forbidden_name" in item and "getattr" in item for item in result.violations)
     assert any("forbidden_name" in item and "globals" in item for item in result.violations)
 
@@ -116,8 +160,7 @@ system_module = typing.sys
     )
     assert not result.accepted
     assert any(
-        item.endswith(": sys") and "forbidden_attribute" in item
-        for item in result.violations
+        item.endswith(": sys") and "forbidden_attribute" in item for item in result.violations
     )
 
 

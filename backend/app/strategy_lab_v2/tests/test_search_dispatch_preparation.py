@@ -39,9 +39,11 @@ from app.strategy_lab_v2.tests.test_conformance_fixtures import (
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import (
     BASE,
     JsonFrozenSeriesDecoder,
+    _inputs,
 )
 from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import (
     RUNTIME_ABI,
+    _add_second_strategy,
     _build_inputs,
 )
 from app.strategy_lab_v2.trial_hydration import HydratedNautilusTrial
@@ -269,6 +271,42 @@ async def test_resolver_hydrates_materializes_authorizes_and_composes_search_evi
     assert evidence.trial_runtime_evidence.runtime_request.request_id == (
         observed["request"].runtime_request_id
     )
+
+
+@pytest.mark.asyncio
+async def test_resolver_authorizes_the_complete_multi_strategy_source_set(
+    tmp_path: Path,
+) -> None:
+    graph, store, package_resolver, materializer, context, worker_state_reader = _setup(tmp_path)
+    graph = _add_second_strategy(_inputs(), graph, store)
+    resolver = NautilusTrialSearchDispatchEvidenceResolver(
+        domain_hydrator=_Hydrator(graph),
+        runtime_materializer=materializer,
+        strategy_package_resolver=package_resolver,
+        artifact_store=store,
+        worker_state_reader=worker_state_reader,
+        context_resolver=lambda _request, _graph: context,
+    )
+    intent = SearchDispatchIntent(
+        "multi-strategy-dispatch-key",
+        graph.attempt.attempt_id,
+        "strategy-backtest",
+        PREPARED_AT,
+    )
+
+    evidence = await resolver(
+        principal="owner-1",
+        request_id="multi-strategy-request",
+        experiment_fingerprint=graph.experiment.fingerprint,
+        candidate_index=0,
+        attempt_id=graph.attempt.attempt_id,
+        dispatch_intent=intent,
+    )
+
+    source_set_digest = evidence.trial_runtime_evidence.runtime_request.source_digest
+    assert source_set_digest != graph.strategies[0].source_digest
+    assert evidence.authorization.source_digest == source_set_digest
+    assert evidence.worker_request.authorization.source_digest == source_set_digest
 
 
 @pytest.mark.asyncio

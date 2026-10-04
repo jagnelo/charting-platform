@@ -51,7 +51,6 @@ from app.strategy_lab_v2.nautilus_trial_worker_request import (
 )
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
-from app.strategy_lab_v2.strategy_validation import validate_strategy_source
 from app.strategy_lab_v2.trial_hydration import HydratedNautilusTrial
 from app.strategy_lab_v2.workers import WorkerKind, WorkerPoolState, WorkerProfile
 
@@ -403,7 +402,6 @@ class NautilusTrialSearchDispatchEvidenceResolver:
             )
         self._domain_hydrator = domain_hydrator
         self._runtime_materializer = runtime_materializer
-        self._strategy_package_resolver = strategy_package_resolver
         self._artifact_store = artifact_store
         self._worker_state_reader = worker_state_reader
         self._context_resolver = context_resolver
@@ -473,16 +471,7 @@ class NautilusTrialSearchDispatchEvidenceResolver:
             graph=graph,
             market_context=context.market_context,
         )
-        strategy_fingerprint = graph.experiment.strategy_fingerprints[0]
-        strategy = next(
-            (item for item in graph.strategies if item.fingerprint == strategy_fingerprint),
-            None,
-        )
-        package = graph.packages.get(strategy_fingerprint)
-        if strategy is None or package is None:
-            raise ValueError("owner-hydrated graph is missing its pinned strategy package")
-        resolved_package = self._strategy_package_resolver.resolve(package, strategy)
-        source_validation = validate_strategy_source(resolved_package.source)
+        source_validation = materialized.source_validation
         capability_preflight = preflight_execution_capability(
             graph.trial.preflight_report,
             context.capability_binding,

@@ -8,9 +8,10 @@ runtime receives a package.
 from __future__ import annotations
 
 import ast
+from collections.abc import Mapping
 from dataclasses import dataclass
 
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 
 DEFAULT_ALLOWED_IMPORT_ROOTS = frozenset(
     {
@@ -101,6 +102,27 @@ class StrategySourceValidation:
         return not self.violations
 
 
+def source_set_digest(source_digests: Mapping[str, str]) -> str:
+    """Bind a single source or the exact strategy/source set deterministically."""
+
+    if not isinstance(source_digests, Mapping) or not source_digests:
+        raise ValueError("source_digests must be a non-empty strategy-to-digest mapping")
+    if any(not isinstance(key, str) for key in source_digests):
+        raise TypeError("source_digests keys must be strategy fingerprint strings")
+    bindings = tuple(sorted(source_digests.items()))
+    for strategy_fingerprint, digest in bindings:
+        require_sha256_digest(strategy_fingerprint, field_name="strategy_fingerprint")
+        require_sha256_digest(digest, field_name="source_digest")
+    if len(bindings) == 1:
+        return bindings[0][1]
+    return content_digest(
+        {
+            "schema": "strategy-lab.strategy-source-set.v1",
+            "sources": bindings,
+        }
+    )
+
+
 def validate_strategy_source(
     source: str,
     *,
@@ -153,9 +175,12 @@ def validate_strategy_source(
                 violations.append(f"forbidden_import@{node_location(node)}: {module}")
             else:
                 for alias in node.names:
-                    if alias.name.startswith("_") or (
-                        alias.asname is not None and alias.asname.startswith("_")
-                    ) or alias.name in _FORBIDDEN_ATTRIBUTES or alias.name == "*":
+                    if (
+                        alias.name.startswith("_")
+                        or (alias.asname is not None and alias.asname.startswith("_"))
+                        or alias.name in _FORBIDDEN_ATTRIBUTES
+                        or alias.name == "*"
+                    ):
                         violations.append(
                             f"forbidden_import@{node_location(node)}: {module}.{alias.name}"
                         )
@@ -163,18 +188,75 @@ def validate_strategy_source(
             function_name = node.func.id if isinstance(node.func, ast.Name) else None
             if function_name in _FORBIDDEN_CALLS:
                 violations.append(f"forbidden_call@{node_location(node)}: {function_name}")
-            elif isinstance(node.func, ast.Attribute) and node.func.attr in _FORBIDDEN_CALL_ATTRIBUTES:
-                violations.append(
-                    f"forbidden_wall_clock@{node_location(node)}: {node.func.attr}"
-                )
+            elif (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr in _FORBIDDEN_CALL_ATTRIBUTES
+            ):
+                violations.append(f"forbidden_wall_clock@{node_location(node)}: {node.func.attr}")
         elif isinstance(node, ast.Attribute):
             if node.attr in _FORBIDDEN_CALL_ATTRIBUTES:
-                violations.append(
-                    f"forbidden_wall_clock@{node_location(node)}: {node.attr}"
-                )
+                violations.append(f"forbidden_wall_clock@{node_location(node)}: {node.attr}")
             elif node.attr in _FORBIDDEN_ATTRIBUTES or node.attr.startswith("_"):
                 violations.append(f"forbidden_attribute@{node_location(node)}: {node.attr}")
         elif isinstance(node, ast.Name) and node.id in _FORBIDDEN_NAMES:
             violations.append(f"forbidden_name@{node_location(node)}: {node.id}")
 
     return StrategySourceValidation(content_digest(source), tuple(sorted(set(violations))))
+
+
+def validate_strategy_source_set(
+    sources: Mapping[str, str],
+    *,
+    allowed_import_roots: frozenset[str] = DEFAULT_ALLOWED_IMPORT_ROOTS,
+) -> StrategySourceValidation:
+    """Validate every pinned strategy source and bind one aggregate identity.
+
+    A portfolio may contain several distinct strategies. Its authorization must
+    bind the same aggregate source digest as the runtime request, while retaining
+    all component validation failures rather than validating only a primary source.
+    """
+
+    if not isinstance(sources, Mapping) or not sources:
+        raise ValueError("sources must be a non-empty strategy-to-source mapping")
+    if any(not isinstance(key, str) for key in sources):
+        raise TypeError("sources keys must be strategy fingerprint strings")
+    validations: dict[str, StrategySourceValidation] = {}
+    for strategy_fingerprint, source in sorted(sources.items()):
+        require_sha256_digest(strategy_fingerprint, field_name="strategy_fingerprint")
+        validations[strategy_fingerprint] = validate_strategy_source(
+            source,
+            allowed_import_roots=allowed_import_roots,
+        )
+    return combine_strategy_source_validations(validations)
+
+
+def combine_strategy_source_validations(
+    validations: Mapping[str, StrategySourceValidation],
+) -> StrategySourceValidation:
+    """Bind already-computed validation results to their exact strategy set."""
+
+    if not isinstance(validations, Mapping) or not validations:
+        raise ValueError("validations must be a non-empty strategy-to-validation mapping")
+    if any(not isinstance(key, str) for key in validations):
+        raise TypeError("validations keys must be strategy fingerprint strings")
+    for strategy_fingerprint, validation in validations.items():
+        require_sha256_digest(strategy_fingerprint, field_name="strategy_fingerprint")
+        if not isinstance(validation, StrategySourceValidation):
+            raise TypeError("validations values must be StrategySourceValidation instances")
+    digest = source_set_digest(
+        {
+            strategy_fingerprint: validation.source_digest
+            for strategy_fingerprint, validation in sorted(validations.items())
+        }
+    )
+    if len(validations) == 1:
+        only_validation = next(iter(validations.values()))
+        return StrategySourceValidation(digest, only_validation.violations)
+    violations = tuple(
+        sorted(
+            f"strategy[{strategy_fingerprint}]:{violation}"
+            for strategy_fingerprint, validation in validations.items()
+            for violation in validation.violations
+        )
+    )
+    return StrategySourceValidation(digest, violations)
