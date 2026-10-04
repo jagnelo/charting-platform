@@ -2,6 +2,56 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Shared multi-component target allocation
+
+Added `resolve_nautilus_component_target_position_batches(...)` as the shared
+target-intent path for simultaneous portfolio components. It constructs one
+allocation/risk snapshot, translates approved component targets to lot-sized
+orders, preserves output grouping by component, and requires both component
+exposure and signed-quantity ledgers to reconcile exactly to the native
+account. Priority-policy lower-priority targets remain explicitly rejected by
+the allocation result; other target rejections and aggregate risk breaches
+fail closed. This is a reusable allocation slice, not end-to-end multi-strategy
+execution: trial assembly and the native bridge still accept one strategy and
+one context stream, and fill-driven component attribution is still required.
+
+Validation at implementation commit `11215387d09571a8f844e7031883854681d0239b`:
+all 1,168 Strategy Lab v2 tests passed; Ruff and format checks passed for the
+two changed Python files; MyPy passed for the changed source module; and
+`git diff --check` passed. The local commit is clean. Push to
+`origin/feat/strategy-lab-v2` failed with `ssh_askpass: exec(/usr/bin/ssh-askpass):
+No such file or directory` followed by `Permission denied (publickey)`. This is
+a transport/authentication hold only; no alternate HTTPS credentials or
+workaround were probed. At the time of the attempt, the feature branch was nine
+commits ahead of remote `1e3a861454f3c77bdac5efbb6957103f56f13238`.
+The checkpoint helper's dirty-path formatter also dropped the first character
+of the handoff path; the workstream record was corrected to the actual `ops/`
+path. The generic helper was left unchanged on this feature branch.
+
+Stable Nautilus v2 remains unnecessary for local implementation. The branch
+plan explicitly accepts an exact-pinned pre-release after conformance; the
+isolated RC5 runtime remains local-only and its receipts remain
+non-authoritative pending full execution/publication conformance. There is no
+external dependency blocking continued package-owned work. Only 3/18 goal
+acceptance areas are currently recorded complete. Provider/ETF/TC2000 staging
+gates still apply to their later shared-path integrations, not this isolated
+allocation logic.
+
+Next: carry one authenticated context stream per component through the runtime
+bundle, CLI, and bridge; schedule same-event callbacks; combine raw and target
+orders under one shared decision; then maintain component quantities/exposure
+from native fills before enabling multi-component trial assembly.
+
+Files changed in this slice:
+
+```text
+backend/app/strategy_lab_v2/nautilus_target_allocation.py
+backend/app/strategy_lab_v2/tests/test_nautilus_target_allocation.py
+ops/workstreams/feat-strategy-lab-v2/session.json
+ops/workstreams/feat-strategy-lab-v2/handoff.md
+ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+```
+
 ## 2026-10-04 - Authenticated component strategy input bindings
 
 Versioned the isolated engine input contract to v3 and added a canonical,
