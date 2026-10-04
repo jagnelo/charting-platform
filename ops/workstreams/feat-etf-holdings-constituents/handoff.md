@@ -7066,3 +7066,58 @@ This checkpoint updates the branch-owned `plan.yaml`, `handoff.md`,
 `session.json`, and `validation.jsonl`; it does not alter application code,
 provider routes, source classifications, another worktree, staging, or Docker
 resources outside this ETF stack.
+
+## Quiet-host replay and exact blocker — 2026-10-04
+
+The user's `root pwd is m920q` clarification is reflected in the active
+session: work continued in the assigned
+`/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents`
+checkout, on `feat/etf-holdings-constituents`. The earlier preflight issue was
+environmental, not missing feature work: the UV cache was redirected to
+`/tmp/charting-platform-uv-cache`, the repository helper that reads the shared
+allocation registry ran in its approved host context, and the existing session
+claim matched, so no claim takeover was needed.
+
+The required opt-in holdings matrix had already passed on application source
+`a67ceed7` (537 collected, 508 passed, 29 skipped). A quiet-host replay of the
+full local gate then ran on exact branch tip `c3be1b6d2c7e9929635b7b6efea9c3de53b6340c`.
+All pre-Playwright stages passed: workstream validation (30 records),
+dependency/lock and migration checks, Ruff/format (282 files), frontend
+type-check, backend and frontend coverage suites, production build, Compose
+contracts/health, and research-runner security/resource probes. Functional
+Playwright ran 260 scenarios and failed on two generic cases outside the ETF
+owned paths:
+
+- `F9c-template-comparison`: a chart plot-library overlay intercepted the
+  `Remove RSP` click until the test timed out.
+- `F8j-conflict`: the generic workstation footer never displayed the expected
+  recovery message after the workspace-revision conflict.
+
+The persisted `.last-run.json` names exactly those two failed test IDs, and the
+failure artifacts contain no ETF-owned assertion. The browser stage therefore
+stopped the gate before visual E2E and the trailing branch-declared test stage.
+No shared-network error was reported in these two failure artifacts. These
+generic test/product paths remain outside `owned_paths`; they were not changed,
+skipped, or worked around on this branch.
+
+The gate's automatic cleanup removed only this worktree's Compose resources and
+four tagged images. It reported `host_wide_prune: false`, no retained volumes,
+and no testcontainer sessions. No other worktree was stopped or modified.
+`git ls-remote` confirmed ETF at `c3be1b6d`, provider-platform at
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and staging at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; the provider-platform branch is
+not yet in staging. Exact-SHA GitHub Actions run `37205629249` passed Backend
+Tests, Frontend Unit Tests, Branch-declared Tests, and Playwright; the
+protected Exhaustive Integration Gate was skipped by design for this feature
+branch.
+
+Therefore the old setup confusion is resolved, but the full goal is not
+complete. AC7 remains open because the required local full gate fails on the
+two unrelated generic E2E cases; AC8 remains open pending the full validation
+and synchronized review checkpoint. AC10 remains dependent on
+`feat/market-data-provider-platform` reaching staging before the ETF-owned
+`ETF_HOLDINGS` bridge can be implemented. AC14 remains the documented
+post-integration/deployment 30-day shadow observation. Do not change generic
+chart/workstation behavior from this ETF scope or alter any other worktree;
+retain the artifacts and exact statuses until the owning-scope E2E issue and
+provider-platform dependency are resolved.
