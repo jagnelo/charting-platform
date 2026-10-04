@@ -9721,3 +9721,42 @@ missing Docker Buildx plugin still limits only the final Compose/browser gate.
 This checkpoint updates `ops/workstreams/feat-strategy-lab-v2/handoff.md`,
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`, and
 `ops/workstreams/feat-strategy-lab-v2/session.json`.
+
+## 2026-10-05 - Multi-strategy identity through persisted search dispatch
+
+The owner-scoped PostgreSQL search-dispatch regression now carries a validated
+two-strategy source-set digest through admission and worker handoff, reads back
+the exact authenticated worker payload bytes, and verifies idempotent replay
+retains the same payload digest. This closes the previously uncovered boundary
+between multi-strategy authorization and durable dispatch; it does not yet
+exercise graph hydration and terminal publication together in one vertical
+test. Commit `4084b1489b76a869d600fb7b21da825f85c05609` is pushed to
+`origin/feat/strategy-lab-v2`.
+
+Validation at that code commit: the complete Strategy Lab v2 package passed
+`1,345/1,345` tests, including the local Unix-socket worker test under scoped
+local-socket permission. The focused dispatch test file passed 5/5; Ruff check,
+Ruff format check, focused MyPy for the changed test module, and `git diff
+--check` passed. No production code changed in this increment. Branch-wide
+MyPy still has seven annotation errors in five untouched test modules; no
+production-source errors were reported in the prior complete run.
+
+Current next step: connect the real owner-hydrated immutable multi-component
+trial graph through preparation and persisted dispatch to isolated worker
+terminal publication and exact replay. Continue recovery/scaling and forward
+event-tape parity after that. There is no Nautilus stable-release blocker:
+exact-pinned RC5 is qualified for authoritative local backtests after the four
+backtest checks. Forward shadow still needs event-tape parity; prereleases may
+not connect to brokers or control real capital. Canonical provider context
+binding remains staging-gated. The final Compose/browser gate is environment-
+limited because Docker Buildx is absent and this session cannot access the
+Docker socket. Options orders remain fail-closed pending canonical event-time
+Greeks/delta and settlement evidence.
+
+This workstream checkpoint updates the branch-owned
+`ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`. The implementation
+SHA above is the last code checkpoint; the operational checkpoint commit is
+verified from Git after publication.

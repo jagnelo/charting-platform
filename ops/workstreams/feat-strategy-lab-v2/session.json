@@ -87,7 +87,8 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ps/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
@@ -126,14 +127,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "cc76aafa8e2bc92132607d2c48546e1536247f7d",
-  "implementation_sha": "2d7edd0e657d5fb8264e070045a291ec7cc1c941",
-  "last_checkpoint": "2026-10-04T22:56:21.219396+00:00",
-  "last_human_progress_update": "2026-10-04T22:54:27.150330+00:00",
+  "head": "4084b1489b76a869d600fb7b21da825f85c05609",
+  "implementation_sha": "4084b1489b76a869d600fb7b21da825f85c05609",
+  "last_checkpoint": "2026-10-04T23:07:46.541172+00:00",
+  "last_human_progress_update": "2026-10-04T23:04:21.368915+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "7de3cfd9b246c6236f0b86944f2c4bfc67d9d42fe7a12f4738bab6c14a29fda0",
+  "plan_hash": "48fad8db78525c7b7d92e880f6d2a7a4d19f5562fd9b28ca910e29e0b6ebc7f9",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -148,14 +149,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "No Nautilus stable-release blocker. The provider-owned frozen-series/context binding is staging-gated; Docker Buildx limits only final Compose/browser validation. Full MyPy currently reports 7 annotation errors in 5 untouched Strategy Lab test modules; no production-source errors remain.",
+    "current_blocker": "No stable-release blocker. Provider-contract staging and missing Docker Buildx/socket access constrain only canonical context integration and final Compose/browser validation; options orders remain fail-closed without canonical event-time Greeks/delta and settlement evidence.",
     "current_phase": "strategy-lab-v2-authoritative-backtest-activation-v1",
-    "next_action": "Complete a package-owned end-to-end regression from owner-scoped multi-component trial hydration through persisted search dispatch, isolated worker terminal publication, and idempotent replay; then continue recovery/scaling and forward parity. Bind canonical market metadata only through the approved provider-platform contract after it reaches staging.",
+    "next_action": "Connect the real owner-hydrated multi-component trial graph through preparation and PostgreSQL dispatch to isolated worker terminal publication and exact replay; then continue recovery/scaling and forward parity. Provider canonical context remains staging-gated. No stable-label wait.",
     "total": 18,
-    "updated_at": "2026-10-04T22:54:27.150312+00:00"
+    "updated_at": "2026-10-04T23:04:21.368895+00:00"
   },
-  "remote": "cc76aafa8e2bc92132607d2c48546e1536247f7d",
-  "remote_sha": "2d7edd0e657d5fb8264e070045a291ec7cc1c941",
+  "remote": "4084b1489b76a869d600fb7b21da825f85c05609",
+  "remote_sha": "4084b1489b76a869d600fb7b21da825f85c05609",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

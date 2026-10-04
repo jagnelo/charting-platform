@@ -851,17 +851,19 @@ progress:
     Options order admission remains fail-closed pending canonical event-time
     Greeks/delta and settlement evidence.
   next_action: >-
-    Implement production assembly from the owner-scoped immutable trial graph
-    into an exact-pinned Nautilus RC5 worker input, then connect isolated worker
-    execution to authoritative result publication. Start with
-    nautilus_trial_assembly.py, nautilus_trial_materializer.py, and the dedicated
-    worker composition/tests. Keep market-data acquisition outside the engine.
-    RC5 may publish local backtests only with matching four-check conformance;
-    do not wait for a stable label. Broker-free forward shadow still requires
-    the fifth event-tape parity check, and no prerelease may connect to a broker
-    or control real capital. Keep immutable resources create-only; version
-    changes create new identities and mutable lifecycle changes use dedicated
-    owner-scoped commands. Options remain fail-closed pending canonical
-    event-time Greeks/delta and settlement evidence. Consume provider/ETF/TC2000
-    shared contracts only after their approved branches reach staging. Run the
-    final Compose/browser validation when Docker Buildx is available.
+    The aggregate multi-strategy source digest now survives persisted worker
+    payload decoding and owner-scoped dispatch replay. Extend the package-owned
+    vertical regression from the actual owner-hydrated immutable trial graph
+    through PostgreSQL dispatch and isolated worker terminal publication with
+    exact replay; keep canonical market-data acquisition outside the engine.
+    Then continue domain-backed mutations, worker recovery/scaling, and
+    broker-free forward-shadow parity. RC5 may publish local backtests only
+    with matching four-check conformance; do not wait for a stable label.
+    Forward shadow requires the fifth event-tape parity check, and no
+    prerelease may connect to a broker or control real capital. Keep immutable
+    resources create-only; version changes create new identities and mutable
+    lifecycle changes use dedicated owner-scoped commands. Options remain
+    fail-closed pending canonical event-time Greeks/delta and settlement
+    evidence. Consume provider/ETF/TC2000 shared contracts only after their
+    approved branches reach staging. Run final Compose/browser validation when
+    Docker Buildx and socket access are available.
