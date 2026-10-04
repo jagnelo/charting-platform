@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-04
 
+## 2026-10-04 — Research Results older-run pagination
+
+Product commit `74fc6061c6f0a567d4212b29405ed14be9b71195` adds bounded,
+authenticated keyset pagination to TC-owned Research Results. `/research/runs`
+now returns `created_at`, orders by `(created_at DESC, id DESC)`, and accepts
+the paired `(before_created_at, before_id)` cursor while retaining the current
+user filter. The UI requests 26 to display 25 plus a lookahead, appends older
+pages, and exposes accessible loading, retry, and missing-cursor states. It
+preserves selected-run and comparison state across page fetches and refreshes.
+
+Focused ResearchResultsTool tests passed `54/54`; the full frontend suite
+passed `128/128` files and `1,195/1,195` tests; type-check and production build
+passed. The focused API test passed `1/1` (30 deselected), covering stable
+same-timestamp ID ordering, a newly inserted run above the cursor, and partial
+cursor rejection. Ruff, TC ownership validation (124 touched paths plus six
+self-tests), and workstream validation passed. Authenticated pinned Chromium
+verified the first 25 rows, the exact cursor request, retry after an injected
+503, 50 unique merged rows, and preservation of the selected run and active
+comparison. Browser fixture data was mocked only for `GET /research/runs`; the
+branch stack handled authentication and other application calls. Its assigned
+Compose/browser/Testcontainer resources were removed and audited to zero.
+
+This closes one R5 slice, not the broader TC2000 rework. It changes no provider
+or ETF ownership, visual references, screenshots, masks, thresholds, skips, or
+acceptance policy. The existing ten screenshot-only differences still need a
+fresh exact-source reproduction and root-cause disposition; upstream consumer
+integration and the final exact-tip gate remain pending.
+
 ## 2026-10-04 — Current exact-source visual matrix remains at 94/104
 
 At clean branch tip `58975ea6bee3e506f64d97506aadf4026c626357` (product source

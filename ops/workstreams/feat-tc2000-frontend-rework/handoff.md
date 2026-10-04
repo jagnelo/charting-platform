@@ -2,6 +2,72 @@
 
 ## 2026-10-04 — Visual matrix evidence published; branch synchronized
 
+## Closed changeset — R5 Research Results older-run pagination
+
+Intent: let the TC-owned Research Results pane reach persisted Study runs
+beyond the newest 25 without changing run contents, lineage, provider/ETF
+ownership, or existing selected/comparison behavior. Use a stable keyset cursor
+and bounded page requests; expose accessible load, loading, and retry states.
+
+Owned paths for this context: `backend/app/routers/research.py`,
+`backend/app/schemas/code.py`,
+`backend/tests/integration/api/test_strategy_lab.py`,
+`frontend/src/components/workstation/ResearchResultsTool.vue`,
+`frontend/tests/unit/components/test_research_results_tool.test.ts`, and this
+branch's `ops/workstreams/feat-tc2000-frontend-rework/` record. No migration,
+provider, ETF, or visual-baseline edits are planned.
+
+Product changeset commit: `74fc6061c6f0a567d4212b29405ed14be9b71195`
+(`feat(tc2000): paginate persisted study results`), pushed to
+`origin/feat/tc2000-frontend-rework`. Local `HEAD`, the tracking ref, and direct
+remote lookup all resolve to this SHA. The source commit owns only the five
+implementation/API/test files listed above.
+
+The endpoint applies the paired `(before_created_at, before_id)` keyset under
+the authenticated user's filter and returns `created_at`; the UI fetches 26
+rows to display 25 plus a lookahead, then appends bounded older pages while
+retaining selection and comparison. Focused UI tests passed 54/54; the full
+frontend suite passed 128/128 files and 1,195/1,195 tests; type-check and
+production build passed. The focused API test passed 1/1 (30 deselected; two
+NumPy/Nautilus deprecation warnings), Ruff check/format passed, and the TC scope
+guard accepted 124 paths with all six self-tests.
+
+Authenticated pinned Chromium showed the first 25 rows from a 26-row
+lookahead. With run 126 selected and runs 126/125 checked and compared, the
+older-page request carried `before_created_at=2026-10-04T09:36:00.000Z` and
+`before_id=102`. An injected first 503 exposed the accessible retry; the retry
+appended 25 older rows (50 unique rows total), retained selection and both
+comparison checks, and left the comparison open. Browser fixture data was
+mocked only for `GET /api/v1/research/runs`; the branch stack handled auth and
+the rest of the app. The only console error was the expected injected 503, with
+zero warnings. Scoped stack/browser/Testcontainer cleanup and resource audit
+reported zero owned resources. A first pytest command used the wrong relative
+path and collected no tests; the corrected repository-relative command passed.
+No provider/ETF behavior, screenshots, visual references, masks, thresholds,
+skips, or acceptance rules changed.
+
+## Next context — R6 visual-difference root-cause audit
+
+Intent: reproduce the ten previously documented screenshot-only differences
+at current source `74fc6061`, separating product defects from fixture/reference
+disagreement while preserving every visual oracle. Audit-owned paths are
+`docs/tc2000-visual-parity.md` and this branch's workstream record. The
+existing visual test and snapshots are read-only during diagnosis; if a source
+defect is confirmed, close the audit and start a separately recorded product
+changeset before implementation.
+
+Exact first action: confirm a clean, synchronized branch boundary, then use
+the rebuilt assigned stack and pinned Playwright 1.62.1 to rerun the ten
+workspace-floating, Study structured-result, and Study sandbox-error cases at
+current source. Compare each state and diff with its recorded fixture and
+reference provenance, document a per-case disposition, and change no
+snapshot, mask, threshold, skip, fallback, or acceptance policy. After that
+audit, continue remaining independent TC-owned R1/R5/R6 work; defer provider
+and ETF consumer integration until their contracts reach staging.
+
+The saved goal remains active at AC1/9. Independent TC work is unblocked;
+dependency integration and the final exact-tip gate remain pending.
+
 ## 2026-10-04 — Visual evidence publication fully synchronized
 
 The previously pending documentation checkpoint `38013cda20ac13ed09bfc59168fdd4c1976c9ecd`
@@ -26,11 +92,8 @@ external dependency blocks independent TC work. Provider/ETF integration waits
 for staging; the visual differences need the documented review; exact-tip
 full-stack/browser validation remains pending.
 
-Next context: add bounded pagination to the TC-owned Research Results pane so
-persisted Study runs older than the newest 25 can be reached, preserving stable
-ordering, lineage, and current selection/comparison behavior. Keep provider and
-ETF ownership untouched. Validate the focused backend/API and frontend behavior,
-then the declared full-stack/browser profile appropriate to the changed paths.
+The earlier next context was completed by product commit
+`74fc6061c6f0a567d4212b29405ed14be9b71195`; it is now closed and synchronized.
 
 Updated paths: `ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`,
 `ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,

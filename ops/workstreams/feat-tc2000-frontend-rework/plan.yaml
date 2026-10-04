@@ -20,25 +20,17 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No blocker prevents independent TC-owned frontend work. At clean branch tip
-  `58975ea6bee3e506f64d97506aadf4026c626357` (product source
-  `defefaaafde1db3fc302dc50be923d06ccf84ea0`), the full pinned Playwright
-  1.62.1 visual matrix passed 94/104. Ten screenshot assertions failed after
-  their state checks: workspace-floating (four viewports), Study structured
-  result (four), and Study sandbox-error (two 1080p viewports). The earlier
-  Study-running capture race passed all four viewports. Preserve the 0.5%
-  threshold, references, masks, skips, fallbacks, and acceptance rules; the ten
-  stable screenshot differences still need the review documented in
-  docs/tc2000-visual-parity.md. Local refs show staging at
-  `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform at
-  `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, and ETF at
-  `70359fb5e54a1e5238263647b58bdea2f78ddce0`; neither dependency tip is in
-  staging, so consumer integration and shared-path reconciliation remain
-  deferred. The documentation/evidence commit `31d262ec0e661cef3e3c14dcc8ed55afa81678b0`
-  and its full 1,649-commit range from `63d64bfe95c98bfe6e550bf69c213ae1cd64a629`
-  are now synchronized to the feature remote; no push blocker remains. Continue
-  independent R1/R5/R6 work. The full integration/browser gate remains required
-  at the final clean exact tip.
+  No blocker prevents independent TC-owned work. The latest full visual matrix
+  is the historical exact-source result at `58975ea6bee3e506f64d97506aadf4026c626357`
+  (source `defefaaafde1db3fc302dc50be923d06ccf84ea0`): 94/104, with ten
+  screenshot-only differences after state checks (workspace-floating in four
+  viewports, Study structured-result in four, and Study sandbox-error in two
+  1080p viewports). The next R6 context reproduces and documents each at current
+  source without changing any oracle. Provider and ETF consumer integration
+  remain deferred until their work reaches staging; this does not block
+  independent TC UI and Study/Strategy work. The latest product commit
+  `74fc6061c6f0a567d4212b29405ed14be9b71195` is synchronized to `origin`; the
+  final exact-tip full-stack/browser gate remains pending.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -276,23 +268,23 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_visual_matrix_published
+  current_phase: R6_visual_difference_root_cause_audit
   next_action: >-
-    Make older persisted Study runs reachable from the Research Results pane,
-    currently limited to the newest 25, using bounded TC-owned pagination and
-    without changing result lineage or provider/ETF ownership. Validate the
-    exact product tip and keep protected screenshot policies unchanged. Wait
-    for both upstream changes to reach staging before consumer integration or
-    semantic reconciliation.
+    At source 74fc6061, rerun the ten documented screenshot-only differences in
+    the rebuilt assigned stack with pinned Playwright 1.62.1. Record state and
+    per-case pixel differences for workspace-floating (four projects), Study
+    structured-result (four), and Study sandbox-error (two 1080p projects).
+    Compare against each fixture/reference provenance and document a
+    disposition in docs/tc2000-visual-parity.md. Preserve all screenshots,
+    masks, thresholds, skips, fallbacks, and acceptance rules. If source defects
+    are confirmed, close this audit before starting a separately recorded
+    product changeset. Then continue remaining independent TC work and defer
+    provider/ETF consumption until both dependencies reach staging.
   current_blocker: >-
-    No external dependency blocks independent TC frontend work. The full
-    visual matrix at branch tip `58975ea6bee3e506f64d97506aadf4026c626357`
-    passed 94/104 with ten existing screenshot-only mismatches; preserve the
-    screenshots and acceptance policy pending documented review. Provider and
-    ETF consumer integration wait for staging. The current local push range
-    is synchronized through `38013cda20ac13ed09bfc59168fdd4c1976c9ecd`; no
-    local push hold remains. These gates do not prevent independent TC work.
-    The final exact-tip integration/browser gate remains pending.
+    No current product or transport blocker. The ten historical screenshot
+    differences need current-source review with unchanged oracles. Provider and
+    ETF integration require their contracts to reach staging; those dependencies
+    do not block independent TC work. The final exact-tip gate remains pending.
 historical_implementation_records:
   - "At clean branch tip 58975ea6bee3e506f64d97506aadf4026c626357 (product source defefaaafde1db3fc302dc50be923d06ccf84ea0), the pinned Playwright 1.62.1 four-viewport matrix passed 94/104. Ten screenshot-only mismatches remained: workspace-floating in four viewports, Study structured-result in four, and Study sandbox-error at 1080p/100 and 1080p/125. All pre-screenshot state checks passed, and all four Study-running states passed. No reference, mask, threshold, skip, or acceptance rule changed. Exact-project teardown and resource accounting left zero containers, volumes, images, test sessions, or unknown resources. Acceptance flexibility used: deterministic board-guided local screenshots for represented states, not exact V25 approval."
   - "Product commit d37a0f98769f01f3dc88e075c3ed3aa97381ad1f associates malformed Study parameter-schema input with its accessible error using aria-invalid and a unique per-instance aria-describedby target; correcting the JSON clears both. Focused StudyLabTool coverage passed 45/45, full frontend Vitest passed 128 files / 1,189 tests, type-check and Docker production build passed, the updated authenticated Chromium F8t flow passed 1/1 with clean browser diagnostics, and the TC scope guard accepted 122 paths with all six self-tests. The unchanged two-case sandbox-error screenshot replay at source 816fd82 remained at 17,559 / 16,644 differing pixels because the visible example placeholder is 20 while the saved image shows 2; no screenshot oracle or policy changed. Scoped Docker cleanup removed all assigned resources. No provider/ETF-owned behavior changed."
