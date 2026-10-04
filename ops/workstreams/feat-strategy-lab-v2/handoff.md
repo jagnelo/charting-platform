@@ -2,6 +2,48 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Content-addressed local Nautilus RC evidence source
+
+Committed and pushed `52c38ce457a5d5c7e7ea5c2bcfaff9d0f4610625`. The new
+`LocalNautilusRcConformanceEvidenceSource` reads only a digest-named local
+artifact, verifies its raw-byte SHA-256 plus independently configured Nautilus
+source and runtime-image pins, bounds file size, refuses symlinks/non-regular
+files, rejects duplicate JSON keys, and reconstructs the typed RC5 probe,
+fixture receipt, and conformance resolution. It does not create evidence or
+grant authority by itself; the configured artifact and pins remain an
+operator-controlled trust boundary, and the worker context must still match
+the exact image digest.
+
+Nautilus stable 2.x is not a prerequisite. Exact-pinned 2.0.0rc5 can qualify
+isolated local backtests after the four backtest checks; forward event-tape
+parity remains separate, and the pre-release is barred from broker/real-capital
+use. The overall RC report remains non-authoritative when forward parity is
+deferred; only the backtest-scoped binding can grant local backtest authority.
+The existing local RC5 image passed the four checks but lacks source-build
+provenance, so it is runtime-fixture evidence, not a reproducible authoritative
+artifact.
+
+At the exact implementation tip, all 1,237 Strategy Lab tests passed; Ruff and
+MyPy across 347 sources passed. The combined backend gate remains 2,885 tests
+at 83.42% from implementation commit `5d2a937`; it was not rerun for this
+reader-only slice. The production host has not yet registered an artifact
+publisher/source or dedicated search-preparation process/client. Canonical
+provider coverage and instrument metadata remain fail-closed until their
+approved staging contract is available. Buildx limits only full
+Compose/browser validation.
+
+Next: generate/pin evidence from an exact reproducible RC5 image build, wire
+the source through the local host factory, and move hydration/materialization
+behind a dedicated local preparation process and async API client. Continue the
+remaining backend acceptance areas; do not wait for stable 2.x.
+
+Changed paths: `backend/app/strategy_lab_v2/local_conformance_source.py`,
+`backend/app/strategy_lab_v2/tests/test_conformance_fixtures.py`,
+`ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
 ## 2026-10-04 - Currency-separated native OOS position metrics
 
 Official Nautilus OOS results now include closed-position win/loss/break-even
