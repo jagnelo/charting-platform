@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from decimal import Decimal
+from decimal import ROUND_CEILING, Decimal
+from typing import Any
 
 from app.strategy_lab_v2.allocation import (
     ComponentPositionExposure,
@@ -16,8 +17,15 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
     CASH_EQUITY_NOTIONAL_RISK_MODEL,
     CRYPTO_SPOT_NOTIONAL_RISK_MODEL,
+    FUTURE_CONTRACT_NOTIONAL_RISK_MODEL,
     PortfolioComposition,
     ProductClass,
+)
+from app.strategy_lab_v2.margin_risk import (
+    MarginCapacitySnapshot,
+    MarginRiskDecision,
+    MarginRiskPolicy,
+    apply_margin_risk_gate,
 )
 from app.strategy_lab_v2.nautilus_runtime_data import NautilusRuntimeDataError
 from app.strategy_lab_v2.order_routing import (
@@ -35,6 +43,7 @@ class NautilusOrderRoutingResolution:
     exposure_snapshot: PortfolioExposureSnapshot
     decision: OrderRoutingDecision
     order_intents: tuple[OrderIntent, ...]
+    margin_decision: MarginRiskDecision | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,6 +53,7 @@ class NautilusComponentOrderRoutingResolution:
     exposure_snapshot: PortfolioExposureSnapshot
     decision: OrderRoutingDecision
     component_order_intents: tuple[tuple[str, tuple[OrderIntent, ...]], ...]
+    margin_decision: MarginRiskDecision | None = None
 
     @property
     def order_intents(self) -> tuple[OrderIntent, ...]:
@@ -52,6 +62,297 @@ class NautilusComponentOrderRoutingResolution:
         return tuple(
             intent for _component_id, intents in self.component_order_intents for intent in intents
         )
+
+
+def _native_money_amount(value: Any, *, currency_code: str, field_name: str) -> Decimal:
+    currency = getattr(value, "currency", None)
+    observed_currency = getattr(currency, "code", None)
+    as_decimal = getattr(value, "as_decimal", None)
+    if observed_currency != currency_code or not callable(as_decimal):
+        raise NautilusRuntimeDataError(
+            f"native {field_name} does not resolve to exact {currency_code} money"
+        )
+    amount = as_decimal()
+    if not isinstance(amount, Decimal) or not amount.is_finite():
+        raise NautilusRuntimeDataError(f"native {field_name} is not a finite decimal")
+    return amount
+
+
+def _native_futures_margin_decision(
+    *,
+    portfolio: PortfolioComposition,
+    account_type: str,
+    native_margin_account: Any | None,
+    native_instruments: Mapping[str, Any] | None,
+    current_quantities: Mapping[str, Decimal],
+    mark_prices: Mapping[str, Decimal],
+    margin_prices: Mapping[str, Decimal] | None,
+    instrument_definitions: Mapping[str, Mapping[str, object]],
+    routing_decision: OrderRoutingDecision,
+    account_equity: Decimal,
+    event_time: datetime,
+    event_sequence: int,
+) -> MarginRiskDecision:
+    """Use RC5's native margin calculator for the post-order futures positions."""
+
+    if account_type.upper() != "MARGIN":
+        raise NautilusRuntimeDataError("native futures order admission requires a margin account")
+    account = native_margin_account
+    if account is None or not callable(getattr(account, "is_margin_account", None)):
+        raise NautilusRuntimeDataError("native futures order admission has no margin account")
+    if not account.is_margin_account():
+        raise NautilusRuntimeDataError(
+            "native futures order admission account is not margin-enabled"
+        )
+    account_currency = getattr(account, "base_currency", None)
+    if getattr(account_currency, "code", None) != portfolio.base_currency:
+        raise NautilusRuntimeDataError("native futures margin account currency differs")
+    instruments = native_instruments
+    if not isinstance(instruments, Mapping):
+        raise NautilusRuntimeDataError("native futures order admission has no native instruments")
+
+    from nautilus_trader.model import (  # type: ignore[import-not-found,attr-defined]
+        Currency,
+        InstrumentId,
+        Price,
+        Quantity,
+    )
+
+    currency = Currency.from_str(portfolio.base_currency)
+    try:
+        current_initial = _native_money_amount(
+            account.total_initial_margin(currency),
+            currency_code=portfolio.base_currency,
+            field_name="initial margin requirement",
+        )
+        current_maintenance = _native_money_amount(
+            account.total_maintenance_margin(currency),
+            currency_code=portfolio.base_currency,
+            field_name="maintenance margin requirement",
+        )
+        balance_capacity = _native_money_amount(
+            account.balance_total(currency),
+            currency_code=portfolio.base_currency,
+            field_name="margin capacity",
+        )
+    except Exception as error:
+        if isinstance(error, NautilusRuntimeDataError):
+            raise
+        raise NautilusRuntimeDataError(
+            "native margin account did not provide complete currency-bound requirements"
+        ) from error
+    if current_initial < 0 or current_maintenance < 0 or balance_capacity <= 0:
+        raise NautilusRuntimeDataError(
+            "native margin account returned invalid requirements or capacity"
+        )
+    if not isinstance(account_equity, Decimal) or not account_equity.is_finite():
+        raise NautilusRuntimeDataError("native margin capacity has no finite account equity")
+    capacity = min(balance_capacity, account_equity)
+    if capacity <= 0:
+        raise NautilusRuntimeDataError("native futures margin capacity is not positive")
+
+    future_ids = {
+        instrument_id
+        for instrument_id, definition in instrument_definitions.items()
+        if _product_class(definition) is ProductClass.FUTURE
+        and (
+            current_quantities.get(instrument_id, Decimal(0)) != 0
+            or any(
+                order.instrument_id == instrument_id for order in routing_decision.proposed_orders
+            )
+        )
+    }
+    orders_by_instrument: dict[str, list[Any]] = {item: [] for item in future_ids}
+    projected_quantities = {
+        instrument_id: current_quantities.get(instrument_id, Decimal(0))
+        for instrument_id in future_ids
+    }
+    for order in routing_decision.proposed_orders:
+        if order.instrument_id not in future_ids:
+            continue
+        signed_quantity = order.quantity if order.side.value == "buy" else -order.quantity
+        projected_quantities[order.instrument_id] += signed_quantity
+        orders_by_instrument[order.instrument_id].append(order)
+
+    existing_future_initial = Decimal(0)
+    existing_future_maintenance = Decimal(0)
+    projected_future_initial = Decimal(0)
+    projected_future_maintenance = Decimal(0)
+    margin_evidence: dict[str, object] = {}
+    if not isinstance(margin_prices, Mapping):
+        raise NautilusRuntimeDataError(
+            "native futures margin requires event-aligned execution-price evidence"
+        )
+    adverse_prices = margin_prices
+    for instrument_id in sorted(future_ids):
+        definition = instrument_definitions[instrument_id]
+        if definition.get("quote_currency") != portfolio.base_currency:
+            raise NautilusRuntimeDataError(
+                "native futures margin currently requires base-currency contract settlement"
+            )
+        native_instrument = instruments.get(instrument_id)
+        if native_instrument is None or str(getattr(native_instrument, "id", "")) != instrument_id:
+            raise NautilusRuntimeDataError("native futures margin instrument identity differs")
+        native_id = InstrumentId.from_str(instrument_id)
+        initial_calculator = getattr(account, "calculate_initial_margin", None)
+        maintenance_calculator = getattr(account, "calculate_maintenance_margin", None)
+        if not callable(initial_calculator) or not callable(maintenance_calculator):
+            raise NautilusRuntimeDataError("native account has no futures margin calculator")
+
+        current_quantity = current_quantities.get(instrument_id, Decimal(0))
+        if current_quantity:
+            native_current_initial = account.initial_margin(native_id)
+            if native_current_initial is None:
+                raise NautilusRuntimeDataError(
+                    "native account omitted initial margin for an open futures position"
+                )
+            existing_future_initial += _native_money_amount(
+                native_current_initial,
+                currency_code=portfolio.base_currency,
+                field_name="position initial margin",
+            )
+            native_current_maintenance = account.maintenance_margin(native_id)
+            if native_current_maintenance is None:
+                raise NautilusRuntimeDataError(
+                    "native account omitted maintenance margin for an open futures position"
+                )
+            existing_future_maintenance += _native_money_amount(
+                native_current_maintenance,
+                currency_code=portfolio.base_currency,
+                field_name="position maintenance margin",
+            )
+
+        if not projected_quantities[instrument_id]:
+            margin_evidence[instrument_id] = {
+                "current_quantity": current_quantity,
+                "projected_quantity": Decimal(0),
+                "margin_price": None,
+                "initial_margin": Decimal(0),
+                "maintenance_margin": Decimal(0),
+            }
+            continue
+
+        price_value = adverse_prices.get(instrument_id)
+        price_tick = _decimal_field(definition, "price_increment")
+        size_precision = definition.get("size_precision")
+        price_precision = definition.get("price_precision")
+        if (
+            not isinstance(price_value, Decimal)
+            or not price_value.is_finite()
+            or price_value <= 0
+            or price_tick is None
+            or price_tick <= 0
+            or not isinstance(size_precision, int)
+            or isinstance(size_precision, bool)
+            or not isinstance(price_precision, int)
+            or isinstance(price_precision, bool)
+        ):
+            raise NautilusRuntimeDataError(
+                "native futures margin requires an exact event-aligned price and lot definition"
+            )
+        for order in orders_by_instrument[instrument_id]:
+            if order.order_type.value == "stop_market":
+                raise NautilusRuntimeDataError(
+                    "native futures stop-market orders lack a bounded margin price"
+                )
+            if order.order_type.value in {"limit", "stop_limit"}:
+                if order.limit_price is None or order.limit_price <= 0:
+                    raise NautilusRuntimeDataError(
+                        "native futures limit orders require an explicit positive limit price"
+                    )
+                price_value = max(price_value, order.limit_price)
+            elif order.order_type.value != "market":
+                raise NautilusRuntimeDataError("native futures order type has no margin policy")
+        rounded_price = (price_value / price_tick).to_integral_value(
+            rounding=ROUND_CEILING
+        ) * price_tick
+        precision = Decimal(1).scaleb(-price_precision)
+        if rounded_price != rounded_price.quantize(precision):
+            raise NautilusRuntimeDataError(
+                "native futures margin price cannot be represented exactly"
+            )
+        native_quantity = Quantity(abs(projected_quantities[instrument_id]), size_precision)
+        native_price = Price(rounded_price, price_precision)
+        try:
+            initial_amount = _native_money_amount(
+                initial_calculator(native_instrument, native_quantity, native_price),
+                currency_code=portfolio.base_currency,
+                field_name="projected initial margin",
+            )
+            maintenance_amount = _native_money_amount(
+                maintenance_calculator(native_instrument, native_quantity, native_price),
+                currency_code=portfolio.base_currency,
+                field_name="projected maintenance margin",
+            )
+        except Exception as error:
+            if isinstance(error, NautilusRuntimeDataError):
+                raise
+            raise NautilusRuntimeDataError(
+                "native futures margin calculator rejected the projected position"
+            ) from error
+        if initial_amount < 0 or maintenance_amount < 0 or maintenance_amount > initial_amount:
+            raise NautilusRuntimeDataError(
+                "native futures margin calculator returned invalid terms"
+            )
+        projected_future_initial += initial_amount
+        projected_future_maintenance += maintenance_amount
+        margin_evidence[instrument_id] = {
+            "current_quantity": current_quantity,
+            "projected_quantity": projected_quantities[instrument_id],
+            "margin_price": rounded_price,
+            "initial_margin": initial_amount,
+            "maintenance_margin": maintenance_amount,
+            "order_fingerprints": tuple(
+                order.fingerprint for order in orders_by_instrument[instrument_id]
+            ),
+        }
+
+    if existing_future_initial > current_initial:
+        raise NautilusRuntimeDataError(
+            "native per-instrument futures initial exceeds the account requirement"
+        )
+    if existing_future_maintenance > current_maintenance:
+        raise NautilusRuntimeDataError(
+            "native per-instrument futures maintenance exceeds the account requirement"
+        )
+    projected_initial = current_initial - existing_future_initial + projected_future_initial
+    projected_maintenance = (
+        current_maintenance - existing_future_maintenance + projected_future_maintenance
+    )
+    evidence_digest = content_digest(
+        {
+            "account_currency": portfolio.base_currency,
+            "account_initial_margin": current_initial,
+            "account_maintenance_margin": current_maintenance,
+            "account_balance_capacity": balance_capacity,
+            "account_equity_capacity": account_equity,
+            "futures": margin_evidence,
+            "portfolio_fingerprint": portfolio.fingerprint,
+            "routing_fingerprint": routing_decision.fingerprint,
+            "event_time": event_time,
+            "event_sequence": event_sequence,
+        }
+    )
+    margin_snapshot = MarginCapacitySnapshot(
+        portfolio_fingerprint=routing_decision.portfolio_fingerprint,
+        exposure_snapshot_fingerprint=routing_decision.exposure_snapshot_fingerprint,
+        event_time=event_time,
+        event_sequence=event_sequence,
+        base_currency=portfolio.base_currency,
+        initial_requirement=projected_initial,
+        maintenance_requirement=projected_maintenance,
+        initial_capacity=capacity,
+        maintenance_capacity=capacity,
+        valuation_evidence_digest=evidence_digest,
+    )
+    margin_decision = apply_margin_risk_gate(
+        routing_decision,
+        margin_snapshot,
+        MarginRiskPolicy(),
+    )
+    if not margin_decision.risk_limits_satisfied:
+        raise NautilusRuntimeDataError("native futures order batch breaches shared margin capacity")
+    return margin_decision
 
 
 def resolve_nautilus_order_intents(
@@ -68,6 +369,10 @@ def resolve_nautilus_order_intents(
     current_quantities: Mapping[str, Decimal],
     mark_prices: Mapping[str, Decimal],
     instruments: Mapping[str, Mapping[str, object]],
+    account_type: str = "CASH",
+    margin_prices: Mapping[str, Decimal] | None = None,
+    native_margin_account: Any | None = None,
+    native_instruments: Mapping[str, Any] | None = None,
 ) -> NautilusOrderRoutingResolution:
     """Compatibility wrapper for one component's native-backed order batch."""
 
@@ -83,12 +388,17 @@ def resolve_nautilus_order_intents(
         current_quantities=current_quantities,
         mark_prices=mark_prices,
         instruments=instruments,
+        account_type=account_type,
+        margin_prices=margin_prices,
+        native_margin_account=native_margin_account,
+        native_instruments=native_instruments,
         current_component_exposures={component_id: current_base_exposures},
     )
     return NautilusOrderRoutingResolution(
         resolution.exposure_snapshot,
         resolution.decision,
         resolution.order_intents,
+        resolution.margin_decision,
     )
 
 
@@ -106,13 +416,18 @@ def resolve_nautilus_component_order_batches(
     mark_prices: Mapping[str, Decimal],
     instruments: Mapping[str, Mapping[str, object]],
     current_component_exposures: Mapping[str, Mapping[str, Decimal]],
+    account_type: str = "CASH",
+    margin_prices: Mapping[str, Decimal] | None = None,
+    native_margin_account: Any | None = None,
+    native_instruments: Mapping[str, Any] | None = None,
 ) -> NautilusComponentOrderRoutingResolution:
     """Apply one shared-risk decision to native-backed batches from all components.
 
-    The first runtime bridge intentionally enables only base-quoted cash
-    equities and crypto spot. Other products require product-specific native
-    risk inputs such as FX conversion, option delta, or contract economics and
-    remain fail-closed until those values are part of the exact adapter input.
+    The runtime bridge enables base-quoted cash equities and crypto spot, plus
+    listed futures on a native margin account after its exact account and
+    instrument calculators approve the projected position. Other products
+    require product-specific risk inputs such as FX conversion or option delta
+    and remain fail-closed until those values are part of the exact adapter input.
     """
 
     if not isinstance(portfolio, PortfolioComposition):
@@ -241,26 +556,53 @@ def resolve_nautilus_component_order_batches(
             size_precision = definition.get("size_precision")
             minimum_quantity = _optional_decimal_field(definition, "min_quantity")
             maximum_quantity = _optional_decimal_field(definition, "max_quantity")
-            supported_model = (
-                product_class is ProductClass.EQUITY and model == CASH_EQUITY_NOTIONAL_RISK_MODEL
-            ) or (product_class is ProductClass.CRYPTO and model == CRYPTO_SPOT_NOTIONAL_RISK_MODEL)
+            is_future = product_class is ProductClass.FUTURE
+            if is_future:
+                margin_init = _decimal_field(definition, "margin_init")
+                margin_maint = _decimal_field(definition, "margin_maint")
+                supported_model = model == FUTURE_CONTRACT_NOTIONAL_RISK_MODEL
+                complete_margin_terms = (
+                    margin_init is not None
+                    and margin_init > 0
+                    and margin_maint is not None
+                    and margin_maint > 0
+                    and margin_maint <= margin_init
+                )
+            else:
+                margin_init = None
+                margin_maint = None
+                supported_model = (
+                    product_class is ProductClass.EQUITY
+                    and model == CASH_EQUITY_NOTIONAL_RISK_MODEL
+                ) or (
+                    product_class is ProductClass.CRYPTO
+                    and model == CRYPTO_SPOT_NOTIONAL_RISK_MODEL
+                )
+                complete_margin_terms = False
             if (
                 not supported_model
                 or model is None
                 or quote_currency != portfolio.base_currency
-                or multiplier != Decimal(1)
+                or multiplier is None
+                or (not is_future and multiplier != Decimal(1))
                 or quantity_step is None
                 or price_tick is None
                 or not isinstance(size_precision, int)
                 or isinstance(size_precision, bool)
+                or (is_future and (base_currency is not None or not complete_margin_terms))
                 or (
                     product_class is ProductClass.CRYPTO
                     and (not isinstance(base_currency, str) or not base_currency.strip())
                 )
             ):
-                raise NautilusRuntimeDataError(
-                    "native order economics require base-quoted linear cash equity or crypto spot"
+                message = (
+                    "native futures orders require base-quoted linear contracts and complete margin terms"
+                    if is_future
+                    else "native order economics require base-quoted linear cash equity or crypto spot"
                 )
+                raise NautilusRuntimeDataError(message)
+            if is_future and (size_precision != 0 or quantity_step != Decimal(1)):
+                raise NautilusRuntimeDataError("native futures orders require whole-contract lots")
             if maximum_quantity is not None and intent.quantity > maximum_quantity:
                 raise NautilusRuntimeDataError("native order quantity exceeds instrument maximum")
             if intent.quantity != intent.quantity.quantize(Decimal(1).scaleb(-size_precision)):
@@ -296,6 +638,35 @@ def resolve_nautilus_component_order_batches(
     if not decision.risk_limits_satisfied:
         raise NautilusRuntimeDataError("native order batch breaches shared portfolio risk")
 
+    future_order_ids = {
+        order.instrument_id
+        for order in decision.proposed_orders
+        if _product_class(instruments[order.instrument_id]) is ProductClass.FUTURE
+    }
+    open_future_ids = {
+        instrument_id
+        for instrument_id, quantity in current_quantities.items()
+        if quantity and _product_class(instruments[instrument_id]) is ProductClass.FUTURE
+    }
+    margin_decision = None
+    if future_order_ids or open_future_ids:
+        if not isinstance(account_type, str) or not account_type.strip():
+            raise NautilusRuntimeDataError("native futures order admission account type is invalid")
+        margin_decision = _native_futures_margin_decision(
+            portfolio=portfolio,
+            account_type=account_type,
+            native_margin_account=native_margin_account,
+            native_instruments=native_instruments,
+            current_quantities=current_quantities,
+            mark_prices=mark_prices,
+            margin_prices=margin_prices,
+            instrument_definitions=instruments,
+            routing_decision=decision,
+            account_equity=account_equity,
+            event_time=event_time,
+            event_sequence=event_sequence,
+        )
+
     intents_by_identity = {
         (component_id, content_digest(intent)): intent
         for component_id, component_intents in batches.items()
@@ -305,7 +676,12 @@ def resolve_nautilus_component_order_batches(
         approved_by_component: dict[str, list[OrderIntent]] = {
             component_id: [] for component_id in batches
         }
-        for routed_order in decision.risk_approved_orders:
+        approved_orders = (
+            decision.risk_approved_orders
+            if margin_decision is None
+            else margin_decision.risk_approved_orders
+        )
+        for routed_order in approved_orders:
             approved_by_component[routed_order.component_id].append(
                 intents_by_identity[(routed_order.component_id, routed_order.intent_fingerprint)]
             )
@@ -334,7 +710,7 @@ def resolve_nautilus_component_order_batches(
         len(component_intents) for component_intents in batches.values()
     ):
         raise NautilusRuntimeDataError("native order risk decision did not approve the full batch")
-    return NautilusComponentOrderRoutingResolution(snapshot, decision, approved)
+    return NautilusComponentOrderRoutingResolution(snapshot, decision, approved, margin_decision)
 
 
 def _product_class(definition: Mapping[str, object]) -> ProductClass:

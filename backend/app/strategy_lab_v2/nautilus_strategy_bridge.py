@@ -134,6 +134,22 @@ def _native_event_mark_price(event_type: str, event: Any) -> Decimal:
     return price
 
 
+def _native_event_margin_price(event_type: str, event: Any) -> Decimal:
+    """Use an adverse event-side price for native futures margin projection."""
+
+    if event_type == "quote":
+        price = _native_decimal(event.ask_price, "quote ask")
+    elif event_type == "trade":
+        price = _native_decimal(event.price, "trade price")
+    elif event_type == "ohlcv":
+        price = _native_decimal(event.high, "bar high")
+    else:
+        raise NautilusRuntimeDataError("native event type has no supported margin price")
+    if price <= 0:
+        raise NautilusRuntimeDataError("native futures margin price must be positive")
+    return price
+
+
 def _native_money_amount_for_currency(values: Any, currency_code: str, field_name: str) -> Decimal:
     if not isinstance(values, Mapping):
         raise NautilusRuntimeDataError(f"native {field_name} is not a currency mapping")
@@ -1679,6 +1695,7 @@ def build_native_strategy_bridge(
     native_venue_id = Venue.from_str(venue_definition["venue_id"])
     native_base_currency = Currency.from_str(portfolio.base_currency)
     latest_marks: dict[str, tuple[Decimal, int]] = {}
+    latest_margin_prices: dict[str, tuple[Decimal, int]] = {}
 
     def native_account_quantities(account: Any) -> dict[str, Decimal]:
         quantities: dict[str, Decimal] = {}
@@ -1700,9 +1717,10 @@ def build_native_strategy_bridge(
         required_mark_ids: Sequence[str],
         allow_asof_marks: bool = False,
     ) -> dict[str, Any]:
-        if venue_definition["account_type"].upper() != "CASH":
+        account_type = str(venue_definition["account_type"]).upper()
+        if account_type not in {"CASH", "MARGIN"}:
             raise NautilusRuntimeDataError(
-                "native order-risk routing currently requires a cash account"
+                "native order-risk routing requires a supported cash or margin account"
             )
         account_quantities = native_account_quantities(strategy.portfolio)
         fill_ledger.reconcile(account_quantities)
@@ -1812,7 +1830,39 @@ def build_native_strategy_bridge(
             raise NautilusRuntimeDataError("native portfolio has no account for its venue")
         account_base = getattr(native_account, "base_currency", None)
         if getattr(account_base, "code", str(account_base)) != portfolio.base_currency:
-            raise NautilusRuntimeDataError("native cash account base currency differs")
+            raise NautilusRuntimeDataError("native account base currency differs")
+        is_margin_account = getattr(native_account, "is_margin_account", None)
+        if not callable(is_margin_account) or bool(is_margin_account()) != (
+            account_type == "MARGIN"
+        ):
+            raise NautilusRuntimeDataError("native account type differs from its venue definition")
+        native_margin_instruments: dict[str, Any] = {}
+        margin_prices: dict[str, Decimal] = {}
+        if account_type == "MARGIN":
+            cache = getattr(strategy, "cache", None)
+            get_instrument = getattr(cache, "instrument", None)
+            for sdk_instrument_id in declared_instruments:
+                definition = instrument_by_id[sdk_instrument_id]
+                if definition.get("product_class") != "future":
+                    continue
+                quantity = account_quantities.get(sdk_instrument_id, Decimal(0))
+                if not quantity and sdk_instrument_id not in required_ids:
+                    continue
+                margin_entry = latest_margin_prices.get(sdk_instrument_id)
+                if not mark_is_usable(margin_entry):
+                    raise NautilusRuntimeDataError(
+                        "native futures orders require an event-aligned margin price"
+                    )
+                assert margin_entry is not None
+                margin_prices[sdk_instrument_id] = margin_entry[0]
+                if not callable(get_instrument):
+                    raise NautilusRuntimeDataError("native strategy cache has no instrument lookup")
+                native_instrument = get_instrument(InstrumentId.from_str(sdk_instrument_id))
+                if native_instrument is None:
+                    raise NautilusRuntimeDataError(
+                        "native strategy cache omitted a declared futures contract"
+                    )
+                native_margin_instruments[sdk_instrument_id] = native_instrument
         return {
             "account_equity": _native_money_amount_for_currency(
                 strategy.portfolio.equity(venue=native_venue_id),
@@ -1829,6 +1879,10 @@ def build_native_strategy_bridge(
             "mark_prices": marks,
             "current_component_exposures": component_exposures,
             "current_component_quantities": component_quantities,
+            "account_type": account_type,
+            "margin_prices": margin_prices,
+            "native_margin_account": (native_account if account_type == "MARGIN" else None),
+            "native_instruments": native_margin_instruments,
         }
 
     class _InvocationStrategyConfig(StrategyConfig):
@@ -2163,6 +2217,10 @@ def build_native_strategy_bridge(
             callback_index += 1
             latest_marks[str(instrument_id)] = (
                 _native_event_mark_price(event_type, event),
+                int(ts_event),
+            )
+            latest_margin_prices[str(instrument_id)] = (
+                _native_event_margin_price(event_type, event),
                 int(ts_event),
             )
             if account_equity_trace_writer is not None:

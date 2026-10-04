@@ -20,6 +20,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capabilities import CapabilityRequirement
 from app.strategy_lab_v2.contracts import (
     CASH_EQUITY_NOTIONAL_RISK_MODEL,
+    FUTURE_CONTRACT_NOTIONAL_RISK_MODEL,
     FX_BASE_NOTIONAL_RISK_MODEL,
     AdjustmentMode,
     EvaluationWindow,
@@ -129,6 +130,24 @@ class Strategy:
             instrument_id="AAPL.SIM",
             side=OrderSide.BUY,
             quantity=Decimal("100"),
+            order_type=OrderType.MARKET,
+            time_in_force=TimeInForce.DAY,
+        )]
+"""
+
+_FUTURE_ORDER_SOURCE = """
+class Strategy:
+    def __init__(self):
+        self.submitted = False
+
+    def on_event(self, context):
+        if self.submitted:
+            return []
+        self.submitted = True
+        return [OrderIntent(
+            instrument_id="CLZ26.SIM",
+            side=OrderSide.BUY,
+            quantity=Decimal("1"),
             order_type=OrderType.MARKET,
             time_in_force=TimeInForce.DAY,
         )]
@@ -353,6 +372,12 @@ def run_order_risk_probe() -> dict[str, Any]:
     return _run_native_execution_probe(target_position=False)
 
 
+def run_futures_margin_probe() -> dict[str, Any]:
+    """Exercise a listed futures order through the native margin admission gate."""
+
+    return _run_native_execution_probe(target_position=False, futures_margin_probe=True)
+
+
 def run_native_reports_schema_probe() -> dict[str, Any]:
     """Inspect real RC report fields through the streamed artifact boundary."""
 
@@ -442,6 +467,7 @@ def _run_native_execution_probe(
     multi_component_priority: bool = False,
     shared_risk_rejection: bool = False,
     fee_model_definition: Mapping[str, Any] | None = None,
+    futures_margin_probe: bool = False,
 ) -> dict[str, Any]:
     component_scenario_count = sum(
         (multi_component_rebalance, multi_component_priority, shared_risk_rejection)
@@ -468,10 +494,23 @@ def _run_native_execution_probe(
         or not target_position
     ):
         raise ValueError("component probes require an open-boundary target rebalance")
-    instrument_id = "AAPL.SIM"
+    if futures_margin_probe and (
+        target_position
+        or include_native_report_diagnostics
+        or position_cycle_reopen
+        or component_scenario_count
+        or rebalance_trigger is not None
+        or rebalance_misfire_only
+        or shared_risk_rejection
+        or fee_model_definition is not None
+    ):
+        raise ValueError("futures margin probe options are inconsistent")
+    instrument_id = "CLZ26.SIM" if futures_margin_probe else "AAPL.SIM"
     strategy_source = (
         _POSITION_CYCLE_SOURCE
         if position_cycle_reopen
+        else _FUTURE_ORDER_SOURCE
+        if futures_margin_probe
         else _TARGET_SOURCE
         if target_position
         else _RAW_ORDER_SOURCE
@@ -495,6 +534,33 @@ def _run_native_execution_probe(
                 {"bid": bid, "ask": ask, "bid_size": "1000", "ask_size": "1000"},
             )
             for index, (bid, ask) in enumerate(cycle_quotes, start=1)
+        )
+    elif futures_margin_probe:
+        events = (
+            MarketEvent(
+                "prices",
+                "future-event-1",
+                instrument_id,
+                _EVENT_TIME,
+                1,
+                {"bid": "79.99", "ask": "80.01", "bid_size": "100", "ask_size": "100"},
+            ),
+            MarketEvent(
+                "prices",
+                "future-event-2",
+                instrument_id,
+                _EVENT_TIME,
+                2,
+                {"bid": "80.00", "ask": "80.02", "bid_size": "100", "ask_size": "100"},
+            ),
+            MarketEvent(
+                "prices",
+                "future-event-3",
+                instrument_id,
+                later_time,
+                3,
+                {"bid": "80.01", "ask": "80.03", "bid_size": "100", "ask_size": "100"},
+            ),
         )
     else:
         events = (
@@ -537,7 +603,7 @@ def _run_native_execution_probe(
         )
     requirement = CapabilityRequirement(
         instrument_id=instrument_id,
-        product_class=ProductClass.EQUITY,
+        product_class=ProductClass.FUTURE if futures_margin_probe else ProductClass.EQUITY,
         event_granularity=EventGranularity.QUOTE,
         event_type="quote",
         timeframe="tick",
@@ -547,7 +613,7 @@ def _run_native_execution_probe(
         session="regular",
         feed="consolidated",
         execution_model="market",
-        account_model="cash",
+        account_model="margin" if futures_margin_probe else "cash",
         corporate_action_semantics="raw-unadjusted-v1",
     )
     data_dependencies = (
@@ -637,7 +703,11 @@ def _run_native_execution_probe(
             max_gross_exposure_fraction=(
                 Decimal("0.25") if shared_risk_rejection else Decimal("1.0")
             ),
-            risk_models=(CASH_EQUITY_NOTIONAL_RISK_MODEL,),
+            risk_models=(
+                FUTURE_CONTRACT_NOTIONAL_RISK_MODEL
+                if futures_margin_probe
+                else CASH_EQUITY_NOTIONAL_RISK_MODEL,
+            ),
             target_conflict_policy=(
                 TargetConflictPolicy.SUM_COMPONENT_TARGETS
                 if multi_component_rebalance or shared_risk_rejection
@@ -672,33 +742,41 @@ def _run_native_execution_probe(
         "instruments": [
             {
                 "instrument_id": instrument_id,
-                "raw_symbol": "AAPL",
+                "raw_symbol": "CLZ26" if futures_margin_probe else "AAPL",
                 "venue_id": "SIM",
-                "product_class": "equity",
+                "product_class": "future" if futures_margin_probe else "equity",
                 "base_currency": None,
                 "quote_currency": "USD",
                 "price_precision": 2,
                 "size_precision": 0,
                 "price_increment": "0.01",
                 "size_increment": "1",
-                "multiplier": "1",
+                "multiplier": "1000" if futures_margin_probe else "1",
                 "min_quantity": "1",
                 "max_quantity": None,
-                "activation_ns": None,
-                "expiration_ns": None,
+                "activation_ns": (
+                    _datetime_ns(_EVENT_TIME - timedelta(days=365))
+                    if futures_margin_probe
+                    else None
+                ),
+                "expiration_ns": (
+                    _datetime_ns(_EVENT_TIME + timedelta(days=365))
+                    if futures_margin_probe
+                    else None
+                ),
                 "bar_type": None,
-                "asset_class": None,
-                "underlying": None,
+                "asset_class": "COMMODITY" if futures_margin_probe else None,
+                "underlying": "CL" if futures_margin_probe else None,
                 "option_kind": None,
                 "strike_price": None,
-                "margin_init": None,
-                "margin_maint": None,
+                "margin_init": "0.12" if futures_margin_probe else None,
+                "margin_maint": "0.11" if futures_margin_probe else None,
             }
         ],
         "venue": {
             "venue_id": "SIM",
             "oms_type": "netting",
-            "account_type": "cash",
+            "account_type": "margin" if futures_margin_probe else "cash",
             "base_currency": "USD",
             "cash": [{"currency": "USD", "amount": "100000"}],
             "fee_model": fee_model_definition,
@@ -956,6 +1034,26 @@ def _run_native_execution_probe(
     if len(balance_parts) != 2 or balance_parts[1] != "USD":
         raise RuntimeError("native target allocation summary balance is not denominated in USD")
     remaining_cash = Decimal(balance_parts[0])
+    if futures_margin_probe:
+        if (
+            result.get("authoritative") is not False
+            or result.get("total_orders") != 1
+            or result.get("total_positions") != 1
+        ):
+            raise RuntimeError("native futures margin gate did not admit its funded contract")
+        return {
+            "instrument_id": instrument_id,
+            "product_class": "future",
+            "native_account_type": "MARGIN",
+            "native_margin_gate": "approved",
+            "initial_margin_rate": "0.12",
+            "maintenance_margin_rate": "0.11",
+            "total_orders": result["total_orders"],
+            "total_positions": result["total_positions"],
+            "account_balance": str(remaining_cash),
+            "account_currency": "USD",
+            "authoritative": False,
+        }
     if rebalance_plan is not None:
         audit = NautilusRebalanceScheduleAudit.from_wire(
             result.get("rebalance_schedule_audit"),

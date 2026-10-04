@@ -48,6 +48,7 @@ COPY app/strategy_lab_v2/nautilus_rebalance_schedule.py app/strategy_lab_v2/naut
 COPY app/strategy_lab_v2/allocation.py app/strategy_lab_v2/allocation.py
 COPY app/strategy_lab_v2/risk_models.py app/strategy_lab_v2/risk_models.py
 COPY app/strategy_lab_v2/order_routing.py app/strategy_lab_v2/order_routing.py
+COPY app/strategy_lab_v2/margin_risk.py app/strategy_lab_v2/margin_risk.py
 COPY app/strategy_lab_v2/nautilus_target_allocation.py app/strategy_lab_v2/nautilus_target_allocation.py
 COPY app/strategy_lab_v2/nautilus_order_routing.py app/strategy_lab_v2/nautilus_order_routing.py
 COPY app/strategy_lab_v2/nautilus_strategy_binding.py app/strategy_lab_v2/nautilus_strategy_binding.py
