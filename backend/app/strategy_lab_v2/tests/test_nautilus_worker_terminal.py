@@ -29,6 +29,7 @@ from app.strategy_lab_v2.conformance import (
     evaluate_engine_conformance,
 )
 from app.strategy_lab_v2.contracts import EvaluationWindow, ScientificTrial
+from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.engine_execution import (
     EngineExecutionDecision,
@@ -75,6 +76,11 @@ from app.strategy_lab_v2.postgres_runtime_execution import (
     RuntimeStateDecision,
     RuntimeStateResolution,
 )
+from app.strategy_lab_v2.postgres_search_dispatch import (
+    PostgresSearchDispatchAdapter,
+    SearchDispatchRecord,
+)
+from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
 from app.strategy_lab_v2.postgres_worker_state import (
     WorkerCapacityDecision,
     WorkerCapacityResolution,
@@ -114,8 +120,9 @@ from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import (
     _build_inputs,
 )
 from app.strategy_lab_v2.tests.test_trial_hydration import MemoryDomainReader
-from app.strategy_lab_v2.tests.test_worker_consumer import FakeRedis
+from app.strategy_lab_v2.tests.test_worker_consumer import FakeRedis, _stream_response
 from app.strategy_lab_v2.trial_hydration import NautilusTrialDomainHydrator
+from app.strategy_lab_v2.worker_callbacks import create_search_dispatch
 from app.strategy_lab_v2.worker_consumer import (
     RedisDispatchWorker,
     RedisDispatchWorkerScheduler,
@@ -131,6 +138,7 @@ from app.strategy_lab_v2.worker_execution import (
     WorkerExecutionDecision,
     WorkerExecutionResolution,
 )
+from app.strategy_lab_v2.worker_handoff import encode_worker_handoff
 from app.strategy_lab_v2.worker_process import (
     SerialWorkerProcessExecutor,
     WorkerExecutionRequest,
@@ -398,6 +406,7 @@ def _successful_context_and_lookup(
     *,
     stable: bool = True,
     multi_strategy: bool = False,
+    with_graph: bool = False,
 ):
     graph, source_store, request, _conformance_evidence = _runtime_setup(
         tmp_path,
@@ -557,7 +566,8 @@ def _successful_context_and_lookup(
         publisher,
         NautilusTrialDomainHydrator(reader),
     )
-    return context, lookup, resolver, publisher
+    result = (context, lookup, resolver, publisher)
+    return (*result, graph) if with_graph else result
 
 
 def _terminal_writer(resolver) -> PostgresWorkerTerminalAdapter:
@@ -680,11 +690,13 @@ async def test_failed_rebalance_misfire_publishes_authenticated_diagnostic_artif
 @pytest.mark.asyncio
 async def test_multi_strategy_terminal_persistence_replays_success_with_stable_receipt_identity(
     tmp_path,
+    monkeypatch,
 ):
-    context, lookup, resolver, _publisher = _successful_context_and_lookup(
+    context, lookup, _resolver, _publisher, graph = _successful_context_and_lookup(
         tmp_path,
         stable=False,
         multi_strategy=True,
+        with_graph=True,
     )
 
     class RuntimePort:
@@ -829,25 +841,172 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
     worker_state_port = WorkerStatePort()
     settlement_port = SettlementPort()
     completion_port = CompletionPort()
-    adapter = PostgresWorkerTerminalAdapter(
-        resolver,
-        runtime_execution=runtime_port,
-        execution_state=execution_state_port,
-        execution_summaries=SummaryPort(),
-        result_publication=PublicationPort(),
-        result_completion=completion_port,
-        result_materialization=EnsurePort(),
-        metrics=EnsurePort(),
-        worker_state=worker_state_port,
-        settlements=settlement_port,
+    payload = DispatchPayload.from_mapping(encode_worker_handoff(context.request))
+    trial_binding = context.request.runtime_input_artifact.trial_binding
+    assert trial_binding is not None
+    dispatch_request = DispatchRequest(
+        "multi-strategy-terminal-dispatch",
+        context.request.authorization.attempt_id,
+        payload.payload_digest,
+        "backtest",
+        BASE,
+    )
+    dispatch_record = SearchDispatchRecord(
+        "owner-terminal-test",
+        trial_binding.experiment_fingerprint,
+        0,
+        dispatch_request,
     )
 
-    payload = DispatchPayload.from_mapping({"attempt_id": context.request.authorization.attempt_id})
-    assert payload.payload_digest == context.entry.payload_digest
+    class QueryResult:
+        def __init__(self, rows: tuple[dict[str, Any], ...]) -> None:
+            self._rows = rows
 
-    class PayloadLoader:
-        async def load_payload(self, payload_digest):
-            return payload if payload_digest == payload.payload_digest else None
+        def mappings(self) -> tuple[dict[str, Any], ...]:
+            return self._rows
+
+    class PersistedSession:
+        async def __aenter__(self) -> PersistedSession:
+            return self
+
+        async def __aexit__(self, *_args: Any) -> None:
+            return None
+
+        def begin(self) -> PersistedSession:
+            return self
+
+        async def execute(self, statement: Any, params: Any) -> QueryResult:
+            sql = str(statement)
+            if dispatch_adapter.schema.dispatch_table in sql:
+                assert params == {"request_fingerprint": dispatch_request.fingerprint}
+                return QueryResult(
+                    (
+                        {
+                            "owner_id": dispatch_record.owner_id,
+                            "experiment_fingerprint": dispatch_record.experiment_fingerprint,
+                            "candidate_index": dispatch_record.candidate_index,
+                            "idempotency_key": dispatch_request.idempotency_key,
+                            "request_fingerprint": dispatch_request.fingerprint,
+                            "attempt_id": dispatch_request.attempt_id,
+                            "payload_digest": dispatch_request.payload_digest,
+                            "queue_name": dispatch_request.queue_name,
+                            "created_at": dispatch_request.created_at.isoformat(),
+                            "dispatch_fingerprint": dispatch_request.fingerprint,
+                        },
+                    )
+                )
+            if submission_adapter.schema.payload_table in sql:
+                assert params == {"payload_digest": payload.payload_digest}
+                return QueryResult(
+                    (
+                        {
+                            "payload_digest": payload.payload_digest,
+                            "payload_json": payload.payload_json,
+                            "byte_length": payload.byte_length,
+                            "payload_fingerprint": payload.fingerprint,
+                        },
+                    )
+                )
+            if submission_adapter.schema.submission_table in sql:
+                receipt = lookup.binding.receipt
+                assert params == {
+                    "owner_id": lookup.binding.owner_id,
+                    "attempt_id": dispatch_request.attempt_id,
+                }
+                return QueryResult(
+                    (
+                        {
+                            "owner_id": lookup.binding.owner_id,
+                            "idempotency_key": receipt.request.idempotency_key,
+                            "request_fingerprint": receipt.request.fingerprint,
+                            "operation": receipt.request.operation,
+                            "attempt_id": receipt.request.attempt_id,
+                            "payload_digest": receipt.request.payload_digest,
+                            "submitted_at": receipt.request.submitted_at.isoformat(),
+                            "accepted_at": receipt.accepted_at.isoformat(),
+                        },
+                    )
+                )
+            raise AssertionError(f"unexpected worker persistence query: {sql}")
+
+    dispatch_adapter = PostgresSearchDispatchAdapter(lambda: PersistedSession())
+    submission_adapter = PostgresSubmissionDispatchAdapter(lambda: PersistedSession())
+    domain_reader = MemoryDomainReader(
+        {
+            "attempt": graph.attempt,
+            "trial": graph.trial,
+            "experiment": graph.experiment,
+            "portfolio": graph.portfolio,
+            "snapshot": graph.snapshot,
+            "strategies": graph.strategies,
+            "packages": graph.packages,
+        },
+        owner="owner-terminal-test",
+    )
+
+    class Persistence:
+        search_dispatch = dispatch_adapter
+        submissions = submission_adapter
+        resources = domain_reader
+
+        def __init__(self) -> None:
+            self.terminal_adapter: PostgresWorkerTerminalAdapter | None = None
+            self.publisher: LocalArtifactPublicationService | None = None
+
+        def artifact_publication(self, root: Path) -> LocalArtifactPublicationService:
+            self.publisher = LocalArtifactPublicationService(
+                LocalArtifactStore(root),
+                _MemoryCommitter(),
+            )
+            return self.publisher
+
+        async def load_worker_terminal_evidence_for_request(
+            self,
+            *,
+            request_fingerprint: str,
+            attempt_id: str,
+            search_dispatch_binding_resolver: Any,
+        ) -> WorkerTerminalEvidenceLookup | None:
+            record = await self.search_dispatch.load_by_request_fingerprint(request_fingerprint)
+            if record is None or record.request.attempt_id != attempt_id:
+                return None
+            binding = await search_dispatch_binding_resolver(record)
+            if binding != lookup.binding:
+                return None
+            return lookup
+
+        def worker_terminal_writer(self, evidence_resolver: Any) -> Any:
+            self.terminal_adapter = PostgresWorkerTerminalAdapter(
+                evidence_resolver,
+                runtime_execution=runtime_port,
+                execution_state=execution_state_port,
+                execution_summaries=SummaryPort(),
+                result_publication=PublicationPort(),
+                result_completion=completion_port,
+                result_materialization=EnsurePort(),
+                metrics=EnsurePort(),
+                worker_state=worker_state_port,
+                settlements=settlement_port,
+            )
+            return self.terminal_adapter.write
+
+    persistence = Persistence()
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_EVIDENCE_RESOLVER",
+        "app.strategy_lab_v2.worker_callbacks:default_evidence_resolver_factory",
+    )
+    monkeypatch.setenv("STRATEGY_LAB_V2_QUEUE", "backtest")
+    callbacks = await create_search_dispatch(persistence, tmp_path / "worker-artifacts")
+    assert callbacks.terminal_writer is not None
+    assert persistence.terminal_adapter is not None
+    entry = RedisStreamEntry(
+        "strategy-lab:v2:stream:backtest",
+        "1-0",
+        dispatch_request.fingerprint,
+        dispatch_request.attempt_id,
+        payload.payload_digest,
+        dispatch_request.fingerprint,
+    )
 
     class EvidenceProcessExecutor(SerialWorkerProcessExecutor):
         async def run_async(
@@ -861,18 +1020,22 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
             assert request == context.request
             return context.process
 
-    async def materialize(_entry, received_payload):
-        assert received_payload == payload
-        return context.request
-
     async def unused_completion_writer(_entry, _result) -> WorkerHandleResult:
         raise AssertionError("terminal writer owns durable completion")
+
+    timeline = []
+
+    class OrderedRedis(FakeRedis):
+        async def xack(self, *args):
+            timeline.append("ack")
+            return await super().xack(*args)
 
     async def scheduler_sleep(_seconds):
         return None
 
+    redis = OrderedRedis(fresh=_stream_response(entry))
     dispatch_worker = RedisDispatchWorker(
-        RedisDispatchTransport(FakeRedis()),
+        RedisDispatchTransport(redis),
         queue_name="backtest",
         group_name="workers",
         consumer_name="multi-strategy-terminal-test",
@@ -883,19 +1046,36 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         sleep=scheduler_sleep,
     )
     clock_value = [context.observed_at]
+
+    async def persist_terminal(completion_context: WorkerCompletionContext) -> WorkerHandleResult:
+        assert callbacks.terminal_writer is not None
+        receipt = await callbacks.terminal_writer(completion_context)
+        timeline.append("terminal-persisted")
+        return receipt
+
     service = DedicatedStrategyWorkerService(
         scheduler,
-        PayloadLoader(),
-        materialize,
+        submission_adapter,
+        callbacks.materializer,
         unused_completion_writer,
         process_executor=EvidenceProcessExecutor(),
         clock=lambda: clock_value[0],
-        terminal_writer=adapter.write,
+        terminal_writer=persist_terminal,
     )
 
-    first = await service.handle(context.entry, payload)
+    first_cycle = await dispatch_worker.handle_materialized_once(
+        submission_adapter,
+        service.handle,
+    )
+    assert len(first_cycle.entries) == 1
+    first_resolution = first_cycle.entries[0]
+    assert (
+        first_resolution.decision.value == "acknowledged"
+    ), first_resolution.handler.rejection_reason
+    assert timeline == ["terminal-persisted", "ack"]
+    first = first_resolution.handler
     clock_value[0] += timedelta(seconds=30)
-    redelivered = await service.handle(context.entry, payload)
+    redelivered = await service.handle(entry, payload)
 
     assert first.decision is WorkerHandleDecision.COMPLETE
     assert redelivered.decision is WorkerHandleDecision.COMPLETE
