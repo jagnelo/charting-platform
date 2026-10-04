@@ -337,7 +337,7 @@ class PostgresResultMaterializationAdapter:
             existing=existing,
         )
         if candidate.decision is ResultMaterializationDecision.CONFLICT:
-            return candidate
+            return candidate.resolution
         if candidate.manifest is None:  # pragma: no cover - pure contract guard
             raise ValueError("Nautilus OOS materialization omitted its result manifest")
         try:

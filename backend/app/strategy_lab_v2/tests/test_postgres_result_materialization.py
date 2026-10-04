@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -13,7 +14,10 @@ from app.strategy_lab_v2.postgres_result_materialization import (
     PostgresResultMaterializationSchema,
     ResultManifestStateDecision,
 )
-from app.strategy_lab_v2.result_materialization import ResultMaterializationDecision
+from app.strategy_lab_v2.result_materialization import (
+    ResultMaterializationDecision,
+    ResultMaterializationResolution,
+)
 from app.strategy_lab_v2.tests.test_result_materialization import (
     _inputs,
     _nautilus_oos_references,
@@ -189,6 +193,14 @@ async def test_nautilus_oos_materialization_persists_native_artifact_manifest(tm
     )
     assert replay.decision is ResultMaterializationDecision.REPLAY_EXISTING
     assert replay.manifest == persisted
+
+    conflict = await adapter.materialize_nautilus_oos(
+        **arguments,
+        existing=replace(persisted, assumptions_digest=content_digest("other-assumptions")),
+    )
+    assert isinstance(conflict, ResultMaterializationResolution)
+    assert conflict.decision is ResultMaterializationDecision.CONFLICT
+    assert conflict.rejection_reason == "attempt is already bound to different result content"
 
 
 @pytest.mark.asyncio
