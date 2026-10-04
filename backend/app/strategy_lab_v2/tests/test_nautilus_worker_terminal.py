@@ -91,7 +91,7 @@ from app.strategy_lab_v2.rebalance import (
     RebalanceTrigger,
     ScheduledRebalance,
 )
-from app.strategy_lab_v2.redis_transport import RedisStreamEntry
+from app.strategy_lab_v2.redis_transport import RedisDispatchTransport, RedisStreamEntry
 from app.strategy_lab_v2.result_completion import ResultCompletionLedger, finalize_execution_result
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
 from app.strategy_lab_v2.runtime_execution import new_runtime_execution_state
@@ -114,8 +114,14 @@ from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import (
     _build_inputs,
 )
 from app.strategy_lab_v2.tests.test_trial_hydration import MemoryDomainReader
+from app.strategy_lab_v2.tests.test_worker_consumer import FakeRedis
 from app.strategy_lab_v2.trial_hydration import NautilusTrialDomainHydrator
-from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision
+from app.strategy_lab_v2.worker_consumer import (
+    RedisDispatchWorker,
+    RedisDispatchWorkerScheduler,
+    WorkerHandleDecision,
+    WorkerHandleResult,
+)
 from app.strategy_lab_v2.worker_evidence import (
     WorkerSubmissionBinding,
     WorkerTerminalEvidenceInputs,
@@ -126,11 +132,15 @@ from app.strategy_lab_v2.worker_execution import (
     WorkerExecutionResolution,
 )
 from app.strategy_lab_v2.worker_process import (
+    SerialWorkerProcessExecutor,
     WorkerExecutionRequest,
     WorkerProcessDecision,
     WorkerProcessResolution,
 )
-from app.strategy_lab_v2.worker_service import WorkerCompletionContext
+from app.strategy_lab_v2.worker_service import (
+    DedicatedStrategyWorkerService,
+    WorkerCompletionContext,
+)
 from app.strategy_lab_v2.worker_settlement import WorkerSettlementLedger
 from app.strategy_lab_v2.worker_terminal_adapter import (
     PostgresWorkerTerminalAdapter,
@@ -832,10 +842,60 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         settlements=settlement_port,
     )
 
-    first = await adapter.write(context)
-    redelivered = await adapter.write(
-        replace(context, observed_at=context.observed_at + timedelta(seconds=30))
+    payload = DispatchPayload.from_mapping({"attempt_id": context.request.authorization.attempt_id})
+    assert payload.payload_digest == context.entry.payload_digest
+
+    class PayloadLoader:
+        async def load_payload(self, payload_digest):
+            return payload if payload_digest == payload.payload_digest else None
+
+    class EvidenceProcessExecutor(SerialWorkerProcessExecutor):
+        async def run_async(
+            self,
+            request,
+            *,
+            timeout_seconds=None,
+            poll_interval_seconds=0.005,
+        ):
+            del timeout_seconds, poll_interval_seconds
+            assert request == context.request
+            return context.process
+
+    async def materialize(_entry, received_payload):
+        assert received_payload == payload
+        return context.request
+
+    async def unused_completion_writer(_entry, _result) -> WorkerHandleResult:
+        raise AssertionError("terminal writer owns durable completion")
+
+    async def scheduler_sleep(_seconds):
+        return None
+
+    dispatch_worker = RedisDispatchWorker(
+        RedisDispatchTransport(FakeRedis()),
+        queue_name="backtest",
+        group_name="workers",
+        consumer_name="multi-strategy-terminal-test",
     )
+    scheduler = RedisDispatchWorkerScheduler(
+        dispatch_worker,
+        interval_seconds=1,
+        sleep=scheduler_sleep,
+    )
+    clock_value = [context.observed_at]
+    service = DedicatedStrategyWorkerService(
+        scheduler,
+        PayloadLoader(),
+        materialize,
+        unused_completion_writer,
+        process_executor=EvidenceProcessExecutor(),
+        clock=lambda: clock_value[0],
+        terminal_writer=adapter.write,
+    )
+
+    first = await service.handle(context.entry, payload)
+    clock_value[0] += timedelta(seconds=30)
+    redelivered = await service.handle(context.entry, payload)
 
     assert first.decision is WorkerHandleDecision.COMPLETE
     assert redelivered.decision is WorkerHandleDecision.COMPLETE
