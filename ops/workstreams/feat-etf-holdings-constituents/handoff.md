@@ -7687,3 +7687,40 @@ branch-specific Git operations were retried through the approved escalation
 path; no other branch/worktree was modified. AC7/AC8 remain open. AC10 still
 depends on `feat/market-data-provider-platform` reaching staging; AC14 remains
 the post-integration/deployment shadow period.
+
+## Dimensional dated-CSV recovery and live matrix — 2026-10-04
+
+The exact hosted live-matrix failure was reproduced locally: Dimensional's
+public fund-details API no longer advertises a full-holdings CSV URL for DFAC.
+The adapter keeps that API URL as the primary route and, only when it is absent,
+probes the issuer's public date-scoped CSV path for the requested symbol,
+bounded to today through seven calendar days back. It accepts a file only when
+every row identifies the requested ETF and every row date matches the URL
+date; empty, mismatched, undated, or non-404 transport responses fail closed.
+The resolved route, dated file path, source access, composition date, and daily
+cadence are recorded in provenance.
+
+Validation on the working tree based on `ea477adee73ec27c865b79e2da1476e4348e47a7`:
+the complete adapter-unit module passed (595/595); all four focused Dimensional
+tests passed; Ruff and format checks passed; workstream validation passed; the
+exact DFAC live case passed its 1,000-row minimum; and the complete opt-in
+issuer matrix passed (509 passed, 28 narrowly classified skips, zero failures).
+The skips retain explicit issuer-access, temporary-availability, identity, and
+future-date dispositions; none was relabeled as supported.
+
+The Docker/browser full-integration gate and exact-SHA hosted CI have not yet
+run on this code change. The previous full gate stopped at two unrelated,
+non-reproducing generic workstation E2E cases; its visual and trailing
+branch-declared stages were therefore not reached. Next: commit/push this
+worktree-only fix and evidence, then run the exact branch full-integration gate
+and inspect CI for the pushed SHA. AC10 still depends on the separate provider
+platform reaching staging; AC14 remains the later post-integration/deployment
+30-day observation. No other worktree or branch has been changed.
+This checkpoint changes only `backend/app/services/etf_holdings_adapters.py`,
+`backend/tests/unit/services/test_etf_holdings_adapters.py`, and the ETF
+workstream's `plan.yaml`, `handoff.md`, `session.json`, and `validation.jsonl`.
+The repository's `agent-context` helper also attempted to lock shared
+`.ai/runtime/allocations.lock`, which is read-only from this environment; its
+failure did not prevent branch-scoped implementation or validation. The
+session-status helper's malformed dirty-path summary was corrected in the
+branch-local receipt, and no shared runtime registry was modified.

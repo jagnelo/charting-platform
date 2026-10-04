@@ -17683,6 +17683,101 @@ async def test_dimensional_adapter_discovers_product_page_and_fetches_full_holdi
     assert result.rows[1].holding_type == "fixed_income"
     assert result.legal_metadata["route_resolution"] == "dimensional_public_fund_details_api"
     assert result.legal_metadata["composition_date"] == "2026-07-06"
+    assert result.legal_metadata["expected_cadence"] == "daily"
+
+
+@pytest.mark.asyncio
+async def test_dimensional_adapter_uses_bounded_dated_csv_when_api_omits_download_url(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("dimensional")
+    assert adapter is not None
+
+    MockDate.today_value = date(2026, 10, 4)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+    product_url = "https://www.dimensional.com/us-en/funds/dfac/us-core-equity-2-etf"
+    sitemap_xml = f"<urlset><url><loc>{product_url}</loc></url></urlset>"
+    product_page = """
+    <html>
+      <script>
+        var servicesApiBaseUrl = "https://etf.dimensional.com/public";
+        var portfolioNumber = 350;
+      </script>
+    </html>
+    """
+    holdings_csv = "\n".join(
+        [
+            "date,etf_ticker,ticker,description,weight,market_value,identifier,isin,sedol,shares,coupon_rate,maturity_date,principal",
+            "2026-10-01,DFAC,AAPL US,APPLE INC.,0.0725,3456.78,037833100,US0378331005,2046251,10,0.0,,3456.78",
+            "2026-10-01,DFAC,TREASURY,US TREASURY BILL,0.0125,1000.00,912797AB1,US912797AB12,BKT1234,1000,4.5,2026-12-31,1000.00",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=sitemap_xml, content_type="application/xml"),
+        FakeResponse(text='{"status":"success"}', content_type="application/json"),
+        FakeResponse(
+            text='{"status":"success","action":"reload"}', content_type="application/json"
+        ),
+        FakeResponse(text=product_page, content_type="text/html"),
+        FakeResponse(
+            text='{"data":{"asOfDate":{"value":"2026-10-01"}}}', content_type="application/json"
+        ),
+        FakeResponse(
+            text="<Error>not found</Error>", content_type="application/xml", status_code=404
+        ),
+        FakeResponse(
+            text="<Error>not found</Error>", content_type="application/xml", status_code=404
+        ),
+        FakeResponse(
+            text="<Error>not found</Error>", content_type="application/xml", status_code=404
+        ),
+        FakeResponse(text=holdings_csv, content_type="application/octet-stream"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DFAC", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested[-4:]] == [
+        "https://tools-blob.dimensional.com/etf/20261004/DFAC.csv",
+        "https://tools-blob.dimensional.com/etf/20261003/DFAC.csv",
+        "https://tools-blob.dimensional.com/etf/20261002/DFAC.csv",
+        "https://tools-blob.dimensional.com/etf/20261001/DFAC.csv",
+    ]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.legal_metadata["route_resolution"] == (
+        "dimensional_public_date_scoped_holdings_csv"
+    )
+    assert result.legal_metadata["source_access"] == ("issuer_public_date_scoped_full_holdings_csv")
+    assert result.legal_metadata["expected_cadence"] == "daily"
+    assert result.legal_metadata["composition_date"] == "2026-10-01"
+    assert result.source_url == FakeAsyncClient.requested[-1][0]
+
+
+@pytest.mark.asyncio
+async def test_dimensional_dated_csv_fallback_rejects_wrong_symbol_or_date(monkeypatch):
+    adapter = get_holdings_adapter("dimensional")
+    assert adapter is not None
+
+    MockDate.today_value = date(2026, 10, 4)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+    holdings_csv = "\n".join(
+        [
+            "date,etf_ticker,ticker,description,weight",
+            "2026-10-03,DFAU,AAPL US,APPLE INC.,0.0725",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text=holdings_csv, content_type="text/csv")]
+
+    with pytest.raises(ValueError, match="did not match DFAC and 2026-10-04"):
+        await adapter._fetch_latest_date_scoped_csv(
+            FakeAsyncClient(),
+            symbol="DFAC",
+            referer="https://www.dimensional.com/us-en/funds/dfac/us-core-equity-2-etf",
+        )
 
 
 @pytest.mark.asyncio

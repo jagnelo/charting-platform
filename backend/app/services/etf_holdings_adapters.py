@@ -48064,6 +48064,8 @@ class DimensionalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     INDIVIDUAL_INVESTOR_AUDIENCE_ID = "72F4ED1678744217ADBB47C57F3F0638"
     PRODUCT_SITEMAP_URL = "https://www.dimensional.com/us-en/funds/sitemap.xml"
     PUBLIC_API_BASE = "https://etf.dimensional.com/public"
+    DATED_HOLDINGS_CSV_BASE = "https://tools-blob.dimensional.com/etf"
+    DATED_HOLDINGS_CSV_LOOKBACK_DAYS = 7
 
     def resolve_product_page_url(
         self,
@@ -48135,24 +48137,39 @@ class DimensionalHoldingsAdapter(IssuerCsvHoldingsAdapter):
             details_response.raise_for_status()
             details_payload = details_response.json()
             holdings_url = self._find_full_holdings_csv_url(details_payload)
-            if not holdings_url:
-                raise ValueError(
-                    f"Dimensional fund details did not expose full holdings CSV for {normalized_symbol}."
+            dated_path_date: date | None = None
+            if holdings_url:
+                csv_response = await client.get(
+                    holdings_url,
+                    headers=self._page_headers(
+                        referer=product_url, accept="text/csv,application/octet-stream,*/*"
+                    ),
+                    follow_redirects=True,
                 )
-
-            csv_response = await client.get(
-                holdings_url,
-                headers=self._page_headers(
-                    referer=product_url, accept="text/csv,application/octet-stream,*/*"
-                ),
-                follow_redirects=True,
-            )
-            csv_response.raise_for_status()
+                csv_response.raise_for_status()
+                route_resolution = "dimensional_public_fund_details_api"
+                source_access = "issuer_public_fund_details_api_full_holdings_csv"
+            else:
+                (
+                    holdings_url,
+                    csv_response,
+                    dated_path_date,
+                ) = await self._fetch_latest_date_scoped_csv(
+                    client,
+                    symbol=normalized_symbol,
+                    referer=product_url,
+                )
+                route_resolution = "dimensional_public_date_scoped_holdings_csv"
+                source_access = "issuer_public_date_scoped_full_holdings_csv"
 
         rows, composition_date = self._parse_dimensional_csv(
             csv_response.text,
             symbol=normalized_symbol,
         )
+        if not rows or composition_date is None:
+            raise ValueError(
+                f"Dimensional full holdings CSV did not expose dated rows for {normalized_symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=csv_response.text,
@@ -48161,17 +48178,20 @@ class DimensionalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_url": product_url,
                 "fund_details_url": details_url,
                 "full_holdings_csv_url": holdings_url,
+                "route_resolution": route_resolution,
+                **({"dated_path_date": dated_path_date.isoformat()} if dated_path_date else {}),
             },
             source_url=holdings_url,
             source_identifier=str(portfolio_number),
             legal_metadata={
-                "source_access": "issuer_public_fund_details_api_full_holdings_csv",
+                "source_access": source_access,
                 "adapter_key": self.adapter_key,
-                "route_resolution": "dimensional_public_fund_details_api",
+                "route_resolution": route_resolution,
                 "product_url": product_url,
                 "fund_details_url": details_url,
                 "full_holdings_csv_url": holdings_url,
                 "portfolio_number": str(portfolio_number),
+                "expected_cadence": "daily",
                 **({"composition_date": composition_date.isoformat()} if composition_date else {}),
             },
         )
@@ -48252,6 +48272,89 @@ class DimensionalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 if found:
                     return found
         return None
+
+    @classmethod
+    async def _fetch_latest_date_scoped_csv(
+        cls,
+        client: httpx.AsyncClient,
+        *,
+        symbol: str,
+        referer: str,
+    ) -> tuple[str, httpx.Response, date]:
+        if not re.fullmatch(r"[A-Z0-9][A-Z0-9.-]{0,14}", symbol):
+            raise ValueError(f"Invalid Dimensional ETF ticker for dated CSV lookup: {symbol!r}.")
+
+        for days_back in range(cls.DATED_HOLDINGS_CSV_LOOKBACK_DAYS + 1):
+            candidate_date = date.today() - timedelta(days=days_back)
+            csv_url = f"{cls.DATED_HOLDINGS_CSV_BASE}/{candidate_date:%Y%m%d}/{symbol}.csv"
+            response = await client.get(
+                csv_url,
+                headers=cls._page_headers(
+                    referer=referer, accept="text/csv,application/octet-stream,*/*"
+                ),
+                follow_redirects=True,
+            )
+            if response.status_code == 404:
+                continue
+            if response.status_code != 200:
+                response.raise_for_status()
+                raise ValueError(
+                    f"Dimensional dated holdings CSV returned HTTP {response.status_code} "
+                    f"for {symbol} on {candidate_date.isoformat()}."
+                )
+
+            cls._validate_date_scoped_csv(
+                response.text,
+                symbol=symbol,
+                expected_date=candidate_date,
+            )
+            return csv_url, response, candidate_date
+
+        raise ValueError(
+            f"Dimensional did not expose a dated full holdings CSV for {symbol} "
+            f"within {cls.DATED_HOLDINGS_CSV_LOOKBACK_DAYS} days."
+        )
+
+    @classmethod
+    def _validate_date_scoped_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+        expected_date: date,
+    ) -> None:
+        reader = csv.DictReader(StringIO(raw_csv))
+        fields = {
+            str(field).strip().casefold(): str(field)
+            for field in (reader.fieldnames or [])
+            if field
+        }
+        ticker_field = fields.get("etf_ticker")
+        date_field = fields.get("date")
+        if not ticker_field or not date_field:
+            raise ValueError(
+                f"Dimensional dated holdings CSV did not expose ETF identity and date columns for {symbol}."
+            )
+
+        row_count = 0
+        tickers: set[str] = set()
+        dates: set[date] = set()
+        for raw in reader:
+            row_count += 1
+            row_ticker = _clean(raw.get(ticker_field))
+            row_date = cls._parse_iso_date(raw.get(date_field))
+            if not row_ticker or row_date is None:
+                raise ValueError(
+                    f"Dimensional dated holdings CSV contains undated or unidentified rows for {symbol}."
+                )
+            tickers.add(row_ticker.upper())
+            dates.add(row_date)
+
+        if row_count == 0 or tickers != {symbol} or dates != {expected_date}:
+            raise ValueError(
+                f"Dimensional dated holdings CSV did not match {symbol} and "
+                f"{expected_date.isoformat()}."
+            )
 
     @staticmethod
     def _parse_dimensional_csv(

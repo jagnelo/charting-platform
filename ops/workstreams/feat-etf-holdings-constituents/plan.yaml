@@ -527,15 +527,22 @@ current_blocker: >-
   branch's Git operations were completed via approved escalation. AC7/AC8
   remain open. AC10 still awaits `feat/market-data-provider-platform` reaching
   staging; AC14 remains the post-integration/deployment 30-day shadow gate.
+  The latest hosted live-matrix failure was then fixed without weakening its
+  assertion: when Dimensional's public fund-details API omits its holdings URL,
+  the native adapter probes a bounded date-scoped issuer CSV and fails closed
+  unless every row's ETF identity and date match. The adapter suite passed
+  595/595, the DFAC live case passed its 1,000-row minimum, and the full
+  opt-in provider matrix passed 509 with 28 classified external/source-data
+  skips. Ruff/format, workstream validation, and diff-check passed. AC7/AC8
+  remain open pending Docker/browser full integration and exact-SHA CI.
 next_action: >-
-  Keep the goal active. The F9c toolbar hit-target fix is complete, committed,
-  and pushed at `23e34353f1376364b6d925678c9815f18ac7f891`. Continue by obtaining
-  push-event CI evidence through a run-aware interface and investigating the
-  non-reproducing `F8j-conflict`/`F8s-market-map-watchlist` full-run failures;
-  targeted fresh-stack replays passed, but no full gate is green. Standalone
-  visual and trailing branch-declared stages have not run after this fix. Do
-  not change unrelated workstation behavior, assertions, or generic snapshots
-  without a reproduced, evidence-backed cause. AC10 remains gated on
-  `feat/market-data-provider-platform` reaching staging; AC14 is the later
+  Keep the goal active. The Dimensional date-scoped fallback is implemented,
+  identity/date validated, and covered by 595 adapter-unit passes, the passing
+  DFAC live case, and the passing full live matrix (509 passed, 28 classified
+  skips). Commit and push only this ETF worktree, then run the required
+  Docker/browser full-integration gate and establish hosted CI for that exact
+  pushed SHA. Do not alter unrelated workstation behavior, assertions, or
+  snapshots without a reproduced cause. AC10 remains dependent on
+  `feat/market-data-provider-platform` reaching staging; AC14 remains the
   post-integration/deployment 30-day shadow gate. Do not integrate, promote,
   deploy, or modify another worktree.
