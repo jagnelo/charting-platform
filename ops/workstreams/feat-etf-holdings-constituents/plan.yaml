@@ -541,8 +541,11 @@ next_action: >-
   `594864f69bfa5b016fc2eb4015509de6dbd7d8d6`; the exact feature ref was
   confirmed remotely. Its complete adapter unit suite passed 595/595, the DFAC
   live case passed its 1,000-row minimum, and the full opt-in provider matrix
-  passed 509 with 28 classified skips. Run the required Docker/browser
-  full-integration gate on the pushed source and continue exact-SHA hosted CI
+  passed 509 with 28 classified skips. The first full-gate attempt stopped in
+  backend coverage because a session progress update dropped the required
+  `15 Tier-0 and 156 Tier-1` narrative phrase; it is restored and its focused
+  invariant test passes. Commit/push that receipt correction, then rerun the
+  Docker/browser full gate on the exact branch tip and continue exact-SHA CI
   verification. Do not alter unrelated workstation behavior, assertions, or
   snapshots without a reproduced cause. AC10 remains dependent on
   `feat/market-data-provider-platform` reaching staging; AC14 remains the

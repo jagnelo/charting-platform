@@ -7727,3 +7727,24 @@ The repository's `agent-context` helper also attempted to lock shared
 failure did not prevent branch-scoped implementation or validation. The
 session-status helper's malformed dirty-path summary was corrected in the
 branch-local receipt, and no shared runtime registry was modified.
+## First exact-tip full-gate attempt and receipt correction — 2026-10-05
+
+The full gate ran on published tip `b4da289de0d18f620ccef1d9c9db3f89337e8376`.
+Workstream/dependency/migration checks, Ruff/format, and TypeScript passed.
+The backend suite completed with 1,878 passed and one failed at 81.13% coverage.
+The failure was the branch-owned cross-ledger narrative invariant:
+`session.progress.current_blocker` must retain the exact `15 Tier-0 and 156
+Tier-1` code-derived count phrase. My earlier progress update had replaced that
+phrase while recording the gate blocker. I restored it and reran that exact
+invariant test successfully (1 passed); no product test or provider adapter
+failed. The gate therefore stopped before full frontend tests/build, Docker
+stack/browser E2E, and trailing branch tests; this is not a green gate.
+
+The gate's automatic cleanup reported one testcontainer session identifier,
+so I checked branch-scoped resources separately. The follow-up read-only
+accounting showed zero containers, zero testcontainer sessions, zero volumes,
+zero known bytes, no unknown components, and no over-budget resources. No
+host-wide prune was used, and the unrelated running `stremio-server` was left
+untouched. The session narrative is corrected; next, commit/push this
+workstream-only repair and rerun the full gate on that clean exact branch tip.
+*** End of File
