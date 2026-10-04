@@ -1,9 +1,44 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-04 — Exact-source visual gate checkpoint at c038aaf
+
+Product source `c038aafc6fe8378cdf11d4b76006100488c75556` remains unchanged;
+the current branch tip is documentation/operations checkpoint
+`0dc73b5b402c28f2762ac9fe487106bafe29dfa5`. The full pinned Playwright
+`v1.62.1-noble` four-viewport visual matrix completed `104` cases in `11.9m`:
+`94` passed and ten known screenshot assertions differed after their
+interaction/state checks passed. Pixel counts by viewport order 1080p/100,
+1080p/125, 1440p/100, 1440p/125: workspace-floating `8,995/9,825/8,995/9,825`;
+Study structured-result `109,320/105,698/22,099/21,352`; Study sandbox-error
+`13,360/11,188` at the two 1080p scales, with both 1440p cases passing. These
+are the already documented local-reference review items. No screenshot,
+mask, threshold, skip, fallback, or acceptance rule changed.
+
+The first host-rendered diagnostic was not used as acceptance evidence: it
+passed only `8/104` and showed broad shell/menu/freshness diffs, matching the
+repository's known host-font rendering issue. The pinned run reproduces the
+previous `94/104` result. The assigned stack was torn down; cleanup removed
+six containers, four fixture volumes, one network, and four generated images.
+The resource audit reports zero remaining resources. The generated temporary
+functional/visual screenshot artifacts were removed; the checked-in visual
+references and the separate local TC2000 reference board were not modified.
+
+At exact product tip `c038aaf`, frontend coverage passed (128 files, 1,197
+tests), type-check and production build passed, and the focused authenticated
+F8s breadth-evidence browser regression passed 1/1. A current exact-source
+full functional/integration gate remains part of final reconciliation; the
+previous pinned functional receipt at `a78812d` passed 171 with 110 documented
+skips. Current remote refs are staging `8b885a2`, provider platform `88132e9`,
+and ETF holdings `f78b379`; neither upstream tip is in staging. Keep R2/R3
+consumer integration deferred, preserve the ten screenshot review items, and
+continue a separate TC-owned UI/Study/Strategy task. No provider/ETF worktree
+was modified.
+
 ## 2026-10-04 — Dock activation fix and functional replay checkpoint
 
-Product source commit `12ac1278a` (`fix(tc2000): keep dock tab selection current`)
-remains the current implementation. It invalidates stale Golden Layout
+At that checkpoint, product source commit `12ac1278a`
+(`fix(tc2000): keep dock tab selection current`) was the current implementation.
+It invalidates stale Golden Layout
 activation callbacks when a newer tab activation arrives; direct tab interaction
 supersedes the startup-selection guard. The focused component regression passed
 10/10; `npm run type-check` and the full frontend gate passed (128 files,

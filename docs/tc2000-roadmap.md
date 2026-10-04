@@ -5,6 +5,37 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-04
 
+## 2026-10-04 — Pinned exact-source visual matrix at c038aaf
+
+At product source `c038aafc6fe8378cdf11d4b76006100488c75556` (the current
+branch tip at the time was operational checkpoint
+`0dc73b5b402c28f2762ac9fe487106bafe29dfa5`), the full serial visual matrix
+was rerun in `mcr.microsoft.com/playwright:v1.62.1-noble`. It completed all
+`104` cases in `11.9m`: `94` passed and the same ten protected local-reference
+differences remained after their state and interaction assertions passed.
+Workspace-floating differed by `8,995/9,825/8,995/9,825` pixels; Study
+structured-result by `109,320/105,698/22,099/21,352`; Study sandbox-error by
+`13,360/11,188` at 1080p/100 and 1080p/125, with both 1440p cases passing.
+
+An initial host-rendered diagnostic produced only `8/104` passes and broad
+shell/menu/freshness screenshot diffs. Repository history records the same
+host-font rendering failure mode (98/104 host-rendered versus 94/104 in the
+pinned browser image); that run is not an acceptance result. The pinned rerun
+confirms the current source preserves the previously documented ten visual
+review items. No screenshots, masks, thresholds, skips, fallbacks, or
+acceptance policy changed.
+
+The assigned Compose stack was stopped and its scoped cleanup removed six
+containers, four fixture volumes, its network, and four generated images.
+Resource accounting reported zero remaining containers, volumes, images,
+test sessions, or unknown components. Current remote refs are staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`f78b37999419dd5e957b6082491d9122519416e8`. Neither dependency tip is an
+ancestor of staging, so consumer integration remains deferred. Continue a
+distinct TC-owned UI/Study/Strategy task without expanding provider or ETF
+ownership.
+
 ## 2026-10-04 — Exact-tip browser gate at a78812d
 
 The full serial functional browser suite passed at pushed product tip

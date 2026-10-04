@@ -110,11 +110,11 @@
   "head": "c038aafc6fe8378cdf11d4b76006100488c75556",
   "implementation_sha": "c038aafc6fe8378cdf11d4b76006100488c75556",
   "interrupted": false,
-  "last_checkpoint": "2026-10-04T17:02:17+00:00",
+  "last_checkpoint": "2026-10-04T18:29:44+00:00",
   "last_human_progress_update": "2026-10-04T09:16:58+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Select and implement the next bounded TC-owned workstation, Study, or Strategy gap after checking it against the upstream ownership boundary. Add focused regressions and rerun relevant frontend/browser checks; preserve all visual oracles. Defer provider/ETF consumer integration and shared-path reconciliation until both dependencies reach staging; never consume their branch tips directly or mutate another worktree.",
-  "plan_hash": "5629ecb29a46e98ae1fab8b0bd75c1ef422340faab3478736dc0e28dcf7df60f",
+  "plan_hash": "80003689bb1ac3b7a9a387f3561345943674b4d7f8ef4969f02c43ae77a6c0a4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -127,11 +127,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "The last full functional gate at product tip a78812d33f6402b329c947b70765f2a84e5be9ac passed 171 tests with 110 documented skips and zero failures; the unchanged visual matrix completed 94/104 with ten screenshot-only local-reference differences after all state assertions passed. The newer product tip c038aafc6fe8378cdf11d4b76006100488c75556 passed the full frontend suite, production build, and focused authenticated breadth browser regression, but the full branch-wide browser/visual gate remains required. Preserve every visual oracle and policy pending the review required by docs/tc2000-visual-parity.md. Provider/ETF consumer integration and shared-path reconciliation remain deferred until their work reaches staging; independent TC-owned work continues.",
+    "current_blocker": "No environment blocker prevents independent TC-owned work. At product source c038aafc6fe8378cdf11d4b76006100488c75556, frontend coverage (128 files, 1,197 tests), type-check, production build, and focused authenticated breadth browser regression passed. The pinned Playwright v1.62.1-noble 104-case visual matrix passed 94/104; ten screenshot-only local-reference differences remain after state and interaction assertions passed: workspace-floating in four viewports, Study structured-result in four, and Study sandbox-error at the two 1080p scales. Preserve all visual oracles; the ten local-reference discrepancies remain for review. A broad 8/104 host-rendered diagnostic is excluded because repository history records the same host-font rendering mismatch and the pinned replay reproduced 94/104. The prior full pinned functional receipt at a78812d passed 171 tests with 110 documented skips; a fresh exact-tip full functional/integration gate remains required. Current remote staging/provider/ETF refs are respectively 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and f78b37999419dd5e957b6082491d9122519416e8. Neither dependency tip is in staging; defer provider/ETF consumer integration and shared-path reconciliation until then, and continue distinct TC-owned UI/Study/Strategy work.",
     "current_phase": "R1_R4_read_side_lineage_presentation",
     "next_action": "Select and implement the next bounded TC-owned workstation, Study, or Strategy gap after checking it against the upstream ownership boundary. Add focused regressions and rerun relevant frontend/browser checks; preserve all visual oracles. Defer provider/ETF consumer integration and shared-path reconciliation until both dependencies reach staging; never consume their branch tips directly or mutate another worktree.",
     "total": 9,
-    "updated_at": "2026-10-04T17:02:17+00:00"
+    "updated_at": "2026-10-04T18:29:44+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

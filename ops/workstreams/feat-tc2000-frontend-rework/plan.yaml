@@ -20,23 +20,26 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No product or environment blocker prevents independent TC-owned work. The
-  latest product tip c038aafc6fe8378cdf11d4b76006100488c75556 passes the full
-  frontend suite, production build, and focused authenticated breadth browser
-  regression; its full browser/visual gate remains required. At
-  exact pushed product tip `a78812d33f6402b329c947b70765f2a84e5be9ac`, the
-  pinned serial full functional browser gate passed 171 tests with 110
-  documented skips and no failures. The unchanged 104-case visual matrix
-  completed 94/104; all ten failures were screenshot-only differences after
-  interaction/state assertions passed: workspace-floating in four viewports,
-  Study structured-result in four, and Study sandbox-error at the two 1080p
-  scales. Preserve all visual oracles; these local-reference discrepancies
-  remain for review. Current remote staging/provider/ETF refs are respectively
+  No environment blocker prevents independent TC-owned work. Product source
+  c038aafc6fe8378cdf11d4b76006100488c75556 passes frontend coverage (128 files,
+  1,197 tests), type-check, production build, and the focused F8s authenticated
+  browser regression. The pinned Playwright v1.62.1-noble 104-case visual
+  matrix completed 94/104; the same ten screenshot-only local-reference
+  differences remain after state/interaction assertions passed: workspace-
+  floating in four viewports, Study structured-result in four, and Study
+  sandbox-error at the two 1080p scales. Preserve all visual oracles; these
+  remain review items, not a reason to classify the workstream as blocked. A
+  host-rendered diagnostic's broad 8/104 result is excluded because repository
+  history identifies that host-font rendering mismatch and the pinned replay
+  reproduced the expected 94/104 result. The previous pinned full functional
+  suite at a78812d passed 171 tests with 110 documented skips; a fresh exact-tip
+  full functional/integration gate remains part of final reconciliation.
+  Current remote staging/provider/ETF refs are respectively
   `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`,
   `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and
-  `c2a1626a496eacd13331bbe1b8be39bee2d33114`. Keep provider/ETF consumer
-  integration and shared-path reconciliation deferred until their work reaches
-  staging; continue distinct TC-owned UI/Study/Strategy work.
+  `f78b37999419dd5e957b6082491d9122519416e8`. Neither upstream dependency tip
+  is in staging; keep consumer integration and shared-path reconciliation
+  deferred until then, and continue distinct TC-owned UI/Study/Strategy work.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
