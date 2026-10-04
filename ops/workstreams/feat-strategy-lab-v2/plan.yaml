@@ -820,8 +820,9 @@ progress:
     - nautilus-futures-margin-admission-v1
     - nautilus-futures-target-allocation-v1
     - nautilus-event-time-oos-drawdown-duration-v1
+    - nautilus-event-time-oos-cagr-calmar-v1
   total: 18
-  current_phase: nautilus-event-time-oos-drawdown-duration-v1
+  current_phase: nautilus-event-time-oos-cagr-calmar-v1
   current_blocker: >-
     No external release or upstream dependency blocks package-owned work.
     Exact-pinned Nautilus 2.0.0rc5 passes the platform's local backtest checks,
@@ -846,8 +847,10 @@ progress:
     allocation now pass native margin admission for base-currency settlement.
     Native OOS metrics now include elapsed-UTC drawdown duration from the
     verified event-time equity trace while withholding cadence-based metrics
-    without an explicit basis. Option order admission remains fail-closed
-    pending its separate event-time risk inputs.
+    without an explicit basis. Event-time OOS annualized return and Calmar now
+    use exact elapsed UTC duration with a versioned, recorded 365.2425-day
+    annualization convention. Option order admission remains fail-closed pending
+    its separate event-time risk inputs.
   next_action: >-
     Continue versioned native OOS metric coverage, then remaining
     domain-backed mutation flows, worker recovery/scaling, and persistent

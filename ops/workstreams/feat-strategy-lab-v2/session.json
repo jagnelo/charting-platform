@@ -113,7 +113,7 @@
   "head": "925be2d1d94c74e78b54a49385e9e54bdcb58ad6",
   "implementation_sha": "65aae76acc3eb6c61739e564fe741bc2bae6c83e",
   "last_checkpoint": "2026-10-04T18:51:11.669894+00:00",
-  "last_human_progress_update": "2026-10-04T19:18:26.657647+00:00",
+  "last_human_progress_update": "2026-10-04T19:27:01.063659+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -131,10 +131,10 @@
   "progress": {
     "completed": [],
     "current_blocker": "No external dependency blocks package-owned implementation. Docker Buildx blocks only the final full_stack_browser validation; provider, ETF, and TC2000 shared-path consumption remains gated on those branches reaching staging.",
-    "current_phase": "nautilus-event-time-oos-drawdown-duration-v1",
-    "next_action": "Continue versioned native OOS metrics, then domain-backed mutations, worker recovery/scaling, and persistent broker-free forward-shadow correctness. Preserve explicit calendar/annualization bases; keep option orders fail-closed pending canonical event-time Greeks/delta and settlement inputs.",
+    "current_phase": "nautilus-event-time-oos-cagr-calmar-v1",
+    "next_action": "Continue versioned native OOS metrics, then domain-backed mutations, worker recovery/scaling, and persistent broker-free forward-shadow correctness. Preserve explicit sampling/calendar bases; keep option orders fail-closed pending canonical event-time Greeks/delta and settlement inputs.",
     "total": 18,
-    "updated_at": "2026-10-04T19:18:26.657626+00:00"
+    "updated_at": "2026-10-04T19:27:01.063640+00:00"
   },
   "remote": "925be2d1d94c74e78b54a49385e9e54bdcb58ad6",
   "remote_sha": "65aae76acc3eb6c61739e564fe741bc2bae6c83e",

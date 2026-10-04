@@ -2,6 +2,30 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Event-time OOS annualized return and Calmar
+
+Implementation `c0f67e080` advances the native OOS metric definition to
+`strategy-lab.metrics.v13`. When exact verified equity-event timestamps are
+available, annualized return is now calculated from terminal/opening equity
+over the exact elapsed UTC span using the explicit `365.2425` calendar-days-per-
+year convention. The convention, elapsed nanoseconds, and timestamp unit are
+recorded in the metric definition. Calmar uses that same annualized return and
+the observed OOS maximum drawdown. Missing timestamps, zero elapsed time,
+non-positive opening equity, and results outside the Decimal numeric range
+produce explicit null reasons. Annualized volatility, Sharpe/Sortino, and
+historical VaR/expected shortfall remain withheld until an explicit sampling
+basis is available; irregular event counts are not treated as fixed periods.
+
+Validation: `45/45` focused metrics, verified-equity-trace, native result
+metrics, and result-materialization tests passed. Ruff, format checks,
+`git diff --check`, and targeted MyPy for `metrics.py` passed. Implementation
+commit `c0f67e080` is published to `origin/feat/strategy-lab-v2`.
+
+Changed source paths: `backend/app/strategy_lab_v2/metrics.py` and
+`backend/app/strategy_lab_v2/tests/test_metrics.py`. Stable Nautilus v2 remains
+unnecessary; the exact-pinned RC5 local-backtest qualification and separate
+Buildx-only final Compose/browser gate remain as recorded below.
+
 ## 2026-10-04 - Event-time OOS drawdown duration
 
 Implementation commit `925be2d1d94c74e78b54a49385e9e54bdcb58ad6` adds
