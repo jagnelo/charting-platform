@@ -52,7 +52,7 @@ from app.strategy_lab_v2.rebalance import (
     require_complete_calendar_period_coverage,
 )
 
-METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v11"
+METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v12"
 DEFAULT_SESSION_RETURN_QUANTILE_PROBABILITIES = (
     Decimal("0.05"),
     Decimal("0.25"),
@@ -66,6 +66,7 @@ _METRIC_FORMULAS = {
     "total_return": "terminal equity divided by initial capital minus one",
     "maximum_drawdown": "minimum observed equity divided by running peak minus one",
     "maximum_drawdown_duration": "longest count of sampled observations below the running peak",
+    "maximum_drawdown_duration_seconds": "longest elapsed UTC duration from an observed running peak to its first observed recovery or terminal under-water mark",
     "ulcer_index": "square root of the mean squared observed drawdown fractions",
     "annualized_return": "terminal equity growth compounded by periods_per_year / return_count",
     "time_weighted_return": "geometrically linked subperiod returns excluding external cash-flow jumps",
@@ -690,6 +691,7 @@ def calculate_event_aligned_equity_metrics(
     base_currency: str,
     evidence_digest: str,
     expected_mark_count: int,
+    event_time_ns: Iterable[int] | None = None,
     basis: MetricBasis = MetricBasis.NET,
 ) -> tuple[MetricValue, ...]:
     """Summarize native OOS equity marks without inventing a time cadence.
@@ -715,6 +717,19 @@ def calculate_event_aligned_equity_metrics(
         raise ValueError("expected_mark_count must be a positive integer")
 
     iterator = iter(equity_marks)
+    event_time_iterator = None if event_time_ns is None else iter(event_time_ns)
+    exhausted = object()
+
+    def next_event_time() -> int | None:
+        if event_time_iterator is None:
+            return None
+        value = next(event_time_iterator, exhausted)
+        if value is exhausted:
+            raise ValueError("event timestamp count is smaller than the equity mark count")
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise ValueError("event timestamps must be non-negative integer nanoseconds")
+        return value
+
     opening_equity = next(iterator, None)
     if (
         not isinstance(opening_equity, Decimal)
@@ -722,6 +737,12 @@ def calculate_event_aligned_equity_metrics(
         or opening_equity < 0
     ):
         raise ValueError("equity marks must start with a finite non-negative opening mark")
+
+    opening_event_time_ns = next_event_time()
+    previous_event_time_ns = opening_event_time_ns
+    peak_event_time_ns = opening_event_time_ns
+    in_drawdown = False
+    maximum_drawdown_duration_ns = 0
 
     mark_count = 1
     scored_observations = 0
@@ -737,6 +758,13 @@ def calculate_event_aligned_equity_metrics(
     for equity in iterator:
         if not isinstance(equity, Decimal) or not equity.is_finite() or equity < 0:
             raise ValueError("equity marks must be finite non-negative Decimals")
+        current_event_time_ns = next_event_time()
+        if (
+            current_event_time_ns is not None
+            and previous_event_time_ns is not None
+            and current_event_time_ns < previous_event_time_ns
+        ):
+            raise ValueError("event timestamps must be non-decreasing")
         mark_count += 1
         scored_observations += 1
         terminal_equity = equity
@@ -752,10 +780,33 @@ def calculate_event_aligned_equity_metrics(
                 maximum_drawdown_duration = max(
                     maximum_drawdown_duration, current_drawdown_duration
                 )
+                in_drawdown = True
+                if current_event_time_ns is not None and peak_event_time_ns is not None:
+                    maximum_drawdown_duration_ns = max(
+                        maximum_drawdown_duration_ns,
+                        current_event_time_ns - peak_event_time_ns,
+                    )
             else:
+                if (
+                    in_drawdown
+                    and current_event_time_ns is not None
+                    and peak_event_time_ns is not None
+                ):
+                    maximum_drawdown_duration_ns = max(
+                        maximum_drawdown_duration_ns,
+                        current_event_time_ns - peak_event_time_ns,
+                    )
                 current_drawdown_duration = 0
+                in_drawdown = False
+                peak_event_time_ns = current_event_time_ns
         else:
             current_drawdown_duration = 0
+            in_drawdown = False
+            peak_event_time_ns = current_event_time_ns
+        previous_event_time_ns = current_event_time_ns
+
+    if event_time_iterator is not None and next(event_time_iterator, exhausted) is not exhausted:
+        raise ValueError("event timestamp count is larger than the equity mark count")
 
     if mark_count != expected_mark_count:
         raise ValueError("equity mark count differs from the verified native trace receipt")
@@ -800,6 +851,18 @@ def calculate_event_aligned_equity_metrics(
             recovery_null_reason = "maximum drawdown is zero"
 
     cadence_unavailable = "native event marks are irregular and no explicit sampling/calendar annualization basis was supplied"
+    drawdown_duration_seconds = (
+        None
+        if event_time_ns is None or no_scored_observations
+        else Decimal(maximum_drawdown_duration_ns) / Decimal(1_000_000_000)
+    )
+    drawdown_duration_null_reason = (
+        "native event timestamps were not supplied"
+        if event_time_ns is None
+        else "no post-opening OOS equity observations"
+        if no_scored_observations
+        else None
+    )
     metrics = [
         _value(
             "total_pnl",
@@ -836,6 +899,18 @@ def calculate_event_aligned_equity_metrics(
             sample_size=scored_observations,
             calculation_basis=f"consecutive native event-mark observations below running peak; {observation_basis}",
             null_reason=drawdown_null_reason,
+        ),
+        _value(
+            "maximum_drawdown_duration_seconds",
+            drawdown_duration_seconds,
+            unit="seconds",
+            basis=basis,
+            sample_size=scored_observations,
+            calculation_basis=(
+                "maximum elapsed UTC time from the latest observed running-peak mark to the first "
+                "observed recovery mark, or the terminal mark while still below that peak"
+            ),
+            null_reason=drawdown_duration_null_reason,
         ),
         _value(
             "ulcer_index",
@@ -897,6 +972,11 @@ def calculate_event_aligned_equity_metrics(
             "observation_basis": "irregular_native_market_event_marks",
             "opening_mark_included_in_path": True,
             "annualization_basis": None,
+            "event_time_basis": (
+                "canonical UTC event timestamps in Unix nanoseconds"
+                if event_time_ns is not None
+                else None
+            ),
             "external_cash_flow_policy": "backtest account permits initial funding only",
             "trace_mark_count": mark_count,
         },
@@ -1327,9 +1407,7 @@ def calculate_capital_margin_utilization_metrics(
     maintenance_utilization = [
         item.maintenance_margin_requirement / item.maintenance_margin_capacity for item in marks
     ]
-    initial_to_equity = [
-        item.initial_margin_requirement / item.account_equity for item in marks
-    ]
+    initial_to_equity = [item.initial_margin_requirement / item.account_equity for item in marks]
     maintenance_to_equity = [
         item.maintenance_margin_requirement / item.account_equity for item in marks
     ]
@@ -1479,9 +1557,7 @@ def calculate_financing_cost_metrics(
 
     observation_digest = content_digest(report_values)
     observations = tuple(
-        observation
-        for report in report_values
-        for observation in report.observations
+        observation for report in report_values for observation in report.observations
     )
     if len({item.financing_event_id for item in observations}) != len(observations):
         raise ValueError("financing event ids must be unique across reports")
@@ -1497,7 +1573,9 @@ def calculate_financing_cost_metrics(
     complete_count = sum(
         report.report_status is CostReportStatus.COMPLETE for report in report_values
     )
-    partial_count = sum(report.report_status is CostReportStatus.PARTIAL for report in report_values)
+    partial_count = sum(
+        report.report_status is CostReportStatus.PARTIAL for report in report_values
+    )
     unavailable_count = sum(
         report.report_status is CostReportStatus.UNAVAILABLE for report in report_values
     )
@@ -1648,16 +1726,11 @@ def calculate_paired_metric_metrics(
     sorted_deltas = tuple(sorted(deltas))
     median_rank = max(
         1,
-        int(
-            (Decimal(sample_size) * Decimal("0.5")).to_integral_value(
-                rounding=ROUND_CEILING
-            )
-        ),
+        int((Decimal(sample_size) * Decimal("0.5")).to_integral_value(rounding=ROUND_CEILING)),
     )
     median_delta = sorted_deltas[median_rank - 1]
     sample_variance = (
-        sum(((value - mean_delta) ** 2 for value in deltas), Decimal(0))
-        / Decimal(sample_size - 1)
+        sum(((value - mean_delta) ** 2 for value in deltas), Decimal(0)) / Decimal(sample_size - 1)
         if sample_size > 1
         else None
     )
@@ -1733,7 +1806,9 @@ def calculate_paired_metric_metrics(
             basis=basis,
             sample_size=sample_size,
             calculation_basis=f"sample standard deviation of aligned deltas; {common_basis}",
-            null_reason="at least two paired observations are required" if sample_stddev is None else None,
+            null_reason="at least two paired observations are required"
+            if sample_stddev is None
+            else None,
         ),
     )
     return _finalize_metric_values(
@@ -1980,8 +2055,7 @@ def calculate_stress_scenario_metrics(
             basis=MetricBasis.NET,
             sample_size=sample_size,
             calculation_basis=(
-                "minimum engine-reported stressed P&L; "
-                f"observations {observation_digest}"
+                "minimum engine-reported stressed P&L; " f"observations {observation_digest}"
             ),
         ),
         _value(
@@ -1991,8 +2065,7 @@ def calculate_stress_scenario_metrics(
             basis=MetricBasis.NET,
             sample_size=sample_size,
             calculation_basis=(
-                "minimum engine-reported stressed equity; "
-                f"observations {observation_digest}"
+                "minimum engine-reported stressed equity; " f"observations {observation_digest}"
             ),
         ),
     )
@@ -2581,9 +2654,7 @@ def calculate_rolling_equity_metrics(
                 returns_list: list[Decimal] = []
                 for interval_growth, wealth_marks in weighted_results:
                     returns_list.append(interval_growth - Decimal(1))
-                    equity_values_list.extend(
-                        rolling_growth * mark for mark in wealth_marks[1:]
-                    )
+                    equity_values_list.extend(rolling_growth * mark for mark in wealth_marks[1:])
                     rolling_growth *= interval_growth
                 rolling_return = rolling_growth - Decimal(1)
                 returns = tuple(returns_list)
@@ -2910,7 +2981,9 @@ def calculate_session_return_distribution_metrics(
         if weighted_results is not None:
             returns = tuple(item[0] - Decimal(1) for item in weighted_results)
         else:
-            returns = tuple(item.ending_equity / item.starting_equity - Decimal(1) for item in intervals)
+            returns = tuple(
+                item.ending_equity / item.starting_equity - Decimal(1) for item in intervals
+            )
     else:
         returns = ()
     returns_flow_adjusted = weighted_results is not None and external_flows_occurred is True

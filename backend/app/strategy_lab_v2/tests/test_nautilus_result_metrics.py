@@ -411,7 +411,7 @@ def test_native_realized_position_quality_is_currency_safe_and_oos_scoped(tmp_pa
         "no losing OOS-closed positions in USD"
     )
     assert metrics["oos_realized_position_win_loss_ratio:USD"].value is None
-    assert metric_set.definition_version == "strategy-lab.metrics.v11"
+    assert metric_set.definition_version == METRIC_DEFINITION_VERSION
     assert (
         metrics["oos_realized_position_profit_factor:USD"].calculation_definition.parameters[
             "decimal_precision"

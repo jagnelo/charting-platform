@@ -311,6 +311,7 @@ def test_nautilus_oos_result_materialization_binds_metrics_and_native_artifacts(
     metrics = {item.name: item for item in manifest.metric_set.values}
     assert metrics["oos_fill_count"].value == Decimal(1)
     assert metrics["oos_reported_commission:USD"].value == Decimal("2.00")
+    assert metrics["maximum_drawdown_duration_seconds"].value == Decimal("0.000000049")
 
     replay = materialize_nautilus_oos_run_result(
         *arguments,

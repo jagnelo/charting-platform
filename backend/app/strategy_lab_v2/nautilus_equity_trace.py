@@ -239,6 +239,23 @@ class NautilusAccountEquityTraceReference:
             raise ValueError("Nautilus account-equity trace receipt is invalid") from error
 
 
+@dataclass(frozen=True, slots=True)
+class NautilusAccountEquityObservation:
+    """One verified native equity mark and its canonical event timestamp."""
+
+    event_time_ns: int
+    account_equity: Decimal
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.event_time_ns, int)
+            or isinstance(self.event_time_ns, bool)
+            or self.event_time_ns < 0
+        ):
+            raise ValueError("event_time_ns must be a non-negative integer")
+        _decimal(self.account_equity, "account_equity", non_negative=True)
+
+
 class NautilusAccountEquityTraceWriter:
     """Write native marks in bounded compressed Parquet row groups."""
 
@@ -495,14 +512,14 @@ class NautilusAccountEquityTraceWriter:
         )
 
 
-def iter_verified_nautilus_account_equity_marks(
+def iter_verified_nautilus_account_equity_observations(
     reference: NautilusAccountEquityTraceReference,
     path: str | os.PathLike[str],
     *,
     expected_events: Iterable[Mapping[str, Any]] | None,
     max_stream_bytes: int = MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES,
-) -> Iterator[Decimal]:
-    """Yield marks only after validating their exact artifact and OOS binding.
+) -> Iterator[NautilusAccountEquityObservation]:
+    """Yield event-time marks only after validating exact artifact and OOS binding.
 
     The digest is checked over the same no-follow descriptor that PyArrow reads.
     Validation continues as the consumer streams the marks and the iterator
@@ -648,7 +665,7 @@ def iter_verified_nautilus_account_equity_marks(
                     previous_time = event_time_ns
                     previous_sequence = source_sequence
                     observed_count += 1
-                    yield equity
+                    yield NautilusAccountEquityObservation(event_time_ns, equity)
             if expected_iterator is not None:
                 for expected in expected_iterator:
                     event = expected.get("event", expected)
@@ -669,6 +686,24 @@ def iter_verified_nautilus_account_equity_marks(
     finally:
         if descriptor >= 0:
             os.close(descriptor)
+
+
+def iter_verified_nautilus_account_equity_marks(
+    reference: NautilusAccountEquityTraceReference,
+    path: str | os.PathLike[str],
+    *,
+    expected_events: Iterable[Mapping[str, Any]] | None,
+    max_stream_bytes: int = MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES,
+) -> Iterator[Decimal]:
+    """Yield verified account-equity values without exposing event timestamps."""
+
+    for observation in iter_verified_nautilus_account_equity_observations(
+        reference,
+        path,
+        expected_events=expected_events,
+        max_stream_bytes=max_stream_bytes,
+    ):
+        yield observation.account_equity
 
 
 def verify_nautilus_account_equity_trace_file(
@@ -694,8 +729,10 @@ __all__ = [
     "NAUTILUS_ACCOUNT_EQUITY_TRACE_MEDIA_TYPE",
     "NAUTILUS_ACCOUNT_EQUITY_TRACE_PROTOCOL",
     "NAUTILUS_ACCOUNT_EQUITY_TRACE_SCHEMA",
+    "NautilusAccountEquityObservation",
     "NautilusAccountEquityTraceReference",
     "NautilusAccountEquityTraceWriter",
+    "iter_verified_nautilus_account_equity_observations",
     "iter_verified_nautilus_account_equity_marks",
     "verify_nautilus_account_equity_trace_file",
 ]

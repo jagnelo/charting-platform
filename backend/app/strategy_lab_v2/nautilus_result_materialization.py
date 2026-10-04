@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime
+from itertools import tee
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,7 @@ from app.strategy_lab_v2.contracts import (
 )
 from app.strategy_lab_v2.nautilus_equity_trace import (
     NautilusAccountEquityTraceReference,
-    iter_verified_nautilus_account_equity_marks,
+    iter_verified_nautilus_account_equity_observations,
 )
 from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsReference
 from app.strategy_lab_v2.nautilus_result_metrics import build_nautilus_oos_metric_set
@@ -82,15 +83,20 @@ def materialize_nautilus_oos_run_result(
     ):
         raise ValueError("Nautilus OOS result references do not match the result identities")
 
+    verified_observations = iter_verified_nautilus_account_equity_observations(
+        equity_reference,
+        equity_trace_path,
+        expected_events=equity_expected_events,
+    )
+    equity_observations, event_time_observations = tee(verified_observations)
+    equity_marks = (item.account_equity for item in equity_observations)
+    event_time_ns = (item.event_time_ns for item in event_time_observations)
     metric_set = build_nautilus_oos_metric_set(
         equity_reference,
-        iter_verified_nautilus_account_equity_marks(
-            equity_reference,
-            equity_trace_path,
-            expected_events=equity_expected_events,
-        ),
+        equity_marks,
         native_reports_reference,
         native_reports_path,
+        event_time_ns=event_time_ns,
         created_at=created_at,
         portfolio=portfolio,
     )

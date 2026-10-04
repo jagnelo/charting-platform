@@ -8,6 +8,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.nautilus_equity_trace import (
     NautilusAccountEquityTraceReference,
     NautilusAccountEquityTraceWriter,
+    iter_verified_nautilus_account_equity_observations,
     verify_nautilus_account_equity_trace_file,
 )
 
@@ -77,6 +78,31 @@ def test_native_equity_trace_is_bounded_oos_and_bound_to_tape(tmp_path) -> None:
         expected_events=tuple(
             {"index": index, "event": event} for index, event in enumerate(events)
         ),
+    )
+
+
+def test_verified_equity_observations_preserve_canonical_event_times(tmp_path) -> None:
+    path = tmp_path / "account-equity.parquet"
+    writer = _writer(path)
+    events = (_event("scoring-1", 100, 1), _event("scoring-2", 150, 2))
+    _write_mark(writer, events[0], 0, "1000")
+    _write_mark(writer, events[1], 1, "999.5")
+    reference = writer.finish()
+
+    observations = tuple(
+        iter_verified_nautilus_account_equity_observations(
+            reference,
+            path,
+            expected_events=tuple(
+                {"index": index, "event": event} for index, event in enumerate(events)
+            ),
+        )
+    )
+
+    assert tuple(item.event_time_ns for item in observations) == (100, 150)
+    assert tuple(item.account_equity for item in observations) == (
+        Decimal("1000"),
+        Decimal("999.5"),
     )
 
 

@@ -46,6 +46,7 @@ def build_nautilus_oos_equity_metric_set(
     reference: NautilusAccountEquityTraceReference,
     equity_marks: Iterable[Decimal],
     *,
+    event_time_ns: Iterable[int] | None = None,
     created_at: datetime,
 ) -> MetricSet:
     """Build reproducible official OOS equity metrics for one native attempt.
@@ -66,6 +67,7 @@ def build_nautilus_oos_equity_metric_set(
         base_currency=reference.base_currency,
         evidence_digest=reference.artifact.content_digest,
         expected_mark_count=reference.observation_count,
+        event_time_ns=event_time_ns,
     )
     metric_set_identity = content_digest(
         {
@@ -91,6 +93,7 @@ def build_nautilus_oos_metric_set(
     native_reports_reference: NautilusNativeReportsReference,
     native_reports_path: str | Path,
     *,
+    event_time_ns: Iterable[int] | None = None,
     created_at: datetime,
     portfolio: PortfolioComposition | None = None,
 ) -> MetricSet:
@@ -133,6 +136,7 @@ def build_nautilus_oos_metric_set(
         base_currency=equity_reference.base_currency,
         evidence_digest=equity_reference.artifact.content_digest,
         expected_mark_count=equity_reference.observation_count,
+        event_time_ns=event_time_ns,
     )
     native_values = _native_oos_report_metrics(native_reports_reference, native_reports_path)
     component_values: tuple[MetricValue, ...] = ()

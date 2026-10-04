@@ -84,6 +84,10 @@ def test_event_aligned_equity_metrics_use_oos_opening_mark_and_withhold_annualiz
         expected_drawdown = Decimal("126") / Decimal("130") - Decimal(1)
     assert metrics["maximum_drawdown"].value == expected_drawdown  # type: ignore[attr-defined]
     assert metrics["maximum_drawdown_duration"].value == Decimal(1)  # type: ignore[attr-defined]
+    assert metrics["maximum_drawdown_duration_seconds"].value is None  # type: ignore[attr-defined]
+    assert metrics["maximum_drawdown_duration_seconds"].null_reason == (  # type: ignore[attr-defined]
+        "native event timestamps were not supplied"
+    )
     assert metrics["recovery_factor"].value == Decimal("1.5")  # type: ignore[attr-defined]
     assert metrics["total_return"].sample_size == 2  # type: ignore[attr-defined]
     assert metrics["total_return"].basis is MetricBasis.NET  # type: ignore[attr-defined]
@@ -95,6 +99,54 @@ def test_event_aligned_equity_metrics_use_oos_opening_mark_and_withhold_annualiz
         item.definition_version == METRIC_DEFINITION_VERSION  # type: ignore[attr-defined]
         for item in metrics.values()  # type: ignore[attr-defined]
     )
+
+
+def test_event_aligned_equity_metrics_measure_drawdown_duration_in_elapsed_utc_time() -> None:
+    metrics = _by_name(
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("90"), Decimal("95"), Decimal("100"), Decimal("90")),
+            base_currency="USD",
+            evidence_digest=content_digest("event-timed-equity-trace"),
+            expected_mark_count=5,
+            event_time_ns=(0, 60_000_000_000, 120_000_000_000, 180_000_000_000, 300_000_000_000),
+        )
+    )
+
+    duration = metrics["maximum_drawdown_duration_seconds"]
+    assert duration.value == Decimal("180")  # type: ignore[attr-defined]
+    assert duration.unit == "seconds"  # type: ignore[attr-defined]
+    assert duration.sample_size == 4  # type: ignore[attr-defined]
+    assert "elapsed UTC" in duration.calculation_basis  # type: ignore[attr-defined]
+    assert metrics["maximum_drawdown_duration"].value == Decimal(2)  # type: ignore[attr-defined]
+
+
+def test_event_aligned_equity_metrics_require_event_times_to_match_the_trace() -> None:
+    with pytest.raises(ValueError, match="timestamp count is smaller"):
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("101")),
+            base_currency="USD",
+            evidence_digest=content_digest("short-event-time-trace"),
+            expected_mark_count=2,
+            event_time_ns=(100,),
+        )
+
+    with pytest.raises(ValueError, match="non-decreasing"):
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("101")),
+            base_currency="USD",
+            evidence_digest=content_digest("unordered-event-time-trace"),
+            expected_mark_count=2,
+            event_time_ns=(101, 100),
+        )
+
+    with pytest.raises(ValueError, match="timestamp count is larger"):
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("101")),
+            base_currency="USD",
+            evidence_digest=content_digest("long-event-time-trace"),
+            expected_mark_count=2,
+            event_time_ns=(100, 101, 102),
+        )
 
 
 def test_event_aligned_equity_metrics_do_not_claim_returns_without_oos_intervals() -> None:
