@@ -52,6 +52,8 @@ owned_paths:
   - frontend/src/components/etf/ETFHoldingsPanel.vue
   - frontend/src/stores/workspace.ts
   - backend/tests/unit/services/test_etf_holdings_adapters.py
+  - backend/tests/unit/services/test_etf_holdings_capability.py
+  - backend/tests/unit/services/test_etf_holdings_refresh.py
   - backend/tests/live/test_etf_holdings_live_providers.py
   - backend/tests/unit/tasks/test_etf_holdings_tasks.py
   - backend/tests/unit/workers/test_arq_worker.py
@@ -391,6 +393,11 @@ remaining_gaps:
   - "The next complete-matrix pass reached SynthEquity SNTH after 507 passes and 11 expected skips and found 13 complete current fixed-income/option/cash rows against the stale 15-row floor. Identity, disclosure date, schema, option and cash classification remained valid; the live contract now uses a conservative 10-row floor, the bounded route passes, and no adapter behavior was weakened."
   - "The next complete-matrix pass reached Baillie Gifford after 521 passes and 11 expected skips and found all four native XLSX workbooks had advanced from the stale 2026-10-01 fixture date to the execution date. The live assertion now compares the disclosed composition date to the execution date; BGGG/BGIA/BGEG/BGUS pass with strict workbook parsing and no route/classification change."
   - "The 2026-10-03 complete branch-declared run passed 590 deterministic adapter tests; default live contracts (3 passed, 533 opt-in skipped); all 536 opt-in live cases (506 passed, 30 narrowly evidenced external/access or current-source-variant skips); Ruff; workstream validation; frontend type-check; 17 ETF panel/view tests; and production build. Intech LGDX/SMDX remain unpromoted because the current official page exposes inert 'Download All Holdings [CSV]' text and a daily-holdings card resolving to the homepage rather than a complete current artifact; strict adapter failure remains correct. Baillie Gifford's latest-business-day date check now accepts Friday's current workbook on Saturday, with a four-day freshness bound. Exact-SHA CI on these adapter changes remains pending. The complete local Docker gate was rerun and stopped at the generic F9c-template-comparison E2E click intercepted by the chart plot-library overlay; 152 functional tests passed, 106 were skipped, and no ETF-specific E2E failure was identified."
+  - "The 2026-10-04 WisdomTree Tier-0 canary rerun found that both DXJ and NTSX's current application request and bounded HTTP/1.1 curl retry are blocked by issuer access challenges. The current official pages show only ten named rows plus Remaining Portfolio, while complete symbol-scoped data is required. DXJ/NTSX symbol audits are therefore downgraded from current to degraded and are not usable for current analysis until a fresh complete, dated, identity-verified canary succeeds; the provider-specific adapter and historical success evidence remain, so provider-level counts do not change. No partial/top-ten, SEC, or paid source is promoted."
+  - "The 2026-10-04 full-gate backend coverage run caught that static issuer-challenge state overrode successful canary recovery. The runtime now persists a post-audit revalidation marker only after successful bounded adapter fetch and ingestion; old success state remains degraded, complete/fresh/identity/source checks remain mandatory, and failed checks clear the marker. The full backend unit suite passes 1,497 tests, and corrected combined backend coverage/integration passes. The required full integration gate then passes functional Playwright but fails generic visual E2E with 93 stable screenshot mismatches across profiles (1-3% pixels vs 0.5%); no ETF assertion, generic snapshot, or out-of-scope test was changed. AC7 remains open."
+  - "The 2026-10-04 free-first DXJ/NTSX alternative-source review found StockAnalysis pages dated 2026-10-01/02 report 433/509 holdings but show only the top 25 behind a full-list subscription; its terms prohibit programmatic collection and its help center says there is no API or redistribution entitlement. FMP lists holdings only in its US$149/month Ultimate tier (billed annually); EODHD documents holdings but lists Fundamentals at US$41.99/month and its US$19.99 plan as EOD-only, with commercial users directed to separate plans. No reviewed route qualifies within the US$20/month platform-wide ceiling and approved commercial terms, so both symbols remain degraded and no vendor was activated."
+  - "The 2026-10-04 complete branch-declared suite passed all eight steps: deterministic adapters 592 passed; default live contracts 3 passed/534 opt-in skipped; opt-in matrix 506 passed/31 narrow skips; Ruff, workstream validation, frontend type-check, 17 ETF UI tests, and frontend production build passed. The final DXJ/NTSX live canary remains two issuer-challenge skips, not passes."
+  - "The corrected 2026-10-04 local integration gate remains failed only at generic visual E2E after passing through functional Playwright: 93 of 104 screenshot cases mismatch by stable 1-3% pixel differences against the 0.5% threshold. Backend/frontend coverage, production build, Compose/runtime health, research-runner probes, and branch-declared tests passed; no unrelated visual baseline or test was changed."
   - "Further current-source hardening on 2026-10-03: Hedgeye's official HECA page advertised holdings as of 2026-10-02 but embedded a newer 2026-10-05 payload with only 17 rows; the adapter now ignores future snapshots and selects the latest non-future 19-row table. McElhenny Sheffield MSMR now fails closed on a future effective date (the observed table was effective 2026-10-05 while the page was as of 2026-10-02). VistaShares' seven official CSV routes returned future-dated 2026-10-05 snapshots on 2026-10-03, so all remain strict future-date skips, not current-support promotions. MAX JETU returned HTTP 200 with an empty body and remains an identity-verification failure. Focused deterministic tests passed, Ruff passed, and the complete current-source matrix records these exact variants."
   - "The pushed route-reconciliation implementation checkpoint 082a9b283 and durable receipt checkpoint 97e8d3950 are synchronized to origin/feat-etf-holdings-constituents. The provider-platform refs are now aa8f3b89 (local/origin) and staging remains 8b885a2f; the provider ref is not an ancestor of staging and neither inspected ProviderCapability enum contains ETF_HOLDINGS."
   - "Exact-SHA CI run 37034597490 on 97e8d3950 failed Backend Tests and Branch-declared Tests because the session blocker narrative omitted the required 15 Tier-0 and 156 Tier-1 phrase; Frontend Unit Tests passed and E2E/Exhaustive Integration were skipped. The invariant failure was reproduced locally, the phrase restored, and the focused invariant plus complete deterministic ETF suite passed 712 tests; a new exact-SHA CI run is required after this repair."
@@ -412,49 +419,59 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: quiet_host_full_gate_replay_failed_two_unrelated_e2e_assertions_shared_platform_dependency_open
+current_phase: wisdomtree_symbols_degraded_recovery_vendor_reviewed_branch_tests_pass_visual_gate_failure_shared_platform_open
 current_blocker: >-
-  The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The exact
-  ETF worktree and origin branch are synchronized at c3be1b6d2c7e9929635b7b6efea9c3de53b6340c.
-  On that exact SHA, GitHub Actions run 37205629249 passed Backend Tests,
-  Frontend Unit Tests, Branch-declared Tests, and Playwright; the protected
-  Exhaustive Integration Gate was skipped as designed for a feature branch.
-  The fresh opt-in holdings matrix on its application source a67ceed7 collected
-  537 cases and passed 508 with 29 skips in 916.28 seconds; provider/source
-  classifications did not change. The required local full-integration replay
-  on c3be1b6 passed workstream validation (30 records), dependency/lock and
-  migration checks, Ruff/format (282 files), frontend type-check, backend and
-  frontend coverage suites, production build, Compose contracts/health, and
-  research-runner security/resource probes. Functional Playwright ran 260
-  scenarios and failed on two observed, non-ETF cases. F9c-template-comparison
-  had the chart plot-library overlay intercept Remove RSP; F8j-conflict saw the
-  generic workstation recovery message never appear in the footer. The
-  persisted report lists exactly these two failed test IDs;
-  no ETF-owned assertion failed. The failures are in generic chart/workstation
-  behavior outside this workstream's owned paths, so they are preserved for
-  their owning scope rather than changed here. Functional Playwright stopped
-  the gate before visual E2E and trailing branch-tests stages. Automatic
-  cleanup removed only this worktree's Compose resources and four tagged
-  images; host-wide prune was false, with no retained volumes or testcontainer
-  sessions. No other worktree resources were changed. Current remote refs are
-  ETF c3be1b6d, provider-platform 88132e9145a08d1c935a0111b3dba0fbd88bdff1,
-  and staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35; provider-platform is
-  not in staging, so AC10 still awaits that external integration. AC7 remains
-  open because the required local full gate did not pass; AC8 remains open
-  until required validation and the synchronized review checkpoint are
-  complete. AC14 is the documented post-integration/deployment 30-day shadow
-  observation.
+  The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. This
+  changeset started from synchronized ETF branch tip
+  48512cd934759c8a52e9b4071c281ef763a08699; the current worktree contains the
+  in-progress ETF-only source/audit correction. Exact-SHA GitHub run
+  37209026444 on 48512cd passed Backend Tests, Frontend Unit Tests,
+  Branch-declared Tests, and Playwright; the protected Exhaustive Integration
+  Gate was skipped as designed for a feature branch. The full opt-in holdings
+  matrix on source a67ceed7 collected 537 cases and passed 508 with 29 skips.
+  A fresh host-context canary run for DXJ/NTSX skipped both symbols because
+  WisdomTree issuer access challenges blocked the application request and its
+  bounded HTTP/1.1 retry; the official pages crawled the same day expose only
+  ten named rows plus Remaining Portfolio. Accordingly, this changeset updates
+  both symbol audits to degraded and ensures stored snapshots cannot remain
+  usable for current analysis without renewed complete-route evidence. The
+  provider-specific adapter and provider-level 496/421/75 split remain
+  unchanged. The corrected full local gate passed combined backend coverage,
+  frontend coverage/build, Compose/runtime health, research-runner probes, and
+  functional Playwright. It stopped at generic visual E2E with 93 screenshot
+  mismatches across profiles (stable 1-3% pixel differences against a 0.5%
+  threshold); those tests and snapshots are outside ETF owned_paths and were
+  not changed. The previous F9c/F8j functional failures did not reproduce.
+  Gate cleanup was limited to this worktree; host-wide prune was false. A
+  post-audit `symbol_audit_revalidated_at` marker now permits recovery only
+  after successful bounded fetch/ingestion and all normal current-data checks;
+  stale stored success remains degraded, and failure clears the marker. ETF is
+  still uncommitted from synchronized base
+  `48512cd934759c8a52e9b4071c281ef763a08699`. Current remote refs are ETF
+  48512cd9, provider-platform 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and
+  staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35; provider-platform is not
+  in staging. AC7 remains open on the unrelated visual gate; AC8 remains open
+  Exact-SHA CI and synchronization remain pending. AC10 awaits provider-platform
+  reaching staging; AC14 remains the documented post-integration/deployment
+  30-day shadow observation. The free-first review found no compliant DXJ/NTSX
+  third-party holdings route within the US$20 platform-wide budget: StockAnalysis
+  prohibits automated collection and lacks an API, FMP lists holdings at
+  US$149/month, and EODHD fundamentals are listed at US$41.99/month with
+  commercial pricing requiring separate review. Both symbols stay degraded.
+  The complete branch-declared suite passed 592 deterministic cases, the
+  537-case opt-in matrix (506 passed/31 narrow skips), three default live
+  contracts, Ruff, workstream validation, frontend type-check, 17 ETF UI tests,
+  and production build. The fresh two-symbol canary skipped on issuer
+  challenges. No live skip is claimed as a pass.
 next_action: >-
-  Keep this workstream confined to feat/etf-holdings-constituents and do not
-  stop, clean, or modify another worktree's Docker resources. Preserve the two
-  generic Playwright failure artifacts and leave those test/product paths to
-  their owning scope; do not add skips or widen ETF owned_paths as a shortcut.
-  The application-side matrix, deterministic suites, and exact-SHA CI are
-  green, but AC7 cannot be marked complete while the local required gate fails.
-  The shared provider-platform branch must reach staging before ETF consumes
-  its ETF_HOLDINGS entitlement, quota, budget, health, and availability
-  contracts; recheck refs read-only and implement that bridge only in ETF-owned
-  paths after the dependency lands. AC14 remains a post-integration/deployment
-  30-day observation. Keep the goal active and preserve the exact blocker until
-  its owning-scope E2E failures are resolved and required local validation can
-  be completed.
+  Rerun branch validation and focused runtime/YAML/session invariants after the
+  documented source review, then commit and push the ETF-owned implementation
+  changeset and its separate operational receipt. Obtain exact-SHA CI and keep
+  the goal active: AC7 remains open because the local full gate fails on 93
+  generic visual screenshots outside ETF ownership, AC8 awaits a clean
+  synchronized exact-CI checkpoint, and AC10 awaits provider-platform reaching
+  staging. Keep DXJ/NTSX degraded until a complete, dated, identity-verified
+  source is executable within approved terms and the budget; do not substitute
+  top-ten, SEC, or unapproved paid data. Preserve visual artifacts for their
+  owners and do not rebaseline them from this ETF scope. AC14 remains a
+  post-integration/deployment observation.

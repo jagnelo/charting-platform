@@ -135,6 +135,10 @@ async def test_canary_success_records_latency_recovery_and_symbol_gated_capabili
     assert report["circuit_state"] == "closed"
     assert report["latency_ms"] >= 0
     assert state.extra_data["last_canary_status"] == "success"
+    assert (
+        state.extra_data["symbol_audit_revalidated_at"]
+        == state.extra_data["canary_history"][0]["observed_at"]
+    )
     assert state.extra_data["last_canary_failure_class"] is None
     assert len(state.extra_data["canary_history"]) == 1
     assert state.extra_data["canary_history"][0]["status"] == "success"

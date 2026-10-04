@@ -9,7 +9,7 @@ snapshots remain visible but never become current issuer support implicitly.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
@@ -535,14 +535,15 @@ def _future_snapshot_reason(
 _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
     "DXJ": ETFHoldingsSymbolAudit(
         tier=0,
-        outcome=CURRENT,
-        evidence_state="issuer_current_canary_verified",
+        outcome=DEGRADED,
+        evidence_state="issuer_route_access_blocked",
         provider_identity="wisdomtree",
-        investigated_at=date(2026, 10, 1),
+        investigated_at=date(2026, 10, 4),
         next_action=(
-            "Keep DXJ current only while WisdomTree's complete symbol-scoped JSON route remains "
-            "identity-verified and within its freshness deadline; retain the bounded HTTP/1.1 "
-            "curl retry after an issuer challenge and re-audit on transport or schema drift."
+            "Keep DXJ degraded while WisdomTree's application route and bounded HTTP/1.1 retry "
+            "are blocked by issuer challenges; the rendered top-ten preview is incomplete. "
+            "Restore current only after the adapter retrieves complete, dated, identity-verified "
+            "rows within the freshness window."
         ),
         evidence_refs=(
             "web:wisdomtree-public-fund-holdings-api-2026-09-05",
@@ -553,18 +554,30 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:etf-holdings-api-contract-2026-09-06",
             "web:wisdomtree-dxj-product-page-2026-10-01-current",
             "live:wisdomtree-canary-2026-10-01-opt-in-skipped",
+            "web:wisdomtree-dxj-product-page-2026-10-04-top-ten",
+            "live:wisdomtree-dxj-ntsx-canary-2026-10-04-issuer-challenge",
+            "web:stockanalysis-dxj-holdings-preview-2026-10-04-top-25",
+            "web:stockanalysis-ntsx-holdings-preview-2026-10-04-top-25",
+            "web:stockanalysis-terms-no-automated-access-2026-10-04",
+            "web:stockanalysis-no-api-no-redistribution-2026-10-04",
+            "web:fmp-etf-holdings-ultimate-149-monthly-2026-10-04",
+            "web:fmp-etf-holdings-api-route-2026-10-04",
+            "web:fmp-etf-holder-daily-update-2026-10-04",
+            "web:eodhd-fundamentals-holdings-41-99-monthly-2026-10-04",
+            "web:eodhd-pricing-commercial-plan-distinction-2026-10-04",
         ),
     ),
     "NTSX": ETFHoldingsSymbolAudit(
         tier=0,
-        outcome=CURRENT,
-        evidence_state="issuer_current_canary_verified",
+        outcome=DEGRADED,
+        evidence_state="issuer_route_access_blocked",
         provider_identity="wisdomtree",
-        investigated_at=date(2026, 10, 1),
+        investigated_at=date(2026, 10, 4),
         next_action=(
-            "Keep NTSX current only while WisdomTree's complete symbol-scoped JSON route remains "
-            "identity-verified and within its freshness deadline; retain the bounded HTTP/1.1 "
-            "curl retry after an issuer challenge and re-audit on transport or schema drift."
+            "Keep NTSX degraded while WisdomTree's application route and bounded HTTP/1.1 retry "
+            "are blocked by issuer challenges; the rendered top-ten preview is incomplete. "
+            "Restore current only after the adapter retrieves complete, dated, identity-verified "
+            "rows within the freshness window."
         ),
         evidence_refs=(
             "web:wisdomtree-public-fund-holdings-api-2026-09-05",
@@ -575,6 +588,17 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:etf-holdings-api-contract-2026-09-06",
             "web:wisdomtree-ntsx-product-page-2026-10-01-current",
             "live:wisdomtree-canary-2026-10-01-opt-in-skipped",
+            "web:wisdomtree-ntsx-product-page-2026-10-04-top-ten",
+            "live:wisdomtree-dxj-ntsx-canary-2026-10-04-issuer-challenge",
+            "web:stockanalysis-dxj-holdings-preview-2026-10-04-top-25",
+            "web:stockanalysis-ntsx-holdings-preview-2026-10-04-top-25",
+            "web:stockanalysis-terms-no-automated-access-2026-10-04",
+            "web:stockanalysis-no-api-no-redistribution-2026-10-04",
+            "web:fmp-etf-holdings-ultimate-149-monthly-2026-10-04",
+            "web:fmp-etf-holdings-api-route-2026-10-04",
+            "web:fmp-etf-holder-daily-update-2026-10-04",
+            "web:eodhd-fundamentals-holdings-41-99-monthly-2026-10-04",
+            "web:eodhd-pricing-commercial-plan-distinction-2026-10-04",
         ),
     ),
     "MINT": ETFHoldingsSymbolAudit(
@@ -2186,6 +2210,32 @@ def evaluate_capability(
         )
 
     symbol_audit = symbol_audit_for_profile(profile)
+    audit_revalidated_at = _metadata_datetime(state_metadata, "symbol_audit_revalidated_at")
+    if (
+        availability == CURRENT
+        and symbol_audit.outcome != CURRENT
+        and symbol_audit.evidence_state == "issuer_route_access_blocked"
+        and audit_revalidated_at is not None
+        and audit_revalidated_at <= now
+        and state_status == "success"
+        and checked is not None
+        and checked <= now
+    ):
+        # A complete, identity-verified successful canary recorded by the
+        # current runtime is newer evidence than the static issuer challenge.
+        # The canary writes this marker only after fetching and ingesting rows;
+        # old success state without the marker remains degraded.
+        symbol_audit = replace(
+            symbol_audit,
+            outcome=CURRENT,
+            evidence_state="issuer_current_canary_reverified",
+            investigated_at=audit_revalidated_at.date(),
+            next_action=(
+                "Keep current only while complete, dated, identity-verified rows pass the "
+                "freshness window; degrade again on issuer challenge, route drift, or stale data."
+            ),
+            evidence_refs=(*symbol_audit.evidence_refs, "runtime:post-audit-complete-canary"),
+        )
     if availability == CURRENT and symbol_audit.tier in {0, 1} and symbol_audit.outcome != CURRENT:
         audit_availability = symbol_audit.outcome
         if audit_availability not in {

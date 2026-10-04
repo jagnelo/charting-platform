@@ -129,6 +129,54 @@ vendor_source_candidates:
       current_support_eligible: false
       evidence_refs: [web:dealcharts-free-sec-nport-aggregator-2026-09-05, live:dealcharts-mint-facts-2026-09-05-quarterly-stale]
       next_action: "Do not promote SEC-derived public facts to current support; reassess only if a current, complete, legally usable artifact appears."
+    - key: stockanalysis_dxj_ntsx
+      display_name: StockAnalysis DXJ/NTSX holdings pages
+      target_symbols: [DXJ, NTSX]
+      access_model: public_web_manual_preview
+      pricing_model: subscription_full_list
+      published_minimum_activation_usd: null
+      published_monthly_cost_usd: null
+      coverage_evidence: "Pages report 433 DXJ and 509 NTSX holdings and attribute holdings data to Finnhub, but show only the top 25 and require a subscription to see the full list."
+      freshness_evidence: "The observed pages were as of 2026-10-01 for DXJ and 2026-10-02 for NTSX and describe daily updates; no complete basket is publicly exposed."
+      quota_evidence: "No API or programmatic quota exists; the help center says there is no programmatic interface."
+      terms_evidence: "Current terms prohibit automated collection; the help center says display rights do not grant programmatic redistribution or resale."
+      budget_disposition: automated_access_prohibited_full_list_paywalled
+      activation_status: not_authorized
+      current_support_eligible: false
+      evidence_refs: [web:stockanalysis-dxj-holdings-preview-2026-10-04-top-25, web:stockanalysis-ntsx-holdings-preview-2026-10-04-top-25, web:stockanalysis-terms-no-automated-access-2026-10-04, web:stockanalysis-no-api-no-redistribution-2026-10-04]
+      next_action: "Do not scrape, automate, or use the partial preview for current support. Reconsider only if a written programmatic entitlement and redistribution license plus complete data access are offered within the shared budget."
+    - key: financial_modeling_prep_etf_holdings
+      display_name: Financial Modeling Prep ETF & Mutual Fund Holdings
+      target_symbols: [DXJ, NTSX]
+      access_model: bearer_key
+      pricing_model: monthly_subscription
+      published_minimum_activation_usd: 149
+      published_monthly_cost_usd: 149
+      coverage_evidence: "A REST ETF holdings endpoint is documented and holdings are listed in the Ultimate tier, but DXJ/NTSX coverage was not tested and no credential was used."
+      freshness_evidence: "FMP documents daily ETF-holder update timing; no DXJ/NTSX response or symbol-specific timestamp was retrieved."
+      quota_evidence: "The Ultimate plan lists 3,000 API calls per minute; actual entitlement and quota were not tested."
+      terms_evidence: "FMP advertises commercial-use plans, but product-specific redistribution and platform terms were not reviewed or approved."
+      budget_disposition: over_aggregate_budget
+      activation_status: not_authorized
+      current_support_eligible: false
+      evidence_refs: [web:fmp-etf-holdings-ultimate-149-monthly-2026-10-04, web:fmp-etf-holdings-api-route-2026-10-04, web:fmp-etf-holder-daily-update-2026-10-04]
+      next_action: "Do not activate at the published US$149/month Ultimate price; reconsider only if a compliant tier within the shared US$20/month ceiling and verified DXJ/NTSX coverage is documented."
+    - key: eodhd_fundamentals_etf_holdings
+      display_name: EODHD ETF_Data Holdings
+      target_symbols: [DXJ, NTSX]
+      access_model: bearer_key
+      pricing_model: fundamentals_subscription_commercial_quote
+      published_minimum_activation_usd: 41.99
+      published_monthly_cost_usd: 41.99
+      coverage_evidence: "The fundamentals documentation describes ETF_Data.Holdings and more than 10,000 ETFs, but specific DXJ/NTSX completeness was not tested and no credential was used."
+      freshness_evidence: "No target-symbol response or specific holdings update cadence was retrieved."
+      quota_evidence: "The free plan is limited to 20 daily calls for EOD price data and excludes certain data types; fundamentals requires a paid entitlement, whose target quota was not tested."
+      terms_evidence: "The pricing page directs commercial users to a separate startup/enterprise plan; commercial redistribution and target-use terms are not approved."
+      budget_disposition: over_aggregate_budget_and_commercial_quote_required
+      activation_status: not_authorized
+      current_support_eligible: false
+      evidence_refs: [web:eodhd-fundamentals-holdings-41-99-monthly-2026-10-04, web:eodhd-pricing-commercial-plan-distinction-2026-10-04]
+      next_action: "Do not activate: the listed Fundamentals price exceeds the shared US$20/month ceiling and is not a verified commercial quote. Reassess only with an approved commercial offer inside budget and proven complete target coverage."
 symbol_priority_ledger:
   policy: "Tier 0 symbols are high-relevance U.S.-listed ETFs selected from benchmark/proxy roles, platform usage, and the approved WisdomTree, PIMCO, and F/m priority families. Tier 1 entries below are the first ranked fallback cohort. Outcomes are symbol-level observations and must not be inferred from an identity-level adapter registration."
   free_first_monthly_budget: "20 EUR/USD-equivalent platform-wide; no paid source activation or credentials are authorized by this ledger."
@@ -136,19 +184,19 @@ symbol_priority_ledger:
     - symbol: DXJ
       tier: 0
       provider_identity: wisdomtree
-      current_outcome: current
-      evidence_state: issuer_current_canary_verified
-      investigated_at: 2026-10-01
-      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403, web:wisdomtree-dxj-product-page-2026-09-05-current, live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403, live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1, web:etf-holdings-api-contract-2026-09-06, web:wisdomtree-dxj-product-page-2026-10-01-current, live:wisdomtree-canary-2026-10-01-opt-in-skipped]
-      next_action: "Keep current only while the complete symbol-scoped WisdomTree JSON route remains identity-verified and within its freshness deadline; retain the bounded HTTP/1.1 curl retry after an issuer challenge and re-audit on transport or schema drift."
+      current_outcome: degraded
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-10-04
+      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403, web:wisdomtree-dxj-product-page-2026-09-05-current, live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403, live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1, web:etf-holdings-api-contract-2026-09-06, web:wisdomtree-dxj-product-page-2026-10-01-current, live:wisdomtree-canary-2026-10-01-opt-in-skipped, web:wisdomtree-dxj-product-page-2026-10-04-top-ten, live:wisdomtree-dxj-ntsx-canary-2026-10-04-issuer-challenge, web:stockanalysis-dxj-holdings-preview-2026-10-04-top-25, web:stockanalysis-ntsx-holdings-preview-2026-10-04-top-25, web:stockanalysis-terms-no-automated-access-2026-10-04, web:stockanalysis-no-api-no-redistribution-2026-10-04, web:fmp-etf-holdings-ultimate-149-monthly-2026-10-04, web:fmp-etf-holdings-api-route-2026-10-04, web:fmp-etf-holder-daily-update-2026-10-04, web:eodhd-fundamentals-holdings-41-99-monthly-2026-10-04, web:eodhd-pricing-commercial-plan-distinction-2026-10-04]
+      next_action: "Keep DXJ degraded: the issuer route and bounded HTTP/1.1 retry are challenged, the rendered top-ten preview is incomplete, StockAnalysis disallows automated collection, and reviewed FMP/EODHD holdings plans exceed the current budget or lack a commercial quote. Restore current only after a complete, dated, identity-verified source is executable within approved terms and budget."
     - symbol: NTSX
       tier: 0
       provider_identity: wisdomtree
-      current_outcome: current
-      evidence_state: issuer_current_canary_verified
-      investigated_at: 2026-10-01
-      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403, web:wisdomtree-ntsx-product-page-2026-09-05-current, live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403, live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1, web:etf-holdings-api-contract-2026-09-06, web:wisdomtree-ntsx-product-page-2026-10-01-current, live:wisdomtree-canary-2026-10-01-opt-in-skipped]
-      next_action: "Keep current only while the complete symbol-scoped WisdomTree JSON route remains identity-verified and within its freshness deadline; retain the bounded HTTP/1.1 curl retry after an issuer challenge and re-audit on transport or schema drift."
+      current_outcome: degraded
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-10-04
+      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403, web:wisdomtree-ntsx-product-page-2026-09-05-current, live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403, live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1, web:etf-holdings-api-contract-2026-09-06, web:wisdomtree-ntsx-product-page-2026-10-01-current, live:wisdomtree-canary-2026-10-01-opt-in-skipped, web:wisdomtree-ntsx-product-page-2026-10-04-top-ten, live:wisdomtree-dxj-ntsx-canary-2026-10-04-issuer-challenge, web:stockanalysis-dxj-holdings-preview-2026-10-04-top-25, web:stockanalysis-ntsx-holdings-preview-2026-10-04-top-25, web:stockanalysis-terms-no-automated-access-2026-10-04, web:stockanalysis-no-api-no-redistribution-2026-10-04, web:fmp-etf-holdings-ultimate-149-monthly-2026-10-04, web:fmp-etf-holdings-api-route-2026-10-04, web:fmp-etf-holder-daily-update-2026-10-04, web:eodhd-fundamentals-holdings-41-99-monthly-2026-10-04, web:eodhd-pricing-commercial-plan-distinction-2026-10-04]
+      next_action: "Keep NTSX degraded: the issuer route and bounded HTTP/1.1 retry are challenged, the rendered top-ten preview is incomplete, StockAnalysis disallows automated collection, and reviewed FMP/EODHD holdings plans exceed the current budget or lack a commercial quote. Restore current only after a complete, dated, identity-verified source is executable within approved terms and budget."
     - symbol: MINT
       tier: 0
       provider_identity: pacific_investments

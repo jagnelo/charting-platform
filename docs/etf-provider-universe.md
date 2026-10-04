@@ -2360,6 +2360,64 @@ fallback-only providers; runtime fallback statuses are 8 issuer-access-blocked,
 56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.
 
+## WisdomTree Tier-0 route availability recheck — 2026-10-04
+
+The official DXJ and NTSX product pages currently show a holdings section dated
+`2026-10-01`, but the rendered artifact contains ten named positions plus
+`Remaining Portfolio` and a `View all holdings` control; that page rendering
+alone does not prove an executable complete basket. The bounded application
+canaries for both symbols were retried in the authorized host context. The
+normal product/API request and the adapter's HTTP/1.1 `curl` retry both ended
+in issuer access challenges, so neither canary retrieved current complete
+rows. The earlier successful 2026-09-06 fetch proves that the provider-specific
+route existed and once returned complete data, but it does not prove current
+availability.
+
+The symbol-level audit now marks DXJ and NTSX `degraded`, not current: their
+holdings remain unusable for current analysis until the application adapter
+again retrieves complete, dated, identity-verified rows inside the freshness
+window. The provider-owned adapter and historical implementation evidence are
+retained, so provider registration counts do not change; partial page previews,
+SEC reconstruction, and paid vendors are not promoted as current support.
+Evidence refs: `web:wisdomtree-dxj-product-page-2026-10-04-top-ten`,
+`web:wisdomtree-ntsx-product-page-2026-10-04-top-ten`, and
+`live:wisdomtree-dxj-ntsx-canary-2026-10-04-issuer-challenge`.
+
+## DXJ/NTSX complete-source and low-cost vendor assessment — 2026-10-04
+
+StockAnalysis's DXJ/NTSX pages report 433 and 509 holdings and daily update
+cadence, but publicly show only the top 25 and gate the rest behind a
+subscription; the displayed data is attributed to Finnhub. They are not a
+complete free artifact. Separately, StockAnalysis's current terms prohibit
+bots, scrapers, browser automation, and other programmatic collection, and its
+help center says it has no API/programmatic interface and is licensed to
+display rather than redistribute data. Do not scrape it or treat the visible
+preview as an executable complete-source route.
+
+Two documented API alternatives also fail the current free-first budget gate.
+Financial Modeling Prep lists ETF/mutual-fund holdings only in Ultimate at
+US$149/month (billed annually); its displayed Starter and Premium plans do not
+include holdings.
+EODHD documents ETF_Data.Holdings, but its public plan page lists the
+Fundamentals feed at US$41.99/month while the US$19.99 EOD plan is the separate
+end-of-day price product. EODHD directs commercial users to a separate
+startup/enterprise plan, so the personal-plan price is not a proven commercial
+quote for this platform. Neither vendor is within the platform's US$20/month
+aggregate ceiling, and no account, credential, or purchase was used.
+
+Accordingly, no reviewed third-party route currently qualifies for DXJ/NTSX
+under the existing cost and licensing rules. Keep both symbols `degraded`
+until the issuer adapter obtains a complete, fresh, identity-verified basket or
+a compliant source is proven within budget; do not substitute a partial page,
+SEC reconstruction, or unapproved paid vendor. Evidence refs:
+`web:stockanalysis-terms-no-automated-access-2026-10-04`,
+`web:stockanalysis-no-api-no-redistribution-2026-10-04`,
+`web:stockanalysis-dxj-holdings-preview-2026-10-04-top-25`,
+`web:stockanalysis-ntsx-holdings-preview-2026-10-04-top-25`,
+`web:fmp-etf-holdings-ultimate-149-monthly-2026-10-04`,
+`web:eodhd-fundamentals-holdings-41-99-monthly-2026-10-04`, and
+`web:eodhd-pricing-commercial-plan-distinction-2026-10-04`.
+
 ## Current audit checkpoint — ETFMG symbols reconciled to Amplify — 2026-10-02
 
 Amplify's current AIEQ, AWAY, BDRY, and BWET pages identify the four active

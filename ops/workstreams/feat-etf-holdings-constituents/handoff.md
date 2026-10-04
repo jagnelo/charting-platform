@@ -7121,3 +7121,123 @@ post-integration/deployment 30-day shadow observation. Do not change generic
 chart/workstation behavior from this ETF scope or alter any other worktree;
 retain the artifacts and exact statuses until the owning-scope E2E issue and
 provider-platform dependency are resolved.
+
+## DXJ/NTSX Tier-0 availability recheck — 2026-10-04
+
+Starting boundary was clean and synchronized ETF commit `48512cd9` in the
+assigned `/home/m920q/.../feat-etf-holdings-constituents` worktree. Read-only
+remote refresh still showed provider-platform `88132e9145a08d1c935a0111b3dba0fbd88bdff1`
+outside staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
+
+The two-symbol opt-in canary rerun first hit the restricted shell's DNS error.
+The same bounded command then ran in the approved host context, separating
+sandbox DNS from issuer behavior: both DXJ and NTSX skipped because the
+WisdomTree product/API request and the bounded HTTP/1.1 `curl` retry were
+blocked by issuer access challenges. No authentication or paid source was
+used. The official product pages crawled today show holdings dated
+`2026-10-01`, but their rendered table is only ten named rows plus `Remaining
+Portfolio`; a `View all holdings` control does not itself prove that the
+application can retrieve the complete basket. The two skips are not live-route
+passes.
+
+Because the latest executable check is blocked and the browser-visible preview
+is partial, the static Tier-0 symbol audits for DXJ and NTSX have been moved
+from `current` to `degraded`. The existing native adapter is retained because
+it previously returned complete issuer JSON and its provider-owned parsing,
+identity, and freshness checks remain in place; this change only ensures that
+these two symbols cannot be treated as current analysis inputs until a fresh
+complete canary succeeds. No top-ten data, SEC reconstruction, or paid vendor
+is promoted, and the provider-level 496/421/75 split is unchanged.
+
+The exact evidence references are
+`web:wisdomtree-dxj-product-page-2026-10-04-top-ten`,
+`web:wisdomtree-ntsx-product-page-2026-10-04-top-ten`, and
+`live:wisdomtree-dxj-ntsx-canary-2026-10-04-issuer-challenge`. The bounded
+follow-up changeset owns only the ETF capability audit, its unit regression,
+the matching symbol ledger/universe documentation, and this workstream record.
+Next: validate the runtime/YAML parity and current-analysis fail-closed behavior,
+run the declared adapter checks and full integration profile, then checkpoint
+the latest exact results. If route challenges persist, keep both symbols
+degraded and continue free/already-entitled route research; do not request or
+use paid credentials without separate approval.
+
+## DXJ/NTSX recovery and full-gate replay — 2026-10-04
+
+The capability and provider-audit records now both classify DXJ/NTSX as
+`degraded` after the issuer challenge. A first full backend-gate attempt exposed
+a recovery regression: that static audit overrode even a later successful
+complete canary. The runtime now writes `symbol_audit_revalidated_at` only
+after a bounded route fetch, identity validation, and snapshot ingestion
+succeed; a current, fresh, complete snapshot plus this new marker may supersede
+the older static access-challenge outcome. Old stored success without the
+marker remains degraded, base identity/completeness/freshness/source-tier checks
+still run first, and a later failed canary clears the marker. This preserves
+fail-closed behavior while allowing verified recovery without a code release.
+
+Regression coverage proves both sides: an old success state without a
+post-audit canary marker stays unusable, and the canary success path records the
+marker and restores `current` only after the adapter fetch succeeds. The full
+backend unit suite passed 1,497 tests; the combined Docker-backed backend
+coverage stage and ETF backend integration tests passed on the corrected tree.
+Ruff, formatting, frontend type-check/coverage/build, Compose/runtime health,
+and research-runner security/resource probes also passed.
+
+The corrected local full-integration replay passed its functional Playwright
+stage and then failed at generic visual E2E: 93 screenshots failed across the
+visual profiles, with stable 1–3% pixel differences against the 0.5% limit.
+The screenshot cases belong to the generic workstation visual suite, not
+ETF-owned assertions; no snapshot was updated and no generic test was skipped
+or changed. The earlier F9c/F8j functional failures did not reproduce in this
+quiet replay. Gate cleanup removed only this worktree's tagged resources, with
+host-wide prune false and no retained volumes or testcontainer sessions. AC7
+remains open on visual-gate evidence; do not modify unrelated visual baselines
+from this ETF workstream.
+
+Read-only remote refs remain ETF `48512cd9`, provider-platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`. Provider-platform is not in
+staging, so the `ETF_HOLDINGS` bridge (AC10) remains an external dependency.
+AC14 is still the explicitly post-integration/deployment 30-day shadow
+observation. Next: run the complete branch-declared suite against this tree,
+record exact outcomes, publish the ETF-owned checkpoint, and obtain exact-SHA
+CI. Keep the goal active; do not rebaseline generic screenshots or touch
+another branch/worktree.
+
+## DXJ/NTSX compliant-source review and branch-test closeout — 2026-10-04
+
+The free-first research did not find a compliant low-cost third-party route for
+DXJ/NTSX. StockAnalysis pages report 433 DXJ and 509 NTSX holdings and daily
+update cadence, but show only the top 25 and gate the rest behind a subscription;
+their current terms prohibit automated/programmatic collection and the help
+center says there is no API or redistribution entitlement. Do not scrape it.
+Financial Modeling Prep lists ETF holdings only in its US$149/month Ultimate
+tier, billed annually. EODHD documents ETF holdings but lists the Fundamentals feed at
+US$41.99/month; its US$19.99 plan is EOD-only, and commercial users are directed
+to separate terms/pricing. These alternatives are above the platform-wide
+US$20/month ceiling, prohibited for automation, or lack an approved commercial
+quote. No purchase, credential, or paid activation was made. The provider audit
+and universe documentation now record these sources; DXJ/NTSX remain degraded
+and may recover only through a complete, current, identity-verified route within
+approved terms and budget.
+
+The complete branch-declared runner passed after the recovery fix: 592
+deterministic adapter tests; default live contracts (3 passed, 534 opt-in
+skipped); all 537 opt-in cases (506 passed, 31 narrowly evidenced skips); Ruff;
+branch validation; frontend type-check; 17 ETF UI tests; and frontend
+production build. The final DXJ/NTSX canary had two issuer-challenge skips and
+is not counted as a live pass. The backend unit suite passed 1,497 tests. The
+corrected Docker full gate passed the application/runtime and functional-browser
+stages but failed at generic visual E2E with 93 screenshot mismatches (stable
+1–3% pixel drift versus 0.5%). These visual test paths and snapshots are
+outside ETF ownership and were not changed. The first full-gate attempt caught
+and led to the canary-recovery fix; the corrected full gate is the current
+result.
+
+Next: re-run branch/workstream and focused runtime/YAML/session invariants for
+the final documentation diff, commit and push the self-contained ETF
+implementation/source-review changeset, then publish the separate operational
+receipt and obtain exact-SHA CI. Keep AC7 open on the generic visual gate, AC8
+open until exact-SHA CI and synchronization, AC10 gated on the other feature
+branch reaching staging, and AC14 as post-integration/deployment evidence. Do
+not alter visual baselines, other worktrees, staging, or the shared provider
+runtime from this feature worktree.

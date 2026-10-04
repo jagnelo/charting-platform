@@ -939,6 +939,15 @@ async def run_etf_holdings_capability_canaries(
             circuit_open_until = datetime.now(UTC) + timedelta(seconds=max(1, cooldown_seconds))
             state.status = "circuit_open"
         observation_now = datetime.now(UTC)
+        current_metadata = dict(current_metadata)
+        if status == "success":
+            # This marker is written only after the bounded route fetch and
+            # snapshot ingestion succeeded. It allows a newly verified route
+            # to supersede an older static issuer-access challenge.
+            current_metadata["symbol_audit_revalidated_at"] = observation_now.isoformat()
+        else:
+            current_metadata.pop("symbol_audit_revalidated_at", None)
+        state.extra_data = current_metadata
         capability = evaluate_capability(profile, snapshot, state, now=observation_now)
         observation = {
             "observed_at": observation_now.isoformat(),
