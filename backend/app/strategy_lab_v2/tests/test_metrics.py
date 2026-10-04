@@ -14,6 +14,7 @@ from app.strategy_lab_v2.contracts import (
 )
 from app.strategy_lab_v2.metrics import (
     METRIC_DEFINITION_VERSION,
+    calculate_event_aligned_equity_metrics,
     calculate_performance_metrics,
     calculate_trade_metrics,
 )
@@ -63,6 +64,69 @@ def test_performance_metrics_report_currency_drawdown_recovery_and_empirical_tai
             periods_per_year=3,
         )
     )
+
+
+def test_event_aligned_equity_metrics_use_oos_opening_mark_and_withhold_annualization() -> None:
+    trace_digest = content_digest("verified-oos-account-equity-trace")
+    metrics = _by_name(
+        calculate_event_aligned_equity_metrics(
+            (Decimal("120"), Decimal("130"), Decimal("126")),
+            base_currency="usd",
+            evidence_digest=trace_digest,
+            expected_mark_count=3,
+        )
+    )
+
+    assert metrics["total_pnl"].value == Decimal("6")  # type: ignore[attr-defined]
+    assert metrics["total_return"].value == Decimal("0.05")  # type: ignore[attr-defined]
+    with localcontext() as decimal_context:
+        decimal_context.prec = 34
+        expected_drawdown = Decimal("126") / Decimal("130") - Decimal(1)
+    assert metrics["maximum_drawdown"].value == expected_drawdown  # type: ignore[attr-defined]
+    assert metrics["maximum_drawdown_duration"].value == Decimal(1)  # type: ignore[attr-defined]
+    assert metrics["recovery_factor"].value == Decimal("1.5")  # type: ignore[attr-defined]
+    assert metrics["total_return"].sample_size == 2  # type: ignore[attr-defined]
+    assert metrics["total_return"].basis is MetricBasis.NET  # type: ignore[attr-defined]
+    assert metrics["total_return"].evidence_references[0].digest == trace_digest  # type: ignore[attr-defined]
+    assert metrics["annualized_return"].value is None  # type: ignore[attr-defined]
+    assert "irregular" in metrics["annualized_return"].null_reason  # type: ignore[attr-defined]
+    assert metrics["annualized_return"].annualization_basis is not None  # type: ignore[attr-defined]
+    assert all(
+        item.definition_version == METRIC_DEFINITION_VERSION  # type: ignore[attr-defined]
+        for item in metrics.values()  # type: ignore[attr-defined]
+    )
+
+
+def test_event_aligned_equity_metrics_do_not_claim_returns_without_oos_intervals() -> None:
+    metrics = _by_name(
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"),),
+            base_currency="USD",
+            evidence_digest=content_digest("single-opening-mark"),
+            expected_mark_count=1,
+        )
+    )
+
+    assert metrics["total_pnl"].value is None  # type: ignore[attr-defined]
+    assert metrics["total_pnl"].sample_size == 0  # type: ignore[attr-defined]
+    assert metrics["total_pnl"].null_reason == "no_scored_observations"  # type: ignore[attr-defined]
+
+
+def test_event_aligned_equity_metrics_require_verified_trace_count_and_digest() -> None:
+    with pytest.raises(ValueError, match="mark count differs"):
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("101")),
+            base_currency="USD",
+            evidence_digest=content_digest("trace"),
+            expected_mark_count=3,
+        )
+    with pytest.raises(ValueError, match="evidence_digest"):
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("101")),
+            base_currency="USD",
+            evidence_digest="not-a-digest",
+            expected_mark_count=2,
+        )
 
 
 def test_performance_tail_metrics_clip_positive_returns_and_single_samples_are_null() -> None:

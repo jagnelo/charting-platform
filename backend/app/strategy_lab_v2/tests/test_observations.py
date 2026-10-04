@@ -578,15 +578,27 @@ def test_capital_margin_metrics_use_authoritative_requirements_and_capacities() 
         expected_maintenance_to_equity = (Decimal("0.1") + Decimal(2) / Decimal(11)) / Decimal(2)
         expected_max_initial_to_equity = Decimal(3) / Decimal(11)
         expected_max_maintenance_to_equity = Decimal(2) / Decimal(11)
-    assert metrics["average_initial_margin_requirement_to_equity"].value == expected_initial_to_equity
-    assert metrics["maximum_initial_margin_requirement_to_equity"].value == expected_max_initial_to_equity
-    assert metrics["average_maintenance_margin_requirement_to_equity"].value == expected_maintenance_to_equity
-    assert metrics["maximum_maintenance_margin_requirement_to_equity"].value == expected_max_maintenance_to_equity
+    assert (
+        metrics["average_initial_margin_requirement_to_equity"].value == expected_initial_to_equity
+    )
+    assert (
+        metrics["maximum_initial_margin_requirement_to_equity"].value
+        == expected_max_initial_to_equity
+    )
+    assert (
+        metrics["average_maintenance_margin_requirement_to_equity"].value
+        == expected_maintenance_to_equity
+    )
+    assert (
+        metrics["maximum_maintenance_margin_requirement_to_equity"].value
+        == expected_max_maintenance_to_equity
+    )
     assert metrics["average_initial_margin_utilization"].basis is MetricBasis.NET
     assert metrics["average_initial_margin_utilization"].sample_size == 2
-    assert "notional_inference" in metrics[
-        "average_initial_margin_utilization"
-    ].calculation_definition.parameters
+    assert (
+        "notional_inference"
+        in metrics["average_initial_margin_utilization"].calculation_definition.parameters
+    )
     assert metrics["average_initial_margin_utilization"].evidence_references == (
         MetricEvidenceReference("capital_margin_observations", content_digest(marks)),
     )
@@ -610,7 +622,9 @@ def test_capital_margin_metrics_reject_mixed_scope_or_unordered_marks() -> None:
         maintenance_capacity="40000",
     )
     with pytest.raises(ValueError, match="same run attempt"):
-        calculate_capital_margin_utilization_metrics((first, replace(second, run_attempt_id="attempt-2")))
+        calculate_capital_margin_utilization_metrics(
+            (first, replace(second, run_attempt_id="attempt-2"))
+        )
     with pytest.raises(ValueError, match="strictly ordered"):
         calculate_capital_margin_utilization_metrics((second, first))
     with pytest.raises(ValueError, match="margin capacities must be positive"):
@@ -671,13 +685,17 @@ def test_financing_reports_reject_scope_overlap_and_out_of_range_events() -> Non
     second = _financing_observation(2, cash_effect="-10", event_id="funding-2")
     with pytest.raises(ValueError, match="report's run attempt"):
         calculate_financing_cost_metrics(
-            (_financing_report(0, 1, observations=(first,)),
-             _financing_report(1, 2, observations=(second,), attempt_id="attempt-2"))
+            (
+                _financing_report(0, 1, observations=(first,)),
+                _financing_report(1, 2, observations=(second,), attempt_id="attempt-2"),
+            )
         )
     with pytest.raises(ValueError, match="must not overlap"):
         calculate_financing_cost_metrics(
-            (_financing_report(0, 2, observations=(first,)),
-             _financing_report(1, 3, observations=(second,)))
+            (
+                _financing_report(0, 2, observations=(first,)),
+                _financing_report(1, 3, observations=(second,)),
+            )
         )
     with pytest.raises(ValueError, match="within the report interval"):
         _financing_report(0, 1, observations=(second,))
@@ -709,9 +727,9 @@ def test_stress_scenario_metrics_preserve_shock_evidence_and_report_worst_case()
     assert metrics["loss_scenario_count"].value == Decimal(2)
     with localcontext() as decimal_context:
         decimal_context.prec = 34
-        expected_average_return = (
-            Decimal("0.1") + Decimal("-0.2") + (Decimal("-0.3"))
-        ) / Decimal(3)
+        expected_average_return = (Decimal("0.1") + Decimal("-0.2") + (Decimal("-0.3"))) / Decimal(
+            3
+        )
     assert metrics["average_stressed_return"].value == expected_average_return
     assert metrics["worst_stressed_return"].value == Decimal("-0.3")
     with localcontext() as decimal_context:
@@ -727,7 +745,10 @@ def test_stress_scenario_metrics_preserve_shock_evidence_and_report_worst_case()
         sorted({item.shock_definition_digest for item in scenarios})
     )
     assert metrics["worst_stressed_return"].evidence_references == (
-        MetricEvidenceReference("stress_scenario_observations", content_digest(tuple(sorted(scenarios, key=lambda item: item.scenario_id)))),
+        MetricEvidenceReference(
+            "stress_scenario_observations",
+            content_digest(tuple(sorted(scenarios, key=lambda item: item.scenario_id))),
+        ),
     )
 
 
@@ -795,7 +816,7 @@ def test_calendar_period_metrics_reconcile_complete_period_pnl_and_return() -> N
         MetricEvidenceReference("session_calendar", calendar.fingerprint)
         in period_metric.evidence_references
     )
-    assert all(item.definition_version == "strategy-lab.metrics.v6" for item in metrics.values())
+    assert all(item.definition_version == "strategy-lab.metrics.v7" for item in metrics.values())
 
 
 def test_calendar_period_partial_and_external_flow_returns() -> None:
@@ -936,7 +957,9 @@ def test_calendar_period_partial_and_external_flow_returns() -> None:
                 ),
             ),
         ),
-        replace(flow_intervals[1], starting_equity=Decimal("110000"), ending_equity=Decimal("111000")),
+        replace(
+            flow_intervals[1], starting_equity=Decimal("110000"), ending_equity=Decimal("111000")
+        ),
     )
     boundary_flow_metrics = _metric_map(
         calculate_calendar_period_metrics(
@@ -950,10 +973,9 @@ def test_calendar_period_partial_and_external_flow_returns() -> None:
     )
     with localcontext() as decimal_context:
         decimal_context.prec = 34
-        expected_time_weighted_return = (
-            Decimal("105000") / Decimal("100000") * Decimal("111000") / Decimal("110000")
-            - Decimal(1)
-        )
+        expected_time_weighted_return = Decimal("105000") / Decimal("100000") * Decimal(
+            "111000"
+        ) / Decimal("110000") - Decimal(1)
     actual_time_weighted_return = boundary_flow_metrics[
         "calendar_period_return:monthly:month:2024-01"
     ].value
@@ -1142,7 +1164,7 @@ def test_rolling_equity_metrics_emit_reproducible_complete_session_windows() -> 
     assert metrics["rolling_sharpe_ratio"].calculation_definition.parameters[
         "risk_free_return_per_period"
     ] == Decimal(0)
-    assert all(item.definition_version == "strategy-lab.metrics.v6" for item in metrics.values())
+    assert all(item.definition_version == "strategy-lab.metrics.v7" for item in metrics.values())
 
     risk_free_target = Decimal("0.001")
     targeted_metrics = _metric_map(
@@ -1310,7 +1332,9 @@ def test_rolling_equity_metrics_separate_cash_flow_pnl_and_unavailable_risk() ->
             ),
         ),
     )
-    boundary_second = replace(second, starting_equity=Decimal("110000"), ending_equity=Decimal("111000"))
+    boundary_second = replace(
+        second, starting_equity=Decimal("110000"), ending_equity=Decimal("111000")
+    )
     boundary_point = calculate_rolling_equity_metrics(
         (boundary_first, boundary_second),
         calendar=calendar,
@@ -1321,16 +1345,17 @@ def test_rolling_equity_metrics_separate_cash_flow_pnl_and_unavailable_risk() ->
     boundary_metrics = _metric_map(boundary_point.metrics)
     with localcontext() as decimal_context:
         decimal_context.prec = 34
-        expected_boundary_return = (
-            Decimal("105000") / Decimal("100000") * Decimal("111000") / Decimal("110000")
-            - Decimal(1)
-        )
+        expected_boundary_return = Decimal("105000") / Decimal("100000") * Decimal(
+            "111000"
+        ) / Decimal("110000") - Decimal(1)
     assert boundary_metrics["rolling_return"].value is not None
-    assert abs(boundary_metrics["rolling_return"].value - expected_boundary_return) <= Decimal("1e-33")
+    assert abs(boundary_metrics["rolling_return"].value - expected_boundary_return) <= Decimal(
+        "1e-33"
+    )
     assert boundary_metrics["rolling_maximum_drawdown"].value == Decimal(0)
-    assert "geometrically linked pre/post-flow" in boundary_metrics[
-        "rolling_return"
-    ].calculation_basis
+    assert (
+        "geometrically linked pre/post-flow" in boundary_metrics["rolling_return"].calculation_basis
+    )
 
     partial_flow = replace(
         first,
@@ -1493,7 +1518,7 @@ def test_session_return_distribution_metrics_use_pinned_nearest_rank_estimators(
     assert metrics["session_return_expected_shortfall:c=0.5"].value == Decimal("0.2")
     assert all(item.sample_size == 2 for item in metrics.values())
     assert all(item.basis is MetricBasis.NET for item in metrics.values())
-    assert all(item.definition_version == "strategy-lab.metrics.v6" for item in metrics.values())
+    assert all(item.definition_version == "strategy-lab.metrics.v7" for item in metrics.values())
     assert (
         "one-based rank=1; no interpolation"
         in metrics["session_return_quantile:p=0.25"].calculation_basis
@@ -1682,7 +1707,8 @@ def test_session_return_distribution_metrics_fail_closed_on_coverage_and_flow_ev
     assert flow_result.observed_sessions == 2
     assert all(item.value is None for item in flow_result.metrics)
     assert all(
-        item.null_reason == "external cash-flow boundary valuations are required for every reported event"
+        item.null_reason
+        == "external cash-flow boundary valuations are required for every reported event"
         for item in flow_result.metrics
     )
 

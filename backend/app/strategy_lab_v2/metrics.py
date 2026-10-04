@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import replace
 from datetime import date
 from decimal import ROUND_CEILING, Decimal
 from typing import Any
 
 from app.strategy_lab_v2.allocation import PortfolioExposureSnapshot
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import (
     CASH_EQUITY_NOTIONAL_RISK_MODEL,
     METRIC_CALCULATION_CONTRACT_VERSION,
@@ -52,7 +52,7 @@ from app.strategy_lab_v2.rebalance import (
     require_complete_calendar_period_coverage,
 )
 
-METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v6"
+METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v7"
 DEFAULT_SESSION_RETURN_QUANTILE_PROBABILITIES = (
     Decimal("0.05"),
     Decimal("0.25"),
@@ -679,6 +679,226 @@ def calculate_performance_metrics(
                 "confidence_level": historical_confidence_level,
                 "tail_rule": "ceil(n * (1 - confidence)); mean worst tail; no interpolation",
             },
+        },
+    )
+
+
+@deterministic_decimal_math
+def calculate_event_aligned_equity_metrics(
+    equity_marks: Iterable[Decimal],
+    *,
+    base_currency: str,
+    evidence_digest: str,
+    expected_mark_count: int,
+    basis: MetricBasis = MetricBasis.NET,
+) -> tuple[MetricValue, ...]:
+    """Summarize native OOS equity marks without inventing a time cadence.
+
+    The first mark is the scoring-window opening valuation, sampled before the
+    strategy receives its first scoring event. Later marks are native account
+    equity observed at event callbacks. This supports cumulative P&L, return,
+    and path drawdown summaries while deliberately withholding cadence-based
+    and calendar-based statistics until the caller supplies an explicit basis.
+    The trace is from a single local backtest account, whose execution bridge
+    does not permit external deposits or withdrawals after initial funding.
+    """
+
+    currency = _currency_code(base_currency)
+    if not isinstance(basis, MetricBasis):
+        raise TypeError("basis must be a MetricBasis")
+    require_sha256_digest(evidence_digest, field_name="evidence_digest")
+    if (
+        not isinstance(expected_mark_count, int)
+        or isinstance(expected_mark_count, bool)
+        or expected_mark_count < 1
+    ):
+        raise ValueError("expected_mark_count must be a positive integer")
+
+    iterator = iter(equity_marks)
+    opening_equity = next(iterator, None)
+    if (
+        not isinstance(opening_equity, Decimal)
+        or not opening_equity.is_finite()
+        or opening_equity < 0
+    ):
+        raise ValueError("equity marks must start with a finite non-negative opening mark")
+
+    mark_count = 1
+    scored_observations = 0
+    terminal_equity = opening_equity
+    peak_equity = opening_equity
+    maximum_drawdown = Decimal(0)
+    maximum_drawdown_amount = Decimal(0)
+    current_drawdown_duration = 0
+    maximum_drawdown_duration = 0
+    squared_drawdown_total = Decimal(0)
+    observed_drawdowns = 0
+
+    for equity in iterator:
+        if not isinstance(equity, Decimal) or not equity.is_finite() or equity < 0:
+            raise ValueError("equity marks must be finite non-negative Decimals")
+        mark_count += 1
+        scored_observations += 1
+        terminal_equity = equity
+        peak_equity = max(peak_equity, equity)
+        if peak_equity > 0:
+            drawdown = equity / peak_equity - Decimal(1)
+            maximum_drawdown = min(maximum_drawdown, drawdown)
+            maximum_drawdown_amount = max(maximum_drawdown_amount, peak_equity - equity)
+            squared_drawdown_total += drawdown**2
+            observed_drawdowns += 1
+            if drawdown < 0:
+                current_drawdown_duration += 1
+                maximum_drawdown_duration = max(
+                    maximum_drawdown_duration, current_drawdown_duration
+                )
+            else:
+                current_drawdown_duration = 0
+        else:
+            current_drawdown_duration = 0
+
+    if mark_count != expected_mark_count:
+        raise ValueError("equity mark count differs from the verified native trace receipt")
+
+    reference = MetricEvidenceReference("native_oos_account_equity_trace", evidence_digest)
+    observation_basis = (
+        "native OOS account-equity callback marks; the first mark is the opening valuation, "
+        "and subsequent marks are scored observations"
+    )
+    no_scored_observations = scored_observations == 0
+    drawdown_null_reason: str | None
+    return_null_reason: str | None
+    recovery_null_reason: str | None
+    if no_scored_observations:
+        unavailable = "no post-opening OOS equity observations"
+        total_pnl: Decimal | None = None
+        total_return: Decimal | None = None
+        drawdown_value: Decimal | None = None
+        drawdown_duration: Decimal | None = None
+        ulcer_index: Decimal | None = None
+        recovery_factor: Decimal | None = None
+        drawdown_null_reason = unavailable
+        return_null_reason = unavailable
+        recovery_null_reason = unavailable
+    else:
+        total_pnl = terminal_equity - opening_equity
+        total_return = terminal_equity / opening_equity - Decimal(1) if opening_equity > 0 else None
+        return_null_reason = None if opening_equity > 0 else "opening equity is zero"
+        drawdown_value = maximum_drawdown if opening_equity > 0 else None
+        drawdown_duration = Decimal(maximum_drawdown_duration)
+        ulcer_index = (
+            (squared_drawdown_total / Decimal(observed_drawdowns)).sqrt()
+            if observed_drawdowns
+            else None
+        )
+        drawdown_null_reason = None if opening_equity > 0 else "opening equity is zero"
+        if maximum_drawdown_amount > 0:
+            recovery_factor = total_pnl / maximum_drawdown_amount
+            recovery_null_reason = None
+        else:
+            recovery_factor = None
+            recovery_null_reason = "maximum drawdown is zero"
+
+    cadence_unavailable = "native event marks are irregular and no explicit sampling/calendar annualization basis was supplied"
+    metrics = [
+        _value(
+            "total_pnl",
+            total_pnl,
+            unit=f"currency:{currency}",
+            basis=basis,
+            sample_size=scored_observations,
+            calculation_basis=f"terminal OOS equity minus opening OOS equity; {observation_basis}",
+            null_reason=("no_scored_observations" if total_pnl is None else None),
+        ),
+        _value(
+            "total_return",
+            total_return,
+            unit="fraction",
+            basis=basis,
+            sample_size=scored_observations,
+            calculation_basis=f"terminal OOS equity divided by opening OOS equity minus one; {observation_basis}",
+            null_reason=return_null_reason,
+        ),
+        _value(
+            "maximum_drawdown",
+            drawdown_value,
+            unit="fraction",
+            basis=basis,
+            sample_size=scored_observations,
+            calculation_basis=f"event-mark equity versus running peak, including opening OOS equity; {observation_basis}",
+            null_reason=drawdown_null_reason,
+        ),
+        _value(
+            "maximum_drawdown_duration",
+            drawdown_duration,
+            unit="event_observations",
+            basis=basis,
+            sample_size=scored_observations,
+            calculation_basis=f"consecutive native event-mark observations below running peak; {observation_basis}",
+            null_reason=drawdown_null_reason,
+        ),
+        _value(
+            "ulcer_index",
+            ulcer_index,
+            unit="fraction",
+            basis=basis,
+            sample_size=scored_observations,
+            calculation_basis=f"square root of mean squared OOS event-mark drawdown fractions; {observation_basis}",
+            null_reason=drawdown_null_reason,
+        ),
+        _value(
+            "recovery_factor",
+            recovery_factor,
+            unit="ratio",
+            basis=basis,
+            sample_size=scored_observations,
+            calculation_basis="net OOS account P&L divided by maximum peak-to-trough loss in base currency",
+            null_reason=recovery_null_reason,
+        ),
+    ]
+    for name, unit in (
+        ("annualized_return", "fraction"),
+        ("annualized_volatility", "fraction"),
+        ("sharpe_ratio", "ratio"),
+        ("sortino_ratio", "ratio"),
+        ("historical_value_at_risk", "fraction"),
+        ("historical_expected_shortfall", "fraction"),
+    ):
+        metrics.append(
+            _value(
+                name,
+                None,
+                unit=unit,
+                basis=basis,
+                sample_size=scored_observations,
+                annualization_basis=f"unavailable: {cadence_unavailable}",
+                calculation_basis=(
+                    f"withheld for irregular native event marks; {observation_basis}"
+                ),
+                null_reason=cadence_unavailable,
+            )
+        )
+    metrics.append(
+        _value(
+            "calmar_ratio",
+            None,
+            unit="ratio",
+            basis=basis,
+            sample_size=scored_observations,
+            annualization_basis=f"unavailable: {cadence_unavailable}",
+            calculation_basis="annualized return divided by the absolute maximum drawdown fraction",
+            null_reason=cadence_unavailable,
+        )
+    )
+    return _finalize_metric_values(
+        metrics,
+        evidence_references=(reference,),
+        common_calculation_parameters={
+            "observation_basis": "irregular_native_market_event_marks",
+            "opening_mark_included_in_path": True,
+            "annualization_basis": None,
+            "external_cash_flow_policy": "backtest account permits initial funding only",
+            "trace_mark_count": mark_count,
         },
     )
 

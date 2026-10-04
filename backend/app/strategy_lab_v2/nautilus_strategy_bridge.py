@@ -1926,6 +1926,9 @@ def build_native_strategy_bridge(
                 int(ts_event),
             )
             if account_equity_trace_writer is not None:
+                # This runs before strategy invocation/order routing. Therefore
+                # the first in-window mark is the OOS opening valuation, not a
+                # warm-up-contaminated comparison against initial portfolio cash.
                 native_account = self.portfolio.account(venue=native_venue_id)
                 if native_account is None:
                     raise NautilusRuntimeDataError("native portfolio has no account for its venue")
