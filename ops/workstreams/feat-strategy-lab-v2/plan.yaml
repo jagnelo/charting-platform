@@ -830,8 +830,9 @@ progress:
     - nautilus-oos-absolute-drawdown-v1
     - nautilus-oos-session-risk-metric-wiring-v1
     - nautilus-oos-session-close-intervals-v1
+    - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
   total: 18
-  current_phase: strategy-domain-mutation-flows-v1
+  current_phase: strategy-lab-v2-authoritative-backtest-activation-v1
   current_blocker: >-
     No external release or upstream event blocks the next local implementation
     context. An exact-pinned stable or release-candidate build may qualify for
@@ -850,16 +851,17 @@ progress:
     Options order admission remains fail-closed pending canonical event-time
     Greeks/delta and settlement evidence.
   next_action: >-
-    Continue domain-backed mutation flows, starting with owner-authorized
-    resource updates and the corresponding durable PostgreSQL aggregate bridge.
-    Keep immutable identities, idempotency, compare-and-set semantics, and
-    terminal-state rules aligned with existing create/read APIs. Then continue
-    worker recovery/scaling and persistent broker-free forward-shadow
-    correctness. Use the pinned RC5 runtime for local backtests under its four
-    passing checks; do not wait for a stable release. Do not enable full/forward
-    shadow until event-tape parity completes the fifth check, and never allow a
-    prerelease to connect to a broker or control real capital. Options remain
-    fail-closed pending canonical event-time Greeks/delta and settlement
-    evidence. Consume provider/ETF/TC2000 shared contracts only after their
-    approved branches reach staging. Run the final Compose/browser validation
-    when Docker Buildx and API access are available.
+    Implement production assembly from the owner-scoped immutable trial graph
+    into an exact-pinned Nautilus RC5 worker input, then connect isolated worker
+    execution to authoritative result publication. Start with
+    nautilus_trial_assembly.py, nautilus_trial_materializer.py, and the dedicated
+    worker composition/tests. Keep market-data acquisition outside the engine.
+    RC5 may publish local backtests only with matching four-check conformance;
+    do not wait for a stable label. Broker-free forward shadow still requires
+    the fifth event-tape parity check, and no prerelease may connect to a broker
+    or control real capital. Keep immutable resources create-only; version
+    changes create new identities and mutable lifecycle changes use dedicated
+    owner-scoped commands. Options remain fail-closed pending canonical
+    event-time Greeks/delta and settlement evidence. Consume provider/ETF/TC2000
+    shared contracts only after their approved branches reach staging. Run the
+    final Compose/browser validation when Docker Buildx is available.

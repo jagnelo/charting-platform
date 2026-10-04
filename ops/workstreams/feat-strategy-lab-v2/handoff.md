@@ -9633,3 +9633,50 @@ passed at `2026-10-04T22:13:40Z` on a clean boundary with
 Docker API access is available under the scoped elevated check (server
 29.1.3), but `docker buildx version` still reports an unknown command, so the
 full Compose/browser profile remains unrun.
+
+## 2026-10-04 - Owner-scoped typed domain identity reservation
+
+The typed resource-create seam now binds server-generated API resource IDs to
+the authenticated owner and atomically reserves each `(owner, resource type,
+domain fingerprint)` alongside its immutable resource aggregate. A same-owner
+alias create for an already-persisted StrategyVersion is rejected before it
+can make fingerprint-based trial-graph hydration ambiguous. Identical domain
+content can still be independently owned by another principal; its generated
+resource ID and reservation are owner-scoped. Exact idempotent retries include
+the identity reservation in the existing aggregate transaction receipt.
+
+This preserves the immutable-domain model: strategy/package/portfolio/etc.
+changes create new versioned identities; no generic in-place update route was
+added. Mutable lifecycle changes continue to use their dedicated owner-scoped
+commands. The source change owns `backend/app/strategy_lab_v2/application.py`,
+`backend/app/strategy_lab_v2/tests/test_application.py`, and
+`docs/strategy-lab-v2.md`.
+
+Validation: the Strategy Lab v2 package suite completed with 1,341 passing
+tests; the only default-sandbox denial was the existing Unix-domain-socket
+test, which passed in a scoped rerun (1,342 passing in total). The final
+identity/replay application regression passed, the PostgreSQL aggregate-store
+suite passed 6 tests, Ruff and MyPy passed, and `git diff --check` was clean.
+The code/documentation change is commit
+`2d7edd0e657d5fb8264e070045a291ec7cc1c941`, pushed to
+`origin/feat/strategy-lab-v2`. The worktree was clean and synchronized before
+this separate operational checkpoint.
+
+The current Nautilus release-candidate path is not blocked by stable labeling:
+the exact RC5 fixture receipt records the four local-backtest checks as passed;
+full broker-free forward scope still needs canonical event-tape parity as its
+fifth check. The saved Codex goal's stable-only wording is stale execution
+metadata; the branch-owned plan and session objective govern continuation.
+Neither that release label nor Docker Buildx blocks further implementation.
+Buildx remains an environment hold only for the final Compose/browser profile.
+Provider, ETF, and TC2000 dependencies gate reconciliation only on overlapping
+shared paths until their branches reach staging.
+
+Next implementation context: assemble the owner-scoped frozen trial graph into
+an exact-pinned RC5 worker input and connect isolated execution to authoritative
+result publication. Begin in `nautilus_trial_assembly.py`,
+`nautilus_trial_materializer.py`, and the dedicated worker composition/tests;
+preserve the rule that the simulator never acquires market data. Continue later
+with worker recovery/scaling and forward event-tape parity. Do not wait for a
+stable Nautilus label or claim Compose/browser validation until Buildx is
+available.
