@@ -1,5 +1,13 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Gate checkpoint published
+
+Workstream-only commit `0e5d80b74f4614a375118a3ff88f08834b171b43`
+(`docs(tc2000): refresh gate evidence`) was pushed to
+`origin/feat/tc2000-frontend-rework`. Direct GitHub lookup, the local branch,
+and the origin tracking ref all resolve to this SHA. It refreshes the aggregate
+gate/browser findings and upstream dependency refs; no product source changed.
+
 ## 2026-10-05 — Aggregate gate and browser findings
 
 The serial `make validate-integration` run no longer exits `152` during backend
