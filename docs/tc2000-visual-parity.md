@@ -7,6 +7,19 @@ modified. The new Chart Plot Library search interaction has functional browser
 coverage, but the checked-in board does not capture that panel open, so its
 exact styling still lacks screenshot coverage.
 
+## 2026-10-04 — Focused Study sandbox-error replay at `816fd82`
+
+The two 1080p sandbox-error cases were replayed in pinned Chromium against
+product source `816fd82ac351770deb455e767a59f28e68c2dde9`. Both reached the
+screenshot assertion after their Study state and interaction checks passed;
+the comparisons differed by `17,559` pixels at 1080p/100 and `16,644` pixels
+at 1080p/125 (about `1%`). The visible parameter-schema example placeholder
+currently displays `20`, while the saved local images display `2`. This is a
+known local screenshot-state mismatch, not an authoritative V25 capture, and it
+does not establish that the whole pixel delta has one cause. No snapshot,
+threshold, mask, skip, or acceptance rule changed; baseline review remains
+required.
+
 ## 2026-10-04 — Latest pinned-browser matrix: 93/104 pass at `7427de7`
 
 The full 104-case board completed in pinned Playwright 1.62.1 with 93 passes

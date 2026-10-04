@@ -1,5 +1,69 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-04 — Study parameter-schema errors are tied to their field
+
+Product commit `d37a0f98769f01f3dc88e075c3ed3aa97381ad1f` marks the Study
+parameter-schema textarea `aria-invalid` while its JSON is malformed and links
+it to the visible error text with a per-component-instance description ID.
+Correcting the JSON removes both states. This makes the error discoverable to
+assistive technology without changing the visible layout or Study execution
+contract.
+
+The focused StudyLabTool suite passed `45/45`; the full serial frontend suite
+passed `128/128` files and `1,189/1,189` tests; frontend type-check and the
+Docker production `vue-tsc`/Vite build passed. The updated authenticated
+Chromium F8t flow passed `1/1`, checking the invalid state, error association,
+and recovery; browser diagnostics were clean. The TC scope guard accepted all
+`122` changed paths and all six self-tests passed. `git diff --check` passed.
+
+The two 1080p sandbox-error visual cases were also replayed against product
+source `816fd82ac351770deb455e767a59f28e68c2dde9`. Their state assertions
+passed, then the unchanged screenshot oracle reported `17,559` pixels at
+1080p/100 and `16,644` at 1080p/125 (about `1%`). The current schema example
+placeholder shows `20`; the saved images show `2`. This is a known local-image
+state difference, not V25 authority and not proof that the entire pixel delta
+has one cause. No snapshot, threshold, mask, skip, or acceptance rule changed.
+
+The assigned Compose stack was removed after testing: six containers, four
+volumes, its network, and four generated images; no retained stack resources
+or test sessions were reported. No provider-platform or ETF-owned behavior was
+changed. Continue independent R1/R5/R6 work; wait for both upstream branches
+to reach staging before consumer integration or shared-path reconciliation.
+The full goal remains active.
+
+Changed product paths: `frontend/src/components/workstation/StudyLabTool.vue`,
+`frontend/tests/unit/components/test_study_lab_tool.test.ts`, and
+`frontend/tests/e2e/flows.spec.ts`.
+
+## 2026-10-04 — Wildcard link state survives saves and reloads
+
+Product commit `816fd82ac351770deb455e767a59f28e68c2dde9` persists symbols and
+canonical instrument IDs per concrete link group, plus Yellow's last received
+symbol/timeframe, and restores them before workstation tools mount. A workspace
+revision conflict now merges only the known link-state settings per group;
+conflicts on unrelated settings still preserve the existing recovery-copy
+behavior. Moving a Yellow receiver to Grey captures the current wildcard symbol
+and instrument ID instead of retaining a stale configured ID.
+
+The workspace-store suite passed `75/75`, full frontend Vitest passed `128`
+files / `1,188` tests, type-check and production build passed, and the exact-tip
+authenticated Chromium F8m test passed `1/1` after verifying a successful
+workspace snapshot and reload. The TC scope guard passed for `122` changed
+paths with all six self-tests. Link settings merge assertions also verify
+independent group changes combine while the local selection wins a same-group
+conflict; a separate regression keeps unrelated setting conflicts on the
+recovery path. No provider/ETF-owned behavior or visual screenshot oracle,
+reference, threshold, mask, skip, or acceptance rule changed.
+
+The host does not have the Docker Buildx plugin, so `make test-stack-up` failed
+before building. Docker Compose's default builder successfully built and ran
+only this worktree's named project. `make test-stack-down` then removed its six
+containers, four volumes, network, and four generated images; resource
+accounting reported no retained resources. This is a host tooling note, not a
+product blocker. Continue independent TC-owned R1/R5/R6 work; defer provider and
+ETF consumer integration until both branches reach staging. The goal remains
+active and is not blocked.
+
 ## 2026-10-04 — V25 chart symbol-link groups and deterministic Study capture
 
 Product commit `a7b1c11ce3927beb17cc52391a8a04b615430cb1` makes primary and

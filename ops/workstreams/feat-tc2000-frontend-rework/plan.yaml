@@ -272,24 +272,27 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_v25_symbol_group_linking
+  current_phase: R5_study_parameter_schema_accessibility
   next_action: >-
-    Continue comparing mapped V25 chart interactions and the TC-owned
-    Study/Strategy promotion matrix; implement the next material functional
-    gap and run the complete gate at each clean exact tip. Keep protected
-    screenshot policies unchanged and wait for both upstream changes to reach
-    staging before consumer integration or semantic reconciliation.
+    Continue the TC-owned V25 workstation and Study/Strategy roadmap; select
+    the next material frontend gap and validate it at its exact product tip.
+    Keep protected screenshot policies unchanged. Wait for both upstream
+    changes to reach staging before consumer integration or semantic
+    reconciliation.
   current_blocker: >-
     No external dependency blocks independent TC frontend work. Ten protected
     screenshot differences await the review required by
-    `docs/tc2000-visual-parity.md`; provider/ETF consumer integration waits for
-    both tips to reach staging. Neither prevents independent TC UI or
-    Study/Strategy work. GitHub DNS resolution also failed during a read-only
-    attempt to refresh dependency refs; local commits remain the durable branch
-    state and must be synchronized when the remote becomes reachable and the
-    allowed push path permits it. The exact full integration/browser gate is
-    pending.
+    `docs/tc2000-visual-parity.md`; the focused sandbox-error replay at product
+    source `816fd82` reproduced the two 1080p differences (17,559 and 16,644
+    pixels) with a visible placeholder mismatch (`20` versus saved `2`). No
+    baseline was changed. Provider/ETF consumer integration waits for both
+    tips to reach staging. GitHub DNS resolution failed during the last
+    read-only ref refresh, and the earlier push range was rejected by the
+    repository egress safeguard; do not use an alternate route. These gates do
+    not prevent independent UI or Study/Strategy work. The exact full
+    integration/browser gate remains pending.
 historical_implementation_records:
+  - "Product commit d37a0f98769f01f3dc88e075c3ed3aa97381ad1f associates malformed Study parameter-schema input with its accessible error using aria-invalid and a unique per-instance aria-describedby target; correcting the JSON clears both. Focused StudyLabTool coverage passed 45/45, full frontend Vitest passed 128 files / 1,189 tests, type-check and Docker production build passed, the updated authenticated Chromium F8t flow passed 1/1 with clean browser diagnostics, and the TC scope guard accepted 122 paths with all six self-tests. The unchanged two-case sandbox-error screenshot replay at source 816fd82 remained at 17,559 / 16,644 differing pixels because the visible example placeholder is 20 while the saved image shows 2; no screenshot oracle or policy changed. Scoped Docker cleanup removed all assigned resources. No provider/ETF-owned behavior changed."
   - "Product commit a7b1c11ce3927beb17cc52391a8a04b615430cb1 aligns primary and legacy chart symbol-link choices with the ten canonical workstation groups: eight normal groups, Yellow wildcard receive, and Grey isolation; persisted legacy null values migrate to Grey and invalid entries are ignored. The pinned authenticated F8m chart-panels flow passed 1/1, proving Purple-to-Yellow symbol propagation and Grey isolation. Focused linking tests passed 9/9, the full frontend coverage suite passed, vue-tsc/Vite production build passed, TC scope validation passed for 122 touched paths with all six self-tests, and the four-viewport Study-running screenshot replay passed 4/4 after its fixture held unrelated OHLCV loading. The latest full visual board at pre-change product SHA 7427de7 completed 93/104; ten stable screenshot-state differences remain for review, with no references, masks, thresholds, skips, or acceptance policy changed. No provider-platform or ETF-owned behavior changed."
   - "Product commit aa6472fb3582d5d60d685e26f72f809b4397e5ef makes the primary chart's indicator-settings dialog consume the existing `/indicators/registry` parameter types and min/max constraints. Integer periods reject fractions, backend minimums apply to number inputs, and Apply stays disabled if limits are absent or the registry request fails. Focused ChartPlotLibrary coverage passed 40/40, frontend type-check passed, TC ownership guard passed for 118 paths and all six self-tests, and the host-level Docker preflight passed with zero retained resources. An unprivileged preflight had only recorded the sandbox's denied Docker socket; the explicit host-context retry succeeded. The exact full integration/browser gate remains pending. No backend/provider/ETF ownership, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 7dcde92c21cc6ab26d721a82059e91b62eab1408 restores focus to the owning Drawing Toolbar group button after a keyboard selection closes its menu, avoiding focus loss to document body while preserving active drawing mode and appearance. The focused unit suite passed 2/2; authenticated Chromium F14-keyboard passed 1/1; the full serial frontend suite passed 128 files / 1,170 tests; vue-tsc and production build passed with the existing large-chunk warning. The branch-scoped six-service Compose stack became healthy using the standard builder despite the host's Buildx warning, then scoped cleanup removed four generated images and all containers, volumes, and network; resource accounting reported zero remaining resources. No visual oracle, provider/ETF behavior, or acceptance policy changed."
@@ -580,6 +583,7 @@ historical_implementation_records_continued:
 
   - "Product commit 7e927a1f03d7 converts the Chart Templates popup from a menu to a named dialog because it contains a text field and dropdown. The trigger announces aria-haspopup=dialog; ArrowDown focuses the name field, ArrowUp focuses Import, and Escape restores trigger focus. Focused tests passed 15/15; the full serial frontend suite passed 128 files and 1,168/1,168 tests; type-check/build passed with the existing chunk warning. Authenticated Firefox browser verification confirmed dialog semantics and focus recovery."
   - "Product commit eddce5b9d988 adds editable indicator parameters, line styling, and timeframe applicability to the primary workstation Chart Plot Library; chart edit requests now open the same accessible settings dialog, which validates inputs, retains custom parameters, saves against the active instrument, and restores focus. Focused ChartPlotLibrary tests passed 37/37; the clean exact-commit serial frontend suite passed 128/128 files and 1,173/1,173 tests; vue-tsc/Vite build, TC scope guard (118 changed paths), six scope self-tests, workstream validation, and git diff --check passed. An authenticated local Chromium interaction changed SMA(20) to SMA(50). The branch-scoped six-service Compose stack was removed with its temporary volumes and generated images; resource accounting found zero remaining containers, volumes, images, test sessions, or unknown resources. No provider/ETF behavior, screenshot oracle, baseline, mask, threshold, skip, fallback, or acceptance policy changed."
+  - "Product commit 816fd82ac351770deb455e767a59f28e68c2dde9 persists each concrete symbol-link group's symbol and canonical instrument id, Yellow's last received symbol and timeframe, and restores that state before workstation tools mount. Workspace revision conflicts now merge only the known link settings per group, preferring the current local group selection; unrelated setting conflicts retain the recovery-copy path. Full frontend Vitest passed 128 files / 1,188 tests; workspace-store tests passed 75/75; type-check and production build passed; the exact-commit authenticated Chromium F8m wildcard save/reload flow passed 1/1; TC scope validation passed for 122 changed paths and all six self-tests. No provider/ETF-owned behavior or visual reference, threshold, mask, skip, fallback, or acceptance policy changed. The Docker Buildx plugin is absent on this host, so the normal stack target stopped before building; the same worktree-scoped Compose project built successfully with the default builder and its six containers, four volumes, network, and four generated images were removed after the browser check."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."
