@@ -169,8 +169,9 @@ class NautilusTrialPreparationContext:
         """Construct a backtest-only host context from one exact conformance result.
 
         The engine binding, evidence/report pair, and isolated runtime image are
-        derived together. Only stable v2 evidence can construct this context;
-        the separate compatibility constructor is used for pinned prereleases.
+        derived together. Stable v2 or an exact-pinned release candidate can
+        construct this local-backtest context; compatibility remains available
+        for candidates that have not passed the required backtest checks.
         """
 
         if not isinstance(

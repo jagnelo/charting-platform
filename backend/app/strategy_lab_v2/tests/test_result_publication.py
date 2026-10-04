@@ -4,8 +4,6 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
 
-import pytest
-
 from app.strategy_lab_v2.allocation import ALLOCATION_DEFINITION_VERSION
 from app.strategy_lab_v2.artifacts import artifact_content_digest, verify_artifact_payload
 from app.strategy_lab_v2.canonical import content_digest
@@ -382,8 +380,8 @@ def test_result_publication_rejects_build_or_runtime_mismatch() -> None:
     assert "engine_build_mismatch" in rejected.rejection_reasons
 
 
-def test_release_candidate_cannot_build_authoritative_result_provenance() -> None:
-    result, stable_evidence, _, runtime, _, _ = _result()
+def test_release_candidate_builds_backtest_authoritative_result_provenance() -> None:
+    result, _stable_evidence, _, runtime, _, _ = _result()
     backtest_checks = frozenset(
         check
         for check in ConformanceCheck
@@ -424,8 +422,32 @@ def test_release_candidate_cannot_build_authoritative_result_provenance() -> Non
     )
     assert not conformance.authoritative
     assert conformance.missing_checks == frozenset({ConformanceCheck.FORWARD_EVENT_TAPE_PARITY})
-    with pytest.raises(ValueError, match="stable Nautilus v2"):
-        build_nautilus_result_provenance(execution_plan, evidence, conformance, sandbox_plan)
+    provenance = build_nautilus_result_provenance(
+        execution_plan, evidence, conformance, sandbox_plan
+    )
+    assert provenance.release_channel is EngineReleaseChannel.RELEASE_CANDIDATE
+    assert provenance.execution_scope == NautilusExecutionScope.BACKTEST_AUTHORITATIVE.value
+    rc_result = replace(
+        result,
+        engine_version="2.0.0rc5",
+        engine_build_digest=BUILD,
+        engine_provenance=provenance,
+    )
+    assert rc_result.engine_authoritative
+    integrity = verify_run_result_artifacts(
+        rc_result,
+        (verify_artifact_payload(rc_result.output_artifacts[0], b"result"),),
+    )
+    publication = plan_result_publication(
+        rc_result,
+        evidence,
+        conformance,
+        runtime,
+        integrity,
+        execution_plan=execution_plan,
+    )
+    assert publication.decision is ResultPublicationDecision.PUBLISH
+    assert publication.accepted
 
 
 def test_authoritative_publication_requires_bound_scope_and_complete_backtest_checks() -> None:

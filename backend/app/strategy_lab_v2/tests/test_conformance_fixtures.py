@@ -837,7 +837,7 @@ def test_rc_conformance_resolver_emits_non_authoritative_partial_evidence() -> N
     assert result.fingerprint.startswith("sha256:")
 
 
-def test_rc_conformance_can_bind_only_non_authoritative_backtest_scope() -> None:
+def test_rc_conformance_can_bind_authoritative_local_backtests() -> None:
     runtime = _rc_runtime()
     receipt = _rc_receipt(runtime)
     resolution = resolve_nautilus_rc_conformance(
@@ -850,7 +850,7 @@ def test_rc_conformance_can_bind_only_non_authoritative_backtest_scope() -> None
 
     assert not resolution.report.compatible
     assert not resolution.report.authoritative
-    binding = build_nautilus_backtest_compatibility_binding(
+    binding = build_nautilus_backtest_execution_binding(
         resolution,
         product_classes=frozenset({ProductClass.EQUITY}),
         execution_models=frozenset({"bar-close"}),
@@ -860,14 +860,7 @@ def test_rc_conformance_can_bind_only_non_authoritative_backtest_scope() -> None
     assert binding.engine_name == "nautilus"
     assert binding.engine_version == "2.0.0rc5"
     assert binding.conformance_fingerprint == resolution.evidence.fingerprint
-    assert not binding.authoritative
-    with pytest.raises(ValueError, match="stable Nautilus v2"):
-        build_nautilus_backtest_execution_binding(
-            resolution,
-            product_classes=frozenset({ProductClass.EQUITY}),
-            execution_models=frozenset({"bar-close"}),
-            account_models=frozenset({"cash-equity"}),
-        )
+    assert binding.authoritative
 
 
 def test_stable_v2_conformance_can_bind_authoritative_local_backtests() -> None:

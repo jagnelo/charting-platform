@@ -165,6 +165,40 @@ async def test_context_binding_accepts_async_exact_rc_context(tmp_path: Path) ->
 
 
 @pytest.mark.asyncio
+async def test_context_binding_accepts_exact_rc_authoritative_backtest_context(
+    tmp_path: Path,
+) -> None:
+    graph, _store, _packages, _materializer, compatibility_context, _worker_state = _setup(
+        tmp_path / "trial"
+    )
+    resolution = _resolution()
+    authoritative_context = NautilusTrialPreparationContext.from_authoritative_backtest_conformance(
+        conformance_resolution=resolution,
+        product_classes=frozenset(
+            {compatibility_context.market_context.instruments[0].product_class}
+        ),
+        execution_models=frozenset({"bar-close-v1"}),
+        account_models=frozenset({"cash-equity-v1"}),
+        market_context=compatibility_context.market_context,
+        runtime_profile=compatibility_context.runtime_profile,
+        worker_profile=compatibility_context.worker_profile,
+        admission_ledger=compatibility_context.admission_ledger,
+        reservation_id=compatibility_context.reservation_id,
+        lease_id=compatibility_context.lease_id,
+        image_name=compatibility_context.image_name,
+        output_path=compatibility_context.output_path,
+        now=compatibility_context.now,
+    )
+    bound = bind_context_to_rc_evidence(
+        lambda _request, _graph: authoritative_context,
+        conformance_resolution=resolution,
+        runtime_abi=RUNTIME_ABI,
+    )
+
+    assert await bound(_request(graph.attempt.attempt_id), graph) == authoritative_context
+
+
+@pytest.mark.asyncio
 async def test_context_binding_rejects_non_compatibility_scope(
     tmp_path: Path,
 ) -> None:
@@ -180,7 +214,7 @@ async def test_context_binding_rejects_non_compatibility_scope(
         runtime_abi=RUNTIME_ABI,
     )
 
-    with pytest.raises(ValueError, match="RC search preparation must remain non-authoritative"):
+    with pytest.raises(ValueError, match="RC search preparation is restricted to local backtest"):
         await bound(_request(graph.attempt.attempt_id), graph)
 
 

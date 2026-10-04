@@ -203,7 +203,7 @@ def test_authoritative_nautilus_gate_rejects_runtime_image_drift() -> None:
     assert "nautilus_runtime_image_mismatch" in result.rejection_reasons
 
 
-def test_release_candidate_cannot_be_authoritative_but_other_engines_are_also_rejected() -> None:
+def test_release_candidate_is_authoritative_only_in_backtest_scope() -> None:
     trial, attempt, source, capability, lease = _execution_fixture(authoritative=True)
     from app.strategy_lab_v2.execution import authorize_execution
 
@@ -222,23 +222,24 @@ def test_release_candidate_cannot_be_authoritative_but_other_engines_are_also_re
     )
     assert candidate.decision is EngineExecutionDecision.REJECT
     assert not candidate.authoritative
-    assert "authoritative_stable_release_required" in candidate.rejection_reasons
+    assert "authoritative_conformance_required" in candidate.rejection_reasons
+    assert "authoritative_full_scope_requires_stable_release" in candidate.rejection_reasons
 
-    partial_evidence, partial_report = _conformance(
+    backtest_evidence, backtest_report = _conformance(
         channel=EngineReleaseChannel.RELEASE_CANDIDATE,
-        checks=NautilusExecutionScope.BACKTEST_COMPATIBILITY.required_checks,
+        checks=NautilusExecutionScope.BACKTEST_AUTHORITATIVE.required_checks,
     )
-    partial = plan_nautilus_execution(
+    backtest = plan_nautilus_execution(
         authorization,
         runtime,
-        partial_evidence,
-        partial_report,
+        backtest_evidence,
+        backtest_report,
         _plan(request),
         data_snapshot_fingerprint=content_digest("snapshot"),
+        execution_scope=NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
     )
-    assert partial.decision is EngineExecutionDecision.REJECT
-    assert "required_engine_conformance_failed" in partial.rejection_reasons
-    assert "authoritative_conformance_required" in partial.rejection_reasons
+    assert backtest.decision is EngineExecutionDecision.READY
+    assert backtest.authoritative
 
     foreign, foreign_report = _conformance(engine_id="other-engine")
     non_nautilus = plan_nautilus_execution(
@@ -314,9 +315,6 @@ def test_backtest_authority_still_requires_every_simulator_check() -> None:
     assert result.decision is EngineExecutionDecision.REJECT
     assert result.authoritative is False
     assert "required_engine_conformance_failed" in result.rejection_reasons
-    assert "stable_nautilus_v2_required_for_authoritative_backtest_scope" in (
-        result.rejection_reasons
-    )
 
 
 def test_execution_gate_rejects_conformance_report_not_derived_from_evidence() -> None:
@@ -633,12 +631,8 @@ def test_parsed_rc_receipt_can_feed_backtest_execution_scope() -> None:
     )
 
     assert conformance.report.authoritative is False
-    assert authoritative_backtest.decision is EngineExecutionDecision.REJECT
-    assert authoritative_backtest.authoritative is False
-    assert (
-        "stable_nautilus_v2_required_for_authoritative_backtest_scope"
-        in authoritative_backtest.rejection_reasons
-    )
+    assert authoritative_backtest.decision is EngineExecutionDecision.READY
+    assert authoritative_backtest.authoritative is True
     assert authoritative_backtest.execution_scope is NautilusExecutionScope.BACKTEST_AUTHORITATIVE
 
 

@@ -105,8 +105,10 @@ def build_nautilus_result_provenance(
             and not conformance_report.authoritative
         ):
             raise ValueError("full-scope authority requires complete conformance")
-        if conformance_evidence.release_channel is not EngineReleaseChannel.STABLE:
-            raise ValueError("stable Nautilus v2 is required for authoritative result provenance")
+        if execution_plan.execution_scope is NautilusExecutionScope.FULL and (
+            conformance_evidence.release_channel is not EngineReleaseChannel.STABLE
+        ):
+            raise ValueError("full-scope authoritative provenance requires stable Nautilus v2")
     return NautilusResultProvenance(
         release_pin=conformance_evidence.release_pin,
         release_channel=conformance_evidence.release_channel,
@@ -171,8 +173,12 @@ class EngineResultEvidence:
                 "backtest_authoritative",
             }:
                 raise ValueError("authoritative Nautilus evidence requires an authoritative scope")
-            if self.authoritative and self.engine_provenance.release_channel.value != "stable":
-                raise ValueError("stable Nautilus v2 is required for authoritative result evidence")
+            if (
+                self.authoritative
+                and self.engine_provenance.execution_scope == "full"
+                and self.engine_provenance.release_channel is not EngineReleaseChannel.STABLE
+            ):
+                raise ValueError("full-scope authoritative evidence requires stable Nautilus v2")
         elif self.engine_provenance is not None:
             raise ValueError("Nautilus provenance cannot be attached to another engine")
         object.__setattr__(self, "observed_at", self.observed_at.astimezone(UTC))

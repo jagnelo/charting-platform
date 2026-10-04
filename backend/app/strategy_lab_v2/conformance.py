@@ -23,8 +23,9 @@ class EngineReleaseChannel(StrEnum):
 
 NAUTILUS_RELEASE_PIN_VERSION = "strategy-lab.nautilus-release-pin.v2"
 # The current v2 release-candidate track is intentionally exact rather than a
-# floating ``--pre`` install. It supports compatibility testing only. Runtime,
-# source, and image digests are supplied by the isolated deployment adapter.
+# floating ``--pre`` install. A qualified candidate may publish local
+# backtests, but it cannot authorize forward-shadow or real-capital execution.
+# Runtime, source, and image digests are supplied by the isolated adapter.
 NAUTILUS_V2_RC_PACKAGE_VERSION = "2.0.0rc5"
 NAUTILUS_V2_RC_RELEASE_TAG = "v2.0.0rc5"
 NAUTILUS_V2_RC_WHEEL_SHA256 = (
@@ -36,11 +37,11 @@ NAUTILUS_V2_RC_WHEEL_SHA256 = (
 class NautilusReleasePin:
     """Exact, isolated runtime material used for one Nautilus build.
 
-    The release pin is evidence supplied by the deployment/runtime adapter; it
-    never discovers packages or starts an engine. An authoritative local
-    authoritative backtests require this identity, a stable v2 release, and
-    all four simulator checks; full/forward scope also needs event-tape parity.
-    Release candidates can qualify for isolated compatibility execution only.
+    The release pin is evidence supplied by the runtime adapter; it never
+    discovers packages or starts an engine. A stable v2 build can qualify for
+    full conformance. An exact release candidate can qualify for authoritative
+    local backtests after the four backtest checks, but not forward-shadow or
+    real-capital execution.
     """
 
     package_version: str
@@ -119,10 +120,17 @@ class NautilusResultProvenance:
         ):
             raise ValueError("stable provenance cannot identify a prerelease")
         if (
-            self.execution_scope == "backtest_authoritative"
+            self.execution_scope == "full"
             and self.release_channel is not EngineReleaseChannel.STABLE
         ):
-            raise ValueError("authoritative backtest provenance requires stable Nautilus v2")
+            raise ValueError("full Nautilus provenance requires a stable v2 release")
+        if self.execution_scope == "backtest_authoritative" and self.release_channel not in {
+            EngineReleaseChannel.STABLE,
+            EngineReleaseChannel.RELEASE_CANDIDATE,
+        }:
+            raise ValueError(
+                "authoritative backtests require stable v2 or an exact release candidate"
+            )
 
     @property
     def fingerprint(self) -> str:
@@ -236,13 +244,17 @@ class EngineConformanceReport:
     def execution_eligible(self) -> bool:
         """Whether the evidence may start an isolated engine process.
 
-        Compatibility execution is allowed for an exact-pinned release
-        candidate, but authoritative results require stable v2. Every actual
-        process still needs a valid isolated v2 release pin; no prerelease or
-        shared legacy runtime can publish official backtest results.
+        Stable v2 and exact-pinned release candidates may execute locally when
+        the backtest checks pass. Forward parity remains required for full
+        scope, and development or unpinned runtimes are never eligible.
         """
 
-        return self.compatible and self.release_pin_valid
+        return (
+            self.release_pin_valid
+            and self.release_channel
+            in {EngineReleaseChannel.STABLE, EngineReleaseChannel.RELEASE_CANDIDATE}
+            and not (self.missing_checks - {ConformanceCheck.FORWARD_EVENT_TAPE_PARITY})
+        )
 
     @property
     def fingerprint(self) -> str:

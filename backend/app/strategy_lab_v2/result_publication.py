@@ -117,8 +117,13 @@ def plan_result_publication(
         if provenance is None:
             reasons.append("nautilus_result_provenance_missing")
         else:
-            if provenance.release_channel is not EngineReleaseChannel.STABLE:
-                reasons.append("stable_nautilus_v2_required_for_authoritative_publication")
+            if provenance.release_channel is EngineReleaseChannel.DEVELOPMENT:
+                reasons.append("development_release_channel_not_authoritative")
+            if (
+                provenance.execution_scope == NautilusExecutionScope.FULL.value
+                and provenance.release_channel is not EngineReleaseChannel.STABLE
+            ):
+                reasons.append("full_scope_authority_requires_stable_nautilus_v2")
             if execution_plan is None:
                 reasons.append("authoritative_execution_plan_missing")
             else:

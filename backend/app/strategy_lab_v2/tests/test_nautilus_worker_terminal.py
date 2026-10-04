@@ -130,7 +130,6 @@ from app.strategy_lab_v2.worker_process import (
 from app.strategy_lab_v2.worker_service import WorkerCompletionContext
 from app.strategy_lab_v2.worker_settlement import WorkerSettlementLedger
 from app.strategy_lab_v2.worker_terminal_adapter import (
-    PermanentWorkerTerminalEvidenceError,
     PostgresWorkerTerminalAdapter,
 )
 from app.strategy_lab_v2.workers import (
@@ -547,16 +546,22 @@ def _terminal_writer(resolver) -> PostgresWorkerTerminalAdapter:
 
 
 @pytest.mark.asyncio
-async def test_rc5_worker_receipt_cannot_materialize_an_authoritative_backtest(tmp_path):
-    context, _lookup, resolver, publisher = _successful_context_and_lookup(tmp_path, stable=False)
+async def test_rc5_worker_receipt_materializes_authoritative_local_backtest(tmp_path):
+    context, _lookup, resolver, _publisher = _successful_context_and_lookup(tmp_path, stable=False)
 
-    with pytest.raises(
-        PermanentWorkerTerminalEvidenceError,
-        match="authoritative Nautilus result evidence failed validation",
-    ):
-        await resolver(context)
+    resolution = await resolver(context)
 
-    assert not tuple(publisher.store.root.rglob("*"))
+    assert resolution.result is not None
+    assert resolution.result.engine_authoritative
+    assert resolution.result.engine_provenance is not None
+    assert (
+        resolution.result.engine_provenance.release_channel
+        is EngineReleaseChannel.RELEASE_CANDIDATE
+    )
+    assert resolution.result.engine_provenance.execution_scope == (
+        NautilusExecutionScope.BACKTEST_AUTHORITATIVE.value
+    )
+    assert resolution.publication is not None and resolution.publication.accepted
 
 
 @pytest.mark.asyncio

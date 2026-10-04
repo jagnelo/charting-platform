@@ -127,12 +127,11 @@ def plan_nautilus_execution(
 ) -> NautilusExecutionPlan:
     """Resolve the final engine invocation gate without starting Nautilus.
 
-    Backtest scopes intentionally exclude forward event-tape parity. A stable,
-    exact-pinned v2 runtime may publish authoritative local backtests after the
-    four simulator checks pass, without waiting for the separate forward
-    adapter. Release candidates may run only in compatibility scope and cannot
-    authorize official results. Forward compatibility and full-scope requests
-    still require parity.
+    Backtest scopes intentionally exclude forward event-tape parity. Stable
+    v2 or an exact-pinned release candidate may publish authoritative local
+    backtests after the four simulator checks pass, without waiting for the
+    separate forward adapter. A release candidate cannot authorize full or
+    forward scope. Full-scope requests still require stable v2 and parity.
     """
 
     if not isinstance(authorization, ExecutionAuthorization):
@@ -191,16 +190,18 @@ def plan_nautilus_execution(
         and not conformance_report.authoritative
     ):
         reasons.append("authoritative_conformance_required")
-    if (
-        execution_scope is NautilusExecutionScope.BACKTEST_AUTHORITATIVE
-        and conformance_evidence.release_channel is not EngineReleaseChannel.STABLE
-    ):
-        reasons.append("stable_nautilus_v2_required_for_authoritative_backtest_scope")
+    if requested_authoritative and execution_scope is NautilusExecutionScope.BACKTEST_AUTHORITATIVE:
+        if conformance_evidence.release_channel not in {
+            EngineReleaseChannel.STABLE,
+            EngineReleaseChannel.RELEASE_CANDIDATE,
+        }:
+            reasons.append("authoritative_backtest_release_channel_not_supported")
     if (
         requested_authoritative
+        and execution_scope is NautilusExecutionScope.FULL
         and conformance_evidence.release_channel is not EngineReleaseChannel.STABLE
     ):
-        reasons.append("authoritative_stable_release_required")
+        reasons.append("authoritative_full_scope_requires_stable_release")
     if requested_authoritative:
         release_pin = conformance_evidence.release_pin
         if release_pin is None:

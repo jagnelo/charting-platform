@@ -97,11 +97,15 @@ def bind_context_to_rc_evidence(
             )
         if context.runtime_profile.runtime_abi != runtime_abi:
             raise ValueError("preparation runtime ABI differs from the host binding")
-        if (
-            context.execution_scope is not NautilusExecutionScope.BACKTEST_COMPATIBILITY
-            or context.requested_authoritative
+        if context.execution_scope not in {
+            NautilusExecutionScope.BACKTEST_COMPATIBILITY,
+            NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
+        }:
+            raise ValueError("RC search preparation is restricted to local backtest scopes")
+        if context.requested_authoritative != (
+            context.execution_scope is NautilusExecutionScope.BACKTEST_AUTHORITATIVE
         ):
-            raise ValueError("RC search preparation must remain non-authoritative compatibility")
+            raise ValueError("RC search preparation authority must match its backtest scope")
         return context
 
     return resolve_pinned_context

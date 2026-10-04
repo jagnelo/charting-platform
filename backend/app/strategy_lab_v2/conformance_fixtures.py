@@ -242,9 +242,9 @@ def resolve_nautilus_rc_conformance(
     """Bind a parsed RC image receipt to the engine execution gate.
 
     The returned report intentionally fails the complete conformance decision
-    because forward parity is deferred. Its four passed simulator checks remain
-    available to isolated compatibility backtests, but a prerelease cannot
-    authorize official results or connect to a broker/control real capital.
+    because forward parity is deferred. Its four passed simulator checks can
+    authorize exact-pinned local backtests, but a prerelease cannot authorize
+    forward-shadow execution or connect to a broker/control real capital.
     """
 
     if not isinstance(runtime, NautilusRcCompatibilityRuntime):
@@ -279,11 +279,11 @@ def build_nautilus_backtest_execution_binding(
 ) -> ExecutionCapabilityBinding:
     """Bind verified Nautilus fixture evidence to an explicit backtest scope.
 
-    Only a stable v2 build can produce this authoritative capability binding.
-    Product, execution-model, and account-model support is supplied explicitly
-    by the trusted host; it is never inferred from fixture success. Four
-    backtest-specific simulator checks are required; forward event-tape parity
-    remains a separate gate.
+    A stable v2 build or exact release candidate can produce this authoritative
+    backtest capability binding. Product, execution-model, and account-model
+    support is supplied explicitly by the trusted host; it is never inferred
+    from fixture success. Four backtest-specific simulator checks are
+    required; forward event-tape parity remains a separate gate.
     """
 
     if not isinstance(resolution, ConformanceExecutionResolution | NautilusRcConformanceResolution):
@@ -295,8 +295,13 @@ def build_nautilus_backtest_execution_binding(
     report = resolution.report
     if evidence.engine_id.lower() != "nautilus":
         raise ValueError("authoritative local backtests require Nautilus conformance evidence")
-    if evidence.release_channel is not EngineReleaseChannel.STABLE:
-        raise ValueError("stable Nautilus v2 is required for authoritative local backtests")
+    if evidence.release_channel not in {
+        EngineReleaseChannel.STABLE,
+        EngineReleaseChannel.RELEASE_CANDIDATE,
+    }:
+        raise ValueError(
+            "authoritative local backtests require stable v2 or an exact release candidate"
+        )
     expected_report = evaluate_engine_conformance(evidence)
     if report.fingerprint != expected_report.fingerprint:
         raise ValueError("conformance report does not match its evidence")

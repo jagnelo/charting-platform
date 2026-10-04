@@ -1400,9 +1400,10 @@ class RunResultManifest:
                 raise ValueError("authoritative Nautilus results require an authoritative scope")
             if (
                 self.engine_authoritative
+                and self.engine_provenance.execution_scope == "full"
                 and self.engine_provenance.release_channel.value != "stable"
             ):
-                raise ValueError("stable Nautilus v2 is required for authoritative publication")
+                raise ValueError("full-scope authoritative publication requires stable Nautilus v2")
         elif self.engine_provenance is not None:
             raise ValueError("Nautilus release provenance cannot be attached to another engine")
         packages = tuple(self.strategy_packages)
