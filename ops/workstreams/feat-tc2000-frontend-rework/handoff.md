@@ -9,6 +9,10 @@ new browser case passed `1/1`; the focused plot-library component suite passed
 `45/45`; full frontend coverage passed `129` files / `1,200` tests; type-check
 and production build passed.
 
+Test-only checkpoint `435c5b9ad58a1889b040febcadab9a202cfbfc48` was pushed to
+`origin/feat/tc2000-frontend-rework`; local HEAD, the tracking ref, and direct
+GitHub lookup matched, with no force push or history rewrite.
+
 The live browser screenshot
 `/tmp/tc2000-chart-open-rsi-dropdown.png` was inspected as current-app evidence.
 It is not a V25 reference. The existing reference board lacks this exact panel
