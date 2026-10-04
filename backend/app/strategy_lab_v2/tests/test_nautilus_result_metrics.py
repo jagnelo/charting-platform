@@ -223,7 +223,14 @@ def test_native_realized_position_quality_is_currency_safe_and_oos_scoped(tmp_pa
     assert metrics["oos_realized_position_profit_factor:USD"].null_reason == (
         "no losing OOS-closed positions in USD"
     )
-    assert metric_set.definition_version == "strategy-lab.metrics.v8"
+    assert metrics["oos_realized_position_mean_pnl:USD"].value == Decimal(1)
+    assert metrics["oos_realized_position_mean_win_pnl:USD"].value == Decimal(2)
+    assert metrics["oos_realized_position_mean_loss_pnl:USD"].value is None
+    assert metrics["oos_realized_position_mean_loss_pnl:USD"].null_reason == (
+        "no losing OOS-closed positions in USD"
+    )
+    assert metrics["oos_realized_position_win_loss_ratio:USD"].value is None
+    assert metric_set.definition_version == "strategy-lab.metrics.v9"
     assert (
         metrics["oos_realized_position_profit_factor:USD"].calculation_definition.parameters[
             "decimal_precision"
@@ -265,6 +272,10 @@ def test_native_realized_position_distribution_and_profit_factor_are_currency_sc
     assert metrics["oos_realized_position_gross_winning_pnl:USD"].value == Decimal(20)
     assert metrics["oos_realized_position_gross_losing_pnl_magnitude:USD"].value == Decimal(5)
     assert metrics["oos_realized_position_profit_factor:USD"].value == Decimal(4)
+    assert metrics["oos_realized_position_mean_pnl:USD"].value == Decimal("7.5")
+    assert metrics["oos_realized_position_mean_win_pnl:USD"].value == Decimal(20)
+    assert metrics["oos_realized_position_mean_loss_pnl:USD"].value == Decimal(-5)
+    assert metrics["oos_realized_position_win_loss_ratio:USD"].value == Decimal(4)
     assert metrics["oos_realized_position_win_count:EUR"].value == Decimal(1)
     assert metrics["oos_realized_position_loss_count:EUR"].value == Decimal(1)
     assert metrics["oos_realized_position_break_even_count:EUR"].value == Decimal(1)
@@ -272,13 +283,26 @@ def test_native_realized_position_distribution_and_profit_factor_are_currency_sc
         "0.3333333333333333333333333333333333"
     )
     assert metrics["oos_realized_position_profit_factor:EUR"].value == Decimal("0.5")
+    assert metrics["oos_realized_position_mean_pnl:EUR"].value == Decimal(
+        "-1.333333333333333333333333333333333"
+    )
+    assert metrics["oos_realized_position_mean_win_pnl:EUR"].value == Decimal(4)
+    assert metrics["oos_realized_position_mean_loss_pnl:EUR"].value == Decimal(-8)
+    assert metrics["oos_realized_position_win_loss_ratio:EUR"].value == Decimal("0.5")
     assert metrics["oos_realized_position_profit_factor:USD"].unit == "ratio"
     assert metrics["oos_realized_position_profit_factor:USD"].sample_size == 2
+    assert metrics["oos_realized_position_mean_pnl:USD"].sample_size == 2
+    assert metrics["oos_realized_position_mean_win_pnl:USD"].sample_size == 1
+    assert metrics["oos_realized_position_mean_loss_pnl:USD"].sample_size == 1
     assert (
         metrics["oos_realized_position_profit_factor:EUR"].calculation_definition.parameters[
             "currency_aggregation"
         ]
         == "within_currency_only; no FX conversion"
+    )
+    assert (
+        metrics["oos_realized_position_win_loss_ratio:USD"].calculation_definition.formula_id
+        == "strategy-lab.metrics/oos_realized_position_win_loss_ratio"
     )
 
 
@@ -299,6 +323,8 @@ def test_native_realized_position_quality_fails_closed_on_missing_pnl(tmp_path) 
     assert metrics["oos_realized_pnl_unreported_position_count"].value == Decimal(1)
     assert metrics["oos_realized_position_profit_factor:USD"].value is None
     assert "missing" in (metrics["oos_realized_position_profit_factor:USD"].null_reason or "")
+    assert metrics["oos_realized_position_mean_pnl:USD"].value is None
+    assert "missing" in (metrics["oos_realized_position_mean_pnl:USD"].null_reason or "")
 
 
 def test_build_nautilus_oos_metric_set_rejects_report_scope_mismatch(tmp_path) -> None:

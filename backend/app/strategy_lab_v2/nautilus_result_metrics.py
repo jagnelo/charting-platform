@@ -598,6 +598,81 @@ def _native_oos_report_metrics(
                     ),
                 )
             )
+        win_count = realized_position_win_counts[currency]
+        loss_count = realized_position_loss_counts[currency]
+        mean_loss_magnitude = gross_loss_magnitude / Decimal(loss_count) if loss_count else None
+        position_distribution_metrics = (
+            (
+                "oos_realized_position_mean_pnl",
+                realized_pnl_amounts[currency] / Decimal(currency_sample_size),
+                f"currency:{currency}",
+                "mean native realized P&L per reported OOS-closed position in the named currency",
+                None,
+                currency_sample_size,
+            ),
+            (
+                "oos_realized_position_mean_win_pnl",
+                gross_wins / Decimal(win_count) if win_count else None,
+                f"currency:{currency}",
+                "mean positive native realized P&L per winning OOS-closed position in the named currency",
+                f"no winning OOS-closed positions in {currency}" if not win_count else None,
+                win_count,
+            ),
+            (
+                "oos_realized_position_mean_loss_pnl",
+                -mean_loss_magnitude if mean_loss_magnitude is not None else None,
+                f"currency:{currency}",
+                "mean negative native realized P&L per losing OOS-closed position in the named currency",
+                f"no losing OOS-closed positions in {currency}" if not loss_count else None,
+                loss_count,
+            ),
+            (
+                "oos_realized_position_win_loss_ratio",
+                (
+                    (gross_wins / Decimal(win_count)) / mean_loss_magnitude
+                    if win_count and mean_loss_magnitude is not None
+                    else None
+                ),
+                "ratio",
+                "mean winning native realized P&L divided by absolute mean losing native realized P&L in the named currency",
+                (
+                    None
+                    if win_count and loss_count
+                    else f"win-loss ratio requires winning and losing positions in {currency}"
+                ),
+                currency_sample_size,
+            ),
+        )
+        for (
+            metric_name,
+            metric_value,
+            unit,
+            formula,
+            specific_null_reason,
+            sample_size,
+        ) in position_distribution_metrics:
+            result.append(
+                _native_metric(
+                    f"{metric_name}:{currency}",
+                    metric_value if realized_pnl_is_complete else None,
+                    unit=unit,
+                    sample_size=sample_size,
+                    formula=formula,
+                    parameters={
+                        "currency": currency,
+                        "report_kind": "positions",
+                        "value_field": "realized_pnl",
+                        "currency_aggregation": "within_currency_only; no FX conversion",
+                        **shared_parameters,
+                    },
+                    evidence_digest=artifact,
+                    null_reason=(
+                        realized_pnl_null_reason
+                        if not realized_pnl_is_complete
+                        else specific_null_reason
+                    ),
+                )
+            )
         result.append(
             _native_metric(
                 f"oos_reported_realized_position_pnl:{currency}",
