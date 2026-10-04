@@ -1,11 +1,27 @@
 # TC2000 Version 25 Visual-Parity Specification
 
-The latest complete board run is at clean product SHA
-`6f7559f378f12b9ed4ffc9a0510eb51958b73ba0`. No references, masks, thresholds,
-skips, or acceptance rules have been modified. The new Chart Plot Library
-search interaction has functional browser coverage, but the checked-in board
-does not capture that panel open, so its exact styling still lacks screenshot
-coverage.
+The latest complete board run used product SHA
+`7427de7e80f02977ca24336348049c43a8c71f97` before the symbol-linking change.
+No references, masks, thresholds, skips, or acceptance rules have been
+modified. The new Chart Plot Library search interaction has functional browser
+coverage, but the checked-in board does not capture that panel open, so its
+exact styling still lacks screenshot coverage.
+
+## 2026-10-04 — Latest pinned-browser matrix: 93/104 pass at `7427de7`
+
+The full 104-case board completed in pinned Playwright 1.62.1 with 93 passes
+and 11 screenshot mismatches. All preceding state/interaction assertions
+passed. Four `workspace-floating` images show five seeded rows where the saved
+images are empty; four Study structured-result images contain newer promotion
+controls/content absent from their saved images; two 1080p Study sandbox-error
+images show lookback `20` where the saved images show `2`; and one 1440p/125
+Study-running capture showed the seeded chart loaded while its saved image
+shows chart loading. The running-state difference was caused by capture timing,
+not the Study run state. The test now holds the unrelated OHLCV request pending
+for that capture, and its four viewport replays passed `4/4` without changing
+any screenshot. The other ten state differences remain unchanged for review.
+The four-project matrix, 0.5% threshold, references, masks, skips, and
+acceptance rules remain unchanged.
 
 ## 2026-10-03 — Focused Study sandbox-error replay at `7066a6d`
 

@@ -49,12 +49,14 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
+    "docs/tc2000-visual-parity.md",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": false,
+    "accounting_complete": true,
     "available": true,
     "build_cache_bytes": null,
     "container_count": 0,
@@ -69,10 +71,8 @@
     "threshold_bytes": 5000000000,
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
-    "unknown_components": [
-      "docker-system-df"
-    ],
-    "volume_bytes": null,
+    "unknown_components": [],
+    "volume_bytes": 0,
     "volume_count": 0,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -113,14 +113,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2",
+  "head": "a7b1c11ce3927beb17cc52391a8a04b615430cb1",
   "implementation_sha": "695d79557f94581bf3dfed7b2b394496a8b59955",
   "interrupted": false,
-  "last_checkpoint": "2026-10-04T00:51:21.099776+00:00",
-  "last_human_progress_update": "2026-10-04T00:50:55.937078+00:00",
+  "last_checkpoint": "2026-10-04T01:53:38.363106+00:00",
+  "last_human_progress_update": "2026-10-04T01:51:30.599335+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue TC-owned workstation and Study/Strategy work. Compare the remaining mapped V25 interactions and promotion gaps against current tests, select the next concrete product gap, and validate at its exact tip. Keep screenshot oracles unchanged; provider/ETF consumer work remains sequenced after staging promotion.",
-  "plan_hash": "a8b9fd261373739a3aa0373aef5c19b973842f2399ee3af913b9de2a842f3c60",
+  "plan_hash": "80d53c8f6c9deccf960738a4c8c05d2726dbeac53d3a873db2ed4bf4acecf703",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -133,18 +133,18 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "No blocker prevents independent TC-owned work. Provider and ETF integration awaits both branches reaching staging; protected screenshot mismatches remain unchanged and require the documented review before baseline changes.",
-    "current_phase": "R6_optional_workstation_chunks_market_map_cold_start",
-    "next_action": "Continue independent R1/R5/R6 work: compare remaining mapped V25 interactions and TC-owned Study/Strategy gaps, implement the next material gap, and validate it. Recheck provider and ETF ancestry before starting R2/R3.",
+    "current_blocker": "None for independent TC-owned work; provider and ETF integration waits for staging, ten visual mismatches await review, and remote DNS refresh failed.",
+    "current_phase": "R6_v25_symbol_group_linking",
+    "next_action": "Continue independent TC-owned V25 interactions and Study/Strategy gaps; choose and validate the next material slice. Recheck upstream ancestry when GitHub DNS is available; start consumer integration only after both upstream branches reach staging.",
     "total": 9,
-    "updated_at": "2026-10-04T00:50:55.937024+00:00"
+    "updated_at": "2026-10-04T01:51:30.599318+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2",
-    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2",
-    "failure_category": "The execution boundary rejected the exact push attempt through 98e38784b8c09b5acfde911318f2842fc4d33562 before Git ran because it would export 1,628 private-repository commits without explicit authorization. At product checkpoint cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2, the current range was 63d64bfe95c98bfe6e550bf69c213ae1cd64a629..cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2 (1,632 commits) and had not been attempted. This operations checkpoint adds one more local commit. Do not route elsewhere or retry without authorization for the exact expanded payload.",
+    "current_local_head": "a7b1c11ce3927beb17cc52391a8a04b615430cb1",
+    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..a7b1c11ce3927beb17cc52391a8a04b615430cb1",
+    "failure_category": "The execution boundary previously rejected a push attempt through 98e38784b8c09b5acfde911318f2842fc4d33562 before Git ran because it would export 1,628 private-repository commits without explicit authorization. The subsequent expanded payload was not attempted. A read-only git ls-remote refresh on 2026-10-04 failed before authentication because github.com DNS resolution failed. Current local range is 63d64bfe95c98bfe6e550bf69c213ae1cd64a629..a7b1c11ce3927beb17cc52391a8a04b615430cb1 (1,634 commits); no push of that range was attempted. Do not use an alternate route or bypass the egress safeguard.",
     "head_at_product_checkpoint": "695d79557f94581bf3dfed7b2b394496a8b59955",
     "last_attempted_local_head": "98e38784b8c09b5acfde911318f2842fc4d33562",
     "last_attempted_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..98e38784b8c09b5acfde911318f2842fc4d33562",

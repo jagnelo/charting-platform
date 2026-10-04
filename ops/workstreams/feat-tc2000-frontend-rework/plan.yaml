@@ -20,21 +20,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No blocker prevents independent TC-owned frontend work. At clean product SHA
-  `1b5e2c7e6e877c086cc355f68e7841204432c119`, the complete 104-case board-guided
-  matrix in pinned Playwright 1.62.1 completed with 94 passes and 10
-  screenshot-only failures: workspace-floating in all four viewports,
-  Study Lab structured-result in all four, and Study Lab sandbox-error at
-  1080p/100 and 1080p/125. The state/interaction assertions passed before each
-  screenshot; current product state differs from the saved references. Keep the
-  0.5% threshold, references, masks, skips, fallbacks, and acceptance rules
-  unchanged pending the review required by docs/tc2000-visual-parity.md. Current
-  refs are staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
-  `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, and ETF holdings
-  `71d36f1aceaef21f77453495aeb05fdb92bfe81d`; neither dependency tip is in
-  staging, so R2/R3 integration and shared-path reconciliation remain deferred.
-  Continue independent R1/R5/R6 work. The full integration/browser gate remains
-  required at the final clean exact tip.
+  No blocker prevents independent TC-owned frontend work. At product SHA
+  `7427de7e80f02977ca24336348049c43a8c71f97`, the complete 104-case board-guided
+  matrix in pinned Playwright 1.62.1 completed with 93 passes and 11 screenshot
+  mismatches. Ten are stable state differences in workspace-floating (four
+  viewports), Study structured-result (four), and Study sandbox-error (two
+  1080p viewports); their state/interaction assertions passed. The eleventh was
+  a Study-running capture race and its four-viewport replay now passes after the
+  test holds unrelated chart data pending. Keep the 0.5% threshold, references,
+  masks, skips, fallbacks, and acceptance rules unchanged; the ten stable
+  screenshot differences await the review described in
+  docs/tc2000-visual-parity.md. Local tracking refs show that provider-platform
+  and ETF tips have not reached staging, so consumer integration and shared-path
+  reconciliation remain deferred. A fresh remote ref check could not run because
+  GitHub DNS resolution failed. Continue independent R1/R5/R6 work. The full
+  integration/browser gate remains required at the final clean exact tip.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -65,6 +65,8 @@ owned_paths:
   - frontend/src/components/chart/DrawingToolbar.vue
   - frontend/src/components/alerts/AlertForm.vue
   - frontend/src/components/strategy/
+  - frontend/src/stores/dashboardLinks.ts
+  - frontend/src/stores/panelLinks.ts
   - frontend/src/stores/workspace.ts
   - frontend/src/lib/workstation/
   - frontend/tests/unit/
@@ -270,7 +272,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_indicator_settings_registry_validation
+  current_phase: R6_v25_symbol_group_linking
   next_action: >-
     Continue comparing mapped V25 chart interactions and the TC-owned
     Study/Strategy promotion matrix; implement the next material functional
@@ -278,16 +280,17 @@ progress:
     screenshot policies unchanged and wait for both upstream changes to reach
     staging before consumer integration or semantic reconciliation.
   current_blocker: >-
-    No external dependency blocks independent TC frontend work. Six protected
+    No external dependency blocks independent TC frontend work. Ten protected
     screenshot differences await the review required by
     `docs/tc2000-visual-parity.md`; provider/ETF consumer integration waits for
     both tips to reach staging. Neither prevents independent TC UI or
-    Study/Strategy work. Product commit aa6472fb validates numeric indicator
-    parameters against the engine registry and fails closed when its
-    constraints cannot be loaded; focused tests, type-check, scope checks, and
-    host Docker preflight passed. The exact full integration/browser gate is
-    pending. The commit remains local; no push was attempted.
+    Study/Strategy work. GitHub DNS resolution also failed during a read-only
+    attempt to refresh dependency refs; local commits remain the durable branch
+    state and must be synchronized when the remote becomes reachable and the
+    allowed push path permits it. The exact full integration/browser gate is
+    pending.
 historical_implementation_records:
+  - "Product commit a7b1c11ce3927beb17cc52391a8a04b615430cb1 aligns primary and legacy chart symbol-link choices with the ten canonical workstation groups: eight normal groups, Yellow wildcard receive, and Grey isolation; persisted legacy null values migrate to Grey and invalid entries are ignored. The pinned authenticated F8m chart-panels flow passed 1/1, proving Purple-to-Yellow symbol propagation and Grey isolation. Focused linking tests passed 9/9, the full frontend coverage suite passed, vue-tsc/Vite production build passed, TC scope validation passed for 122 touched paths with all six self-tests, and the four-viewport Study-running screenshot replay passed 4/4 after its fixture held unrelated OHLCV loading. The latest full visual board at pre-change product SHA 7427de7 completed 93/104; ten stable screenshot-state differences remain for review, with no references, masks, thresholds, skips, or acceptance policy changed. No provider-platform or ETF-owned behavior changed."
   - "Product commit aa6472fb3582d5d60d685e26f72f809b4397e5ef makes the primary chart's indicator-settings dialog consume the existing `/indicators/registry` parameter types and min/max constraints. Integer periods reject fractions, backend minimums apply to number inputs, and Apply stays disabled if limits are absent or the registry request fails. Focused ChartPlotLibrary coverage passed 40/40, frontend type-check passed, TC ownership guard passed for 118 paths and all six self-tests, and the host-level Docker preflight passed with zero retained resources. An unprivileged preflight had only recorded the sandbox's denied Docker socket; the explicit host-context retry succeeded. The exact full integration/browser gate remains pending. No backend/provider/ETF ownership, visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."
   - "Product commit 7dcde92c21cc6ab26d721a82059e91b62eab1408 restores focus to the owning Drawing Toolbar group button after a keyboard selection closes its menu, avoiding focus loss to document body while preserving active drawing mode and appearance. The focused unit suite passed 2/2; authenticated Chromium F14-keyboard passed 1/1; the full serial frontend suite passed 128 files / 1,170 tests; vue-tsc and production build passed with the existing large-chunk warning. The branch-scoped six-service Compose stack became healthy using the standard builder despite the host's Buildx warning, then scoped cleanup removed four generated images and all containers, volumes, and network; resource accounting reported zero remaining resources. No visual oracle, provider/ETF behavior, or acceptance policy changed."
   - "Product commits 64cbfa4c and 75b3e004 add TC2000 `=` / `-` timeframe stepping for the active chart, publish changes through existing timeframe link groups, update the active workstation window when a docked tool is clicked, and target the corresponding chart in a pop-out. The authenticated F8k Chromium flow passed 1/1 at exact product tip 75b3e0048d8cb40dd24b21afd73c1c7078dbc69; the serial frontend suite passed 128 files / 1,169 tests; vue-tsc and the production build passed with the existing large-chunk warning. The six-service branch Compose stack became healthy through ordinary Compose after the host's Make target failed on missing Docker Buildx; scoped teardown/resource cleanup removed containers, volumes, network, and four generated images, leaving zero owned resources. Two earlier F8k candidate failures exposed test timing during chart reload and missing pointer-based active-window selection; both were corrected without weakening assertions. No provider/ETF behavior or visual baseline, threshold, mask, skip, fallback, or acceptance policy changed."

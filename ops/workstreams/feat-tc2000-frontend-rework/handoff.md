@@ -1,5 +1,43 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-04 — V25 chart symbol-link groups and deterministic Study capture
+
+Product commit `a7b1c11ce3927beb17cc52391a8a04b615430cb1` makes primary and
+legacy chart panels use the same ten V25-style symbol-link groups: Blue, Red,
+Green, Purple, Orange, Cyan, Pink, Brown, Yellow, and Grey. The eight normal
+groups link like-to-like; Yellow receives changes from each normal group; Grey
+stays isolated. Existing stored `null` (None) settings migrate to Grey, while
+invalid persisted values are ignored. The authenticated pinned-browser
+`F8m-chart-panels` flow passed `1/1`, verifying Purple-to-Yellow symbol
+propagation and that a Grey panel stays unchanged.
+
+Focused linking tests passed `9/9`; the full frontend coverage suite passed;
+the production `vue-tsc`/Vite build passed; and TC scope validation passed for
+`122` touched paths with all six self-tests. The complete pinned visual matrix
+at pre-change product SHA `7427de7e80f02977ca24336348049c43a8c71f97` completed
+`93/104`: ten stable screenshot-state differences remain for review, and the
+eleventh (Study-running chart readiness) was a test-capture race. The visual
+test now holds unrelated OHLCV loading pending; its four viewport replay passed
+`4/4`. No screenshot reference, mask, threshold, skip, or acceptance rule
+changed. The branch-scoped browser stack was cleaned up; no owned containers,
+images, volumes, or test sessions remain. The active-session checkpoint also
+completed Docker resource accounting with no unknown components.
+
+This operational checkpoint updates `docs/tc2000-visual-parity.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`,
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`, and
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`. The enclosing
+operations commit is recorded by verifying `git rev-parse HEAD` after commit.
+
+The current local branch is `a7b1c11`; it is `1,634` commits ahead of the
+local origin-tracking ref. The read-only remote-ref refresh failed because the
+machine could not resolve `github.com`, and the prior push range was rejected
+by the private-repository egress safeguard. No push of this current range was
+attempted and no alternate route was used. Continue independent TC-owned
+frontend/Study work; provider and ETF consumer integration still waits for
+those branches to reach staging. The goal remains active and is not blocked.
+
 ## 2026-10-04 — Optional tool chunks and Market Map cold-start deduplication
 
 Product commit `cfdf8236ab9a7d8ba0c691cf57aef9789aa71ce2` keeps the heavy
