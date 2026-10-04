@@ -16,6 +16,8 @@ misstated as zero or infinity. Every native report metric now records the
 bumped to v8 so changed formulas cannot collide with v7 result identities.
 
 Implementation commit: `fde37514c4a0c09db17b322d98d220e7a02eef59`.
+The implementation and its workstream checkpoint were pushed successfully;
+the verified remote branch tip is `fc88256816314ecc74fe968d7db67a973649df5c`.
 
 Validation: all 1,216 Strategy Lab v2 tests passed; package Ruff, format checks
 for four changed Python files, MyPy across 350 package/runtime sources, and
