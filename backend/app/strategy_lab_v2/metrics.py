@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import replace
 from datetime import date
-from decimal import ROUND_CEILING, Decimal
+from decimal import ROUND_CEILING, Decimal, DecimalException
 from typing import Any
 
 from app.strategy_lab_v2.allocation import PortfolioExposureSnapshot
@@ -52,7 +52,7 @@ from app.strategy_lab_v2.rebalance import (
     require_complete_calendar_period_coverage,
 )
 
-METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v12"
+METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v13"
 DEFAULT_SESSION_RETURN_QUANTILE_PROBABILITIES = (
     Decimal("0.05"),
     Decimal("0.25"),
@@ -68,7 +68,7 @@ _METRIC_FORMULAS = {
     "maximum_drawdown_duration": "longest count of sampled observations below the running peak",
     "maximum_drawdown_duration_seconds": "longest elapsed UTC duration from an observed running peak to its first observed recovery or terminal under-water mark",
     "ulcer_index": "square root of the mean squared observed drawdown fractions",
-    "annualized_return": "terminal equity growth compounded by periods_per_year / return_count",
+    "annualized_return": "terminal equity growth compounded using the recorded annualization convention",
     "time_weighted_return": "geometrically linked subperiod returns excluding external cash-flow jumps",
     "time_weighted_annualized_return": "time-weighted growth compounded over elapsed UTC duration",
     "calmar_ratio": "annualized return divided by the absolute maximum drawdown fraction",
@@ -692,6 +692,7 @@ def calculate_event_aligned_equity_metrics(
     evidence_digest: str,
     expected_mark_count: int,
     event_time_ns: Iterable[int] | None = None,
+    annualization_days: Decimal = Decimal("365.2425"),
     basis: MetricBasis = MetricBasis.NET,
 ) -> tuple[MetricValue, ...]:
     """Summarize native OOS equity marks without inventing a time cadence.
@@ -700,7 +701,9 @@ def calculate_event_aligned_equity_metrics(
     strategy receives its first scoring event. Later marks are native account
     equity observed at event callbacks. This supports cumulative P&L, return,
     and path drawdown summaries while deliberately withholding cadence-based
-    and calendar-based statistics until the caller supplies an explicit basis.
+    and sampling-based statistics until the caller supplies an explicit basis.
+    Calendar-time CAGR uses the exact first and last event timestamps and the
+    explicit ``annualization_days`` convention recorded on the metric.
     The trace is from a single local backtest account, whose execution bridge
     does not permit external deposits or withdrawals after initial funding.
     """
@@ -708,6 +711,12 @@ def calculate_event_aligned_equity_metrics(
     currency = _currency_code(base_currency)
     if not isinstance(basis, MetricBasis):
         raise TypeError("basis must be a MetricBasis")
+    if (
+        not isinstance(annualization_days, Decimal)
+        or not annualization_days.is_finite()
+        or annualization_days <= 0
+    ):
+        raise ValueError("annualization_days must be a finite positive Decimal")
     require_sha256_digest(evidence_digest, field_name="evidence_digest")
     if (
         not isinstance(expected_mark_count, int)
@@ -850,7 +859,9 @@ def calculate_event_aligned_equity_metrics(
             recovery_factor = None
             recovery_null_reason = "maximum drawdown is zero"
 
-    cadence_unavailable = "native event marks are irregular and no explicit sampling/calendar annualization basis was supplied"
+    cadence_unavailable = (
+        "native event marks are irregular and no explicit sampling basis was supplied"
+    )
     drawdown_duration_seconds = (
         None
         if event_time_ns is None or no_scored_observations
@@ -862,6 +873,39 @@ def calculate_event_aligned_equity_metrics(
         else "no post-opening OOS equity observations"
         if no_scored_observations
         else None
+    )
+    elapsed_event_duration_ns = (
+        None
+        if opening_event_time_ns is None or previous_event_time_ns is None
+        else previous_event_time_ns - opening_event_time_ns
+    )
+    annualization_basis = f"elapsed UTC duration; {annualization_days} days per year"
+    annualized_return: Decimal | None = None
+    annualized_return_null_reason: str | None
+    if event_time_ns is None:
+        annualized_return_null_reason = "native event timestamps were not supplied"
+    elif no_scored_observations:
+        annualized_return_null_reason = "no post-opening OOS equity observations"
+    elif opening_equity <= 0:
+        annualized_return_null_reason = "opening equity must be positive for annualization"
+    elif elapsed_event_duration_ns is None or elapsed_event_duration_ns <= 0:
+        annualized_return_null_reason = "elapsed observation duration must be positive"
+    else:
+        year_duration_ns = annualization_days * Decimal(86_400) * Decimal(1_000_000_000)
+        try:
+            annualized_return = (terminal_equity / opening_equity) ** (
+                year_duration_ns / Decimal(elapsed_event_duration_ns)
+            ) - Decimal(1)
+        except DecimalException:
+            annualized_return_null_reason = (
+                "annualized growth exceeds the configured Decimal numeric range"
+            )
+        else:
+            annualized_return_null_reason = None
+    annualization_basis_value = (
+        annualization_basis
+        if annualized_return_null_reason is None
+        else f"unavailable: {annualized_return_null_reason}; convention={annualization_basis}"
     )
     metrics = [
         _value(
@@ -881,6 +925,25 @@ def calculate_event_aligned_equity_metrics(
             sample_size=scored_observations,
             calculation_basis=f"terminal OOS equity divided by opening OOS equity minus one; {observation_basis}",
             null_reason=return_null_reason,
+        ),
+        _value(
+            "annualized_return",
+            annualized_return,
+            unit="fraction",
+            basis=basis,
+            sample_size=scored_observations,
+            annualization_basis=annualization_basis_value,
+            calculation_basis=(
+                "terminal equity divided by opening equity, compounded by the elapsed UTC "
+                "duration using the recorded calendar-year convention"
+            ),
+            calculation_parameters={
+                "annualization_method": "elapsed_utc_duration",
+                "annualization_days": annualization_days,
+                "elapsed_duration_nanoseconds": elapsed_event_duration_ns,
+                "timestamp_unit": "unix_nanoseconds",
+            },
+            null_reason=annualized_return_null_reason,
         ),
         _value(
             "maximum_drawdown",
@@ -930,9 +993,37 @@ def calculate_event_aligned_equity_metrics(
             calculation_basis="net OOS account P&L divided by maximum peak-to-trough loss in base currency",
             null_reason=recovery_null_reason,
         ),
+        _value(
+            "calmar_ratio",
+            (
+                annualized_return / abs(drawdown_value)
+                if annualized_return is not None
+                and drawdown_value is not None
+                and drawdown_value != 0
+                else None
+            ),
+            unit="ratio",
+            basis=basis,
+            sample_size=scored_observations,
+            annualization_basis=annualization_basis_value,
+            calculation_basis=(
+                "elapsed-time annualized return divided by the absolute observed maximum "
+                "OOS drawdown fraction"
+            ),
+            calculation_parameters={
+                "annualization_method": "elapsed_utc_duration",
+                "annualization_days": annualization_days,
+            },
+            null_reason=(
+                annualized_return_null_reason
+                if annualized_return is None
+                else "maximum drawdown is zero or unavailable"
+                if drawdown_value is None or drawdown_value == 0
+                else None
+            ),
+        ),
     ]
     for name, unit in (
-        ("annualized_return", "fraction"),
         ("annualized_volatility", "fraction"),
         ("sharpe_ratio", "ratio"),
         ("sortino_ratio", "ratio"),
@@ -953,25 +1044,12 @@ def calculate_event_aligned_equity_metrics(
                 null_reason=cadence_unavailable,
             )
         )
-    metrics.append(
-        _value(
-            "calmar_ratio",
-            None,
-            unit="ratio",
-            basis=basis,
-            sample_size=scored_observations,
-            annualization_basis=f"unavailable: {cadence_unavailable}",
-            calculation_basis="annualized return divided by the absolute maximum drawdown fraction",
-            null_reason=cadence_unavailable,
-        )
-    )
     return _finalize_metric_values(
         metrics,
         evidence_references=(reference,),
         common_calculation_parameters={
             "observation_basis": "irregular_native_market_event_marks",
             "opening_mark_included_in_path": True,
-            "annualization_basis": None,
             "event_time_basis": (
                 "canonical UTC event timestamps in Unix nanoseconds"
                 if event_time_ns is not None

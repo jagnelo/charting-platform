@@ -93,11 +93,80 @@ def test_event_aligned_equity_metrics_use_oos_opening_mark_and_withhold_annualiz
     assert metrics["total_return"].basis is MetricBasis.NET  # type: ignore[attr-defined]
     assert metrics["total_return"].evidence_references[0].digest == trace_digest  # type: ignore[attr-defined]
     assert metrics["annualized_return"].value is None  # type: ignore[attr-defined]
-    assert "irregular" in metrics["annualized_return"].null_reason  # type: ignore[attr-defined]
+    assert metrics["annualized_return"].null_reason == (  # type: ignore[attr-defined]
+        "native event timestamps were not supplied"
+    )
     assert metrics["annualized_return"].annualization_basis is not None  # type: ignore[attr-defined]
     assert all(
         item.definition_version == METRIC_DEFINITION_VERSION  # type: ignore[attr-defined]
         for item in metrics.values()  # type: ignore[attr-defined]
+    )
+
+
+def test_event_aligned_equity_metrics_annualize_over_exact_elapsed_calendar_time() -> None:
+    year_ns = 31_556_952_000_000_000
+    metrics = _by_name(
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("120"), Decimal("110")),
+            base_currency="USD",
+            evidence_digest=content_digest("elapsed-annualized-oos-trace"),
+            expected_mark_count=3,
+            event_time_ns=(0, year_ns // 2, year_ns),
+        )
+    )
+
+    annualized_return = metrics["annualized_return"]
+    assert annualized_return.value == Decimal("0.1")  # type: ignore[attr-defined]
+    assert annualized_return.annualization_basis == (  # type: ignore[attr-defined]
+        "elapsed UTC duration; 365.2425 days per year"
+    )
+    assert (
+        annualized_return.calculation_definition.parameters[  # type: ignore[attr-defined]
+            "annualization_method"
+        ]
+        == "elapsed_utc_duration"
+    )
+    assert (
+        annualized_return.calculation_definition.parameters[  # type: ignore[attr-defined]
+            "elapsed_duration_nanoseconds"
+        ]
+        == year_ns
+    )
+    assert abs(metrics["calmar_ratio"].value - Decimal("1.2")) < Decimal("1e-32")  # type: ignore[attr-defined]
+
+
+def test_event_aligned_equity_metrics_withhold_annualization_for_zero_elapsed_time() -> None:
+    metrics = _by_name(
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("110")),
+            base_currency="USD",
+            evidence_digest=content_digest("zero-duration-oos-trace"),
+            expected_mark_count=2,
+            event_time_ns=(1_000, 1_000),
+        )
+    )
+
+    assert metrics["annualized_return"].value is None  # type: ignore[attr-defined]
+    assert metrics["annualized_return"].null_reason == (  # type: ignore[attr-defined]
+        "elapsed observation duration must be positive"
+    )
+    assert metrics["calmar_ratio"].value is None  # type: ignore[attr-defined]
+
+
+def test_event_aligned_equity_metrics_withhold_unrepresentable_extreme_annualization() -> None:
+    metrics = _by_name(
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("200")),
+            base_currency="USD",
+            evidence_digest=content_digest("extreme-annualization-oos-trace"),
+            expected_mark_count=2,
+            event_time_ns=(0, 1),
+        )
+    )
+
+    assert metrics["annualized_return"].value is None  # type: ignore[attr-defined]
+    assert metrics["annualized_return"].null_reason == (  # type: ignore[attr-defined]
+        "annualized growth exceeds the configured Decimal numeric range"
     )
 
 
