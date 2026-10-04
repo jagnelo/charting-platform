@@ -45,6 +45,12 @@ from app.strategy_lab_v2.lease_observations import (
 from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease
 from app.strategy_lab_v2.nautilus_equity_trace import NautilusAccountEquityTraceWriter
 from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsWriter
+from app.strategy_lab_v2.nautilus_rebalance_schedule import (
+    NautilusRebalanceScheduleAudit,
+    NautilusRebalanceScheduleCursor,
+    RebalanceExecutionStatus,
+    RebalanceScheduleOutcome,
+)
 from app.strategy_lab_v2.nautilus_runner import (
     NautilusRunResult,
     NautilusRunStatus,
@@ -78,6 +84,12 @@ from app.strategy_lab_v2.progress_checkpoint import (
     ProgressCheckpoint,
     ProgressCheckpointDecision,
     apply_progress_checkpoint,
+)
+from app.strategy_lab_v2.rebalance import (
+    RebalanceExecutionPlan,
+    RebalanceMisfirePolicy,
+    RebalanceTrigger,
+    ScheduledRebalance,
 )
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.result_completion import ResultCompletionLedger, finalize_execution_result
@@ -553,6 +565,88 @@ async def test_successful_worker_receipt_materializes_and_publishes_rc5_backtest
     metrics = {item.name: item for item in evidence.result.metric_set.values}
     assert metrics["oos_fill_count"].value == Decimal(1)
     assert metrics["oos_reported_commission:USD"].value == Decimal("2.00")
+
+
+@pytest.mark.asyncio
+async def test_failed_rebalance_misfire_publishes_authenticated_diagnostic_artifact(tmp_path):
+    context, _lookup, resolver, publisher = _successful_context_and_lookup(tmp_path)
+    policy_fingerprint = content_digest("failed-rebalance-policy")
+    calendar_fingerprint = content_digest("failed-rebalance-calendar")
+    occurrence = ScheduledRebalance(
+        occurrence_id=content_digest("failed-rebalance-occurrence"),
+        policy_fingerprint=policy_fingerprint,
+        calendar_fingerprint=calendar_fingerprint,
+        session_id="session-2024-01-03",
+        session_label=(BASE + timedelta(days=1)).date(),
+        event_time=BASE + timedelta(days=1),
+        trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+        cadence_period="session:2024-01-03",
+        misfire_policy=RebalanceMisfirePolicy.FAIL_RUN,
+    )
+    plan = RebalanceExecutionPlan(
+        policy_fingerprint=policy_fingerprint,
+        calendar_fingerprint=calendar_fingerprint,
+        occurrences=(occurrence,),
+    )
+    transition = NautilusRebalanceScheduleCursor(plan).finish()[0]
+    audit = NautilusRebalanceScheduleAudit(
+        attempt_id=context.request.admission.attempt_id,
+        plan_fingerprint=plan.fingerprint,
+        outcomes=(
+            RebalanceScheduleOutcome(
+                transition=transition,
+                execution_status=RebalanceExecutionStatus.FAILED_MISFIRE,
+                submitted_order_count=0,
+            ),
+        ),
+    )
+    prior_execution = context.process.execution
+    assert prior_execution is not None
+    assert prior_execution.nautilus_result is not None
+    failed_run_result = replace(
+        prior_execution.nautilus_result,
+        status=NautilusRunStatus.FAILED,
+        authoritative=False,
+        result_failure_digest=content_digest("rebalance misfire"),
+        rebalance_schedule_audit=audit,
+    )
+    failed_runtime_result = materialize_nautilus_result(
+        context.request.runtime_state,
+        context.request.execution_plan,
+        context.request.sandbox_plan,
+        failed_run_result,
+        observed_at=NOW,
+    )
+    failed_execution = WorkerExecutionResolution(
+        WorkerExecutionDecision.FAILED,
+        context.request.orchestration_plan,
+        failed_run_result,
+        failed_runtime_result,
+    )
+    failed_process = WorkerProcessResolution(
+        context.request.request_fingerprint,
+        WorkerProcessDecision.COMPLETED,
+        execution=failed_execution,
+        process_id=9001,
+    )
+    failed_context = replace(context, process=failed_process)
+
+    evidence = await resolver(failed_context)
+    replayed = await resolver(failed_context)
+
+    assert evidence.result is None
+    assert evidence.error is not None
+    assert evidence.principal == "owner-terminal-test"
+    assert replayed.error is not None
+    assert replayed.error.details == evidence.error.details
+    diagnostics = evidence.error.details["diagnostic_artifacts"]
+    assert len(diagnostics) == 1
+    diagnostic = diagnostics[0]
+    assert diagnostic["attempt_id"] == audit.attempt_id
+    assert diagnostic["audit_fingerprint"] == audit.fingerprint
+    manifest = audit.artifact_manifest()
+    assert diagnostic["content_digest"] == manifest.content_digest
+    assert publisher.store.path_for(manifest.storage_key).read_bytes() == audit.artifact_bytes()
 
 
 @pytest.mark.asyncio

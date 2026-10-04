@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
@@ -21,6 +21,7 @@ from app.strategy_lab_v2.nautilus_equity_trace import (
     NautilusAccountEquityTraceReference,
 )
 from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsReference
+from app.strategy_lab_v2.nautilus_rebalance_schedule import NautilusRebalanceScheduleAudit
 from app.strategy_lab_v2.nautilus_result_materialization import (
     materialize_nautilus_oos_run_result,
 )
@@ -133,11 +134,42 @@ def create_nautilus_oos_worker_terminal_evidence_resolver(
             ) from error
         if process_execution.runtime_result.state.phase is not RuntimeExecutionPhase.SUCCEEDED:
             try:
-                return build_worker_terminal_evidence(
+                evidence = build_worker_terminal_evidence(
                     context,
                     lookup,
                     runtime_error_factory=runtime_error_factory,
                 )
+                run_result = process_execution.nautilus_result
+                if (
+                    run_result is not None
+                    and run_result.status is NautilusRunStatus.FAILED
+                    and run_result.rebalance_schedule_audit is not None
+                ):
+                    audit = run_result.rebalance_schedule_audit
+                    if audit.attempt_id != attempt_id:
+                        raise ValueError("failed rebalance audit references a different attempt")
+                    artifact_details = await _publish_rebalance_audit_diagnostic(
+                        artifact_publisher,
+                        audit,
+                        committed_at=process_execution.runtime_result.state.updated_at,
+                    )
+                    if evidence.error is None:
+                        raise ValueError("failed rebalance run is missing its terminal error")
+                    details = dict(evidence.error.details)
+                    existing_diagnostics = details.get("diagnostic_artifacts", [])
+                    if not isinstance(existing_diagnostics, list | tuple) or any(
+                        not isinstance(item, Mapping) for item in existing_diagnostics
+                    ):
+                        raise ValueError("terminal error diagnostics are invalid")
+                    details["diagnostic_artifacts"] = [
+                        *existing_diagnostics,
+                        artifact_details,
+                    ]
+                    evidence = replace(
+                        evidence,
+                        error=replace(evidence.error, details=details),
+                    )
+                return evidence
             except (TypeError, ValueError) as error:
                 raise PermanentWorkerTerminalEvidenceError(
                     "worker terminal inputs failed validation"
@@ -164,6 +196,57 @@ def create_nautilus_oos_worker_terminal_evidence_resolver(
             ) from error
 
     return resolve
+
+
+async def _publish_rebalance_audit_diagnostic(
+    artifact_publisher: ResultArtifactPublisher,
+    audit: NautilusRebalanceScheduleAudit,
+    *,
+    committed_at: datetime,
+) -> dict[str, object]:
+    """Durably publish a failed-run audit and return its authenticated error reference."""
+
+    if not isinstance(audit, NautilusRebalanceScheduleAudit):
+        raise TypeError("audit must be a NautilusRebalanceScheduleAudit")
+    publish = getattr(artifact_publisher, "publish", None)
+    if not callable(publish):
+        raise ValueError("artifact publisher cannot persist failed rebalance diagnostics")
+    manifest = audit.artifact_manifest()
+    publication = await publish(
+        manifest,
+        audit.artifact_bytes(),
+        committed_at=committed_at,
+    )
+    if not isinstance(publication, ArtifactPublicationResolution):
+        raise TypeError("artifact publisher returned an invalid diagnostic publication")
+    if publication.decision is ArtifactPublicationDecision.REJECT:
+        raise ValueError(
+            publication.rejection_reason or "failed rebalance audit publication was rejected"
+        )
+    artifact_plan = publication.artifact_plan
+    integrity = publication.storage.integrity
+    if artifact_plan is None or integrity is None or not integrity.verified:
+        raise ValueError("failed rebalance audit publication omitted verified artifact evidence")
+    if (
+        artifact_plan.manifest_fingerprint != content_digest(manifest)
+        or artifact_plan.content_digest != manifest.content_digest
+        or artifact_plan.storage_key != manifest.storage_key
+        or artifact_plan.byte_length != manifest.byte_length
+        or integrity.manifest_fingerprint != content_digest(manifest)
+    ):
+        raise ValueError("failed rebalance audit publication differs from its manifest")
+    return {
+        "schema": "strategy-lab.rebalance-diagnostic-artifact.v1",
+        "attempt_id": audit.attempt_id,
+        "audit_fingerprint": audit.fingerprint,
+        "manifest_fingerprint": content_digest(manifest),
+        "content_digest": manifest.content_digest,
+        "storage_key": manifest.storage_key,
+        "media_type": manifest.media_type,
+        "schema_version": manifest.schema_version,
+        "byte_length": manifest.byte_length,
+        "retention_class": manifest.retention_class.value,
+    }
 
 
 async def _materialize_successful_oos_result(
