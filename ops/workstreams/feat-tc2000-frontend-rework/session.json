@@ -48,12 +48,7 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -112,14 +107,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "31d262ec0e661cef3e3c14dcc8ed55afa81678b0",
+  "head": "38013cda20ac13ed09bfc59168fdd4c1976c9ecd",
   "implementation_sha": "defefaaafde1db3fc302dc50be923d06ccf84ea0",
   "interrupted": false,
   "last_checkpoint": "2026-10-04T09:06:26.915078+00:00",
-  "last_human_progress_update": "2026-10-04T09:05:31.691746+00:00",
+  "last_human_progress_update": "2026-10-04T09:16:58+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Implement bounded pagination so Research Results can reach persisted Study runs older than the newest 25, preserving run lineage, stable ordering, selection/comparison behavior, and TC-only ownership; validate the exact product tip.",
-  "plan_hash": "ee7f4a45ad0b576b2c9f1460caeb862caf06eb3110d4ca7029cbac8b5c068d4d",
+  "next_action": "Implement bounded older-run pagination in the TC-owned Research Results pane; preserve stable ordering, lineage, selection, comparison, and provider/ETF ownership, then validate the exact product tip.",
+  "plan_hash": "818c16bae910d445d9aefed986b4ab56aafab0fc54d5e6db4e643d9fc41244da",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -132,28 +127,28 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "No external dependency blocks independent TC frontend work. Provider/ETF integration waits for staging; ten screenshot-only differences and final exact-tip validation remain open, but neither prevents the next TC-owned Study task.",
+    "current_blocker": "No external dependency blocks independent TC frontend work. Provider and ETF integration wait for staging; the ten documented screenshot differences need review; exact-tip full-stack/browser validation remains pending.",
     "current_phase": "R6_visual_matrix_published",
-    "next_action": "Implement bounded pagination so Research Results can reach persisted Study runs older than the newest 25, preserving run lineage, stable ordering, selection/comparison behavior, and TC-only ownership; validate the exact product tip.",
+    "next_action": "Implement bounded older-run pagination in the TC-owned Research Results pane; preserve stable ordering, lineage, selection, comparison, and provider/ETF ownership, then validate the exact product tip.",
     "total": 9,
-    "updated_at": "2026-10-04T09:05:31.691727+00:00"
+    "updated_at": "2026-10-04T09:16:58+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "31d262ec0e661cef3e3c14dcc8ed55afa81678b0",
+    "current_local_head": "38013cda20ac13ed09bfc59168fdd4c1976c9ecd",
     "current_pending_range": "",
-    "failure_category": "Earlier attempts at the 1,649-commit range were rejected before Git by the private-origin egress safeguard. After the user explicitly authorized the exact remote, branch, and range, the standard elevated push succeeded. Remote verification and the local tracking ref now both equal 31d262ec0e661cef3e3c14dcc8ed55afa81678b0.",
+    "failure_category": "No current transport failure. The prior 1,649-commit export and the follow-up documentation checkpoint were pushed through the standard Git path after exact-range authorization; direct remote verification and the local tracking ref equal 38013cda20ac13ed09bfc59168fdd4c1976c9ecd.",
     "head_at_product_checkpoint": "defefaaafde1db3fc302dc50be923d06ccf84ea0",
-    "last_attempted_local_head": "31d262ec0e661cef3e3c14dcc8ed55afa81678b0",
-    "last_attempted_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..31d262ec0e661cef3e3c14dcc8ed55afa81678b0",
+    "last_attempted_local_head": "38013cda20ac13ed09bfc59168fdd4c1976c9ecd",
+    "last_attempted_range": "31d262ec0e661cef3e3c14dcc8ed55afa81678b0..38013cda20ac13ed09bfc59168fdd4c1976c9ecd",
     "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..defefaaafde1db3fc302dc50be923d06ccf84ea0",
     "remote": "origin",
-    "remote_tracking_sha": "31d262ec0e661cef3e3c14dcc8ed55afa81678b0",
+    "remote_tracking_sha": "38013cda20ac13ed09bfc59168fdd4c1976c9ecd",
     "status": "synchronized"
   },
-  "remote": "31d262ec0e661cef3e3c14dcc8ed55afa81678b0",
-  "remote_sha": "31d262ec0e661cef3e3c14dcc8ed55afa81678b0",
+  "remote": "38013cda20ac13ed09bfc59168fdd4c1976c9ecd",
+  "remote_sha": "38013cda20ac13ed09bfc59168fdd4c1976c9ecd",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

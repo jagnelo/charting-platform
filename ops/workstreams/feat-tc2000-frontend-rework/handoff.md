@@ -2,6 +2,41 @@
 
 ## 2026-10-04 — Visual matrix evidence published; branch synchronized
 
+## 2026-10-04 — Visual evidence publication fully synchronized
+
+The previously pending documentation checkpoint `38013cda20ac13ed09bfc59168fdd4c1976c9ecd`
+was pushed to `origin/feat/tc2000-frontend-rework` after the user authorized
+the exact range
+`31d262ec0e661cef3e3c14dcc8ed55afa81678b0..38013cda20ac13ed09bfc59168fdd4c1976c9ecd`.
+The standard push succeeded. A read-only remote lookup returned
+`38013cda20ac13ed09bfc59168fdd4c1976c9ecd`; local `HEAD` and the local origin
+tracking ref match it, and the worktree is clean. The earlier egress hold is
+resolved. This handoff records `38013cda` as the pre-record checkpoint; the
+enclosing operational-record commit is verified externally after push, without
+embedding its own hash. The repository session-progress helper could not write
+its shared runtime/session locks outside this assigned worktree under the
+current filesystem boundary; no outside files were changed. The branch-owned
+session record was reconciled directly and validated.
+
+This was an operational synchronization context only; it changed no product
+behavior. The pinned 104-case visual matrix remains 94/104, with the same ten
+documented screenshot-only differences. No reference, mask, threshold, skip,
+or acceptance policy changed. The branch goal remains at 1/9 criteria, and no
+external dependency blocks independent TC work. Provider/ETF integration waits
+for staging; the visual differences need the documented review; exact-tip
+full-stack/browser validation remains pending.
+
+Next context: add bounded pagination to the TC-owned Research Results pane so
+persisted Study runs older than the newest 25 can be reached, preserving stable
+ordering, lineage, and current selection/comparison behavior. Keep provider and
+ETF ownership untouched. Validate the focused backend/API and frontend behavior,
+then the declared full-stack/browser profile appropriate to the changed paths.
+
+Updated paths: `ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`,
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`, and
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`.
+
 Closed the `R6_current_pinned_visual_matrix` documentation context. Its six
 owned paths are the roadmap, visual-parity record, and this branch's plan,
 handoff, session, and validation journal. Workstream validation, the TC scope
