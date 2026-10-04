@@ -87,7 +87,10 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/session.json"
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -124,14 +127,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "857a52b29e8178dbd593869f8b0b61fe74cc8db9",
-  "implementation_sha": "7bdddfa64e4d1d1cf641f03eff202e3358037202",
-  "last_checkpoint": "2026-10-04T09:55:37+00:00",
-  "last_human_progress_update": "2026-10-04T09:55:37+00:00",
+  "head": "ce14d39e4bc8d00387ea1466e6437f7ab713d1ff",
+  "implementation_sha": "ce14d39e4bc8d00387ea1466e6437f7ab713d1ff",
+  "last_checkpoint": "2026-10-04T10:22:08.290120+00:00",
+  "last_human_progress_update": "2026-10-04T10:20:20+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue composing trusted capability and search-preparation inputs behind the production API, preserving fail-closed host inputs; run exact-tip Compose/browser acceptance when a Buildx-capable Docker CLI is available.",
+  "next_action": "Implement the concrete local host composition for trusted capability and exact Nautilus evidence, then isolate search preparation behind a local service and async API proxy; keep unavailable canonical provider coverage fail-closed and continue worker/forward acceptance.",
   "parent_branch": "staging",
-  "plan_hash": "f445ae7fb7810c034d90b9934835aaeebb1086f951fc72920ea32da34ef5aea2",
+  "plan_hash": "cac8f4f5aad0793499393b05bfaf7925c5fff5764ab080b937e303d1214ac1b1",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -146,14 +149,14 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "Stable Nautilus 2.x is not a release blocker: exact-pinned pre-release v2 is eligible after scope-specific conformance. The typed capability-preflight composition service now joins requested requirements only with host-resolved coverage cells and exact engine bindings; production source resolvers and the search-preparation context still need host wiring. Exact-tip Compose/browser validation is held by missing Docker Buildx CLI. Combined backend coverage now passes at 2,875 tests and 83.41%.",
-    "current_phase": "trusted-capability-preflight-composition-v1",
-    "next_action": "Wire the trusted coverage and exact engine-binding sources into the registered API; compose isolated search-preparation host context and continue remaining worker/forward acceptance. Run full Compose/browser validation when a Buildx-capable Docker CLI is available.",
+    "current_blocker": "Stable Nautilus 2.x is not a prerequisite: exact-pinned pre-release v2 may qualify after scope-specific conformance. The registered API now supports a typed module:factory host-binding hook and remains fail-closed without configuration. A concrete local binding factory is still needed for canonical provider coverage, exact Nautilus conformance, and isolated search-preparation context. Docker Buildx is absent and blocks exact-tip Compose/browser validation only. The Strategy Lab suite passes 1,229 tests; the combined backend coverage gate passes 2,880 tests at 83.41% on this source tree.",
+    "current_phase": "trusted-api-host-binding-registration-v1",
+    "next_action": "Implement concrete local bindings from trusted staged sources; keep provider coverage unsupported until its canonical contract is available, isolate search preparation behind a local service/client, and continue worker/forward acceptance without waiting for stable Nautilus 2.x.",
     "total": 18,
-    "updated_at": "2026-10-04T09:55:37+00:00"
+    "updated_at": "2026-10-04T10:20:20+00:00"
   },
-  "remote": "857a52b29e8178dbd593869f8b0b61fe74cc8db9",
-  "remote_sha": "857a52b29e8178dbd593869f8b0b61fe74cc8db9",
+  "remote": "ce14d39e4bc8d00387ea1466e6437f7ab713d1ff",
+  "remote_sha": "ce14d39e4bc8d00387ea1466e6437f7ab713d1ff",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

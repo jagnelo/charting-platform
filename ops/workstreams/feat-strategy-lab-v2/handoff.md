@@ -8358,3 +8358,54 @@ Changed workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
 Next: bind these typed resolvers to the local host's canonical coverage and
 exact engine-conformance sources, then compose the trusted search-preparation
 context without executing preparation inline in the API event loop.
+
+## 2026-10-04 - Registered local API host-binding factory (v1)
+
+Committed and pushed `ce14d39e4bc8d00387ea1466e6437f7ab713d1ff`. The registered
+PostgreSQL adapter now accepts `STRATEGY_LAB_V2_API_BINDINGS=module:factory`;
+the synchronous factory receives the shared async session factory and the
+single persistence bundle, and returns typed asynchronous capability-preflight
+and/or search-dispatch bindings. Search dispatch is modeled as a resolver for a
+durable dispatch result, so production hosts can proxy preparation to an
+isolated local service instead of materializing a trial in FastAPI. An absent
+setting preserves the fail-closed 501. This provides the production composition
+point but does not claim that canonical provider or engine sources are already
+configured.
+
+Validation at this source tree: all 1,229 Strategy Lab v2 tests passed; Ruff,
+changed-file format checking, MyPy across 346 package/runtime sources, and
+`git diff --check` passed. The combined backend coverage gate had passed 2,880
+tests at 83.41% on the same code tree. The subsequent assigned-worktree
+resource audit found zero containers, images, volumes, or Testcontainers
+sessions. Docker Buildx is still absent, so the exact-tip Compose/browser gate
+remains the only environment-limited validation; `docker buildx version`
+returns `docker: unknown command: docker buildx`.
+
+Stable Nautilus 2.x is not a prerequisite. The exact-pinned RC5 track remains
+eligible after scope-specific conformance; pre-releases remain barred from
+broker/real-capital control, and forward shadow separately requires event-tape
+parity. The immediate implementation gap is a concrete local host factory
+using trusted provider coverage and exact engine/conformance inputs plus an
+isolated search-preparation service/client. Keep missing canonical provider
+coverage unsupported rather than inventing capability cells, and honor the
+provider-platform/ETF/TC2000 staging boundaries.
+
+Next: compose the concrete local host dependencies where their authoritative
+contracts exist, keep the API fail-closed for unavailable evidence, and
+continue worker/forward acceptance. Run the complete exact-tip Compose/browser
+profile once a Buildx-capable Docker CLI is available.
+
+Changed source paths: `backend/app/strategy_lab_v2/application.py`,
+`backend/app/strategy_lab_v2/tests/test_application.py`, and
+`docs/strategy-lab-v2.md`. Changed workstream paths:
+`ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+The branch session checkpoint passed under the existing claim. Its resource
+snapshot was complete and empty (no owned containers, volumes, or active
+Testcontainers sessions). The helper's dirty-path formatter dropped the first
+character of `ops/.../handoff.md`; the session record was corrected to list the
+exact four branch-workstream paths changed in this checkpoint. The enclosing
+workstream commit is verified separately from the recorded implementation SHA.
