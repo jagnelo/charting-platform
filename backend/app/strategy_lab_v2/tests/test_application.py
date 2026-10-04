@@ -984,6 +984,7 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     attempt_clock = NOW.replace(hour=21)
     metric_clock = NOW.replace(hour=22)
     forward_clock = NOW.replace(hour=23)
+    cross_owner_strategy_clock = NOW.replace(day=3, hour=0)
     clocks = iter(
         (
             accepted_at,
@@ -997,6 +998,7 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
             attempt_clock,
             metric_clock,
             forward_clock,
+            cross_owner_strategy_clock,
         )
     )
     adapter._clock = lambda: next(clocks)
@@ -1050,6 +1052,56 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     assert strategy.receipt is not None
     assert strategy.receipt.resource.attributes["strategy_id"] == "momentum"
     assert strategy.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")
+
+    strategy_replay = await adapter.create_resource(
+        principal=_User(42),
+        request_id="request-strategy-replay",
+        request=ResourceMutationRequest(
+            ApiResourceType.STRATEGY,
+            "strategy-key",
+            {
+                "attributes": {
+                    "strategy_id": "momentum",
+                    "version_id": "2026-09-17",
+                    "sdk_version": "strategy-sdk.v2",
+                    "source_digest": content_digest("strategy-source"),
+                    "default_parameters": {"lookback": 20},
+                }
+            },
+            NOW,
+        ),
+    )
+    assert strategy_replay.resolution.decision.value == "replay_existing"
+    assert strategy_replay.receipt == strategy.receipt
+
+    aliased_strategy = await adapter.create_resource(
+        principal=_User(42),
+        request_id="request-strategy-alias",
+        request=ResourceMutationRequest(
+            ApiResourceType.STRATEGY,
+            "strategy-alias-key",
+            {
+                "attributes": {
+                    "strategy_id": "momentum",
+                    "version_id": "2026-09-17",
+                    "sdk_version": "strategy-sdk.v2",
+                    "source_digest": content_digest("strategy-source"),
+                    "default_parameters": {"lookback": 20},
+                    "resource_id": "momentum-alias",
+                }
+            },
+            NOW,
+        ),
+    )
+    assert aliased_strategy.resolution.decision.value == "reject"
+    assert "already has a resource" in (aliased_strategy.resolution.rejection_reason or "")
+    assert (
+        await reader.get_domain_contract_by_fingerprint(
+            principal=_User(42),
+            resource_type=ApiResourceType.STRATEGY,
+            fingerprint=strategy.receipt.resource.meta["domain_fingerprint"],
+        )
+    ) is not None
 
     with pytest.raises(ValueError, match="referenced Strategy Lab domain object is unavailable"):
         await adapter.create_resource(
@@ -1312,3 +1364,32 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     )
     assert forward_instance.resolution.decision.value == "accept"
     assert forward_instance.receipt is not None
+
+    other_owner_strategy = await adapter.create_resource(
+        principal=_User(7),
+        request_id="request-other-owner-strategy",
+        request=ResourceMutationRequest(
+            ApiResourceType.STRATEGY,
+            "other-owner-strategy-key",
+            {
+                "attributes": {
+                    "strategy_id": "momentum",
+                    "version_id": "2026-09-17",
+                    "sdk_version": "strategy-sdk.v2",
+                    "source_digest": content_digest("strategy-source"),
+                    "default_parameters": {"lookback": 20},
+                }
+            },
+            NOW,
+        ),
+    )
+    assert other_owner_strategy.resolution.decision.value == "accept"
+    assert other_owner_strategy.receipt is not None
+    assert other_owner_strategy.receipt.resource.id != strategy.receipt.resource.id
+    assert (
+        await reader.get_domain_contract_by_fingerprint(
+            principal=_User(7),
+            resource_type=ApiResourceType.STRATEGY,
+            fingerprint=strategy.receipt.resource.meta["domain_fingerprint"],
+        )
+    ) is not None

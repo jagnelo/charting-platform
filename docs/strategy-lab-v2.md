@@ -900,8 +900,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   crosses this seam through the shared compare-and-set aggregate store: owner
   identity, mutation fingerprint, accepted timestamp, and resource envelope
   are persisted together, exact retries reconstruct the durable receipt, and
-  cross-owner or changed-content collisions fail closed. Strategy mutations
-  are normalized through the typed
+  cross-owner or changed-content collisions fail closed. Server-generated
+  resource IDs are owner-scoped, and typed resources atomically reserve their
+  owner/type/domain-fingerprint identity with the resource create so aliases
+  cannot make later domain hydration ambiguous. Strategy mutations are
+  normalized through the typed
   `StrategyVersion`/`StrategyPackage`/`PortfolioComposition`/
   `ExperimentDefinition`/`RunAttempt`/`DataSnapshot`/`ScientificTrial`/
   `MetricSet`/`ForwardInstance` contracts

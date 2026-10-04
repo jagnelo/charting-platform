@@ -837,6 +837,10 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         ):
             raise ValueError("resource_id must be a non-empty string when supplied")
         resource_identity_payload: dict[str, Any] = {
+            # Resource IDs are globally keyed in the aggregate store. Include
+            # the owner for server-generated IDs so identical private domain
+            # objects do not collide across principals.
+            "owner_id": owner.id,
             "resource_type": request.resource_type,
             "attributes": attributes,
         }
@@ -851,6 +855,54 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             and str(existing_state.get("owner_id")) == owner.id
             and existing_state.get("mutation_fingerprint") == request.fingerprint
         )
+        domain_identity_key: AggregateKey | None = None
+        domain_identity_state: dict[str, Any] | None = None
+        if normalized_domain.domain_fingerprint is not None:
+            domain_identity_key = AggregateKey(
+                "resource_domain_identity",
+                content_digest(
+                    {
+                        "owner_id": owner.id,
+                        "resource_type": request.resource_type.value,
+                        "domain_fingerprint": normalized_domain.domain_fingerprint,
+                    }
+                ),
+            )
+            domain_identity_state = {
+                "owner_id": owner.id,
+                "resource_type": request.resource_type.value,
+                "domain_fingerprint": normalized_domain.domain_fingerprint,
+                "resource_id": resource_id,
+                "schema_version": 1,
+            }
+            reserved_identity = await self._persistence.aggregate_store.get(domain_identity_key)
+            if reserved_identity is not None:
+                reserved_state = reserved_identity.state
+                if (
+                    not isinstance(reserved_state, Mapping)
+                    or str(reserved_state.get("owner_id")) != owner.id
+                    or reserved_state.get("resource_type") != request.resource_type.value
+                    or reserved_state.get("domain_fingerprint")
+                    != normalized_domain.domain_fingerprint
+                    or not isinstance(reserved_state.get("resource_id"), str)
+                ):
+                    return ResourceMutationServiceResult(
+                        ResourceMutationResolution(
+                            ResourceMutationDecision.REJECT,
+                            request.fingerprint,
+                            rejection_reason="persisted domain identity reservation is malformed",
+                        )
+                    )
+                if reserved_state["resource_id"] != resource_id or not replaying_known_mutation:
+                    return ResourceMutationServiceResult(
+                        ResourceMutationResolution(
+                            ResourceMutationDecision.REJECT,
+                            request.fingerprint,
+                            rejection_reason=(
+                                "owner already has a resource for this domain fingerprint"
+                            ),
+                        )
+                    )
         if replaying_known_mutation:
             accepted_at = existing_state.get("mutation_accepted_at")
             if not isinstance(accepted_at, datetime):
@@ -905,15 +957,14 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 "owner_id": owner.id,
             }
         )
-        storage_request = StorageTransactionRequest(
-            storage_request_id,
-            (
-                AggregateMutation(
-                    aggregate_key,
-                    state,
-                ),
-            ),
-        )
+        mutations = [AggregateMutation(aggregate_key, state)]
+        if domain_identity_key is not None and domain_identity_state is not None:
+            # Reserve the owner-scoped immutable identity in the same CAS
+            # transaction as the public resource. The aggregate store's
+            # primary key arbitrates concurrent creates without a read/write
+            # race or a separate migration-owned index.
+            mutations.append(AggregateMutation(domain_identity_key, domain_identity_state))
+        storage_request = StorageTransactionRequest(storage_request_id, tuple(mutations))
         resolved = await self._persistence.aggregate_store.apply(storage_request)
         committed = next(
             (aggregate for aggregate in resolved.aggregates if aggregate.key == aggregate_key),
