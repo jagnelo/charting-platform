@@ -3,7 +3,21 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-10-03
+Last reconciled: 2026-10-04
+
+## 2026-10-04 — Study output comparison shows numeric change
+
+Product commit `0543be24b833bad385f855aca6586f343c5b56a6` adds signed numeric
+change summaries to persisted Study output comparisons: scalar values compare
+later run minus earlier run; series and range-center summaries appear only when
+the latest dates align. Different dates, malformed/non-finite values, and
+unsupported artifact shapes remain without a numeric delta. Focused Research
+Results coverage passed `52/52`, the full frontend suite passed `1,193/1,193`,
+type-check and production build passed, and authenticated pinned Chromium
+`F8t-results` passed `1/1`. This is one focused R5 improvement; it does not
+close the broader Study/Strategy compatibility matrix, upstream staging
+dependencies, protected screenshot review, or final exact-tip gate. No visual
+baseline or acceptance policy changed.
 
 ## 2026-10-03 — Study sandbox-error state replay confirms a local snapshot mismatch
 

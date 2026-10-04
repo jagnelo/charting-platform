@@ -49,6 +49,7 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
+    "docs/tc2000-roadmap.md",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
@@ -111,13 +112,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "81bd58eb0a1fc26084915655dcbdc6795cacf2bd",
-  "implementation_sha": "81bd58eb0a1fc26084915655dcbdc6795cacf2bd",
+  "head": "0543be24b833bad385f855aca6586f343c5b56a6",
+  "implementation_sha": "0543be24b833bad385f855aca6586f343c5b56a6",
   "interrupted": false,
-  "last_checkpoint": "2026-10-04T03:38:37.683887+00:00",
-  "last_human_progress_update": "2026-10-04T03:35:01.174413+00:00",
+  "last_checkpoint": "2026-10-04T03:59:14.163062+00:00",
+  "last_human_progress_update": "2026-10-04T03:56:00.389796+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue independent TC-owned R1/R5/R6 frontend work; select the next verified workstation or Study/Strategy gap. Wait for provider and ETF promotion to staging before consumer integration; preserve screenshot review rules and final exact-tip validation.",
+  "next_action": "Continue independent TC-owned R1/R5/R6 frontend work; consume provider/ETF only after staging; preserve screenshot review policy; complete exact-tip validation near final handoff.",
   "plan_hash": "da97a5efa116000f6ab0d25a75ed6dba5604cef30ff43243e51766dd087d6cbd",
   "planning_required": false,
   "planning_state": "ready",
@@ -131,22 +132,22 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "No blocker prevents independent TC frontend work. Provider and ETF consumer integration awaits staging promotion, ten protected screenshot differences await documented review, and the final exact-tip gate remains pending. The current 1,643-commit push range has not been retried; the repository egress safeguard requires authorization for this exact payload, and alternate routes are prohibited.",
-    "current_phase": "R5_study_results_output_comparison",
-    "next_action": "Continue independent TC-owned R1/R5/R6 frontend work; select the next verified workstation or Study/Strategy gap. Wait for provider and ETF promotion to staging before consumer integration; preserve screenshot review rules and final exact-tip validation.",
+    "current_blocker": "No blocker prevents independent TC frontend work. Provider/ETF integration awaits staging, ten protected screenshot differences await documented review, and the final exact-tip gate remains pending. The current 1,645-commit push range requires exact-payload authorization under the private-origin safeguard; do not use alternate routes.",
+    "current_phase": "R5_study_results_numeric_output_delta",
+    "next_action": "Continue independent TC-owned R1/R5/R6 frontend work; consume provider/ETF only after staging; preserve screenshot review policy; complete exact-tip validation near final handoff.",
     "total": 9,
-    "updated_at": "2026-10-04T03:35:01.174393+00:00"
+    "updated_at": "2026-10-04T03:56:00.389777+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "81bd58eb0a1fc26084915655dcbdc6795cacf2bd",
-    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..81bd58eb0a1fc26084915655dcbdc6795cacf2bd",
-    "failure_category": "An earlier push attempt through 98e38784b8c09b5acfde911318f2842fc4d33562 was rejected before Git ran by the private-repository egress safeguard because its proposed payload contained 1,628 commits without exact-payload authorization. A later read-only git ls-remote refresh failed because github.com DNS resolution failed. The current local product range is 63d64bfe95c98bfe6e550bf69c213ae1cd64a629..81bd58eb0a1fc26084915655dcbdc6795cacf2bd (1,643 commits) and has not been attempted. Repository policy requires authorization naming this exact remote, branch, and range before retrying; do not use an alternate route or bypass the safeguard.",
-    "head_at_product_checkpoint": "81bd58eb0a1fc26084915655dcbdc6795cacf2bd",
+    "current_local_head": "0543be24b833bad385f855aca6586f343c5b56a6",
+    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..0543be24b833bad385f855aca6586f343c5b56a6",
+    "failure_category": "An earlier push attempt through 98e38784b8c09b5acfde911318f2842fc4d33562 was rejected before Git ran by the private-repository egress safeguard because its proposed payload contained 1,628 commits without exact-payload authorization. A later read-only git ls-remote refresh failed because github.com DNS resolution failed. The current local range is 63d64bfe95c98bfe6e550bf69c213ae1cd64a629..0543be24b833bad385f855aca6586f343c5b56a6 (1,645 commits) and has not been attempted. Repository policy requires authorization naming this exact remote, branch, and range before retrying; do not use an alternate route or bypass the safeguard.",
+    "head_at_product_checkpoint": "0543be24b833bad385f855aca6586f343c5b56a6",
     "last_attempted_local_head": "98e38784b8c09b5acfde911318f2842fc4d33562",
     "last_attempted_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..98e38784b8c09b5acfde911318f2842fc4d33562",
-    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..81bd58eb0a1fc26084915655dcbdc6795cacf2bd",
+    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..0543be24b833bad385f855aca6586f343c5b56a6",
     "remote": "origin",
     "remote_tracking_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
     "status": "committed_locally_pending_push"

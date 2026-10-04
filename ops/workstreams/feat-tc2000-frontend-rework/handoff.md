@@ -1,5 +1,55 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-04 — Study Results shows numeric changes between runs
+
+Product commit `0543be24b833bad385f855aca6586f343c5b56a6` adds an at-a-glance
+numeric change to persisted Study output comparisons. Scalar outputs show the
+later run minus the earlier run; series and range-center outputs show the
+latest change only when both runs end on the same date. Different end dates,
+malformed data, non-finite numbers, and unsupported artifact shapes do not get
+a numeric delta. Existing same/changed/missing status and lazy payload
+inspection remain unchanged.
+
+Focused ResearchResultsTool coverage passed `52/52`; the full frontend suite
+passed `128/128` files and `1,193/1,193` tests; type-check and production build
+passed. The authenticated pinned Playwright 1.62.1 Chromium `F8t-results` flow
+passed `1/1`, including the browser assertion that run 881 to run 882 changed
+`current_streak` by `+2`. The TC scope guard accepted all `122` branch-touched
+paths, its six ownership self-tests passed, and `git diff --check` passed.
+
+The standard stack helper could not update its shared runtime allocation from
+this restricted session, and the host sandbox denied direct Docker/browser
+access. Using the already allocated TC runtime settings, the ordinary Compose
+builder started only this worktree's stack; the pinned browser container then
+passed the flow. Teardown removed the six containers, four volumes, network,
+and four generated images; exact-project checks found no remaining resources.
+No provider/ETF behavior, screenshot reference, mask, threshold, skip, or
+acceptance rule changed.
+
+The goal remains active at `1/9` acceptance criteria complete. Independent TC
+frontend work can continue. Provider and ETF consumer integration still waits
+for both branches to reach staging; ten protected screenshot differences
+still need the documented review; and the final exact-tip gate remains
+pending. Continue independent R1/R5/R6 work.
+
+The local `origin/feat/tc2000-frontend-rework` tracking ref remains
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629`; at product checkpoint
+`0543be24b833bad385f855aca6586f343c5b56a6`, the local range contains 1,645
+commits. The separate operational checkpoint adds one more local commit. No
+push was attempted for this range: the repository's private-origin safeguard
+still requires authorization for the exact current payload, and alternate
+routes remain prohibited. This transport hold does not prevent independent
+local TC implementation; verify the enclosing operational commit with
+`git rev-parse HEAD` after it is created rather than embedding a self-reference.
+
+Changed product paths: `frontend/src/components/workstation/ResearchResultsTool.vue`,
+`frontend/tests/unit/components/test_research_results_tool.test.ts`, and
+`frontend/tests/e2e/flows.spec.ts`; roadmap update:
+`docs/tc2000-roadmap.md`. Updated operational paths:
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`, and
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`.
+
 ## 2026-10-04 — Study Results compares persisted output artifacts
 
 Product commit `81bd58eb0a1fc26084915655dcbdc6795cacf2bd` extends the Study
