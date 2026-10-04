@@ -34,7 +34,7 @@ describe('ResearchResultsTool', () => {
     const wrapper = mountTool()
     await flushPromises()
 
-    expect(apiGet).toHaveBeenCalledWith('/research/runs', { limit: 25, include_artifacts: false })
+    expect(apiGet).toHaveBeenCalledWith('/research/runs', { limit: 26, include_artifacts: false })
     expect(wrapper.text()).toContain('Run #9')
     expect(wrapper.text()).toContain('current_streak')
     expect(wrapper.find('.histogram-chart').exists()).toBe(true)
@@ -43,6 +43,89 @@ describe('ResearchResultsTool', () => {
     const summaryId = wrapper.find('[aria-label="confidence range result"]').attributes('aria-describedby')
     expect(summaryId).toMatch(/-research-artifact-6-summary$/)
     expect(wrapper.find(`#${summaryId}`).text()).toContain('confidence range result with 1 observations')
+  })
+
+  it('loads older runs with a stable cursor while preserving selection and comparison', async () => {
+    const makeRuns = (startId: number, count: number, offset: number) => Array.from({ length: count }, (_, index) => {
+      const age = offset + index
+      return {
+        id: startId - age,
+        created_at: new Date(Date.UTC(2026, 0, 2) - age * 60_000).toISOString(),
+        status: 'completed',
+        code_version_id: startId - age,
+        run_config: {},
+        dataset_manifest: {},
+        artifact_count: 0,
+        artifacts: [],
+      }
+    })
+    const firstPage = makeRuns(100, 26, 0)
+    const olderPage = makeRuns(100, 26, 25)
+    apiGet.mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path !== '/research/runs') return Promise.resolve({})
+      return Promise.resolve(params?.before_id ? olderPage : firstPage)
+    })
+
+    const wrapper = mountTool()
+    await flushPromises()
+    expect(wrapper.findAll('[role="listitem"]')).toHaveLength(25)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Load older runs')).toBe(true)
+
+    await wrapper.get('button[aria-label="Run 77, completed, 0 artifacts"]').trigger('click')
+    await wrapper.get('input[aria-label="Compare run 100"]').setValue(true)
+    await wrapper.get('input[aria-label="Compare run 77"]').setValue(true)
+    await wrapper.findAll('button').find(button => button.text() === 'Compare')!.trigger('click')
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Load older runs')!.trigger('click')
+    await flushPromises()
+
+    expect(apiGet).toHaveBeenCalledWith('/research/runs', {
+      limit: 26,
+      include_artifacts: false,
+      before_created_at: firstPage[24].created_at,
+      before_id: firstPage[24].id,
+    })
+    expect(wrapper.findAll('[role="listitem"]')).toHaveLength(50)
+    expect(wrapper.get('[role="listitem"].research-results-tool__run[aria-current="true"]').text()).toContain('Run #77')
+    expect((wrapper.get('input[aria-label="Compare run 100"]').element as HTMLInputElement).checked).toBe(true)
+    expect((wrapper.get('input[aria-label="Compare run 77"]').element as HTMLInputElement).checked).toBe(true)
+    expect(wrapper.text()).toContain('Run 100 vs 77')
+  })
+
+  it('surfaces an older-run page error and allows retry', async () => {
+    const firstPage = Array.from({ length: 26 }, (_, index) => ({
+      id: 50 - index,
+      created_at: new Date(Date.UTC(2026, 0, 2) - index * 60_000).toISOString(),
+      status: 'completed',
+      code_version_id: 1,
+      run_config: {},
+      dataset_manifest: {},
+      artifact_count: 0,
+      artifacts: [],
+    }))
+    let olderAttempts = 0
+    apiGet.mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path !== '/research/runs') return Promise.resolve({})
+      if (!params?.before_id) return Promise.resolve(firstPage)
+      olderAttempts += 1
+      return olderAttempts === 1
+        ? Promise.reject(new Error('Older runs unavailable'))
+        : Promise.resolve(firstPage.slice(25))
+    })
+
+    const wrapper = mountTool()
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'Load older runs')!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('Older runs unavailable')
+    await wrapper.findAll('button').find(button => button.text() === 'Retry loading older runs')!.trigger('click')
+    await flushPromises()
+    expect(olderAttempts).toBe(2)
+    expect(wrapper.findAll('[role="listitem"]')).toHaveLength(26)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Load older runs')).toBe(false)
   })
 
   it('keeps artifact summary relationships unique across linked result panes', async () => {

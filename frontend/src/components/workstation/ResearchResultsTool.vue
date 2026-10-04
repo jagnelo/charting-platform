@@ -8,27 +8,37 @@
     <p v-if="error" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <p v-else-if="loading && !runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading reproducible research runs…</p>
     <p v-else-if="!runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">No persisted studies yet. Run a study in the adjacent Study Lab pane.</p>
-    <div v-else class="research-results-tool__runs" role="list" aria-label="Persisted research runs">
-      <div
-        v-for="run in runs"
-        :key="run.id"
-        role="listitem"
-        :class="{ 'research-results-tool__run--selected': selectedRun?.id === run.id }"
-        class="research-results-tool__run"
-        :aria-current="selectedRun?.id === run.id ? 'true' : undefined"
-      >
-        <input type="checkbox" :checked="comparisonIds.includes(run.id)" :aria-label="`Compare run ${run.id}`" @change="toggleComparison(run.id)" />
-        <button
-          type="button"
-          class="research-results-tool__run-select"
-          :aria-label="`Run ${run.id}, ${run.status}, ${run.artifact_count ?? run.artifacts.length} artifacts`"
-          :aria-pressed="selectedRun?.id === run.id ? 'true' : 'false'"
-          @click="selectedRun = run"
+    <div v-else class="research-results-tool__run-browser" :aria-busy="olderRunsLoading ? 'true' : 'false'">
+      <div class="research-results-tool__runs" role="list" aria-label="Persisted research runs">
+        <div
+          v-for="run in runs"
+          :key="run.id"
+          role="listitem"
+          :class="{ 'research-results-tool__run--selected': selectedRun?.id === run.id }"
+          class="research-results-tool__run"
+          :aria-current="selectedRun?.id === run.id ? 'true' : undefined"
         >
-          <strong>Run #{{ run.id }}</strong>
-          <span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Run ${run.id} status: ${statusLabel(run.status)}`" :data-status="run.status" :class="`research-results-tool__status--${run.status}`">{{ statusLabel(run.status) }}</span>
-          <small>{{ run.artifact_count ?? run.artifacts.length }} artifact{{ (run.artifact_count ?? run.artifacts.length) === 1 ? '' : 's' }}</small>
-        </button>
+          <input type="checkbox" :checked="comparisonIds.includes(run.id)" :aria-label="`Compare run ${run.id}`" @change="toggleComparison(run.id)" />
+          <button
+            type="button"
+            class="research-results-tool__run-select"
+            :aria-label="`Run ${run.id}, ${run.status}, ${run.artifact_count ?? run.artifacts.length} artifacts`"
+            :aria-pressed="selectedRun?.id === run.id ? 'true' : 'false'"
+            @click="selectedRun = run"
+          >
+            <strong>Run #{{ run.id }}</strong>
+            <span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Run ${run.id} status: ${statusLabel(run.status)}`" :data-status="run.status" :class="`research-results-tool__status--${run.status}`">{{ statusLabel(run.status) }}</span>
+            <small>{{ run.artifact_count ?? run.artifacts.length }} artifact{{ (run.artifact_count ?? run.artifacts.length) === 1 ? '' : 's' }}</small>
+          </button>
+        </div>
+      </div>
+      <div v-if="hasMoreRuns || olderRunsLoading || olderRunsError" class="research-results-tool__pagination">
+        <p v-if="olderRunsError" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">
+          {{ olderRunsError }}
+          <button type="button" :disabled="olderRunsLoading" @click="loadOlderRuns">Retry loading older runs</button>
+        </p>
+        <p v-else-if="olderRunsLoading" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading older runs…</p>
+        <button v-else-if="hasMoreRuns" type="button" :disabled="olderRunsLoading" @click="loadOlderRuns">Load older runs</button>
       </div>
     </div>
     <section v-if="comparisonOpen && comparisonRuns.length === 2" class="research-results-tool__comparison">
@@ -195,6 +205,7 @@ import type { GenericBreadthHistoryState } from '@/stores/workspace'
 
 interface ResearchRunSummary {
   id: number
+  created_at?: string
   status: string
   code_version_id: number
   output_contract?: string | null
@@ -219,7 +230,13 @@ interface ComparisonArtifactPair {
   changeSummary: string | null
 }
 
+const RESEARCH_RUN_PAGE_SIZE = 25
+const RESEARCH_RUN_FETCH_SIZE = RESEARCH_RUN_PAGE_SIZE + 1
 const runs = ref<ResearchRunSummary[]>([])
+const hasMoreRuns = ref(false)
+const hasLoadedOlderRuns = ref(false)
+const olderRunsLoading = ref(false)
+const olderRunsError = ref('')
 const resultsRoot = ref<HTMLElement | null>(null)
 const resultsInstanceId = (() => {
   const scope = globalThis as typeof globalThis & { __tc2000ResearchResultsInstanceSequence?: number }
@@ -252,6 +269,15 @@ const seriesConditionOperator = ref<'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'ne'>('
 const seriesConditionThreshold = ref(0)
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string; instrument_id?: number }] }>()
 const comparisonRuns = computed(() => comparisonIds.value.map(id => runs.value.find(run => run.id === id)).filter((run): run is ResearchRunSummary => Boolean(run)))
+function mergeResearchRuns(...groups: ResearchRunSummary[][]) {
+  const byId = new Map<number, ResearchRunSummary>()
+  for (const group of groups) {
+    for (const run of group) {
+      if (!byId.has(run.id)) byId.set(run.id, run)
+    }
+  }
+  return [...byId.values()]
+}
 const comparisonArtifacts = computed<ComparisonArtifactPair[]>(() => {
   const [leftRun, rightRun] = comparisonRuns.value.map(run => comparisonDetails.value[run.id] ?? run)
   if (!leftRun || !rightRun) return []
@@ -302,13 +328,14 @@ function beginPromotion() {
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const runsQuery = useQuery({
   queryKey: runsQueryKey,
-  queryFn: async () => (await api.get<ResearchRunSummary[]>('/research/runs', { limit: 25, include_artifacts: false })) ?? [],
+  queryFn: async () => (await api.get<ResearchRunSummary[]>('/research/runs', { limit: RESEARCH_RUN_FETCH_SIZE, include_artifacts: false })) ?? [],
   enabled: computed(() => surfaceVisible.value && documentVisible.value),
   staleTime: 5_000,
   refetchOnWindowFocus: true,
   refetchInterval: query => {
     const data = query.state.data
-    return Array.isArray(data) && data.some(run => !['completed', 'failed', 'canceled'].includes(run.status)) ? 1_000 : false
+    const observedRuns = mergeResearchRuns(Array.isArray(data) ? data : [], runs.value)
+    return observedRuns.some(run => !['completed', 'failed', 'canceled'].includes(run.status)) ? 1_000 : false
   },
 })
 const selectedRunDetailQuery = useQuery({
@@ -330,10 +357,12 @@ const detailRetrying = ref(false)
 const loading = computed(() => runsQuery.isFetching.value || rerunning.value || canceling.value)
 watch(() => runsQuery.data.value, next => {
   if (!next) return
-  runs.value = next
-  const retained = selectedRun.value ? next.find(run => run.id === selectedRun.value?.id) : null
-  selectedRun.value = retained ?? next[0] ?? null
-  comparisonIds.value = comparisonIds.value.filter(id => next.some(run => run.id === id))
+  const firstPage = next.slice(0, RESEARCH_RUN_PAGE_SIZE)
+  const selectedId = selectedRun.value?.id
+  runs.value = mergeResearchRuns(firstPage, hasLoadedOlderRuns.value ? runs.value : [])
+  if (!hasLoadedOlderRuns.value) hasMoreRuns.value = next.length > RESEARCH_RUN_PAGE_SIZE
+  selectedRun.value = runs.value.find(run => run.id === selectedId) ?? runs.value[0] ?? null
+  comparisonIds.value = comparisonIds.value.filter(id => runs.value.some(run => run.id === id))
 }, { immediate: true })
 watch(() => runsQuery.error.value, cause => {
   if (cause) error.value = cause instanceof Error ? cause.message : 'Unable to load persisted research runs'
@@ -342,6 +371,38 @@ watch(() => selectedRunDetailQuery.data.value, detail => {
   if (detail && detail.id === selectedRun.value?.id) selectedRun.value = detail
 })
 watch(comparisonLoadKey, key => { void loadComparisonDetails(key) }, { immediate: true })
+
+async function loadOlderRuns() {
+  if (!hasMoreRuns.value || olderRunsLoading.value) return
+  const cursor = runs.value[runs.value.length - 1]
+  if (!cursor?.created_at) {
+    olderRunsError.value = 'The run list is missing its pagination cursor. Refresh the results and try again.'
+    return
+  }
+
+  olderRunsLoading.value = true
+  olderRunsError.value = ''
+  const selectedId = selectedRun.value?.id
+  try {
+    const page = (await api.get<ResearchRunSummary[]>('/research/runs', {
+      limit: RESEARCH_RUN_FETCH_SIZE,
+      include_artifacts: false,
+      before_created_at: cursor.created_at,
+      before_id: cursor.id,
+    })) ?? []
+    const visiblePage = page.slice(0, RESEARCH_RUN_PAGE_SIZE)
+    const previousCount = runs.value.length
+    runs.value = mergeResearchRuns(runs.value, visiblePage)
+    hasLoadedOlderRuns.value = true
+    hasMoreRuns.value = page.length > RESEARCH_RUN_PAGE_SIZE && runs.value.length > previousCount
+    selectedRun.value = runs.value.find(run => run.id === selectedId) ?? runs.value[0] ?? null
+    comparisonIds.value = comparisonIds.value.filter(id => runs.value.some(run => run.id === id))
+  } catch (cause: any) {
+    olderRunsError.value = cause?.message ?? 'Unable to load older research runs'
+  } finally {
+    olderRunsLoading.value = false
+  }
+}
 
 async function loadComparisonDetails(key: string) {
   const generation = ++comparisonGeneration
@@ -827,6 +888,7 @@ function canPromoteBreadthColumn(run: ResearchRunSummary) {
 
 async function refresh() {
   error.value = ''
+  olderRunsError.value = ''
   try { await runsQuery.refetch() }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to load persisted research runs' }
 }
@@ -843,12 +905,18 @@ async function rerun(run: ResearchRunSummary, snapshot: boolean) {
   try {
     const queued = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/rerun?snapshot=${snapshot}`, {})
     if (!mounted || generation !== mutationGeneration) return
-    const nextRuns = [queued, ...runs.value.filter(item => item.id !== queued.id)]
-    queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, nextRuns)
+    const nextRuns = mergeResearchRuns([queued], runs.value)
+    queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => mergeResearchRuns(
+      [queued],
+      (current ?? []).filter(item => item.id !== queued.id),
+    ).slice(0, RESEARCH_RUN_FETCH_SIZE))
     runs.value = nextRuns
     if (selectedRun.value?.id === selectedRunIdAtStart) selectedRun.value = queued
     await runsQuery.refetch()
-    queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => [queued, ...(current ?? []).filter(item => item.id !== queued.id)])
+    queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => mergeResearchRuns(
+      [queued],
+      (current ?? []).filter(item => item.id !== queued.id),
+    ).slice(0, RESEARCH_RUN_FETCH_SIZE))
   } catch (cause: any) {
     if (mounted && generation === mutationGeneration) error.value = cause?.message ?? 'Unable to queue study rerun'
   } finally {
@@ -863,7 +931,7 @@ async function cancel(run: ResearchRunSummary) {
     const canceled = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/cancel`, {})
     if (!mounted || generation !== mutationGeneration) return
     const nextRuns = runs.value.map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item)
-    queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, nextRuns)
+    queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => (current ?? []).map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item))
     runs.value = nextRuns
     if (selectedRun.value?.id === run.id) selectedRun.value = runs.value.find(item => item.id === run.id) ?? null
     await runsQuery.refetch()
@@ -1620,4 +1688,5 @@ onBeforeUnmount(() => {
 .research-results-tool__artifact-promotions { display:flex; flex-wrap:wrap; gap:4px; }.research-results-tool__artifact-promotions button { padding:2px 4px; }
 .research-results-tool__series-condition { display:flex; align-items:center; flex-wrap:wrap; gap:4px; flex-basis:100%; color:#91a8b4; }.research-results-tool__series-condition label { display:flex; align-items:center; gap:3px; }.research-results-tool__series-condition select,.research-results-tool__series-condition input { min-width:52px; border:1px solid #3a4954; background:#121a20; color:#dce6ed; font:inherit; padding:2px 3px; }.research-results-tool__series-condition button { padding:2px 4px; }
 .research-results-tool__output-comparison { margin-top:7px; border-top:1px solid #34424c; padding-top:5px; }.research-results-tool__comparison-table { width:100%; border-collapse:collapse; margin-top:4px; }.research-results-tool__comparison-table th,.research-results-tool__comparison-table td { padding:3px 4px; border:1px solid #2c3943; text-align:left; vertical-align:top; overflow-wrap:anywhere; }.research-results-tool__comparison-table th small { display:block; color:#8195a3; font-weight:400; }.research-results-tool__comparison-table .research-results-tool__comparison-delta { display:block; margin-top:2px; color:#a9bac5; font-weight:400; }.research-results-tool__comparison-table details { margin-top:3px; }.research-results-tool__comparison-table summary { color:#91a8b4; cursor:pointer; }.research-results-tool__comparison-table pre { max-width:280px; max-height:140px; margin:3px 0; overflow:auto; white-space:pre-wrap; }
+.research-results-tool__run-browser { display:grid; grid-template-rows:minmax(0,1fr) auto; gap:4px; min-height:0; }.research-results-tool__pagination { display:flex; align-items:center; gap:5px; }.research-results-tool__pagination p { display:flex; align-items:center; gap:5px; margin:0; }.research-results-tool__pagination button { padding:1px 4px; }
 </style>

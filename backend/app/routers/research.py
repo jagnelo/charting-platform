@@ -787,22 +787,37 @@ async def create_run(
 async def list_runs(
     limit: int = 25,
     include_artifacts: bool = False,
+    before_created_at: datetime | None = None,
+    before_id: int | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Return the current user's newest persisted research runs for result panes."""
+    if (before_created_at is None) != (before_id is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="before_created_at and before_id must be provided together",
+        )
     bounded_limit = max(1, min(limit, 100))
+    statement = (
+        select(ResearchRun)
+        .options(
+            selectinload(ResearchRun.artifacts),
+            selectinload(ResearchRun.code_version),
+        )
+        .where(ResearchRun.user_id == current_user.id)
+    )
+    if before_created_at is not None and before_id is not None:
+        statement = statement.where(
+            (ResearchRun.created_at < before_created_at)
+            | ((ResearchRun.created_at == before_created_at) & (ResearchRun.id < before_id))
+        )
     runs = (
         (
             await db.execute(
-                select(ResearchRun)
-                .options(
-                    selectinload(ResearchRun.artifacts),
-                    selectinload(ResearchRun.code_version),
+                statement.order_by(desc(ResearchRun.created_at), desc(ResearchRun.id)).limit(
+                    bounded_limit
                 )
-                .where(ResearchRun.user_id == current_user.id)
-                .order_by(desc(ResearchRun.created_at), desc(ResearchRun.id))
-                .limit(bounded_limit)
             )
         )
         .scalars()
@@ -818,6 +833,7 @@ async def list_runs(
     return [
         {
             "id": run.id,
+            "created_at": run.created_at,
             "code_version_id": run.code_version_id,
             "output_contract": run.code_version.output_contract if run.code_version else None,
             "status": run.status,

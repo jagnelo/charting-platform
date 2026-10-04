@@ -2743,3 +2743,77 @@ class TestStrategyLabAPI:
         refreshed = refresh_res.json()
         assert refreshed["result_summary"]["result_kind"] == "rules_paper_forward"
         assert len(refreshed["result_summary"]["paper_forward"]["monitor_snapshots"]) == 2
+
+    def test_research_run_listing_uses_stable_created_at_id_cursor(
+        self, client, auth_headers, db, user
+    ):
+        from datetime import UTC, datetime, timedelta
+
+        from app.models.research import CodeAsset, CodeVersion, ResearchRun
+
+        asset = CodeAsset(
+            user_id=user.id,
+            stable_key="run-pagination-study",
+            name="Run pagination study",
+            kind="study",
+        )
+        version = CodeVersion(
+            version_number=1,
+            source="output.scalar('value', 1)",
+            output_contract="study",
+        )
+        asset.versions.append(version)
+        db.add(asset)
+        db.flush()
+
+        base_time = datetime(2026, 1, 1, tzinfo=UTC)
+        runs = [
+            ResearchRun(
+                user_id=user.id,
+                code_version=version,
+                status="completed",
+                created_at=base_time + timedelta(days=day),
+            )
+            for day in (0, 0, 1, 1)
+        ]
+        db.add_all(runs)
+        db.flush()
+
+        first_page = client.get(
+            "/api/v1/research/runs",
+            headers=auth_headers,
+            params={"limit": 2},
+        )
+        assert first_page.status_code == 200, first_page.text
+        first_rows = first_page.json()
+        assert [row["id"] for row in first_rows] == [runs[3].id, runs[2].id]
+        assert first_rows[1]["created_at"]
+
+        # A newly persisted run must not shift the older page under its cursor.
+        newest = ResearchRun(
+            user_id=user.id,
+            code_version=version,
+            status="completed",
+            created_at=base_time + timedelta(days=2),
+        )
+        db.add(newest)
+        db.flush()
+
+        second_page = client.get(
+            "/api/v1/research/runs",
+            headers=auth_headers,
+            params={
+                "limit": 2,
+                "before_created_at": first_rows[-1]["created_at"],
+                "before_id": first_rows[-1]["id"],
+            },
+        )
+        assert second_page.status_code == 200, second_page.text
+        assert [row["id"] for row in second_page.json()] == [runs[1].id, runs[0].id]
+
+        incomplete_cursor = client.get(
+            "/api/v1/research/runs",
+            headers=auth_headers,
+            params={"limit": 2, "before_id": runs[2].id},
+        )
+        assert incomplete_cursor.status_code == 422

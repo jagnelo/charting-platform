@@ -1,5 +1,7 @@
 """Unified Python authoring validation contracts."""
 
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -104,6 +106,7 @@ class ResearchRunOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    created_at: datetime
     code_version_id: int
     output_contract: str | None = None
     status: str
