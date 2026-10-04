@@ -6,7 +6,13 @@ parent_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 latest_staging_merge_sha: 9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4
 latest_staging_parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 dependency_authorization: "not applicable: independent staging-based topic"
-human_intent_authorization: "Continue the existing ETF holdings provider coverage goal from current green staging; carry forward the remaining native-provider work. The human approved the exhaustive implementation plan and explicitly authorized persisting it for a later Codex implementation session."
+human_intent_authorization: >-
+  Continue the existing ETF holdings provider coverage goal from current green
+  staging; carry forward the remaining native-provider work. The human approved
+  the exhaustive implementation plan and explicitly authorized persisting it
+  for a later Codex implementation session. On 2026-10-04, the human separately
+  instructed the agent to independently fix the full-gate-blocking F9c chart
+  control hit-target defect within this assigned branch.
 planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
@@ -33,6 +39,7 @@ scope:
   - "Prioritize active US ETFs by AUM, configured benchmark/proxy role, and platform usage, beginning with WisdomTree DXJ/NTSX, PIMCO MINT/BOND/GEME, and the F/m U.S. Benchmark Series."
   - "Add bounded, opt-in ETF route canaries, schema/content-drift detection, stale-data visibility, failure classification, recovery, and shared provider-health integration."
   - "Assess licensed/vendor sources only after compliant free and already-entitled options, recording coverage, terms, freshness, quota, and cost without purchasing or enabling a paid source in this session."
+  - "Fix the narrow generic chart comparison/plot toolbar overlap that blocks the required F9c browser assertion, without weakening the assertion or changing generic visual baselines."
   - "Stop at ready_for_human_review with a clean, synchronized feature branch; do not integrate, promote, deploy, or modify another worktree."
 owned_paths:
   - backend/app/services/etf_holdings_adapters.py
@@ -50,6 +57,7 @@ owned_paths:
   - backend/alembic/versions/
   - frontend/src/views/ETFHoldingsView.vue
   - frontend/src/components/etf/ETFHoldingsPanel.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
   - frontend/src/stores/workspace.ts
   - backend/tests/unit/services/test_etf_holdings_adapters.py
   - backend/tests/unit/services/test_etf_holdings_capability.py
@@ -422,8 +430,10 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: full_integration_rerun_reached_browser_gate_one_out_of_scope_interaction_failure
+current_phase: full_gate_two_unrelated_e2e_failures_targeted_replays_passed
 current_blocker: >-
+  The latest full gate on working source based on 115af366123c4e07e3a3109cc9ba19f2af136f18 again passed workstream/dependency/migration, Ruff/format/type-check, backend coverage (1,877 passed; 81.13%), frontend tests (945 passed; 82.08%), production build, Docker stack health, and research-runner probes. Playwright ran all 260 scenarios: 152 passed, 106 skipped, and two unrelated workstation scenarios failed (`F8j-conflict` expected a recovery notice but saw canonical-ready; `F8s-market-map-watchlist` timed out clicking a button detached during rerender). No visual mismatch was reported. Both failures then passed on a fresh healthy stack when replayed together (2 passed in 18.2s); additionally the adjacent `F8j` pop-out and `F8j-conflict` sequence passed (2 passed in 13.9s). Prior cross-window `ERR_NETWORK_CHANGED` cases also passed their focused replay and passed in this latest full run. The local gate exits at e2e-functional before standalone visual and branch-declared stages. These are non-reproducing test-order/load failures outside ETF behavior; no assertions or baselines were changed. ETF Docker resources were stopped and resource accounting is zero/complete. Exact-SHA CI for current working source is still not queried on its next pushed receipt. Goal remains active.
+
   The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The
   ETF-only recovery and source-review changeset was committed as
   8077facb83b8114f6b85155d7fbf9988547b73e9 and pushed; local HEAD and
@@ -500,16 +510,20 @@ current_blocker: >-
   of staging at staging SHA `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; AC10
   remains dependency-gated and AC14 remains post-integration/deployment.
 next_action: >-
-  Keep the goal active; the branch has no ETF-specific browser failure. AC7 is
-  open because the full gate currently stops on the general chart-template
-  interaction failure `F9c-template-comparison`; do not hide it by weakening
-  the assertion, changing generic visual baselines, or making unrelated chart
-  UI changes in this ETF workstream. Exact-SHA CI for feff07376d240b3dd2e73018aa1bef868cbc6875 is
-  not exposed by the connected status/workflow interfaces. AC10 awaits the
-  shared provider-platform branch reaching staging before this branch implements
-  its bridge; AC14 is the later 30-day post-integration/deployment shadow.
-  Recheck North Square's FilePoint table later in October after the stated Q3
-  publication window and promote only if a complete, current, identity-bound
-  executable file appears. Continue only safe, ETF-owned AC7 diagnosis in this
-  worktree. Do not alter generic visual tests or snapshots, staging, another
-  worktree, or production.
+  Review and validate the complete branch-owned diff, commit and push this
+  checkpoint, synchronize the session plan hash, and query exact-SHA hosted CI.
+  The last full 537-case provider matrix (508 passed, 29 narrow skips) was run
+  against a67ceed7; comparison confirms provider adapters and live-test source
+  are unchanged since that receipt, while the only intervening backend change
+  was 30 deterministic unit-test lines covered by the passing full backend
+  suite. A duplicate live probe was stopped before completion and is not counted.
+  Preserve the two non-reproducing unrelated browser failures and their passing
+  isolated replays; do not weaken tests or alter generic visual baselines. If
+  exact-SHA CI reproduces a failure, pursue only an evidence-backed in-scope
+  cause; do not expand into unrelated workstation behavior. AC10
+  remains externally gated until
+  feat/market-data-provider-platform reaches staging (latest read-only compare:
+  1,856 commits ahead, 0 behind at staging SHA
+  8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35); AC14 is the 30-day shadow step
+  after authorized integration/deployment. Do not integrate, promote, deploy,
+  modify another worktree, or change generic visual snapshots.

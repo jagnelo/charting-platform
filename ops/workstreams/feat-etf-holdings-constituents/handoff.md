@@ -7537,3 +7537,121 @@ still 1,856 commits ahead of staging at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc3
 The session goal remains active with AC7/AC8 open, AC10 waiting for the shared
 branch to reach staging, and AC14 reserved for the post-integration/deployment
 observation period.
+
+## Chart-control blocker repair and gate replay — 2026-10-04
+
+The human explicitly asked the agent to fix the current gate blocker. The
+Playwright artifact and error context showed a real hit-target collision:
+`ChartPlotLibrary`'s `Plots 0` trigger sat over the chart comparison row's
+`Remove RSP` chip. The assigned branch now contains a narrow CSS layout change
+in `frontend/src/components/workstation/WorkstationToolContent.vue`: the plot
+trigger is anchored to the right side of the reserved toolbar band, and the
+comparison row ends before that band. The small-screen two-row layout remains
+unchanged. The existing F9c assertion is unchanged, and no generic visual
+baseline was modified. The plan records this one blocker-fix scope and the
+human's authorization; no other chart behavior is intended to change.
+
+The full Docker/browser gate was rerun on working source based on
+`115af366123c4e07e3a3109cc9ba19f2af136f18`, using only a temporary `/tmp`
+Buildx configuration and this worktree's scoped Docker resources. Dependency,
+migration, Ruff/format, frontend type-check, backend coverage (1,877 passed;
+81.13%), and frontend tests (945 passed; 82.09%) passed. The branch-scoped
+Docker stack built and all services became healthy; research-runner security
+and resource probes also completed. Playwright attempted all 260 scenarios and
+recorded two failures, both in data-backed top-down tests (`F8e.1` proxy
+rankings and `F8e.1a` industry drilldown) whose browser artifacts repeatedly
+reported `ERR_NETWORK_CHANGED`. The original `F9c-template-comparison` now
+passes, as does the constrained-width `F8r-chart-toolbar` regression. The gate
+exited at `e2e-functional`; the separate visual parity and trailing
+branch-declared test stages were not reached. Gate cleanup removed only this
+ETF stack's containers, volumes, network, and four branch-tagged images; a
+scoped resource check confirms zero containers, volumes, testcontainer
+sessions, known bytes, and unknown components. The session narrative fix is
+confirmed by the complete backend suite. The next action is a bounded replay of
+only the two failed tests from a fresh ETF stack, without changing their
+assertions or unrelated application behavior.
+
+Exact-SHA status/workflow lookups for `115af366123c4e07e3a3109cc9ba19f2af136f18`
+returned empty lists, so CI is not claimed. The latest read-only provider
+platform/staging comparison still reports 1,856 commits ahead and 0 behind at
+staging SHA `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`. AC7/AC8 therefore remain
+open pending a clean functional/visual/branch gate and exact-SHA evidence; AC10 remains
+dependent on provider-platform reaching staging, and AC14 is the later
+30-day post-integration/deployment shadow observation. The goal remains active.
+
+## Targeted replay result — 2026-10-04
+
+The two data-backed Playwright cases that failed in the full gate
+(`F8e.1` proxy rankings and `F8e.1a` industry drilldown) were replayed against a
+fresh, healthy ETF stack. An initial Playwright invocation omitted the required
+`E2E_SEED_MARKET_DATA=true` test-runner flag and skipped both cases; that run is
+not counted as validation. The corrected invocation set the flag for both the
+stack and test runner, executed both cases, and passed 2/2 in 20.2 seconds.
+Thus the earlier `ERR_NETWORK_CHANGED` reports did not reproduce in the
+targeted replay. No assertion was relaxed. The stack and branch-scoped Docker
+resources were then stopped/removed. The next action is to rerun the complete
+Docker-backed integration gate so it can reach visual parity and the
+branch-declared test stage; AC7/AC8 remain open until that and exact-SHA evidence
+are resolved. AC10 still awaits provider-platform staging and AC14 remains a
+post-integration/deployment observation.
+
+## Cross-window network replay — 2026-10-04
+
+A subsequent complete gate on the same working source passed dependency/lock,
+migrations, Ruff/format, frontend type-check, backend coverage (1,877 passed;
+81.13%), frontend tests (945 passed; 82.08%), production build, stack health,
+and research-runner probes. The 260-case Playwright run produced 153 passes,
+106 skips, and one failure: `F8n-cross-window` saw Chromium
+`ERR_NETWORK_CHANGED` on multiple localhost API requests. The earlier
+`F8e.1`/`F8e.1a` cases, F9c comparison, and constrained-width chart-toolbar
+regression passed. No visual mismatch was reported during this combined browser
+run, but the gate exited before its standalone visual and branch-declared test
+stages.
+
+After the gate's scoped cleanup, a fresh branch-scoped stack was started. The
+first ad hoc Playwright replay was run without the gate's process permissions
+and Chromium failed during launch (`sandbox_host_linux.cc:41`,
+`Operation not permitted`); it did not exercise the tests. Repeating with the
+same approved process permissions as the gate ran both `F8n-cross-window` and
+`F8n-cross-window-links`; both passed (2 passed in 15.2 seconds). The network
+error therefore did not reproduce in a focused run. No test assertion or visual
+baseline was changed. Rerun the full integration gate to reach the remaining
+standalone visual and branch-specific stages.
+
+## Latest full-gate and isolated replay checkpoint — 2026-10-04
+
+The third full gate on the authorized working source again passed dependency,
+migration, Ruff/format, type-check, full backend coverage (1,877 passed;
+81.13%), full frontend tests (945 passed; 82.08%), production build, all branch
+stack health checks, and research-runner probes. Playwright reached all 260
+scenarios (152 passed, 106 skipped) with two unrelated workstation failures:
+
+- `F8j-conflict` expected a workspace recovery notice but the footer remained
+  `Current · canonical` after creating a Notes tool.
+- `F8s-market-map-watchlist` timed out clicking “Open selected members in Study
+  Lab”; Playwright reported the button repeatedly detached while the map tool
+  rerendered.
+
+No visual snapshot mismatch was reported in this browser run. The gate still
+exited at `e2e-functional`, before its standalone visual and branch-declared
+stages. A fresh healthy ETF stack was used to replay the failures without
+changing application code or test assertions: both failing cases passed
+together (2 passed in 18.2 seconds), and the adjacent F8j pop-out geometry plus
+F8j-conflict sequence passed (2 passed in 13.9 seconds). The prior
+`ERR_NETWORK_CHANGED` cross-window cases also passed their permission-matched
+focused replay and passed in this full run. This evidence points to
+non-reproducing order/load instability in unrelated generic workstation tests,
+not an ETF or toolbar regression; it is not represented as a green full gate.
+
+The fresh-stack replay was stopped and branch-scoped accounting confirmed zero
+containers, volumes, testcontainer sessions, known bytes, or unknown resources.
+The last full 537-case provider matrix is recorded at `a67ceed7` (508 passed,
+29 narrowly evidenced skips). A source diff confirms that neither the adapter
+implementation nor live-provider test module changed since that receipt; the
+only intervening backend change is 30 deterministic adapter-unit assertions,
+covered by the just-passed full backend suite. I started but intentionally
+stopped a redundant 537-case live probe before completion; it is not counted as
+validation. Next: validate the workstream/diff, commit and push this branch-only
+checkpoint, synchronize the plan hash, then query exact-SHA hosted checks. Keep
+AC7/AC8 open until hosted and local-gate evidence meets the criteria. AC10 still
+waits for provider-platform staging; AC14 is post-integration/deployment.
