@@ -530,6 +530,15 @@ def _rc_receipt_payload() -> dict[str, Any]:
                 "total_positions": 1,
                 "remaining_cash": "90000",
                 "component_order_tag": "strategy-lab-v2:component:satellite",
+                "component_fill_attribution": {
+                    "component_id": "satellite",
+                    "venue_order_id": "SIM-1-1",
+                    "instrument_id": "AAPL.SIM",
+                    "quantity": "99",
+                    "execution_price": "100.03",
+                    "commission": "0.00 USD",
+                    "currency": "USD",
+                },
                 "authoritative": False,
             },
             "shared_risk_rejection": {

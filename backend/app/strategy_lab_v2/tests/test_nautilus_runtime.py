@@ -131,6 +131,15 @@ def _fixture_payload() -> dict[str, Any]:
                 "total_positions": 1,
                 "remaining_cash": "90000",
                 "component_order_tag": "strategy-lab-v2:component:satellite",
+                "component_fill_attribution": {
+                    "component_id": "satellite",
+                    "venue_order_id": "SIM-1-1",
+                    "instrument_id": "AAPL.SIM",
+                    "quantity": "99",
+                    "execution_price": "100.03",
+                    "commission": "0.00 USD",
+                    "currency": "USD",
+                },
                 "authoritative": False,
             },
             "shared_risk_rejection": {
@@ -342,6 +351,18 @@ def test_real_rc_fixture_receipt_rejects_component_attribution_drift() -> None:
     priority_case["component_order_tag"] = "strategy-lab-v2:component:core"
 
     with pytest.raises(ValueError, match="priority selection or component attribution"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+
+def test_real_rc_fixture_receipt_rejects_component_fill_attribution_drift() -> None:
+    runtime = _runtime()
+    payload = _fixture_payload()
+    fill = payload["portfolio_rebalance_schedule"]["component_priority_contention"][
+        "component_fill_attribution"
+    ]
+    fill["component_id"] = "core"
+
+    with pytest.raises(ValueError, match="native component fill attribution does not reconcile"):
         NautilusRcFixtureReceipt.from_mapping(payload, runtime)
 
 

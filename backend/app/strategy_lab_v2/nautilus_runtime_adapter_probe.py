@@ -740,6 +740,7 @@ def _run_native_execution_probe(
 
     native_report_diagnostics = None
     component_order_tag = None
+    component_fill_attribution: dict[str, str] | None = None
     if include_native_report_diagnostics:
         scoring_start_ns = event_records[0].get("event_time_ns")
         scoring_end_ns = event_records[-1].get("event_time_ns")
@@ -807,12 +808,44 @@ def _run_native_execution_probe(
                     raise RuntimeError(f"native {kind} report changed columns between rows")
             if multi_component_priority:
                 order_sample = report_samples.get("orders", {}).get("sample_record")
+                fill_sample = report_samples.get("fills", {}).get("sample_record")
                 tags = order_sample.get("tags") if isinstance(order_sample, dict) else None
                 component_order_tag = f"{NAUTILUS_COMPONENT_ORDER_TAG_PREFIX}satellite"
                 if not isinstance(tags, list) or component_order_tag not in tags:
                     raise RuntimeError(
                         "native order report did not retain the selected component attribution"
                     )
+                if (
+                    not isinstance(order_sample, dict)
+                    or not isinstance(fill_sample, dict)
+                    or reports_reference.row_counts
+                    != (
+                        ("account", 2),
+                        ("fills", 1),
+                        ("orders", 1),
+                        ("positions", 1),
+                    )
+                    or order_sample.get("status") != "FILLED"
+                    or not isinstance(order_sample.get("venue_order_id"), str)
+                    or fill_sample.get("venue_order_id") != order_sample["venue_order_id"]
+                    or not isinstance(fill_sample.get("instrument_id"), str)
+                    or not isinstance(fill_sample.get("last_qty"), str)
+                    or not isinstance(fill_sample.get("last_px"), str)
+                    or not isinstance(fill_sample.get("commission"), str)
+                    or not isinstance(fill_sample.get("currency"), str)
+                ):
+                    raise RuntimeError(
+                        "native component fill did not reconcile through its tagged order"
+                    )
+                component_fill_attribution = {
+                    "component_id": "satellite",
+                    "venue_order_id": str(fill_sample["venue_order_id"]),
+                    "instrument_id": fill_sample["instrument_id"],
+                    "quantity": fill_sample["last_qty"],
+                    "execution_price": fill_sample["last_px"],
+                    "commission": fill_sample["commission"],
+                    "currency": fill_sample["currency"],
+                }
             native_report_diagnostics = {
                 "evaluation_window_fingerprint": equity_reference.evaluation_window_fingerprint,
                 "row_counts": dict(reports_reference.row_counts),
@@ -869,10 +902,11 @@ def _run_native_execution_probe(
             "authoritative": False,
         }
         if multi_component_priority:
-            if not isinstance(component_order_tag, str):
+            if not isinstance(component_order_tag, str) or component_fill_attribution is None:
                 raise RuntimeError("native component priority probe omitted order attribution")
             rebalance_result["remaining_cash"] = str(remaining_cash)
             rebalance_result["component_order_tag"] = component_order_tag
+            rebalance_result["component_fill_attribution"] = component_fill_attribution
         return rebalance_result
     if target_position:
         if (

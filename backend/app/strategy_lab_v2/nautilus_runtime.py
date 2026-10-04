@@ -272,7 +272,9 @@ def _require_rebalance_schedule_probe(value: Any) -> None:
         if case_name == "multi_component_shared_account":
             expected_fields.add("remaining_cash")
         if case_name == "component_priority_contention":
-            expected_fields.update({"remaining_cash", "component_order_tag"})
+            expected_fields.update(
+                {"remaining_cash", "component_order_tag", "component_fill_attribution"}
+            )
         if not isinstance(case, Mapping) or set(case) != expected_fields:
             raise ValueError(f"native {case_name} schedule evidence fields are invalid")
         require_sha256_digest(
@@ -298,6 +300,35 @@ def _require_rebalance_schedule_probe(value: Any) -> None:
                 or case["component_order_tag"] != "strategy-lab-v2:component:satellite"
             ):
                 raise ValueError("native priority selection or component attribution differs")
+            fill = case["component_fill_attribution"]
+            if not isinstance(fill, Mapping) or set(fill) != {
+                "component_id",
+                "venue_order_id",
+                "instrument_id",
+                "quantity",
+                "execution_price",
+                "commission",
+                "currency",
+            }:
+                raise ValueError("native component fill attribution fields are invalid")
+            quantity = _decimal(fill["quantity"], "component fill quantity")
+            execution_price = _decimal(fill["execution_price"], "component fill execution price")
+            commission = fill["commission"]
+            if (
+                fill["component_id"] != "satellite"
+                or not isinstance(fill["venue_order_id"], str)
+                or not fill["venue_order_id"].strip()
+                or not isinstance(fill["instrument_id"], str)
+                or not fill["instrument_id"].strip()
+                or quantity <= 0
+                or execution_price <= 0
+                or not isinstance(commission, str)
+                or len(commission.split()) != 2
+                or commission.split()[1] != fill["currency"]
+                or fill["currency"] != "USD"
+                or _decimal(commission, "component fill commission") < 0
+            ):
+                raise ValueError("native component fill attribution does not reconcile")
 
     risk_rejection = value["shared_risk_rejection"]
     if not isinstance(risk_rejection, Mapping) or set(risk_rejection) != {
