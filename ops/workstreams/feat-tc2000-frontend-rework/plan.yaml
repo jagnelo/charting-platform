@@ -20,24 +20,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No blocker prevents independent TC-owned frontend work. Product commit
-  `e29518bf9b51cd5417a0b0176a20b5ad874c26c4` links current Study Python source
-  validation errors to the editor and passes frontend unit, type-check/build,
-  ownership, and authenticated Chromium checks. The previous complete 104-case
-  board-guided matrix at product SHA `7427de7e80f02977ca24336348049c43a8c71f97`
-  completed with 93 passes and 11 screenshot mismatches. The Study-running
-  capture race was corrected and its four-viewport replay passed; ten stable
-  differences remain in workspace-floating (four viewports), Study structured-
-  result (four), and Study sandbox-error (two 1080p viewports). Their state and
-  interaction assertions passed. Keep the 0.5% threshold, references, masks,
-  skips, fallbacks, and acceptance rules unchanged; the ten differences await
-  the review in docs/tc2000-visual-parity.md. Current local refs are staging
-  `8b885a2ffd9c`, provider-platform `88132e9145a0`, and ETF holdings
-  `3cf8552456ec`; neither dependency tip is in staging. These are local tracking
-  refs, not a fresh network fetch; the previous refresh failed on GitHub DNS.
-  Defer R2/R3 integration and shared-path reconciliation until both dependencies
-  reach staging. Continue independent R1/R5/R6 work. The final exact-tip full
-  integration/browser gate remains required before ready_for_human_review.
+  No blocker prevents independent TC-owned frontend work. At product SHA
+  `7427de7e80f02977ca24336348049c43a8c71f97`, the complete 104-case board-guided
+  matrix in pinned Playwright 1.62.1 completed with 93 passes and 11 screenshot
+  mismatches. Ten are stable state differences in workspace-floating (four
+  viewports), Study structured-result (four), and Study sandbox-error (two
+  1080p viewports); their state/interaction assertions passed. The eleventh was
+  a Study-running capture race and its four-viewport replay now passes after the
+  test holds unrelated chart data pending. Keep the 0.5% threshold, references,
+  masks, skips, fallbacks, and acceptance rules unchanged; the ten stable
+  screenshot differences await the review described in
+  docs/tc2000-visual-parity.md. Local tracking refs show that provider-platform
+  and ETF tips have not reached staging, so consumer integration and shared-path
+  reconciliation remain deferred. A fresh remote ref check could not run because
+  GitHub DNS resolution failed. Continue independent R1/R5/R6 work. The full
+  integration/browser gate remains required at the final clean exact tip.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
