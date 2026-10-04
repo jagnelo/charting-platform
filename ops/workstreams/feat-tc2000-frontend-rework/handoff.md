@@ -2,12 +2,19 @@
 
 ## 2026-10-04 — Dock activation fix and functional replay checkpoint
 
-Product commit `12ac1278a` (`fix(tc2000): keep dock tab selection current`) is
-the current synchronized source. It invalidates stale Golden Layout activation
-callbacks when a newer tab activation arrives and lets direct tab interaction
-supersede the startup-selection guard. The focused component regression passed
+Product source commit `12ac1278a` (`fix(tc2000): keep dock tab selection current`)
+remains the current implementation. It invalidates stale Golden Layout
+activation callbacks when a newer tab activation arrives; direct tab interaction
+supersedes the startup-selection guard. The focused component regression passed
 10/10; `npm run type-check` and the full frontend gate passed (128 files,
 1,196 tests; 85.08% statements; uPlot contract 55/55; visual policy 26/26).
+
+Operational checkpoint `54faff8aea36c557cbe7690ef514892512bd2c5a` records the
+F8r replay and was pushed to `origin/feat/tc2000-frontend-rework`. After push,
+local `HEAD`, the tracking ref, and direct `git ls-remote` all matched that SHA;
+the worktree was clean. The current follow-on record is a separate operational
+checkpoint; verify its enclosing commit externally after push rather than
+self-referencing it here.
 
 At clean test fixtures on source `12ac1278a`, the full functional Playwright
 run completed with 172 passed, 107 skipped, and two failures: F8r Python
@@ -26,8 +33,8 @@ deltas; preserve every reference, mask, threshold, skip, fallback, and policy
 while rerunning. Provider and ETF consumer integration remains deferred until
 both dependency branches reach staging.
 
-Next action: stop the temporary browser container, recreate only the assigned
-TC2000 Compose project with clean seeded fixtures, and replay F8u signal alone.
+Next action: recreate only the assigned TC2000 Compose project with clean
+seeded fixtures and replay F8u signal alone.
 If it passes, rerun the full functional suite from a clean stack, then run all
 104 visual cases at the exact synchronized branch tip and reconcile any
 repository-owned failures without weakening the oracles. Goal remains active
