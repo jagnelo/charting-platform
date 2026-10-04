@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import UTC, datetime
 from typing import Any, cast
 
@@ -30,6 +32,10 @@ from app.strategy_lab_v2.conformance_fixtures import (
 )
 from app.strategy_lab_v2.contracts import ProductClass
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
+from app.strategy_lab_v2.local_conformance_source import (
+    LOCAL_NAUTILUS_RC_EVIDENCE_SCHEMA,
+    LocalNautilusRcConformanceEvidenceSource,
+)
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventTape,
     materialize_nautilus_event,
@@ -456,7 +462,7 @@ def _rc_accounting_run(instrument_count: int) -> dict[str, Any]:
     }
 
 
-def _rc_receipt(runtime: NautilusRcCompatibilityRuntime) -> NautilusRcFixtureReceipt:
+def _rc_receipt_payload() -> dict[str, Any]:
     native_order_run = _rc_accounting_run(1)
     native_order_run["target_allocation_probe"] = {
         "instrument_id": "AAPL.SIM",
@@ -481,17 +487,104 @@ def _rc_receipt(runtime: NautilusRcCompatibilityRuntime) -> NautilusRcFixtureRec
         "account_base_currency": "USD",
         "authoritative": False,
     }
-    return NautilusRcFixtureReceipt.from_mapping(
-        {
-            "authoritative": False,
-            "deterministic_replay": {"equal": True},
+    return {
+        "authoritative": False,
+        "deterministic_replay": {"equal": True},
+        "engine_lifecycle": "passed",
+        "forward_event_tape_parity": "deferred_authoritative_fixture",
+        "multi_instrument_accounting": _rc_accounting_run(2),
+        "native_order_fill_cost": native_order_run,
+    }
+
+
+def _rc_receipt(runtime: NautilusRcCompatibilityRuntime) -> NautilusRcFixtureReceipt:
+    return NautilusRcFixtureReceipt.from_mapping(_rc_receipt_payload(), runtime)
+
+
+def _rc_evidence_artifact(runtime: NautilusRcCompatibilityRuntime) -> dict[str, Any]:
+    return {
+        "artifact_schema": LOCAL_NAUTILUS_RC_EVIDENCE_SCHEMA,
+        "build_digest": runtime.runtime_image_digest,
+        "probe": {
             "engine_lifecycle": "passed",
-            "forward_event_tape_parity": "deferred_authoritative_fixture",
-            "multi_instrument_accounting": _rc_accounting_run(2),
-            "native_order_fill_cost": native_order_run,
+            "implementation": "cpython",
+            "nautilus_package_version": runtime.package_version,
+            "platform": "Linux-x86_64",
+            "python_version": runtime.python_version,
         },
-        runtime,
+        "receipt": _rc_receipt_payload(),
+        "runtime": {
+            "python_version": runtime.python_version,
+            "runtime_image_digest": runtime.runtime_image_digest,
+            "rust_version": runtime.rust_version,
+            "source_digest": runtime.source_digest,
+        },
+        "tested_at": NOW.isoformat(),
+    }
+
+
+def _write_local_evidence_artifact(directory: Any, runtime: NautilusRcCompatibilityRuntime) -> str:
+    raw = json.dumps(
+        _rc_evidence_artifact(runtime), ensure_ascii=False, allow_nan=False, sort_keys=True
+    ).encode("utf-8")
+    artifact_digest = f"sha256:{hashlib.sha256(raw).hexdigest()}"
+    (directory / f"{artifact_digest.removeprefix('sha256:')}.json").write_bytes(raw)
+    return artifact_digest
+
+
+def test_local_conformance_source_verifies_content_and_exact_rc5_runtime_pins(
+    tmp_path: Any,
+) -> None:
+    runtime = _rc_runtime()
+    artifact_digest = _write_local_evidence_artifact(tmp_path, runtime)
+    source = LocalNautilusRcConformanceEvidenceSource(
+        artifact_directory=tmp_path,
+        artifact_digest=artifact_digest,
+        expected_source_digest=runtime.source_digest,
+        expected_runtime_image_digest=runtime.runtime_image_digest,
     )
+
+    resolution = source.load()
+
+    assert resolution.evidence.release_pin == runtime.release_pin
+    assert not resolution.report.authoritative
+    binding = build_nautilus_backtest_execution_binding(
+        resolution,
+        product_classes=frozenset({ProductClass.EQUITY}),
+        execution_models=frozenset({"market"}),
+        account_models=frozenset({"cash"}),
+    )
+    assert binding.authoritative
+
+
+def test_local_conformance_source_rejects_modified_artifact_bytes(tmp_path: Any) -> None:
+    runtime = _rc_runtime()
+    artifact_digest = _write_local_evidence_artifact(tmp_path, runtime)
+    artifact_path = tmp_path / f"{artifact_digest.removeprefix('sha256:')}.json"
+    artifact_path.write_bytes(artifact_path.read_bytes() + b" ")
+    source = LocalNautilusRcConformanceEvidenceSource(
+        artifact_directory=tmp_path,
+        artifact_digest=artifact_digest,
+        expected_source_digest=runtime.source_digest,
+        expected_runtime_image_digest=runtime.runtime_image_digest,
+    )
+
+    with pytest.raises(ValueError, match="digest does not match"):
+        source.load()
+
+
+def test_local_conformance_source_rejects_operator_pin_mismatch(tmp_path: Any) -> None:
+    runtime = _rc_runtime()
+    artifact_digest = _write_local_evidence_artifact(tmp_path, runtime)
+    source = LocalNautilusRcConformanceEvidenceSource(
+        artifact_directory=tmp_path,
+        artifact_digest=artifact_digest,
+        expected_source_digest=content_digest("different-source"),
+        expected_runtime_image_digest=runtime.runtime_image_digest,
+    )
+
+    with pytest.raises(ValueError, match="source digest differs"):
+        source.load()
 
 
 def test_executable_rc_suite_binds_to_the_probed_runtime_image() -> None:
