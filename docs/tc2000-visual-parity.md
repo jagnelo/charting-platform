@@ -9,6 +9,39 @@ Plot Library search interaction has functional browser coverage, but the
 checked-in board does not capture that panel open, so its exact styling still
 lacks screenshot coverage.
 
+## 2026-10-04 — Focused current-source visual replay and fixture disposition
+
+At clean test SHA `4eff4ce2fb25f35006e11263526178844379e520` (product source
+`74fc6061c6f0a567d4212b29405ed14be9b71195`), pinned Playwright 1.62.1 replayed
+the three affected visual states across all four projects: 12 cases total. This
+was a focused replay, not a new 104-case matrix. The four workspace-floating
+and four Study structured-result cases reached stable screenshot comparison
+after their state assertions passed. The four Study sandbox-error cases failed
+their loading-state assertion before screenshot capture: the test still held
+only requests with `limit=25`, while the current R5 UI asks for `limit=26`, so
+the list completed with its empty state instead of remaining in the intended
+loading state.
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | --- | --- | --- |
+| `visual-1080p-100` | 8,995 pixels; five seeded rows in current image, empty saved image | 109,320 pixels; state checks passed, current result has newer output/promotion controls | No screenshot: stale `limit=25` matcher; current request uses `limit=26` |
+| `visual-1080p-125` | 9,825 pixels; five seeded rows in current image, empty saved image | 105,944 pixels; state checks passed, current result has newer output/promotion controls | No screenshot: stale `limit=25` matcher; current request uses `limit=26` |
+| `visual-1440p-100` | 8,995 pixels; five seeded rows in current image, empty saved image | 22,035 pixels; state checks passed, current result has newer output/promotion controls | No screenshot: stale `limit=25` matcher; current request uses `limit=26` |
+| `visual-1440p-125` | 9,825 pixels; five seeded rows in current image, empty saved image | 21,352 pixels; state checks passed, current result has newer output/promotion controls | No screenshot: stale `limit=25` matcher; current request uses `limit=26` |
+
+The workspace comparison is a deterministic test-state/reference mismatch: the
+test asserts five seeded benchmark rows, but the saved local image depicts an
+empty table. The structured-result comparison is likewise local-reference
+drift: the current asserted output includes later result cards and promotion
+actions absent from the saved local image. These repository snapshots are
+board-guided regression references, not authoritative V25 captures, so neither
+comparison justifies changing the product or silently replacing an oracle.
+The sandbox result is not yet a screenshot disposition because its fixture
+precondition is stale. The next narrowly scoped test-maintenance change will
+hold the initial cursor-free results request irrespective of page size, then
+replay those four cases. No screenshot, mask, threshold, skip, fallback, or
+acceptance rule changed; the 0.5% screenshot threshold is unchanged.
+
 ## 2026-10-04 — Latest pinned-browser matrix: 94/104 pass at `58975ea`
 
 The full four-viewport matrix ran with the pinned Playwright 1.62.1 image against

@@ -20,17 +20,17 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No blocker prevents independent TC-owned work. The latest full visual matrix
-  is the historical exact-source result at `58975ea6bee3e506f64d97506aadf4026c626357`
-  (source `defefaaafde1db3fc302dc50be923d06ccf84ea0`): 94/104, with ten
-  screenshot-only differences after state checks (workspace-floating in four
-  viewports, Study structured-result in four, and Study sandbox-error in two
-  1080p viewports). The next R6 context reproduces and documents each at current
-  source without changing any oracle. Provider and ETF consumer integration
-  remain deferred until their work reaches staging; this does not block
-  independent TC UI and Study/Strategy work. The latest product commit
-  `74fc6061c6f0a567d4212b29405ed14be9b71195` is synchronized to `origin`; the
-  final exact-tip full-stack/browser gate remains pending.
+  No environmental or product blocker prevents independent TC-owned work. At
+  current product source `74fc6061c6f0a567d4212b29405ed14be9b71195`, the focused
+  pinned-browser replay reproduced eight screenshot differences after state
+  checks (workspace-floating in four viewports and Study structured-result in
+  four). The four sandbox-error cases stopped before screenshots because their
+  old fixture matcher stalls only `limit=25`, while R5 now requests `limit=26`.
+  The next R6 slice updates only that request matcher and replays all four
+  sandbox-error projects without changing any oracle. Provider and ETF consumer
+  integration remain deferred until their work reaches staging; this does not
+  block independent TC UI and Study/Strategy work. The final exact-tip
+  full-stack/browser gate remains pending.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -268,23 +268,25 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_visual_difference_root_cause_audit
+  current_phase: R6_visual_fixture_compatibility
   next_action: >-
-    At source 74fc6061, rerun the ten documented screenshot-only differences in
-    the rebuilt assigned stack with pinned Playwright 1.62.1. Record state and
-    per-case pixel differences for workspace-floating (four projects), Study
-    structured-result (four), and Study sandbox-error (two 1080p projects).
-    Compare against each fixture/reference provenance and document a
-    disposition in docs/tc2000-visual-parity.md. Preserve all screenshots,
-    masks, thresholds, skips, fallbacks, and acceptance rules. If source defects
-    are confirmed, close this audit before starting a separately recorded
-    product changeset. Then continue remaining independent TC work and defer
-    provider/ETF consumption until both dependencies reach staging.
+    At test SHA 4eff4ce2 (product source 74fc6061), the focused 12-case replay
+    produced eight screenshot deltas and four sandbox-error setup failures. In
+    a separately recorded TC visual-test maintenance slice, update the loading
+    fixture to hold the initial cursor-free GET /api/v1/research/runs regardless
+    of its limit (R5 now requests 26), then rerun the sandbox-error case in all
+    four pinned viewport projects. Record each screenshot disposition in
+    docs/tc2000-visual-parity.md. Preserve all screenshots, masks, thresholds,
+    skips, fallbacks, and acceptance rules; do not update snapshots in this
+    slice. Then continue the remaining independent TC work and defer provider/
+    ETF consumption until both dependencies reach staging.
   current_blocker: >-
-    No current product or transport blocker. The ten historical screenshot
-    differences need current-source review with unchanged oracles. Provider and
-    ETF integration require their contracts to reach staging; those dependencies
-    do not block independent TC work. The final exact-tip gate remains pending.
+    No product or transport blocker. Eight visual differences are reproduced
+    and dispositioned as local-reference drift; four sandbox-error screenshots
+    remain unevaluated until the stale fixture matcher is aligned with the R5
+    page-size contract. Provider and ETF integration require their contracts to
+    reach staging; those dependencies do not block independent TC work. The
+    final exact-tip gate remains pending.
 historical_implementation_records:
   - "At clean branch tip 58975ea6bee3e506f64d97506aadf4026c626357 (product source defefaaafde1db3fc302dc50be923d06ccf84ea0), the pinned Playwright 1.62.1 four-viewport matrix passed 94/104. Ten screenshot-only mismatches remained: workspace-floating in four viewports, Study structured-result in four, and Study sandbox-error at 1080p/100 and 1080p/125. All pre-screenshot state checks passed, and all four Study-running states passed. No reference, mask, threshold, skip, or acceptance rule changed. Exact-project teardown and resource accounting left zero containers, volumes, images, test sessions, or unknown resources. Acceptance flexibility used: deterministic board-guided local screenshots for represented states, not exact V25 approval."
   - "Product commit d37a0f98769f01f3dc88e075c3ed3aa97381ad1f associates malformed Study parameter-schema input with its accessible error using aria-invalid and a unique per-instance aria-describedby target; correcting the JSON clears both. Focused StudyLabTool coverage passed 45/45, full frontend Vitest passed 128 files / 1,189 tests, type-check and Docker production build passed, the updated authenticated Chromium F8t flow passed 1/1 with clean browser diagnostics, and the TC scope guard accepted 122 paths with all six self-tests. The unchanged two-case sandbox-error screenshot replay at source 816fd82 remained at 17,559 / 16,644 differing pixels because the visible example placeholder is 20 while the saved image shows 2; no screenshot oracle or policy changed. Scoped Docker cleanup removed all assigned resources. No provider/ETF-owned behavior changed."

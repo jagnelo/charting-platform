@@ -2,6 +2,45 @@
 
 ## 2026-10-04 — Visual matrix evidence published; branch synchronized
 
+## Closed diagnostic checkpoint — R6 current-source visual replay
+
+At test SHA `4eff4ce2fb25f35006e11263526178844379e520` and product source
+`74fc6061c6f0a567d4212b29405ed14be9b71195`, pinned Playwright 1.62.1 ran the
+three affected state cases across all four visual projects (12 tests). The
+four workspace-floating screenshots differed by `8,995`, `9,825`, `8,995`, and
+`9,825` pixels; all preceding state assertions passed. Visual inspection
+confirmed that the current image contains the five seeded benchmark rows
+asserted by the test, while its saved local image is empty. The four Study
+structured-result screenshots differed by `109,320`, `105,944`, `22,035`, and
+`21,352` pixels; state assertions passed. Current output cards and promotion
+actions are absent from those saved local images. These are documented local
+reference mismatches, not authoritative V25 captures, so no source styling,
+snapshot, mask, threshold, skip, fallback, or acceptance rule changed.
+
+The four sandbox-error cases did not reach screenshots. The visual fixture
+stalls the first results request only when `limit=25`; R5 pagination now sends
+`limit=26`, so the Results pane reached its empty state and failed the existing
+loading assertion. No product defect is indicated; the test fixture is stale.
+The exact assigned Compose project was torn down, and exact-project inventories
+found zero containers, volumes, networks, or generated images. Browser output
+was removed from its unique `/tmp` directory.
+
+## Next context — R6 sandbox-error fixture compatibility
+
+Intent: restore the deterministic loading precondition for the existing
+Study sandbox-error visual case after R5 pagination. Update only the fixture
+matcher to stall the initial cursor-free `GET /api/v1/research/runs`, regardless
+of its `limit`; preserve snapshots, masks, thresholds, skips, fallbacks, and
+acceptance policy. Then replay the sandbox-error case in all four pinned
+Playwright 1.62.1 projects and record each state/pixel disposition in
+`docs/tc2000-visual-parity.md`. This is test maintenance, not a product styling
+or API change. Continue the broader TC-owned roadmap after that focused replay.
+
+The full visual matrix has not been rerun; this 12-case replay is not a complete
+acceptance result. The goal remains active at AC1/9. Provider and ETF consumer
+integration wait for their contracts to reach staging; the exact-tip gate is
+still pending.
+
 ## Closed changeset — R5 Research Results older-run pagination
 
 Intent: let the TC-owned Research Results pane reach persisted Study runs

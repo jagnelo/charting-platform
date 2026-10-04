@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-04
 
+## 2026-10-04 — Current-source visual replay: local-reference drift and stale fixture
+
+The focused pinned Playwright 1.62.1 replay at test SHA
+`4eff4ce2fb25f35006e11263526178844379e520` (product source
+`74fc6061c6f0a567d4212b29405ed14be9b71195`) ran 12 cases: all four
+workspace-floating and all four Study structured-result states passed their
+state assertions, then differed from the saved local screenshots by
+`8,995/9,825/8,995/9,825` and
+`109,320/105,944/22,035/21,352` pixels respectively across the four projects.
+Visual review confirms the floating reference is empty while the current
+asserted image has five seeded rows; the Study reference lacks current output
+cards and promotion actions. Both are local-reference drift, not authoritative
+V25 evidence. No screenshot oracle or acceptance rule changed.
+
+All four Study sandbox-error cases stopped before their screenshot checks. R5
+pagination changed the first results request from `limit=25` to `limit=26`, but
+the visual fixture still stalls only `limit=25`; this is a test-fixture
+compatibility issue, not a product failure. The next context updates that
+fixture to hold the initial cursor-free request independent of page size and
+replays the four cases. The assigned Compose project and generated images,
+volumes, and network were removed after the run; exact-project inventory was
+empty. The complete 104-case matrix and upstream consumer integration remain
+pending their own gates.
+
 ## 2026-10-04 — Research Results older-run pagination
 
 Product commit `74fc6061c6f0a567d4212b29405ed14be9b71195` adds bounded,
