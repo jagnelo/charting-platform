@@ -63,6 +63,29 @@ describe('StudyLabTool', () => {
     wrapper.unmount()
   })
 
+  it('associates current Python validation diagnostics with the source editor', async () => {
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: false, diagnostics: ['line 1: unsupported expression'], dependencies: [], lookback_hint: null, output_contracts: [] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+    const source = wrapper.get('[aria-label="Study Python source"]')
+
+    expect(source.attributes('aria-invalid')).toBeUndefined()
+    expect(source.attributes('aria-describedby')).toBeUndefined()
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(source.attributes('aria-invalid')).toBe('true'))
+
+    const describedBy = source.attributes('aria-describedby')?.split(' ')
+    expect(describedBy).toHaveLength(1)
+    expect(wrapper.get(`#${describedBy?.[0]}`).text()).toContain('line 1: unsupported expression')
+
+    await source.setValue("output.scalar('corrected', 1)")
+    expect(source.attributes('aria-invalid')).toBeUndefined()
+    expect(wrapper.get(`#${describedBy?.[0]}`).text()).toContain('Study source changed since validation')
+    wrapper.unmount()
+  })
+
   it('gives study lifecycle controls stable accessible names', () => {
     const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
 

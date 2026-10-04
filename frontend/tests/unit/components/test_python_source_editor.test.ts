@@ -34,6 +34,29 @@ describe('PythonSourceEditor', () => {
     expect((editor.element as HTMLTextAreaElement).value).toContain('market.close()')
   })
 
+  it('preserves validation descriptions alongside the live SDK suggestion description', async () => {
+    const wrapper = mount(PythonSourceEditor, {
+      props: { modelValue: 'market.', ariaLabel: 'Python source', invalid: true, describedBy: 'source-validation-error' },
+    })
+    const editor = wrapper.find('[aria-label="Python source"]')
+
+    expect(editor.attributes('aria-invalid')).toBe('true')
+    expect(editor.attributes('aria-describedby')).toBe('source-validation-error')
+
+    await editor.trigger('focus')
+    await editor.trigger('keyup')
+
+    const describedBy = editor.attributes('aria-describedby')?.split(' ')
+    expect(describedBy).toHaveLength(2)
+    expect(describedBy?.[0]).toBe('source-validation-error')
+    expect(wrapper.find(`#${describedBy?.[1]}`).attributes('role')).toBe('status')
+
+    await wrapper.setProps({ invalid: false, describedBy: '' })
+    expect(editor.attributes('aria-invalid')).toBeUndefined()
+    expect(editor.attributes('aria-describedby')).toBe(describedBy?.[1])
+    wrapper.unmount()
+  })
+
   it('normalizes line endings and trailing whitespace without changing code semantics', async () => {
     const wrapper = mount(PythonSourceEditor, { props: { modelValue: 'x = 1  \r\n\r\n', ariaLabel: 'Python source' } })
     await wrapper.find('[aria-label="Normalize Python source"]').trigger('click')

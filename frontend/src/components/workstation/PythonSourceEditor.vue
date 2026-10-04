@@ -8,10 +8,11 @@
       ref="editor"
       :value="modelValue"
       :aria-label="ariaLabel"
+      :aria-invalid="invalid ? 'true' : undefined"
       :aria-controls="showSuggestions && suggestions.length ? suggestionListId : undefined"
       :aria-expanded="showSuggestions && suggestions.length ? 'true' : 'false'"
       :aria-activedescendant="showSuggestions && suggestions.length ? suggestionId(selectedSuggestionIndex) : undefined"
-      :aria-describedby="suggestionStatus ? suggestionStatusId : undefined"
+      :aria-describedby="editorDescribedBy"
       aria-autocomplete="list"
       aria-haspopup="listbox"
       :placeholder="placeholder"
@@ -46,7 +47,9 @@ const props = withDefaults(defineProps<{
   ariaLabel: string
   placeholder?: string
   minHeight?: string
-}>(), { placeholder: '', minHeight: '90px' })
+  invalid?: boolean
+  describedBy?: string
+}>(), { placeholder: '', minHeight: '90px', invalid: false, describedBy: '' })
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const root = ref<HTMLElement | null>(null)
@@ -130,6 +133,10 @@ const suggestionStatus = computed(() => {
   if (!showSuggestions.value || !suggestions.value.length) return ''
   const selected = suggestions.value[selectedSuggestionIndex.value]
   return `${suggestions.value.length} SDK suggestions. ${selected?.insert ?? ''} selected.`
+})
+const editorDescribedBy = computed(() => {
+  const ids = [props.describedBy, suggestionStatus.value ? suggestionStatusId : ''].filter(Boolean)
+  return ids.length ? ids.join(' ') : undefined
 })
 function suggestionId(index: number) {
   return `${instanceId}-suggestion-${index}`

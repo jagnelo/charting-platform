@@ -44,6 +44,8 @@
       <PythonSourceEditor
         v-model="source"
         ariaLabel="Study Python source"
+        :invalid="sourceValidationInvalid"
+        :described-by="sourceValidationDescriptionId"
         min-height="110px"
         @update:model-value="markCustomSource"
       />
@@ -55,7 +57,7 @@
       <span><b>stats</b>: positive_close_streaks, streaks, mean, median, std, percentile, ranks, rolling, correlation, regression, distribution</span><span><b>research</b>: forward_returns, conditional_outcomes, regimes, historical_comparison, occurrences, cross_sectional_rank, breadth_snapshot, breadth_thrust, breadth_thrust_history, breadth_condition</span>
       <span><b>output</b>: scalar, boolean, series, table, events, bar, histogram, range, scatter, heatmap, dashboard</span>
     </details>
-    <section v-if="validation" class="study-lab-tool__validation" :role="validationMatchesSource && !validation.valid ? 'alert' : 'status'" :aria-live="validationMatchesSource && !validation.valid ? 'assertive' : 'polite'" aria-atomic="true" :class="{ 'study-lab-tool__validation--bad': validationMatchesSource && !validation.valid }">
+    <section v-if="validation" :id="sourceValidationFeedbackId" class="study-lab-tool__validation" :role="validationMatchesSource && !validation.valid ? 'alert' : 'status'" :aria-live="validationMatchesSource && !validation.valid ? 'assertive' : 'polite'" aria-atomic="true" :class="{ 'study-lab-tool__validation--bad': validationMatchesSource && !validation.valid }">
       <template v-if="validationMatchesSource">
         <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
         <pre v-if="validation.diagnostics.length">{{ validation.diagnostics }}</pre>
@@ -263,6 +265,7 @@ const endDate = ref(configString('end_date', ''))
 const asOf = ref(configString('as_of', '').slice(0, 16))
 const parameterSchemaText = ref(typeof props.configuration?.parameter_schema === 'string' ? String(props.configuration.parameter_schema) : '')
 const parameterSchemaErrorId = `study-parameter-schema-error-${getCurrentInstance()?.uid ?? 0}`
+const sourceValidationFeedbackId = `${studyLabInstanceId}-source-validation`
 const parameterDrafts = ref<Record<string, string | boolean>>({})
 const openedStudyVersionId = ref<number | null>(configNumber('study_asset_version_id'))
 const openedStudySource = ref(configString('study_source', ''))
@@ -280,6 +283,8 @@ const rerunBusy = ref(false)
 const validation = ref<Validation | null>(null)
 const validatedSource = ref<string | null>(null)
 const validationMatchesSource = computed(() => validation.value !== null && validatedSource.value === source.value)
+const sourceValidationInvalid = computed(() => validationMatchesSource.value && validation.value !== null && !validation.value.valid)
+const sourceValidationDescriptionId = computed(() => validation.value && (!validationMatchesSource.value || !validation.value.valid) ? sourceValidationFeedbackId : '')
 const promotedScanId = ref<number | null>(null)
 const promotedSeriesConditionScans = ref<Record<string, { id?: number; codeVersionId?: number; columnCodeVersionId?: number }>>({})
 const seriesConditionOperator = ref<'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'ne'>('gte')
