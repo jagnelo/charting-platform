@@ -2,6 +2,51 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Native OOS account-equity result artifact
+
+The package-owned Nautilus execution path now captures the native account
+equity and cash balance at each canonical market callback into bounded,
+compressed Parquet. Warm-up rows are excluded and marks are constrained to the
+trial's half-open scoring window. The receipt binds the content digest and row
+count to trial, attempt, portfolio, frozen snapshot, source tape, evaluation
+window, currency, and initial capital. Before returning a successful result,
+the host verifies the receipt, Parquet schema/metadata, exact bytes, OOS scope,
+and every mark against the frozen native event stream; any mismatch fails the
+run closed. The verified artifact can then be published through the immutable
+artifact service. PyArrow is pinned only in the isolated RC runtime image; the
+legacy backend environment remains unchanged.
+
+Validation at implementation commit `c59ff66d3c8d671762caa9de4d71111bdb101a42`:
+all 1,193 Strategy Lab v2 tests passed; Ruff passed; MyPy reported no issues
+across 337 package sources; all 15 changed Python files passed formatting;
+`git diff --check` passed; and the workstream validator passed all 30 records.
+The exact-pinned image probe and full Compose/browser profile remain unrun:
+Docker access is denied at `/var/run/docker.sock`. The ordinary branch
+validator additionally hit a read-only lock under `.ai/runtime` outside this
+assigned worktree; direct validation of all 30 records passed.
+
+The implementation commit was created locally. Publishing the current branch
+failed because `/usr/bin/ssh-askpass` is absent and GitHub rejected the
+configured key with `Permission denied (publickey)`; the cached remote-tracking
+ref remains `1e3a861454f3c77bdac5efbb6957103f56f13238`, and the live remote could
+not be refreshed. No alternate credential path was probed.
+
+Stable Nautilus 2.x is not required: `plan.yaml` permits an exact-pinned
+pre-release for local backtests after the applicable conformance checks, while
+prohibiting pre-releases from broker or real-capital control. The saved goal's
+stable-only phrase is stale; this branch plan remains authoritative. The
+remaining code work is to bind native orders/fills/positions/cost evidence and
+the OOS equity series into official versioned metrics and the result manifest.
+Annualization must use an explicitly declared sampling/calendar basis, never an
+assumption about arbitrary event frequency. Provider/ETF/TC2000 shared-path
+consumption remains gated on those approved branches reaching staging; that
+does not block the owned backend work.
+
+Next: connect verified native result artifacts to official OOS MetricSet and
+RunResultManifest construction, then run the exact-pinned windowed
+multi-component probe and final full-stack/browser profile when Docker is
+accessible.
+
 ## 2026-10-04 - Evaluation-window warm-up and OOS execution gate
 
 The package-owned Nautilus trial path now carries the exact immutable
