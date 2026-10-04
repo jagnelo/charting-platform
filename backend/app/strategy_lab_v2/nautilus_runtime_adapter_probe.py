@@ -117,6 +117,18 @@ class Strategy:
         return [TargetPositionIntent("AAPL.SIM", Decimal("0.5"))]
 """
 
+_FUTURE_TARGET_SOURCE = """
+class Strategy:
+    def __init__(self):
+        self.submitted = False
+
+    def on_event(self, context):
+        if self.submitted:
+            return []
+        self.submitted = True
+        return [TargetPositionIntent("CLZ26.SIM", Decimal("0.4"))]
+"""
+
 _RAW_ORDER_SOURCE = """
 class Strategy:
     def __init__(self):
@@ -378,6 +390,12 @@ def run_futures_margin_probe() -> dict[str, Any]:
     return _run_native_execution_probe(target_position=False, futures_margin_probe=True)
 
 
+def run_futures_target_allocation_probe() -> dict[str, Any]:
+    """Exercise a futures target through allocation and native margin admission."""
+
+    return _run_native_execution_probe(target_position=True, futures_margin_probe=True)
+
+
 def run_native_reports_schema_probe() -> dict[str, Any]:
     """Inspect real RC report fields through the streamed artifact boundary."""
 
@@ -495,8 +513,7 @@ def _run_native_execution_probe(
     ):
         raise ValueError("component probes require an open-boundary target rebalance")
     if futures_margin_probe and (
-        target_position
-        or include_native_report_diagnostics
+        include_native_report_diagnostics
         or position_cycle_reopen
         or component_scenario_count
         or rebalance_trigger is not None
@@ -509,6 +526,8 @@ def _run_native_execution_probe(
     strategy_source = (
         _POSITION_CYCLE_SOURCE
         if position_cycle_reopen
+        else _FUTURE_TARGET_SOURCE
+        if futures_margin_probe and target_position
         else _FUTURE_ORDER_SOURCE
         if futures_margin_probe
         else _TARGET_SOURCE
@@ -534,6 +553,33 @@ def _run_native_execution_probe(
                 {"bid": bid, "ask": ask, "bid_size": "1000", "ask_size": "1000"},
             )
             for index, (bid, ask) in enumerate(cycle_quotes, start=1)
+        )
+    elif futures_margin_probe and target_position:
+        events = (
+            MarketEvent(
+                "prices",
+                "future-target-event-1",
+                instrument_id,
+                _EVENT_TIME,
+                1,
+                {"bid": "19.99", "ask": "20.01", "bid_size": "100", "ask_size": "100"},
+            ),
+            MarketEvent(
+                "prices",
+                "future-target-event-2",
+                instrument_id,
+                _EVENT_TIME,
+                2,
+                {"bid": "20.00", "ask": "20.02", "bid_size": "100", "ask_size": "100"},
+            ),
+            MarketEvent(
+                "prices",
+                "future-target-event-3",
+                instrument_id,
+                later_time,
+                3,
+                {"bid": "20.01", "ask": "20.03", "bid_size": "100", "ask_size": "100"},
+            ),
         )
     elif futures_margin_probe:
         events = (
@@ -1044,6 +1090,7 @@ def _run_native_execution_probe(
         return {
             "instrument_id": instrument_id,
             "product_class": "future",
+            "intent_kind": "target_position" if target_position else "order",
             "native_account_type": "MARGIN",
             "native_margin_gate": "approved",
             "initial_margin_rate": "0.12",
@@ -1571,24 +1618,39 @@ def run_context_stream_cli_probe(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
+    probe_group = parser.add_mutually_exclusive_group()
+    probe_group.add_argument(
         "--context-stream-cli",
         action="store_true",
         help="exercise the runtime bundle and verified context-sidecar CLI path",
     )
-    parser.add_argument(
+    probe_group.add_argument(
         "--catalog-chunk-cli",
         action="store_true",
         help="cross the native-input writer boundary and multiple BacktestNode replay chunks",
     )
-    parser.add_argument(
+    probe_group.add_argument(
         "--native-report-schema",
         action="store_true",
         help="verify actual RC report schemas and OOS artifacts through the native report writer",
     )
+    probe_group.add_argument(
+        "--futures-margin",
+        action="store_true",
+        help="exercise a raw listed-futures order through native margin admission",
+    )
+    probe_group.add_argument(
+        "--futures-target-margin",
+        action="store_true",
+        help="exercise a listed-futures target through allocation and native margin admission",
+    )
     args = parser.parse_args(argv)
     if args.native_report_schema:
         result = run_native_reports_schema_probe()
+    elif args.futures_margin:
+        result = run_futures_margin_probe()
+    elif args.futures_target_margin:
+        result = run_futures_target_allocation_probe()
     elif args.context_stream_cli:
         result = run_context_stream_cli_probe()
     elif args.catalog_chunk_cli:
@@ -1609,4 +1671,10 @@ if __name__ == "__main__":  # pragma: no cover - image entrypoint
     raise SystemExit(main())
 
 
-__all__ = ["main", "run_context_stream_cli_probe", "run_native_reports_schema_probe"]
+__all__ = [
+    "main",
+    "run_context_stream_cli_probe",
+    "run_futures_margin_probe",
+    "run_futures_target_allocation_probe",
+    "run_native_reports_schema_probe",
+]

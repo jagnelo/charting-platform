@@ -20,6 +20,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
     CASH_EQUITY_NOTIONAL_RISK_MODEL,
     CRYPTO_SPOT_NOTIONAL_RISK_MODEL,
+    FUTURE_CONTRACT_NOTIONAL_RISK_MODEL,
     PortfolioComposition,
     ProductClass,
 )
@@ -158,30 +159,29 @@ def resolve_nautilus_target_position_intents(
             raise NautilusRuntimeDataError("target order requires verified instrument marks")
         product_class = _product_class(definition)
         model = policy_models.get(product_class)
-        quote_currency = definition.get("quote_currency")
-        multiplier = _decimal_field(definition, "multiplier")
         size_increment = _decimal_field(definition, "size_increment")
         size_precision = definition.get("size_precision")
         min_quantity = _optional_decimal_field(definition, "min_quantity")
         max_quantity = _optional_decimal_field(definition, "max_quantity")
-        if product_class is ProductClass.EQUITY and model == CASH_EQUITY_NOTIONAL_RISK_MODEL:
-            supported_model = True
-        elif product_class is ProductClass.CRYPTO and model == CRYPTO_SPOT_NOTIONAL_RISK_MODEL:
-            supported_model = True
-        else:
-            supported_model = False
+        quantity_value_multiplier = _target_quantity_value_multiplier(
+            definition=definition,
+            product_class=product_class,
+            risk_model=model,
+            base_currency=portfolio.base_currency,
+        )
         if (
-            not supported_model
-            or quote_currency != portfolio.base_currency
-            or multiplier != Decimal(1)
+            quantity_value_multiplier is None
+            or size_increment is None
+            or size_increment <= 0
             or not isinstance(size_precision, int)
             or isinstance(size_precision, bool)
-            or size_increment is None
         ):
             raise NautilusRuntimeDataError(
-                "target order economics require supported base-quoted linear spot instruments"
+                "target order economics require supported base-quoted linear spot or complete futures terms"
             )
-        target_quantity = target.target_signed_base_notional / mark_price
+        target_quantity = target.target_signed_base_notional / (
+            mark_price * quantity_value_multiplier
+        )
         lot_count = (abs(target_quantity) / size_increment).to_integral_value(rounding=ROUND_DOWN)
         sized_target = lot_count * size_increment
         if target_quantity < 0:
@@ -416,30 +416,28 @@ def resolve_nautilus_component_target_position_batches(
             raise NautilusRuntimeDataError("target order requires verified instrument marks")
         product_class = _product_class(definition)
         risk_model = policy_models.get(product_class)
-        quote_currency = definition.get("quote_currency")
-        multiplier = _decimal_field(definition, "multiplier")
         size_increment = _decimal_field(definition, "size_increment")
         size_precision = definition.get("size_precision")
         minimum_quantity = _optional_decimal_field(definition, "min_quantity")
         maximum_quantity = _optional_decimal_field(definition, "max_quantity")
-        supported_model = (
-            product_class is ProductClass.EQUITY and risk_model == CASH_EQUITY_NOTIONAL_RISK_MODEL
-        ) or (
-            product_class is ProductClass.CRYPTO and risk_model == CRYPTO_SPOT_NOTIONAL_RISK_MODEL
+        quantity_value_multiplier = _target_quantity_value_multiplier(
+            definition=definition,
+            product_class=product_class,
+            risk_model=risk_model,
+            base_currency=portfolio.base_currency,
         )
         if (
-            not supported_model
-            or quote_currency != portfolio.base_currency
-            or multiplier != Decimal(1)
+            quantity_value_multiplier is None
+            or size_increment is None
+            or size_increment <= 0
             or not isinstance(size_precision, int)
             or isinstance(size_precision, bool)
-            or size_increment is None
         ):
             raise NautilusRuntimeDataError(
-                "target order economics require supported base-quoted linear spot instruments"
+                "target order economics require supported base-quoted linear spot or complete futures terms"
             )
         target_notional = resolved_targets[(component_id, instrument_id)] * account_equity
-        target_quantity = target_notional / mark_price
+        target_quantity = target_notional / (mark_price * quantity_value_multiplier)
         lot_count = (abs(target_quantity) / size_increment).to_integral_value(rounding=ROUND_DOWN)
         sized_target = lot_count * size_increment
         if target_quantity < 0:
@@ -488,6 +486,59 @@ def _product_class(definition: Mapping[str, object]) -> ProductClass:
         return ProductClass(value)
     except ValueError as error:
         raise NautilusRuntimeDataError("native product class is unsupported") from error
+
+
+def _target_quantity_value_multiplier(
+    *,
+    definition: Mapping[str, object],
+    product_class: ProductClass,
+    risk_model: object,
+    base_currency: str,
+) -> Decimal | None:
+    """Return base-notional per price unit only for fully specified sizing terms."""
+
+    multiplier = _decimal_field(definition, "multiplier")
+    size_increment = _decimal_field(definition, "size_increment")
+    size_precision = definition.get("size_precision")
+    if (
+        definition.get("quote_currency") != base_currency
+        or multiplier is None
+        or multiplier <= 0
+        or size_increment is None
+        or size_increment <= 0
+        or not isinstance(size_precision, int)
+        or isinstance(size_precision, bool)
+    ):
+        return None
+    if (
+        product_class is ProductClass.EQUITY
+        and risk_model == CASH_EQUITY_NOTIONAL_RISK_MODEL
+        or product_class is ProductClass.CRYPTO
+        and risk_model == CRYPTO_SPOT_NOTIONAL_RISK_MODEL
+    ):
+        return multiplier if multiplier == Decimal(1) else None
+    if (
+        product_class is not ProductClass.FUTURE
+        or risk_model != FUTURE_CONTRACT_NOTIONAL_RISK_MODEL
+    ):
+        return None
+    margin_initial = _decimal_field(definition, "margin_init")
+    margin_maintenance = _decimal_field(definition, "margin_maint")
+    price_increment = _decimal_field(definition, "price_increment")
+    if (
+        definition.get("base_currency") is not None
+        or size_increment != Decimal(1)
+        or size_precision != 0
+        or margin_initial is None
+        or margin_initial <= 0
+        or margin_maintenance is None
+        or margin_maintenance <= 0
+        or margin_maintenance > margin_initial
+        or price_increment is None
+        or price_increment <= 0
+    ):
+        return None
+    return multiplier
 
 
 def _decimal_field(definition: Mapping[str, object], field_name: str) -> Decimal | None:

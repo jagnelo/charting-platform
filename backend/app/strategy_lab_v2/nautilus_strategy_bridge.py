@@ -1179,6 +1179,31 @@ def _route_component_callback_orders(
     )
 
 
+def _validate_target_account_product_scope(
+    *,
+    account_type: str,
+    target_intents_by_component: Mapping[str, Sequence[TargetPositionIntent]],
+    instruments: Mapping[str, Mapping[str, object]],
+) -> None:
+    """Limit margin target sizing to futures, whose native margin gate is bound."""
+
+    normalized_account_type = account_type.upper()
+    if normalized_account_type not in {"CASH", "MARGIN"}:
+        raise NautilusRuntimeDataError("target-position account type is unsupported")
+    target_product_classes = {
+        instruments[intent.instrument_id].get("product_class")
+        for intents in target_intents_by_component.values()
+        for intent in intents
+        if intent.instrument_id in instruments
+    }
+    if normalized_account_type == "MARGIN" and target_product_classes != {"future"}:
+        raise NautilusRuntimeDataError(
+            "margin-account target-position sizing currently supports listed futures only"
+        )
+    if normalized_account_type == "CASH" and "future" in target_product_classes:
+        raise NautilusRuntimeDataError("futures target-position sizing requires a margin account")
+
+
 def build_native_strategy_bridge(
     engine_input: Mapping[str, Any],
     instrument_definitions: Sequence[Mapping[str, Any]],
@@ -2369,10 +2394,11 @@ def build_native_strategy_bridge(
             )
             if target_intents_by_component:
                 assert isinstance(venue_definition, Mapping)
-                if venue_definition["account_type"].upper() != "CASH":
-                    raise NautilusRuntimeDataError(
-                        "target-position sizing currently requires a cash account"
-                    )
+                _validate_target_account_product_scope(
+                    account_type=venue_definition["account_type"],
+                    target_intents_by_component=target_intents_by_component,
+                    instruments=instrument_by_id,
+                )
             order_resolution = _route_component_callback_orders(
                 portfolio=portfolio,
                 raw_intents_by_component=raw_intents_by_component,

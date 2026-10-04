@@ -3,12 +3,14 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
     CASH_EQUITY_NOTIONAL_RISK_MODEL,
+    FUTURE_CONTRACT_NOTIONAL_RISK_MODEL,
     PortfolioComponent,
     PortfolioComposition,
     SharedRiskPolicy,
@@ -18,7 +20,10 @@ from app.strategy_lab_v2.nautilus_portfolio_wire import (
     portfolio_composition_to_wire,
 )
 from app.strategy_lab_v2.nautilus_runtime_data import NautilusRuntimeDataError
-from app.strategy_lab_v2.nautilus_strategy_bridge import _route_component_callback_orders
+from app.strategy_lab_v2.nautilus_strategy_bridge import (
+    _route_component_callback_orders,
+    _validate_target_account_product_scope,
+)
 from app.strategy_lab_v2.nautilus_target_allocation import (
     resolve_nautilus_component_target_position_batches,
     resolve_nautilus_target_position_intents,
@@ -75,6 +80,92 @@ def _instruments(*, quote_currency: str = "USD") -> dict[str, dict[str, object]]
             "max_quantity": None,
         }
     }
+
+
+def _future_portfolio() -> PortfolioComposition:
+    return PortfolioComposition(
+        portfolio_id="portfolio-future",
+        version_id="portfolio-future-v1",
+        initial_capital=Decimal("100000"),
+        base_currency="USD",
+        components=(
+            PortfolioComponent(
+                component_id="core",
+                strategy_fingerprint=content_digest("future-strategy"),
+                instrument_ids=("CLZ26.SIM",),
+                capital_weight=Decimal("1"),
+            ),
+        ),
+        shared_risk_policy=SharedRiskPolicy(
+            max_gross_exposure_fraction=Decimal("1"),
+            risk_models=(FUTURE_CONTRACT_NOTIONAL_RISK_MODEL,),
+        ),
+    )
+
+
+def _future_instruments() -> dict[str, dict[str, object]]:
+    return {
+        "CLZ26.SIM": {
+            "instrument_id": "CLZ26.SIM",
+            "product_class": "future",
+            "base_currency": None,
+            "quote_currency": "USD",
+            "multiplier": "1000",
+            "price_increment": "0.01",
+            "price_precision": 2,
+            "size_increment": "1",
+            "size_precision": 0,
+            "min_quantity": "1",
+            "max_quantity": "100",
+            "margin_init": "0.12",
+            "margin_maint": "0.11",
+        }
+    }
+
+
+class _NativeMoney:
+    def __init__(self, amount: Decimal) -> None:
+        self.currency = SimpleNamespace(code="USD")
+        self._amount = amount
+
+    def as_decimal(self) -> Decimal:
+        return self._amount
+
+
+class _NativeFutureMarginAccount:
+    base_currency = SimpleNamespace(code="USD")
+
+    def is_margin_account(self) -> bool:
+        return True
+
+    def total_initial_margin(self, _currency: object) -> _NativeMoney:
+        return _NativeMoney(Decimal(0))
+
+    def total_maintenance_margin(self, _currency: object) -> _NativeMoney:
+        return _NativeMoney(Decimal(0))
+
+    def balance_total(self, _currency: object) -> _NativeMoney:
+        return _NativeMoney(Decimal("100000"))
+
+    def initial_margin(self, _instrument_id: object) -> _NativeMoney:
+        return _NativeMoney(Decimal(0))
+
+    def maintenance_margin(self, _instrument_id: object) -> _NativeMoney:
+        return _NativeMoney(Decimal(0))
+
+    def calculate_initial_margin(
+        self, _instrument: object, quantity: object, price: object
+    ) -> _NativeMoney:
+        return _NativeMoney(
+            quantity.as_decimal() * price.as_decimal() * Decimal("1000") * Decimal("0.12")
+        )
+
+    def calculate_maintenance_margin(
+        self, _instrument: object, quantity: object, price: object
+    ) -> _NativeMoney:
+        return _NativeMoney(
+            quantity.as_decimal() * price.as_decimal() * Decimal("1000") * Decimal("0.11")
+        )
 
 
 def _multi_portfolio(*, max_gross: Decimal = Decimal("1")) -> PortfolioComposition:
@@ -203,6 +294,113 @@ def test_target_fraction_is_allocated_then_translated_to_a_lot_sized_market_orde
     assert len(result.order_intents) == 1
     assert result.order_intents[0].side is OrderSide.BUY
     assert result.order_intents[0].quantity == Decimal("250")
+
+
+def test_future_target_quantity_uses_contract_multiplier_and_whole_contract_lots() -> None:
+    portfolio = _future_portfolio()
+    result = resolve_nautilus_target_position_intents(
+        portfolio=portfolio,
+        component_id="core",
+        intents=(TargetPositionIntent("CLZ26.SIM", Decimal("0.4")),),
+        run_attempt_id="attempt-future-target",
+        event_time=EVENT_TIME,
+        event_sequence=4,
+        account_equity=Decimal("100000"),
+        account_cash_balance=Decimal("100000"),
+        current_base_exposures={},
+        current_quantities={},
+        mark_prices={"CLZ26.SIM": Decimal("20")},
+        instruments=_future_instruments(),
+    )
+
+    assert result.allocation.risk_limits_satisfied is True
+    assert result.allocation.risk_approved_instrument_targets[0].target_signed_base_notional == (
+        Decimal("40000")
+    )
+    assert result.order_intents[0].side is OrderSide.BUY
+    assert result.order_intents[0].quantity == Decimal("2")
+
+
+def test_future_target_requires_complete_native_margin_terms() -> None:
+    instruments = _future_instruments()
+    instruments["CLZ26.SIM"].pop("margin_init")
+
+    with pytest.raises(NautilusRuntimeDataError, match="complete futures terms"):
+        resolve_nautilus_target_position_intents(
+            portfolio=_future_portfolio(),
+            component_id="core",
+            intents=(TargetPositionIntent("CLZ26.SIM", Decimal("0.4")),),
+            run_attempt_id="attempt-future-target",
+            event_time=EVENT_TIME,
+            event_sequence=4,
+            account_equity=Decimal("100000"),
+            account_cash_balance=Decimal("100000"),
+            current_base_exposures={},
+            current_quantities={},
+            mark_prices={"CLZ26.SIM": Decimal("20")},
+            instruments=instruments,
+        )
+
+
+def test_target_account_scope_allows_only_futures_on_margin_accounts() -> None:
+    future_intents = {"core": (TargetPositionIntent("CLZ26.SIM", Decimal("0.4")),)}
+    _validate_target_account_product_scope(
+        account_type="MARGIN",
+        target_intents_by_component=future_intents,
+        instruments=_future_instruments(),
+    )
+
+    with pytest.raises(NautilusRuntimeDataError, match="listed futures only"):
+        _validate_target_account_product_scope(
+            account_type="MARGIN",
+            target_intents_by_component={
+                "core": (TargetPositionIntent("US.AAPL", Decimal("0.4")),),
+            },
+            instruments=_instruments(),
+        )
+    with pytest.raises(NautilusRuntimeDataError, match="requires a margin account"):
+        _validate_target_account_product_scope(
+            account_type="CASH",
+            target_intents_by_component=future_intents,
+            instruments=_future_instruments(),
+        )
+
+
+def test_future_target_batch_reaches_native_margin_gate_before_approval() -> None:
+    portfolio = _future_portfolio()
+    empty_ledger: dict[str, dict[str, Decimal]] = {"core": {}}
+    resolution = _route_component_callback_orders(
+        portfolio=portfolio,
+        raw_intents_by_component={},
+        target_intents_by_component={
+            "core": (TargetPositionIntent("CLZ26.SIM", Decimal("0.4")),),
+        },
+        run_attempt_id="attempt-future-target",
+        event_time=EVENT_TIME,
+        event_sequence=5,
+        native_state={
+            "account_equity": Decimal("100000"),
+            "account_cash_balance": Decimal("100000"),
+            "current_base_exposures": {},
+            "current_quantities": {},
+            "current_component_exposures": empty_ledger,
+            "current_component_quantities": empty_ledger,
+            "mark_prices": {"CLZ26.SIM": Decimal("20")},
+            "account_type": "MARGIN",
+            "margin_prices": {"CLZ26.SIM": Decimal("20.01")},
+            "native_margin_account": _NativeFutureMarginAccount(),
+            "native_instruments": {
+                "CLZ26.SIM": SimpleNamespace(id="CLZ26.SIM"),
+            },
+        },
+        instruments=_future_instruments(),
+    )
+
+    assert resolution is not None
+    assert resolution.order_intents[0].quantity == Decimal("2")
+    assert resolution.margin_decision is not None
+    assert resolution.margin_decision.risk_limits_satisfied is True
+    assert resolution.margin_decision.initial_utilization == Decimal("0.048024")
 
 
 def test_target_allocation_submits_only_the_delta_from_native_position() -> None:
