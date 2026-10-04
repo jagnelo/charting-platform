@@ -1,5 +1,53 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-04 — Study Results compares persisted output artifacts
+
+Product commit `81bd58eb0a1fc26084915655dcbdc6795cacf2bd` extends the Study
+Results Compare panel beyond run metadata. Opening comparison lazily loads any
+missing run details, pairs outputs by name and type, reports identical,
+changed, or one-sided outputs, and gives shape-aware summaries for scalar,
+series, range, table, event, chart, and dashboard artifacts. Full payload JSON
+is generated only when the user expands “Inspect output,” avoiding eager
+rendering of dense result arrays. The compact run list and existing lineage
+comparison remain unchanged; no provider or ETF behavior changed.
+
+Focused ResearchResultsTool coverage passed `52/52`; the full frontend suite
+passed `128/128` files and `1,193/1,193` tests; `vue-tsc` and the production
+Vite build passed. The authenticated pinned Playwright 1.62.1 Chromium
+`F8t-results` flow passed `1/1` against the rebuilt final-source frontend,
+including the output comparison table. The TC scope guard accepted all `122`
+branch-touched paths and its six ownership self-tests passed. Workstream
+validation and `git diff --check` passed.
+
+The prescribed `make test-stack-up` again stopped before stack creation because
+this host's Docker rejects the Buildx `--name` flag. The ordinary Compose
+builder successfully built and started only this worktree's named project.
+After browser validation, `make test-stack-down` removed the six containers,
+four volumes, and network; scoped resource accounting reported no remaining
+owned containers, images, volumes, or test sessions. No screenshot, reference,
+threshold, mask, skip, or acceptance rule changed.
+
+The goal remains active at `1/9` acceptance criteria complete. No blocker
+prevents independent TC-owned frontend work. Provider and ETF consumer
+integration still waits for both branches to reach staging; ten protected
+screenshot differences still await the documented review; the final exact-tip
+integration/browser gate remains pending. The current local push range is
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629..81bd58eb0a1fc26084915655dcbdc6795cacf2bd`
+(`1,643` commits). It has not been retried: the exact export needs explicit
+authorization under the repository egress safeguard, and alternate routes are
+prohibited. This records the product-commit boundary; the separate operational
+checkpoint below adds one more local commit, whose resulting HEAD is verified
+externally rather than embedded in the files it contains. Continue independent
+R1/R5/R6 work.
+
+Changed product paths: `frontend/src/components/workstation/ResearchResultsTool.vue`,
+`frontend/tests/unit/components/test_research_results_tool.test.ts`, and
+`frontend/tests/e2e/flows.spec.ts`.
+
+Updated workstream paths: `ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`, and
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`.
+
 ## 2026-10-04 — Study source validation errors are associated with the editor
 
 Product commit `e29518bf9b51cd5417a0b0176a20b5ad874c26c4` makes the Study
