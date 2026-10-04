@@ -1150,6 +1150,15 @@ def build_nautilus_runtime_bundle(
                     {"currency": item.currency, "amount": str(item.amount)}
                     for item in engine_input.venue.cash
                 ],
+                "fee_model": (
+                    None
+                    if engine_input.venue.fee_model is None
+                    else {
+                        "kind": "fixed_per_fill",
+                        "amount": str(engine_input.venue.fee_model.amount),
+                        "currency": engine_input.venue.fee_model.currency,
+                    }
+                ),
             },
             "portfolio": portfolio_composition_to_wire(engine_input.portfolio),
             "strategy_source_digest": engine_input.strategy_source_digest,

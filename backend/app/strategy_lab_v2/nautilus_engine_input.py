@@ -40,7 +40,7 @@ from app.strategy_lab_v2.rebalance import (
     RebalanceTrigger,
 )
 
-NAUTILUS_ENGINE_INPUT_VERSION = "strategy-lab.nautilus-engine-input.v5"
+NAUTILUS_ENGINE_INPUT_VERSION = "strategy-lab.nautilus-engine-input.v6"
 
 
 def _nonempty(value: str, field_name: str) -> None:
@@ -149,6 +149,23 @@ class NautilusCashDefinition:
 
 
 @dataclass(frozen=True, slots=True)
+class NautilusFixedPerFillFeeModelDefinition:
+    """Explicit signed fixed commission/rebate applied by the native engine per fill."""
+
+    amount: Decimal
+    currency: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.amount, Decimal) or not self.amount.is_finite():
+            raise ValueError("fee amount must be a finite Decimal")
+        object.__setattr__(self, "currency", _currency(self.currency, "fee currency"))
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
 class NautilusVenueDefinition:
     """One shared venue/account model for a backtest portfolio."""
 
@@ -157,6 +174,7 @@ class NautilusVenueDefinition:
     account_type: str
     cash: tuple[NautilusCashDefinition, ...]
     base_currency: str
+    fee_model: NautilusFixedPerFillFeeModelDefinition | None = None
 
     def __post_init__(self) -> None:
         _nonempty(self.venue_id, "venue_id")
@@ -171,6 +189,11 @@ class NautilusVenueDefinition:
             raise ValueError("venue cash currencies must be unique")
         if self.base_currency not in currencies:
             raise ValueError("venue base currency must have an initial cash balance")
+        if self.fee_model is not None:
+            if not isinstance(self.fee_model, NautilusFixedPerFillFeeModelDefinition):
+                raise TypeError("fee_model must use NautilusFixedPerFillFeeModelDefinition")
+            if self.fee_model.currency not in currencies:
+                raise ValueError("venue fee currency must have an initial cash balance")
         object.__setattr__(self, "cash", tuple(sorted(cash, key=lambda item: item.currency)))
 
     @property
@@ -620,6 +643,7 @@ def _wire_decimal(value: object, field_name: str) -> Decimal:
 __all__ = [
     "NAUTILUS_ENGINE_INPUT_VERSION",
     "NautilusCashDefinition",
+    "NautilusFixedPerFillFeeModelDefinition",
     "NautilusComponentStrategyBinding",
     "NautilusEngineInput",
     "NautilusInstrumentDefinition",

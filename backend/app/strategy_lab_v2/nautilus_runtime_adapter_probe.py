@@ -236,6 +236,7 @@ def _payload() -> dict[str, object]:
             "account_type": "margin",
             "base_currency": "USD",
             "cash": [{"currency": "USD", "amount": "100000"}],
+            "fee_model": None,
         },
         "portfolio": portfolio_composition_to_wire(portfolio),
         "strategy_source_digest": content_digest(_SOURCE),
@@ -256,7 +257,7 @@ def _payload() -> dict[str, object]:
                 "max_intents_per_event": 100,
             }
         ],
-        "input_version": "strategy-lab.nautilus-engine-input.v5",
+        "input_version": "strategy-lab.nautilus-engine-input.v6",
     }
 
 
@@ -355,14 +356,37 @@ def run_native_reports_schema_probe() -> dict[str, Any]:
     )
 
 
-def run_native_component_cycle_pnl_probe() -> dict[str, Any]:
+def run_native_component_cycle_pnl_probe(
+    *, commission_amount: Decimal | None = None
+) -> dict[str, Any]:
     """Verify RC position snapshots, fill identities, component tags, and P&L."""
 
     return _run_native_execution_probe(
         target_position=False,
         include_native_report_diagnostics=True,
         position_cycle_reopen=True,
+        fee_model_definition=(
+            None
+            if commission_amount is None
+            else {
+                "kind": "fixed_per_fill",
+                "amount": str(commission_amount),
+                "currency": "USD",
+            }
+        ),
     )
+
+
+def run_native_signed_fee_reconciliation_probe() -> dict[str, Any]:
+    """Verify positive commissions and negative rebates inside native account P&L."""
+
+    positive_fee = run_native_component_cycle_pnl_probe(commission_amount=Decimal("1.00"))
+    rebate = run_native_component_cycle_pnl_probe(commission_amount=Decimal("-1.00"))
+    return {
+        "authoritative": False,
+        "positive_fee": positive_fee,
+        "rebate": rebate,
+    }
 
 
 def run_rebalance_schedule_probe() -> dict[str, Any]:
@@ -411,6 +435,7 @@ def _run_native_execution_probe(
     multi_component_rebalance: bool = False,
     multi_component_priority: bool = False,
     shared_risk_rejection: bool = False,
+    fee_model_definition: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     component_scenario_count = sum(
         (multi_component_rebalance, multi_component_priority, shared_risk_rejection)
@@ -425,6 +450,8 @@ def _run_native_execution_probe(
         or rebalance_misfire_only
     ):
         raise ValueError("native position-cycle probe options are inconsistent")
+    if fee_model_definition is not None and not position_cycle_reopen:
+        raise ValueError("native fee-model probe requires the reopened-position report path")
     if rebalance_trigger is not None and rebalance_misfire_only:
         raise ValueError("rebalance trigger and misfire-only modes cannot be combined")
     if (rebalance_trigger is not None or rebalance_misfire_only) and not target_position:
@@ -662,6 +689,7 @@ def _run_native_execution_probe(
             "account_type": "cash",
             "base_currency": "USD",
             "cash": [{"currency": "USD", "amount": "100000"}],
+            "fee_model": fee_model_definition,
         },
         "portfolio": portfolio_composition_to_wire(portfolio),
         "strategy_source_digest": manifest.strategy.source_digest,
@@ -683,7 +711,7 @@ def _run_native_execution_probe(
             }
             for component_id in component_ids
         ],
-        "input_version": "strategy-lab.nautilus-engine-input.v5",
+        "input_version": "strategy-lab.nautilus-engine-input.v6",
     }
     invocation_contexts = tuple(
         StrategyContext(

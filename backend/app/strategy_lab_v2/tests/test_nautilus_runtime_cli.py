@@ -17,6 +17,7 @@ from app.strategy_lab_v2.contracts import (
 )
 from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusCashDefinition,
+    NautilusFixedPerFillFeeModelDefinition,
     NautilusInstrumentDefinition,
     NautilusVenueDefinition,
     build_nautilus_engine_input,
@@ -41,6 +42,7 @@ def _runtime_bundle(
     context_stream_store: LocalArtifactStore | None = None,
     native_event_stream_store: LocalArtifactStore | None = None,
     component_context_stream: bool = False,
+    fee_model: NautilusFixedPerFillFeeModelDefinition | None = None,
 ):
     first_event = NautilusEventRecord(
         "prices",
@@ -90,6 +92,7 @@ def _runtime_bundle(
         "cash",
         (NautilusCashDefinition("USD", Decimal("100000")),),
         "USD",
+        fee_model,
     )
     manifest = _manifest()
     engine_input = build_nautilus_engine_input(
@@ -173,6 +176,20 @@ def test_runtime_bundle_binds_cli_digest_to_the_readonly_wire_bytes() -> None:
     assert first.input_bundle_digest == content_digest(json.loads(first.wire_bytes))
     assert first.input_bundle_digest.startswith("sha256:")
     assert first.attempt_id == "attempt-1"
+
+
+def test_runtime_bundle_serializes_signed_fixed_per_fill_fee_model() -> None:
+    bundle = _runtime_bundle(
+        fee_model=NautilusFixedPerFillFeeModelDefinition(Decimal("-0.25"), "USD")
+    )
+    payload = json.loads(bundle.wire_bytes)
+
+    assert payload["engine_input"]["venue"]["fee_model"] == {
+        "kind": "fixed_per_fill",
+        "amount": "-0.25",
+        "currency": "USD",
+    }
+    assert bundle.input_bundle_digest != _runtime_bundle().input_bundle_digest
 
 
 def test_cli_runs_only_digest_attempt_snapshot_and_version_bound_bundle(

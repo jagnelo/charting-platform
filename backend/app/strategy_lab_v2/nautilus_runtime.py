@@ -299,6 +299,37 @@ def _require_native_component_pnl_probe(value: Any) -> None:
         raise ValueError("native archived-cycle component P&L does not reconcile to account")
 
 
+def _require_native_signed_fee_reconciliation(value: Any) -> None:
+    if (
+        not isinstance(value, Mapping)
+        or set(value) != {"authoritative", "positive_fee", "rebate"}
+        or value["authoritative"] is not False
+    ):
+        raise ValueError("native signed fee reconciliation fields are invalid")
+    positive_fee = value["positive_fee"]
+    rebate = value["rebate"]
+    _require_native_component_pnl_probe(positive_fee)
+    _require_native_component_pnl_probe(rebate)
+    positive_costs = _decimal(positive_fee["reported_cost_deductions"], "positive_fee.costs")
+    positive_rebates = _decimal(positive_fee["reported_rebates"], "positive_fee.rebates")
+    rebate_costs = _decimal(rebate["reported_cost_deductions"], "rebate.costs")
+    rebate_amount = _decimal(rebate["reported_rebates"], "rebate.rebates")
+    positive_gross = _decimal(positive_fee["portfolio_gross_pnl"], "positive_fee.gross")
+    rebate_gross = _decimal(rebate["portfolio_gross_pnl"], "rebate.gross")
+    positive_net = _decimal(positive_fee["portfolio_net_pnl"], "positive_fee.net")
+    rebate_net = _decimal(rebate["portfolio_net_pnl"], "rebate.net")
+    if (
+        positive_costs <= 0
+        or positive_rebates != 0
+        or rebate_costs != 0
+        or rebate_amount <= 0
+        or positive_gross != rebate_gross
+        or positive_net != positive_gross - positive_costs
+        or rebate_net != rebate_gross + rebate_amount
+    ):
+        raise ValueError("native signed fee effects do not reconcile to gross/net account P&L")
+
+
 def _require_rebalance_schedule_probe(value: Any) -> None:
     cases = {
         "session_open",
@@ -603,6 +634,7 @@ class NautilusRcFixtureReceipt:
             "multi_instrument_accounting",
             "native_component_pnl_attribution",
             "native_order_fill_cost",
+            "native_signed_fee_reconciliation",
             "portfolio_rebalance_schedule",
         }
         if set(payload) != required:
@@ -623,6 +655,7 @@ class NautilusRcFixtureReceipt:
         _require_target_allocation_probe(native.get("target_allocation_probe"))
         _require_raw_order_risk_probe(native.get("raw_order_risk_probe"))
         _require_native_component_pnl_probe(payload["native_component_pnl_attribution"])
+        _require_native_signed_fee_reconciliation(payload["native_signed_fee_reconciliation"])
         _require_rebalance_schedule_probe(payload["portfolio_rebalance_schedule"])
         if multi["instrument_count"] < 2 or native["instrument_count"] != 1:
             raise ValueError("single- and multi-instrument fixtures must be distinct")

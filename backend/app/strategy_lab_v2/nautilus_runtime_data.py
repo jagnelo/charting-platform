@@ -183,7 +183,7 @@ def materialize_native_venue(definition: Mapping[str, Any]) -> tuple[Any, Any, A
     """Construct one shared venue/account tuple for ``BacktestEngine.add_venue``."""
 
     item = _required_mapping(definition, "venue definition")
-    required = {"venue_id", "oms_type", "account_type", "base_currency", "cash"}
+    required = {"venue_id", "oms_type", "account_type", "base_currency", "cash", "fee_model"}
     if set(item) != required:
         raise NautilusRuntimeDataError("venue definition fields are invalid")
     venue_id = _required_text(item["venue_id"], "venue_id")
@@ -222,6 +222,55 @@ def materialize_native_venue(definition: Mapping[str, Any]) -> tuple[Any, Any, A
     if base_currency not in currencies:
         raise NautilusRuntimeDataError("venue base currency must have an initial cash balance")
     return Venue(venue_id), oms_type, account_type, balances
+
+
+def materialize_native_fee_model(definition: Any) -> Any | None:
+    """Build a pinned-runtime fixed-per-fill model, including signed rebates."""
+
+    if definition is None:
+        return None
+    item = _required_mapping(definition, "fee model")
+    if set(item) != {"kind", "amount", "currency"}:
+        raise NautilusRuntimeDataError("fee model fields are invalid")
+    if _required_text(item["kind"], "fee_model.kind") != "fixed_per_fill":
+        raise NautilusRuntimeDataError("fee model kind is unsupported")
+    amount = _decimal(item["amount"], "fee_model.amount")
+    currency_code = _required_text(item["currency"], "fee_model.currency")
+    if (
+        len(currency_code) != 3
+        or not currency_code.isascii()
+        or not currency_code.isalpha()
+        or currency_code != currency_code.upper()
+    ):
+        raise NautilusRuntimeDataError("fee model currency must be a canonical three-letter code")
+
+    from nautilus_trader.execution import FeeModel  # type: ignore[import-not-found,attr-defined]
+    from nautilus_trader.model import Currency, Money  # type: ignore[import-not-found,attr-defined]
+
+    try:
+        commission = Money(amount, Currency.from_str(currency_code))
+    except (TypeError, ValueError) as error:
+        raise NautilusRuntimeDataError("fee model commission is not representable") from error
+    commission_parts = str(commission).split()
+    try:
+        represented_amount = Decimal(commission_parts[0])
+    except (IndexError, InvalidOperation, ValueError) as error:
+        raise NautilusRuntimeDataError("fee model commission representation is invalid") from error
+    if len(commission_parts) != 2 or commission_parts[1] != currency_code:
+        raise NautilusRuntimeDataError(
+            "fee model commission currency changed during materialization"
+        )
+    if represented_amount != amount:
+        raise NautilusRuntimeDataError("fee model commission exceeds native currency precision")
+
+    class FixedPerFillFeeModel(FeeModel):
+        def get_commission(
+            self, order: Any, fill_quantity: Any, fill_px: Any, instrument: Any
+        ) -> Any:
+            del order, fill_quantity, fill_px, instrument
+            return commission
+
+    return FixedPerFillFeeModel()
 
 
 def _event_values(event: Mapping[str, Any]) -> tuple[Any, str, int, Any]:
@@ -336,6 +385,7 @@ def materialize_native_event(
 
 __all__ = [
     "NautilusRuntimeDataError",
+    "materialize_native_fee_model",
     "materialize_native_event",
     "materialize_native_instrument",
     "materialize_native_venue",

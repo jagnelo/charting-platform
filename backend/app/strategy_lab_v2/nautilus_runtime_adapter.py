@@ -43,6 +43,7 @@ from app.strategy_lab_v2.nautilus_rebalance_wire import rebalance_execution_plan
 from app.strategy_lab_v2.nautilus_runtime_data import (
     NautilusRuntimeDataError,
     materialize_native_event,
+    materialize_native_fee_model,
     materialize_native_instrument,
     materialize_native_venue,
 )
@@ -178,7 +179,7 @@ def _validate_engine_input(
         )
     ):
         raise NautilusRuntimeDataError("engine input rebalance plan identity is mismatched")
-    if item["input_version"] != "strategy-lab.nautilus-engine-input.v5":
+    if item["input_version"] != "strategy-lab.nautilus-engine-input.v6":
         raise NautilusRuntimeDataError("engine input version is unsupported")
     evaluation_window = _evaluation_window(item["evaluation_window"])
     try:
@@ -462,6 +463,7 @@ def run_native_backtest(
         materialize_native_instrument(definition) for definition in instrument_definitions
     )
     native_venue, oms_type, account_type, balances = materialize_native_venue(venue_definition)
+    native_fee_model = materialize_native_fee_model(venue_definition["fee_model"])
     from nautilus_trader import __version__  # type: ignore[import-not-found,attr-defined]
     from nautilus_trader.backtest import (  # type: ignore[import-not-found,attr-defined]
         BacktestEngine,
@@ -629,6 +631,7 @@ def run_native_backtest(
                 starting_balances=[str(balance) for balance in balances],
                 book_type=BookType.L1_MBP,
                 base_currency=Currency.from_str(venue_definition["base_currency"]),
+                fee_model=native_fee_model,
             )
             run_config = BacktestRunConfig(
                 venues=[venue_config],
@@ -684,6 +687,7 @@ def run_native_backtest(
             account_type,
             balances,
             base_currency=Currency.from_str(venue_definition["base_currency"]),
+            fee_model=native_fee_model,
         )
         for instrument in native_instruments:
             engine.add_instrument(instrument)

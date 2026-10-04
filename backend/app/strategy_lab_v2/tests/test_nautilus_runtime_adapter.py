@@ -18,6 +18,7 @@ from app.strategy_lab_v2.nautilus_runtime_adapter import (
     NautilusRuntimeDataError,
     run_native_backtest,
 )
+from app.strategy_lab_v2.nautilus_runtime_data import materialize_native_fee_model
 
 
 def _payload() -> dict[str, object]:
@@ -86,6 +87,7 @@ def _payload() -> dict[str, object]:
             "account_type": "cash",
             "base_currency": "USD",
             "cash": [{"currency": "USD", "amount": Decimal("100000")}],
+            "fee_model": None,
         },
         "portfolio": portfolio_composition_to_wire(portfolio),
         "strategy_source_digest": content_digest("source"),
@@ -106,7 +108,7 @@ def _payload() -> dict[str, object]:
                 "max_intents_per_event": 100,
             }
         ],
-        "input_version": "strategy-lab.nautilus-engine-input.v5",
+        "input_version": "strategy-lab.nautilus-engine-input.v6",
     }
 
 
@@ -116,6 +118,16 @@ def test_runtime_adapter_rejects_unknown_engine_input_fields_before_native_impor
 
     with pytest.raises(NautilusRuntimeDataError, match="engine input fields"):
         run_native_backtest(payload)
+
+
+def test_runtime_fee_model_rejects_unknown_shapes_before_native_import() -> None:
+    with pytest.raises(NautilusRuntimeDataError, match="fee model kind is unsupported"):
+        materialize_native_fee_model({"kind": "percentage", "amount": "0.001", "currency": "USD"})
+
+
+def test_runtime_fee_model_requires_native_currency_precision_before_import() -> None:
+    with pytest.raises(NautilusRuntimeDataError, match="canonical three-letter code"):
+        materialize_native_fee_model({"kind": "fixed_per_fill", "amount": "1", "currency": "usd"})
 
 
 def test_runtime_adapter_requires_content_addressed_identities() -> None:

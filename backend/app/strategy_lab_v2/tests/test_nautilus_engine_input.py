@@ -20,6 +20,7 @@ from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusCashDefinition,
     NautilusComponentStrategyBinding,
     NautilusEngineInput,
+    NautilusFixedPerFillFeeModelDefinition,
     NautilusInstrumentDefinition,
     NautilusVenueDefinition,
     build_nautilus_engine_input,
@@ -174,8 +175,24 @@ def test_engine_input_binds_tape_catalog_and_shared_account() -> None:
     assert tuple(binding.component_id for binding in engine_input.strategy_bindings) == (
         "component-1",
     )
-    assert engine_input.input_version == "strategy-lab.nautilus-engine-input.v5"
+    assert engine_input.input_version == "strategy-lab.nautilus-engine-input.v6"
     assert engine_input.fingerprint.startswith("sha256:")
+
+
+def test_venue_fee_model_supports_signed_fees_and_is_fingerprinted() -> None:
+    fee_model = NautilusFixedPerFillFeeModelDefinition(Decimal("-0.25"), "usd")
+    venue = replace(_venue(), fee_model=fee_model)
+
+    assert fee_model.currency == "USD"
+    assert fee_model.fingerprint.startswith("sha256:")
+    assert venue.fingerprint != _venue().fingerprint
+
+
+def test_venue_fee_model_requires_an_initial_balance_in_its_currency() -> None:
+    fee_model = NautilusFixedPerFillFeeModelDefinition(Decimal("0.25"), "EUR")
+
+    with pytest.raises(ValueError, match="fee currency must have an initial cash balance"):
+        replace(_venue(), fee_model=fee_model)
 
 
 def test_engine_input_requires_policy_bound_rebalance_plan() -> None:
