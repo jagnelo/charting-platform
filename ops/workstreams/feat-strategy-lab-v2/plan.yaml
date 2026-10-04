@@ -325,6 +325,7 @@ remaining_gaps:
   - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
   - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
   - Stable Nautilus v2 is required to qualify authoritative local backtests after the complete conformance suite. The isolated Nautilus 2.0.0rc5 image fixture passed multi-instrument accounting, native order/fill/cost reporting, deterministic replay, and lifecycle at source SHA f102f310499431b0c892483ec15e376f5503319f; that RC receipt remains compatibility evidence only and cannot authorize or publish authoritative results. Forward shadow still requires event-tape parity, and pre-releases remain barred from authoritative results, broker connections, and real-capital use.
+  - Native OOS metrics v14 now expose maximum peak-to-trough loss in the account base currency alongside fractional drawdown and recovery factor for fixed-cadence and event-aligned equity paths. The amount is derived only from observed equity peaks/troughs, is bound to the native trace evidence, and remains unavailable when the OOS trace has no scored observations.
   - The owner-authenticated worker-terminal path now consumes exact conformance evidence, rehydrates and checks the owner-scoped trial graph, materializes versioned native OOS metrics/results, publishes verified output bytes, and builds the publication plan. A worker-terminal success/redelivery test exercises the full persistence-port coordinator with pure completion/lease state and proves stable receipt identity when the callback observation time changes; artifact completion keys bind manifest/content/length/storage identity rather than the retry-varying create/reuse action. Real PostgreSQL/Redis/Compose adapter execution and full-stack/browser acceptance remain Docker-gated.
   - The isolated Nautilus runtime bundle now has a pinned-input content-addressed artifact contract. Durable worker handoff v2 carries its compact artifact manifest plus semantic bundle digest; the worker binds both to the attempt/request and verifies the exact mounted bytes and memory-derived size bound before Docker launch. Production assembly from frozen trial/snapshot/portfolio inputs remains open.
   - The combined backend coverage gate now collects package-owned v2 tests and passes its 75% threshold. The dedicated worker entrypoint is now exposed through an explicit opt-in `strategy-lab-v2` Compose profile with a separate artifact volume, health-gated PostgreSQL/Redis dependencies, read-only root, dropped capabilities, bounded temporary filesystem, fail-closed Docker-socket binding, and a package-owned authenticated single-output evidence resolver default; host multi-artifact policy, live activation, and scope-bound authoritative Nautilus v2 execution remain open.
@@ -824,8 +825,9 @@ progress:
     - nautilus-event-time-oos-drawdown-duration-v1
     - nautilus-event-time-oos-cagr-calmar-v1
     - stable-nautilus-v2-authority-gate-v1
+    - nautilus-oos-absolute-drawdown-v1
   total: 18
-  current_phase: nautilus-oos-metric-expansion-v14
+  current_phase: nautilus-oos-metric-expansion-v15
   current_blocker: >-
     Stable Nautilus v2 is not currently published, so authoritative Nautilus
     execution and official result publication remain gated on that upstream
@@ -841,10 +843,13 @@ progress:
     remains fail-closed pending canonical event-time Greeks/delta and settlement
     evidence.
   next_action: >-
-    Continue versioned native OOS metric coverage, then domain-backed mutations,
-    worker recovery/scaling, and persistent forward-shadow correctness. Keep
-    explicit sampling/calendar and annualization bases; do not derive
-    cadence-sensitive statistics from irregular event marks. Keep options
+    Continue versioned native OOS metric coverage by wiring cadence-sensitive
+    risk statistics only from explicit, verified calendar/session interval
+    observations; do not infer sampling cadence from irregular event marks.
+    Then continue domain-backed mutations, worker recovery/scaling, and
+    persistent broker-free forward-shadow correctness. Use explicit sampling,
+    calendar, and annualization bases; do not derive cadence-sensitive
+    statistics from irregular event marks. Keep options
     order admission fail-closed until canonical event-time Greeks/delta and
     settlement evidence are available. Keep prerelease Nautilus execution in
     compatibility-only scope. When a stable v2 release is available, pin and

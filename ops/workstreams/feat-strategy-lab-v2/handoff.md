@@ -15,6 +15,26 @@ Compose/browser validation still requires Docker Buildx, and shared provider,
 ETF, and TC2000 paths remain gated only until their approved work reaches
 staging.
 
+## 2026-10-04 - Native OOS absolute drawdown
+
+Metric definition v14 now publishes `maximum_drawdown_amount` in the account
+base currency for both fixed-cadence performance metrics and event-aligned
+native OOS metrics. It is calculated as the largest observed running-peak
+equity minus a later trough; it does not infer a sampling cadence. Event-aligned
+OOS output retains the verified native equity-trace evidence and reports a
+null reason when there are no post-opening observations. The metric is tested
+through the Nautilus OOS metric-set builder as well as the lower-level
+calculators.
+
+Implementation commit `f365ae1179468dbfb5ffd35459d9d9c2867a46c7` is published
+to `origin/feat/strategy-lab-v2`. Validation at that source: the three focused
+metric/materialization files passed 39 tests; the full Strategy Lab package
+passed 1,328 tests with only its local-socket test deselected, and that test
+passed separately under scoped local-socket permission. Ruff check/format,
+targeted MyPy for `metrics.py`, and `git diff --check` passed. This increment
+does not change the stable-v2 authority gate or make prerelease results
+authoritative.
+
 ## 2026-10-04 - Stable-v2 authority gate
 
 The implementation now requires a stable Nautilus v2 release for authoritative
