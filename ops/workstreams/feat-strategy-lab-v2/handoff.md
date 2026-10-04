@@ -49,12 +49,14 @@ No stable Nautilus 2.x release is required: `plan.yaml` permits the exact
 real-capital control. Provider, ETF, and TC2000 shared-path use remains gated
 until their work reaches staging. The configured GitHub SSH key has also
 previously failed with `Permission denied (publickey)`. The elevated,
-user-authorized push of
+user-authorized push of the implementation range
 `1e3a861454f3c77bdac5efbb6957103f56f13238..91e838a20d502de5426bfe8188d5e7fbb47e789b`
-to `origin/feat/strategy-lab-v2` was attempted and failed because
-`/usr/bin/ssh-askpass` is missing and GitHub rejected the configured key. The
-remote is unchanged; no alternate credential path was probed. Local commits
-and implementation remain independent of this transport issue.
+failed. A second elevated push retry covering the current branch range
+`1e3a861454f3c77bdac5efbb6957103f56f13238..33828aa99bef3b077176f166098c0268cc458ac1`
+also failed because `/usr/bin/ssh-askpass` is missing and GitHub rejected the
+configured key. The remote is unchanged; no alternate credential path was
+probed. Local commits and implementation remain independent of this transport
+issue.
 
 Next: implement native result/equity extraction bound to the same evaluation
 window, with OOS-only official metrics; rerun the exact-pinned RC5 windowed,
