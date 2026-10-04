@@ -46,6 +46,7 @@ let initialEventsSuppressed = true
 let activationGuardKey: string | null = null
 let activationRetryTimer: number | null = null
 let activationGuardTimer: number | null = null
+let activationRequestSequence = 0
 let lastLayoutFingerprint: string | null = null
 let installedTabKey: string | null | undefined = null
 let layoutGeneration = 0
@@ -76,9 +77,16 @@ function changeSuppressed() {
   return initialEventsSuppressed || suppressChange || Date.now() < suppressChangeUntil
 }
 
-function releaseInitialSuppression() {
+function releaseInitialSuppression(event?: Event) {
   initialEventsSuppressed = false
   suppressChangeUntil = 0
+  // A real tab interaction outranks the short-lived persisted-selection guard.
+  // Otherwise a late bootstrap notification can undo the user's tab choice.
+  if (event?.target instanceof Element && event.target.closest('.lm_tab')) {
+    activationGuardKey = null
+    if (activationGuardTimer !== null) window.clearTimeout(activationGuardTimer)
+    activationGuardTimer = null
+  }
 }
 
 function layoutFingerprint(layout: LayoutConfig) {
@@ -125,8 +133,11 @@ function normaliseComponentStacks(value: Record<string, unknown>): Record<string
 }
 
 function activateWindow(windowKey: string | null | undefined) {
+  if (!windowKey) return
+  const requestSequence = ++activationRequestSequence
+  const isCurrentRequest = () => requestSequence === activationRequestSequence && props.activeWindowKey === windowKey
   const root = (goldenLayout as any)?.root
-  if (!windowKey || !root) return
+  if (!root || !isCurrentRequest()) return
   const items: any[] = []
   const visit = (item: any) => {
     if (!item) return
@@ -139,7 +150,7 @@ function activateWindow(windowKey: string | null | undefined) {
   if (component && stack?.setActiveComponentItem) {
     const generation = layoutGeneration
     const ownsComponent = () => {
-      if (generation !== layoutGeneration || goldenLayout == null) return false
+      if (generation !== layoutGeneration || goldenLayout == null || !isCurrentRequest()) return false
       const parent = component.parentItem as any
       return Boolean(parent
         && Array.isArray(parent.contentItems)
@@ -155,7 +166,7 @@ function activateWindow(windowKey: string | null | undefined) {
     if (!ownsComponent()) {
       const generation = layoutGeneration
       window.setTimeout(() => {
-        if (generation === layoutGeneration) activateWindow(windowKey)
+        if (generation === layoutGeneration && isCurrentRequest()) activateWindow(windowKey)
       }, 25)
       return
     }
@@ -174,6 +185,7 @@ function activateWindow(windowKey: string | null | undefined) {
     // that construction so opening a tool never leaves it hidden behind the
     // previous tab.
     const reassert = () => {
+      if (!isCurrentRequest()) return
       if (ownsComponent() && component.parentItem?.setActiveComponentItem) {
         const parent = component.parentItem as any
         const wasSuppressed = suppressChange
@@ -213,7 +225,7 @@ function activateWindow(windowKey: string | null | undefined) {
     let attempts = 0
     activationRetryTimer = window.setInterval(() => {
       attempts += 1
-      if (generation !== layoutGeneration) {
+      if (generation !== layoutGeneration || !isCurrentRequest()) {
         if (activationRetryTimer !== null) window.clearInterval(activationRetryTimer)
         activationRetryTimer = null
         return
@@ -244,6 +256,7 @@ function clearMountedTools() {
 }
 
 function teardown() {
+  activationRequestSequence += 1
   layoutGeneration += 1
   goldenLayout?.destroy()
   goldenLayout = null

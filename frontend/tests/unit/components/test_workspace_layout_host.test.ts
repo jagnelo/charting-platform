@@ -248,4 +248,25 @@ describe('WorkspaceLayoutHost', () => {
     expect(wrapper.emitted('active-window-changed')).toEqual([['chart-2']])
     wrapper.unmount()
   })
+
+  it('lets direct tab interaction supersede the persisted activation guard', async () => {
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: {
+        layout: { root: { type: 'row', content: [] } } as any,
+        activeWindowKey: 'chart-1',
+        renderTool: () => h('div'),
+      },
+    })
+    const host = wrapper.find('.workspace-layout-host').element
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+    const tab = document.createElement('div')
+    tab.className = 'lm_tab'
+    host.appendChild(tab)
+    tab.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
+
+    goldenLayouts[0].callbacks.get('activeContentItemChanged')!({ config: { componentState: { instance_key: 'chart-2' } } })
+
+    expect(wrapper.emitted('active-window-changed')).toEqual([['chart-2']])
+    wrapper.unmount()
+  })
 })
