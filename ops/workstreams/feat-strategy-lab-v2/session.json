@@ -87,18 +87,28 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "backend/app/strategy_lab_v2/artifact_commit.py",
-    "backend/app/strategy_lab_v2/result_completion.py",
-    "backend/app/strategy_lab_v2/worker_terminal_adapter.py",
-    "backend/app/strategy_lab_v2/tests/test_nautilus_worker_terminal.py",
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+    "ops/workstreams/feat-strategy-lab-v2/session.json"
   ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-strategy-lab-v2-7794d9e5",
+      "charting-stack-feat-strategy-lab-v2-7794d9e5"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "docker_ready": {
     "ready": true,
@@ -114,14 +124,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "596ed304f78770ad625b503f556d073cf52363e6",
-  "implementation_sha": "596ed304f78770ad625b503f556d073cf52363e6",
-  "last_checkpoint": "2026-10-04T06:32:00.000000+00:00",
+  "head": "a70d2d6b095158a1e3cc75370c46ff48b704438e",
+  "implementation_sha": "a70d2d6b095158a1e3cc75370c46ff48b704438e",
+  "last_checkpoint": "2026-10-04T07:05:42.824644+00:00",
   "last_human_progress_update": "2026-10-04T07:00:05.739903+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "09c769c72cb992215d420fbf120564c69b63c82862dddd99caefafdf6c21d7df",
+  "plan_hash": "a761d73f1282d805cb804fe2697ce8fd34c8597342600b1de112e92fa82c3c87",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -148,7 +158,7 @@
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "7c50d5d3-c421-4827-add4-736006a8f07b",
-  "state": "in_progress",
+  "state": "checkpointed",
   "takeover_history": [
     {
       "at": "2026-09-16T01:47:41.916851+00:00",
