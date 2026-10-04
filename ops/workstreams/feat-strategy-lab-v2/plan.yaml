@@ -48,10 +48,10 @@ scope:
     pinned stable or release-candidate v2 build passes the four backtest
     conformance checks. Keep its version, Python environment, and runtime image
     isolated from legacy Nautilus 1.226. Record exact version, release channel,
-    wheel digest, and image digest in every result. Release candidates may
-    publish only local backtests; they never qualify forward-shadow execution,
-    control real capital, or connect to a broker. Forward-shadow qualification
-    additionally requires stable v2 and event-tape parity.
+    wheel digest, and image digest in every result. Either channel may qualify
+    for broker-free full/forward shadow after all five checks, including
+    event-tape parity. No pre-release may control real capital or connect to a
+    broker.
   - >-
     Add isolated serial backtest workers and separately reserved persistent
     forward workers; PostgreSQL metadata/state, Redis durable dispatch and
@@ -125,9 +125,10 @@ execution_plan:
       Nautilus v2 runtime. Exact-pinned release candidates may publish
       authoritative local backtests after the four simulator checks—multi-
       instrument accounting, native order/fill/cost reports, deterministic
-      replay, and lifecycle—pass. Forward event-tape parity and stable v2 are
-      separate gates for forward-shadow execution. Pre-releases remain barred
-      from broker connections and real capital.
+      replay, and lifecycle—pass. Broker-free full/forward-shadow execution
+      additionally requires event-tape parity, for five passing checks total;
+      stable release labeling is not a gate. Pre-releases remain barred from
+      broker connections and real capital.
     - >-
       Complete full branch integration/security/reproducibility validation and
       hand off at ready_for_human_review. The UI and any deployed shadow soak
@@ -149,12 +150,13 @@ dependencies:
     create a parallel editor/research runner.
   - >-
     An exact-pinned stable or release-candidate Nautilus v2 build may publish
-    local backtests only after its four backtest conformance checks pass.
-    Forward-shadow execution additionally requires stable v2 and event-tape
-    parity; prereleases never connect to brokers or control real capital.
-    Preserve exact release channel, wheel/image digest, conformance, scope, and
-    execution-plan provenance in every Nautilus result. Each later engine build
-    must independently pass the applicable scope checks.
+    local backtests after its four backtest conformance checks pass, and may
+    qualify broker-free full/forward shadow after all five checks including
+    event-tape parity pass. A stable release label is not required. Prereleases
+    never connect to brokers or control real capital. Preserve exact release
+    channel, wheel/image digest, conformance, scope, and execution-plan
+    provenance in every Nautilus result. Each later engine build must
+    independently pass the applicable scope checks.
 acceptance_criteria:
   - id: AC-DOMAIN
     text: >-
@@ -227,8 +229,10 @@ acceptance_criteria:
       before it can publish authoritative local backtests. Every result records
       exact engine version/channel, wheel/image digests, conformance
       fingerprints, execution scope, and plan fingerprint. Forward-shadow
-      execution additionally requires stable v2 and event-tape parity.
-      Pre-releases never control real capital or connect to a broker.
+      execution additionally requires event-tape parity, completing the five
+      checks required for full broker-free simulation; stable release labeling
+      is not a gate. Pre-releases never control real capital or connect to a
+      broker.
       The platform owns a Rust data adapter for canonical forward events;
       provider adapters are not used as a second data source.
   - id: AC-FORWARD
@@ -321,7 +325,7 @@ remaining_gaps:
   - The provider-platform workstream has not reached staging; canonical acquisition and capability adapter wiring is deferred.
   - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
   - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
-  - The isolated Nautilus 2.0.0rc5 image fixture passed the four local-backtest checks (multi-instrument accounting, native order/fill/cost reporting, deterministic replay, and lifecycle) at source SHA f102f310499431b0c892483ec15e376f5503319f. Its exact-pinned RC receipt may authorize local backtests after matching build/image verification; forward shadow additionally requires stable v2 and event-tape parity. Prereleases remain barred from broker connections and real-capital use.
+  - The isolated Nautilus 2.0.0rc5 image fixture passed the four local-backtest checks (multi-instrument accounting, native order/fill/cost reporting, deterministic replay, and lifecycle) at source SHA f102f310499431b0c892483ec15e376f5503319f. Its exact-pinned RC receipt may authorize local backtests after matching build/image verification; broker-free full/forward shadow additionally requires event-tape parity, with no stable-label gate. Prereleases remain barred from broker connections and real-capital use.
   - Native OOS metrics v14 now expose maximum peak-to-trough loss in the account base currency alongside fractional drawdown and recovery factor for fixed-cadence and event-aligned equity paths. The amount is derived only from observed equity peaks/troughs, is bound to the native trace evidence, and remains unavailable when the OOS trace has no scored observations.
   - Native OOS metric definition v15 now accepts exact attempt/portfolio-bound session equity intervals, their content-addressed calendar, and explicit sessions-per-year/risk-free/confidence parameters. Complete no-flow session coverage unlocks annualized volatility, Sharpe, Sortino, historical VaR/expected shortfall, and session-return quantiles; gaps, out-of-window closes, mixed evidence, or ambiguous flows fail closed. The live result-materialization path still needs a native session-interval producer before ordinary worker results can use these metrics.
   - The owner-authenticated worker-terminal path now consumes exact conformance evidence, rehydrates and checks the owner-scoped trial graph, materializes versioned native OOS metrics/results, publishes verified output bytes, and builds the publication plan. A worker-terminal success/redelivery test exercises the full persistence-port coordinator with pure completion/lease state and proves stable receipt identity when the callback observation time changes; artifact completion keys bind manifest/content/length/storage identity rather than the retry-varying create/reuse action. Real PostgreSQL/Redis/Compose adapter execution and full-stack/browser acceptance remain Docker-gated.
@@ -613,15 +617,15 @@ remaining_gaps:
       fixture through an injected engine runner, canonicalizes observed output,
       reduces runner exceptions to deterministic failed evidence, and returns
       the fixture suite, engine evidence, and gated report as one identity-bound
-      resolution. Authoritative local-backtest execution now requires a
-      complete passing suite and a valid exact isolated stable-v2 pin.
-      Release-candidate pins remain eligible only for compatibility execution.
+      resolution. Authoritative local simulation requires a valid exact isolated
+      stable or release-candidate v2 pin and all checks for the requested scope.
   - >-
       `conformance.py` now binds a `NautilusReleasePin` to conformance evidence,
       recording the exact v2 package/tag, source and runtime-image digests,
-      Python/Rust versions, and legacy-runtime isolation. Only complete stable
-      fixture evidence with a valid isolated pin can become authoritative;
-      release-candidate evidence remains compatibility-only.
+      Python/Rust versions, and legacy-runtime isolation. Complete stable or
+      release-candidate fixture evidence with a valid isolated pin can become
+      authoritative for local simulation; full scope additionally requires
+      event-tape parity.
   - >-
       `resource_mutations.py` and the registration-neutral API router now expose
       strict idempotent creation for mutable Strategy Lab resources. Exact
@@ -826,23 +830,24 @@ progress:
     - nautilus-oos-absolute-drawdown-v1
     - nautilus-oos-session-risk-metric-wiring-v1
   total: 18
-  current_phase: nautilus-rc-backtest-authority-v1
+  current_phase: nautilus-scope-qualified-rc-authority-v2
   current_blocker: >-
-    No upstream Nautilus release blocks local backtest publication: the exact-
-    pinned RC5 build can qualify after its four scope-specific checks. Stable
-    v2 plus event-tape parity remain required for forward-shadow authority.
-    Docker Buildx is an environment gate only for final full Compose/browser
-    validation. Provider/ETF/TC2000 contracts are staging-gated only where
-    shared-path consumption is needed. The current local implementation gap is
-    the producer/materialization path for explicit OOS session-close intervals;
-    other remaining metrics, domain-backed mutation flows, workers, and
-    forward-shadow acceptance are implementation work. Native OOS event marks include
-    event-time drawdown duration and elapsed-UTC annualized return and Calmar;
-    cadence-based risk metrics are available in the builder only when a complete
-    explicit session-interval sample is supplied. The current worker/result
-    materialization path does not yet produce that interval sample. Options
-    order admission remains fail-closed pending canonical event-time
-    Greeks/delta and settlement evidence.
+    No upstream Nautilus release blocks local simulation. An exact-pinned
+    stable or release-candidate build may qualify for authoritative backtests
+    after four backtest checks, or broker-free full/forward shadow after all
+    five checks including event-tape parity; a stable release label is not
+    required. The current RC5 evidence covers the four backtest checks, not
+    forward parity. Prereleases remain prohibited from broker connections and
+    real-capital control. This clarification supersedes older stable-only
+    statements retained in the accumulated remaining_gaps and session snapshot.
+    Final full Compose/browser validation is environment-limited by the missing
+    Docker Buildx plugin and Docker API access. Provider/ETF/TC2000-owned
+    contracts are staging-gated only where shared-path consumption is needed.
+    The immediate product gap is the producer/materialization path for explicit
+    OOS session-close intervals; other domain-backed mutations, worker
+    recovery/scaling, forward-shadow acceptance, and remaining metrics are
+    implementation work. Options order admission remains fail-closed pending
+    canonical event-time Greeks/delta and settlement evidence.
   next_action: >-
     Produce and persist verified native OOS session-close equity intervals,
     bind them to the exact attempt, portfolio, OOS window, engine evidence, and
@@ -854,8 +859,9 @@ progress:
     calendar, and annualization bases; do not derive cadence-sensitive
     statistics from irregular event marks. Keep options
     order admission fail-closed until canonical event-time Greeks/delta and
-    settlement evidence are available. Permit prerelease authority only for
-    exact-pinned, four-check-qualified local backtests; keep forward-shadow and
-    real-capital use gated. Consume
+    settlement evidence are available. Permit exact-pinned prerelease authority
+    for backtests after four checks and broker-free full/forward shadow after
+    all five checks including event-tape parity; keep broker and real-capital
+    use prohibited. Consume
     provider/ETF/TC2000-owned contracts only after their approved branches reach
     staging. Run final Compose/browser validation when Buildx is available.

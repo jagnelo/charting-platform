@@ -9502,3 +9502,52 @@ Changed source paths: `backend/app/strategy_lab_v2/application.py`,
 `ops/workstreams/feat-strategy-lab-v2/handoff.md`,
 `ops/workstreams/feat-strategy-lab-v2/session.json`, and
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+## 2026-10-04 - Scope-qualified Nautilus release-candidate authority
+
+The branch plan and execution/publication policy now consistently permit an
+exact-pinned stable or release-candidate Nautilus v2 build to publish local
+simulation results after the applicable conformance checks pass. Backtests
+require the four backtest checks. Broker-free full/forward simulation requires
+all five checks, including canonical forward event-tape parity; a stable
+release label is not an additional gate. Prereleases remain prohibited from
+broker connections and real-capital control. This resolves an old conflict
+between the workstream plan and saved goal/session wording; the latter is stale
+execution metadata and must not reintroduce a stable-only gate.
+
+The current exact RC5 fixture receipt still defers event-tape parity, so RC5
+may qualify for authoritative local backtests but is not yet qualified for
+full/forward scope. The new tests exercise both cases and bind full-scope result
+publication to the complete five-check report. Implementation commit
+`ae9e61752bcbe4391919d42a81ae39d6645f7a83` is pushed to
+`origin/feat/strategy-lab-v2`.
+
+Validation: the Strategy Lab package suite passed 1,334 tests with one local
+Unix-socket test deselected under the default sandbox; that test separately
+passed with scoped socket permission, for 1,335 passing tests total. Ruff,
+Ruff format, targeted MyPy over five changed production modules,
+`git diff --check`, and the workstream validator (30 records) passed. The
+required `full_stack_browser` profile remains environment-limited: `docker
+buildx version` reports an unknown command and `docker info` cannot access
+`/var/run/docker.sock`. No Docker-backed claim is made.
+
+There is no external release dependency blocking feature work. The immediate
+product gap remains producing exact attempt-, portfolio-, OOS-window-, and
+calendar-bound session-close equity intervals in ordinary result
+materialization. Broader unfinished work includes domain-backed mutation
+flows, production local host/search-preparation composition, worker recovery
+and scaling, and persistent broker-free forward correctness. Shared provider,
+ETF, and TC2000 consumption remains gated only for overlapping paths until
+those workstreams reach staging. Options/derivatives admission stays
+fail-closed until canonical event-time Greeks/delta and settlement evidence is
+available.
+
+Changed source paths: `backend/app/strategy_lab_v2/conformance.py`,
+`backend/app/strategy_lab_v2/contracts.py`,
+`backend/app/strategy_lab_v2/engine_execution.py`,
+`backend/app/strategy_lab_v2/result_materialization.py`,
+`backend/app/strategy_lab_v2/result_publication.py`, and their focused tests.
+Changed workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
