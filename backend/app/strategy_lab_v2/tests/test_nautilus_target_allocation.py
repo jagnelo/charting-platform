@@ -12,12 +12,12 @@ from app.strategy_lab_v2.contracts import (
     PortfolioComposition,
     SharedRiskPolicy,
 )
-from app.strategy_lab_v2.nautilus_order_routing import resolve_nautilus_component_order_batches
 from app.strategy_lab_v2.nautilus_portfolio_wire import (
     portfolio_composition_from_wire,
     portfolio_composition_to_wire,
 )
 from app.strategy_lab_v2.nautilus_runtime_data import NautilusRuntimeDataError
+from app.strategy_lab_v2.nautilus_strategy_bridge import _route_component_callback_orders
 from app.strategy_lab_v2.nautilus_target_allocation import (
     resolve_nautilus_component_target_position_batches,
     resolve_nautilus_target_position_intents,
@@ -291,24 +291,7 @@ def test_component_targets_and_raw_orders_share_one_combined_risk_decision() -> 
         },
     }
     empty_ledger: dict[str, dict[str, Decimal]] = {"core": {}, "satellite": {}}
-    target_resolution = resolve_nautilus_component_target_position_batches(
-        portfolio=portfolio,
-        intents_by_component={
-            "core": (TargetPositionIntent("US.AAPL", Decimal("0.4")),),
-        },
-        run_attempt_id="attempt-mixed-intents",
-        event_time=EVENT_TIME,
-        event_sequence=5,
-        account_equity=Decimal("100000"),
-        account_cash_balance=Decimal("100000"),
-        current_base_exposures={},
-        current_quantities={},
-        current_component_exposures=empty_ledger,
-        current_component_quantities=empty_ledger,
-        mark_prices={"US.AAPL": Decimal("200"), "US.MSFT": Decimal("100")},
-        instruments=instruments,
-    )
-    combined_orders: dict[str, tuple[OrderIntent, ...]] = {
+    raw_intents_by_component: dict[str, tuple[OrderIntent, ...]] = {
         "satellite": (
             OrderIntent(
                 "US.MSFT",
@@ -319,39 +302,42 @@ def test_component_targets_and_raw_orders_share_one_combined_risk_decision() -> 
             ),
         )
     }
-    for component_id, target_orders in target_resolution.component_order_intents:
-        combined_orders[component_id] = combined_orders.get(component_id, ()) + target_orders
+    target_intents_by_component = {
+        "core": (TargetPositionIntent("US.AAPL", Decimal("0.4")),),
+    }
+    native_state: dict[str, object] = {
+        "account_equity": Decimal("100000"),
+        "account_cash_balance": Decimal("100000"),
+        "current_base_exposures": {},
+        "current_quantities": {},
+        "current_component_exposures": empty_ledger,
+        "current_component_quantities": empty_ledger,
+        "mark_prices": {"US.AAPL": Decimal("200"), "US.MSFT": Decimal("100")},
+    }
 
     with pytest.raises(NautilusRuntimeDataError, match="breaches shared portfolio risk"):
-        resolve_nautilus_component_order_batches(
+        _route_component_callback_orders(
             portfolio=_multi_portfolio(max_gross=Decimal("0.205")),
-            intents_by_component=combined_orders,
+            raw_intents_by_component=raw_intents_by_component,
+            target_intents_by_component=target_intents_by_component,
             run_attempt_id="attempt-mixed-intents",
             event_time=EVENT_TIME,
             event_sequence=5,
-            account_equity=Decimal("100000"),
-            account_cash_balance=Decimal("100000"),
-            current_base_exposures={},
-            current_quantities={},
-            current_component_exposures=empty_ledger,
-            mark_prices={"US.AAPL": Decimal("200"), "US.MSFT": Decimal("100")},
+            native_state=native_state,
             instruments=instruments,
         )
 
-    order_resolution = resolve_nautilus_component_order_batches(
+    order_resolution = _route_component_callback_orders(
         portfolio=portfolio,
-        intents_by_component=combined_orders,
+        raw_intents_by_component=raw_intents_by_component,
+        target_intents_by_component=target_intents_by_component,
         run_attempt_id="attempt-mixed-intents",
         event_time=EVENT_TIME,
         event_sequence=5,
-        account_equity=Decimal("100000"),
-        account_cash_balance=Decimal("100000"),
-        current_base_exposures={},
-        current_quantities={},
-        current_component_exposures=empty_ledger,
-        mark_prices={"US.AAPL": Decimal("200"), "US.MSFT": Decimal("100")},
+        native_state=native_state,
         instruments=instruments,
     )
+    assert order_resolution is not None
 
     assert order_resolution.decision.risk_limits_satisfied is True
     assert order_resolution.decision.gross_exposure_fraction == Decimal("0.21")
@@ -391,53 +377,56 @@ def test_combined_risk_router_can_accept_raw_hedge_of_a_target_batch() -> None:
         ),
     )
     empty_ledger: dict[str, dict[str, Decimal]] = {"core": {}, "satellite": {}}
-    allocation = resolve_nautilus_component_target_position_batches(
-        portfolio=portfolio,
-        intents_by_component={
-            "core": (TargetPositionIntent("US.AAPL", Decimal("0.4")),),
-        },
-        run_attempt_id="attempt-offsetting-intents",
-        event_time=EVENT_TIME,
-        event_sequence=5,
-        account_equity=Decimal("100000"),
-        account_cash_balance=Decimal("100000"),
-        current_base_exposures={},
-        current_quantities={},
-        current_component_exposures=empty_ledger,
-        current_component_quantities=empty_ledger,
-        mark_prices={"US.AAPL": Decimal("200")},
-        instruments=_instruments(),
-        defer_shared_risk_validation=True,
-    )
+    target_intents_by_component = {
+        "core": (TargetPositionIntent("US.AAPL", Decimal("0.4")),),
+    }
+    with pytest.raises(NautilusRuntimeDataError, match="breaches shared portfolio risk"):
+        resolve_nautilus_component_target_position_batches(
+            portfolio=portfolio,
+            intents_by_component=target_intents_by_component,
+            run_attempt_id="attempt-offsetting-intents",
+            event_time=EVENT_TIME,
+            event_sequence=5,
+            account_equity=Decimal("100000"),
+            account_cash_balance=Decimal("100000"),
+            current_base_exposures={},
+            current_quantities={},
+            current_component_exposures=empty_ledger,
+            current_component_quantities=empty_ledger,
+            mark_prices={"US.AAPL": Decimal("200")},
+            instruments=_instruments(),
+        )
 
-    assert allocation.allocation.risk_limits_satisfied is False
-    target_orders = dict(allocation.component_order_intents)
-    assert target_orders["core"][0].quantity == Decimal("100")
-    combined = resolve_nautilus_component_order_batches(
-        portfolio=portfolio,
-        intents_by_component={
-            "core": target_orders["core"],
-            "satellite": (
-                OrderIntent(
-                    "US.AAPL",
-                    OrderSide.SELL,
-                    Decimal("100"),
-                    OrderType.MARKET,
-                    time_in_force=TimeInForce.DAY,
-                ),
+    raw_intents_by_component = {
+        "satellite": (
+            OrderIntent(
+                "US.AAPL",
+                OrderSide.SELL,
+                Decimal("100"),
+                OrderType.MARKET,
+                time_in_force=TimeInForce.DAY,
             ),
-        },
+        ),
+    }
+    combined = _route_component_callback_orders(
+        portfolio=portfolio,
+        raw_intents_by_component=raw_intents_by_component,
+        target_intents_by_component=target_intents_by_component,
         run_attempt_id="attempt-offsetting-intents",
         event_time=EVENT_TIME,
         event_sequence=5,
-        account_equity=Decimal("100000"),
-        account_cash_balance=Decimal("100000"),
-        current_base_exposures={},
-        current_quantities={},
-        current_component_exposures=empty_ledger,
-        mark_prices={"US.AAPL": Decimal("200")},
+        native_state={
+            "account_equity": Decimal("100000"),
+            "account_cash_balance": Decimal("100000"),
+            "current_base_exposures": {},
+            "current_quantities": {},
+            "current_component_exposures": empty_ledger,
+            "current_component_quantities": empty_ledger,
+            "mark_prices": {"US.AAPL": Decimal("200")},
+        },
         instruments=_instruments(),
     )
+    assert combined is not None
 
     assert combined.decision.risk_limits_satisfied is True
     assert combined.decision.gross_exposure_fraction == Decimal("0.4")

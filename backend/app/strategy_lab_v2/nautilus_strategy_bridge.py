@@ -24,7 +24,14 @@ from app.strategy_lab_v2.nautilus_native_event_stream import (
     deserialize_nautilus_native_event_stream,
 )
 from app.strategy_lab_v2.nautilus_runtime_data import NautilusRuntimeDataError
-from app.strategy_lab_v2.sdk import MarketEvent, OrderSide, StrategyContext
+from app.strategy_lab_v2.sdk import (
+    MarketEvent,
+    OrderIntent,
+    OrderSide,
+    PositionSnapshot,
+    StrategyContext,
+    TargetPositionIntent,
+)
 
 
 def _datetime_microsecond_ns(value: datetime) -> int:
@@ -1031,6 +1038,77 @@ def iter_component_context_trigger_groups(
         yield ComponentContextTriggerGroup(trigger_index, tuple(group))
 
 
+def _route_component_callback_orders(
+    *,
+    portfolio: PortfolioComposition,
+    raw_intents_by_component: Mapping[str, Sequence[OrderIntent]],
+    target_intents_by_component: Mapping[str, Sequence[TargetPositionIntent]],
+    run_attempt_id: str,
+    event_time: datetime,
+    event_sequence: int,
+    native_state: Mapping[str, Any],
+    instruments: Mapping[str, Mapping[str, object]],
+) -> Any | None:
+    """Convert and risk-check one event's complete, component-attributed batch.
+
+    Target allocation is deliberately an intermediate sizing step here. Its
+    candidate orders may reduce risk only after raw intents from other
+    components are included, so the combined order router is the sole
+    submission gate for shared-account limits.
+    """
+
+    from app.strategy_lab_v2.nautilus_order_routing import (
+        resolve_nautilus_component_order_batches,
+    )
+    from app.strategy_lab_v2.nautilus_target_allocation import (
+        resolve_nautilus_component_target_position_batches,
+    )
+
+    orders_by_component: dict[str, list[OrderIntent]] = {
+        component_id: list(intents) for component_id, intents in raw_intents_by_component.items()
+    }
+    if target_intents_by_component:
+        target_resolution = resolve_nautilus_component_target_position_batches(
+            portfolio=portfolio,
+            intents_by_component=target_intents_by_component,
+            defer_shared_risk_validation=True,
+            run_attempt_id=run_attempt_id,
+            event_time=event_time,
+            event_sequence=event_sequence,
+            account_equity=native_state["account_equity"],
+            account_cash_balance=native_state["account_cash_balance"],
+            current_base_exposures=native_state["current_base_exposures"],
+            current_quantities=native_state["current_quantities"],
+            current_component_exposures=native_state["current_component_exposures"],
+            current_component_quantities=native_state["current_component_quantities"],
+            mark_prices=native_state["mark_prices"],
+            instruments=instruments,
+        )
+        for component_id, intents in target_resolution.component_order_intents:
+            orders_by_component.setdefault(component_id, []).extend(intents)
+
+    order_batches = {
+        component_id: tuple(intents)
+        for component_id, intents in orders_by_component.items()
+        if intents
+    }
+    if not order_batches:
+        return None
+    return resolve_nautilus_component_order_batches(
+        portfolio=portfolio,
+        intents_by_component=order_batches,
+        run_attempt_id=run_attempt_id,
+        event_time=event_time,
+        event_sequence=event_sequence,
+        instruments=instruments,
+        **{
+            key: value
+            for key, value in native_state.items()
+            if key != "current_component_quantities"
+        },
+    )
+
+
 def build_native_strategy_bridge(
     engine_input: Mapping[str, Any],
     instrument_definitions: Sequence[Mapping[str, Any]],
@@ -1046,18 +1124,7 @@ def build_native_strategy_bridge(
 ) -> NativeStrategyBridge:
     """Bind invocation inputs to callbacks and optionally stream callback results."""
 
-    from app.strategy_lab_v2.nautilus_order_routing import (
-        resolve_nautilus_component_order_batches,
-    )
     from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_from_wire
-    from app.strategy_lab_v2.nautilus_target_allocation import (
-        resolve_nautilus_component_target_position_batches,
-    )
-    from app.strategy_lab_v2.sdk import (
-        OrderIntent,
-        PositionSnapshot,
-        TargetPositionIntent,
-    )
     from strategy_runtime import (
         MAX_INVOCATION_RESULT_STREAM_BYTES,
         InvocationResultStreamWriter,
@@ -1884,54 +1951,24 @@ def build_native_strategy_bridge(
                 event_time=event_time,
                 required_mark_ids=required_mark_ids,
             )
-            orders_by_component: dict[str, list[OrderIntent]] = {
-                component_id: list(intents)
-                for component_id, intents in raw_intents_by_component.items()
-            }
             if target_intents_by_component:
                 assert isinstance(venue_definition, Mapping)
                 if venue_definition["account_type"].upper() != "CASH":
                     raise NautilusRuntimeDataError(
                         "target-position sizing currently requires a cash account"
                     )
-                target_resolution = resolve_nautilus_component_target_position_batches(
-                    portfolio=portfolio,
-                    intents_by_component=target_intents_by_component,
-                    defer_shared_risk_validation=True,
-                    run_attempt_id=engine_input["attempt_id"],
-                    event_time=event_time,
-                    event_sequence=event_sequence,
-                    account_equity=native_state["account_equity"],
-                    account_cash_balance=native_state["account_cash_balance"],
-                    current_base_exposures=native_state["current_base_exposures"],
-                    current_quantities=native_state["current_quantities"],
-                    current_component_exposures=native_state["current_component_exposures"],
-                    current_component_quantities=native_state["current_component_quantities"],
-                    mark_prices=native_state["mark_prices"],
-                    instruments=instrument_by_id,
-                )
-                for component_id, intents in target_resolution.component_order_intents:
-                    orders_by_component.setdefault(component_id, []).extend(intents)
-            component_order_batches = {
-                component_id: tuple(intents)
-                for component_id, intents in orders_by_component.items()
-                if intents
-            }
-            if not component_order_batches:
-                return
-            order_resolution = resolve_nautilus_component_order_batches(
+            order_resolution = _route_component_callback_orders(
                 portfolio=portfolio,
-                intents_by_component=component_order_batches,
+                raw_intents_by_component=raw_intents_by_component,
+                target_intents_by_component=target_intents_by_component,
                 run_attempt_id=engine_input["attempt_id"],
                 event_time=event_time,
                 event_sequence=event_sequence,
+                native_state=native_state,
                 instruments=instrument_by_id,
-                **{
-                    key: value
-                    for key, value in native_state.items()
-                    if key != "current_component_quantities"
-                },
             )
+            if order_resolution is None:
+                return
             for component_id, intents in order_resolution.component_order_intents:
                 for intent in intents:
                     if isinstance(intent, TargetPositionIntent):
