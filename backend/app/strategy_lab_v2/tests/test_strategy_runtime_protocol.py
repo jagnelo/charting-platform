@@ -31,13 +31,16 @@ from app.strategy_lab_v2.sdk import (
 )
 from strategy_runtime import (
     BATCH_WIRE_PROTOCOL_VERSION,
+    COMPONENT_CONTEXT_STREAM_PROTOCOL_VERSION,
     INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION,
     INVOCATION_RESULT_STREAM_PROTOCOL_VERSION,
     MAX_INVOCATION_CONTEXT_STREAM_BYTES,
     MAX_INVOCATION_RESULT_STREAM_BYTES,
     MAX_WIRE_PAYLOAD_BYTES,
+    InvocationContextStreamSource,
     InvocationResultStreamWriter,
     InvocationStatus,
+    deserialize_component_invocation_context_stream,
     deserialize_invocation,
     deserialize_invocation_batch,
     deserialize_invocation_batch_result,
@@ -47,6 +50,7 @@ from strategy_runtime import (
     main,
     run_strategy_event_stream,
     run_strategy_events,
+    serialize_component_invocation_context_stream,
     serialize_invocation,
     serialize_invocation_batch,
     serialize_invocation_batch_result,
@@ -369,6 +373,81 @@ def test_context_stream_wire_rejects_count_order_and_index_drift() -> None:
         )
         next(bounded_contexts)
     assert MAX_INVOCATION_CONTEXT_STREAM_BYTES > MAX_WIRE_PAYLOAD_BYTES
+
+
+def test_component_context_stream_merges_chronologically_and_authenticates_each_lane() -> None:
+    source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
+    manifest = _manifest(source)
+    first = _context()
+    second = replace(first, event_time=NOW + timedelta(minutes=1), event_sequence=2)
+    wire = BytesIO()
+
+    counts = serialize_component_invocation_context_stream(
+        wire,
+        components=(
+            InvocationContextStreamSource(
+                "beta", source, manifest, (first, second), "strategy.main:Strategy"
+            ),
+            InvocationContextStreamSource(
+                "alpha", source, manifest, (first, second), "strategy.main:Strategy"
+            ),
+        ),
+    )
+
+    assert counts == {"alpha": 2, "beta": 2}
+    assert (
+        f'"protocol_version":"{COMPONENT_CONTEXT_STREAM_PROTOCOL_VERSION}"'.encode()
+        in wire.getvalue()
+    )
+    wire.seek(0)
+    bindings, contexts = deserialize_component_invocation_context_stream(
+        wire, expected_component_counts=counts
+    )
+    assert tuple(bindings) == ("alpha", "beta")
+    assert bindings["alpha"].source == source
+    assert bindings["beta"].manifest == manifest
+    assert list(contexts) == [
+        ("alpha", first),
+        ("beta", first),
+        ("alpha", second),
+        ("beta", second),
+    ]
+
+
+def test_component_context_stream_rejects_count_and_component_order_drift() -> None:
+    source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
+    manifest = _manifest(source)
+    first = _context()
+    second = replace(first, event_time=NOW + timedelta(minutes=1), event_sequence=2)
+    wire = BytesIO()
+    serialize_component_invocation_context_stream(
+        wire,
+        components=(
+            InvocationContextStreamSource(
+                "alpha", source, manifest, (first, second), "strategy.main:Strategy"
+            ),
+            InvocationContextStreamSource(
+                "beta", source, manifest, (first,), "strategy.main:Strategy"
+            ),
+        ),
+    )
+
+    bindings, incomplete = deserialize_component_invocation_context_stream(
+        BytesIO(wire.getvalue()), expected_component_counts={"alpha": 2, "beta": 2}
+    )
+    assert tuple(bindings) == ("alpha", "beta")
+    with pytest.raises(ValueError, match="counts differ"):
+        list(incomplete)
+
+    with pytest.raises(ValueError, match="strictly chronological"):
+        serialize_component_invocation_context_stream(
+            BytesIO(),
+            components=(
+                InvocationContextStreamSource(
+                    "alpha", source, manifest, (second, first), "strategy.main:Strategy"
+                ),
+            ),
+        )
 
 
 def test_result_stream_round_trip_is_incremental_and_integrity_checked() -> None:

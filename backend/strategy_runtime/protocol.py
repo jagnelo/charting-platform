@@ -10,6 +10,7 @@ result envelope contains only typed intents and digest-bound evidence.
 from __future__ import annotations
 
 import hashlib
+import heapq
 import json
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
@@ -43,6 +44,9 @@ from app.strategy_lab_v2.sdk import (
 WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.v1"
 BATCH_WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.batch.v1"
 INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.context-stream.v2"
+COMPONENT_CONTEXT_STREAM_PROTOCOL_VERSION = (
+    "strategy-lab.strategy-runtime.component-context-stream.v1"
+)
 INVOCATION_RESULT_STREAM_PROTOCOL_VERSION = "strategy-lab.strategy-runtime.result-stream.v1"
 STRATEGY_MANIFEST_WIRE_PROTOCOL_VERSION = "strategy-lab.strategy-manifest.v1"
 MAX_WIRE_PAYLOAD_BYTES = 16 * 1024 * 1024
@@ -891,6 +895,355 @@ def deserialize_invocation_context_stream(
 
 
 @dataclass(frozen=True, slots=True)
+class InvocationContextStreamSource:
+    """One component's authenticated identity and lazy context source."""
+
+    component_id: str
+    source: str
+    manifest: StrategySdkManifest
+    contexts: Iterable[StrategyContext]
+    entrypoint: str
+    max_intents_per_event: int = 100
+
+
+@dataclass(frozen=True, slots=True)
+class InvocationContextStreamBinding:
+    """Decoded component identity metadata carried by a multiplexed stream."""
+
+    component_id: str
+    source: str
+    manifest: StrategySdkManifest
+    entrypoint: str
+    max_intents_per_event: int
+
+
+def serialize_component_invocation_context_stream(
+    stream: BinaryIO,
+    *,
+    components: Sequence[InvocationContextStreamSource],
+    max_stream_bytes: int = MAX_INVOCATION_CONTEXT_STREAM_BYTES,
+) -> Mapping[str, int]:
+    """Merge per-component context iterators into one authenticated NDJSON artifact.
+
+    Inputs are merged by event time, event sequence, then component id. Memory
+    use is bounded by one pending context per component, independent of history
+    length. Each component retains its own contiguous index and strict time
+    ordering inside the aggregate record digest.
+    """
+
+    if not callable(getattr(stream, "write", None)):
+        raise TypeError("stream must provide write(bytes)")
+    if not isinstance(components, Sequence) or isinstance(components, str | bytes):
+        raise TypeError("components must be a sequence")
+    component_sources = tuple(components)
+    if not component_sources or any(
+        not isinstance(item, InvocationContextStreamSource) for item in component_sources
+    ):
+        raise ValueError("component invocation streams must be non-empty and typed")
+    if (
+        not isinstance(max_stream_bytes, int)
+        or isinstance(max_stream_bytes, bool)
+        or max_stream_bytes < 1
+    ):
+        raise ValueError("component invocation stream byte bound must be positive")
+    ids = [item.component_id for item in component_sources]
+    if any(not isinstance(value, str) or not value.strip() for value in ids):
+        raise ValueError("component invocation stream ids must not be empty")
+    if any(any(character in value for character in "\x00\r\n") for value in ids):
+        raise ValueError("component invocation stream ids must not contain control characters")
+    if len(ids) != len(set(ids)):
+        raise ValueError("component invocation stream ids must be unique")
+    ordered_components = tuple(sorted(component_sources, key=lambda item: item.component_id))
+
+    header_components: list[dict[str, Any]] = []
+    iterators: dict[str, Iterator[StrategyContext]] = {}
+    previous_by_component: dict[str, tuple[datetime, int]] = {}
+    counts = {item.component_id: 0 for item in ordered_components}
+    heap: list[tuple[datetime, int, str, StrategyContext]] = []
+    for item in ordered_components:
+        if not isinstance(item.source, str):
+            raise TypeError("component invocation source must be a string")
+        _validate_source_manifest_binding(item.source, item.manifest)
+        if not isinstance(item.contexts, Iterable) or isinstance(item.contexts, str | bytes):
+            raise TypeError("component invocation contexts must be iterable")
+        if not isinstance(item.entrypoint, str) or not item.entrypoint.strip():
+            raise ValueError("component invocation entrypoint must not be empty")
+        if (
+            not isinstance(item.max_intents_per_event, int)
+            or isinstance(item.max_intents_per_event, bool)
+            or item.max_intents_per_event < 1
+        ):
+            raise ValueError("component max_intents_per_event must be positive")
+        component_id = item.component_id
+        header_components.append(
+            {
+                "component_id": component_id,
+                "source": item.source,
+                "manifest": _encode_manifest(item.manifest),
+                "entrypoint": item.entrypoint,
+                "max_intents_per_event": item.max_intents_per_event,
+            }
+        )
+        iterator = iter(item.contexts)
+        iterators[component_id] = iterator
+        first = next(iterator, None)
+        if first is None:
+            raise ValueError("component invocation context streams must not be empty")
+        if not isinstance(first, StrategyContext):
+            raise TypeError("component invocation contexts must use StrategyContext values")
+        first_key = (first.event_time, first.event_sequence)
+        previous_by_component[component_id] = first_key
+        heapq.heappush(heap, (*first_key, component_id, first))
+
+    header = {
+        "protocol_version": COMPONENT_CONTEXT_STREAM_PROTOCOL_VERSION,
+        "components": header_components,
+    }
+    header_wire = (_dump_json(header, "component invocation context stream header") + "\n").encode(
+        "utf-8"
+    )
+    observed_bytes = len(header_wire)
+    if observed_bytes > max_stream_bytes:
+        raise ValueError("component invocation context stream exceeds its configured byte bound")
+    _write_context_stream_record(stream, header_wire)
+
+    digest = hashlib.sha256()
+    previous_global_key: tuple[datetime, int, str] | None = None
+    total_count = 0
+    while heap:
+        event_time, event_sequence, component_id, context = heapq.heappop(heap)
+        global_key = (event_time, event_sequence, component_id)
+        if previous_global_key is not None and global_key <= previous_global_key:
+            raise ValueError("component invocation contexts are not in canonical event order")
+        previous_global_key = global_key
+        component_index = counts[component_id]
+        record_wire = (
+            _dump_json(
+                {
+                    "index": total_count,
+                    "component_id": component_id,
+                    "component_index": component_index,
+                    "context": _encode_context(context),
+                },
+                "component invocation context stream record",
+            )
+            + "\n"
+        ).encode("utf-8")
+        observed_bytes += len(record_wire)
+        if observed_bytes > max_stream_bytes:
+            raise ValueError(
+                "component invocation context stream exceeds its configured byte bound"
+            )
+        _write_context_stream_record(stream, record_wire)
+        digest.update(record_wire)
+        counts[component_id] += 1
+        total_count += 1
+
+        following = next(iterators[component_id], None)
+        if following is not None:
+            if not isinstance(following, StrategyContext):
+                raise TypeError("component invocation contexts must use StrategyContext values")
+            following_key = (following.event_time, following.event_sequence)
+            if following_key <= previous_by_component[component_id]:
+                raise ValueError(
+                    "component invocation contexts must be strictly chronological by event_time and event_sequence"
+                )
+            previous_by_component[component_id] = following_key
+            heapq.heappush(heap, (*following_key, component_id, following))
+
+    trailer_wire = (
+        _dump_json(
+            {
+                "record_type": "trailer",
+                "context_count": total_count,
+                "component_counts": counts,
+                "records_sha256": f"sha256:{digest.hexdigest()}",
+            },
+            "component invocation context stream trailer",
+        )
+        + "\n"
+    ).encode("utf-8")
+    observed_bytes += len(trailer_wire)
+    if observed_bytes > max_stream_bytes:
+        raise ValueError("component invocation context stream exceeds its configured byte bound")
+    _write_context_stream_record(stream, trailer_wire)
+    return counts
+
+
+def deserialize_component_invocation_context_stream(
+    stream: BinaryIO,
+    *,
+    expected_component_counts: Mapping[str, int] | None = None,
+    max_stream_bytes: int = MAX_INVOCATION_CONTEXT_STREAM_BYTES,
+) -> tuple[Mapping[str, InvocationContextStreamBinding], Iterator[tuple[str, StrategyContext]]]:
+    """Decode one bounded component context at a time from a merged stream."""
+
+    if not callable(getattr(stream, "readline", None)) or not callable(
+        getattr(stream, "read", None)
+    ):
+        raise TypeError("stream must provide readline(size) and read(size)")
+    if expected_component_counts is not None and not isinstance(expected_component_counts, Mapping):
+        raise TypeError("expected_component_counts must be a component-count mapping")
+    if (
+        not isinstance(max_stream_bytes, int)
+        or isinstance(max_stream_bytes, bool)
+        or max_stream_bytes < 1
+    ):
+        raise ValueError("component invocation stream byte bound must be positive")
+
+    header_record = _read_context_stream_record(
+        stream, "component invocation context stream header"
+    )
+    if header_record is None:
+        raise ValueError("component invocation context stream header is missing")
+    header, observed_bytes, _header_wire = header_record
+    if observed_bytes > max_stream_bytes:
+        raise ValueError("component invocation context stream exceeds its configured byte bound")
+    header = _mapping(header, "component invocation context stream header")
+    if set(header) != {"protocol_version", "components"}:
+        raise ValueError("component invocation context stream header fields are invalid")
+    if header["protocol_version"] != COMPONENT_CONTEXT_STREAM_PROTOCOL_VERSION:
+        raise ValueError("unsupported component invocation context stream version")
+    raw_components = _list(header["components"], "component invocation bindings")
+    if not raw_components:
+        raise ValueError("component invocation stream requires at least one component")
+    bindings: dict[str, InvocationContextStreamBinding] = {}
+    previous_component_id: str | None = None
+    for raw_component in raw_components:
+        component = _mapping(raw_component, "component invocation binding")
+        if set(component) != {
+            "component_id",
+            "source",
+            "manifest",
+            "entrypoint",
+            "max_intents_per_event",
+        }:
+            raise ValueError("component invocation binding fields are invalid")
+        component_id = component["component_id"]
+        source = component["source"]
+        entrypoint = component["entrypoint"]
+        max_intents = component["max_intents_per_event"]
+        if not isinstance(component_id, str) or not component_id.strip():
+            raise ValueError("component invocation binding id must not be empty")
+        if any(character in component_id for character in "\x00\r\n"):
+            raise ValueError("component invocation binding id contains control characters")
+        if previous_component_id is not None and component_id <= previous_component_id:
+            raise ValueError("component invocation bindings must be uniquely sorted")
+        previous_component_id = component_id
+        if not isinstance(source, str):
+            raise TypeError("component invocation source must be a string")
+        if not isinstance(entrypoint, str) or not entrypoint.strip():
+            raise ValueError("component invocation entrypoint must not be empty")
+        if not isinstance(max_intents, int) or isinstance(max_intents, bool) or max_intents < 1:
+            raise ValueError("component max_intents_per_event must be positive")
+        manifest = _decode_manifest(component["manifest"])
+        _validate_source_manifest_binding(source, manifest)
+        bindings[component_id] = InvocationContextStreamBinding(
+            component_id,
+            source,
+            manifest,
+            entrypoint,
+            max_intents,
+        )
+
+    if expected_component_counts is not None:
+        if set(expected_component_counts) != set(bindings):
+            raise ValueError("component context stream ids differ from its artifact reference")
+        if any(
+            not isinstance(count, int) or isinstance(count, bool) or count < 1
+            for count in expected_component_counts.values()
+        ):
+            raise ValueError("expected component context counts must be positive integers")
+
+    def decoded_contexts() -> Iterator[tuple[str, StrategyContext]]:
+        nonlocal observed_bytes
+        previous_global_key: tuple[datetime, int, str] | None = None
+        previous_by_component: dict[str, tuple[datetime, int]] = {}
+        counts = {component_id: 0 for component_id in bindings}
+        total_count = 0
+        digest = hashlib.sha256()
+        while record_line := _read_context_stream_record(
+            stream, "component invocation context stream record"
+        ):
+            record, line_bytes, record_wire = record_line
+            observed_bytes += line_bytes
+            if observed_bytes > max_stream_bytes:
+                raise ValueError(
+                    "component invocation context stream exceeds its configured byte bound"
+                )
+            record = _mapping(record, "component invocation context stream record")
+            if record.get("record_type") == "trailer":
+                if set(record) != {
+                    "record_type",
+                    "context_count",
+                    "component_counts",
+                    "records_sha256",
+                }:
+                    raise ValueError("component invocation context trailer fields are invalid")
+                trailer_counts = _mapping(record["component_counts"], "component context counts")
+                if trailer_counts != counts or total_count == 0:
+                    raise ValueError("component invocation context counts differ from its trailer")
+                if set(counts) != {key for key, count in counts.items() if count > 0}:
+                    raise ValueError("component invocation context streams must not be empty")
+                if (
+                    not isinstance(record["context_count"], int)
+                    or isinstance(record["context_count"], bool)
+                    or record["context_count"] != total_count
+                ):
+                    raise ValueError("component invocation context total differs from its trailer")
+                if (
+                    not isinstance(record["records_sha256"], str)
+                    or record["records_sha256"] != f"sha256:{digest.hexdigest()}"
+                ):
+                    raise ValueError("component invocation context digest differs from its trailer")
+                if expected_component_counts is not None and dict(trailer_counts) != dict(
+                    expected_component_counts
+                ):
+                    raise ValueError(
+                        "component invocation counts differ from its artifact reference"
+                    )
+                if stream.read(1):
+                    raise ValueError("component invocation context stream has trailing bytes")
+                return
+            if set(record) != {"index", "component_id", "component_index", "context"}:
+                raise ValueError("component invocation context record fields are invalid")
+            if (
+                not isinstance(record["index"], int)
+                or isinstance(record["index"], bool)
+                or record["index"] != total_count
+            ):
+                raise ValueError("component invocation context index is not contiguous")
+            component_id = record["component_id"]
+            if not isinstance(component_id, str) or component_id not in bindings:
+                raise ValueError("component invocation context refers to an unknown binding")
+            if (
+                not isinstance(record["component_index"], int)
+                or isinstance(record["component_index"], bool)
+                or record["component_index"] != counts[component_id]
+            ):
+                raise ValueError("component invocation context index is not contiguous")
+            context = _decode_context(record["context"])
+            component_key = (context.event_time, context.event_sequence)
+            if (
+                component_id in previous_by_component
+                and component_key <= previous_by_component[component_id]
+            ):
+                raise ValueError("component invocation contexts are not strictly chronological")
+            global_key = (*component_key, component_id)
+            if previous_global_key is not None and global_key <= previous_global_key:
+                raise ValueError("component invocation contexts are not in canonical event order")
+            previous_by_component[component_id] = component_key
+            previous_global_key = global_key
+            counts[component_id] += 1
+            total_count += 1
+            digest.update(record_wire)
+            yield component_id, context
+        raise ValueError("component invocation context trailer is missing")
+
+    return bindings, decoded_contexts()
+
+
+@dataclass(frozen=True, slots=True)
 class InvocationResultStreamSummary:
     """Integrity and bounded-size receipt for one finalized result stream."""
 
@@ -1281,8 +1634,11 @@ def deserialize_invocation_batch_result(payload: str) -> tuple[Any, ...]:
 
 __all__ = [
     "BATCH_WIRE_PROTOCOL_VERSION",
+    "COMPONENT_CONTEXT_STREAM_PROTOCOL_VERSION",
     "INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION",
     "INVOCATION_RESULT_STREAM_PROTOCOL_VERSION",
+    "InvocationContextStreamBinding",
+    "InvocationContextStreamSource",
     "InvocationResultStreamSummary",
     "InvocationResultStreamWriter",
     "MAX_INVOCATION_CONTEXT_STREAM_BYTES",
@@ -1293,12 +1649,14 @@ __all__ = [
     "deserialize_invocation_batch",
     "deserialize_invocation_batch_result",
     "deserialize_invocation_context_stream",
+    "deserialize_component_invocation_context_stream",
     "deserialize_invocation_result_stream",
     "deserialize_invocation",
     "deserialize_invocation_result",
     "serialize_invocation_batch",
     "serialize_invocation_batch_result",
     "serialize_invocation_context_stream",
+    "serialize_component_invocation_context_stream",
     "serialize_invocation_result_stream",
     "serialize_invocation",
     "serialize_invocation_result",

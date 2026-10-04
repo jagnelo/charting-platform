@@ -106,7 +106,7 @@ def _multi_target_resolution(*, max_gross: Decimal = Decimal("1")):
             "max_quantity": None,
         },
     }
-    empty_ledger = {"core": {}, "satellite": {}}
+    empty_ledger: dict[str, dict[str, Decimal]] = {"core": {}, "satellite": {}}
     return resolve_nautilus_component_target_position_batches(
         portfolio=portfolio,
         intents_by_component={
@@ -268,7 +268,7 @@ def test_component_targets_fail_closed_on_combined_shared_risk_breach() -> None:
 
 def test_component_target_positions_must_reconcile_to_native_account() -> None:
     portfolio = _multi_portfolio()
-    empty_ledger = {"core": {}, "satellite": {}}
+    empty_ledger: dict[str, dict[str, Decimal]] = {"core": {}, "satellite": {}}
     with pytest.raises(NautilusRuntimeDataError, match="do not reconcile"):
         resolve_nautilus_component_target_position_batches(
             portfolio=portfolio,

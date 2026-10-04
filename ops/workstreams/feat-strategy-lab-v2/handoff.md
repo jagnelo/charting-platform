@@ -2,6 +2,57 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Component context-stream artifact and CLI wiring
+
+Added a bounded, digest-checked component context-stream protocol and immutable
+artifact reference, bundle schema v4, and CLI/adapter propagation of per-
+component context counts. The native bridge verifies those contexts against
+their authenticated strategy binding, but deliberately still accepts only one
+portfolio component; this is transport and one-component runtime wiring, not
+multi-strategy execution.
+
+Validation: all 1,171 Strategy Lab v2 tests pass; the focused protocol, bundle,
+CLI, adapter, and bridge set passes 62 tests; Ruff and formatting pass; MyPy
+passes across 341 package/runtime sources; and `git diff --check` is clean.
+The current sandbox denies access to the Docker API, so this slice has not had
+a new image-backed RC5 run. Prior RC5 checks remain limited to their recorded
+probe scope and non-authoritative.
+
+There is no Nautilus release blocker: the plan allows exact-pinned pre-releases
+for isolated local backtests, while barring them from broker/real-capital use.
+There is also no blocker to continuing package-owned code. The next product gap
+is to accept every authenticated component binding in the native bridge,
+schedule same-event invocations, route combined raw and target intents through
+shared risk, and maintain fill-derived component position attribution. Docker
+access will be needed for the recorded final integration profile; provider,
+ETF, and TC2000 staging gates apply only to their later shared-path work.
+Publishing the local branch remains separately held by GitHub SSH
+authentication, not by implementation.
+
+The global session-claim lock and runtime-allocation registry are read-only in
+the current sandbox, so the repository-managed context/progress helpers cannot
+write their coordination state. The existing session claim remains valid;
+branch-owned progress and validation records are being maintained directly in
+this workstream without changing global workflow state.
+
+Files changed in this slice:
+
+```text
+backend/app/strategy_lab_v2/nautilus_runtime_adapter.py
+backend/app/strategy_lab_v2/nautilus_runtime_bundle.py
+backend/app/strategy_lab_v2/nautilus_runtime_cli.py
+backend/app/strategy_lab_v2/nautilus_runtime_protocol.py
+backend/app/strategy_lab_v2/nautilus_strategy_bridge.py
+backend/app/strategy_lab_v2/tests/test_nautilus_runtime_cli.py
+backend/app/strategy_lab_v2/tests/test_strategy_runtime_protocol.py
+backend/app/strategy_lab_v2/tests/test_nautilus_target_allocation.py
+backend/strategy_runtime/__init__.py
+backend/strategy_runtime/protocol.py
+ops/workstreams/feat-strategy-lab-v2/handoff.md
+ops/workstreams/feat-strategy-lab-v2/session.json
+ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+```
+
 ## 2026-10-04 - Shared multi-component target allocation
 
 Added `resolve_nautilus_component_target_position_batches(...)` as the shared

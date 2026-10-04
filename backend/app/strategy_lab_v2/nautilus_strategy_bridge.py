@@ -615,6 +615,7 @@ def build_native_strategy_bridge(
     invocation_context_stream: BinaryIO | None = None,
     native_event_stream: BinaryIO | None = None,
     expected_context_count: int | None = None,
+    expected_component_context_counts: Mapping[str, int] | None = None,
     invocation_result_stream: BinaryIO | None = None,
     max_invocation_result_bytes: int | None = None,
 ) -> NativeStrategyBridge:
@@ -635,6 +636,7 @@ def build_native_strategy_bridge(
         InvocationResultStreamWriter,
         InvocationStatus,
         StrategyInvocationSession,
+        deserialize_component_invocation_context_stream,
         deserialize_invocation_batch,
         deserialize_invocation_context_stream,
         serialize_invocation_batch_result,
@@ -647,6 +649,11 @@ def build_native_strategy_bridge(
     if native_event_stream is not None and invocation_context_stream is None:
         raise NautilusRuntimeDataError(
             "native event streaming requires the authenticated strategy context stream"
+        )
+    component_context_stream = expected_component_context_counts is not None
+    if component_context_stream and native_event_stream is None:
+        raise NautilusRuntimeDataError(
+            "component context streaming requires the authenticated native event stream"
         )
     if invocation_result_stream is not None and not callable(
         getattr(invocation_result_stream, "write", None)
@@ -662,6 +669,70 @@ def build_native_strategy_bridge(
             "current native bridge requires one authenticated component strategy binding"
         )
     strategy_binding = raw_strategy_bindings[0]
+    if component_context_stream:
+        if (
+            not isinstance(expected_component_context_counts, Mapping)
+            or not expected_component_context_counts
+            or any(
+                not isinstance(component_id, str)
+                or not component_id.strip()
+                or not isinstance(count, int)
+                or isinstance(count, bool)
+                or count < 1
+                for component_id, count in expected_component_context_counts.items()
+            )
+        ):
+            raise NautilusRuntimeDataError("component context counts are invalid")
+        if sum(expected_component_context_counts.values()) != expected_context_count:
+            raise NautilusRuntimeDataError(
+                "component context counts differ from the runtime bundle"
+            )
+
+    def deserialize_stream_contexts() -> tuple[str, Any, Iterator[Any], str, int]:
+        assert invocation_context_stream is not None
+        if not component_context_stream:
+            return deserialize_invocation_context_stream(
+                invocation_context_stream,
+                expected_context_count=expected_context_count,
+            )
+        assert expected_component_context_counts is not None
+        bindings, component_records = deserialize_component_invocation_context_stream(
+            invocation_context_stream,
+            expected_component_counts=expected_component_context_counts,
+        )
+        component_id = strategy_binding.get("component_id")
+        if not isinstance(component_id, str) or set(bindings) != {component_id}:
+            raise NautilusRuntimeDataError(
+                "current native bridge requires one component context stream"
+            )
+        binding = bindings[component_id]
+        if (
+            content_digest(binding.source) != strategy_binding.get("strategy_source_digest")
+            or binding.manifest.fingerprint != strategy_binding.get("strategy_manifest_fingerprint")
+            or binding.manifest.strategy.fingerprint != strategy_binding.get("strategy_fingerprint")
+            or binding.entrypoint != strategy_binding.get("entrypoint")
+            or binding.max_intents_per_event != strategy_binding.get("max_intents_per_event")
+        ):
+            raise NautilusRuntimeDataError(
+                "component context stream metadata differs from its authenticated binding"
+            )
+
+        def component_contexts() -> Iterator[Any]:
+            for record_component_id, context in component_records:
+                if record_component_id != component_id:
+                    raise NautilusRuntimeDataError(
+                        "component context record differs from its authenticated binding"
+                    )
+                yield context
+
+        return (
+            binding.source,
+            binding.manifest,
+            component_contexts(),
+            binding.entrypoint,
+            binding.max_intents_per_event,
+        )
+
     result_stream_writer = None
     if invocation_result_stream is not None:
         result_stream_writer = InvocationResultStreamWriter(
@@ -683,12 +754,7 @@ def build_native_strategy_bridge(
             input_digest.update(chunk)
         raw_digest = input_digest.hexdigest()
         invocation_context_stream.seek(0)
-        source, manifest, stream_contexts, entrypoint, max_intents = (
-            deserialize_invocation_context_stream(
-                invocation_context_stream,
-                expected_context_count=expected_context_count,
-            )
-        )
+        source, manifest, stream_contexts, entrypoint, max_intents = deserialize_stream_contexts()
 
         event_tape = engine_input.get("event_tape")
         if not isinstance(event_tape, Mapping):
@@ -753,19 +819,12 @@ def build_native_strategy_bridge(
                 "strategy context stream count differs from its authenticated bundle"
             )
         invocation_context_stream.seek(0)
-        (
-            source,
-            manifest,
-            stream_contexts,
-            entrypoint,
-            max_intents,
-        ) = deserialize_invocation_context_stream(
-            invocation_context_stream,
-            expected_context_count=stream_context_count,
-        )
+        source, manifest, stream_contexts, entrypoint, max_intents = deserialize_stream_contexts()
         stream_contexts = validate_context_inputs(stream_contexts)
         input_fingerprint = f"sha256:{raw_digest}"
-        input_protocol = "context-stream"
+        input_protocol = (
+            "component-context-stream" if component_context_stream else "context-stream"
+        )
         expected_contexts = stream_context_count
         replay_contexts = validate_context_inputs(stream_contexts)
         context_triggers = (

@@ -21,6 +21,8 @@ from app.strategy_lab_v2.nautilus_runtime_adapter import (
 )
 from app.strategy_lab_v2.nautilus_runtime_probe import probe_nautilus_runtime
 from app.strategy_lab_v2.nautilus_runtime_protocol import (
+    NAUTILUS_COMPONENT_CONTEXT_STREAM_MEDIA_TYPE,
+    NAUTILUS_COMPONENT_CONTEXT_STREAM_SCHEMA,
     NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
     NAUTILUS_CONTEXT_STREAM_SCHEMA,
     NAUTILUS_NATIVE_EVENT_STREAM_MEDIA_TYPE,
@@ -28,6 +30,7 @@ from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3,
+    NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4,
 )
 
 _LEGACY_BUNDLE_FIELDS = frozenset(
@@ -91,6 +94,11 @@ def _read_bundle(path_value: str, *, max_bytes: int) -> Mapping[str, Any]:
         if set(decoded) != _NATIVE_STREAMING_BUNDLE_FIELDS:
             raise ValueError("native streaming runtime bundle fields are invalid")
         _native_event_stream_reference(decoded)
+    elif schema == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4:
+        if set(decoded) != _NATIVE_STREAMING_BUNDLE_FIELDS:
+            raise ValueError("component streaming runtime bundle fields are invalid")
+        _native_event_stream_reference(decoded)
+        _context_stream_reference(decoded)
     else:
         raise ValueError("runtime bundle schema is unsupported")
     if not isinstance(decoded["engine_input"], Mapping):
@@ -108,9 +116,14 @@ def _read_bundle(path_value: str, *, max_bytes: int) -> Mapping[str, Any]:
     return decoded
 
 
-def _context_stream_reference(bundle: Mapping[str, Any]) -> tuple[str, int, int]:
+def _context_stream_reference(
+    bundle: Mapping[str, Any],
+) -> tuple[str, int, int, Mapping[str, int] | None]:
     value = bundle.get("strategy_context_stream")
-    if not isinstance(value, Mapping) or set(value) != {"artifact", "context_count"}:
+    if not isinstance(value, Mapping) or frozenset(value) not in {
+        frozenset({"artifact", "context_count"}),
+        frozenset({"artifact", "context_count", "component_counts"}),
+    }:
         raise ValueError("runtime bundle context stream reference is invalid")
     artifact_value = value["artifact"]
     if not isinstance(artifact_value, Mapping) or set(artifact_value) != {
@@ -122,10 +135,41 @@ def _context_stream_reference(bundle: Mapping[str, Any]) -> tuple[str, int, int]
         "retention_class",
     }:
         raise ValueError("runtime bundle context stream artifact is invalid")
-    if artifact_value["media_type"] != NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE:
-        raise ValueError("runtime bundle context stream media type is unsupported")
-    if artifact_value["schema_version"] != NAUTILUS_CONTEXT_STREAM_SCHEMA:
-        raise ValueError("runtime bundle context stream schema is unsupported")
+    component_counts: dict[str, int] | None = None
+    if "component_counts" in value:
+        if (
+            artifact_value["media_type"] != NAUTILUS_COMPONENT_CONTEXT_STREAM_MEDIA_TYPE
+            or artifact_value["schema_version"] != NAUTILUS_COMPONENT_CONTEXT_STREAM_SCHEMA
+        ):
+            raise ValueError("runtime bundle component context stream type is unsupported")
+        raw_counts = value["component_counts"]
+        if not isinstance(raw_counts, list) or not raw_counts:
+            raise ValueError("runtime bundle component context counts are invalid")
+        component_counts = {}
+        previous_component_id: str | None = None
+        for item in raw_counts:
+            if not isinstance(item, Mapping) or set(item) != {
+                "component_id",
+                "context_count",
+            }:
+                raise ValueError("runtime bundle component context count fields are invalid")
+            component_id = item["component_id"]
+            count = item["context_count"]
+            if (
+                not isinstance(component_id, str)
+                or not component_id.strip()
+                or (previous_component_id is not None and component_id <= previous_component_id)
+            ):
+                raise ValueError("runtime bundle component context ids must be uniquely sorted")
+            if not isinstance(count, int) or isinstance(count, bool) or count < 1:
+                raise ValueError("runtime bundle component context count must be positive")
+            previous_component_id = component_id
+            component_counts[component_id] = count
+    elif (
+        artifact_value["media_type"] != NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE
+        or artifact_value["schema_version"] != NAUTILUS_CONTEXT_STREAM_SCHEMA
+    ):
+        raise ValueError("runtime bundle context stream media type or schema is unsupported")
     if artifact_value["retention_class"] != "pinned_input":
         raise ValueError("runtime bundle context stream retention is unsupported")
     digest = artifact_value["content_digest"]
@@ -140,7 +184,9 @@ def _context_stream_reference(bundle: Mapping[str, Any]) -> tuple[str, int, int]
     context_count = value["context_count"]
     if not isinstance(context_count, int) or isinstance(context_count, bool) or context_count < 1:
         raise ValueError("runtime bundle context count must be positive")
-    return digest, byte_length, context_count
+    if component_counts is not None and sum(component_counts.values()) != context_count:
+        raise ValueError("runtime bundle component context counts differ from context_count")
+    return digest, byte_length, context_count, component_counts
 
 
 def _native_event_stream_reference(
@@ -332,7 +378,11 @@ def run_bundle(
         )
     else:
         native_stream_binding: tuple[str, int] | None = None
-        if bundle["schema"] == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3:
+        component_stream_bundle = bundle["schema"] == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4
+        if bundle["schema"] in {
+            NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3,
+            NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4,
+        }:
             if native_event_stream_path is None:
                 raise ValueError(
                     "native streaming runtime bundle requires its mounted event stream"
@@ -361,7 +411,14 @@ def run_bundle(
             or max_result_bytes < 1
         ):
             raise ValueError("max_result_bytes must be a positive integer")
-        context_digest, context_byte_length, context_count = _context_stream_reference(bundle)
+        (
+            context_digest,
+            context_byte_length,
+            context_count,
+            component_context_counts,
+        ) = _context_stream_reference(bundle)
+        if component_stream_bundle != (component_context_counts is not None):
+            raise ValueError("runtime bundle context stream protocol differs from its schema")
         expected_context_digest = os.environ.get("STRATEGY_CONTEXT_STREAM_DIGEST")
         if expected_context_digest != context_digest:
             raise ValueError("context stream digest differs from the sandbox request")
@@ -413,15 +470,27 @@ def run_bundle(
                                 max_invocation_result_bytes=max_result_bytes,
                             )
                         else:
-                            result = run_native_backtest(
-                                engine_input,
-                                invocation_context_stream=stream,
-                                native_event_stream=native_event_stream,
-                                native_event_stream_digest=native_digest,
-                                expected_context_count=context_count,
-                                invocation_result_stream=result_stream,
-                                max_invocation_result_bytes=max_result_bytes,
-                            )
+                            if component_context_counts is None:
+                                result = run_native_backtest(
+                                    engine_input,
+                                    invocation_context_stream=stream,
+                                    native_event_stream=native_event_stream,
+                                    native_event_stream_digest=native_digest,
+                                    expected_context_count=context_count,
+                                    invocation_result_stream=result_stream,
+                                    max_invocation_result_bytes=max_result_bytes,
+                                )
+                            else:
+                                result = run_native_backtest(
+                                    engine_input,
+                                    invocation_context_stream=stream,
+                                    native_event_stream=native_event_stream,
+                                    native_event_stream_digest=native_digest,
+                                    expected_context_count=context_count,
+                                    expected_component_context_counts=component_context_counts,
+                                    invocation_result_stream=result_stream,
+                                    max_invocation_result_bytes=max_result_bytes,
+                                )
                         result_stream.flush()
                         os.fsync(result_stream.fileno())
                 finally:

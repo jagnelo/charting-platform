@@ -14,7 +14,7 @@ import json
 import os
 import stat
 import tempfile
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
@@ -39,6 +39,8 @@ from app.strategy_lab_v2.nautilus_native_event_stream import (
 )
 from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_to_wire
 from app.strategy_lab_v2.nautilus_runtime_protocol import (
+    NAUTILUS_COMPONENT_CONTEXT_STREAM_MEDIA_TYPE,
+    NAUTILUS_COMPONENT_CONTEXT_STREAM_SCHEMA,
     NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
     NAUTILUS_CONTEXT_STREAM_SCHEMA,
     NAUTILUS_INVOCATION_RESULT_STREAM_MEDIA_TYPE,
@@ -48,13 +50,16 @@ from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3,
+    NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4,
 )
 from app.strategy_lab_v2.sdk import StrategyContext, StrategySdkManifest
 from strategy_runtime import (
     MAX_INVOCATION_CONTEXT_STREAM_BYTES,
+    InvocationContextStreamSource,
     InvocationStatus,
     deserialize_invocation_batch,
     deserialize_invocation_result_stream,
+    serialize_component_invocation_context_stream,
     serialize_invocation_context_stream,
 )
 
@@ -72,14 +77,21 @@ class NautilusContextStreamArtifactReference:
 
     artifact: ArtifactManifest
     context_count: int
+    component_counts: tuple[tuple[str, int], ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.artifact, ArtifactManifest):
             raise TypeError("artifact must be an ArtifactManifest")
-        if self.artifact.media_type != NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE:
-            raise ValueError("strategy context stream media type is unsupported")
-        if self.artifact.schema_version != NAUTILUS_CONTEXT_STREAM_SCHEMA:
-            raise ValueError("strategy context stream schema is unsupported")
+        is_single_stream = (
+            self.artifact.media_type == NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE
+            and self.artifact.schema_version == NAUTILUS_CONTEXT_STREAM_SCHEMA
+        )
+        is_component_stream = (
+            self.artifact.media_type == NAUTILUS_COMPONENT_CONTEXT_STREAM_MEDIA_TYPE
+            and self.artifact.schema_version == NAUTILUS_COMPONENT_CONTEXT_STREAM_SCHEMA
+        )
+        if not is_single_stream and not is_component_stream:
+            raise ValueError("strategy context stream media type or schema is unsupported")
         if self.artifact.retention_class is not ArtifactRetention.PINNED_INPUT:
             raise ValueError("strategy context streams must use pinned-input retention")
         if (
@@ -88,13 +100,39 @@ class NautilusContextStreamArtifactReference:
             or self.context_count < 1
         ):
             raise ValueError("context_count must be a positive integer")
+        counts = tuple(self.component_counts)
+        if is_single_stream and counts:
+            raise ValueError("single-strategy context streams cannot carry component counts")
+        if is_component_stream:
+            if not counts:
+                raise ValueError("component context streams require per-component counts")
+            if any(
+                not isinstance(item, tuple)
+                or len(item) != 2
+                or not isinstance(item[0], str)
+                or not item[0].strip()
+                or any(character in item[0] for character in "\x00\r\n")
+                or not isinstance(item[1], int)
+                or isinstance(item[1], bool)
+                or item[1] < 1
+                for item in counts
+            ):
+                raise ValueError("component context counts are invalid")
+            component_ids = [item[0] for item in counts]
+            if component_ids != sorted(component_ids) or len(component_ids) != len(
+                set(component_ids)
+            ):
+                raise ValueError("component context counts must have unique sorted ids")
+            if sum(item[1] for item in counts) != self.context_count:
+                raise ValueError("component context counts must sum to context_count")
+        object.__setattr__(self, "component_counts", counts)
 
     @property
     def fingerprint(self) -> str:
         return content_digest(self)
 
     def to_wire(self) -> dict[str, Any]:
-        return {
+        value = {
             "artifact": {
                 "content_digest": self.artifact.content_digest,
                 "byte_length": self.artifact.byte_length,
@@ -105,6 +143,12 @@ class NautilusContextStreamArtifactReference:
             },
             "context_count": self.context_count,
         }
+        if self.component_counts:
+            value["component_counts"] = [
+                {"component_id": component_id, "context_count": count}
+                for component_id, count in self.component_counts
+            ]
+        return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -257,6 +301,68 @@ def materialize_nautilus_context_stream_artifact(
                 "strategy context stream failed content-addressed publication"
             )
         return NautilusContextStreamArtifactReference(artifact, context_count)
+    finally:
+        if temporary_path is not None:
+            try:
+                os.unlink(temporary_path)
+            except FileNotFoundError:
+                pass
+
+
+def materialize_nautilus_component_context_stream_artifact(
+    store: LocalArtifactStore,
+    *,
+    components: Sequence[InvocationContextStreamSource],
+    max_stream_bytes: int = MAX_INVOCATION_CONTEXT_STREAM_BYTES,
+) -> NautilusContextStreamArtifactReference:
+    """Publish merged component invocation lanes as one authenticated artifact."""
+
+    if not isinstance(store, LocalArtifactStore):
+        raise TypeError("store must be a LocalArtifactStore")
+    temporary_path: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w+b",
+            dir=store.root,
+            prefix=".nautilus-component-context-stream-",
+            delete=False,
+        ) as stream:
+            temporary_path = stream.name
+            component_counts = serialize_component_invocation_context_stream(
+                cast(BinaryIO, stream),
+                components=components,
+                max_stream_bytes=max_stream_bytes,
+            )
+            stream.flush()
+            os.fsync(stream.fileno())
+            byte_length = os.fstat(stream.fileno()).st_size
+            stream.seek(0)
+            digest = hashlib.sha256()
+            while chunk := stream.read(1024 * 1024):
+                digest.update(chunk)
+        content_address = f"sha256:{digest.hexdigest()}"
+        artifact = ArtifactManifest(
+            content_digest=content_address,
+            byte_length=byte_length,
+            media_type=NAUTILUS_COMPONENT_CONTEXT_STREAM_MEDIA_TYPE,
+            schema_version=NAUTILUS_COMPONENT_CONTEXT_STREAM_SCHEMA,
+            storage_key=content_address,
+            retention_class=ArtifactRetention.PINNED_INPUT,
+        )
+        publication = store.publish_file(artifact, temporary_path)
+        if publication.decision not in {
+            ArtifactStoreDecision.WRITTEN,
+            ArtifactStoreDecision.REUSED,
+        }:
+            raise NautilusRuntimeBundleError(
+                "component context stream failed content-addressed publication"
+            )
+        counts = tuple(sorted(component_counts.items()))
+        return NautilusContextStreamArtifactReference(
+            artifact,
+            sum(component_counts.values()),
+            counts,
+        )
     finally:
         if temporary_path is not None:
             try:
@@ -810,6 +916,7 @@ def _validate_runtime_bundle_wire_bytes(
     elif schema == NAUTILUS_RUNTIME_BUNDLE_SCHEMA:
         if (
             context_stream is None
+            or context_stream.component_counts
             or native_event_stream is not None
             or set(payload)
             != {
@@ -824,6 +931,7 @@ def _validate_runtime_bundle_wire_bytes(
     elif schema == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3:
         if (
             context_stream is None
+            or context_stream.component_counts
             or native_event_stream is None
             or set(payload)
             != {
@@ -854,6 +962,50 @@ def _validate_runtime_bundle_wire_bytes(
             or event_tape["event_count"] != native_event_stream.event_count
         ):
             raise ValueError("native event stream identity differs from the engine input")
+    elif schema == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4:
+        if (
+            context_stream is None
+            or not context_stream.component_counts
+            or native_event_stream is None
+            or set(payload)
+            != {
+                "schema",
+                "engine_input",
+                "strategy_context_stream",
+                "native_event_stream",
+            }
+        ):
+            raise ValueError("component streaming Nautilus runtime bundle fields are invalid")
+        if payload["strategy_context_stream"] != context_stream.to_wire():
+            raise ValueError("Nautilus component context stream reference differs from the bundle")
+        if payload["native_event_stream"] != native_event_stream.to_wire():
+            raise ValueError("Nautilus native event stream reference differs from the bundle")
+        engine_input = payload["engine_input"]
+        event_tape = engine_input.get("event_tape") if isinstance(engine_input, Mapping) else None
+        if not isinstance(event_tape, Mapping) or set(event_tape) != {
+            "source_tape_fingerprint",
+            "adapter_version",
+            "event_count",
+        }:
+            raise ValueError("component streaming engine input must not inline native events")
+        if (
+            event_tape["source_tape_fingerprint"] != native_event_stream.source_tape_fingerprint
+            or event_tape["adapter_version"] != native_event_stream.adapter_version
+            or not isinstance(event_tape["event_count"], int)
+            or isinstance(event_tape["event_count"], bool)
+            or event_tape["event_count"] != native_event_stream.event_count
+        ):
+            raise ValueError("native event stream identity differs from the engine input")
+        raw_bindings = engine_input.get("strategy_bindings")
+        if not isinstance(raw_bindings, list):
+            raise ValueError("component streaming engine input bindings are invalid")
+        binding_ids = {
+            item.get("component_id") for item in raw_bindings if isinstance(item, Mapping)
+        }
+        if binding_ids != {
+            component_id for component_id, _count in context_stream.component_counts
+        }:
+            raise ValueError("component context stream ids differ from engine input bindings")
     else:
         raise ValueError("Nautilus runtime input artifact schema is unsupported")
     engine_input = payload["engine_input"]
@@ -879,7 +1031,16 @@ def build_nautilus_runtime_bundle(
     if context_stream is not None:
         if not isinstance(context_stream, NautilusContextStreamArtifactReference):
             raise TypeError("context_stream must be a NautilusContextStreamArtifactReference")
+        component_context = bool(context_stream.component_counts)
+        if component_context:
+            binding_ids = {binding.component_id for binding in engine_input.strategy_bindings}
+            context_ids = {component_id for component_id, _count in context_stream.component_counts}
+            if context_ids != binding_ids:
+                raise NautilusRuntimeBundleError(
+                    "component context streams must cover the complete strategy binding set"
+                )
     else:
+        component_context = False
         if not isinstance(serialized_strategy_invocation_batch, str):
             raise TypeError("serialized_strategy_invocation_batch must be a string")
         try:
@@ -913,16 +1074,22 @@ def build_nautilus_runtime_bundle(
             or native_event_stream.adapter_version != engine_input.event_tape.adapter_version
         ):
             raise NautilusRuntimeBundleError("native event stream differs from the engine input")
+    if component_context and native_event_stream is None:
+        raise TypeError("component context streaming requires a native event stream")
 
     tape = engine_input.event_tape
     payload: dict[str, Any] = {
         "schema": (
-            NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3
-            if native_event_stream is not None
+            NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4
+            if component_context
             else (
-                NAUTILUS_RUNTIME_BUNDLE_SCHEMA
-                if context_stream is not None
-                else NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1
+                NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3
+                if native_event_stream is not None
+                else (
+                    NAUTILUS_RUNTIME_BUNDLE_SCHEMA
+                    if context_stream is not None
+                    else NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1
+                )
             )
         ),
         "engine_input": {
@@ -1022,6 +1189,7 @@ __all__ = [
     "NAUTILUS_RUNTIME_ARTIFACT_SCHEMA",
     "NAUTILUS_RUNTIME_BUNDLE_SCHEMA",
     "NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3",
+    "NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4",
     "NautilusContextStreamArtifactReference",
     "NautilusInvocationResultStreamReference",
     "NautilusNativeEventStreamArtifactReference",
@@ -1032,6 +1200,7 @@ __all__ = [
     "build_nautilus_runtime_bundle",
     "load_materialized_nautilus_runtime_bundle",
     "materialize_nautilus_context_stream_artifact",
+    "materialize_nautilus_component_context_stream_artifact",
     "materialize_nautilus_native_event_stream_artifact",
     "materialize_nautilus_runtime_bundle",
     "verify_nautilus_context_stream_artifact_file",

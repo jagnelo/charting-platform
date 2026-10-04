@@ -87,30 +87,23 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
+    "backend/app/strategy_lab_v2/nautilus_runtime_adapter.py",
+    "backend/app/strategy_lab_v2/nautilus_runtime_bundle.py",
+    "backend/app/strategy_lab_v2/nautilus_runtime_cli.py",
+    "backend/app/strategy_lab_v2/nautilus_runtime_protocol.py",
+    "backend/app/strategy_lab_v2/nautilus_strategy_bridge.py",
+    "backend/app/strategy_lab_v2/tests/test_nautilus_runtime_cli.py",
+    "backend/app/strategy_lab_v2/tests/test_nautilus_target_allocation.py",
+    "backend/app/strategy_lab_v2/tests/test_strategy_runtime_protocol.py",
+    "backend/strategy_runtime/__init__.py",
+    "backend/strategy_runtime/protocol.py",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-strategy-lab-v2-7794d9e5",
-      "charting-stack-feat-strategy-lab-v2-7794d9e5"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -126,12 +119,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "11215387d09571a8f844e7031883854681d0239b",
+  "head": "6191a89f5f2dc948177e6301297f574c6cc40474",
   "implementation_sha": "0f5736ddedbb75fdc0336bde6ec223635cc091bf",
   "last_checkpoint": "2026-10-04T02:04:04.236333+00:00",
-  "last_human_progress_update": "2026-10-04T02:02:14.232432+00:00",
+  "last_human_progress_update": "2026-10-04T02:20:29+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Integrate component context streams in the runtime bundle, CLI, and native bridge; combine raw and target orders under shared risk, and attribute positions from native fills.",
+  "next_action": "Extend the native bridge from its one-component limit to all authenticated portfolio bindings; then invoke same-event contexts together, route combined raw and target orders through shared risk, and attribute native fills and positions.",
   "parent_branch": "staging",
   "plan_hash": "3f8f16a536269570eb9d78bc283916498afac57845f70a0c58aef81519de6176",
   "planning_required": false,
@@ -148,10 +141,10 @@
       "AC-FORWARD"
     ],
     "current_blocker": "none",
-    "current_phase": "shared-component-target-allocation",
-    "next_action": "Integrate component context streams in the runtime bundle, CLI, and native bridge; combine raw and target orders under shared risk, and attribute positions from native fills.",
+    "current_phase": "component-context-stream-artifact-and-cli",
+    "next_action": "Extend the native bridge from its one-component limit to all authenticated portfolio bindings; then invoke same-event contexts together, route combined raw and target orders through shared risk, and attribute native fills and positions.",
     "total": 18,
-    "updated_at": "2026-10-04T02:02:14.232409+00:00"
+    "updated_at": "2026-10-04T02:20:29+00:00"
   },
   "remote": "1e3a861454f3c77bdac5efbb6957103f56f13238",
   "remote_sha": "0f5736ddedbb75fdc0336bde6ec223635cc091bf",

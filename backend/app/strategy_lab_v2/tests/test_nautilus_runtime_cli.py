@@ -29,16 +29,18 @@ from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
 )
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     build_nautilus_runtime_bundle,
+    materialize_nautilus_component_context_stream_artifact,
     materialize_nautilus_context_stream_artifact,
     materialize_nautilus_native_event_stream_artifact,
 )
-from strategy_runtime import deserialize_invocation_batch
+from strategy_runtime import InvocationContextStreamSource, deserialize_invocation_batch
 
 
 def _runtime_bundle(
     *,
     context_stream_store: LocalArtifactStore | None = None,
     native_event_stream_store: LocalArtifactStore | None = None,
+    component_context_stream: bool = False,
 ):
     first_event = NautilusEventRecord(
         "prices",
@@ -124,14 +126,29 @@ def _runtime_bundle(
     source, manifest, contexts, entrypoint, max_intents = deserialize_invocation_batch(
         invocation_batch
     )
-    context_stream = materialize_nautilus_context_stream_artifact(
-        context_stream_store,
-        source=source,
-        manifest=manifest,
-        contexts=contexts,
-        entrypoint=entrypoint,
-        max_intents_per_event=max_intents,
-    )
+    if component_context_stream:
+        context_stream = materialize_nautilus_component_context_stream_artifact(
+            context_stream_store,
+            components=(
+                InvocationContextStreamSource(
+                    "component-1",
+                    source,
+                    manifest,
+                    contexts,
+                    entrypoint,
+                    max_intents,
+                ),
+            ),
+        )
+    else:
+        context_stream = materialize_nautilus_context_stream_artifact(
+            context_stream_store,
+            source=source,
+            manifest=manifest,
+            contexts=contexts,
+            entrypoint=entrypoint,
+            max_intents_per_event=max_intents,
+        )
     native_event_stream = None
     if native_event_stream_store is not None:
         native_event_stream = materialize_nautilus_native_event_stream_artifact(
@@ -470,3 +487,84 @@ def test_cli_rejects_duplicate_fields_and_memory_limit_overflow(tmp_path, monkey
             expected_snapshot_fingerprint=content_digest("snapshot"),
             max_input_bytes=len(bundle.wire_bytes) - 1,
         )
+
+
+def test_cli_streams_component_context_reference_with_counts_to_adapter(
+    tmp_path, monkeypatch
+) -> None:
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    bundle = _runtime_bundle(
+        context_stream_store=store,
+        native_event_stream_store=store,
+        component_context_stream=True,
+    )
+    assert bundle.context_stream is not None
+    assert bundle.context_stream.component_counts
+    assert bundle.native_event_stream is not None
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "result.json"
+    result_stream_path = tmp_path / "invocations.ndjson"
+    input_path.write_bytes(bundle.wire_bytes)
+    output_path.touch()
+    result_stream_path.touch()
+    monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle.input_bundle_digest)
+    monkeypatch.setenv("STRATEGY_ATTEMPT_ID", bundle.attempt_id)
+    monkeypatch.setenv(
+        "STRATEGY_CONTEXT_STREAM_DIGEST", bundle.context_stream.artifact.content_digest
+    )
+    monkeypatch.setenv(
+        "STRATEGY_NATIVE_EVENT_STREAM_DIGEST",
+        bundle.native_event_stream.artifact.content_digest,
+    )
+    calls = []
+
+    def fake_run(
+        engine_input,
+        *,
+        invocation_context_stream,
+        native_event_stream,
+        native_event_stream_digest,
+        expected_context_count,
+        expected_component_context_counts,
+        invocation_result_stream,
+        max_invocation_result_bytes,
+    ):
+        invocation_result_stream.write(b"component-results")
+        calls.append(
+            (
+                engine_input,
+                invocation_context_stream.read(),
+                native_event_stream_digest,
+                expected_context_count,
+                expected_component_context_counts,
+                max_invocation_result_bytes,
+            )
+        )
+        return {"engine_version": "2.0.0rc5", "authoritative": False}
+
+    monkeypatch.setattr(nautilus_runtime_cli, "run_native_backtest", fake_run)
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+
+    assert (
+        nautilus_runtime_cli.run_bundle(
+            str(input_path),
+            str(output_path),
+            expected_version="2.0.0rc5",
+            expected_snapshot_fingerprint=content_digest("snapshot"),
+            max_input_bytes=1_000_000,
+            context_stream_path=str(store.path_for(bundle.context_stream.artifact.storage_key)),
+            native_event_stream_path=str(
+                store.path_for(bundle.native_event_stream.artifact.storage_key)
+            ),
+            invocation_result_stream_path=str(result_stream_path),
+            max_result_bytes=1024,
+        )
+        == 0
+    )
+    assert len(calls) == 1
+    assert calls[0][1] == store.read(bundle.context_stream.artifact.storage_key)
+    assert calls[0][2] == bundle.native_event_stream.artifact.content_digest
+    assert calls[0][3] == bundle.context_stream.context_count
+    assert calls[0][4] == dict(bundle.context_stream.component_counts)
+    assert calls[0][5] == 1024
+    assert result_stream_path.read_bytes() == b"component-results"

@@ -291,6 +291,7 @@ def run_native_backtest(
     native_event_stream: BinaryIO | None = None,
     native_event_stream_digest: str | None = None,
     expected_context_count: int | None = None,
+    expected_component_context_counts: Mapping[str, int] | None = None,
     invocation_result_stream: BinaryIO | None = None,
     max_invocation_result_bytes: int = MAX_INVOCATION_RESULT_STREAM_BYTES,
 ) -> dict[str, Any]:
@@ -321,6 +322,29 @@ def run_native_backtest(
         )
     if serialized_strategy_invocation_batch is None and invocation_context_stream is None:
         raise NautilusRuntimeDataError("serialized strategy invocation batch is required")
+    if expected_component_context_counts is not None:
+        if invocation_context_stream is None or native_event_stream is None:
+            raise NautilusRuntimeDataError(
+                "component context streams require native event streaming"
+            )
+        if (
+            not isinstance(expected_component_context_counts, Mapping)
+            or not expected_component_context_counts
+        ):
+            raise NautilusRuntimeDataError("component context count bindings are invalid")
+        if any(
+            not isinstance(component_id, str)
+            or not component_id.strip()
+            or not isinstance(count, int)
+            or isinstance(count, bool)
+            or count < 1
+            for component_id, count in expected_component_context_counts.items()
+        ):
+            raise NautilusRuntimeDataError("component context counts must be positive integers")
+        if sum(expected_component_context_counts.values()) != expected_context_count:
+            raise NautilusRuntimeDataError(
+                "component context counts differ from the total authenticated context count"
+            )
     strategy_bridge = build_native_strategy_bridge(
         payload,
         instrument_definitions,
@@ -329,6 +353,7 @@ def run_native_backtest(
         invocation_context_stream=invocation_context_stream,
         native_event_stream=native_event_stream,
         expected_context_count=expected_context_count,
+        expected_component_context_counts=expected_component_context_counts,
         invocation_result_stream=invocation_result_stream,
         max_invocation_result_bytes=max_invocation_result_bytes,
     )
