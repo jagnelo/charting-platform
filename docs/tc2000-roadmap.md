@@ -5,29 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-04
 
-## 2026-10-04 — Current-source visual replay: local-reference drift and stale fixture
+## 2026-10-04 — Current-source visual replay and fixture disposition
 
 The focused pinned Playwright 1.62.1 replay at test SHA
-`4eff4ce2fb25f35006e11263526178844379e520` (product source
-`74fc6061c6f0a567d4212b29405ed14be9b71195`) ran 12 cases: all four
-workspace-floating and all four Study structured-result states passed their
-state assertions, then differed from the saved local screenshots by
-`8,995/9,825/8,995/9,825` and
-`109,320/105,944/22,035/21,352` pixels respectively across the four projects.
-Visual review confirms the floating reference is empty while the current
-asserted image has five seeded rows; the Study reference lacks current output
-cards and promotion actions. Both are local-reference drift, not authoritative
-V25 evidence. No screenshot oracle or acceptance rule changed.
+`d8553e5d93419d6f2315ff587d13b4d0e8145c9b` (product source
+`74fc6061c6f0a567d4212b29405ed14be9b71195`) ran 12 cases. All state
+assertions passed. Workspace-floating differed from the local screenshots by
+`8,995/9,825/8,995/9,825` pixels; current images show five seeded rows while
+the saved images are empty. Study structured-result differed by
+`109,320/105,944/22,035/21,352` pixels; current output cards and promotion
+actions are absent from those saved images. These are local-reference
+discrepancies, not authoritative V25 captures.
 
-All four Study sandbox-error cases stopped before their screenshot checks. R5
-pagination changed the first results request from `limit=25` to `limit=26`, but
-the visual fixture still stalls only `limit=25`; this is a test-fixture
-compatibility issue, not a product failure. The next context updates that
-fixture to hold the initial cursor-free request independent of page size and
-replays the four cases. The assigned Compose project and generated images,
-volumes, and network were removed after the run; exact-project inventory was
-empty. The complete 104-case matrix and upstream consumer integration remain
-pending their own gates.
+The test-only matcher fix in `d8553e5d` restores the Study sandbox-error
+loading precondition after R5 pagination began requesting 26 rows. All four
+cases now reach screenshot checks: 1080p/100 and 1080p/125 differ by 13,300
+and 11,188 pixels, while both 1440p cases pass. The current schema example
+shows lookback `20` while the saved 1080p images show `2`; this does not
+establish the cause of every differing pixel. Overall, ten of these 12 focused
+screenshot assertions differ and two pass. No product styling, snapshot, mask,
+threshold, skip, fallback, or acceptance rule changed. This is not a rerun of
+the full 104-case matrix; provider/ETF integration and the exact-tip gate
+remain pending.
 
 ## 2026-10-04 — Research Results older-run pagination
 
@@ -12253,26 +12252,22 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 
 ## Immediate next checkpoint
 
-Continue independent TC-owned workstation and Study/Strategy work. Do not add provider routing,
-ETF adapters, live probes, generic ingestion, or refresh workers to TC. The latest focused receipts
-are: Study source validation and race protection at `1fef32d7` (full frontend coverage `1,180/1,180`,
-type-check/build passed); indicator dialog line-width consistency at `e4aab57c` (full frontend
-coverage `1,181/1,181`, type-check/build passed); and real chart timeframe/drawing-toolbar checks
-at test tip `9343a9e3` (Chromium `2/2`). The exact final integration gate has not been run at the
-current tip.
+Run the full exact-tip `full_stack_browser` gate at synchronized test tip
+`d8553e5d93419d6f2315ff587d13b4d0e8145c9b`, including the unchanged 104-case
+four-project visual matrix. Preserve screenshot references, masks, thresholds,
+skips, fallbacks, and acceptance rules. Diagnose and fix repository-owned
+failures with focused regressions; record local-reference drift and external
+limits without treating them as accepted visual parity. Do not add provider
+routing, ETF adapters, live probes, generic ingestion, or refresh workers to
+TC.
 
-The latest full pinned visual run remains at clean tip `6f7559f3`: `91/104` passed and `13` failed.
-Ten differences repeated across replays (floating workspaces in four viewports, structured Study
-results in four, and sandbox-error states at two 1080p scales); three one-run anomalies each passed
-isolated replay. No screenshot baselines, masks, thresholds, skips, or acceptance rules changed, and
-the board has not been rerun at the newer Study/chart tips. Keep those differences visible for the
-required review.
-
-Current local refs are staging `8b885a2f`, provider platform `65a467b4`, and ETF holdings
-`cfec6a5a`. Direct ancestry checks confirm neither dependency tip is in staging. Therefore R2/R3
-consumer integration and shared-path reconciliation still wait for the coordinator's staging
-promotions; they do not prevent independent frontend work. The branch is locally ahead of its
-tracking ref and remains unpushed. The exact shared-path order remains in the TC ownership ledger.
+The latest full matrix remains the historical `94/104` result at clean tip
+`58975ea6bee3e506f64d97506aadf4026c626357`; the focused current-source replay
+at `d8553e5d` recorded ten screenshot differences and two passes across its 12
+cases. It is not a full-matrix result. No screenshot baseline or policy has
+changed. Provider and ETF consumer integration and semantic path reconciliation
+remain deferred until those dependencies reach staging; this does not prevent
+the current exact-tip gate or independent TC-owned work.
 
 ## 2026-09-08 — Chart Plot Library Strategy-signal adapter
 

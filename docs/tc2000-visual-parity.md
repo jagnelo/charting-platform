@@ -11,23 +11,22 @@ lacks screenshot coverage.
 
 ## 2026-10-04 — Focused current-source visual replay and fixture disposition
 
-At clean test SHA `4eff4ce2fb25f35006e11263526178844379e520` (product source
+At test SHA `d8553e5d93419d6f2315ff587d13b4d0e8145c9b` (product source
 `74fc6061c6f0a567d4212b29405ed14be9b71195`), pinned Playwright 1.62.1 replayed
 the three affected visual states across all four projects: 12 cases total. This
 was a focused replay, not a new 104-case matrix. The four workspace-floating
 and four Study structured-result cases reached stable screenshot comparison
-after their state assertions passed. The four Study sandbox-error cases failed
-their loading-state assertion before screenshot capture: the test still held
-only requests with `limit=25`, while the current R5 UI asks for `limit=26`, so
-the list completed with its empty state instead of remaining in the intended
-loading state.
+after their state assertions passed. The sandbox-error fixture matcher was
+corrected to hold the initial cursor-free results request irrespective of page
+size; all four cases then reached screenshot assertions after loading and
+interaction checks passed.
 
 | Pinned project | Workspace floating | Study structured result | Study sandbox error |
 | --- | --- | --- | --- |
-| `visual-1080p-100` | 8,995 pixels; five seeded rows in current image, empty saved image | 109,320 pixels; state checks passed, current result has newer output/promotion controls | No screenshot: stale `limit=25` matcher; current request uses `limit=26` |
-| `visual-1080p-125` | 9,825 pixels; five seeded rows in current image, empty saved image | 105,944 pixels; state checks passed, current result has newer output/promotion controls | No screenshot: stale `limit=25` matcher; current request uses `limit=26` |
-| `visual-1440p-100` | 8,995 pixels; five seeded rows in current image, empty saved image | 22,035 pixels; state checks passed, current result has newer output/promotion controls | No screenshot: stale `limit=25` matcher; current request uses `limit=26` |
-| `visual-1440p-125` | 9,825 pixels; five seeded rows in current image, empty saved image | 21,352 pixels; state checks passed, current result has newer output/promotion controls | No screenshot: stale `limit=25` matcher; current request uses `limit=26` |
+| `visual-1080p-100` | 8,995 pixels; five seeded rows in current image, empty saved image | 109,320 pixels; state checks passed, current result has newer output/promotion controls | 13,300 pixels; state checks passed; current schema example shows lookback `20`, saved local image shows `2` |
+| `visual-1080p-125` | 9,825 pixels; five seeded rows in current image, empty saved image | 105,944 pixels; state checks passed, current result has newer output/promotion controls | 11,188 pixels; state checks passed; current schema example shows lookback `20`, saved local image shows `2` |
+| `visual-1440p-100` | 8,995 pixels; five seeded rows in current image, empty saved image | 22,035 pixels; state checks passed, current result has newer output/promotion controls | Passed; state checks and screenshot assertion passed |
+| `visual-1440p-125` | 9,825 pixels; five seeded rows in current image, empty saved image | 21,352 pixels; state checks passed, current result has newer output/promotion controls | Passed; state checks and screenshot assertion passed |
 
 The workspace comparison is a deterministic test-state/reference mismatch: the
 test asserts five seeded benchmark rows, but the saved local image depicts an
@@ -36,11 +35,16 @@ drift: the current asserted output includes later result cards and promotion
 actions absent from the saved local image. These repository snapshots are
 board-guided regression references, not authoritative V25 captures, so neither
 comparison justifies changing the product or silently replacing an oracle.
-The sandbox result is not yet a screenshot disposition because its fixture
-precondition is stale. The next narrowly scoped test-maintenance change will
-hold the initial cursor-free results request irrespective of page size, then
-replay those four cases. No screenshot, mask, threshold, skip, fallback, or
-acceptance rule changed; the 0.5% screenshot threshold is unchanged.
+The test-only fixture correction restores the sandbox-error loading
+precondition after R5 pagination. Its two 1080p differences match the visible
+local-image discrepancy previously recorded: the current parameter-schema
+example displays lookback `20`, while the stored images display `2`; this does
+not establish that the whole pixel delta has one cause. Both 1440p cases pass.
+Ten of the focused 12 screenshot assertions therefore remain different and two
+pass. The repository images are board-guided local regression references, not
+authoritative V25 captures. No product styling, screenshot, mask, threshold,
+skip, fallback, or acceptance rule changed; the 0.5% threshold is unchanged.
+The complete 104-case matrix remains pending.
 
 ## 2026-10-04 — Latest pinned-browser matrix: 94/104 pass at `58975ea`
 

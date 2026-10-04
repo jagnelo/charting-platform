@@ -1,45 +1,49 @@
 # feat/tc2000-frontend-rework
 
-## 2026-10-04 — Visual matrix evidence published; branch synchronized
+## 2026-10-04 — Focused visual replay evidence published; branch synchronized
 
 ## Closed diagnostic checkpoint — R6 current-source visual replay
 
-At test SHA `4eff4ce2fb25f35006e11263526178844379e520` and product source
+At test SHA `d8553e5d93419d6f2315ff587d13b4d0e8145c9b` and product source
 `74fc6061c6f0a567d4212b29405ed14be9b71195`, pinned Playwright 1.62.1 ran the
-three affected state cases across all four visual projects (12 tests). The
-four workspace-floating screenshots differed by `8,995`, `9,825`, `8,995`, and
-`9,825` pixels; all preceding state assertions passed. Visual inspection
-confirmed that the current image contains the five seeded benchmark rows
-asserted by the test, while its saved local image is empty. The four Study
+three affected state cases across all four visual projects (12 tests). All
+state assertions passed. The four workspace-floating screenshots differed by
+`8,995`, `9,825`, `8,995`, and `9,825` pixels; current images show five seeded
+benchmark rows while saved local images are empty. The four Study
 structured-result screenshots differed by `109,320`, `105,944`, `22,035`, and
-`21,352` pixels; state assertions passed. Current output cards and promotion
-actions are absent from those saved local images. These are documented local
-reference mismatches, not authoritative V25 captures, so no source styling,
-snapshot, mask, threshold, skip, fallback, or acceptance rule changed.
+`21,352` pixels; current output cards and promotion actions are absent from
+those saved images. In the sandbox-error state, the two 1080p projects differed
+by `13,300` and `11,188` pixels, while both 1440p projects passed. The current
+parameter-schema example displays lookback `20`; saved 1080p images display
+`2`, but that does not establish the cause of every differing pixel. Ten
+focused screenshot assertions remain mismatched and two pass. These are
+board-guided local-reference discrepancies, not authoritative V25 captures.
 
-The four sandbox-error cases did not reach screenshots. The visual fixture
-stalls the first results request only when `limit=25`; R5 pagination now sends
-`limit=26`, so the Results pane reached its empty state and failed the existing
-loading assertion. No product defect is indicated; the test fixture is stale.
-The exact assigned Compose project was torn down, and exact-project inventories
-found zero containers, volumes, networks, or generated images. Browser output
-was removed from its unique `/tmp` directory.
+Test-only commit `d8553e5d93419d6f2315ff587d13b4d0e8145c9b`
+(`test(tc2000): preserve sandbox visual loading state`) updates only
+`frontend/tests/e2e/tc2000_visual.spec.ts` and is pushed to
+`origin/feat/tc2000-frontend-rework`; local HEAD, tracking ref, and direct
+remote lookup match. The implementation source remains
+`74fc6061c6f0a567d4212b29405ed14be9b71195`.
 
-## Next context — R6 sandbox-error fixture compatibility
+Test-only commit `d8553e5d` updates the fixture to stall the initial cursor-free
+results request regardless of `limit`, preserving the deterministic loading
+precondition after R5 pagination. No product styling or screenshot reference,
+mask, threshold, skip, fallback, or acceptance rule changed. This focused
+12-case replay is not a full 104-case result. The assigned Compose project and
+generated resources were removed; exact inventories found zero containers,
+volumes, networks, or task-built images, and temporary browser output was
+removed.
 
-Intent: restore the deterministic loading precondition for the existing
-Study sandbox-error visual case after R5 pagination. Update only the fixture
-matcher to stall the initial cursor-free `GET /api/v1/research/runs`, regardless
-of its `limit`; preserve snapshots, masks, thresholds, skips, fallbacks, and
-acceptance policy. Then replay the sandbox-error case in all four pinned
-Playwright 1.62.1 projects and record each state/pixel disposition in
-`docs/tc2000-visual-parity.md`. This is test maintenance, not a product styling
-or API change. Continue the broader TC-owned roadmap after that focused replay.
+## Next context — R6 exact-tip full-stack/browser gate
 
-The full visual matrix has not been rerun; this 12-case replay is not a complete
-acceptance result. The goal remains active at AC1/9. Provider and ETF consumer
-integration wait for their contracts to reach staging; the exact-tip gate is
-still pending.
+Run the repository-declared `full_stack_browser` gate at synchronized tip
+`d8553e5d93419d6f2315ff587d13b4d0e8145c9b`, including all four visual projects
+and the unchanged 104-case matrix. Fix repository-owned failures with focused
+regressions; preserve all screenshot oracles and record local-reference drift
+or external limitations precisely. Provider/ETF consumer integration remains
+deferred until both dependencies reach staging. The goal remains active at
+AC1/9; no current environment blocker prevents this exact-tip gate.
 
 ## Closed changeset — R5 Research Results older-run pagination
 
