@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pandas as pd  # type: ignore[import-untyped]
@@ -23,6 +23,18 @@ from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsWri
 from app.strategy_lab_v2.nautilus_result_metrics import (
     build_nautilus_oos_equity_metric_set,
     build_nautilus_oos_metric_set,
+)
+from app.strategy_lab_v2.observations import (
+    AccountEquityIntervalObservation,
+    ExternalCashFlowReportStatus,
+    ObservationPoint,
+)
+from app.strategy_lab_v2.rebalance import (
+    CalendarDay,
+    CalendarDayStatus,
+    SessionCalendarSnapshot,
+    SessionSegment,
+    TradingSession,
 )
 
 
@@ -53,6 +65,9 @@ def _reference(
     *,
     windowed: bool = True,
     portfolio: PortfolioComposition | None = None,
+    scoring_start_ns: int = 100,
+    scoring_end_ns: int = 200,
+    observation_count: int = 3,
 ) -> NautilusAccountEquityTraceReference:
     artifact_digest = content_digest("account-equity-trace")
     artifact = ArtifactManifest(
@@ -73,16 +88,100 @@ def _reference(
         snapshot_fingerprint=content_digest("snapshot"),
         source_tape_fingerprint=content_digest("source-tape"),
         evaluation_window_fingerprint=(content_digest("evaluation-window") if windowed else None),
-        scoring_start_ns=100 if windowed else None,
-        scoring_end_ns=200 if windowed else None,
+        scoring_start_ns=scoring_start_ns if windowed else None,
+        scoring_end_ns=scoring_end_ns if windowed else None,
         base_currency="USD",
         initial_capital=Decimal("1000"),
-        observation_count=3,
+        observation_count=observation_count,
     )
 
 
-def _metric_set_for_positions(tmp_path, positions: list[dict[str, object]]):
-    equity_reference = _reference()
+def _unix_nanoseconds(value: datetime) -> int:
+    delta = value.astimezone(UTC) - datetime(1970, 1, 1, tzinfo=UTC)
+    return ((delta.days * 86_400 + delta.seconds) * 1_000_000 + delta.microseconds) * 1_000
+
+
+def _session_equity_scope(
+    *,
+    interval_session_indexes: tuple[int, ...] = (1, 2, 3),
+) -> tuple[
+    NautilusAccountEquityTraceReference,
+    SessionCalendarSnapshot,
+    tuple[AccountEquityIntervalObservation, ...],
+]:
+    first_label = date(2026, 9, 1)
+    labels = tuple(first_label + timedelta(days=index) for index in range(4))
+    sessions = tuple(
+        TradingSession(
+            session_id=f"XNYS:{label.isoformat()}",
+            session_label=label,
+            segments=(
+                SessionSegment(
+                    datetime(label.year, label.month, label.day, 14, 30, tzinfo=UTC),
+                    datetime(label.year, label.month, label.day, 21, 0, tzinfo=UTC),
+                ),
+            ),
+        )
+        for label in labels
+    )
+    calendar = SessionCalendarSnapshot(
+        calendar_id="XNYS",
+        definition_version="XNYS-session-risk-test-v1",
+        timezone_name="America/New_York",
+        timezone_database_version="test-tzdb-v1",
+        coverage_start=labels[0],
+        coverage_end=labels[-1],
+        days=tuple(
+            CalendarDay(label, CalendarDayStatus.TRADING, session)
+            for label, session in zip(labels, sessions, strict=True)
+        ),
+        source_evidence_digest=content_digest("session-risk-test-calendar"),
+    )
+    reference = _reference(
+        scoring_start_ns=_unix_nanoseconds(sessions[0].close_time),
+        scoring_end_ns=_unix_nanoseconds(sessions[-1].close_time) + 1_000,
+        observation_count=4,
+    )
+    equity_marks = (Decimal("1000"), Decimal("1020"), Decimal("990"), Decimal("1050"))
+    intervals: list[AccountEquityIntervalObservation] = []
+    prior_point = ObservationPoint(sessions[0].close_time, event_sequence=0)
+    prior_equity = equity_marks[0]
+    for session_index in interval_session_indexes:
+        session = sessions[session_index]
+        intervals.append(
+            AccountEquityIntervalObservation(
+                portfolio_fingerprint=reference.portfolio_fingerprint,
+                run_attempt_id=reference.attempt_id,
+                calendar_fingerprint=calendar.fingerprint,
+                session_label=session.session_label,
+                start_point=prior_point,
+                end_point=ObservationPoint(session.close_time, event_sequence=0),
+                starting_equity=prior_equity,
+                ending_equity=equity_marks[session_index],
+                external_cash_flow=Decimal(0),
+                external_cash_flow_occurred=False,
+                external_cash_flow_report_status=ExternalCashFlowReportStatus.COMPLETE,
+                base_currency=reference.base_currency,
+                engine_evidence_digest=reference.artifact.content_digest,
+            )
+        )
+        prior_point = ObservationPoint(session.close_time, event_sequence=0)
+        prior_equity = equity_marks[session_index]
+    return reference, calendar, tuple(intervals)
+
+
+def _metric_set_for_positions(
+    tmp_path,
+    positions: list[dict[str, object]],
+    *,
+    session_scope: tuple[
+        NautilusAccountEquityTraceReference,
+        SessionCalendarSnapshot,
+        tuple[AccountEquityIntervalObservation, ...],
+    ]
+    | None = None,
+):
+    equity_reference = _reference() if session_scope is None else session_scope[0]
     reports_path = tmp_path / "position-reports.parquet"
     writer = NautilusNativeReportsWriter(
         reports_path,
@@ -110,9 +209,25 @@ def _metric_set_for_positions(tmp_path, positions: list[dict[str, object]]):
         }
     )
     reports_reference = writer.finish()
+    equity_marks = (
+        (Decimal("1000"), Decimal("1020"), Decimal("1010"))
+        if session_scope is None
+        else (Decimal("1000"), Decimal("1020"), Decimal("990"), Decimal("1050"))
+    )
+    if session_scope is not None:
+        return build_nautilus_oos_metric_set(
+            equity_reference,
+            equity_marks,
+            reports_reference,
+            reports_path,
+            created_at=datetime(2026, 10, 4, tzinfo=UTC),
+            session_equity_intervals=session_scope[2],
+            session_calendar=session_scope[1],
+            session_periods_per_year=252,
+        )
     return build_nautilus_oos_metric_set(
         equity_reference,
-        (Decimal("1000"), Decimal("1020"), Decimal("1010")),
+        equity_marks,
         reports_reference,
         reports_path,
         created_at=datetime(2026, 10, 4, tzinfo=UTC),
@@ -139,6 +254,112 @@ def test_build_nautilus_oos_equity_metric_set_binds_trial_attempt_and_trace() ->
         reference.artifact.content_digest
     )
     assert metrics["annualized_return"].value is None
+
+
+def test_oos_equity_metrics_use_only_complete_explicit_session_intervals() -> None:
+    reference, calendar, intervals = _session_equity_scope()
+    equity_marks = (
+        Decimal("1000"),
+        Decimal("1020"),
+        Decimal("990"),
+        Decimal("1050"),
+    )
+    metric_set = build_nautilus_oos_equity_metric_set(
+        reference,
+        equity_marks,
+        created_at=datetime(2026, 10, 4, tzinfo=UTC),
+        session_equity_intervals=intervals,
+        session_calendar=calendar,
+        session_periods_per_year=252,
+        session_risk_free_return_per_period=Decimal("0.0001"),
+        session_historical_confidence_level=Decimal("0.95"),
+    )
+    metrics = {item.name: item for item in metric_set.values}
+
+    for name in (
+        "annualized_volatility",
+        "sharpe_ratio",
+        "sortino_ratio",
+        "historical_value_at_risk",
+        "historical_expected_shortfall",
+    ):
+        assert metrics[name].value is not None
+        assert metrics[name].sample_size == 3
+        assert any(
+            item.role == "session_equity_intervals" for item in metrics[name].evidence_references
+        )
+        assert any(
+            item.role == "session_calendar" and item.digest == calendar.fingerprint
+            for item in metrics[name].evidence_references
+        )
+    assert metrics["annualized_volatility"].annualization_basis == (
+        "252 actual session-close intervals per year; calendar=XNYS"
+    )
+    assert (
+        metrics["sharpe_ratio"].calculation_definition.parameters["sampling_basis"]
+        == "complete_actual_session_close_intervals"
+    )
+    assert metrics["session_return_quantile:p=0.5"].value == Decimal("0.02")
+    without_session_inputs = build_nautilus_oos_equity_metric_set(
+        reference,
+        equity_marks,
+        created_at=datetime(2026, 10, 4, tzinfo=UTC),
+    )
+    assert metric_set.metric_set_id != without_session_inputs.metric_set_id
+
+
+def test_full_oos_metric_set_composes_session_sampled_risk_with_native_reports(tmp_path) -> None:
+    session_scope = _session_equity_scope()
+    metric_set = _metric_set_for_positions(
+        tmp_path,
+        [],
+        session_scope=session_scope,
+    )
+    metrics = {item.name: item for item in metric_set.values}
+
+    assert metrics["sharpe_ratio"].value is not None
+    assert metrics["historical_expected_shortfall"].value is not None
+    assert metrics["session_return_quantile:p=0.5"].value == Decimal("0.02")
+
+
+def test_oos_equity_metrics_withhold_cadence_risk_when_session_coverage_has_a_gap() -> None:
+    reference, calendar, intervals = _session_equity_scope(interval_session_indexes=(1, 3))
+    metric_set = build_nautilus_oos_equity_metric_set(
+        reference,
+        (Decimal("1000"), Decimal("1020"), Decimal("990"), Decimal("1050")),
+        created_at=datetime(2026, 10, 4, tzinfo=UTC),
+        session_equity_intervals=intervals,
+        session_calendar=calendar,
+        session_periods_per_year=252,
+    )
+    metrics = {item.name: item for item in metric_set.values}
+
+    assert metrics["annualized_volatility"].value is None
+    assert metrics["sharpe_ratio"].value is None
+    assert metrics["session_return_quantile:p=0.5"].value is None
+    assert metrics["session_return_quantile:p=0.5"].null_reason == (
+        "requested session range is missing observations or preceding actual session-close marks"
+    )
+
+
+def test_oos_equity_metrics_reject_session_intervals_outside_attempt_scope() -> None:
+    reference, calendar, intervals = _session_equity_scope()
+    foreign_portfolio = _portfolio_composition()
+    foreign_reference = _reference(
+        portfolio=foreign_portfolio,
+        scoring_start_ns=reference.scoring_start_ns or 0,
+        scoring_end_ns=reference.scoring_end_ns or 0,
+        observation_count=4,
+    )
+    with pytest.raises(ValueError, match="native OOS attempt scope"):
+        build_nautilus_oos_equity_metric_set(
+            foreign_reference,
+            (Decimal("1000"), Decimal("1020"), Decimal("990"), Decimal("1050")),
+            created_at=datetime(2026, 10, 4, tzinfo=UTC),
+            session_equity_intervals=intervals,
+            session_calendar=calendar,
+            session_periods_per_year=252,
+        )
 
 
 def test_build_nautilus_oos_equity_metric_set_rejects_non_oos_receipts() -> None:

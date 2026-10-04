@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from math import isnan
@@ -25,12 +26,16 @@ from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_de
 from app.strategy_lab_v2.metrics import (
     METRIC_DEFINITION_VERSION,
     calculate_event_aligned_equity_metrics,
+    calculate_performance_metrics,
+    calculate_session_return_distribution_metrics,
 )
 from app.strategy_lab_v2.nautilus_equity_trace import NautilusAccountEquityTraceReference
 from app.strategy_lab_v2.nautilus_native_reports import (
     NautilusNativeReportsReference,
     iter_nautilus_native_report_records,
 )
+from app.strategy_lab_v2.observations import AccountEquityIntervalObservation
+from app.strategy_lab_v2.rebalance import SessionCalendarSnapshot
 
 _NATIVE_REPORT_TIME_FIELDS = {
     "fills": "ts_event",
@@ -40,6 +45,223 @@ _NATIVE_REPORT_TIME_FIELDS = {
 _ISO_TIMESTAMP = re.compile(
     r"(?P<whole>.+?)(?:\.(?P<fraction>[0-9]+))?(?P<zone>Z|[+-][0-9]{2}:[0-9]{2})$"
 )
+_SESSION_RISK_METRIC_NAMES = frozenset(
+    {
+        "annualized_volatility",
+        "sharpe_ratio",
+        "sortino_ratio",
+        "historical_value_at_risk",
+        "historical_expected_shortfall",
+    }
+)
+_SESSION_ANNUALIZED_RISK_METRIC_NAMES = frozenset(
+    {"annualized_volatility", "sharpe_ratio", "sortino_ratio"}
+)
+
+
+def _datetime_to_unix_nanoseconds(value: datetime) -> int:
+    normalized = value.astimezone(UTC)
+    delta = normalized - datetime(1970, 1, 1, tzinfo=UTC)
+    elapsed_microseconds = (delta.days * 86_400 + delta.seconds) * 1_000_000
+    elapsed_microseconds += delta.microseconds
+    return elapsed_microseconds * 1_000
+
+
+def _session_interval_metrics(
+    reference: NautilusAccountEquityTraceReference,
+    *,
+    observations: Sequence[AccountEquityIntervalObservation] | None,
+    calendar: SessionCalendarSnapshot | None,
+    periods_per_year: int | None,
+    risk_free_return_per_period: Decimal,
+    historical_confidence_level: Decimal,
+) -> tuple[tuple[MetricValue, ...], str | None]:
+    if observations is None:
+        if (
+            calendar is not None
+            or periods_per_year is not None
+            or risk_free_return_per_period != Decimal(0)
+            or historical_confidence_level != Decimal("0.95")
+        ):
+            raise ValueError(
+                "session calendar and periods_per_year require session equity intervals"
+            )
+        return (), None
+    if calendar is None:
+        raise ValueError("session equity intervals require an explicit session calendar")
+    if not isinstance(calendar, SessionCalendarSnapshot):
+        raise TypeError("session_calendar must be a SessionCalendarSnapshot")
+    if (
+        not isinstance(periods_per_year, int)
+        or isinstance(periods_per_year, bool)
+        or periods_per_year < 1
+    ):
+        raise ValueError("session periods_per_year must be a positive integer")
+    if (
+        not isinstance(risk_free_return_per_period, Decimal)
+        or not risk_free_return_per_period.is_finite()
+        or risk_free_return_per_period <= -1
+    ):
+        raise ValueError("session risk-free return must be finite and greater than -1")
+    if (
+        not isinstance(historical_confidence_level, Decimal)
+        or not historical_confidence_level.is_finite()
+        or not Decimal(0) < historical_confidence_level < Decimal(1)
+    ):
+        raise ValueError("session historical confidence must be strictly between zero and one")
+    intervals = tuple(observations)
+    if not intervals:
+        raise ValueError("session equity intervals must not be empty")
+    if any(not isinstance(item, AccountEquityIntervalObservation) for item in intervals):
+        raise TypeError(
+            "session equity intervals must contain AccountEquityIntervalObservation values"
+        )
+    if any(
+        item.run_attempt_id != reference.attempt_id
+        or item.portfolio_fingerprint != reference.portfolio_fingerprint
+        or item.base_currency != reference.base_currency
+        for item in intervals
+    ):
+        raise ValueError("session equity intervals differ from the native OOS attempt scope")
+    engine_evidence_digests = {item.engine_evidence_digest for item in intervals}
+    if len(engine_evidence_digests) != 1:
+        raise ValueError("session equity intervals must share one engine evidence digest")
+    engine_evidence_digest = next(iter(engine_evidence_digests))
+    if reference.scoring_start_ns is None or reference.scoring_end_ns is None:
+        raise ValueError("session risk metrics require an OOS evaluation window")
+    if _datetime_to_unix_nanoseconds(intervals[0].start_point.event_time) != (
+        reference.scoring_start_ns
+    ):
+        raise ValueError("first session interval must start at the OOS opening valuation")
+    if any(
+        _datetime_to_unix_nanoseconds(item.end_point.event_time) < reference.scoring_start_ns
+        or _datetime_to_unix_nanoseconds(item.end_point.event_time) >= reference.scoring_end_ns
+        for item in intervals
+    ):
+        raise ValueError("session interval closes must fall inside the half-open OOS window")
+
+    distribution = calculate_session_return_distribution_metrics(
+        intervals,
+        calendar=calendar,
+        start_session_label=intervals[0].session_label,
+        end_session_label=intervals[-1].session_label,
+    )
+    metrics = [
+        replace(
+            metric,
+            evidence_references=(
+                *metric.evidence_references,
+                MetricEvidenceReference("session_engine_evidence", engine_evidence_digest),
+            ),
+        )
+        for metric in distribution.metrics
+    ]
+    can_calculate_cadence_risk = (
+        distribution.coverage_complete
+        and distribution.external_cash_flow_reports_complete
+        and distribution.external_flows_occurred is False
+    )
+    if can_calculate_cadence_risk:
+        sampled_values = calculate_performance_metrics(
+            tuple(item.ending_equity for item in intervals),
+            initial_capital=intervals[0].starting_equity,
+            base_currency=reference.base_currency,
+            periods_per_year=periods_per_year,
+            risk_free_return_per_period=risk_free_return_per_period,
+            historical_confidence_level=historical_confidence_level,
+            basis=MetricBasis.NET,
+        )
+        for metric in sampled_values:
+            if metric.name not in _SESSION_RISK_METRIC_NAMES:
+                continue
+            definition = metric.calculation_definition
+            if definition is None:
+                raise ValueError("session risk metrics require versioned calculation definitions")
+            parameters = dict(definition.parameters)
+            parameters.update(
+                {
+                    "sampling_basis": "complete_actual_session_close_intervals",
+                    "session_calendar_id": calendar.calendar_id,
+                    "session_calendar_fingerprint": calendar.fingerprint,
+                    "session_interval_observation_digest": distribution.observation_digest,
+                }
+            )
+            annualization_basis = metric.annualization_basis
+            if metric.name in _SESSION_ANNUALIZED_RISK_METRIC_NAMES:
+                annualization_basis = (
+                    f"{periods_per_year} actual session-close intervals per year; "
+                    f"calendar={calendar.calendar_id}"
+                )
+            metrics.append(
+                replace(
+                    metric,
+                    annualization_basis=annualization_basis,
+                    calculation_basis=(
+                        f"complete actual session-close interval sampling; "
+                        f"calendar={calendar.calendar_id}; {metric.calculation_basis}"
+                    ),
+                    calculation_definition=replace(definition, parameters=parameters),
+                    evidence_references=(
+                        *metric.evidence_references,
+                        MetricEvidenceReference(
+                            "session_equity_intervals", distribution.observation_digest
+                        ),
+                        MetricEvidenceReference("session_engine_evidence", engine_evidence_digest),
+                        MetricEvidenceReference("session_calendar", calendar.fingerprint),
+                    ),
+                )
+            )
+    return tuple(metrics), content_digest(
+        {
+            "distribution": distribution,
+            "periods_per_year": periods_per_year,
+            "risk_free_return_per_period": risk_free_return_per_period,
+            "historical_confidence_level": historical_confidence_level,
+        }
+    )
+
+
+def _merge_session_metrics(
+    event_metrics: Sequence[MetricValue],
+    session_metrics: Sequence[MetricValue],
+) -> tuple[MetricValue, ...]:
+    sampled_risk = {
+        (item.name, item.basis): item
+        for item in session_metrics
+        if item.name in _SESSION_RISK_METRIC_NAMES
+    }
+    merged = [sampled_risk.get((item.name, item.basis), item) for item in event_metrics]
+    merged.extend(item for item in session_metrics if item.name not in _SESSION_RISK_METRIC_NAMES)
+    return tuple(merged)
+
+
+def _build_oos_equity_metric_values(
+    reference: NautilusAccountEquityTraceReference,
+    equity_marks: Iterable[Decimal],
+    *,
+    event_time_ns: Iterable[int] | None,
+    session_equity_intervals: Sequence[AccountEquityIntervalObservation] | None,
+    session_calendar: SessionCalendarSnapshot | None,
+    session_periods_per_year: int | None,
+    session_risk_free_return_per_period: Decimal,
+    session_historical_confidence_level: Decimal,
+) -> tuple[tuple[MetricValue, ...], str | None]:
+    event_metrics = calculate_event_aligned_equity_metrics(
+        equity_marks,
+        base_currency=reference.base_currency,
+        evidence_digest=reference.artifact.content_digest,
+        expected_mark_count=reference.observation_count,
+        event_time_ns=event_time_ns,
+    )
+    session_metrics, session_input_digest = _session_interval_metrics(
+        reference,
+        observations=session_equity_intervals,
+        calendar=session_calendar,
+        periods_per_year=session_periods_per_year,
+        risk_free_return_per_period=session_risk_free_return_per_period,
+        historical_confidence_level=session_historical_confidence_level,
+    )
+    return _merge_session_metrics(event_metrics, session_metrics), session_input_digest
 
 
 def build_nautilus_oos_equity_metric_set(
@@ -48,6 +270,11 @@ def build_nautilus_oos_equity_metric_set(
     *,
     event_time_ns: Iterable[int] | None = None,
     created_at: datetime,
+    session_equity_intervals: Sequence[AccountEquityIntervalObservation] | None = None,
+    session_calendar: SessionCalendarSnapshot | None = None,
+    session_periods_per_year: int | None = None,
+    session_risk_free_return_per_period: Decimal = Decimal(0),
+    session_historical_confidence_level: Decimal = Decimal("0.95"),
 ) -> MetricSet:
     """Build reproducible official OOS equity metrics for one native attempt.
 
@@ -56,24 +283,31 @@ def build_nautilus_oos_equity_metric_set(
     account mark and the receipt count is enforced during metric calculation.
     This equity-only builder stays independently usable; the OOS result builder
     composes it with separately verified native execution-report metrics.
+    Optional cadence-sensitive statistics require explicit, attempt-bound
+    session intervals, their versioned calendar, and a declared sessions-per-
+    year convention; irregular event marks never supply cadence implicitly.
     """
 
     if not isinstance(reference, NautilusAccountEquityTraceReference):
         raise TypeError("reference must be a NautilusAccountEquityTraceReference")
     if reference.evaluation_window_fingerprint is None:
         raise ValueError("official Nautilus metrics require an OOS evaluation window")
-    values = calculate_event_aligned_equity_metrics(
+    values, session_input_digest = _build_oos_equity_metric_values(
+        reference,
         equity_marks,
-        base_currency=reference.base_currency,
-        evidence_digest=reference.artifact.content_digest,
-        expected_mark_count=reference.observation_count,
         event_time_ns=event_time_ns,
+        session_equity_intervals=session_equity_intervals,
+        session_calendar=session_calendar,
+        session_periods_per_year=session_periods_per_year,
+        session_risk_free_return_per_period=session_risk_free_return_per_period,
+        session_historical_confidence_level=session_historical_confidence_level,
     )
     metric_set_identity = content_digest(
         {
             "attempt_id": reference.attempt_id,
             "definition_version": METRIC_DEFINITION_VERSION,
             "equity_trace_digest": reference.artifact.content_digest,
+            "session_input_digest": session_input_digest,
             "trial_id": reference.trial_id,
         }
     )
@@ -96,13 +330,20 @@ def build_nautilus_oos_metric_set(
     event_time_ns: Iterable[int] | None = None,
     created_at: datetime,
     portfolio: PortfolioComposition | None = None,
+    session_equity_intervals: Sequence[AccountEquityIntervalObservation] | None = None,
+    session_calendar: SessionCalendarSnapshot | None = None,
+    session_periods_per_year: int | None = None,
+    session_risk_free_return_per_period: Decimal = Decimal(0),
+    session_historical_confidence_level: Decimal = Decimal("0.95"),
 ) -> MetricSet:
     """Build one OOS metric set from byte-verified native engine outputs.
 
     Only rows whose native event timestamp falls in the reference's half-open
     scoring interval contribute to the native-report metrics. Commission and
-    realized P&L remain in the currencies printed by Nautilus; no FX conversion,
-    cadence, session calendar, or missing report field is inferred here.
+    realized P&L remain in the currencies printed by Nautilus; no FX conversion
+    or missing report field is inferred. Cadence-sensitive risk metrics are
+    added only from complete, explicitly supplied session-close intervals and
+    their declared calendar and annualization convention.
     """
 
     _require_matching_oos_references(equity_reference, native_reports_reference)
@@ -131,12 +372,15 @@ def build_nautilus_oos_metric_set(
                 equity_endpoints[1] = mark
             yield mark
 
-    equity_values = calculate_event_aligned_equity_metrics(
+    equity_values, session_input_digest = _build_oos_equity_metric_values(
+        equity_reference,
         capture_equity_endpoints(),
-        base_currency=equity_reference.base_currency,
-        evidence_digest=equity_reference.artifact.content_digest,
-        expected_mark_count=equity_reference.observation_count,
         event_time_ns=event_time_ns,
+        session_equity_intervals=session_equity_intervals,
+        session_calendar=session_calendar,
+        session_periods_per_year=session_periods_per_year,
+        session_risk_free_return_per_period=session_risk_free_return_per_period,
+        session_historical_confidence_level=session_historical_confidence_level,
     )
     native_values = _native_oos_report_metrics(native_reports_reference, native_reports_path)
     component_values: tuple[MetricValue, ...] = ()
@@ -160,6 +404,7 @@ def build_nautilus_oos_metric_set(
             "definition_version": METRIC_DEFINITION_VERSION,
             "equity_trace_digest": equity_reference.artifact.content_digest,
             "native_reports_digest": native_reports_reference.artifact.content_digest,
+            "session_input_digest": session_input_digest,
             "trial_id": equity_reference.trial_id,
             "window_fingerprint": equity_reference.evaluation_window_fingerprint,
         }
