@@ -2,6 +2,53 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Calendar rebalance callbacks and trial-plan compilation
+
+The isolated Nautilus bridge now executes frozen rebalance plans at exact
+session boundaries: open callbacks precede events at the same timestamp, close
+callbacks wait until the complete same-time event group has been processed,
+and target-position intents pass through the existing portfolio allocation and
+shared-risk route. Declared misfires are recorded; fail-on-misfire stops further
+rebalance applications and makes the result failed and non-authoritative.
+Callback outcomes are strictly validated against the complete frozen plan and
+bound to the attempt in a content-addressed schedule audit. Successful result
+materialization publishes that audit as an artifact.
+
+The trusted market preparation context can now carry an optional immutable
+`SessionCalendarSnapshot`. Trial assembly requires both that snapshot and an
+explicit evaluation window for a portfolio calendar policy, verifies exact
+calendar/policy identity through the planner, filters the frozen plan to the
+half-open scoring interval, and binds it into the isolated engine-input bundle.
+Missing calendar or evaluation evidence remains fail-closed. This is the first
+end-to-end assembly path for rebalance plans; it is not full portfolio-feature
+completion.
+
+Validation at implementation commit
+`79b0db7753bd381a04b6f0f036f548346f82378f`: full Strategy Lab package suite
+`1,283 passed` (including the local Unix-socket test with scoped socket access);
+focused runtime/bridge/assembly/materializer suite `72 passed`; Ruff clean;
+changed Python files formatted; MyPy clean across 364 package/runtime sources;
+`git diff --check` clean. The implementation commit is pushed to
+`origin/feat/strategy-lab-v2`. Docker Buildx is unavailable, limiting only the
+final Compose/browser profile.
+
+Remaining rebalance evidence gap: when `FAIL_RUN` is triggered, the runner
+retains the typed audit and binds its fingerprint into the failure digest, but
+the generic failed-worker terminal contract does not publish diagnostic
+artifacts. Preserve that boundary and add an explicit authenticated diagnostic
+artifact path before describing failed misfire audits as durable. Next, test
+the runner-to-worker terminal behavior for misfire failures and implement that
+path. Then continue native RC5-backed rebalance integration and the broader
+portfolio, metrics, snapshot/provider, search, worker, and broker-free forward
+acceptance criteria.
+
+The saved goal objective text still mentions stable Nautilus v2, but the
+authoritative branch plan accepts an exact-pinned pre-release for offline
+backtesting after the same conformance checks. Stable 2.x is not a gate. Keep
+pre-releases barred from broker connections and real capital; forward shadow
+remains separately gated on event-tape parity. Provider/ETF/TC2000 contracts
+must still be consumed only after their approved branches reach staging.
+
 ## 2026-10-04 - Versioned rebalance-plan transport boundary
 
 Added a strict wire codec for frozen rebalance occurrences and carried the
