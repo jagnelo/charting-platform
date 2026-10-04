@@ -1,6 +1,36 @@
 # feat/tc2000-frontend-rework
 
-## 2026-10-04 — Current pinned visual matrix
+## 2026-10-04 — Visual matrix evidence published; branch synchronized
+
+Closed the `R6_current_pinned_visual_matrix` documentation context. Its six
+owned paths are the roadmap, visual-parity record, and this branch's plan,
+handoff, session, and validation journal. Workstream validation, the TC scope
+guard plus all six self-tests, and `git diff --check` passed. The underlying
+104-case matrix evidence at `58975ea6bee3e506f64d97506aadf4026c626357` remains
+94/104 with the ten documented screenshot-only differences; no screenshot or
+acceptance policy changed.
+
+Documentation commit `31d262ec0e661cef3e3c14dcc8ed55afa81678b0` was pushed to
+`origin/feat/tc2000-frontend-rework`. The exact range
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629..31d262ec0e661cef3e3c14dcc8ed55afa81678b0`
+(1,649 commits) is synchronized; both remote verification and the local tracking
+ref report `31d262ec0e661cef3e3c14dcc8ed55afa81678b0`. The pre-push worktree was
+clean, and the post-push branch reports zero commits ahead. The push used the
+standard Git path without force or history rewriting.
+
+The goal remains active at `1/9` acceptance criteria. Ten visual differences
+remain open for review; the provider and ETF branches still have not reached
+staging; exact-tip full-stack/browser validation remains pending. These do not
+block independent TC work. The one next context is bounded pagination in the
+TC-owned Research Results pane so persisted Study runs older than the newest 25
+can be reached without changing lineage or provider/ETF ownership.
+
+Updated paths: `ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`,
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`, and
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`.
+
+## 2026-10-04 — Pinned visual matrix run at `58975ea`
 
 The full 104-case matrix passed `94/104` at clean branch tip
 `58975ea6bee3e506f64d97506aadf4026c626357` (product source
@@ -28,11 +58,10 @@ remain for the documented review, and the final exact-tip gate is still
 pending. Next independent slice: make older persisted Study runs reachable from
 the Research Results pane, which currently requests only the newest 25.
 
-At tested tip `58975ea6bee3e506f64d97506aadf4026c626357`, the local tracking
-range from `63d64bfe95c98bfe6e550bf69c213ae1cd64a629` contains `1,648`
-commits. It remains unpushed under the exact-payload safeguard; do not use an
-alternate route. The following operational record will be a separate local
-commit, with its final HEAD verified externally.
+At the time this earlier note was written, tip `58975ea6bee3e506f64d97506aadf4026c626357`
+was 1,648 commits ahead and still pending publication. It was subsequently
+published together with the next documentation commit; see the synchronized
+closure entry above.
 
 Updated paths: `docs/tc2000-visual-parity.md`, `docs/tc2000-roadmap.md`,
 `ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`,

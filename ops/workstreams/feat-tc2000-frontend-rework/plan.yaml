@@ -34,10 +34,11 @@ current_blocker: >-
   `65a467b43d7830b0875d9c3ad538e47a06d4a6db`, and ETF at
   `70359fb5e54a1e5238263647b58bdea2f78ddce0`; neither dependency tip is in
   staging, so consumer integration and shared-path reconciliation remain
-  deferred. The current 1,648-commit local push range remains held by the exact
-  payload safeguard; do not use an alternate route. Continue independent
-  R1/R5/R6 work. The full integration/browser gate remains required at the
-  final clean exact tip.
+  deferred. The documentation/evidence commit `31d262ec0e661cef3e3c14dcc8ed55afa81678b0`
+  and its full 1,649-commit range from `63d64bfe95c98bfe6e550bf69c213ae1cd64a629`
+  are now synchronized to the feature remote; no push blocker remains. Continue
+  independent R1/R5/R6 work. The full integration/browser gate remains required
+  at the final clean exact tip.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -275,7 +276,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_current_pinned_visual_matrix
+  current_phase: R6_visual_matrix_published
   next_action: >-
     Make older persisted Study runs reachable from the Research Results pane,
     currently limited to the newest 25, using bounded TC-owned pagination and
