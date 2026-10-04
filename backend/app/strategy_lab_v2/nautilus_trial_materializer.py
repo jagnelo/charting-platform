@@ -13,7 +13,7 @@ from datetime import datetime
 
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.contracts import StrategyPackage, StrategyVersion
+from app.strategy_lab_v2.contracts import StrategyDependency
 from app.strategy_lab_v2.event_tape_artifacts import (
     FrozenEventTapeArtifactResolver,
     FrozenSeriesDecoder,
@@ -23,9 +23,11 @@ from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusVenueDefinition,
 )
 from app.strategy_lab_v2.nautilus_trial_assembly import (
+    NautilusComponentTrialInput,
     NautilusTrialAssemblyError,
     NautilusTrialRuntimeAssembly,
     assemble_nautilus_trial_runtime_input,
+    strategy_runtime_identity,
 )
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolationRequest
 from app.strategy_lab_v2.runtime_execution import (
@@ -33,6 +35,7 @@ from app.strategy_lab_v2.runtime_execution import (
     StrategyRuntimeRequest,
     preflight_strategy_runtime,
 )
+from app.strategy_lab_v2.sdk import StrategyDataDependency, StrategySdkManifest
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.trial_hydration import (
     HydratedNautilusTrial,
@@ -62,6 +65,37 @@ class NautilusTrialMarketContext:
         object.__setattr__(self, "instruments", instruments)
 
 
+def _build_frozen_tape_manifest(
+    graph: HydratedNautilusTrial,
+    component_manifests: list[StrategySdkManifest],
+) -> StrategySdkManifest:
+    """Create the canonical union data binding used to resolve the shared tape."""
+
+    if not component_manifests:
+        raise NautilusTrialAssemblyError("trial has no resolved component data manifests")
+    dependencies_by_id: dict[str, StrategyDataDependency] = {}
+    model_dependencies: set[StrategyDependency] = set()
+    for manifest in component_manifests:
+        for dependency in manifest.data_dependencies:
+            previous = dependencies_by_id.get(dependency.dependency_id)
+            if previous is not None and (
+                previous.requirement != dependency.requirement
+                or previous.fields != dependency.fields
+            ):
+                raise NautilusTrialAssemblyError(
+                    f"strategies reuse data dependency id {dependency.dependency_id!r} with conflicting semantics"
+                )
+            if previous is None or dependency.lookback_periods > previous.lookback_periods:
+                dependencies_by_id[dependency.dependency_id] = dependency
+        model_dependencies.update(manifest.model_dependencies)
+    primary_strategy = graph.strategies[0]
+    return StrategySdkManifest(
+        strategy=primary_strategy,
+        data_dependencies=tuple(dependencies_by_id.values()),
+        model_dependencies=tuple(model_dependencies),
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class MaterializedNautilusTrialInput:
     """Owner-hydrated graph and its exact content-addressed runtime bundle."""
@@ -85,9 +119,9 @@ class MaterializedNautilusTrialInput:
             raise ValueError("materialized runtime input differs from the hydrated trial graph")
         if self.assembly.runtime_input_artifact.trial_binding != self.assembly.trial_binding:
             raise ValueError("runtime artifact is missing its exact trial assembly binding")
-        package_fingerprints = set(self.graph.experiment.strategy_package_fingerprints.values())
-        if self.assembly.strategy_package_fingerprint not in package_fingerprints:
-            raise ValueError("materialized runtime package is not pinned by the experiment")
+        identity = strategy_runtime_identity(self.graph.strategies, self.graph.packages)
+        if self.assembly.strategy_package_fingerprint != identity.package_fingerprint:
+            raise ValueError("materialized runtime package set differs from the experiment")
 
     @property
     def fingerprint(self) -> str:
@@ -120,35 +154,15 @@ class NautilusTrialRuntimeEvidence:
             raise ValueError("runtime request must reference the materialized attempt")
         if self.runtime_request.package_fingerprint != assembly.strategy_package_fingerprint:
             raise ValueError("runtime request package differs from the materialized input")
-        strategy_package = next(
-            (
-                package
-                for package in graph.packages.values()
-                if package.fingerprint == assembly.strategy_package_fingerprint
-            ),
-            None,
-        )
-        if strategy_package is None:
-            raise ValueError("runtime request package is missing from the hydrated trial graph")
-        strategy = next(
-            (
-                item
-                for item in graph.strategies
-                if item.fingerprint == strategy_package.strategy_fingerprint
-            ),
-            None,
-        )
-        if strategy is None:
-            raise ValueError("runtime request strategy is missing from the hydrated trial graph")
-        if self.runtime_request.source_digest != strategy.source_digest:
-            raise ValueError("runtime request source differs from the hydrated trial graph")
-        if self.runtime_request.entrypoint != strategy_package.entrypoint:
-            raise ValueError("runtime request entrypoint differs from the hydrated trial graph")
-        expected_dependencies = tuple(
-            dependency.artifact_digest for dependency in strategy.dependencies
-        )
-        if self.runtime_request.isolation_request.dependency_digests != expected_dependencies:
-            raise ValueError("runtime request dependencies differ from the strategy package")
+        identity = strategy_runtime_identity(graph.strategies, graph.packages)
+        if self.runtime_request.package_fingerprint != identity.package_fingerprint:
+            raise ValueError("runtime request package set differs from the hydrated trial graph")
+        if self.runtime_request.source_digest != identity.source_digest:
+            raise ValueError("runtime request sources differ from the hydrated trial graph")
+        if self.runtime_request.entrypoint != identity.entrypoint:
+            raise ValueError("runtime request entrypoint differs from the package set")
+        if self.runtime_request.isolation_request.dependency_digests != identity.dependency_digests:
+            raise ValueError("runtime request dependencies differ from the strategy package set")
         if (
             self.runtime_request.input_bundle_digest
             != assembly.runtime_input_artifact.input_bundle_digest
@@ -187,41 +201,20 @@ def build_nautilus_trial_runtime_evidence(
         raise TypeError("runtime_profile must be a RuntimeIsolationProfile")
     graph = materialized_input.graph
     assembly = materialized_input.assembly
-    strategy_package = next(
-        (
-            package
-            for package in graph.packages.values()
-            if package.fingerprint == assembly.strategy_package_fingerprint
-        ),
-        None,
-    )
-    if strategy_package is None:
-        raise ValueError("materialized strategy package differs from the trial graph")
-    strategy = next(
-        (
-            item
-            for item in graph.strategies
-            if item.fingerprint == strategy_package.strategy_fingerprint
-        ),
-        None,
-    )
-    if strategy is None:
-        raise ValueError("materialized strategy source is not present in the trial graph")
-    if runtime_profile.runtime_abi != strategy_package.runtime_abi:
+    identity = strategy_runtime_identity(graph.strategies, graph.packages)
+    if runtime_profile.runtime_abi != identity.runtime_abi:
         raise ValueError("runtime isolation ABI differs from the pinned strategy package")
     runtime_request = StrategyRuntimeRequest(
         request_id=request_id,
         attempt_id=assembly.attempt_id,
-        package_fingerprint=assembly.strategy_package_fingerprint,
-        source_digest=strategy.source_digest,
+        package_fingerprint=identity.package_fingerprint,
+        source_digest=identity.source_digest,
         input_bundle_digest=assembly.runtime_input_artifact.input_bundle_digest,
         runtime_profile_fingerprint=runtime_profile.fingerprint,
-        entrypoint=strategy_package.entrypoint,
+        entrypoint=identity.entrypoint,
         isolation_request=RuntimeIsolationRequest(
             attempt_id=assembly.attempt_id,
-            dependency_digests=tuple(
-                dependency.artifact_digest for dependency in strategy.dependencies
-            ),
+            dependency_digests=identity.dependency_digests,
         ),
         submitted_at=submitted_at,
     )
@@ -296,9 +289,40 @@ class NautilusTrialRuntimeInputMaterializer:
         if not isinstance(market_context, NautilusTrialMarketContext):
             raise TypeError("market_context must be a NautilusTrialMarketContext")
         self._require_portfolio_instruments(graph, market_context)
-        strategy, strategy_package = self._single_strategy_package(graph)
-        resolved_package = self._strategy_package_resolver.resolve(strategy_package, strategy)
-        event_tape = self._event_tape_resolver.resolve(graph.snapshot, resolved_package.manifest)
+        strategies_by_fingerprint = {item.fingerprint: item for item in graph.strategies}
+        resolved_component_inputs: list[NautilusComponentTrialInput] = []
+        resolved_manifests: list[StrategySdkManifest] = []
+        for component in graph.portfolio.components:
+            strategy = strategies_by_fingerprint.get(component.strategy_fingerprint)
+            strategy_package = graph.packages.get(component.strategy_fingerprint)
+            if strategy is None or strategy_package is None:
+                raise NautilusTrialAssemblyError(
+                    f"portfolio component {component.component_id!r} has no hydrated strategy package"
+                )
+            resolved_package = self._strategy_package_resolver.resolve(
+                strategy_package,
+                strategy,
+            )
+            resolved_component_inputs.append(
+                NautilusComponentTrialInput(
+                    component_id=component.component_id,
+                    strategy_package=strategy_package,
+                    strategy_manifest=resolved_package.manifest,
+                    strategy_source=resolved_package.source,
+                    max_intents_per_event=self._max_intents_per_event,
+                )
+            )
+            resolved_manifests.append(resolved_package.manifest)
+        tape_manifest = _build_frozen_tape_manifest(graph, resolved_manifests)
+        expected_instruments = {
+            dependency.requirement.instrument_id for dependency in tape_manifest.data_dependencies
+        }
+        observed_instruments = {item.instrument_id for item in market_context.instruments}
+        if observed_instruments != expected_instruments:
+            raise NautilusTrialAssemblyError(
+                "canonical market context must resolve every frozen-tape instrument exactly"
+            )
+        event_tape = self._event_tape_resolver.resolve(graph.snapshot, tape_manifest)
         assembly = assemble_nautilus_trial_runtime_input(
             attempt=graph.attempt,
             trial=graph.trial,
@@ -306,42 +330,14 @@ class NautilusTrialRuntimeInputMaterializer:
             portfolio=graph.portfolio,
             snapshot=graph.snapshot,
             event_tape=event_tape,
-            strategy_package=strategy_package,
-            strategy_manifest=resolved_package.manifest,
-            strategy_source=resolved_package.source,
+            strategy_manifest=tape_manifest,
             instruments=market_context.instruments,
             venue=market_context.venue,
             artifact_store=self._artifact_store,
             max_intents_per_event=self._max_intents_per_event,
+            component_inputs=tuple(resolved_component_inputs),
         )
         return MaterializedNautilusTrialInput(graph, assembly)
-
-    @staticmethod
-    def _single_strategy_package(
-        graph: HydratedNautilusTrial,
-    ) -> tuple[StrategyVersion, StrategyPackage]:
-        if len(graph.experiment.strategy_fingerprints) != 1:
-            raise NautilusTrialAssemblyError(
-                "current Nautilus worker materializer requires exactly one strategy"
-            )
-        strategy_fingerprint = graph.experiment.strategy_fingerprints[0]
-        strategy = next(
-            (item for item in graph.strategies if item.fingerprint == strategy_fingerprint),
-            None,
-        )
-        package_fingerprint = graph.experiment.strategy_package_fingerprints.get(
-            strategy_fingerprint
-        )
-        strategy_package = graph.packages.get(strategy_fingerprint)
-        if strategy is None or strategy_package is None:
-            raise NautilusTrialAssemblyError(
-                "persisted experiment is missing its strategy or pinned package"
-            )
-        if strategy_package.fingerprint != package_fingerprint:
-            raise NautilusTrialAssemblyError(
-                "persisted strategy package differs from the experiment binding"
-            )
-        return strategy, strategy_package
 
     @staticmethod
     def _require_portfolio_instruments(
@@ -354,9 +350,9 @@ class NautilusTrialRuntimeInputMaterializer:
             for instrument_id in component.instrument_ids
         }
         observed = {item.instrument_id for item in market_context.instruments}
-        if observed != expected:
+        if not expected.issubset(observed):
             raise NautilusTrialAssemblyError(
-                "canonical market context must resolve every portfolio instrument exactly"
+                "canonical market context must resolve every portfolio instrument"
             )
 
 

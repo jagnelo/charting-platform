@@ -14,6 +14,7 @@ from typing import Protocol
 
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.nautilus_runtime_bundle import NautilusRuntimeInputArtifactReference
+from app.strategy_lab_v2.nautilus_trial_assembly import strategy_runtime_identity
 from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.runtime_execution import StrategyRuntimeRequest
@@ -149,31 +150,17 @@ def _require_persisted_trial_binding(
         raise TypeError("runtime_input_artifact must be a NautilusRuntimeInputArtifactReference")
     if runtime_input_artifact.input_bundle_digest != runtime_request.input_bundle_digest:
         raise ValueError("worker runtime artifact differs from the runtime request bundle")
-    package_fingerprint = runtime_request.package_fingerprint
-    strategy_package = next(
-        (
-            package
-            for package in hydrated.packages.values()
-            if package.fingerprint == package_fingerprint
-        ),
-        None,
-    )
-    if strategy_package is None:
-        raise ValueError("worker runtime package is not pinned by the persisted experiment")
-    strategy = next(
-        (
-            item
-            for item in hydrated.strategies
-            if item.fingerprint == strategy_package.strategy_fingerprint
-        ),
-        None,
-    )
-    if strategy is None:
-        raise ValueError("worker package strategy is not present in the persisted experiment")
-    if runtime_request.source_digest != strategy.source_digest:
-        raise ValueError("worker runtime source differs from the persisted strategy version")
-    if runtime_request.entrypoint != strategy_package.entrypoint:
-        raise ValueError("worker runtime entrypoint differs from the pinned strategy package")
+    identity = strategy_runtime_identity(hydrated.strategies, hydrated.packages)
+    if runtime_request.package_fingerprint != identity.package_fingerprint:
+        raise ValueError(
+            "worker runtime package is not pinned by the persisted experiment package set"
+        )
+    if runtime_request.source_digest != identity.source_digest:
+        raise ValueError("worker runtime source differs from the persisted strategy set")
+    if runtime_request.entrypoint != identity.entrypoint:
+        raise ValueError("worker runtime entrypoint differs from the pinned package set")
+    if runtime_request.isolation_request.dependency_digests != identity.dependency_digests:
+        raise ValueError("worker runtime dependencies differ from the persisted package set")
     trial_binding = runtime_input_artifact.trial_binding
     if trial_binding is None:
         raise ValueError("worker runtime artifact is missing its persisted trial-input binding")
@@ -183,7 +170,7 @@ def _require_persisted_trial_binding(
         hydrated.experiment.fingerprint,
         hydrated.portfolio.fingerprint,
         hydrated.snapshot.fingerprint,
-        strategy_package.fingerprint,
+        identity.package_fingerprint,
     )
     actual_domain_binding = (
         trial_binding.attempt_id,

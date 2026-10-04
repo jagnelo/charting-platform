@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 from datetime import timedelta
+from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -26,6 +27,7 @@ from app.strategy_lab_v2.nautilus_trial_materializer import (
     build_nautilus_trial_runtime_evidence,
 )
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
+from app.strategy_lab_v2.sdk import StrategySdkManifest
 from app.strategy_lab_v2.strategy_package_resolution import (
     STRATEGY_PACKAGE_LOCK_MEMBER,
     STRATEGY_PACKAGE_MANIFEST_MEMBER,
@@ -138,6 +140,94 @@ def _build_inputs(tmp_path: Path):
     return values, graph, store
 
 
+def _add_second_strategy(values, graph, store):
+    first_strategy = graph.strategies[0]
+    first_package = graph.packages[first_strategy.fingerprint]
+    second_strategy = replace(first_strategy, version_id="v2")
+    second_manifest = StrategySdkManifest(
+        second_strategy,
+        values["strategy_manifest"].data_dependencies,
+    )
+    manifest_bytes = serialize_strategy_manifest(second_manifest).encode("utf-8")
+    lock_bytes = canonical_json(second_strategy.dependencies).encode("utf-8")
+    archive_buffer = BytesIO()
+    with ZipFile(archive_buffer, mode="w", compression=ZIP_DEFLATED) as archive:
+        archive.writestr(STRATEGY_PACKAGE_MANIFEST_MEMBER, manifest_bytes)
+        archive.writestr(STRATEGY_PACKAGE_LOCK_MEMBER, lock_bytes)
+        archive.writestr("strategy/main.py", values["strategy_source"].encode("utf-8"))
+    archive_bytes = archive_buffer.getvalue()
+    second_package = replace(
+        first_package,
+        package_id="package-materializer-test-v2",
+        strategy_fingerprint=second_strategy.fingerprint,
+        archive_digest=artifact_content_digest(archive_bytes),
+        manifest_digest=artifact_content_digest(manifest_bytes),
+        dependency_lock_digest=artifact_content_digest(lock_bytes),
+        archive_byte_length=len(archive_bytes),
+    )
+    store.publish(
+        ArtifactManifest(
+            second_package.archive_digest,
+            len(archive_bytes),
+            STRATEGY_SOURCE_ARCHIVE_MEDIA_TYPE,
+            STRATEGY_SOURCE_ARCHIVE_SCHEMA,
+            second_package.archive_digest,
+            ArtifactRetention.PINNED_INPUT,
+        ),
+        archive_bytes,
+    )
+    base_component = graph.portfolio.components[0]
+    portfolio = replace(
+        graph.portfolio,
+        components=(
+            replace(
+                base_component,
+                component_id="component-a",
+                capital_weight=Decimal("0.5"),
+            ),
+            replace(
+                base_component,
+                component_id="component-b",
+                strategy_fingerprint=second_strategy.fingerprint,
+                capital_weight=Decimal("0.5"),
+            ),
+        ),
+    )
+    experiment = replace(
+        graph.experiment,
+        portfolio_fingerprint=portfolio.fingerprint,
+        strategy_fingerprints=(first_strategy.fingerprint, second_strategy.fingerprint),
+        strategy_package_fingerprints={
+            first_strategy.fingerprint: first_package.fingerprint,
+            second_strategy.fingerprint: second_package.fingerprint,
+        },
+    )
+    prior_trial = graph.trial
+    trial = ScientificTrial.create(
+        experiment_fingerprint=experiment.fingerprint,
+        snapshot_fingerprint=graph.snapshot.fingerprint,
+        preflight_report=prior_trial.preflight_report,
+        parameter_set=prior_trial.parameter_set,
+        scenario=prior_trial.scenario,
+        seed=prior_trial.seed,
+        randomization=prior_trial.randomization,
+        evaluation_window=prior_trial.evaluation_window,
+    )
+    multi_graph = HydratedNautilusTrial(
+        attempt=replace(graph.attempt, trial_id=trial.trial_id),
+        trial=trial,
+        experiment=experiment,
+        portfolio=portfolio,
+        snapshot=graph.snapshot,
+        strategies=(first_strategy, second_strategy),
+        packages={
+            first_strategy.fingerprint: first_package,
+            second_strategy.fingerprint: second_package,
+        },
+    )
+    return multi_graph
+
+
 def test_materializer_resolves_owner_graph_and_verified_inputs(tmp_path: Path) -> None:
     values, graph, store = _build_inputs(tmp_path)
     market_context = NautilusTrialMarketContext(values["instruments"], values["venue"])
@@ -166,6 +256,62 @@ def test_materializer_resolves_owner_graph_and_verified_inputs(tmp_path: Path) -
         max_input_bytes=1_000_000,
     )
     assert bundle.input_bundle_digest == result.assembly.runtime_input_artifact.input_bundle_digest
+
+
+def test_materializer_resolves_every_strategy_in_a_shared_portfolio(tmp_path: Path) -> None:
+    values, single_graph, store = _build_inputs(tmp_path)
+    graph = _add_second_strategy(values, single_graph, store)
+    materializer = NautilusTrialRuntimeInputMaterializer(
+        artifact_store=store,
+        strategy_package_resolver=StrategyPackageArtifactResolver(
+            store,
+            runtime_abi=RUNTIME_ABI,
+        ),
+        series_decoder=JsonFrozenSeriesDecoder(),
+    )
+
+    materialized = materializer.materialize(
+        graph=graph,
+        market_context=NautilusTrialMarketContext(values["instruments"], values["venue"]),
+    )
+    bundle = load_materialized_nautilus_runtime_bundle(
+        materialized.assembly.runtime_input_artifact,
+        store,
+        max_input_bytes=1_000_000,
+    )
+
+    assert bundle.context_stream is not None
+    assert dict(bundle.context_stream.component_counts) == {"component-a": 2, "component-b": 2}
+    assert materialized.assembly.strategy_package_fingerprint != next(
+        iter(graph.experiment.strategy_package_fingerprints.values())
+    )
+    strategies_by_fingerprint = {item.fingerprint: item for item in graph.strategies}
+    packages_by_fingerprint = graph.packages
+    primary_strategy_fingerprint = graph.experiment.strategy_fingerprints[0]
+    profile = RuntimeIsolationProfile(
+        runtime_image_digest=content_digest("multi-strategy-runtime-image"),
+        runtime_abi=RUNTIME_ABI,
+        allowed_dependency_digests=frozenset(
+            dependency.artifact_digest
+            for strategy in graph.strategies
+            for dependency in strategy.dependencies
+        ),
+    )
+    evidence = build_nautilus_trial_runtime_evidence(
+        materialized,
+        profile,
+        request_id=content_digest("multi-strategy-runtime-request"),
+        submitted_at=BASE,
+    )
+    assert (
+        evidence.runtime_request.entrypoint
+        == packages_by_fingerprint[primary_strategy_fingerprint].entrypoint
+    )
+    assert (
+        evidence.runtime_request.source_digest
+        != strategies_by_fingerprint[primary_strategy_fingerprint].source_digest
+    )
+    assert evidence.runtime_preflight.accepted is True
 
 
 def test_runtime_evidence_is_derived_from_materialized_package_and_bundle(tmp_path: Path) -> None:

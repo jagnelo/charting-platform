@@ -2,15 +2,18 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import ScientificTrial
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.nautilus_runtime_bundle import NautilusTrialInputBinding
+from app.strategy_lab_v2.nautilus_trial_assembly import strategy_runtime_identity
 from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.search_worker_handoff import (
@@ -184,15 +187,18 @@ async def test_authenticated_materializer_rejects_missing_record_and_handoff_dri
 def test_persisted_trial_binding_checks_experiment_package_source_and_entrypoint(
     tmp_path: Path,
 ) -> None:
-    values, graph = _hydrated_graph()
-    strategy = values["strategy_manifest"].strategy
-    package = values["strategy_package"]
+    _values, graph = _hydrated_graph()
+    identity = strategy_runtime_identity(graph.strategies, graph.packages)
     request_template = _request(tmp_path)
     runtime_request = replace(
         request_template.runtime_request,
-        package_fingerprint=package.fingerprint,
-        source_digest=strategy.source_digest,
-        entrypoint=package.entrypoint,
+        package_fingerprint=identity.package_fingerprint,
+        source_digest=identity.source_digest,
+        entrypoint=identity.entrypoint,
+        isolation_request=replace(
+            request_template.runtime_request.isolation_request,
+            dependency_digests=identity.dependency_digests,
+        ),
     )
     runtime_input_artifact = replace(
         request_template.runtime_input_artifact,
@@ -241,6 +247,20 @@ def test_persisted_trial_binding_checks_experiment_package_source_and_entrypoint
             runtime_input_artifact=runtime_input_artifact,
         )
 
+    with pytest.raises(ValueError, match="dependencies differ"):
+        _require_persisted_trial_binding(
+            graph,
+            experiment_fingerprint=graph.experiment.fingerprint,
+            runtime_request=replace(
+                runtime_request,
+                isolation_request=replace(
+                    runtime_request.isolation_request,
+                    dependency_digests=(content_digest("unbound-dependency"),),
+                ),
+            ),
+            runtime_input_artifact=runtime_input_artifact,
+        )
+
     with pytest.raises(ValueError, match="missing its persisted trial-input binding"):
         _require_persisted_trial_binding(
             graph,
@@ -262,6 +282,103 @@ def test_persisted_trial_binding_checks_experiment_package_source_and_entrypoint
                 ),
             ),
         )
+
+
+def test_persisted_trial_binding_authenticates_a_multi_strategy_package_set(
+    tmp_path: Path,
+) -> None:
+    _values, single_graph = _hydrated_graph()
+    first_strategy = single_graph.strategies[0]
+    first_package = single_graph.packages[first_strategy.fingerprint]
+    second_strategy = replace(first_strategy, version_id="v2")
+    second_package = replace(
+        first_package,
+        package_id="package-2",
+        strategy_fingerprint=second_strategy.fingerprint,
+        archive_digest=content_digest("archive-2"),
+        manifest_digest=content_digest("manifest-2"),
+        dependency_lock_digest=content_digest("dependency-lock-2"),
+    )
+    base_component = single_graph.portfolio.components[0]
+    portfolio = replace(
+        single_graph.portfolio,
+        components=(
+            replace(
+                base_component,
+                component_id="component-a",
+                capital_weight=Decimal("0.5"),
+            ),
+            replace(
+                base_component,
+                component_id="component-b",
+                strategy_fingerprint=second_strategy.fingerprint,
+                capital_weight=Decimal("0.5"),
+            ),
+        ),
+    )
+    experiment = replace(
+        single_graph.experiment,
+        portfolio_fingerprint=portfolio.fingerprint,
+        strategy_fingerprints=(first_strategy.fingerprint, second_strategy.fingerprint),
+        strategy_package_fingerprints={
+            first_strategy.fingerprint: first_package.fingerprint,
+            second_strategy.fingerprint: second_package.fingerprint,
+        },
+    )
+    previous_trial = single_graph.trial
+    trial = ScientificTrial.create(
+        experiment_fingerprint=experiment.fingerprint,
+        snapshot_fingerprint=single_graph.snapshot.fingerprint,
+        preflight_report=previous_trial.preflight_report,
+        parameter_set=previous_trial.parameter_set,
+        scenario=previous_trial.scenario,
+        seed=previous_trial.seed,
+        randomization=previous_trial.randomization,
+    )
+    graph = HydratedNautilusTrial(
+        attempt=replace(single_graph.attempt, trial_id=trial.trial_id),
+        trial=trial,
+        experiment=experiment,
+        portfolio=portfolio,
+        snapshot=single_graph.snapshot,
+        strategies=(first_strategy, second_strategy),
+        packages={
+            first_strategy.fingerprint: first_package,
+            second_strategy.fingerprint: second_package,
+        },
+    )
+    identity = strategy_runtime_identity(graph.strategies, graph.packages)
+    request_template = _request(tmp_path)
+    runtime_request = replace(
+        request_template.runtime_request,
+        package_fingerprint=identity.package_fingerprint,
+        source_digest=identity.source_digest,
+        entrypoint=identity.entrypoint,
+        isolation_request=replace(
+            request_template.runtime_request.isolation_request,
+            dependency_digests=identity.dependency_digests,
+        ),
+    )
+    runtime_input_artifact = replace(
+        request_template.runtime_input_artifact,
+        trial_binding=NautilusTrialInputBinding(
+            attempt_id=graph.attempt.attempt_id,
+            trial_fingerprint=graph.trial.trial_id,
+            experiment_fingerprint=graph.experiment.fingerprint,
+            portfolio_fingerprint=graph.portfolio.fingerprint,
+            snapshot_fingerprint=graph.snapshot.fingerprint,
+            strategy_package_fingerprint=identity.package_fingerprint,
+            engine_input_fingerprint=content_digest("multi-engine-input"),
+            invocation_input_digest=content_digest("multi-invocation-input"),
+        ),
+    )
+
+    _require_persisted_trial_binding(
+        graph,
+        experiment_fingerprint=graph.experiment.fingerprint,
+        runtime_request=runtime_request,
+        runtime_input_artifact=runtime_input_artifact,
+    )
 
 
 @pytest.mark.asyncio

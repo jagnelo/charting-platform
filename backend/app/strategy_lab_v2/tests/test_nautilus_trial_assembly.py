@@ -54,11 +54,16 @@ from app.strategy_lab_v2.nautilus_runtime_bundle import (
     load_materialized_nautilus_runtime_bundle,
 )
 from app.strategy_lab_v2.nautilus_trial_assembly import (
+    NautilusComponentTrialInput,
     NautilusTrialAssemblyError,
     assemble_nautilus_trial_runtime_input,
+    strategy_package_set_fingerprint,
 )
 from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
-from strategy_runtime import deserialize_invocation_context_stream
+from strategy_runtime import (
+    deserialize_component_invocation_context_stream,
+    deserialize_invocation_context_stream,
+)
 
 BASE = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
 SOURCE = "class Strategy:\n    def on_event(self, context):\n        return []\n"
@@ -482,7 +487,107 @@ def test_trial_assembly_rejects_unapplied_scenario_and_evaluation_window(
         )
 
 
-def test_trial_assembly_fails_closed_for_multi_component_portfolios(tmp_path) -> None:
+def test_trial_assembly_binds_each_component_strategy_and_context_stream(tmp_path) -> None:
+    values = _inputs()
+    base_strategy = values["strategy_manifest"].strategy
+    first_package = values["strategy_package"]
+    second_strategy = replace(base_strategy, version_id="v2")
+    second_manifest = StrategySdkManifest(
+        second_strategy,
+        values["strategy_manifest"].data_dependencies,
+    )
+    second_package = replace(
+        first_package,
+        package_id="package-2",
+        strategy_fingerprint=second_strategy.fingerprint,
+        archive_digest=content_digest("archive-2"),
+        manifest_digest=content_digest("manifest-2"),
+        dependency_lock_digest=content_digest("dependency-lock-2"),
+    )
+    base_component = values["portfolio"].components[0]
+    first_component = replace(
+        base_component,
+        component_id="component-1a",
+        capital_weight=Decimal("0.5"),
+    )
+    second_component = replace(
+        base_component,
+        component_id="component-1b",
+        strategy_fingerprint=second_strategy.fingerprint,
+        capital_weight=Decimal("0.5"),
+    )
+    portfolio = PortfolioComposition(
+        values["portfolio"].portfolio_id,
+        values["portfolio"].version_id,
+        values["portfolio"].initial_capital,
+        values["portfolio"].base_currency,
+        (first_component, second_component),
+    )
+    experiment = replace(
+        values["experiment"],
+        portfolio_fingerprint=portfolio.fingerprint,
+        strategy_fingerprints=(base_strategy.fingerprint, second_strategy.fingerprint),
+        strategy_package_fingerprints={
+            base_strategy.fingerprint: first_package.fingerprint,
+            second_strategy.fingerprint: second_package.fingerprint,
+        },
+    )
+    trial = ScientificTrial.create(
+        experiment_fingerprint=experiment.fingerprint,
+        snapshot_fingerprint=values["snapshot"].fingerprint,
+        preflight_report=values["snapshot"].preflight_report,
+        parameter_set={"window": 20},
+        scenario={},
+        seed=13,
+    )
+    component_inputs = (
+        NautilusComponentTrialInput(
+            "component-1a",
+            first_package,
+            values["strategy_manifest"],
+            values["strategy_source"],
+        ),
+        NautilusComponentTrialInput(
+            "component-1b",
+            second_package,
+            second_manifest,
+            SOURCE,
+        ),
+    )
+    values["portfolio"] = portfolio
+    values["experiment"] = experiment
+    values["trial"] = trial
+    values["attempt"] = replace(values["attempt"], trial_id=trial.trial_id)
+    values["strategy_package"] = None
+    values["strategy_source"] = None
+    assembly = assemble_nautilus_trial_runtime_input(
+        **values,
+        component_inputs=component_inputs,
+        artifact_store=LocalArtifactStore(tmp_path / "artifacts"),
+    )
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    bundle = load_materialized_nautilus_runtime_bundle(
+        assembly.runtime_input_artifact,
+        store=store,
+        max_input_bytes=1_000_000,
+    )
+    assert bundle.context_stream is not None
+    expected_counts = {"component-1a": 2, "component-1b": 2}
+    assert dict(bundle.context_stream.component_counts) == expected_counts
+    bindings, contexts = deserialize_component_invocation_context_stream(
+        BytesIO(store.read(bundle.context_stream.artifact.storage_key)),
+        expected_component_counts=expected_counts,
+    )
+    assert set(bindings) == set(expected_counts)
+    assert {component_id for component_id, _context in contexts} == set(expected_counts)
+    assert assembly.strategy_package_fingerprint == strategy_package_set_fingerprint(
+        experiment.strategy_package_fingerprints
+    )
+
+
+def test_trial_assembly_requires_per_component_inputs_for_multi_component_portfolios(
+    tmp_path,
+) -> None:
     values = _inputs()
     portfolio = values["portfolio"]
     component = portfolio.components[0]
@@ -497,7 +602,10 @@ def test_trial_assembly_fails_closed_for_multi_component_portfolios(tmp_path) ->
         ),
     )
 
-    with pytest.raises(NautilusTrialAssemblyError, match="exactly one portfolio component"):
+    with pytest.raises(
+        NautilusTrialAssemblyError,
+        match="multi-component runtime assembly requires one resolved input per component",
+    ):
         assemble_nautilus_trial_runtime_input(
             **values,
             artifact_store=LocalArtifactStore(tmp_path / "artifacts"),

@@ -1,20 +1,17 @@
 """Assemble immutable Strategy Lab trial inputs for the isolated Nautilus worker.
 
-This producer deliberately implements only the account shape the current
-native bridge can execute correctly: one fully funded strategy component,
-without an evaluation cut or scenario transform. It validates that narrow
-engine capability against the complete domain records before publishing any
-worker artifact. Unsupported portfolio shapes remain explicit errors rather
-than being flattened into a misleading single-strategy simulation.
+This producer validates the shared account shape and each component's pinned
+strategy/data identity before publishing a worker artifact. Unsupported
+portfolio transforms remain explicit errors rather than being flattened into
+a misleading simulation.
 Materialization itself does not dispatch a worker or authorize order routing;
 allocation/risk integration and authoritative publication remain separate gates.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from decimal import Decimal
 
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -34,6 +31,7 @@ from app.strategy_lab_v2.event_tape_artifacts import (
     iter_verified_event_tape_stream,
 )
 from app.strategy_lab_v2.nautilus_engine_input import (
+    NautilusComponentStrategyBinding,
     NautilusInstrumentDefinition,
     NautilusVenueDefinition,
     build_nautilus_engine_input,
@@ -48,6 +46,7 @@ from app.strategy_lab_v2.nautilus_runtime_bundle import (
     NautilusRuntimeInputArtifactReference,
     NautilusTrialInputBinding,
     build_nautilus_runtime_bundle,
+    materialize_nautilus_component_context_stream_artifact,
     materialize_nautilus_context_stream_artifact,
     materialize_nautilus_native_event_stream_artifact,
     materialize_nautilus_runtime_bundle,
@@ -55,10 +54,165 @@ from app.strategy_lab_v2.nautilus_runtime_bundle import (
 from app.strategy_lab_v2.replay import iter_event_tape_contexts
 from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
+from strategy_runtime import InvocationContextStreamSource
 
 
 class NautilusTrialAssemblyError(ValueError):
     """A durable trial cannot be represented by the current Nautilus input contract."""
+
+
+@dataclass(frozen=True, slots=True)
+class NautilusStrategyRuntimeIdentity:
+    """Runtime security/provenance identity for all strategies in one trial."""
+
+    package_fingerprint: str
+    source_digest: str
+    entrypoint: str
+    dependency_digests: tuple[str, ...]
+    runtime_abi: str
+
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.package_fingerprint, field_name="package_fingerprint")
+        require_sha256_digest(self.source_digest, field_name="source_digest")
+        if not isinstance(self.entrypoint, str) or not self.entrypoint.strip():
+            raise ValueError("entrypoint must not be empty")
+        dependencies = tuple(self.dependency_digests)
+        for digest in dependencies:
+            require_sha256_digest(digest, field_name="dependency_digest")
+        if len(dependencies) != len(set(dependencies)):
+            raise ValueError("runtime dependency digests must be unique")
+        if not isinstance(self.runtime_abi, str) or not self.runtime_abi.strip():
+            raise ValueError("runtime_abi must not be empty")
+        object.__setattr__(self, "dependency_digests", dependencies)
+
+
+def strategy_package_set_fingerprint(package_bindings: Mapping[str, str]) -> str:
+    """Return the stable identity for one or more experiment-pinned packages."""
+
+    if not isinstance(package_bindings, Mapping) or not package_bindings:
+        raise ValueError("strategy package bindings must be a non-empty mapping")
+    bindings = tuple(sorted(package_bindings.items()))
+    for strategy_fingerprint, package_fingerprint in bindings:
+        require_sha256_digest(strategy_fingerprint, field_name="strategy_fingerprint")
+        require_sha256_digest(package_fingerprint, field_name="package_fingerprint")
+    if len(bindings) == 1:
+        return bindings[0][1]
+    return content_digest(
+        {
+            "schema": "strategy-lab.strategy-package-set.v1",
+            "bindings": bindings,
+        }
+    )
+
+
+def strategy_source_set_digest(strategies: Sequence[StrategyVersion]) -> str:
+    """Bind the exact source set embedded in a multi-component runtime bundle."""
+
+    if (
+        not isinstance(strategies, Sequence)
+        or not strategies
+        or any(not isinstance(item, StrategyVersion) for item in strategies)
+    ):
+        raise ValueError("strategies must be a non-empty sequence of StrategyVersion values")
+    sources = tuple(sorted({(item.fingerprint, item.source_digest) for item in strategies}))
+    if len(sources) == 1:
+        return sources[0][1]
+    return content_digest(
+        {
+            "schema": "strategy-lab.strategy-source-set.v1",
+            "sources": sources,
+        }
+    )
+
+
+def strategy_runtime_identity(
+    strategies: Sequence[StrategyVersion],
+    packages: Mapping[str, StrategyPackage],
+) -> NautilusStrategyRuntimeIdentity:
+    """Derive one exact worker identity from a complete strategy/package set."""
+
+    if (
+        not isinstance(strategies, Sequence)
+        or not strategies
+        or any(not isinstance(item, StrategyVersion) for item in strategies)
+    ):
+        raise ValueError("strategies must be a non-empty sequence of StrategyVersion values")
+    if not isinstance(packages, Mapping) or any(
+        not isinstance(item, StrategyPackage) for item in packages.values()
+    ):
+        raise TypeError("packages must map strategy fingerprints to StrategyPackage values")
+    strategies_by_fingerprint = {item.fingerprint: item for item in strategies}
+    if len(strategies_by_fingerprint) != len(strategies) or set(packages) != set(
+        strategies_by_fingerprint
+    ):
+        raise ValueError("runtime strategy and package sets must match exactly")
+    for strategy_fingerprint, strategy in strategies_by_fingerprint.items():
+        package = packages[strategy_fingerprint]
+        if package.strategy_fingerprint != strategy_fingerprint:
+            raise ValueError("runtime package references a different strategy")
+        if package.sdk_version != strategy.sdk_version:
+            raise ValueError("runtime package SDK version differs from its strategy")
+    bindings = {
+        strategy_fingerprint: package.fingerprint
+        for strategy_fingerprint, package in packages.items()
+    }
+    ordered_strategies = tuple(
+        strategies_by_fingerprint[fingerprint] for fingerprint in sorted(strategies_by_fingerprint)
+    )
+    ordered_packages = tuple(packages[strategy.fingerprint] for strategy in ordered_strategies)
+    runtime_abis = {package.runtime_abi for package in ordered_packages}
+    if len(runtime_abis) != 1:
+        raise ValueError("all strategy packages in one Nautilus trial must share a runtime ABI")
+    if len(ordered_strategies) == 1:
+        dependency_digests = tuple(
+            dependency.artifact_digest for dependency in ordered_strategies[0].dependencies
+        )
+    else:
+        dependency_digests = tuple(
+            sorted(
+                {
+                    dependency.artifact_digest
+                    for strategy in ordered_strategies
+                    for dependency in strategy.dependencies
+                }
+            )
+        )
+    return NautilusStrategyRuntimeIdentity(
+        package_fingerprint=strategy_package_set_fingerprint(bindings),
+        source_digest=strategy_source_set_digest(ordered_strategies),
+        entrypoint=ordered_packages[0].entrypoint,
+        dependency_digests=dependency_digests,
+        runtime_abi=next(iter(runtime_abis)),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class NautilusComponentTrialInput:
+    """Resolved immutable strategy package and SDK inputs for one portfolio component."""
+
+    component_id: str
+    strategy_package: StrategyPackage
+    strategy_manifest: StrategySdkManifest
+    strategy_source: str
+    max_intents_per_event: int = 100
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.component_id, str) or not self.component_id.strip():
+            raise ValueError("component_id must not be empty")
+        if any(character in self.component_id for character in "\x00\r\n"):
+            raise ValueError("component_id must not contain control characters")
+        if not isinstance(self.strategy_package, StrategyPackage):
+            raise TypeError("strategy_package must be a StrategyPackage")
+        if not isinstance(self.strategy_manifest, StrategySdkManifest):
+            raise TypeError("strategy_manifest must be a StrategySdkManifest")
+        if not isinstance(self.strategy_source, str):
+            raise TypeError("strategy_source must be a string")
+        if (
+            not isinstance(self.max_intents_per_event, int)
+            or isinstance(self.max_intents_per_event, bool)
+            or self.max_intents_per_event < 1
+        ):
+            raise ValueError("max_intents_per_event must be a positive integer")
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,13 +290,14 @@ def assemble_nautilus_trial_runtime_input(
     portfolio: PortfolioComposition,
     snapshot: DataSnapshot,
     event_tape: FrozenEventTape | FrozenEventTapeStreamResolution,
-    strategy_package: StrategyPackage,
+    strategy_package: StrategyPackage | None = None,
     strategy_manifest: StrategySdkManifest,
-    strategy_source: str,
+    strategy_source: str | None = None,
     instruments: Sequence[NautilusInstrumentDefinition],
     venue: NautilusVenueDefinition,
     artifact_store: LocalArtifactStore,
     max_intents_per_event: int = 100,
+    component_inputs: Sequence[NautilusComponentTrialInput] | None = None,
 ) -> NautilusTrialRuntimeAssembly:
     """Bind one persisted trial's exact inputs and publish its pinned worker bundle.
 
@@ -158,7 +313,6 @@ def assemble_nautilus_trial_runtime_input(
         ("experiment", experiment, ExperimentDefinition),
         ("portfolio", portfolio, PortfolioComposition),
         ("snapshot", snapshot, DataSnapshot),
-        ("strategy_package", strategy_package, StrategyPackage),
         ("strategy_manifest", strategy_manifest, StrategySdkManifest),
         ("venue", venue, NautilusVenueDefinition),
         ("artifact_store", artifact_store, LocalArtifactStore),
@@ -175,8 +329,47 @@ def assemble_nautilus_trial_runtime_input(
         raise NautilusTrialAssemblyError(
             "streamed event tape differs from the frozen snapshot or SDK manifest"
         )
-    if not isinstance(strategy_source, str):
-        raise TypeError("strategy_source must be a string")
+    portfolio_components = {item.component_id: item for item in portfolio.components}
+    resolved_component_inputs: tuple[NautilusComponentTrialInput, ...]
+    if component_inputs is None:
+        if not isinstance(strategy_package, StrategyPackage):
+            raise TypeError("strategy_package must be a StrategyPackage")
+        if not isinstance(strategy_source, str):
+            raise TypeError("strategy_source must be a string")
+        if len(portfolio.components) != 1:
+            raise NautilusTrialAssemblyError(
+                "multi-component runtime assembly requires one resolved input per component"
+            )
+        component = portfolio.components[0]
+        resolved_component_inputs = (
+            NautilusComponentTrialInput(
+                component_id=component.component_id,
+                strategy_package=strategy_package,
+                strategy_manifest=strategy_manifest,
+                strategy_source=strategy_source,
+                max_intents_per_event=max_intents_per_event,
+            ),
+        )
+    else:
+        if not isinstance(component_inputs, Sequence) or isinstance(component_inputs, str | bytes):
+            raise TypeError("component_inputs must be a sequence of NautilusComponentTrialInput")
+        resolved_component_inputs = tuple(component_inputs)
+        if not resolved_component_inputs or any(
+            not isinstance(item, NautilusComponentTrialInput) for item in resolved_component_inputs
+        ):
+            raise ValueError("component_inputs must contain typed, non-empty component inputs")
+        if strategy_package is not None or strategy_source is not None:
+            raise ValueError(
+                "component_inputs cannot be combined with the legacy package/source arguments"
+            )
+    component_ids = [item.component_id for item in resolved_component_inputs]
+    if len(component_ids) != len(set(component_ids)):
+        raise NautilusTrialAssemblyError("component runtime input ids must be unique")
+    if set(component_ids) != set(portfolio_components):
+        raise NautilusTrialAssemblyError(
+            "component runtime inputs must cover the complete portfolio"
+        )
+    inputs_by_component = {item.component_id: item for item in resolved_component_inputs}
     if not isinstance(instruments, Sequence) or isinstance(instruments, str | bytes):
         raise TypeError("instruments must be a sequence")
     instrument_definitions = tuple(instruments)
@@ -191,19 +384,6 @@ def assemble_nautilus_trial_runtime_input(
     ):
         raise ValueError("max_intents_per_event must be a positive integer")
 
-    # Do not pretend that the current single-strategy bridge is a portfolio
-    # execution layer. Multi-component portfolios are rejected before artifact
-    # publication until component attribution and the shared risk route are
-    # implemented in the native callback path.
-    if len(portfolio.components) != 1:
-        raise NautilusTrialAssemblyError(
-            "current Nautilus runtime assembly requires exactly one portfolio component"
-        )
-    component = portfolio.components[0]
-    if component.capital_weight != Decimal(1):
-        raise NautilusTrialAssemblyError(
-            "current Nautilus runtime assembly requires a fully funded portfolio component"
-        )
     if portfolio.rebalance_policy is not None:
         raise NautilusTrialAssemblyError(
             "Nautilus runtime assembly does not yet apply portfolio rebalance schedules"
@@ -235,42 +415,84 @@ def assemble_nautilus_trial_runtime_input(
     if event_tape.snapshot_fingerprint != snapshot.fingerprint:
         raise NautilusTrialAssemblyError("event tape references a different data snapshot")
 
-    strategy = strategy_manifest.strategy
-    if strategy.fingerprint != component.strategy_fingerprint:
+    strategy_fingerprints = tuple(
+        sorted({component.strategy_fingerprint for component in portfolio.components})
+    )
+    if experiment.strategy_fingerprints != strategy_fingerprints:
         raise NautilusTrialAssemblyError(
-            "portfolio component references a different strategy version"
+            "experiment strategy set differs from the portfolio component strategies"
         )
-    if experiment.strategy_fingerprints != (strategy.fingerprint,):
-        raise NautilusTrialAssemblyError(
-            "experiment strategy set differs from the supported portfolio component"
-        )
-    if strategy_package.strategy_fingerprint != strategy.fingerprint:
-        raise NautilusTrialAssemblyError("strategy package references a different strategy version")
-    if experiment.strategy_package_fingerprints.get(strategy.fingerprint) != (
-        strategy_package.fingerprint
-    ):
-        raise NautilusTrialAssemblyError(
-            "strategy package does not match its immutable experiment binding"
-        )
-    if strategy_package.sdk_version != strategy.sdk_version:
-        raise NautilusTrialAssemblyError("strategy package SDK version differs from its strategy")
-    if content_digest(strategy_source) != strategy.source_digest:
-        raise NautilusTrialAssemblyError(
-            "resolved strategy source differs from its immutable digest"
-        )
+    for component_id, component in portfolio_components.items():
+        component_input = inputs_by_component[component_id]
+        strategy = component_input.strategy_manifest.strategy
+        package = component_input.strategy_package
+        if strategy.fingerprint != component.strategy_fingerprint:
+            raise NautilusTrialAssemblyError(
+                f"portfolio component {component_id!r} references a different strategy version"
+            )
+        if package.strategy_fingerprint != strategy.fingerprint:
+            raise NautilusTrialAssemblyError(
+                f"component {component_id!r} package references a different strategy version"
+            )
+        if experiment.strategy_package_fingerprints.get(strategy.fingerprint) != (
+            package.fingerprint
+        ):
+            raise NautilusTrialAssemblyError(
+                f"component {component_id!r} package does not match its immutable experiment binding"
+            )
+        if package.sdk_version != strategy.sdk_version:
+            raise NautilusTrialAssemblyError(
+                f"component {component_id!r} package SDK version differs from its strategy"
+            )
+        if content_digest(component_input.strategy_source) != strategy.source_digest:
+            raise NautilusTrialAssemblyError(
+                f"component {component_id!r} source differs from its immutable digest"
+            )
 
-    component_instruments = set(component.instrument_ids)
+    tape_dependencies = {
+        dependency.dependency_id: dependency for dependency in strategy_manifest.data_dependencies
+    }
+    for component_id, component_input in inputs_by_component.items():
+        component_dependencies = {
+            dependency.dependency_id: dependency
+            for dependency in component_input.strategy_manifest.data_dependencies
+        }
+        if not component_dependencies or any(
+            dependency_id not in tape_dependencies
+            or tape_dependencies[dependency_id].requirement != dependency.requirement
+            or tape_dependencies[dependency_id].fields != dependency.fields
+            for dependency_id, dependency in component_dependencies.items()
+        ):
+            raise NautilusTrialAssemblyError(
+                f"component {component_id!r} dependencies are not covered by the frozen tape binding"
+            )
+        manifest_instruments = {
+            dependency.requirement.instrument_id
+            for dependency in component_input.strategy_manifest.data_dependencies
+        }
+        if not set(portfolio_components[component_id].instrument_ids).issubset(
+            manifest_instruments
+        ):
+            raise NautilusTrialAssemblyError(
+                f"component {component_id!r} trades an instrument outside its strategy data scope"
+            )
+
     manifest_instruments = {
         dependency.requirement.instrument_id for dependency in strategy_manifest.data_dependencies
     }
+    component_instruments = {
+        instrument_id
+        for component in portfolio.components
+        for instrument_id in component.instrument_ids
+    }
     definition_instruments = {item.instrument_id for item in instrument_definitions}
-    if manifest_instruments != component_instruments:
+    if not component_instruments.issubset(manifest_instruments):
         raise NautilusTrialAssemblyError(
-            "strategy data instruments differ from the portfolio component scope"
+            "portfolio component instruments are not covered by the frozen tape data scope"
         )
-    if definition_instruments != component_instruments:
+    if definition_instruments != manifest_instruments:
         raise NautilusTrialAssemblyError(
-            "native instrument catalog differs from the portfolio component scope"
+            "native instrument catalog differs from the frozen tape data scope"
         )
     if venue.base_currency != portfolio.base_currency:
         raise NautilusTrialAssemblyError("native account base currency differs from the portfolio")
@@ -283,11 +505,13 @@ def assemble_nautilus_trial_runtime_input(
             "native account initial cash differs from portfolio initial capital"
         )
 
-    effective_parameters = dict(strategy.default_parameters)
-    effective_parameters.update(trial.parameter_set)
+    effective_parameters_by_component: dict[str, dict[str, object]] = {}
+    for component_id, component_input in inputs_by_component.items():
+        parameters = dict(component_input.strategy_manifest.strategy.default_parameters)
+        parameters.update(trial.parameter_set)
+        effective_parameters_by_component[component_id] = parameters
     try:
         native_records: Iterable[NautilusEventRecord]
-        context_events: Iterable[MarketEvent]
         if isinstance(event_tape, FrozenEventTape):
             native_tape = materialize_nautilus_event_tape(
                 event_tape,
@@ -296,7 +520,6 @@ def assemble_nautilus_trial_runtime_input(
             )
             native_records = native_tape.events
             event_count = len(native_tape.events)
-            context_events = event_tape.events
         else:
             native_tape = NautilusEventTape(event_tape.tape_fingerprint, ())
             native_records = iter_materialized_nautilus_event_records(
@@ -306,7 +529,6 @@ def assemble_nautilus_trial_runtime_input(
                 artifact_store,
             )
             event_count = event_tape.event_count
-            context_events = iter_verified_event_tape_stream(event_tape, artifact_store)
         native_event_stream = materialize_nautilus_native_event_stream_artifact(
             artifact_store,
             events=native_records,
@@ -314,19 +536,71 @@ def assemble_nautilus_trial_runtime_input(
             adapter_version=native_tape.adapter_version,
             event_count=event_count,
         )
-        contexts = iter_event_tape_contexts(
-            context_events,
-            strategy_manifest,
-            random_seed=trial.seed,
-            parameters=effective_parameters,
-        )
-        context_stream = materialize_nautilus_context_stream_artifact(
-            artifact_store,
-            source=strategy_source,
-            manifest=strategy_manifest,
-            contexts=contexts,
-            entrypoint=strategy_package.entrypoint,
-            max_intents_per_event=max_intents_per_event,
+
+        def component_events(
+            component_input: NautilusComponentTrialInput,
+        ) -> Iterable[MarketEvent]:
+            source_events = (
+                event_tape.events
+                if isinstance(event_tape, FrozenEventTape)
+                else iter_verified_event_tape_stream(event_tape, artifact_store)
+            )
+            dependency_ids = {
+                dependency.dependency_id
+                for dependency in component_input.strategy_manifest.data_dependencies
+            }
+            return (event for event in source_events if event.dependency_id in dependency_ids)
+
+        if len(inputs_by_component) == 1:
+            component_id, component_input = next(iter(sorted(inputs_by_component.items())))
+            context_stream = materialize_nautilus_context_stream_artifact(
+                artifact_store,
+                source=component_input.strategy_source,
+                manifest=component_input.strategy_manifest,
+                contexts=iter_event_tape_contexts(
+                    component_events(component_input),
+                    component_input.strategy_manifest,
+                    random_seed=trial.seed,
+                    parameters=effective_parameters_by_component[component_id],
+                ),
+                entrypoint=component_input.strategy_package.entrypoint,
+                max_intents_per_event=component_input.max_intents_per_event,
+            )
+        else:
+            component_streams = tuple(
+                InvocationContextStreamSource(
+                    component_id=component_id,
+                    source=component_input.strategy_source,
+                    manifest=component_input.strategy_manifest,
+                    contexts=iter_event_tape_contexts(
+                        component_events(component_input),
+                        component_input.strategy_manifest,
+                        random_seed=trial.seed,
+                        parameters=effective_parameters_by_component[component_id],
+                    ),
+                    entrypoint=component_input.strategy_package.entrypoint,
+                    max_intents_per_event=component_input.max_intents_per_event,
+                )
+                for component_id, component_input in sorted(inputs_by_component.items())
+            )
+            context_stream = materialize_nautilus_component_context_stream_artifact(
+                artifact_store,
+                components=component_streams,
+            )
+        primary_component_id = min(inputs_by_component)
+        primary_input = inputs_by_component[primary_component_id]
+        primary_parameters = effective_parameters_by_component[primary_component_id]
+        strategy_bindings = tuple(
+            NautilusComponentStrategyBinding(
+                component_id=component_id,
+                strategy_fingerprint=component_input.strategy_manifest.strategy.fingerprint,
+                strategy_source_digest=component_input.strategy_manifest.strategy.source_digest,
+                strategy_manifest_fingerprint=component_input.strategy_manifest.fingerprint,
+                entrypoint=component_input.strategy_package.entrypoint,
+                parameters_digest=content_digest(effective_parameters_by_component[component_id]),
+                max_intents_per_event=component_input.max_intents_per_event,
+            )
+            for component_id, component_input in sorted(inputs_by_component.items())
         )
         engine_input = build_nautilus_engine_input(
             trial_id=trial.trial_id,
@@ -336,11 +610,12 @@ def assemble_nautilus_trial_runtime_input(
             instruments=instrument_definitions,
             venue=venue,
             portfolio=portfolio,
-            strategy_source_digest=strategy.source_digest,
-            strategy_manifest_fingerprint=strategy_manifest.fingerprint,
-            entrypoint=strategy_package.entrypoint,
-            parameters=effective_parameters,
+            strategy_source_digest=primary_input.strategy_manifest.strategy.source_digest,
+            strategy_manifest_fingerprint=primary_input.strategy_manifest.fingerprint,
+            entrypoint=primary_input.strategy_package.entrypoint,
+            parameters=primary_parameters,
             random_seed=trial.seed,
+            strategy_bindings=strategy_bindings,
         )
         bundle = build_nautilus_runtime_bundle(
             engine_input,
@@ -350,13 +625,16 @@ def assemble_nautilus_trial_runtime_input(
         engine_input_fingerprint = content_digest(
             {"engine_input": engine_input.fingerprint, "native_event_stream": native_event_stream}
         )
+        package_set_fingerprint = strategy_package_set_fingerprint(
+            experiment.strategy_package_fingerprints
+        )
         trial_binding = NautilusTrialInputBinding(
             attempt_id=attempt.attempt_id,
             trial_fingerprint=trial.trial_id,
             experiment_fingerprint=experiment.fingerprint,
             portfolio_fingerprint=portfolio.fingerprint,
             snapshot_fingerprint=snapshot.fingerprint,
-            strategy_package_fingerprint=strategy_package.fingerprint,
+            strategy_package_fingerprint=package_set_fingerprint,
             engine_input_fingerprint=engine_input_fingerprint,
             invocation_input_digest=context_stream.artifact.content_digest,
         )
@@ -376,7 +654,7 @@ def assemble_nautilus_trial_runtime_input(
         experiment_fingerprint=experiment.fingerprint,
         portfolio_fingerprint=portfolio.fingerprint,
         snapshot_fingerprint=snapshot.fingerprint,
-        strategy_package_fingerprint=strategy_package.fingerprint,
+        strategy_package_fingerprint=package_set_fingerprint,
         engine_input_fingerprint=engine_input_fingerprint,
         invocation_input_digest=context_stream.artifact.content_digest,
         runtime_input_artifact=artifact_reference,
@@ -425,7 +703,12 @@ def assemble_nautilus_trial_runtime_input_from_package(
 
 __all__ = [
     "NautilusTrialAssemblyError",
+    "NautilusComponentTrialInput",
+    "NautilusStrategyRuntimeIdentity",
     "NautilusTrialRuntimeAssembly",
+    "strategy_package_set_fingerprint",
+    "strategy_source_set_digest",
+    "strategy_runtime_identity",
     "assemble_nautilus_trial_runtime_input",
     "assemble_nautilus_trial_runtime_input_from_package",
 ]
