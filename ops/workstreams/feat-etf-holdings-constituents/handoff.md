@@ -7422,5 +7422,7 @@ edit another worktree, staging, generic visuals, or production. The current
 vendor-recheck receipt was committed and pushed as
 `b3f8fd60a9d260cf5c68e6b516cc31b7c8bc53be` on the assigned ETF branch. The
 updated plan-hash synchronization and active-goal session checkpoint passed;
-the session receipt and its validation row are being committed as a final
-branch-local metadata checkpoint. The goal remains active, not blocked.
+the session receipt and its validation row were then committed and pushed as
+`f6bdeae82ad06d43c92c7a929d52885644652948`. The worktree was clean and the
+local ETF branch ref matched `origin/feat/etf-holdings-constituents` at that
+checkpoint. The goal remains active, not blocked.
