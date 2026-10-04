@@ -203,7 +203,7 @@ def test_authoritative_nautilus_gate_rejects_runtime_image_drift() -> None:
     assert "nautilus_runtime_image_mismatch" in result.rejection_reasons
 
 
-def test_release_candidate_is_authoritative_only_in_backtest_scope() -> None:
+def test_release_candidate_authority_is_scope_gated_by_conformance_checks() -> None:
     trial, attempt, source, capability, lease = _execution_fixture(authoritative=True)
     from app.strategy_lab_v2.execution import authorize_execution
 
@@ -211,24 +211,38 @@ def test_release_candidate_is_authoritative_only_in_backtest_scope() -> None:
         trial, attempt, source, capability, lease, now=NOW.replace(second=3)
     )
     request, runtime = _runtime()
-    evidence, report = _conformance(channel=EngineReleaseChannel.RELEASE_CANDIDATE)
-    candidate = plan_nautilus_execution(
+    backtest_checks = NautilusExecutionScope.BACKTEST_AUTHORITATIVE.required_checks
+    partial_evidence, partial_report = _conformance(
+        channel=EngineReleaseChannel.RELEASE_CANDIDATE,
+        checks=backtest_checks,
+    )
+    partial_full = plan_nautilus_execution(
         authorization,
         runtime,
-        evidence,
-        report,
+        partial_evidence,
+        partial_report,
         _plan(request),
         data_snapshot_fingerprint=content_digest("snapshot"),
     )
-    assert candidate.decision is EngineExecutionDecision.REJECT
-    assert not candidate.authoritative
-    assert "authoritative_conformance_required" in candidate.rejection_reasons
-    assert "authoritative_full_scope_requires_stable_release" in candidate.rejection_reasons
+    assert partial_full.decision is EngineExecutionDecision.REJECT
+    assert not partial_full.authoritative
+    assert "required_engine_conformance_failed" in partial_full.rejection_reasons
+    assert "authoritative_conformance_required" in partial_full.rejection_reasons
 
-    backtest_evidence, backtest_report = _conformance(
-        channel=EngineReleaseChannel.RELEASE_CANDIDATE,
-        checks=NautilusExecutionScope.BACKTEST_AUTHORITATIVE.required_checks,
+    full_evidence, full_report = _conformance(channel=EngineReleaseChannel.RELEASE_CANDIDATE)
+    full = plan_nautilus_execution(
+        authorization,
+        runtime,
+        full_evidence,
+        full_report,
+        _plan(request),
+        data_snapshot_fingerprint=content_digest("snapshot"),
     )
+    assert full.decision is EngineExecutionDecision.READY
+    assert full.authoritative
+    assert full.execution_scope is NautilusExecutionScope.FULL
+
+    backtest_evidence, backtest_report = partial_evidence, partial_report
     backtest = plan_nautilus_execution(
         authorization,
         runtime,

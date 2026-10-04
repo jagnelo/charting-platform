@@ -24,7 +24,8 @@ class EngineReleaseChannel(StrEnum):
 NAUTILUS_RELEASE_PIN_VERSION = "strategy-lab.nautilus-release-pin.v2"
 # The current v2 release-candidate track is intentionally exact rather than a
 # floating ``--pre`` install. A qualified candidate may publish local
-# backtests, but it cannot authorize forward-shadow or real-capital execution.
+# local simulation after the applicable conformance checks, but it cannot
+# authorize broker or real-capital execution.
 # Runtime, source, and image digests are supplied by the isolated adapter.
 NAUTILUS_V2_RC_PACKAGE_VERSION = "2.0.0rc5"
 NAUTILUS_V2_RC_RELEASE_TAG = "v2.0.0rc5"
@@ -40,8 +41,9 @@ class NautilusReleasePin:
     The release pin is evidence supplied by the runtime adapter; it never
     discovers packages or starts an engine. A stable v2 build can qualify for
     full conformance. An exact release candidate can qualify for authoritative
-    local backtests after the four backtest checks, but not forward-shadow or
-    real-capital execution.
+    local backtests after the four backtest checks and for broker-free forward
+    shadow after all five checks, including event-tape parity. Prereleases
+    never authorize broker or real-capital execution.
     """
 
     package_version: str
@@ -119,17 +121,15 @@ class NautilusResultProvenance:
             self.release_pin.package_version, self.release_pin.release_tag
         ):
             raise ValueError("stable provenance cannot identify a prerelease")
-        if (
-            self.execution_scope == "full"
-            and self.release_channel is not EngineReleaseChannel.STABLE
-        ):
-            raise ValueError("full Nautilus provenance requires a stable v2 release")
-        if self.execution_scope == "backtest_authoritative" and self.release_channel not in {
+        if self.execution_scope in {
+            "full",
+            "backtest_authoritative",
+        } and self.release_channel not in {
             EngineReleaseChannel.STABLE,
             EngineReleaseChannel.RELEASE_CANDIDATE,
         }:
             raise ValueError(
-                "authoritative backtests require stable v2 or an exact release candidate"
+                "authoritative local simulation requires stable v2 or an exact release candidate"
             )
 
     @property
@@ -224,13 +224,14 @@ class EngineConformanceReport:
             raise TypeError("release_pin_valid must be a boolean")
         if self.authoritative and (
             self.decision is not ConformanceDecision.PASS
-            or self.release_channel is not EngineReleaseChannel.STABLE
+            or self.release_channel
+            not in {EngineReleaseChannel.STABLE, EngineReleaseChannel.RELEASE_CANDIDATE}
             or missing
             or not self.release_pin_valid
         ):
             raise ValueError(
-                "only a complete stable-v2 conformance pass with a "
-                "valid isolated release pin can be authoritative"
+                "only a complete stable or release-candidate v2 conformance pass "
+                "with a valid isolated release pin can be authoritative"
             )
         object.__setattr__(self, "missing_checks", missing)
 
@@ -245,8 +246,8 @@ class EngineConformanceReport:
         """Whether the evidence may start an isolated engine process.
 
         Stable v2 and exact-pinned release candidates may execute locally when
-        the backtest checks pass. Forward parity remains required for full
-        scope, and development or unpinned runtimes are never eligible.
+        the applicable scope checks pass. Forward parity remains required for
+        full scope, and development or unpinned runtimes are never eligible.
         """
 
         return (
@@ -278,7 +279,8 @@ def evaluate_engine_conformance(
         missing_checks=missing,
         authoritative=(
             decision is ConformanceDecision.PASS
-            and evidence.release_channel is EngineReleaseChannel.STABLE
+            and evidence.release_channel
+            in {EngineReleaseChannel.STABLE, EngineReleaseChannel.RELEASE_CANDIDATE}
             and release_pin_valid
         ),
         release_pin_valid=release_pin_valid,

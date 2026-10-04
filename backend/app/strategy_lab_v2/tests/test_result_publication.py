@@ -450,6 +450,61 @@ def test_release_candidate_builds_backtest_authoritative_result_provenance() -> 
     assert publication.accepted
 
 
+def test_release_candidate_with_event_tape_parity_publishes_full_local_simulation() -> None:
+    result, _, _, runtime, _, stable_plan = _result()
+    release_pin = replace(
+        NAUTILUS_PIN,
+        package_version="2.0.0rc5",
+        release_tag="v2.0.0rc5",
+        wheel_digest=NAUTILUS_V2_RC_WHEEL_SHA256,
+    )
+    evidence = EngineConformanceEvidence(
+        "nautilus",
+        "2.0.0rc5",
+        BUILD,
+        EngineReleaseChannel.RELEASE_CANDIDATE,
+        content_digest("rc5-full-simulation-fixture"),
+        frozenset(ConformanceCheck),
+        NOW,
+        release_pin,
+    )
+    conformance = evaluate_engine_conformance(evidence)
+    sandbox_plan = _sandbox_plan(release_pin, result.attempt_id)
+    execution_plan = replace(
+        stable_plan,
+        engine_version="2.0.0rc5",
+        conformance_report_fingerprint=conformance.fingerprint,
+        sandbox_plan_fingerprint=sandbox_plan.fingerprint,
+    )
+    assert conformance.authoritative
+    provenance = build_nautilus_result_provenance(
+        execution_plan, evidence, conformance, sandbox_plan
+    )
+    rc_result = replace(
+        result,
+        engine_version="2.0.0rc5",
+        engine_provenance=provenance,
+    )
+    integrity = verify_run_result_artifacts(
+        rc_result,
+        (verify_artifact_payload(rc_result.output_artifacts[0], b"result"),),
+    )
+
+    publication = plan_result_publication(
+        rc_result,
+        evidence,
+        conformance,
+        runtime,
+        integrity,
+        execution_plan=execution_plan,
+    )
+
+    assert provenance.execution_scope == NautilusExecutionScope.FULL.value
+    assert provenance.release_channel is EngineReleaseChannel.RELEASE_CANDIDATE
+    assert publication.decision is ResultPublicationDecision.PUBLISH
+    assert publication.accepted
+
+
 def test_authoritative_publication_requires_bound_scope_and_complete_backtest_checks() -> None:
     result, evidence, conformance, runtime, integrity, execution_plan = _result()
     without_plan = plan_result_publication(result, evidence, conformance, runtime, integrity)

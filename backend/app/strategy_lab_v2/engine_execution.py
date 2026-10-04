@@ -130,8 +130,9 @@ def plan_nautilus_execution(
     Backtest scopes intentionally exclude forward event-tape parity. Stable
     v2 or an exact-pinned release candidate may publish authoritative local
     backtests after the four simulator checks pass, without waiting for the
-    separate forward adapter. A release candidate cannot authorize full or
-    forward scope. Full-scope requests still require stable v2 and parity.
+    separate forward adapter. Either channel may authorize broker-free full
+    simulation after all five checks, including forward event-tape parity, pass.
+    Prereleases never connect to brokers or control real capital.
     """
 
     if not isinstance(authorization, ExecutionAuthorization):
@@ -196,12 +197,6 @@ def plan_nautilus_execution(
             EngineReleaseChannel.RELEASE_CANDIDATE,
         }:
             reasons.append("authoritative_backtest_release_channel_not_supported")
-    if (
-        requested_authoritative
-        and execution_scope is NautilusExecutionScope.FULL
-        and conformance_evidence.release_channel is not EngineReleaseChannel.STABLE
-    ):
-        reasons.append("authoritative_full_scope_requires_stable_release")
     if requested_authoritative:
         release_pin = conformance_evidence.release_pin
         if release_pin is None:

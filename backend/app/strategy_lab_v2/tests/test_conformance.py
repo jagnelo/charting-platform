@@ -90,11 +90,11 @@ def test_conformance_evidence_normalizes_offset_equivalent_test_times() -> None:
     assert equivalent.tested_at.tzinfo is UTC
 
 
-def test_complete_release_candidate_conformance_is_compatible_but_not_authoritative() -> None:
+def test_complete_release_candidate_conformance_is_authoritative_for_local_simulation() -> None:
     report = evaluate_engine_conformance(_evidence(channel=EngineReleaseChannel.RELEASE_CANDIDATE))
     assert report.compatible
     assert report.execution_eligible
-    assert not report.authoritative
+    assert report.authoritative
     assert report.release_channel is EngineReleaseChannel.RELEASE_CANDIDATE
 
 
@@ -117,7 +117,7 @@ def test_current_rc5_pin_can_qualify_only_with_all_conformance_checks() -> None:
     report = evaluate_engine_conformance(evidence)
     assert report.compatible
     assert report.execution_eligible
-    assert not report.authoritative
+    assert report.authoritative
     assert report.release_pin_valid
 
     partial_checks: frozenset[ConformanceCheck] = frozenset(
