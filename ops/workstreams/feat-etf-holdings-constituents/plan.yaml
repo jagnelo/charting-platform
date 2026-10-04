@@ -408,6 +408,7 @@ remaining_gaps:
   - "2026-10-03 VUSV correction: the Vanguard publisher endpoint intermittently returned HTTP 200 with an empty `text/html; charset=utf-8` body for Wellington VUSV fund V055, observed in stock and money-market variants among seven holding categories. Both Vanguard and Wellington adapters now turn JSON decoding failures into descriptive fail-closed errors, and Wellington does not fall through to the PCF route for this malformed response. The live-test skip matches only Wellington/VUSV, fund V055, one of the seven known categories, status 200, exact HTML content type, and zero bytes; adjacent-symbol, invalid-category, and nonempty-body regressions remain non-skips. The final branch-declared run passed 592 deterministic tests, default live contracts (3 passed/534 skipped), and all 537 opt-in cases (506 passed/31 narrow skips), plus Ruff, branch validation, frontend type-check, 17 ETF panel/view tests, and production build."
   - "2026-10-04 continued free-first review: FundFacts API's Free (15 lookups/month) and US$9.99 Starter tiers are evaluation/personal use; commercial in-product rights start at Pro (US$49/month), above the US$20-equivalent ceiling, and no exact DXJ/NTSX/MINT/BOND holdings response was established. Current PIMCO first-party pages list MINT/BOND with US$17.526B/US$8.590B AUM as of 2026-08-31, but the latest reviewed official factsheets are dated 2026-03-31 and no complete executable current basket was found. The vendor ledger, PIMCO Tier-0 outcomes, provider-universe docs, handoff, implementation-plan log, targeted governance regression, and validation receipt were updated. No account/key/payment/activation or symbol promotion occurred; the 15 Tier-0 and 156 Tier-1 outcomes remain accounted for."
   - "2026-10-04 current-head revalidation on 767c5fa: the complete deterministic ETF adapter module first exposed a session narrative-parity regression because the active/not-blocked explanation omitted the required 15 Tier-0 and 156 Tier-1 counts; the counts were restored without changing goal status, then all 592 adapter tests passed. Default live contracts passed (3 passed, 534 opt-in cases skipped); Ruff, all 30 workstream records, JSONL parsing, and diff-check passed. The connected GitHub status lookup returned no combined statuses and its Actions lookup returned no PR-triggered workflow runs; the local gh CLI is absent, so push-triggered exact-SHA CI is not independently confirmed here. The prior local full-integration visual gate remains open at 93/104 generic screenshot mismatches outside ETF-owned paths."
+  - "2026-10-04 North Square post-quarter source recheck: the official catalogue still lists NSIV, NSIG, and QTPI; the official FilePoint ETF report table exposes no Q1/Q3 holdings download for the three ETF rows; NSIV and NSIG pages say quarterly characteristics will initially appear in October after the September 30 quarter end and complete holdings are available upon request. No complete executable public holdings artifact appeared, so all three remain unavailable/non_executable_public_source with no parser or provider promotion. The provider and three symbol ledgers now share current 2026-10-04 source references and an October follow-up action. A new regression keeps these symbols unavailable until a dated, complete, identity-bound executable source is recorded. The audit invariant also found and repaired seven provider rows whose last_checked lagged dated attempt_history; all 75 fallback providers now require dated external evidence and last_checked at least their latest attempt. The full adapter suite passed 593, capability/refresh passed 113, default live contracts passed 3 with 534 opt-in skips, Ruff/workstream validation/diff-check passed. The Playwright CLI package fetch stalled in the restricted shell, so public official HTML was used; no authentication, paid access, or data activation occurred."
 progress:
   completed:
     - AC1
@@ -421,7 +422,7 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: tier0_vendor_recheck_full_adapter_suite_passed_final_acceptance_gates_open
+current_phase: north_square_q3_publication_recheck_full_adapter_suite_passed_final_gates_open
 current_blocker: >-
   The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The
   ETF-only recovery and source-review changeset was committed as
@@ -463,15 +464,31 @@ current_blocker: >-
   can continue. Earlier wording that no branch-owned action remained was too
   broad and is superseded by the 2026-10-04 FundFacts/PIMCO recheck recorded in
   the audit and handoff.
+  The follow-up North Square check still found no public Q3 holdings download
+  for NSIV, NSIG, or QTPI; all three remain unavailable until a complete
+  current executable file is published. The provider-audit regression also
+  repaired seven stale last_checked dates and now requires dated external
+  evidence plus last_checked not earlier than the latest attempt for every
+  provider. The updated 593-test adapter suite, 113 capability/refresh tests,
+  and default live contract (3 passed/534 opt-in skipped) pass; current
+  feature-branch CI for this new checkpoint is still to be verified.
+  A fresh full-integration attempt on this checkpoint could not get past
+  frontend dependency setup: the workflow runtime helper attempted to create
+  `/home/m920q/charting-platform/.ai/runtime/allocations.lock`, outside the
+  assigned worktree and on a read-only filesystem, and `npm ci` was denied
+  `EPERM` when spawning the esbuild binary. The gate exited before Docker
+  stack-up; no cross-worktree registry mutation, stack startup, or cleanup was
+  performed. This environment restriction is separate from the previously
+  completed gate's 93/104 generic visual mismatch and leaves AC7 open.
 next_action: >-
-  The source review, code-derived audit metadata, documentation, regression,
-  full 592-test adapter suite, and default live contracts are recorded through
-  the 2026-10-04 receipt. Keep the goal active. The next completion gates are
-  AC7's generic visual/exact-SHA validation, AC10's provider-platform reaching
-  staging before the shared ETF_HOLDINGS bridge, and AC14's later 30-day
-  post-integration/deployment shadow. Continue branch-owned work when new
-  independently actionable issuer evidence or a safe AC7 diagnosis becomes
-  available; when provider-platform reaches staging, proceed with the bridge
-  here without editing that branch. Do not alter generic visual tests or
-  snapshots, staging, another worktree, or production from this feature
-  session.
+  The 2026-10-04 North Square Q3 publication check, provider-ledger date/evidence
+  repairs, regressions, full 593-test adapter suite, 113 capability/refresh
+  tests, and default live contract are recorded. Keep the goal active. AC7
+  remains open on the generic visual/exact-SHA gate, AC10 awaits the shared
+  provider-platform branch reaching staging before this branch implements its
+  bridge, and AC14 is the later 30-day post-integration/deployment shadow.
+  Recheck North Square's FilePoint table later in October after the stated Q3
+  publication window and proceed only if a complete, current, identity-bound
+  executable file appears. Continue other independently actionable issuer
+  research or safe AC7 diagnosis within this worktree. Do not alter generic
+  visual tests or snapshots, staging, another worktree, or production.

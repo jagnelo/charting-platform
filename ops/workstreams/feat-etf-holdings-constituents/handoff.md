@@ -7426,3 +7426,52 @@ the session receipt and its validation row were then committed and pushed as
 `f6bdeae82ad06d43c92c7a929d52885644652948`. The worktree was clean and the
 local ETF branch ref matched `origin/feat/etf-holdings-constituents` at that
 checkpoint. The goal remains active, not blocked.
+
+## North Square Q3 publication recheck — 2026-10-04
+
+The official North Square catalogue still identifies NSIV, NSIG, and QTPI as
+its ETFs. The official FilePoint ETF report table currently exposes no Q1 or Q3
+holdings download for any of the three. The NSIV and NSIG product pages say
+quarterly characteristics will initially appear in October after the
+2026-09-30 quarter end, and say that complete holdings are available upon
+request. These disclosures are not a complete, executable public holdings
+artifact, so no provider or symbol was promoted; all three remain
+`unavailable` / `non_executable_public_source`.
+
+The runtime symbol audit and provider/symbol ledger now carry the same dated
+2026-10-04 source references. Recheck the FilePoint ETF table later in October
+after the stated initial publication window, and promote only if a public,
+executable, complete, identity-bound holdings file with a current date becomes
+available. Do not treat quarterly characteristics, top-ten data, request-only
+holdings, SEC filings, or a creation basket as current constituent support.
+
+The audit regression also found seven provider rows where `last_checked` was
+older than the latest dated `attempt_history`; those dates and the ledger
+generation timestamp were corrected. The provider-ledger test now requires
+every fallback row to retain dated external evidence and `last_checked` to be
+at least its newest recorded attempt.
+
+Validation after the source and ledger updates: ETF adapter tests 593 passed;
+capability and refresh tests 113 passed; default live contracts 3 passed and
+534 opt-in cases skipped; Ruff, all 30 workstream records, and diff-check
+passed. Two stale test expectations were corrected in this verification
+cycle (PIMCO's audit date and wording). This is focused branch-local evidence,
+not a new full Docker integration or exact-SHA CI result. The previous generic
+visual gate remains red at 93/104 unrelated screenshots, AC10 still awaits
+provider-platform staging, and AC14 remains post-integration/deployment. The
+saved goal remains active; no branch boundary changed.
+
+## Full-integration rerun environment limit — 2026-10-04
+
+A new `make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents`
+attempt did not reach Docker stack startup. The makefile's runtime helper
+attempted to create `/home/m920q/charting-platform/.ai/runtime/allocations.lock`,
+which is outside the assigned writable worktree and mounted read-only in this
+session. The frontend dependency stage separately failed with `EPERM` while
+spawning `frontend/node_modules/esbuild/bin/esbuild` during `npm ci`. I stopped
+at that pre-stack boundary; no Docker stack-up or stack-down/cleanup ran, and I
+did not escalate or write to the shared runtime registry. The last completed
+Docker gate therefore remains the 2026-10-04 run that passed functional
+Playwright and failed only at generic visual E2E with 93/104 unrelated
+screenshots. AC7 remains open until a full gate can run in an environment that
+permits the repository's runtime allocator and frontend tool subprocesses.

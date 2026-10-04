@@ -1465,17 +1465,22 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="non_executable_public_source",
     provider_identity="north_square",
-    investigated_at=date(2026, 9, 25),
+    investigated_at=date(2026, 10, 4),
     evidence_refs=(
         "web:north-square-nsiv-non-executable-2026-09-03",
         "web:north-square-nsig-filepoint-2026-09-03",
         "web:north-square-sec-disclosure-2026-09-03",
         "web:north-square-current-etf-catalogue-2026-09-25",
         "web:north-square-nsiv-nsig-non-executable-2026-09-25",
+        "web:north-square-current-etf-catalogue-2026-10-04",
+        "web:north-square-filepoint-etf-reports-no-q3-2026-10-04",
+        "web:north-square-nsiv-quarterly-profile-2026-10-04",
+        "web:north-square-nsig-quarterly-profile-2026-10-04",
     ),
     next_action=(
-        "Re-audit the official North Square product and FilePoint pages after the next reporting "
-        "cycle; promote only when executable current rows and dates are proven."
+        "Recheck the official FilePoint reports later in October 2026 after the stated initial "
+        "post-September-30 publication window; keep unavailable unless a public, executable, "
+        "complete, identity-bound holdings artifact with a current date is available."
     ),
 )
 _register_non_tier_0_audits(

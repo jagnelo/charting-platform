@@ -29035,6 +29035,12 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
                 f"runtime:FALLBACK_ISSUER_AUDITS.{key}",
                 f"runtime:ISSUER_ADAPTER_CONFIGS.{key}",
             ]
+            assert any(
+                attempt.get("evidence_ref")
+                and not str(attempt["evidence_ref"]).startswith("runtime:")
+                and attempt.get("source") != "code-derived fallback audit manifest"
+                for attempt in record["attempt_history"]
+            )
         else:
             assert key in native_promoted
             assert record["starting_status"] in allowed_statuses
@@ -29048,6 +29054,13 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         assert key.casefold() in record["disposition_reason"].casefold()
         assert key.casefold() in record["next_action"].casefold()
         assert record["attempt_history"]
+        attempt_dates = [
+            date.fromisoformat(str(attempt["date"]))
+            for attempt in record["attempt_history"]
+            if attempt.get("date")
+        ]
+        assert attempt_dates
+        assert date.fromisoformat(str(record["last_checked"])) >= max(attempt_dates)
 
 
 def test_vendor_source_candidates_are_cost_and_activation_governed():
@@ -29228,3 +29241,15 @@ def test_symbol_audit_ledger_matches_runtime_ranked_fallback_cohort():
         assert date.fromisoformat(str(row["investigated_at"])) == audit.investigated_at
         assert tuple(row["evidence_refs"]) == audit.evidence_refs
         assert row["next_action"] == audit.next_action
+
+
+def test_north_square_q3_recheck_keeps_symbols_unavailable_without_complete_downloads():
+    """Quarterly characteristics and on-request lists are not executable holdings."""
+    for symbol in ("NSIV", "NSIG", "QTPI"):
+        audit = _NON_TIER_0_SYMBOL_AUDITS[symbol]
+        assert audit.outcome == "unavailable"
+        assert audit.evidence_state == "non_executable_public_source"
+        assert audit.investigated_at == date(2026, 10, 4)
+        assert "web:north-square-filepoint-etf-reports-no-q3-2026-10-04" in (
+            audit.evidence_refs
+        )

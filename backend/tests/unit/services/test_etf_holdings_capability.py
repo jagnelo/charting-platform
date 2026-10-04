@@ -531,9 +531,9 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
         assert result.tier == 0
         assert result.outcome == UNAVAILABLE
         assert result.evidence_state == "no_complete_executable_public_artifact"
-        assert result.investigated_at == date(2026, 10, 2)
+        assert result.investigated_at == date(2026, 10, 4)
         assert evidence_refs <= set(result.evidence_refs)
-        assert "requires authentication" in result.next_action
+        assert "authentication-gated" in result.next_action
 
     assert (
         "web:pimco-short-term-strategies-current-2026-10-01"
