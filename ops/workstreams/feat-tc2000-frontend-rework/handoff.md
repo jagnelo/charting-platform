@@ -24,8 +24,10 @@ tab activation case passed; the focused F8w regression also passed five
 consecutive runs. Python Library was then replayed alone (1/1 passed) and as
 the complete ordered F8r narrow-dock block (9/9 passed) on fresh assigned-stack
 fixtures, so its full-suite failure has not reproduced. This focused evidence
-does not clear the full functional gate. The F8u signal-promotion failure still
-needs an isolated fresh-fixture replay.
+does not clear the full functional gate. F8u signal promotion then passed alone
+(1/1) on clean fixtures, so neither full-suite failure has reproduced in the
+focused replays; rerun the complete functional suite before treating the gate as
+green.
 
 The full 104-case visual matrix has not yet been rerun at `12ac1278a`. The prior
 pre-fix matrix recorded 94 passes and ten known local-reference screenshot
@@ -33,12 +35,11 @@ deltas; preserve every reference, mask, threshold, skip, fallback, and policy
 while rerunning. Provider and ETF consumer integration remains deferred until
 both dependency branches reach staging.
 
-Next action: recreate only the assigned TC2000 Compose project with clean
-seeded fixtures and replay F8u signal alone.
-If it passes, rerun the full functional suite from a clean stack, then run all
-104 visual cases at the exact synchronized branch tip and reconcile any
-repository-owned failures without weakening the oracles. Goal remains active
-at AC1/9; no product or environment blocker prevents this work.
+Next action: rerun the full functional Playwright suite from clean seeded
+fixtures in only the assigned TC2000 Compose project at the exact synchronized
+branch tip. If it passes, run the unchanged 104-case visual matrix and reconcile
+any repository-owned failures without weakening the oracles. Goal remains
+active at AC1/9; no product or environment blocker prevents this work.
 
 ## 2026-10-04 — Focused visual replay evidence published; branch synchronized
 

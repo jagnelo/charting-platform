@@ -23,12 +23,14 @@ current_blocker: >-
   No environmental blocker prevents independent TC-owned work. At product
   source `12ac1278a`, the clean-fixture functional browser suite reported 172
   passed, 107 skipped, and two failures (F8r Python Library narrow-dock creation
-  and F8u Strategy-signal promotion). F8r passed both alone and in the complete
-  ordered F8r block (9/9) on fresh fixtures, so its full-suite failure has not
-  reproduced; isolate F8u next. The exact-current-source 104-case visual matrix
-  is pending; the previous-source matrix had 94 passes and ten screenshot-only
-  differences against local references. Do not alter visual oracles. Provider
-  and ETF integration remains deferred until their work reaches staging.
+  and F8u Strategy-signal promotion). F8r passed alone and in its complete
+  ordered block (9/9); F8u passed alone (1/1) on fresh fixtures, so neither
+  failure has reproduced in focused replays. Rerun the complete functional suite
+  at the exact synchronized branch tip before treating this gate as green. The
+  exact-current-source 104-case visual matrix is pending; the previous-source
+  matrix had 94 passes and ten screenshot-only differences against local
+  references. Do not alter visual oracles. Provider and ETF integration remains
+  deferred until their work reaches staging.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
