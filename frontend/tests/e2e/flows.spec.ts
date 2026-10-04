@@ -3832,6 +3832,7 @@ test.describe('TC2000 workstation', () => {
     await expect(results.locator('.research-results-tool__comparison')).toContainText('lookback')
     await expect(results.getByRole('region', { name: 'Study output comparison' })).toContainText('current_streak')
     await expect(results.locator('.research-results-tool__comparison-table')).toContainText('Changed')
+    await expect(results.locator('.research-results-tool__comparison-table')).toContainText('Change (run 881 → 882): +2')
     const run883 = results.locator('.research-results-tool__run').filter({ hasText: 'Run #883' })
     await expect(run883.getByRole('button')).toHaveAttribute('aria-pressed', 'false')
     await run883.getByRole('button').press('Enter')

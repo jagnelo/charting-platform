@@ -122,12 +122,16 @@ describe('ResearchResultsTool', () => {
         { id: 1, name: 'sample_size', artifact_type: 'scalar', payload: { value: 4 } },
         { id: 2, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] } } },
         { id: 3, name: 'config', artifact_type: 'custom', payload: { value: { alpha: 1, beta: 2 } } },
+        { id: 4, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-02'], lower: [1], upper: [3], center: [2] } } },
+        { id: 5, name: 'different_dates', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-02'], values: [2] } } },
       ] })
       if (path === '/research/runs/11') return Promise.resolve({ ...compactRuns[1], artifacts: [
         { id: 3, name: 'sample_size', artifact_type: 'scalar', payload: { value: 5 } },
         { id: 4, name: 'trend', artifact_type: 'series', payload: { value: { values: [1, 3], timestamps: ['2026-01-01', '2026-01-02'] } } },
         { id: 5, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } },
         { id: 6, name: 'config', artifact_type: 'custom', payload: { value: { beta: 2, alpha: 1 } } },
+        { id: 7, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-02'], lower: [0], upper: [2], center: [1] } } },
+        { id: 8, name: 'different_dates', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-03'], values: [4] } } },
       ] })
       return Promise.reject(new Error(`unexpected request: ${path}`))
     })
@@ -148,6 +152,12 @@ describe('ResearchResultsTool', () => {
     expect(comparison.text()).toContain('Value: 4')
     expect(comparison.text()).toContain('Value: 5')
     expect(comparison.text()).toContain('Changed')
+    expect(comparison.text()).toContain('Change (run 10 → 11): +1')
+    expect(comparison.text()).toContain('Latest aligned change on 2026-01-02 (run 10 → 11): +1')
+    expect(comparison.text()).toContain('Latest aligned center change on 2026-01-02 (run 10 → 11): -1')
+    const differentDatesRow = comparison.findAll('tr').find(row => row.text().includes('different_dates'))!
+    expect(differentDatesRow.text()).toContain('Changed')
+    expect(differentDatesRow.text()).not.toContain('Latest aligned change')
     expect(comparison.text()).toContain('Only in run 11')
     expect(comparison.text()).toContain('Not produced')
     expect(comparison.text()).toContain('2 observations; latest 3')

@@ -64,7 +64,10 @@
                 </template>
                 <span v-else>Not produced</span>
               </td>
-              <td><span :class="comparisonArtifactClass(pair)" :data-difference="pair.difference">{{ pair.difference }}</span></td>
+              <td>
+                <span :class="comparisonArtifactClass(pair)" :data-difference="pair.difference">{{ pair.difference }}</span>
+                <small v-if="pair.changeSummary" class="research-results-tool__comparison-delta">{{ pair.changeSummary }}</small>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -213,6 +216,7 @@ interface ComparisonArtifactPair {
   left: ResearchArtifact | null
   right: ResearchArtifact | null
   difference: string
+  changeSummary: string | null
 }
 
 const runs = ref<ResearchRunSummary[]>([])
@@ -272,7 +276,8 @@ const comparisonArtifacts = computed<ComparisonArtifactPair[]>(() => {
     const difference = !leftArtifact || !rightArtifact
       ? `Only in run ${leftArtifact ? leftRun.id : rightRun.id}`
       : JSON.stringify(stableValue(comparisonArtifactValue(leftArtifact))) === JSON.stringify(stableValue(comparisonArtifactValue(rightArtifact))) ? 'Same output' : 'Changed'
-    return { key, name: artifact.name, artifactType: artifact.artifact_type, left: leftArtifact, right: rightArtifact, difference }
+    const pair = { key, name: artifact.name, artifactType: artifact.artifact_type, left: leftArtifact, right: rightArtifact, difference }
+    return { ...pair, changeSummary: comparisonChangeSummary(pair, leftRun.id, rightRun.id) }
   })
 })
 const comparisonLoadKey = computed(() => comparisonOpen.value && comparisonRuns.value.length === 2
@@ -620,6 +625,55 @@ function comparisonArtifactValue(artifact: ResearchArtifact) {
 }
 function comparisonArtifactClass(pair: ComparisonArtifactPair) {
   return pair.difference === 'Same output' ? 'research-results-tool__same' : 'research-results-tool__changed'
+}
+function comparisonChangeSummary(
+  pair: Pick<ComparisonArtifactPair, 'artifactType' | 'left' | 'right' | 'difference'>,
+  leftRunId: number,
+  rightRunId: number,
+): string | null {
+  if (!pair.left || !pair.right || pair.difference === 'Same output') return null
+
+  let delta: number | null = null
+  let label = `Change (run ${leftRunId} → ${rightRunId})`
+  if (pair.artifactType === 'scalar') {
+    const leftValue = pair.left.payload.value
+    const rightValue = pair.right.payload.value
+    if (typeof leftValue === 'number' && Number.isFinite(leftValue) && typeof rightValue === 'number' && Number.isFinite(rightValue)) {
+      delta = rightValue - leftValue
+    }
+  } else if (pair.artifactType === 'series') {
+    const leftSeries = seriesData(pair.left)
+    const rightSeries = seriesData(pair.right)
+    if (leftSeries && rightSeries && leftSeries.timestamps.length && rightSeries.timestamps.length) {
+      const leftIndex = leftSeries.timestamps.length - 1
+      const rightIndex = rightSeries.timestamps.length - 1
+      const leftValue = leftSeries.values[leftIndex]
+      const rightValue = rightSeries.values[rightIndex]
+      const timestamp = leftSeries.timestamps[leftIndex]
+      if (timestamp === rightSeries.timestamps[rightIndex]
+        && typeof leftValue === 'number' && Number.isFinite(leftValue)
+        && typeof rightValue === 'number' && Number.isFinite(rightValue)) {
+        delta = rightValue - leftValue
+        label = `Latest aligned change on ${timestamp} (run ${leftRunId} → ${rightRunId})`
+      }
+    }
+  } else if (pair.artifactType === 'range') {
+    const leftRange = rangeData(pair.left)
+    const rightRange = rangeData(pair.right)
+    if (leftRange?.center && rightRange?.center && leftRange.timestamps.length && rightRange.timestamps.length) {
+      const leftIndex = leftRange.timestamps.length - 1
+      const rightIndex = rightRange.timestamps.length - 1
+      const timestamp = leftRange.timestamps[leftIndex]
+      if (timestamp === rightRange.timestamps[rightIndex]) {
+        delta = rightRange.center[rightIndex] - leftRange.center[leftIndex]
+        label = `Latest aligned center change on ${timestamp} (run ${leftRunId} → ${rightRunId})`
+      }
+    }
+  }
+
+  if (delta == null || !Number.isFinite(delta)) return null
+  const formattedDelta = new Intl.NumberFormat('en-US', { signDisplay: 'always', maximumSignificantDigits: 8 }).format(delta === 0 ? 0 : delta)
+  return `${label}: ${formattedDelta}`
 }
 function comparisonOutputKey(pairKey: string, side: 'left' | 'right') { return `${pairKey}\u0000${side}` }
 function comparisonOutputIsOpen(pairKey: string, side: 'left' | 'right') { return Boolean(comparisonOutputOpen.value[comparisonOutputKey(pairKey, side)]) }
@@ -1555,5 +1609,5 @@ onBeforeUnmount(() => {
 .research-results-tool__event-promotions { display:flex; flex-wrap:wrap; gap:4px; }.research-results-tool__event-promotions button { padding:2px 4px; }
 .research-results-tool__artifact-promotions { display:flex; flex-wrap:wrap; gap:4px; }.research-results-tool__artifact-promotions button { padding:2px 4px; }
 .research-results-tool__series-condition { display:flex; align-items:center; flex-wrap:wrap; gap:4px; flex-basis:100%; color:#91a8b4; }.research-results-tool__series-condition label { display:flex; align-items:center; gap:3px; }.research-results-tool__series-condition select,.research-results-tool__series-condition input { min-width:52px; border:1px solid #3a4954; background:#121a20; color:#dce6ed; font:inherit; padding:2px 3px; }.research-results-tool__series-condition button { padding:2px 4px; }
-.research-results-tool__output-comparison { margin-top:7px; border-top:1px solid #34424c; padding-top:5px; }.research-results-tool__comparison-table { width:100%; border-collapse:collapse; margin-top:4px; }.research-results-tool__comparison-table th,.research-results-tool__comparison-table td { padding:3px 4px; border:1px solid #2c3943; text-align:left; vertical-align:top; overflow-wrap:anywhere; }.research-results-tool__comparison-table th small { display:block; color:#8195a3; font-weight:400; }.research-results-tool__comparison-table details { margin-top:3px; }.research-results-tool__comparison-table summary { color:#91a8b4; cursor:pointer; }.research-results-tool__comparison-table pre { max-width:280px; max-height:140px; margin:3px 0; overflow:auto; white-space:pre-wrap; }
+.research-results-tool__output-comparison { margin-top:7px; border-top:1px solid #34424c; padding-top:5px; }.research-results-tool__comparison-table { width:100%; border-collapse:collapse; margin-top:4px; }.research-results-tool__comparison-table th,.research-results-tool__comparison-table td { padding:3px 4px; border:1px solid #2c3943; text-align:left; vertical-align:top; overflow-wrap:anywhere; }.research-results-tool__comparison-table th small { display:block; color:#8195a3; font-weight:400; }.research-results-tool__comparison-table .research-results-tool__comparison-delta { display:block; margin-top:2px; color:#a9bac5; font-weight:400; }.research-results-tool__comparison-table details { margin-top:3px; }.research-results-tool__comparison-table summary { color:#91a8b4; cursor:pointer; }.research-results-tool__comparison-table pre { max-width:280px; max-height:140px; margin:3px 0; overflow:auto; white-space:pre-wrap; }
 </style>
