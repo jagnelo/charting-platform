@@ -2355,31 +2355,42 @@ test.describe('TC2000 workstation', () => {
 
     const plot = daily.locator('.uplot').first()
     await expect(plot).toBeVisible({ timeout: 20_000 })
-    const box = await plot.boundingBox()
-    expect(box).not.toBeNull()
-    await plot.evaluate(element => {
-      (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot = false
-      element.addEventListener('wheel', () => {
-        (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot = true
-      }, { capture: true })
-    })
-    await page.evaluate(() => {
-      const pageWindow = window as Window & { __ctrlWheelProbe?: Array<{ ctrlKey: boolean; plot: boolean; windowKey: string | null; prevented: boolean }> }
-      pageWindow.__ctrlWheelProbe = []
-      window.addEventListener('wheel', event => {
-        if (!event.ctrlKey) return
-        const target = event.target instanceof Element ? event.target : null
-        const plotTarget = target?.closest('.uplot') ?? null
-        const toolWindow = plotTarget?.closest<HTMLElement>('.tool-window[data-window-key]') ?? null
-        pageWindow.__ctrlWheelProbe?.push({
-          ctrlKey: event.ctrlKey,
-          plot: plotTarget !== null,
-          windowKey: toolWindow?.dataset.windowKey ?? null,
-          prevented: event.defaultPrevented,
-        })
-      }, { capture: true })
-    })
-    await page.mouse.move(box!.x + box!.width * 0.5, box!.y + box!.height * 0.5)
+    // The timeframe fan-out can leave uPlot visible while its resized box is
+    // momentarily zero-sized. Wait for a real hit target and install the probes
+    // in that same DOM turn so the subsequent wheel assertion tests the chart.
+    let targetPoint: { x: number; y: number } | null = null
+    await expect.poll(async () => {
+      targetPoint = await plot.evaluate(element => {
+        const bounds = element.getBoundingClientRect()
+        if (!element.isConnected || bounds.width <= 0 || bounds.height <= 0) return null
+
+        const pageWindow = window as Window & {
+          __ctrlWheelReachedPlot?: boolean
+          __ctrlWheelProbe?: Array<{ ctrlKey: boolean; plot: boolean; windowKey: string | null; prevented: boolean }>
+        }
+        pageWindow.__ctrlWheelReachedPlot = false
+        pageWindow.__ctrlWheelProbe = []
+        element.addEventListener('wheel', () => {
+          pageWindow.__ctrlWheelReachedPlot = true
+        }, { capture: true })
+        window.addEventListener('wheel', event => {
+          if (!event.ctrlKey) return
+          const target = event.target instanceof Element ? event.target : null
+          const plotTarget = target?.closest('.uplot') ?? null
+          const toolWindow = plotTarget?.closest<HTMLElement>('.tool-window[data-window-key]') ?? null
+          pageWindow.__ctrlWheelProbe?.push({
+            ctrlKey: event.ctrlKey,
+            plot: plotTarget !== null,
+            windowKey: toolWindow?.dataset.windowKey ?? null,
+            prevented: event.defaultPrevented,
+          })
+        }, { capture: true })
+        return { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * 0.5 }
+      })
+      return targetPoint
+    }, { timeout: 20_000 }).not.toBeNull()
+    expect(targetPoint).not.toBeNull()
+    await page.mouse.move(targetPoint!.x, targetPoint!.y)
     await page.keyboard.down('Control')
     await page.mouse.wheel(0, 100)
     await page.keyboard.up('Control')
