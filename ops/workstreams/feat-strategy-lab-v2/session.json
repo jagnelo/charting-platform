@@ -86,7 +86,11 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -122,10 +126,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "28f9c1c74fa3babcb04b481691ae081bec770a13",
+  "head": "3bb531e3a5e6550b660e4bf0b32bf0a63e1785ee",
   "implementation_sha": "e7ddfa52bb5a29ae9fe2098a3f25236a5698f59c",
-  "last_checkpoint": "2026-10-04T13:13:34.075160+00:00",
-  "last_human_progress_update": "2026-10-04T12:54:34.925201+00:00",
+  "last_checkpoint": "2026-10-04T13:34:02.527057+00:00",
+  "last_human_progress_update": "2026-10-04T13:33:44.475621+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -140,13 +144,13 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "No external Nautilus release or human approval blocks coding. Provider-owned canonical metadata and series decoding remain fail-closed until their approved staging contract; Docker Buildx limits only the final Compose/browser runtime profile.",
-    "current_phase": "rebalance-window-planner-v1",
-    "next_action": "Pass a trusted frozen SessionCalendarSnapshot through the trial preparation context, compile the exact interval-bounded occurrences into a typed Nautilus engine input, and implement native callback-bound session-open/session-close and misfire handling with auditable outcomes. Keep assembly fail-closed until the worker executes the plan. Then continue portfolio, metric, snapshot, worker, and forward acceptance.",
+    "current_blocker": "No external Nautilus release or human approval blocks coding. Provider-owned canonical metadata and series decoding await their approved staging contract; Docker Buildx limits only final Compose/browser validation.",
+    "current_phase": "nautilus-rebalance-plan-transport-v1",
+    "next_action": "Implement deterministic event-indexed native rebalance callbacks, target-intent caching, shared-risk routing, misfire audit outcomes, and exact calendar-window plan compilation; preserve assembly fail-closed until execution is wired.",
     "total": 18,
-    "updated_at": "2026-10-04T13:10:52+00:00"
+    "updated_at": "2026-10-04T13:33:44.475602+00:00"
   },
-  "remote": "28f9c1c74fa3babcb04b481691ae081bec770a13",
+  "remote": "3bb531e3a5e6550b660e4bf0b32bf0a63e1785ee",
   "remote_sha": "28f9c1c74fa3babcb04b481691ae081bec770a13",
   "remote_synchronized": true,
   "retained_docker_resources": [],

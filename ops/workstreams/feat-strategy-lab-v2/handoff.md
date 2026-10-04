@@ -2,6 +2,54 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Versioned rebalance-plan transport boundary
+
+Added a strict wire codec for frozen rebalance occurrences and carried the
+portfolio calendar policy plus plan through Nautilus engine-input v5, runtime
+bundle serialization, and adapter validation. The adapter checks exact policy,
+calendar, occurrence, and plan fingerprints; Docker input allowlisting includes
+the new runtime module. Calendar policies now round-trip through the portfolio
+wire contract.
+
+This is transport and identity groundwork only. Trial assembly still rejects
+rebalance policies, and the native bridge still rejects non-empty plans because
+schedule callbacks, intent caching/routing, misfire handling, and durable audit
+outcomes have not yet been implemented. Preserve that fail-closed boundary;
+do not represent this commit as executable rebalance support.
+
+Validation at implementation commit
+`3bb531e3a5e6550b660e4bf0b32bf0a63e1785ee`: full Strategy Lab package suite
+`1,269 passed` (including the local Unix-socket test with scoped socket access);
+focused rebalance/runtime suite `79 passed`; Ruff clean; changed Python files
+formatted; MyPy clean across 362 package/runtime sources; `git diff --check`
+clean. The suite first hit the sandbox's temporary Unix-socket bind restriction,
+then passed unchanged with the narrow local socket permission. Docker Buildx
+remains unavailable, limiting only final Compose/browser runtime validation.
+
+Next: add a trusted frozen session calendar to the preparation context, compile
+the scoring-window schedule, and wire native open/close callbacks with exact
+boundary behavior, target-intent caching, declared misfires, shared-risk
+routing, and persisted decision evidence. Keep assembly fail-closed until those
+callbacks execute the plan. Continue the broader portfolio, metrics, snapshot,
+worker, and broker-free forward acceptance afterward. Nautilus stable 2.x is
+not a prerequisite; the isolated 2.0.0rc5 scope remains offline backtesting
+only, with forward parity separately gated.
+
+Changed implementation paths include:
+`backend/app/strategy_lab_v2/rebalance.py`,
+`backend/app/strategy_lab_v2/nautilus_rebalance_wire.py`,
+`backend/app/strategy_lab_v2/nautilus_engine_input.py`,
+`backend/app/strategy_lab_v2/nautilus_portfolio_wire.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_adapter.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_adapter_probe.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_bundle.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_image/Dockerfile`,
+`backend/app/strategy_lab_v2/nautilus_strategy_bridge.py`, and their focused
+tests. Workstream checkpoint paths:
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
 ## 2026-10-04 - Evaluation-window-bound rebalance planner
 
 Added `schedule_rebalances_for_interval`, which retains exact calendar/policy
