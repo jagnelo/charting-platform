@@ -322,6 +322,7 @@ remaining_gaps:
   - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
   - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
   - Exact-pinned stable or pre-release Nautilus v2 can qualify local backtests after the complete conformance suite; stable 2.x is not a prerequisite. The isolated Nautilus 2.0.0rc5 image fixture passed multi-instrument accounting, native order/fill/cost reporting, deterministic replay, and lifecycle at source SHA f102f310499431b0c892483ec15e376f5503319f. The raw fixture receipt remains non-authoritative until consumed by the scoped conformance/publication path; forward shadow still requires event-tape parity, and pre-releases remain barred from broker/real-capital use.
+  - The owner-authenticated worker-terminal path now consumes exact conformance evidence, rehydrates and checks the owner-scoped trial graph, materializes versioned native OOS metrics/results, publishes verified output bytes, and builds the publication plan. A worker-terminal success/redelivery test exercises the full persistence-port coordinator with pure completion/lease state and proves stable receipt identity when the callback observation time changes; artifact completion keys bind manifest/content/length/storage identity rather than the retry-varying create/reuse action. Real PostgreSQL/Redis/Compose adapter execution and full-stack/browser acceptance remain Docker-gated.
   - The isolated Nautilus runtime bundle now has a pinned-input content-addressed artifact contract. Durable worker handoff v2 carries its compact artifact manifest plus semantic bundle digest; the worker binds both to the attempt/request and verifies the exact mounted bytes and memory-derived size bound before Docker launch. Production assembly from frozen trial/snapshot/portfolio inputs remains open.
   - The combined backend coverage gate now collects package-owned v2 tests and passes its 75% threshold. The dedicated worker entrypoint is now exposed through an explicit opt-in `strategy-lab-v2` Compose profile with a separate artifact volume, health-gated PostgreSQL/Redis dependencies, read-only root, dropped capabilities, bounded temporary filesystem, fail-closed Docker-socket binding, and a package-owned authenticated single-output evidence resolver default; host multi-artifact policy, live activation, and stable Nautilus execution remain open.
   - Alembic revision `ff0a1b2c3d4e` now creates the complete additive Strategy Lab v2 adapter schema and the active-worker reservation index without touching legacy Strategy Lab tables; the FastAPI lifespan now invokes the explicit startup migration service when namespaced migration settings enable it, while remaining API projections, terminal/result callback wiring, and stable Nautilus execution remain open.
@@ -816,17 +817,21 @@ progress:
     requires event-tape parity. The owned worker-terminal resolver now
     authenticates the trial graph and exact conformance evidence, verifies and
     publishes native OOS result artifacts, and constructs the official result
-    manifest and publication plan. Remaining code work is to exercise the
-    complete terminal persistence/replay path and close other API, worker, and
-    forward acceptance gaps. Denied Docker API access blocks image-backed and
-    full-stack-browser validation; SSH authentication blocks remote publishing.
-    Neither blocks package-owned implementation. Provider/ETF/TC2000 staging
-    gates apply only to shared-path reconciliation, not this backend-only work.
+    manifest and publication plan. The full terminal success/redelivery
+    coordinator is now covered using in-memory persistence ports and confirms
+    stable completion/settlement identity across callback times. Remaining code
+    work includes owner-scoped domain graph validation on creation and other
+    API, worker, and forward acceptance gaps. Denied Docker API access blocks
+    real PostgreSQL/Redis/Compose and full-stack-browser validation; SSH
+    authentication blocks remote publishing. Neither blocks package-owned
+    implementation. Provider/ETF/TC2000 staging gates apply only to shared-path
+    reconciliation, not this backend-only work.
   next_action: >-
-    Add a complete worker-terminal success/replay integration test that covers
-    artifact publication, owner-scoped result persistence, metrics, completion,
-    and capacity release; then continue remaining domain-backed mutation and
-    dedicated worker/runtime activation gaps. Re-run exact-pinned RC5
-    image-backed and full-stack/browser validation when Docker API access is
-    available. No stable Nautilus release or unrelated upstream branch blocks
-    this package-owned work.
+    Validate immutable domain-resource dependencies before application-backed
+    creation (for example package/portfolio references to owner-scoped strategy
+    versions), failing closed without revealing cross-owner existence; then
+    expand that graph validation to snapshot/trial/attempt/result relationships
+    and continue dedicated worker/runtime and forward acceptance gaps. Run real
+    PostgreSQL/Redis/Compose and full-stack/browser validation when Docker API
+    access is available. No stable Nautilus release or unrelated upstream
+    branch blocks this package-owned work.

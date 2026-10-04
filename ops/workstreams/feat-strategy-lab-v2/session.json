@@ -86,7 +86,16 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "backend/app/strategy_lab_v2/artifact_commit.py",
+    "backend/app/strategy_lab_v2/result_completion.py",
+    "backend/app/strategy_lab_v2/worker_terminal_adapter.py",
+    "backend/app/strategy_lab_v2/tests/test_nautilus_worker_terminal.py",
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -127,11 +136,11 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "No external dependency blocks implementation. The worker-terminal resolver now authenticates trial and conformance inputs, publishes verified native OOS result artifacts, and constructs official result/publication evidence. Remaining code work includes complete terminal persistence/replay integration and other API/worker/forward acceptance gaps. Docker API access blocks image-backed and full-stack-browser validation; SSH authentication blocks remote sync only. Provider/ETF/TC2000 staging gates apply only to shared-path reconciliation.",
-    "current_phase": "worker-terminal-oos-result-publication",
-    "next_action": "Add a complete worker-terminal success/replay integration test across publication, result persistence, metrics, completion, and capacity release; then continue remaining domain-backed mutation and dedicated worker/runtime activation gaps.",
+    "current_blocker": "No external dependency blocks implementation. The owner-authenticated worker-terminal path materializes and publishes native OOS results; success and redelivery are exercised through the complete persistence-port coordinator with stable completion/settlement identity. Remaining code work includes owner-scoped domain graph validation and other API/worker/forward acceptance gaps. Docker API access blocks real PostgreSQL/Redis/Compose and full-stack-browser validation; SSH authentication blocks remote sync only. Provider/ETF/TC2000 staging gates apply only to shared-path reconciliation.",
+    "current_phase": "worker-terminal-redelivery-idempotency",
+    "next_action": "Validate immutable resource dependencies against the authenticated owner's persisted domain graph, failing closed without revealing cross-owner existence; then expand checks to snapshot/trial/attempt/result relationships and continue the remaining API/worker/forward acceptance gaps.",
     "total": 18,
-    "updated_at": "2026-10-04T06:30:00.000000+00:00"
+    "updated_at": "2026-10-04T06:34:00.000000+00:00"
   },
   "remote": "1e3a861454f3c77bdac5efbb6957103f56f13238",
   "remote_sha": "1e3a861454f3c77bdac5efbb6957103f56f13238",
@@ -139,7 +148,7 @@
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "7c50d5d3-c421-4827-add4-736006a8f07b",
-  "state": "checkpointed",
+  "state": "in_progress",
   "takeover_history": [
     {
       "at": "2026-09-16T01:47:41.916851+00:00",

@@ -188,6 +188,13 @@ class PostgresWorkerTerminalAdapter:
             )
         if execution.nautilus_result is None:
             return _retry(entry_fingerprint, "worker execution omitted Nautilus evidence")
+        runtime_result = execution.runtime_result
+        if runtime_result is None:
+            return _retry(entry_fingerprint, "worker execution omitted runtime evidence")
+        # The process receipt timestamp is immutable across queue redelivery.
+        # Using callback-observation time here would change runtime updates,
+        # terminal projections, release receipts, or result completion on retry.
+        terminal_at = runtime_result.state.updated_at
         try:
             evidence = await self._evidence_resolver(context)
         except PermanentWorkerTerminalEvidenceError as error:
@@ -203,14 +210,14 @@ class PostgresWorkerTerminalAdapter:
         request = context.request
         if evidence.submission.request.attempt_id != request.admission.attempt_id:
             return _reject(entry_fingerprint, "terminal evidence references a different attempt")
-        released_at = evidence.released_at or context.observed_at
+        released_at = evidence.released_at or terminal_at
         try:
             runtime = await self._runtime_execution.materialize_nautilus_result(
                 principal=evidence.principal,
                 execution_plan=request.execution_plan,
                 sandbox_plan=request.sandbox_plan,
                 run_result=execution.nautilus_result,
-                observed_at=context.observed_at,
+                observed_at=terminal_at,
             )
         except Exception as error:  # pragma: no cover - persistence boundary
             return _retry(
@@ -258,7 +265,7 @@ class PostgresWorkerTerminalAdapter:
                 evidence.progress,
                 result=evidence.result,
                 error=evidence.error,
-                observed_at=context.observed_at,
+                observed_at=terminal_at,
                 released_at=released_at,
             )
         except Exception as error:  # pragma: no cover - application boundary
@@ -271,9 +278,7 @@ class PostgresWorkerTerminalAdapter:
         if settlement is None or settlement.record is None or settlement.observation is None:
             return _retry(entry_fingerprint, "terminal projection omitted settlement evidence")
         try:
-            settlement_receipt = await self._settlements.ensure(
-                principal=evidence.principal, record=settlement.record
-            )
+            await self._settlements.ensure(principal=evidence.principal, record=settlement.record)
         except Exception as error:  # pragma: no cover - persistence boundary
             return _retry(
                 entry_fingerprint, f"settlement receipt persistence failed: {type(error).__name__}"
@@ -322,7 +327,7 @@ class PostgresWorkerTerminalAdapter:
                     progress=persisted_progress,
                     publication=publication.plan,
                     artifact_plans=evidence.artifact_plans,
-                    completed_at=context.observed_at,
+                    completed_at=terminal_at,
                     result_artifacts=evidence.result.output_artifacts,
                 )
             except Exception as error:  # pragma: no cover - persistence boundary
@@ -370,13 +375,16 @@ class PostgresWorkerTerminalAdapter:
                 capacity.rejection_reason or "worker capacity release was rejected",
             )
         receipt_digest = _digest(
-            context,
-            terminal,
+            entry_fingerprint,
+            terminal.outcome,
+            terminal.progress,
             runtime.state,
-            settlement_receipt,
+            settlement.record,
+            settlement.observation,
             summary,
-            capacity,
-            completion,
+            capacity.pool,
+            capacity.lease_state,
+            completion.record if completion is not None else None,
         )
         return WorkerHandleResult(entry_fingerprint, WorkerHandleDecision.COMPLETE, receipt_digest)
 

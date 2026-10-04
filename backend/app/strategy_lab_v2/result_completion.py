@@ -10,6 +10,7 @@ from enum import StrEnum
 from app.strategy_lab_v2.artifact_commit import (
     ArtifactCommitDecision,
     ArtifactCommitLedger,
+    artifact_commit_key,
     finalize_artifact_commit,
 )
 from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
@@ -125,20 +126,32 @@ class ResultCompletionResolution:
         require_sha256_digest(self.completion_fingerprint, field_name="completion_fingerprint")
         if self.record is not None and not isinstance(self.record, ResultCompletionRecord):
             raise TypeError("record must be a ResultCompletionRecord")
-        if self.decision in {
-            ResultCompletionDecision.COMPLETE,
-            ResultCompletionDecision.REPLAY_EXISTING,
-        } and self.record is None:
+        if (
+            self.decision
+            in {
+                ResultCompletionDecision.COMPLETE,
+                ResultCompletionDecision.REPLAY_EXISTING,
+            }
+            and self.record is None
+        ):
             raise ValueError("completed resolutions require a record")
-        if self.decision in {
-            ResultCompletionDecision.CONFLICT,
-            ResultCompletionDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ResultCompletionDecision.CONFLICT,
+                ResultCompletionDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("conflicts and rejections require a reason")
-        if self.decision in {
-            ResultCompletionDecision.COMPLETE,
-            ResultCompletionDecision.REPLAY_EXISTING,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ResultCompletionDecision.COMPLETE,
+                ResultCompletionDecision.REPLAY_EXISTING,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("completed resolutions cannot contain a rejection reason")
 
 
@@ -217,26 +230,52 @@ def finalize_execution_result(
         raise ValueError("completed_at must be timezone-aware")
 
     if submission.request.attempt_id != runtime_state.attempt_id:
-        return _reject(completion_ledger, artifact_commit_ledger, "submission and runtime attempt differ")
-    if outcome.attempt_id != runtime_state.attempt_id or progress.attempt_id != runtime_state.attempt_id:
-        return _reject(completion_ledger, artifact_commit_ledger, "terminal evidence references different attempts")
+        return _reject(
+            completion_ledger, artifact_commit_ledger, "submission and runtime attempt differ"
+        )
+    if (
+        outcome.attempt_id != runtime_state.attempt_id
+        or progress.attempt_id != runtime_state.attempt_id
+    ):
+        return _reject(
+            completion_ledger,
+            artifact_commit_ledger,
+            "terminal evidence references different attempts",
+        )
     if publication.attempt_id != runtime_state.attempt_id:
-        return _reject(completion_ledger, artifact_commit_ledger, "publication references a different attempt")
+        return _reject(
+            completion_ledger, artifact_commit_ledger, "publication references a different attempt"
+        )
     if runtime_state.phase is not RuntimeExecutionPhase.SUCCEEDED:
-        return _reject(completion_ledger, artifact_commit_ledger, "runtime execution is not successful")
+        return _reject(
+            completion_ledger, artifact_commit_ledger, "runtime execution is not successful"
+        )
     if outcome.status is not OutcomeStatus.SUCCEEDED:
-        return _reject(completion_ledger, artifact_commit_ledger, "execution outcome is not successful")
-    if progress.phase is not ProgressPhase.SUCCEEDED or progress.completed_units != progress.total_units:
-        return _reject(completion_ledger, artifact_commit_ledger, "execution progress is not complete")
+        return _reject(
+            completion_ledger, artifact_commit_ledger, "execution outcome is not successful"
+        )
+    if (
+        progress.phase is not ProgressPhase.SUCCEEDED
+        or progress.completed_units != progress.total_units
+    ):
+        return _reject(
+            completion_ledger, artifact_commit_ledger, "execution progress is not complete"
+        )
     if outcome.result_digest != publication.result_fingerprint:
-        return _reject(completion_ledger, artifact_commit_ledger, "outcome and publication results differ")
+        return _reject(
+            completion_ledger, artifact_commit_ledger, "outcome and publication results differ"
+        )
     if publication.decision is ResultPublicationDecision.REJECT:
         return _reject(completion_ledger, artifact_commit_ledger, "result publication is rejected")
 
     summary = build_execution_summary(submission, outcome, progress, publication)
     if summary.status is not OutcomeStatus.SUCCEEDED:
-        return _reject(completion_ledger, artifact_commit_ledger, "execution summary is not successful")
-    plan_fingerprints = tuple(sorted(content_digest(plan) for plan in plans))
+        return _reject(
+            completion_ledger, artifact_commit_ledger, "execution summary is not successful"
+        )
+    # Publication action (create vs reuse) can legitimately differ on a
+    # callback retry; completion identity follows the immutable bytes/manifest.
+    plan_fingerprints = tuple(sorted(artifact_commit_key(plan) for plan in plans))
     completion_fingerprint = content_digest(
         {
             "artifact_plans": plan_fingerprints,
@@ -247,11 +286,7 @@ def finalize_execution_result(
         }
     )
     existing = next(
-        (
-            item
-            for item in completion_ledger.records
-            if item.attempt_id == runtime_state.attempt_id
-        ),
+        (item for item in completion_ledger.records if item.attempt_id == runtime_state.attempt_id),
         None,
     )
     if existing is not None:

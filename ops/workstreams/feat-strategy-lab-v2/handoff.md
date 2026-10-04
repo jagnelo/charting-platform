@@ -15,6 +15,18 @@ validation failures are rejected instead of retried forever; transient lookup
 or storage failures remain retryable. Terminal result identity is tied to the
 process receipt timestamp so callback redelivery cannot change it.
 
+The complete terminal writer is now exercised through success and a later
+callback redelivery using in-memory ports backed by the pure runtime,
+outcome/progress, result-completion, and worker-settlement contracts. This
+exposed a retry mismatch: an artifact's publication action naturally changes
+from `create_if_absent` to `reuse_existing` after the first write. Completion
+identity now uses the stable manifest/content/length/storage commit key rather
+than that transient action; runtime, terminal, release, and completion times
+also come from the immutable process receipt, and the returned terminal digest
+is based on persisted identities rather than changing replay decisions. The
+test confirms both writes complete with the same receipt digest and create only
+one completion and settlement record.
+
 The existing terminal writer now receives this evidence through the default
 worker callback composition. A successful local RC5-shaped receipt test checks
 the published artifacts, official local-backtest provenance, OOS fill/cost
@@ -26,7 +38,7 @@ a prerequisite. Pre-releases remain unable to connect to brokers or control
 real capital, and forward-shadow qualification still has its separate
 event-tape-parity gate.
 
-Validation: all 1,212 Strategy Lab v2 tests passed; Ruff passed; all nine
+Validation: all 1,213 Strategy Lab v2 tests passed; Ruff passed; all 11
 changed Python files passed formatting; MyPy found no issues across 350
 package/runtime sources; the workstream validator passed; and `git diff
 --check` passed. The current environment denies access to `/var/run/docker.sock`,
@@ -34,18 +46,20 @@ so image-backed revalidation and the required full-stack/browser profile remain
 open. SSH public-key/askpass failure still prevents remote publication only.
 
 No external dependency blocks the next owned coding slice. Remaining work
-includes an end-to-end terminal success/replay test through the persistence
-ports, the plan's other domain-backed mutation and worker-runtime gaps, forward
-parity, and final Docker-backed acceptance. Provider/ETF/TC2000 staging gates
-apply only to consuming their contracts on shared paths.
+includes owner-scoped typed-domain relationship validation during resource
+creation, other domain-backed mutation and worker-runtime gaps, forward parity,
+and final Docker-backed acceptance. Provider/ETF/TC2000 staging gates apply
+only to consuming their contracts on shared paths.
 
 Changed paths: worker request conformance binding, native OOS terminal
 materialization and publication, worker callback composition, permanent
 evidence-failure handling, and their package-owned tests.
 
-Next: exercise the complete terminal persistence success/replay sequence,
-including metric/result completion and worker-capacity settlement, then proceed
-to the remaining owned acceptance gaps. Do not wait for stable Nautilus 2.x.
+Next: validate immutable resource dependencies against the authenticated
+principal's persisted domain graph, failing closed without revealing
+cross-owner existence; then expand validation to snapshot/trial/attempt/result
+relationships and continue remaining owned acceptance gaps. Do not wait for
+stable Nautilus 2.x.
 
 ## 2026-10-04 - Native OOS reports, metrics, and RC5 qualification probe
 

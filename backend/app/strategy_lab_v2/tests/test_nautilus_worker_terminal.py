@@ -15,6 +15,7 @@ import app.strategy_lab_v2.nautilus_worker_terminal as terminal_module
 from app.strategy_lab_v2.admission import ExecutionAdmission, ExecutionAdmissionRequest
 from app.strategy_lab_v2.artifact_application import LocalArtifactPublicationService
 from app.strategy_lab_v2.artifact_commit import ArtifactCommitLedger, finalize_artifact_commit
+from app.strategy_lab_v2.artifact_publication import ArtifactPublicationAction
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.conformance import (
@@ -36,7 +37,11 @@ from app.strategy_lab_v2.engine_execution import (
 )
 from app.strategy_lab_v2.execution import ExecutionAuthorization
 from app.strategy_lab_v2.execution_orchestration import plan_execution_orchestration
-from app.strategy_lab_v2.lease_observations import LeaseObservationState
+from app.strategy_lab_v2.lease_observations import (
+    LeaseObservationDecision,
+    LeaseObservationState,
+    apply_lease_observation,
+)
 from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease
 from app.strategy_lab_v2.nautilus_equity_trace import NautilusAccountEquityTraceWriter
 from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsWriter
@@ -54,10 +59,28 @@ from app.strategy_lab_v2.nautilus_trial_materializer import (
 from app.strategy_lab_v2.nautilus_worker_terminal import (
     create_nautilus_oos_worker_terminal_evidence_resolver,
 )
-from app.strategy_lab_v2.outcomes import ExecutionOutcome, OutcomeStatus
+from app.strategy_lab_v2.outcomes import ExecutionOutcome, OutcomeStatus, apply_outcome_update
 from app.strategy_lab_v2.postgres_commands import ExecutionCommandContext
+from app.strategy_lab_v2.postgres_execution_state import (
+    StateMutationDecision,
+    StateMutationResolution,
+)
+from app.strategy_lab_v2.postgres_runtime_execution import (
+    RuntimeStateDecision,
+    RuntimeStateResolution,
+)
+from app.strategy_lab_v2.postgres_worker_state import (
+    WorkerCapacityDecision,
+    WorkerCapacityResolution,
+)
 from app.strategy_lab_v2.progress import ExecutionProgressState, ProgressPhase
+from app.strategy_lab_v2.progress_checkpoint import (
+    ProgressCheckpoint,
+    ProgressCheckpointDecision,
+    apply_progress_checkpoint,
+)
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
+from app.strategy_lab_v2.result_completion import ResultCompletionLedger, finalize_execution_result
 from app.strategy_lab_v2.result_publication import ResultPublicationDecision
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
 from app.strategy_lab_v2.runtime_execution import new_runtime_execution_state
@@ -94,6 +117,7 @@ from app.strategy_lab_v2.worker_process import (
     WorkerProcessResolution,
 )
 from app.strategy_lab_v2.worker_service import WorkerCompletionContext
+from app.strategy_lab_v2.worker_settlement import WorkerSettlementLedger
 from app.strategy_lab_v2.worker_terminal_adapter import (
     PostgresWorkerTerminalAdapter,
     WorkerTerminalEvidence,
@@ -103,6 +127,7 @@ from app.strategy_lab_v2.workers import (
     WorkerPoolState,
     WorkerProfile,
     WorkerReservation,
+    release_worker_slot,
 )
 
 NOW = datetime(2024, 1, 2, 14, 31, tzinfo=UTC)
@@ -528,6 +553,189 @@ async def test_successful_worker_receipt_materializes_and_publishes_rc5_backtest
     metrics = {item.name: item for item in evidence.result.metric_set.values}
     assert metrics["oos_fill_count"].value == Decimal(1)
     assert metrics["oos_reported_commission:USD"].value == Decimal("2.00")
+
+
+@pytest.mark.asyncio
+async def test_terminal_persistence_replays_success_with_stable_receipt_identity(tmp_path):
+    context, lookup, resolver, _publisher = _successful_context_and_lookup(tmp_path)
+
+    class RuntimePort:
+        def __init__(self):
+            self.state = context.request.runtime_state
+            self.observed_at = []
+
+        async def materialize_nautilus_result(self, **kwargs):
+            self.observed_at.append(kwargs["observed_at"])
+            resolution = materialize_nautilus_result(
+                self.state,
+                kwargs["execution_plan"],
+                kwargs["sandbox_plan"],
+                kwargs["run_result"],
+                observed_at=kwargs["observed_at"],
+            )
+            self.state = resolution.state
+            decision = (
+                RuntimeStateDecision.REPLAY_EXISTING
+                if resolution.decision.value == "replay_existing"
+                else RuntimeStateDecision.APPLIED
+            )
+            return RuntimeStateResolution(decision, self.state)
+
+    class ExecutionStatePort:
+        def __init__(self):
+            state = lookup.inputs.execution
+            self.outcome = state.outcome
+            self.progress = ProgressCheckpoint(
+                state.progress,
+                frozenset({content_digest("initial-progress-checkpoint")}),
+            )
+
+        async def transition(self, *, outcome_update, progress_update, **_kwargs):
+            outcome_resolution = apply_outcome_update(self.outcome, outcome_update)
+            progress_resolution = apply_progress_checkpoint(self.progress, progress_update)
+            self.outcome = outcome_resolution.state
+            self.progress = progress_resolution.checkpoint
+            replay = (
+                outcome_resolution.decision.value == "replay_existing"
+                and progress_resolution.decision is ProgressCheckpointDecision.REPLAY_EXISTING
+            )
+            return StateMutationResolution(
+                StateMutationDecision.REPLAY_EXISTING if replay else StateMutationDecision.APPLIED,
+                self.outcome,
+                self.progress.state,
+            )
+
+    class WorkerStatePort:
+        def __init__(self):
+            self.pool = context.request.worker_pool
+            self.lease = context.request.lease_state
+            self.release_times = []
+
+        async def load_pool(self, _profile):
+            return self.pool
+
+        async def load_lease(self, _lease_id):
+            return self.lease
+
+        async def release_capacity(self, *, profile, reservation_id, lease_id, observation):
+            self.release_times.append(observation.observed_at)
+            assert profile == self.pool.profile
+            assert lease_id == self.lease.lease.lease_id
+            self.pool = release_worker_slot(
+                self.pool,
+                reservation_id=reservation_id,
+                released_at=observation.observed_at,
+            )
+            lease_resolution = apply_lease_observation(self.lease, observation)
+            assert lease_resolution.decision in {
+                LeaseObservationDecision.APPLY,
+                LeaseObservationDecision.REPLAY_EXISTING,
+            }
+            self.lease = lease_resolution.state
+            decision = (
+                WorkerCapacityDecision.REPLAY_EXISTING
+                if lease_resolution.decision is LeaseObservationDecision.REPLAY_EXISTING
+                else WorkerCapacityDecision.RELEASED
+            )
+            return WorkerCapacityResolution(
+                decision,
+                self.pool,
+                self.lease,
+                observation,
+            )
+
+    class SettlementPort:
+        def __init__(self):
+            self.ledger = WorkerSettlementLedger()
+
+        async def load_ledger(self, *, principal):
+            assert principal == "owner-terminal-test"
+            return self.ledger
+
+        async def ensure(self, *, principal, record):
+            assert principal == "owner-terminal-test"
+            existing = next(
+                (item for item in self.ledger.records if item.attempt_id == record.attempt_id),
+                None,
+            )
+            assert existing in {None, record}
+            if existing is None:
+                self.ledger = WorkerSettlementLedger((*self.ledger.records, record))
+            return record
+
+    class CompletionPort:
+        def __init__(self):
+            self.completions = ResultCompletionLedger()
+            self.artifact_commits = ArtifactCommitLedger()
+            self.completed_at = []
+            self.inputs = []
+
+        async def finalize(self, *, principal, **kwargs):
+            assert principal == "owner-terminal-test"
+            self.completed_at.append(kwargs["completed_at"])
+            self.inputs.append(kwargs)
+            resolution = finalize_execution_result(
+                self.completions,
+                self.artifact_commits,
+                **kwargs,
+            )
+            self.completions = resolution.completion_ledger
+            self.artifact_commits = resolution.artifact_commit_ledger
+            return resolution
+
+    class EnsurePort:
+        async def ensure(self, **kwargs):
+            return SimpleNamespace(**kwargs)
+
+    class SummaryPort:
+        async def ensure(self, *, summary, **_kwargs):
+            return summary
+
+    class PublicationPort:
+        async def ensure(self, *, principal, plan):
+            assert principal == "owner-terminal-test"
+            return SimpleNamespace(plan=plan)
+
+    runtime_port = RuntimePort()
+    execution_state_port = ExecutionStatePort()
+    worker_state_port = WorkerStatePort()
+    settlement_port = SettlementPort()
+    completion_port = CompletionPort()
+    adapter = PostgresWorkerTerminalAdapter(
+        resolver,
+        runtime_execution=runtime_port,
+        execution_state=execution_state_port,
+        execution_summaries=SummaryPort(),
+        result_publication=PublicationPort(),
+        result_completion=completion_port,
+        result_materialization=EnsurePort(),
+        metrics=EnsurePort(),
+        worker_state=worker_state_port,
+        settlements=settlement_port,
+    )
+
+    first = await adapter.write(context)
+    redelivered = await adapter.write(
+        replace(context, observed_at=context.observed_at + timedelta(seconds=30))
+    )
+
+    assert first.decision is WorkerHandleDecision.COMPLETE
+    assert redelivered.decision is WorkerHandleDecision.COMPLETE
+    assert redelivered.receipt_digest == first.receipt_digest
+    assert runtime_port.observed_at == [NOW, NOW]
+    assert worker_state_port.release_times == [NOW, NOW]
+    assert completion_port.completed_at == [NOW, NOW]
+    assert len(settlement_port.ledger.records) == 1
+    assert len(completion_port.completions.records) == 1
+    assert not worker_state_port.pool.active_reservations
+    assert all(
+        item.action is ArtifactPublicationAction.CREATE_IF_ABSENT
+        for item in completion_port.inputs[0]["artifact_plans"]
+    )
+    assert all(
+        item.action is ArtifactPublicationAction.REUSE_EXISTING
+        for item in completion_port.inputs[1]["artifact_plans"]
+    )
 
 
 @pytest.mark.asyncio

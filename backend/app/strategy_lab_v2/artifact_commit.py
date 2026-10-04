@@ -33,7 +33,11 @@ class ArtifactCommitRecord:
         require_sha256_digest(self.content_digest, field_name="content_digest")
         if self.storage_key != self.content_digest:
             raise ValueError("artifact storage_key must equal its content digest")
-        if not isinstance(self.byte_length, int) or isinstance(self.byte_length, bool) or self.byte_length < 0:
+        if (
+            not isinstance(self.byte_length, int)
+            or isinstance(self.byte_length, bool)
+            or self.byte_length < 0
+        ):
             raise ValueError("artifact byte_length must be a non-negative integer")
         _aware(self.committed_at, "committed_at")
         object.__setattr__(self, "committed_at", self.committed_at.astimezone(UTC))
@@ -72,7 +76,9 @@ class ArtifactCommitLedger:
         storage_keys = [item.storage_key for item in records]
         if len(storage_keys) != len(set(storage_keys)):
             raise ValueError("artifact storage keys must be unique")
-        object.__setattr__(self, "records", tuple(sorted(records, key=lambda item: item.commit_key)))
+        object.__setattr__(
+            self, "records", tuple(sorted(records, key=lambda item: item.commit_key))
+        )
 
     @property
     def fingerprint(self) -> str:
@@ -102,21 +108,48 @@ class ArtifactCommitResolution:
         require_sha256_digest(self.commit_key, field_name="commit_key")
         if self.record is not None and not isinstance(self.record, ArtifactCommitRecord):
             raise TypeError("record must be an ArtifactCommitRecord")
-        if self.decision in {
-            ArtifactCommitDecision.COMMIT,
-            ArtifactCommitDecision.REPLAY_EXISTING,
-        } and self.record is None:
+        if (
+            self.decision
+            in {
+                ArtifactCommitDecision.COMMIT,
+                ArtifactCommitDecision.REPLAY_EXISTING,
+            }
+            and self.record is None
+        ):
             raise ValueError("committed resolutions require a record")
-        if self.decision in {
-            ArtifactCommitDecision.CONFLICT,
-            ArtifactCommitDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ArtifactCommitDecision.CONFLICT,
+                ArtifactCommitDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("conflicts and rejections require a reason")
-        if self.decision not in {
-            ArtifactCommitDecision.CONFLICT,
-            ArtifactCommitDecision.REJECT,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            not in {
+                ArtifactCommitDecision.CONFLICT,
+                ArtifactCommitDecision.REJECT,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful commit resolutions cannot contain a reason")
+
+
+def artifact_commit_key(plan: ArtifactPublicationPlan) -> str:
+    """Return the stable content identity of a publication, independent of action."""
+
+    if not isinstance(plan, ArtifactPublicationPlan):
+        raise TypeError("plan must be an ArtifactPublicationPlan")
+    return content_digest(
+        {
+            "byte_length": plan.byte_length,
+            "content_digest": plan.content_digest,
+            "manifest_fingerprint": plan.manifest_fingerprint,
+            "storage_key": plan.storage_key,
+        }
+    )
 
 
 def finalize_artifact_commit(
@@ -140,14 +173,7 @@ def finalize_artifact_commit(
             content_digest(plan),
             rejection_reason="publication storage key must equal content digest",
         )
-    commit_key = content_digest(
-        {
-            "byte_length": plan.byte_length,
-            "content_digest": plan.content_digest,
-            "manifest_fingerprint": plan.manifest_fingerprint,
-            "storage_key": plan.storage_key,
-        }
-    )
+    commit_key = artifact_commit_key(plan)
     existing = next((item for item in ledger.records if item.commit_key == commit_key), None)
     if existing is not None:
         return ArtifactCommitResolution(

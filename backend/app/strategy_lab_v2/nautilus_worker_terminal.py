@@ -316,7 +316,7 @@ async def _materialize_successful_oos_result(
         publication_result = await artifact_publisher.publish_file(
             artifact,
             artifact_sources[artifact.content_digest],
-            committed_at=context.observed_at,
+            committed_at=terminal_at,
         )
         if not isinstance(publication_result, ArtifactPublicationResolution):
             raise TypeError("artifact publisher returned an invalid publication resolution")
