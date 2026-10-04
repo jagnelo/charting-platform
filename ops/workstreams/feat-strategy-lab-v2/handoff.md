@@ -2,6 +2,39 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - OOS native-equity metric-set materialization
+
+The verified native OOS account-equity trace now has a bounded-memory metric
+calculation and typed `MetricSet` builder. The first scoring-window callback
+mark is captured before strategy invocation and is used as the OOS opening
+valuation; the original portfolio funding amount is not reused, so warm-up
+returns cannot leak into the scoring result. The versioned v7 metric family
+emits cumulative net P&L/return and event-mark drawdown, duration, ulcer, and
+recovery summaries. Annualized, calendar-dependent, and event-cadence-sensitive
+risk statistics remain explicitly null with reasons until an actual sampling
+or calendar basis is provided. Every emitted value references the native trace
+digest, and the metric set binds the same trial and attempt as its receipt.
+
+Implementation commit: `97ecadaf2a7c1fce49c67f15e2956d2aa87cc30c`.
+Validation: all 1,198 Strategy Lab v2 tests passed; Ruff lint passed; MyPy
+reported no issues across 339 package sources; all seven changed Python files
+passed formatting; `git diff --check` passed. Focused OOS metric/materializer
+tests passed alongside the package suite.
+
+This slice produces equity-derived metrics only; it does not yet bind native
+order/fill/position/cost reports into the same `MetricSet` or finish
+`RunResultManifest` construction at the worker boundary. The current branch
+plan allows exact-pinned Nautilus 2.x prereleases for local authoritative
+backtests after conformance; stable 2.x is not a prerequisite. The external
+Docker socket hold still prevents exact-image/full-stack validation, and SSH
+askpass/key authentication still prevents publishing. Neither blocks the next
+owned backend implementation slice.
+
+Next: export and host-verify native orders, fills, positions, and cost evidence;
+feed those reports plus the OOS equity series into the official metric-set and
+result-manifest path; then run the exact-pinned RC5 probe and full-stack/browser
+profile when Docker access is available.
+
 ## 2026-10-04 - Native OOS account-equity result artifact
 
 The package-owned Nautilus execution path now captures the native account
