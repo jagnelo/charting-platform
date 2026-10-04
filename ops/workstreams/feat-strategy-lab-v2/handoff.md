@@ -8190,3 +8190,55 @@ not currently possible because the configured SSH key is rejected and
 Next: connect verified Nautilus terminal files to the owner-authenticated
 result context, construct and persist the OOS manifest plus publication plan,
 and preserve prerelease/local-only safety boundaries.
+
+## 2026-10-04 - Native OOS average position outcomes (v9)
+
+The native OOS metrics now include currency-scoped mean realized P&L per closed
+position, mean winning-position P&L, mean losing-position P&L, and the mean-win
+to absolute-mean-loss ratio. Calculations use the same deterministic Decimal
+context as the existing native report metrics, include explicit formula/sample
+metadata, and withhold values when any OOS-closed position lacks reported P&L.
+No average or ratio combines unlike currencies. The metric definition is now
+v9, so persisted metric-set identities cannot silently alias the v8 contract.
+
+This checkpoint also reconciles the older OOS-manifest note above with the
+current implementation: `create_nautilus_oos_worker_terminal_evidence_resolver`
+materializes the verified native result, publishes the output artifacts, and
+builds publication evidence; `PostgresWorkerTerminalAdapter` persists the
+publication, result manifest, metric set, and terminal completion. The package
+suite's terminal success/redelivery coverage exercises that path. The remaining
+production composition gap is the API's trusted capability/search-preparation
+binding, not terminal result materialization.
+
+Validation at source commit `2aed7030cebf0289494e713cb0fb472cef9dd483`:
+all 1,216 Strategy Lab v2 tests passed; Ruff and changed-file formatting passed;
+MyPy passed across 344 Strategy Lab sources. The combined backend unit,
+integration, and Strategy Lab coverage gate passed 2,867 tests at 83.39%
+coverage. Frontend validation passed 923 Vitest tests, the 48-file uPlot
+renderer contract, and all 26 visual-acceptance policy assertions.
+
+The Docker Engine and Compose are available (server 29.1.3, Compose 2.40.3),
+and the assigned worktree's resource inventory is empty after cleanup. The host
+does not have the Docker Buildx CLI plugin: the standard stack-up target fails
+at `docker buildx create`, and a local legacy-builder attempt cannot resolve
+the frontend Dockerfile's `$BUILDPLATFORM`. Therefore the exact-tip Compose
+stack and Playwright browser run remain unverified. The backend/frontend test
+stages passed independently; no Strategy Lab code failure was observed. The
+unit-only `make test-platform` stage also has a coverage-threshold mismatch
+(1,282 unit tests pass, but coverage is 40.57% versus its standalone 55%
+threshold); the combined coverage gate above passes the repository's 75%
+threshold with the Strategy Lab package tests included.
+
+Exact-pinned Nautilus 2.0.0rc5 remains eligible for local backtesting after its
+existing scope-specific conformance; no stable release wait is required, and
+pre-release builds remain barred from broker/real-capital control.
+
+Next: compose trusted capability and search-preparation inputs behind the
+production API while preserving the isolated preparation boundary and
+fail-closed behavior for missing provider, runtime, or conformance evidence.
+
+Current changed workstream records for this checkpoint are
+`ops/workstreams/feat-strategy-lab-v2/plan.yaml`, `handoff.md`, `session.json`,
+and `validation.jsonl`. The product source is committed as
+`2aed7030cebf0289494e713cb0fb472cef9dd483`; this handoff records the pending
+publication/record checkpoint separately.

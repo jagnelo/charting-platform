@@ -808,22 +808,27 @@ progress:
     - strategy-lab-v2-host-composed-nautilus-backtest-dispatch
     - strategy-lab-v2-production-search-dispatch-evidence-preparation
   total: 18
-  current_phase: native-oos-position-realized-trade-quality
+  current_phase: native-oos-position-average-outcomes-v9
   current_blocker: >-
-    Stable Nautilus 2.x is not a release blocker: this plan accepts exact-pinned
-    pre-release v2 builds for authoritative local backtests after applicable
-    conformance; pre-releases remain barred from broker connections and
-    real-capital control, and forward shadow separately requires event-tape
-    parity. No external dependency blocks package-owned implementation. The
-    production API still lacks host-composed capability and search-preparation
-    inputs; this is an implementation gap and must remain fail-closed until the
-    provider evidence, exact conformance, runtime profile, and local preparation
-    process are composed. Provider/ETF/TC2000 staging gates apply only when
-    consuming their shared contracts or paths. Docker is currently available,
-    but the full PostgreSQL/Redis/Compose/browser profile has not yet run at the
-    exact branch tip. Missing SSH identity blocks remote publishing only.
+    Stable Nautilus 2.x is not a release blocker: exact-pinned stable or
+    pre-release v2 builds are eligible for authoritative local backtests after
+    scope-specific conformance. Pre-releases remain barred from broker
+    connections and real-capital control; forward shadow separately requires
+    event-tape parity. No external release or provider event blocks
+    package-owned implementation. The production API still lacks host-composed
+    capability and search-preparation inputs; keep those paths fail-closed until
+    trusted provider coverage, exact conformance, runtime profile, and an
+    isolated local preparation process are composed. Provider/ETF/TC2000
+    staging gates apply only when consuming their shared contracts or paths.
+    Docker Engine and Compose are reachable, but the host has no Docker Buildx
+    CLI plugin. The full-stack startup target therefore cannot create its
+    named builder, and the legacy-builder fallback cannot resolve the
+    frontend Dockerfile's BUILDPLATFORM argument. This blocks exact-tip
+    Compose/browser validation only; package-owned implementation and the
+    combined backend coverage gate continue independently.
   next_action: >-
-    Continue closing production API, dedicated backtest worker, and forward
-    acceptance gaps without inventing provider or runtime evidence; then run
-    PostgreSQL/Redis/Compose and full-stack/browser validation at the exact
-    branch tip. Do not wait for a stable Nautilus 2.x release.
+    Continue composing the production capability/search-preparation path and
+    remaining worker/forward acceptance without inventing trusted evidence;
+    then run PostgreSQL/Redis/Compose and full-stack/browser validation at the
+    exact branch tip when a Buildx-capable Docker CLI is available. Do not wait
+    for stable Nautilus 2.x.
