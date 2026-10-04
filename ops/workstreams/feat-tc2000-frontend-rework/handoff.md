@@ -16845,3 +16845,62 @@ Changed ops files in this checkpoint:
 - ops/workstreams/feat-tc2000-frontend-rework/handoff.md
 - ops/workstreams/feat-tc2000-frontend-rework/session.json
 - ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl
+
+## 2026-10-04 — Generic breadth reference-target lineage
+
+Product commit `05aac7f816aab492c7b2aadb1adb9ffc6e76f02a` adds a
+reference-target lineage section to the existing generic breadth evidence
+panel. Direct benchmark symbols remain distinct from derived equal-weight
+universe targets. For aggregate targets, the UI presents the returned method,
+membership version/count, average member coverage, aligned points and covered
+member-points, and timestamp alignment; absent response fields remain
+unreported. Freshness is labelled as run input freshness and explicitly notes
+that the backend includes both evaluated-member and reference-universe inputs.
+This consumes `condition.reference_universe` and `condition.reference_target`
+already returned by the TC-owned analysis endpoint. There are no backend,
+provider, ETF, ingestion, or data-population changes.
+
+The full frontend Vitest suite passed (129 files / 1,200 tests); frontend
+type-check and production build passed; focused authenticated Chromium
+F8s-breadth-family-ratio passed 1/1 on the rebuilt assigned stack. The first
+browser assertion run exposed an ambiguous accessible-name query after the
+evidence section was added; the selector was made exact and the unchanged flow
+then passed. Ordinary Docker Compose was used because the host has no Buildx
+plugin; all six TC services became healthy. Scoped teardown removed six
+containers, four volumes, the project network, and four generated images; the
+resource audit reported zero remaining TC resources.
+
+The full `make validate-integration` attempt did not reach a pytest summary:
+backend coverage exited 152 near 84%. A direct unit-coverage retry stalled
+near 8% without reporting a test result and was stopped. Kernel evidence found
+an OOM kill inside a separate ETF-owned research-runner cgroup, but a causal
+link to this TC exit was not established; no ETF resource or worktree was
+changed. Treat the exact-tip backend/full integration result as pending, not as
+a product regression or a human-approval dependency. The latest pinned visual
+matrix remains the c038aaf receipt (94/104, ten screenshot-only differences);
+no screenshot, mask, threshold, skip, fallback, or acceptance rule changed.
+
+The failed gate was launched from a dirty TC worktree whose committed base was
+`c038aaf`; the uncommitted changes were the frontend slice subsequently
+committed as `05aac7f`, and backend sources were untouched by that slice. Thus
+the validation journal's `c038aaf` records the clean base, not an exact clean
+source-tree gate. Conventional shell encoding makes exit 152 compatible with
+signal 24 (`SIGXCPU`), but the current shell's CPU limit is unlimited and no
+signal source was found, so this remains an unconfirmed clue rather than a
+diagnosis. The kernel trace confirms memory-cgroup OOM kills only inside the
+separate ETF container; it does not explain the TC pytest result.
+
+Product commit `05aac7f8` was pushed and direct remote lookup confirmed it as
+the TC branch tip. Current remote refs are staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`f78b37999419dd5e957b6082491d9122519416e8`; both upstream tips remain outside
+staging. Continue distinct TC-owned workstation/Study/Strategy work; consume
+provider/ETF contracts and reconcile shared paths only after both reach
+staging. Keep the goal active and the full exact-tip gate open.
+
+Changed ops files in this checkpoint:
+- ops/workstreams/feat-tc2000-frontend-rework/plan.yaml
+- ops/workstreams/feat-tc2000-frontend-rework/handoff.md
+- ops/workstreams/feat-tc2000-frontend-rework/session.json
+- ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl

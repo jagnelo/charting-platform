@@ -20,26 +20,26 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No environment blocker prevents independent TC-owned work. Product source
-  c038aafc6fe8378cdf11d4b76006100488c75556 passes frontend coverage (128 files,
-  1,197 tests), type-check, production build, and the focused F8s authenticated
-  browser regression. The pinned Playwright v1.62.1-noble 104-case visual
-  matrix completed 94/104; the same ten screenshot-only local-reference
-  differences remain after state/interaction assertions passed: workspace-
-  floating in four viewports, Study structured-result in four, and Study
-  sandbox-error at the two 1080p scales. Preserve all visual oracles; these
-  remain review items, not a reason to classify the workstream as blocked. A
-  host-rendered diagnostic's broad 8/104 result is excluded because repository
-  history identifies that host-font rendering mismatch and the pinned replay
-  reproduced the expected 94/104 result. The previous pinned full functional
-  suite at a78812d passed 171 tests with 110 documented skips; a fresh exact-tip
-  full functional/integration gate remains part of final reconciliation.
+  No environment blocker prevents independent TC-owned work. Product tip
+  `05aac7f816aab492c7b2aadb1adb9ffc6e76f02a` adds reference-target lineage to
+  the generic breadth evidence panel using the existing TC API response only.
+  Frontend Vitest passed 129 files / 1,200 tests; type-check and production
+  build passed; the authenticated F8s-breadth-family-ratio Chromium regression
+  passed 1/1 on the rebuilt assigned stack. The latest exact pinned visual
+  matrix remains the c038aaf checkpoint at 94/104 with ten screenshot-only
+  differences after interaction/state assertions passed; no visual oracle or
+  policy changed. The full `make validate-integration` attempt did not produce
+  a backend test summary: backend coverage exited 152 near 84%; an isolated
+  retry stalled near 8% without a test result and was stopped. Kernel evidence
+  separately identified an OOM kill in an ETF-owned research-runner cgroup,
+  but no causal link to the TC test exit was established and that project was
+  not modified. The exact-tip full integration/browser gate remains open.
   Current remote staging/provider/ETF refs are respectively
   `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`,
   `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and
   `f78b37999419dd5e957b6082491d9122519416e8`. Neither upstream dependency tip
-  is in staging; keep consumer integration and shared-path reconciliation
-  deferred until then, and continue distinct TC-owned UI/Study/Strategy work.
+  is in staging; defer consumer integration and shared-path reconciliation
+  until then, and continue distinct TC-owned UI/Study/Strategy work.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -287,18 +287,18 @@ progress:
     dependencies reach staging; never consume their branch tips directly or
     mutate another worktree.
   current_blocker: >-
-    At the last full gate, product tip a78812d33f6402b329c947b70765f2a84e5be9ac
-    passed the functional browser suite (171 passed, 110 documented skips,
-    zero failures); its unchanged visual matrix completed 94/104 with ten
-    screenshot-only differences after all state assertions passed. The newer
-    product tip c038aafc6fe8378cdf11d4b76006100488c75556 passes the full
-    frontend suite, production build, and focused authenticated breadth
-    browser regression, but the full browser/visual gate remains required.
-    Do not change screenshots, masks, thresholds, skips, fallbacks, or
-    acceptance rules without the review required by the visual policy. Provider
-    and ETF consumer integration and semantic overlap reconciliation remain
-    deferred until those branches reach staging; independent TC-owned work
-    continues.
+    Product tip 05aac7f816aab492c7b2aadb1adb9ffc6e76f02a passes frontend
+    coverage (129 files / 1,200 tests), type-check, production build, and the
+    focused authenticated breadth browser regression. The full integration
+    attempt exited 152 during backend coverage near 84% without a test summary;
+    an isolated retry stalled near 8% without a result. This is an unresolved
+    validation attempt, not a product failure or human dependency; rerun the
+    full gate after diagnosing the execution exit. The last pinned visual gate
+    remains 94/104 with the same ten screenshot-only differences. Do not change
+    screenshots, masks, thresholds, skips, fallbacks, or acceptance rules.
+    Provider/ETF consumer integration and semantic overlap reconciliation
+    remain deferred until both branches reach staging; independent TC-owned
+    work continues.
 historical_implementation_records:
   - "Product commit c038aafc6fe8378cdf11d4b76006100488c75556 adds compact requested/eligible/excluded/coverage counts and a collapsible generic-breadth evidence view for universe identity/role, membership version, member observation dates, sampling semantics, source provenance, freshness and details, calculation version, definition hash, and grouped exclusion reasons. Python-backed breadth now preserves reported calculation/provenance and no longer invents a freshness state. Full frontend Vitest passed 128 files / 1,197 tests; vue-tsc/type-check and Vite production build passed; the rebuilt authenticated Chromium F8s-breadth-family-ratio flow passed 1/1 with evidence assertions. The assigned Compose stack was removed and resource audit reported zero containers, volumes, test sessions, unknown components, or known bytes. The full branch-wide browser/visual gate was not rerun at this product tip; preserve every oracle and the ten screenshot-only differences last recorded at a78812d. No provider/ETF ownership or data acquisition changed."
   - "At exact pushed product tip a78812d33f6402b329c947b70765f2a84e5be9ac, the pinned serial functional browser suite passed 171 with 110 documented skips and zero failures. The unchanged pinned Playwright 1.62.1 104-case visual matrix passed 94/104; ten screenshot-only differences remain in workspace-floating (8,995/9,825/8,995/9,825 pixels), Study structured-result (109,320/105,698/22,099/21,352), and Study sandbox-error at 1080p (13,360/11,188). All interaction/state checks passed before comparison. No oracle or policy changed; scoped Docker cleanup and resource audit left zero assigned resources. Current remote dependency tips 88132e9145a08d1c935a0111b3dba0fbd88bdff1 and 48512cd934759c8a52e9b4071c281ef763a08699 are not ancestors of staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35."
@@ -383,6 +383,7 @@ historical_implementation_records_continued:
   - "A subsequent read-only ref check on 2026-10-01 found staging still at 8b885a2f, provider-platform at 6f575556, and ETF holdings advanced to 4df59539; neither dependency tip is an ancestor of staging. TC remains outside both upstream worktrees and continues to defer consumption and exact-tip reconciliation until staging promotion."
   - "The latest read-only ref check on 2026-10-01 found staging still at 8b885a2f, provider-platform at 6f575556, and ETF holdings advanced to cac58903 (`docs(etf): correct handoff receipt verification`); neither dependency tip is an ancestor of staging. TC remains outside both upstream worktrees and continues to defer consumption and exact-tip reconciliation until staging promotion."
   - "The host font inventory adds a concrete environment signal for the protected visual mismatch: `fc-match 'Segoe UI'` resolves to DejaVu Sans and `fc-match Arial` resolves to Nimbus Sans; neither requested family is installed. The board CSS requests `Segoe UI, Arial`, so matching the baseline renderer/font environment is required before any visual disposition. No repository visual policy or baseline changed."
+  - "Product commit 05aac7f816aab492c7b2aadb1adb9ffc6e76f02a adds TC-owned generic-breadth reference-target lineage to the evidence panel: direct benchmark symbols remain distinct from derived equal-weight universe targets, while method, membership version/count, mean member coverage, aligned point/member-point counts, timestamp alignment, and the combined run-input freshness scope are shown only from fields already returned by the breadth API. Missing fields remain explicitly unreported. Frontend Vitest passed 129 files / 1,200 tests; vue-tsc/type-check and Vite production build passed; authenticated Chromium F8s-breadth-family-ratio passed 1/1 against the rebuilt assigned stack. Ordinary Compose was used because this host lacks Docker Buildx; all six assigned services became healthy and scoped teardown/resource audit left zero TC containers, volumes, images, or test sessions. The full integration attempt exited 152 during backend coverage near 84% without a test summary, and an isolated unit-coverage retry stalled near 8% without a result; no causal link was established to a kernel OOM event in a separate ETF-owned research-runner, which was not touched. The exact-tip full browser/visual gate remains pending; preserve the ten existing screenshot-only differences and every visual oracle/policy. No provider/ETF ownership or data acquisition changed."
   - "Product commit 7057262ee exposes explicit aria-pressed state for breadth drilldown controls: family-role constituent selectors, generic breadth Pass/Fail filters, moving-average above/below controls, 52-week/new-high-low and trend drilldowns, and the active drilldown header. The authenticated F8s-breadth-family-ratio flow now verifies selected/unselected state and uses keyboard activation for the dense overlay control; focused and full frontend checks passed, with no provider-platform, ETF, visual-oracle, or acceptance-policy changes."
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 7057262eeb10933ce5947426e8e7fa87e4edacee: backend combined coverage passed 1,621 unit and 408 integration tests at 82.26% total coverage; frontend Vitest passed 1,151/1,151; type-check/build, Compose/provider contracts, branch-scoped Docker health, and research-runner probes passed; authenticated functional Chromium passed 170 with 107 documented skips; and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable because of host Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the breadth-drilldown state semantics slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commit 83bcb722 adds a visually hidden accessible description to hydrated workstation pop-outs clarifying that monitor placement and native window controls are browser/OS managed. Focused pop-out tests passed 27/27, frontend type-check/diff checks passed, and the unchanged exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed."
