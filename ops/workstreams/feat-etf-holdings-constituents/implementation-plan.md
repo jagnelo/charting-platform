@@ -3606,3 +3606,34 @@ duplicate ETFMG ownership. No SEC reconstruction, paid source, or generic
 fallback promotion was introduced. Provider counts remain 496 registered,
 421 native/live-backed, and 75 fallback-only because this is a symbol-level
 successor reconciliation against an already-native adapter.
+
+## Additional low-cost source and PIMCO review — 2026-10-04
+
+FundFacts API was added to the machine-readable vendor ledger and rejected for
+current production eligibility under the existing budget rule. Its published
+Free allowance is only 15 monthly lookups and its Free/US$9.99 Starter terms
+are personal/evaluation use; commercial in-product use starts at Pro,
+US$49/month, above the aggregate US$20-equivalent ceiling. Public issuer pages
+do not prove exact DXJ/NTSX/MINT/BOND coverage, and the API's own terms disclaim
+accuracy, completeness, and timeliness warranties. No account, key, or request
+was made.
+
+A current PIMCO first-party recheck still identifies MINT and BOND as active
+products, with AUM of US$17.526B and US$8.590B as of 2026-08-31. The most recent
+reviewed official factsheets are dated 2026-03-31; neither the catalogue pages
+nor those factsheets establish a complete, executable current holdings basket.
+MINT/BOND therefore remain unavailable and Pacific's separate GEME evidence
+does not promote the mixed provider identity. The audit dates, source refs,
+candidate budget disposition, targeted regression, handoff, and provider
+universe documentation were synchronized. AC11's symbol outcomes remain
+truthful; no current-support promotion or activation occurred.
+
+The source-research implementation changeset was committed and pushed as
+`767c5fa2598f539c3366b849e9e2d80a2d2fbf7b` to
+`feat/etf-holdings-constituents`. The focused audit-governance, Tier-0
+runtime/ledger-parity, and current-workstream-narrative tests passed together
+(3 passed, 589 deselected); Ruff, all 30 workstream validations, and
+`git diff --check` passed. A direct post-push `git ls-remote` lookup was
+unavailable because GitHub DNS failed, but the push completed successfully and
+the local remote-tracking ref matched the implementation commit. The separate
+operational receipt must record that commit and remain branch-local.

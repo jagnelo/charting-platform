@@ -7303,3 +7303,120 @@ could not resolve `github.com`, so those older values are not asserted as
 current. AC14 cannot start until after integration/deployment and then requires
 its full 30-day shadow period. Keep the goal active; do not touch the visual
 suite, another worktree, staging, or deployment from this feature session.
+
+## Lower-cost vendor coverage recheck — 2026-10-04
+
+The official ETF Holdings API docs, pricing page, and terms were rechecked as
+a free-first follow-up. The advertised US$10 prepaid minimum is below the
+platform ceiling as an initial purchase; billing is US$1 per 100,000 returned
+rows, so a hard aggregate monthly cap would still be required. The docs list
+WisdomTree as a source family but do not prove DXJ/NTSX coverage. All v1
+endpoints, including non-billable current-coverage checks, require a bearer
+key, so no exact-symbol response was obtained. The published terms describe
+issuer and third-party inputs, do not guarantee ticker/source availability,
+and do not expressly grant commercial redistribution rights or an SLA. No
+account, key, paid credit, route, or capability was activated; DXJ/NTSX remain
+degraded. MINT/BOND remain unavailable; the published current-source list does
+not name PIMCO, and no entitled coverage check was possible.
+
+The vendor ledger and provider-universe documentation now record this evidence
+and the exact conditions before this API could be considered. The branch goal
+remains active. Other open gates remain unchanged: the generic visual-gate
+failure outside `owned_paths`, provider-platform staging (a fresh GitHub ref
+lookup still fails DNS), and the post-integration 30-day shadow period. Next
+safe local work is read-only diagnosis of the visual-gate environment and
+continued free/public-source rechecks; do not create an account or spend funds
+without separate authorization.
+
+## Goal status and continued branch-owned work — 2026-10-04
+
+The saved goal is **active, not blocked**. Earlier handoff wording that there
+was no remaining branch-owned work was too broad: it meant the three final
+acceptance gates cannot all be closed from this isolated worktree, not that
+progress must stop. This continuation completed additional free-first source
+review and updated the owned audit/docs/tests without crossing the branch
+boundary.
+
+The current remaining gates are:
+
+- AC7: the required local full-integration gate fails only in the generic
+  visual suite (93/104 screenshot cases, stable 1–3% differences against a
+  0.5% threshold). No ETF assertion failed in that gate. The generic tests and
+  snapshots are outside this workstream's `owned_paths`, so this branch must
+  not alter or rebaseline them.
+- AC10: the shared provider-platform contract/`ETF_HOLDINGS` bridge can be
+  implemented only after `feat/market-data-provider-platform` reaches
+  `staging`; this branch must not integrate or modify that worktree itself.
+- AC14: the 30-day shadow measurement is a later production acceptance step,
+  after integration and deployment; it cannot be collected in this feature
+  worktree today.
+
+These are outstanding completion conditions, not a reason to mark the current
+goal blocked or stop independent work. The FundFacts API recheck found a free
+15-lookups/month personal/evaluation tier and a US$9.99 Starter tier, but the
+provider lists commercial in-product use only on Pro and above (US$49/month),
+above the US$20-equivalent ceiling; exact target-symbol holdings were also not
+established. PIMCO's latest official catalogue still lists MINT and BOND (AUM
+US$17.526B and US$8.590B, respectively, as of 2026-08-31), while the latest
+reviewed official factsheets are dated 2026-03-31 and do not provide an
+executable current full basket. Neither candidate changes symbol capability:
+DXJ/NTSX stay `degraded`, MINT/BOND stay `unavailable`, and GEME remains
+separately `current`.
+
+No account, API key, payment, credential, cross-worktree operation, staging
+change, deployment, or visual-baseline edit was made. Continue safe
+branch-owned implementation and validation; keep the goal active until the
+external gates are actually resolved or a genuine approval/entitlement
+dependency is reached.
+
+The exact changeset commit is `767c5fa2598f539c3366b849e9e2d80a2d2fbf7b`,
+pushed to `origin/feat/etf-holdings-constituents`. The targeted vendor, Tier-0
+runtime/ledger-parity, and current workstream-narrative tests passed (3 passed,
+589 deselected); Ruff passed, all 30 workstream records validated, and
+`git diff --check` passed. An earlier targeted run exposed a real stale
+DXJ/NTSX evidence-ref mismatch between runtime capability metadata and the YAML
+ledger; both representations now carry the same dated source refs and the
+parity regression passes. A direct post-push `git ls-remote` attempt again
+failed because this host could not resolve `github.com`; the successful push
+reported the exact update and the local `origin/feat/etf-holdings-constituents`
+tracking ref matches `HEAD` at the commit above.
+
+The separate operational receipt is now the only dirty context. It consists
+of `ops/workstreams/feat-etf-holdings-constituents/plan.yaml`,
+`ops/workstreams/feat-etf-holdings-constituents/handoff.md`,
+`ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md`,
+`ops/workstreams/feat-etf-holdings-constituents/validation.jsonl`, and
+`ops/workstreams/feat-etf-holdings-constituents/session.json`. Refresh session
+metadata/checkpoint, run the final workstream and JSONL validation, then commit
+and push only this receipt on the ETF branch. Keep the goal active; AC7, AC10,
+and AC14 remain open as stated above.
+
+## Full adapter revalidation and current gate state — 2026-10-04
+
+The complete deterministic ETF adapter test module was rerun on implementation
+SHA `767c5fa2598f539c3366b849e9e2d80a2d2fbf7b`. Its first run produced 591
+passes and one failure: a session narrative-parity test requires the saved
+active/not-blocked explanation to retain the current `15 Tier-0 and 156
+Tier-1` counts. The status explanation was corrected to include those counts
+without describing the goal itself as blocked, and the full rerun passed all
+592 tests. The default live-provider contract passed 3 tests with 534 opt-in
+network cases skipped. Ruff, validation of all 30 workstream records, JSONL
+parsing, and `git diff --check` passed.
+
+I also checked the exact implementation SHA with the connected GitHub tools.
+The combined-status response contained no status checks; the available Actions
+lookup is limited to pull-request-triggered runs and returned none. The local
+`gh` CLI is absent. Therefore I have not claimed that push-triggered exact-SHA
+CI is green; AC7 stays open. The known local full-integration failure remains
+the 93/104 generic visual screenshots outside ETF-owned paths. No generic
+visual baseline was changed. These are acceptance gates, not a reason to mark
+the goal blocked: the saved goal remains active.
+
+The remaining final gates are unchanged: AC7's generic visual/exact-SHA
+validation, AC10's shared-provider bridge after that provider-platform work
+reaches staging, and AC14's 30-day production shadow after integration and
+deployment. Tier-0 and Tier-1 source ledgers remain fully counted. Continue
+within this worktree when new issuer evidence or a safe, owned AC7 diagnosis is
+available; proceed on AC10 here when the upstream branch is in staging. Do not
+edit another worktree, staging, generic visuals, or production. The current
+operational receipt itself still needs its final branch-local commit/push.

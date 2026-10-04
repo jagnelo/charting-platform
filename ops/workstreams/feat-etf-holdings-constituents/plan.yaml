@@ -406,6 +406,8 @@ remaining_gaps:
   - "Latest durable receipt update (2026-10-02): exact-SHA GitHub Actions run 37055561673 on ETF branch commit b309afe42ef8d8d3835cb045c06a88f81f3491c5 passed Backend Tests, Branch-declared Tests, Frontend Unit Tests, and E2E Tests (Playwright); the protected Exhaustive Integration Gate was skipped as designed on a feature branch. This does not make the local full-integration profile green. The canonical Playwright v1.62.1 Noble container visual diagnostic recorded 99 passed, 4 failed, and 1 flaky: three unrelated Study Lab screenshots differ because persisted run state/IDs have moved since the baseline, one unrelated EasyScan case hit ERR_NETWORK_CHANGED, and a workspace-restore case passed on retry. No ETF-owned visual assertion failed among the named failures, and no generic UI snapshot/test was modified. Current branch-owned code remains 496/421/75 and the ledgers retain 15 Tier-0 and 156 Tier-1 outcomes."
   - "Follow-up exact-SHA CI run 37060669397 on be38c21fca2a0ef0310f41e11189d756ff952fe7 passed Backend Tests, Frontend Unit Tests, and Playwright E2E, skipped the protected Exhaustive Integration Gate, and failed the Branch-declared Tests job with exit code 2; its public annotation and job-log endpoint exposed no detail (log HTTP 403). The declared sequence was reproduced locally: 589 deterministic adapter tests and the default live contract passed, then the 534-case opt-in matrix completed with 525 passed, 8 skipped, and one DFTT failure after 922.06 seconds. The current browser-rendered official Donoghue Forlines page exposes a fund-scoped full-holdings CSV link, but application-style HTML lacked its nonce-bearing AJAX route and the declared endpoint returned issuer access-limited HTML. The DFTT-only missing-route variant is now classified as a narrow external access skip in the live-test helper, with a regression proving other symbols are not skipped; adapter failure behavior remains strict. Focused classification/live checks and Ruff pass. A new exact-SHA CI result is pending."
   - "2026-10-03 VUSV correction: the Vanguard publisher endpoint intermittently returned HTTP 200 with an empty `text/html; charset=utf-8` body for Wellington VUSV fund V055, observed in stock and money-market variants among seven holding categories. Both Vanguard and Wellington adapters now turn JSON decoding failures into descriptive fail-closed errors, and Wellington does not fall through to the PCF route for this malformed response. The live-test skip matches only Wellington/VUSV, fund V055, one of the seven known categories, status 200, exact HTML content type, and zero bytes; adjacent-symbol, invalid-category, and nonempty-body regressions remain non-skips. The final branch-declared run passed 592 deterministic tests, default live contracts (3 passed/534 skipped), and all 537 opt-in cases (506 passed/31 narrow skips), plus Ruff, branch validation, frontend type-check, 17 ETF panel/view tests, and production build."
+  - "2026-10-04 continued free-first review: FundFacts API's Free (15 lookups/month) and US$9.99 Starter tiers are evaluation/personal use; commercial in-product rights start at Pro (US$49/month), above the US$20-equivalent ceiling, and no exact DXJ/NTSX/MINT/BOND holdings response was established. Current PIMCO first-party pages list MINT/BOND with US$17.526B/US$8.590B AUM as of 2026-08-31, but the latest reviewed official factsheets are dated 2026-03-31 and no complete executable current basket was found. The vendor ledger, PIMCO Tier-0 outcomes, provider-universe docs, handoff, implementation-plan log, targeted governance regression, and validation receipt were updated. No account/key/payment/activation or symbol promotion occurred; the 15 Tier-0 and 156 Tier-1 outcomes remain accounted for."
+  - "2026-10-04 current-head revalidation on 767c5fa: the complete deterministic ETF adapter module first exposed a session narrative-parity regression because the active/not-blocked explanation omitted the required 15 Tier-0 and 156 Tier-1 counts; the counts were restored without changing goal status, then all 592 adapter tests passed. Default live contracts passed (3 passed, 534 opt-in cases skipped); Ruff, all 30 workstream records, JSONL parsing, and diff-check passed. The connected GitHub status lookup returned no combined statuses and its Actions lookup returned no PR-triggered workflow runs; the local gh CLI is absent, so push-triggered exact-SHA CI is not independently confirmed here. The prior local full-integration visual gate remains open at 93/104 generic screenshot mismatches outside ETF-owned paths."
 progress:
   completed:
     - AC1
@@ -419,7 +421,7 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: exact_sha_ci_passed_local_visual_gate_and_shared_platform_dependency_open
+current_phase: tier0_vendor_recheck_full_adapter_suite_passed_final_acceptance_gates_open
 current_blocker: >-
   The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The
   ETF-only recovery and source-review changeset was committed as
@@ -456,15 +458,20 @@ current_blocker: >-
   The current operational receipt is being checkpointed separately. The
   provider-platform branch is still not in staging, so AC10 remains
   dependency-gated; AC14 remains the documented post-integration/deployment
-  30-day shadow observation.
+  30-day shadow observation. The goal itself is active, not blocked: these are
+  completion gates, while independent branch-owned source review and validation
+  can continue. Earlier wording that no branch-owned action remained was too
+  broad and is superseded by the 2026-10-04 FundFacts/PIMCO recheck recorded in
+  the audit and handoff.
 next_action: >-
-  Finish and verify the separate operational receipt for implementation SHA
-  8077facb83b8114f6b85155d7fbf9988547b73e9. Keep the goal active with scope
-  boundaries intact: no ETF-owned assertion failed in the passing exact-SHA CI;
-  the remaining gates are the unrelated local visual suite, provider-platform
-  reaching staging before the `ETF_HOLDINGS` bridge, and the later 30-day shadow
-  observation. Keep DXJ/NTSX degraded until a complete dated identity-verified
-  public/already-entitled route is executable within approved terms and budget.
-  On the next continuation, refresh provider/staging refs read-only and proceed
-  only if an ETF-owned task can advance without crossing branch boundaries.
-  Do not change generic visual tests/baselines, staging, or another worktree.
+  The source review, code-derived audit metadata, documentation, regression,
+  full 592-test adapter suite, and default live contracts are recorded through
+  the 2026-10-04 receipt. Keep the goal active. The next completion gates are
+  AC7's generic visual/exact-SHA validation, AC10's provider-platform reaching
+  staging before the shared ETF_HOLDINGS bridge, and AC14's later 30-day
+  post-integration/deployment shadow. Continue branch-owned work when new
+  independently actionable issuer evidence or a safe AC7 diagnosis becomes
+  available; when provider-platform reaches staging, proceed with the bridge
+  here without editing that branch. Do not alter generic visual tests or
+  snapshots, staging, another worktree, or production from this feature
+  session.
