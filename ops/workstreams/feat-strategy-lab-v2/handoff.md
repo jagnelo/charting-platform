@@ -2,6 +2,57 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Multi-strategy trial materialization
+
+Closed the gap between the multi-component Nautilus callback and host-side
+trial assembly. The assembler now accepts one digest-verified package/manifest/
+source input per portfolio component, validates every component against the
+experiment and shared frozen-tape dependency binding, and emits one ordered,
+authenticated component-context artifact. The owner materializer resolves all
+component packages, builds a canonical union data-manifest for the shared tape,
+and the worker handoff authenticates the complete package/source/dependency set
+under one runtime ABI. Single-strategy package/source identities remain
+backward-compatible. This does not yet qualify the new assembled bundle against
+the pinned RC5 image; that native callback/fill check remains gated by Docker
+API access.
+
+Changed files:
+
+```text
+backend/app/strategy_lab_v2/nautilus_trial_assembly.py
+backend/app/strategy_lab_v2/nautilus_trial_materializer.py
+backend/app/strategy_lab_v2/search_worker_handoff.py
+backend/app/strategy_lab_v2/tests/test_nautilus_trial_assembly.py
+backend/app/strategy_lab_v2/tests/test_nautilus_trial_materializer.py
+backend/app/strategy_lab_v2/tests/test_search_worker_handoff.py
+```
+
+Implementation commit: `6ccb45332978e13e82242ae588070fb4e684663f`. Validation at
+that commit: all 1,184 Strategy Lab v2 tests pass;
+Ruff and formatting checks pass; MyPy reports no issues across 341 package and
+runtime sources; and `git diff --check` is clean. Push of
+`1e3a861454f3c77bdac5efbb6957103f56f13238..6ccb45332978e13e82242ae588070fb4e684663f`
+failed: `/usr/bin/ssh-askpass` is missing and GitHub rejected the configured
+SSH key (`Permission denied (publickey)`). The remote remains at
+`1e3a861454f3c77bdac5efbb6957103f56f13238`; this is a publication hold, not a
+package-owned coding blocker. No alternate credential path was probed.
+
+The Nautilus release-label question is not a blocker: the plan explicitly
+permits a pinned pre-release for local backtests after conformance; the current
+RC5 receipt covers the four simulator checks, while forward parity remains
+separate. The saved Goal description still says “stable v2,” which conflicts
+with the branch plan/acceptance contract; follow the branch-owned plan, which
+allows exact-pinned pre-releases and does not require waiting for a stable tag.
+The latest Docker API check also failed with permission denied at
+`/var/run/docker.sock`; the existing RC5 receipt remains valid for its recorded
+probe scope, but the new multi-component bundle still needs image-backed
+validation when Docker is accessible.
+
+Next: implement evaluation-window warm-up/OOS gating in the package-owned
+Nautilus trial path so training history informs state without leaking into OOS
+metrics; retry the exact-pinned RC5 multi-component callback/fill probe when
+Docker API access is available.
+
 ## 2026-10-04 - Exercise the mixed-intent bridge routing seam directly
 
 Extracted the native callback's target conversion and combined order-risk path
