@@ -11,10 +11,11 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, fields, is_dataclass
 from datetime import UTC, date, datetime
 from enum import Enum, StrEnum
+from pathlib import Path
 from typing import Any, Protocol, TypeVar, cast
 
 from app.strategy_lab_v2 import (
@@ -46,6 +47,11 @@ from app.strategy_lab_v2.contracts import (
     RunResultManifest,
     ScientificTrial,
     StrategyPackage,
+)
+from app.strategy_lab_v2.nautilus_equity_trace import NautilusAccountEquityTraceReference
+from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsReference
+from app.strategy_lab_v2.nautilus_result_materialization import (
+    materialize_nautilus_oos_run_result,
 )
 from app.strategy_lab_v2.result_materialization import (
     EngineResultEvidence,
@@ -282,6 +288,75 @@ class PostgresResultMaterializationAdapter:
         )
         return ResultMaterializationResolution(
             decision, candidate.candidate_fingerprint, candidate.manifest
+        )
+
+    async def materialize_nautilus_oos(
+        self,
+        *,
+        principal: Any,
+        trial: ScientificTrial,
+        attempt: RunAttempt,
+        strategy_packages: Sequence[StrategyPackage],
+        portfolio: PortfolioComposition,
+        snapshot: DataSnapshot,
+        evidence: EngineResultEvidence,
+        equity_reference: NautilusAccountEquityTraceReference,
+        equity_trace_path: str | Path,
+        equity_expected_events: Iterable[Mapping[str, Any]],
+        native_reports_reference: NautilusNativeReportsReference,
+        native_reports_path: str | Path,
+        output_artifacts: Sequence[ArtifactManifest],
+        created_at: datetime,
+        existing: RunResultManifest | None = None,
+    ) -> ResultMaterializationResolution:
+        """Materialize and persist one verified Nautilus OOS result manifest.
+
+        This is the owner-scoped persistence counterpart to the pure OOS
+        materializer. It registers only successful candidates, keeps the same
+        immutable attempt key as the general result path, and translates a
+        manifest already bound to different content into an explicit conflict.
+        """
+
+        candidate = materialize_nautilus_oos_run_result(
+            trial,
+            attempt,
+            strategy_packages,
+            portfolio,
+            snapshot,
+            evidence,
+            equity_reference,
+            equity_trace_path,
+            equity_expected_events,
+            native_reports_reference,
+            native_reports_path,
+            output_artifacts,
+            created_at=created_at,
+            existing=existing,
+        )
+        if candidate.decision is ResultMaterializationDecision.CONFLICT:
+            return candidate
+        if candidate.manifest is None:  # pragma: no cover - pure contract guard
+            raise ValueError("Nautilus OOS materialization omitted its result manifest")
+        try:
+            persisted = await self.ensure(principal=principal, manifest=candidate.manifest)
+        except ValueError as error:
+            if "already bound" not in str(error):
+                raise
+            return ResultMaterializationResolution(
+                ResultMaterializationDecision.CONFLICT,
+                candidate.candidate_fingerprint,
+                candidate.manifest,
+                str(error),
+            )
+        decision = (
+            ResultMaterializationDecision.MATERIALIZE
+            if persisted.decision is ResultManifestStateDecision.REGISTERED
+            else ResultMaterializationDecision.REPLAY_EXISTING
+        )
+        return ResultMaterializationResolution(
+            decision,
+            candidate.candidate_fingerprint,
+            candidate.manifest,
         )
 
     async def load(self, *, principal: Any, attempt_id: str) -> PersistedResultManifest | None:

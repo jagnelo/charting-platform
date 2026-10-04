@@ -14,7 +14,10 @@ from app.strategy_lab_v2.postgres_result_materialization import (
     ResultManifestStateDecision,
 )
 from app.strategy_lab_v2.result_materialization import ResultMaterializationDecision
-from app.strategy_lab_v2.tests.test_result_materialization import _inputs
+from app.strategy_lab_v2.tests.test_result_materialization import (
+    _inputs,
+    _nautilus_oos_references,
+)
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
@@ -58,10 +61,7 @@ class FakeSession:
                 row
                 for (owner, attempt), row in self.manifests.items()
                 if owner == values["owner_id"]
-                and (
-                    values.get("attempt_id") is None
-                    or attempt == values["attempt_id"]
-                )
+                and (values.get("attempt_id") is None or attempt == values["attempt_id"])
             ]
             return FakeResult(sorted(rows, key=lambda row: row["attempt_id"]))
         if normalized.startswith("INSERT INTO"):
@@ -85,7 +85,9 @@ async def test_result_manifest_adapter_registers_replays_and_scopes_payload() ->
     assert replay.decision is ResultManifestStateDecision.REPLAY_EXISTING
     loaded = await adapter.load(principal="owner-a", attempt_id=manifest.attempt_id)
     assert loaded == registered.record
-    assert await adapter.load_manifest(principal="owner-a", attempt_id=manifest.attempt_id) == manifest
+    assert (
+        await adapter.load_manifest(principal="owner-a", attempt_id=manifest.attempt_id) == manifest
+    )
     assert await adapter.load(principal="owner-b", attempt_id=manifest.attempt_id) is None
     assert await adapter.load_all(principal="owner-a") == (registered.record,)
     assert await adapter.load_all_manifests(principal="owner-a") == (manifest,)
@@ -142,12 +144,62 @@ async def test_result_manifest_materialization_delegates_pure_gate_and_conflicts
 
 
 @pytest.mark.asyncio
+async def test_nautilus_oos_materialization_persists_native_artifact_manifest(tmp_path) -> None:
+    original, evidence = _inputs()
+    equity_path = tmp_path / "account-equity.parquet"
+    reports_path = tmp_path / "native-reports.parquet"
+    equity_reference, expected_events, reports_reference = _nautilus_oos_references(
+        original,
+        equity_path,
+        reports_path,
+    )
+    session = FakeSession()
+    adapter = PostgresResultMaterializationAdapter(lambda: session)
+    arguments = {
+        "principal": "owner-a",
+        "trial": original.trial,
+        "attempt": original.attempt,
+        "strategy_packages": original.strategy_packages,
+        "portfolio": original.portfolio,
+        "snapshot": original.snapshot,
+        "evidence": evidence,
+        "equity_reference": equity_reference,
+        "equity_trace_path": equity_path,
+        "equity_expected_events": expected_events,
+        "native_reports_reference": reports_reference,
+        "native_reports_path": reports_path,
+        "output_artifacts": original.output_artifacts,
+        "created_at": NOW,
+    }
+
+    materialized = await adapter.materialize_nautilus_oos(**arguments)
+    assert materialized.decision is ResultMaterializationDecision.MATERIALIZE
+    assert materialized.manifest is not None
+    persisted = await adapter.load_manifest(
+        principal="owner-a",
+        attempt_id=original.attempt_id,
+    )
+    assert persisted == materialized.manifest
+    assert equity_reference.artifact in persisted.output_artifacts
+    assert reports_reference.artifact in persisted.output_artifacts
+
+    replay = await adapter.materialize_nautilus_oos(
+        **arguments,
+        existing=persisted,
+    )
+    assert replay.decision is ResultMaterializationDecision.REPLAY_EXISTING
+    assert replay.manifest == persisted
+
+
+@pytest.mark.asyncio
 async def test_result_manifest_adapter_authenticates_tampered_rows() -> None:
     manifest, _ = _inputs()
     session = FakeSession()
     adapter = PostgresResultMaterializationAdapter(lambda: session)
     await adapter.ensure(principal="owner-a", manifest=manifest)
-    session.manifests[("owner-a", manifest.attempt_id)]["record_fingerprint"] = content_digest("tampered")
+    session.manifests[("owner-a", manifest.attempt_id)]["record_fingerprint"] = content_digest(
+        "tampered"
+    )
     with pytest.raises(ValueError, match="fingerprint"):
         await adapter.load(principal="owner-a", attempt_id=manifest.attempt_id)
 
