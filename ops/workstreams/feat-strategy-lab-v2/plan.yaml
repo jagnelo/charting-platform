@@ -851,21 +851,21 @@ progress:
     Options order admission remains fail-closed pending canonical event-time
     Greeks/delta and settlement evidence.
   next_action: >-
-    Owner-hydrated multi-strategy trials now reach persisted PostgreSQL dispatch
-    and idempotent replay, and RC5 worker evidence reaches terminal result
-    publication/redelivery through the dedicated worker service. Next compose
-    the real persisted dispatch payload loader, authenticated handoff
-    materializer, isolated process executor, and persistence-bundle terminal
-    writer into one ACK-after-publication acceptance path. Then continue
-    worker crash recovery/scaling, domain-backed mutations, and broker-free
-    forward-shadow parity; keep canonical market-data acquisition outside the
-    engine. RC5 may publish local backtests only with matching four-check
-    conformance; do not wait for a stable label. Forward shadow requires the
-    fifth event-tape parity check, and no prerelease may connect to a broker or
+    The ACK-after-publication path now composes the PostgreSQL search-dispatch
+    and submission/payload adapters, production search-worker callback factory,
+    owner-hydrated immutable trial graph, isolated process-executor seam, and
+    terminal result adapter. Deterministic SQL/persistence/process doubles
+    verify terminal publication completes before Redis acknowledgement; the
+    full Strategy Lab package suite passes. Next exercise pending-entry reclaim
+    and process/terminal-write failure recovery through the worker lifecycle,
+    then continue domain-backed mutations, missing metrics, and forward-shadow
+    event-tape parity. RC5 may publish local backtests after matching exact-pin
+    and four-check conformance; do not wait for stable labeling. Forward shadow
+    requires the fifth parity check; prereleases cannot connect to a broker or
     control real capital. Keep immutable resources create-only; version changes
     create new identities and mutable lifecycle changes use dedicated
     owner-scoped commands. Options remain fail-closed pending canonical
     event-time Greeks/delta and settlement evidence. Consume provider/ETF/TC2000
-    shared contracts only after their approved branches reach staging. Run
-    final Compose/browser validation when Docker Buildx and socket access are
-    available.
+    shared contracts only after their approved branches reach staging. Docker
+    Buildx is absent and the session cannot access the Docker socket, limiting
+    only the final Compose/browser validation gate.

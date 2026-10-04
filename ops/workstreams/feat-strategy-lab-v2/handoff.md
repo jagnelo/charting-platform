@@ -9793,3 +9793,35 @@ canonical context remains staging-gated. Docker Buildx is absent and the
 default session cannot access the Docker socket, so final Compose/browser
 acceptance remains environment-limited. Options orders remain fail-closed
 without canonical event-time Greeks/delta and settlement evidence.
+
+## 2026-10-05 - Persisted worker path through result publication and ACK
+
+The multi-strategy RC5 worker regression now drives the production
+`create_search_dispatch` callback factory. It loads the dispatch record with
+`PostgresSearchDispatchAdapter`, loads the serialized worker handoff with
+`PostgresSubmissionDispatchAdapter`, authenticates and hydrates the exact
+owner-scoped trial graph, and passes the decoded request to the isolated
+process-executor seam. `PostgresWorkerTerminalAdapter` then publishes the
+authoritative result using deterministic persistence-port doubles. A shared
+timeline asserts terminal persistence returns before the Redis `XACK`; the
+subsequent redelivery replays the same result/completion/artifact/settlement
+identity. The SQL session and process are deterministic fakes, so this does not
+claim live PostgreSQL, Redis, or Nautilus-container validation.
+
+Commit `7124ddec9c3a000870cdf41c956d53a07a01786d` contains this regression.
+The complete Strategy Lab v2 package passed `1,346/1,346` tests in 48.69
+seconds with scoped access for the test that binds a Unix-domain socket under
+pytest's temporary directory. Ruff check/format, focused MyPy, and
+`git diff --check` passed. The local full-stack preflight confirms Docker
+Buildx is not installed and the default session cannot access
+`/var/run/docker.sock`; no Compose/browser test is claimed.
+
+Next: extend this worker lifecycle path to cover pending-entry reclaim and
+crash/terminal-write failure recovery, ensuring dispatch, capacity settlement,
+result publication, artifact finalization, and ACK remain idempotent. There is
+no stable Nautilus release blocker: exact-pinned RC5 passed the four local
+backtest checks and is permitted by the current branch policy. Forward shadow
+still needs event-tape parity; prereleases cannot connect to brokers or control
+real capital. Provider/ETF/TC2000 shared contracts remain staging-gated, while
+domain-backed mutation flows, metrics, forward correctness, and final
+Compose/browser acceptance remain unfinished.
