@@ -6873,3 +6873,58 @@ this retry. Its cleanup confirmed zero remaining ETF test containers, images,
 or testcontainer sessions and did not prune host-wide resources. AC7 remains
 open; no generic research-runner code was changed because it is outside ETF
 `owned_paths`.
+
+## Access recovery and full-stack gate rerun — 2026-10-04
+
+The configured GitHub key is now available through the host SSH agent. Its
+public fingerprint matched `/home/m920q/.ssh/jagnelo.github.com.pub`, and the
+five pending ETF workstream receipt commits were pushed to
+`origin/feat/etf-holdings-constituents`; the remote tip is
+`70359fb5e54a1e5238263647b58bdea2f78ddce0`. No other branch was pushed or
+changed. A live, read-only ref query confirmed staging remains at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35` and
+`feat/market-data-provider-platform` remains at
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, not yet merged into staging.
+
+The apparent SSH and Docker blockers were sandbox-access restrictions rather
+than a missing key or a stopped Docker daemon. Read-only host-context checks
+found the configured SSH identity loaded and Docker Engine `29.1.3` available;
+the ordinary sandbox could not access the SSH-agent or Docker sockets. The
+required gate was therefore retried through the approved host-context
+execution path, scoped to this ETF worktree's Compose projects.
+
+At exact worktree SHA `70359fb5e54a1e5238263647b58bdea2f78ddce0`,
+`make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents`
+passed workstream validation (30 records), dependency and migration checks,
+Ruff/format, frontend TypeScript, all 1,876 backend tests at 81.13% coverage,
+all 945 frontend unit tests at 81.81% coverage, production build, Compose
+contracts, provider probes, and isolated research-runner security/resource
+probes. Functional Playwright then exited 2 with three non-ETF failures among
+260 scenarios: `F9c-template-comparison` timed out because the chart plot
+library overlay intercepted the `Remove RSP` click; `F9f` timed out waiting for
+login navigation; and `F9g` recorded `ERR_NETWORK_CHANGED` for multiple local
+browser-to-API requests. The standalone visual-E2E and trailing branch-tests
+stages were not reached by this gate invocation. These generic chart/auth/network
+paths are outside this ETF workstream's `owned_paths`; no such code or test was
+changed. AC7 remains open because the required local gate is not green.
+
+Cleanup removed this worktree's Compose containers, network, volumes, and four
+worktree-tagged images; the cleanup receipt reported `host_wide_prune: false`
+and no retained testcontainer sessions. Global Docker data was not pruned.
+
+Exact-SHA GitHub Actions run `37191774477` on `70359fb5e54a1e5238263647b58bdea2f78ddce0`
+completed successfully: Backend Tests, Frontend Unit Tests, Branch-declared
+Tests, and E2E Tests (Playwright) passed; the protected Exhaustive Integration
+Gate was skipped as designed for a feature branch. This CI result does not
+override the local full-gate E2E failure. AC8 remains open until the updated
+workstream receipt/checkpoint is committed and pushed at a synchronized SHA.
+Do not modify the generic failing paths without an explicit scope expansion.
+
+After appending this receipt, the branch workstream validator passed all 30
+registered records, `git diff --check` passed, and the focused
+`test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers`
+invariant passed. The validation ledger records these post-update checks.
+
+AC10 remains dependent on `feat/market-data-provider-platform` reaching
+staging; do not integrate it or create a competing shared runtime here. AC14
+remains a post-integration/deployment 30-day shadow-observation step.

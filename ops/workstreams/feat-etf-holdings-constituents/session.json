@@ -71,10 +71,7 @@
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "dirty_paths": [
-    "ackend/app/services/etf_holdings_adapters.py",
-    "backend/tests/live/test_etf_holdings_live_providers.py",
-    "backend/tests/unit/services/test_etf_holdings_adapters.py",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json"
+    "ps/workstreams/feat-etf-holdings-constituents/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -111,13 +108,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "cfec6a5a0d8f6102bc757bbd431a5fd288b77674",
+  "head": "70359fb5e54a1e5238263647b58bdea2f78ddce0",
   "implementation_sha": "4da62c54d1465835e4562115e12513c984cd7962",
   "last_checkpoint": "2026-10-02T17:10:58Z",
-  "last_human_progress_update": "2026-10-04T02:09:36.814448+00:00",
+  "last_human_progress_update": "2026-10-04T09:56:15.945644+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "242f7d0c21e4ec1ae3db7442a216a41a3e07773a3624ed40387896e52916d719",
+  "plan_hash": "2ad28323cb4c753184ea3159c3c20b5b260be88267ded83abe36c8ecb5a65fbf",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -138,13 +135,13 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The complete 2026-10-04 branch-declared suite passed: 592 deterministic; default live 3/534; opt-in 507/30; Ruff, workstream validation, frontend type-check, 17 ETF UI tests, and build. AC7 remains open because the local full gate terminates at the generic research-runner wall-time test with exit 152, outside ETF owned_paths. AC8 remains open because receipt commits since synchronized SHA 3cf8552 are local-only pending SSH key unlock and exact-SHA CI. AC10 awaits provider-platform staging; AC14 requires post-integration deployment and 30 days of observation.",
-    "current_phase": "branch_live_matrix_green_full_gate_and_publish_pending",
-    "next_action": "After the configured SSH key is unlocked or loaded, push all local workstream receipt commits, refresh refs read-only, run agent-session-plan-ready and the session checkpoint against synchronized heads, and require exact-SHA CI. Retry the local full integration gate after the generic research-runner test/gate blocker is resolved or its ownership is explicitly expanded. Consume ETF_HOLDINGS only after provider-platform reaches staging; keep AC14 as a post-integration 30-day observation.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Five receipt commits were pushed; exact-SHA CI run 37191774477 on 70359fb5 passed Backend, Frontend Unit, Branch-declared, and Playwright jobs (Exhaustive Integration Gate skipped as designed). The host-context Docker-backed full gate now passes 1,876 backend tests at 81.13%, 945 frontend unit tests at 81.81%, lint/typecheck/build/Compose/provider/security probes, but local functional Playwright has three non-ETF failures: generic F9c overlay click interception, F9f login-navigation timeout, and F9g ERR_NETWORK_CHANGED. AC7 remains open; those paths are outside ETF owned_paths. AC8 remains open until the updated branch-only receipts are committed/pushed and synchronized. AC10 awaits provider-platform staging; AC14 requires post-integration/deployment 30-day observation.",
+    "current_phase": "local_full_gate_e2e_scope_blocker",
+    "next_action": "Commit and push the current ETF-only handoff, validation, and session receipts; verify exact-SHA CI. Keep AC7 open unless the generic E2E failures are resolved within an explicitly authorized scope. Do not integrate provider-platform before it reaches staging; retain AC14 as post-integration/deployment observation.",
     "total": 14,
-    "updated_at": "2026-10-04T02:09:36.814423+00:00"
+    "updated_at": "2026-10-04T09:56:15.945626+00:00"
   },
-  "remote": "cfec6a5a0d8f6102bc757bbd431a5fd288b77674",
+  "remote": "70359fb5e54a1e5238263647b58bdea2f78ddce0",
   "remote_sha": "a13fccfd0bf9666ff471aac566cf0bc4f367c4e1",
   "remote_synchronized": true,
   "schema": 2,
