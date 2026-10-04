@@ -2,6 +2,34 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Durable diagnostics for failed rebalance schedules
+
+Closed the previous failure-audit gap without treating a failed simulation as
+a result: when the Nautilus runner reports a failed run with a plan-bound
+rebalance audit, the owner-authenticated worker terminal resolver publishes the
+audit bytes content-addressably and includes the verified manifest reference in
+the persisted terminal error details. It verifies publication identity and
+byte integrity. A queue redelivery reuses the exact artifact/reference. Failed
+attempts still have no result manifest, metric set, or authoritative result.
+
+Validation: full Strategy Lab package suite `1,284 passed` with scoped
+temporary Unix-socket access; worker-terminal suite `5 passed`, including
+artifact byte verification and redelivery replay; Ruff clean; MyPy clean across
+364 package/runtime sources; changed files formatted and `git diff --check`
+clean. Implementation commit `5b19f2931a8e008d5197b3294d7937944410b087` is
+pushed to `origin/feat/strategy-lab-v2`. Docker Buildx remains unavailable for
+the final Compose/browser profile.
+
+Next: run the exact RC5 runtime bundle through a real fail-on-misfire callback
+and terminal publication path, then continue the remaining portfolio/account
+conformance, metrics, provider-owned snapshot consumption, search/walk-forward,
+worker/Compose, and broker-free forward-shadow criteria. Those are unfinished
+feature work, not external blockers to current development. Stable Nautilus 2.x
+is not required; the saved goal's older stable-only phrasing is superseded by
+the branch plan's exact-pinned stable-or-pre-release rule. Provider, ETF, and
+TC2000 owned contracts remain staging-gated, and pre-release builds remain
+offline-backtest only.
+
 ## 2026-10-04 - Calendar rebalance callbacks and trial-plan compilation
 
 The isolated Nautilus bridge now executes frozen rebalance plans at exact
