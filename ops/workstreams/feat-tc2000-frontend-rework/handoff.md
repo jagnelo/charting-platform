@@ -1,5 +1,50 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-04 — Study output comparison dates
+
+Product commit `defefaaafde1db3fc302dc50be923d06ccf84ea0` adds the latest
+observation date beside each compared series/range-center summary. A changed
+end date remains a Changed output without a numeric delta; aligned series,
+range-center, and scalar comparisons keep their existing numeric behavior.
+Focused ResearchResultsTool coverage passed `52/52`; the full frontend suite
+passed `128/128` files and `1,193/1,193` tests; type-check and production build
+passed. Authenticated pinned Playwright 1.62.1 Chromium passed `1/1` against
+the assigned workstation, checking mismatched series/range dates and the
+scalar `+2` comparison. Only research-run reads were mocked for this isolated
+browser fixture. Browser diagnostics had no application errors; two expected
+404s were emitted by empty-fixture ETF/market-data reads.
+
+The TC scope guard accepted all `122` branch-touched paths and all six
+ownership self-tests passed. All `30` workstream records validated and
+`git diff --check` passed. The active-session checkpoint records product SHA
+`defefaaafde1db3fc302dc50be923d06ccf84ea0` and zero remaining Docker resources.
+The exact assigned
+Compose project and temporary pinned-browser container were torn down; the
+follow-up inventory found zero containers, volumes, images, test sessions, or
+unknown resources. No screenshot references, masks, thresholds, skips, visual
+acceptance rules, or upstream-owned behaviors changed.
+
+The goal remains active at `1/9` acceptance criteria complete. Nothing prevents
+independent TC work. Provider and ETF consumer integration must wait for both
+upstream branches to reach staging; ten protected screenshot differences need
+the review documented in `docs/tc2000-visual-parity.md`; and the final exact-tip
+gate has not been run. Continue independent R1/R5/R6 work.
+
+The local `origin/feat/tc2000-frontend-rework` tracking ref is
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629`; at product checkpoint
+`defefaaafde1db3fc302dc50be923d06ccf84ea0`, the local range contains 1,647
+commits. It has not been pushed: the repository's private-origin safeguard
+requires authorization for the exact current payload, and alternate routes
+remain prohibited. This does not stop local implementation. The operational
+checkpoint is recorded separately, so verify its resulting HEAD after commit.
+
+Changed product paths: `frontend/src/components/workstation/ResearchResultsTool.vue`
+and `frontend/tests/unit/components/test_research_results_tool.test.ts`.
+Updated roadmap and operational paths: `docs/tc2000-roadmap.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`, and
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`.
+
 ## 2026-10-04 — Study Results shows numeric changes between runs
 
 Product commit `0543be24b833bad385f855aca6586f343c5b56a6` adds an at-a-glance

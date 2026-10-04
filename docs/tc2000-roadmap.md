@@ -5,6 +5,26 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-04
 
+## 2026-10-04 — Study output comparisons disclose observation dates
+
+Product commit `defefaaafde1db3fc302dc50be923d06ccf84ea0` shows the latest
+observation date beside the latest value for each compared series and range
+center, with singular/plural observation counts. When the two outputs end on
+different dates, the UI keeps the Changed status but withholds a numeric delta;
+aligned comparisons and scalar deltas remain available. Focused
+ResearchResultsTool coverage passed `52/52`; the full frontend suite passed
+`128/128` files and `1,193/1,193` tests; type-check and production build passed.
+The authenticated pinned Chromium browser flow passed `1/1`, verifying dates
+for mismatched series and range outputs and preserving the scalar `+2` result.
+Two expected 404s came from ETF/market-data lookups against the intentionally
+empty local fixture; no browser errors occurred. Scope validation accepted 122
+branch-touched paths and all six ownership self-tests passed. The assigned
+stack and temporary browser container were removed with zero retained
+resources. This is a focused TC-owned Study-results improvement, not completion
+of the broader Study/Strategy matrix or final exact-tip gate. No upstream
+provider/ETF behavior, screenshot reference, mask, threshold, skip, or
+acceptance policy changed.
+
 ## 2026-10-04 — Study output comparison shows numeric change
 
 Product commit `0543be24b833bad385f855aca6586f343c5b56a6` adds signed numeric
