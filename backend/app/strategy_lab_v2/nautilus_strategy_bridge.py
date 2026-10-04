@@ -40,6 +40,8 @@ from app.strategy_lab_v2.sdk import (
     TargetPositionIntent,
 )
 
+NAUTILUS_COMPONENT_ORDER_TAG_PREFIX = "strategy-lab-v2:component:"
+
 
 def _datetime_microsecond_ns(value: datetime) -> int:
     normalized = value.astimezone(UTC)
@@ -1950,7 +1952,10 @@ def build_native_strategy_bridge(
                     native_side = NativeOrderSide.from_str(intent.side.value.upper())
                     native_quantity = Quantity(intent.quantity, definition["size_precision"])
                     native_tif = NativeTimeInForce.from_str(intent.time_in_force.value.upper())
-                    tag_values = [intent.client_tag] if intent.client_tag else None
+                    component_tag = f"{NAUTILUS_COMPONENT_ORDER_TAG_PREFIX}{component_id}"
+                    tag_values = [component_tag]
+                    if intent.client_tag and intent.client_tag != component_tag:
+                        tag_values.append(intent.client_tag)
                     order_arguments = {
                         "instrument_id": native_instrument_id,
                         "order_side": native_side,

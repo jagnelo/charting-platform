@@ -8,7 +8,7 @@ import json
 import os
 import tempfile
 from collections import deque
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
@@ -61,6 +61,7 @@ from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3,
 )
+from app.strategy_lab_v2.nautilus_strategy_bridge import NAUTILUS_COMPONENT_ORDER_TAG_PREFIX
 from app.strategy_lab_v2.rebalance import (
     CalendarRebalancePolicy,
     RebalanceCadence,
@@ -351,6 +352,17 @@ def run_rebalance_schedule_probe() -> dict[str, Any]:
             rebalance_trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
             multi_component_rebalance=True,
         ),
+        "component_priority_contention": _run_native_execution_probe(
+            target_position=True,
+            rebalance_trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+            multi_component_priority=True,
+            include_native_report_diagnostics=True,
+        ),
+        "shared_risk_rejection": _run_native_execution_probe(
+            target_position=True,
+            rebalance_trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+            shared_risk_rejection=True,
+        ),
         "fail_on_misfire": _run_native_execution_probe(
             target_position=True,
             rebalance_misfire_only=True,
@@ -366,17 +378,24 @@ def _run_native_execution_probe(
     rebalance_trigger: RebalanceTrigger | None = None,
     rebalance_misfire_only: bool = False,
     multi_component_rebalance: bool = False,
+    multi_component_priority: bool = False,
+    shared_risk_rejection: bool = False,
 ) -> dict[str, Any]:
+    component_scenario_count = sum(
+        (multi_component_rebalance, multi_component_priority, shared_risk_rejection)
+    )
+    if component_scenario_count > 1:
+        raise ValueError("native component probe scenarios are mutually exclusive")
     if rebalance_trigger is not None and rebalance_misfire_only:
         raise ValueError("rebalance trigger and misfire-only modes cannot be combined")
     if (rebalance_trigger is not None or rebalance_misfire_only) and not target_position:
         raise ValueError("rebalance probes require target-position intents")
-    if multi_component_rebalance and (
+    if component_scenario_count and (
         rebalance_trigger is not RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS
         or rebalance_misfire_only
         or not target_position
     ):
-        raise ValueError("multi-component probe requires an open-boundary target rebalance")
+        raise ValueError("component probes require an open-boundary target rebalance")
     instrument_id = "AAPL.SIM"
     strategy_source = _TARGET_SOURCE if target_position else _RAW_ORDER_SOURCE
     later_time = _EVENT_TIME + timedelta(seconds=1)
@@ -433,15 +452,22 @@ def _run_native_execution_probe(
         account_model="cash",
         corporate_action_semantics="raw-unadjusted-v1",
     )
-    manifest = StrategySdkManifest(
-        StrategyVersion(
-            "strategy-target-probe" if target_position else "strategy-raw-order-probe",
-            "v1",
-            "2.0",
-            content_digest(strategy_source),
-        ),
-        (StrategyDataDependency("prices", requirement, ("bid", "ask", "bid_size", "ask_size"), 1),),
+    data_dependencies = (
+        StrategyDataDependency("prices", requirement, ("bid", "ask", "bid_size", "ask_size"), 1),
     )
+
+    def component_manifest(component_id: str, source: str) -> StrategySdkManifest:
+        version_prefix = "strategy-target-probe" if target_position else "strategy-raw-order-probe"
+        return StrategySdkManifest(
+            StrategyVersion(
+                f"{version_prefix}-{component_id}",
+                "v1",
+                "2.0",
+                content_digest(source),
+            ),
+            data_dependencies,
+        )
+
     calendar_fingerprint = content_digest("nautilus-adapter-probe-calendar")
     rebalance_policy = None
     rebalance_plan = None
@@ -477,7 +503,23 @@ def _run_native_execution_probe(
             calendar_fingerprint=calendar_fingerprint,
             occurrences=(occurrence,),
         )
-    component_ids = ("core", "satellite") if multi_component_rebalance else ("core",)
+    component_ids = ("core", "satellite") if component_scenario_count else ("core",)
+    component_sources = {component_id: strategy_source for component_id in component_ids}
+    if multi_component_priority:
+        component_sources = {
+            "core": _TARGET_SOURCE.replace('Decimal("0.5")', 'Decimal("0.8")'),
+            "satellite": _TARGET_SOURCE.replace('Decimal("0.5")', 'Decimal("0.2")'),
+        }
+    strategy_source = component_sources[component_ids[0]]
+    component_manifests = {
+        component_id: component_manifest(component_id, component_sources[component_id])
+        for component_id in component_ids
+    }
+    manifest = component_manifests[component_ids[0]]
+    component_priorities = {
+        "core": 1 if multi_component_priority else 0,
+        "satellite": 7 if multi_component_priority else 1,
+    }
     portfolio = PortfolioComposition(
         portfolio_id="portfolio-target-probe",
         version_id="portfolio-v1",
@@ -486,18 +528,23 @@ def _run_native_execution_probe(
         components=tuple(
             PortfolioComponent(
                 component_id,
-                manifest.strategy.fingerprint,
+                component_manifests[component_id].strategy.fingerprint,
                 (instrument_id,),
-                Decimal("0.5") if multi_component_rebalance else Decimal("1"),
-                priority=index,
+                Decimal("0.5") if component_scenario_count else Decimal("1"),
+                priority=component_priorities[component_id],
             )
-            for index, component_id in enumerate(component_ids)
+            for component_id in component_ids
         ),
         shared_risk_policy=SharedRiskPolicy(
+            max_gross_exposure_fraction=(
+                Decimal("0.25") if shared_risk_rejection else Decimal("1.0")
+            ),
             risk_models=(CASH_EQUITY_NOTIONAL_RISK_MODEL,),
             target_conflict_policy=(
                 TargetConflictPolicy.SUM_COMPONENT_TARGETS
-                if multi_component_rebalance
+                if multi_component_rebalance or shared_risk_rejection
+                else TargetConflictPolicy.HIGHEST_PRIORITY
+                if multi_component_priority
                 else TargetConflictPolicy.REJECT
             ),
         ),
@@ -562,9 +609,9 @@ def _run_native_execution_probe(
         "strategy_bindings": [
             {
                 "component_id": component_id,
-                "strategy_fingerprint": manifest.strategy.fingerprint,
-                "strategy_source_digest": manifest.strategy.source_digest,
-                "strategy_manifest_fingerprint": manifest.fingerprint,
+                "strategy_fingerprint": component_manifests[component_id].strategy.fingerprint,
+                "strategy_source_digest": component_manifests[component_id].strategy.source_digest,
+                "strategy_manifest_fingerprint": component_manifests[component_id].fingerprint,
                 "entrypoint": "strategy.main:Strategy",
                 "parameters_digest": content_digest({}),
                 "max_intents_per_event": 100,
@@ -609,7 +656,90 @@ def _run_native_execution_probe(
         contexts=invocation_contexts,
         entrypoint="strategy.main:Strategy",
     )
+    component_context_stream: BytesIO | None = None
+    component_counts: Mapping[str, int] | None = None
+    native_event_stream: BytesIO | None = None
+    native_event_stream_digest: str | None = None
+    if component_scenario_count:
+        component_context_stream = BytesIO()
+        component_counts = serialize_component_invocation_context_stream(
+            component_context_stream,
+            components=tuple(
+                InvocationContextStreamSource(
+                    component_id,
+                    component_sources[component_id],
+                    component_manifests[component_id],
+                    invocation_contexts,
+                    "strategy.main:Strategy",
+                )
+                for component_id in component_ids
+            ),
+        )
+        event_tape = payload["event_tape"]
+        if not isinstance(event_tape, dict):
+            raise RuntimeError("multi-component native event tape is invalid")
+        native_event_stream = BytesIO()
+        event_summary = serialize_nautilus_native_event_stream(
+            native_event_stream,
+            event_records,
+            source_tape_fingerprint=str(event_tape["source_tape_fingerprint"]),
+            adapter_version=str(event_tape["adapter_version"]),
+            expected_event_count=len(event_records),
+        )
+        native_event_stream_digest = event_summary.content_digest
+        payload["event_tape"] = {
+            "source_tape_fingerprint": event_summary.source_tape_fingerprint,
+            "adapter_version": event_summary.adapter_version,
+            "event_count": event_summary.event_count,
+        }
+
+    def execute_native_backtest(
+        *,
+        account_equity_trace_path: Path | None = None,
+        native_reports_path: Path | None = None,
+    ) -> dict[str, Any]:
+        if component_scenario_count:
+            assert component_context_stream is not None
+            assert component_counts is not None
+            assert native_event_stream is not None
+            assert native_event_stream_digest is not None
+            return run_native_backtest(
+                payload,
+                invocation_context_stream=component_context_stream,
+                native_event_stream=native_event_stream,
+                native_event_stream_digest=native_event_stream_digest,
+                expected_context_count=sum(component_counts.values()),
+                expected_component_context_counts=component_counts,
+                account_equity_trace_path=account_equity_trace_path,
+                native_reports_path=native_reports_path,
+            )
+        return run_native_backtest(
+            payload,
+            serialized_strategy_invocation_batch=batch,
+            account_equity_trace_path=account_equity_trace_path,
+            native_reports_path=native_reports_path,
+        )
+
+    if shared_risk_rejection:
+        try:
+            execute_native_backtest()
+        except Exception as error:
+            if "native order batch breaches shared portfolio risk" not in str(error):
+                raise RuntimeError(
+                    "native component risk rejection did not fail at the shared risk gate"
+                ) from error
+            return {
+                "risk_rejected": True,
+                "risk_gate": "shared_portfolio",
+                "submission_prevented": True,
+                "total_orders": 0,
+                "total_positions": 0,
+                "authoritative": False,
+            }
+        raise RuntimeError("native shared-risk probe submitted an over-limit component batch")
+
     native_report_diagnostics = None
+    component_order_tag = None
     if include_native_report_diagnostics:
         scoring_start_ns = event_records[0].get("event_time_ns")
         scoring_end_ns = event_records[-1].get("event_time_ns")
@@ -647,9 +777,7 @@ def _run_native_execution_probe(
         with tempfile.TemporaryDirectory(prefix="strategy-lab-native-report-probe-") as root:
             equity_path = Path(root) / "account-equity.parquet"
             reports_path = Path(root) / "native-reports.parquet"
-            result = run_native_backtest(
-                payload,
-                serialized_strategy_invocation_batch=batch,
+            result = execute_native_backtest(
                 account_equity_trace_path=equity_path,
                 native_reports_path=reports_path,
             )
@@ -677,53 +805,22 @@ def _run_native_execution_probe(
                 )
                 if tuple(sample["columns"]) != tuple(sorted(record)):
                     raise RuntimeError(f"native {kind} report changed columns between rows")
+            if multi_component_priority:
+                order_sample = report_samples.get("orders", {}).get("sample_record")
+                tags = order_sample.get("tags") if isinstance(order_sample, dict) else None
+                component_order_tag = f"{NAUTILUS_COMPONENT_ORDER_TAG_PREFIX}satellite"
+                if not isinstance(tags, list) or component_order_tag not in tags:
+                    raise RuntimeError(
+                        "native order report did not retain the selected component attribution"
+                    )
             native_report_diagnostics = {
                 "evaluation_window_fingerprint": equity_reference.evaluation_window_fingerprint,
                 "row_counts": dict(reports_reference.row_counts),
                 "samples": report_samples,
                 "verified_equity_observations": equity_reference.observation_count,
             }
-    elif multi_component_rebalance:
-        component_context_stream = BytesIO()
-        component_counts = serialize_component_invocation_context_stream(
-            component_context_stream,
-            components=tuple(
-                InvocationContextStreamSource(
-                    component_id,
-                    strategy_source,
-                    manifest,
-                    invocation_contexts,
-                    "strategy.main:Strategy",
-                )
-                for component_id in component_ids
-            ),
-        )
-        event_tape = payload["event_tape"]
-        if not isinstance(event_tape, dict):
-            raise RuntimeError("multi-component native event tape is invalid")
-        native_event_stream = BytesIO()
-        event_summary = serialize_nautilus_native_event_stream(
-            native_event_stream,
-            event_records,
-            source_tape_fingerprint=str(event_tape["source_tape_fingerprint"]),
-            adapter_version=str(event_tape["adapter_version"]),
-            expected_event_count=len(event_records),
-        )
-        payload["event_tape"] = {
-            "source_tape_fingerprint": event_summary.source_tape_fingerprint,
-            "adapter_version": event_summary.adapter_version,
-            "event_count": event_summary.event_count,
-        }
-        result = run_native_backtest(
-            payload,
-            invocation_context_stream=component_context_stream,
-            native_event_stream=native_event_stream,
-            native_event_stream_digest=event_summary.content_digest,
-            expected_context_count=sum(component_counts.values()),
-            expected_component_context_counts=component_counts,
-        )
     else:
-        result = run_native_backtest(payload, serialized_strategy_invocation_batch=batch)
+        result = execute_native_backtest()
     summary = result.get("summary")
     if not isinstance(summary, dict):
         raise RuntimeError("target allocation probe has no native account summary")
@@ -760,7 +857,9 @@ def _run_native_execution_probe(
             raise RuntimeError("native rebalance callback, audit, and account state disagree")
         if multi_component_rebalance and not Decimal("40000") < remaining_cash < Decimal("60000"):
             raise RuntimeError("native multi-component targets did not share the account budget")
-        return {
+        if multi_component_priority and not Decimal("88000") < remaining_cash < Decimal("92000"):
+            raise RuntimeError("native priority policy did not select the higher-priority target")
+        rebalance_result = {
             "audit_fingerprint": audit.fingerprint,
             "execution_status": outcome.execution_status.value,
             "submitted_order_count": outcome.submitted_order_count,
@@ -769,6 +868,12 @@ def _run_native_execution_probe(
             **({"remaining_cash": str(remaining_cash)} if multi_component_rebalance else {}),
             "authoritative": False,
         }
+        if multi_component_priority:
+            if not isinstance(component_order_tag, str):
+                raise RuntimeError("native component priority probe omitted order attribution")
+            rebalance_result["remaining_cash"] = str(remaining_cash)
+            rebalance_result["component_order_tag"] = component_order_tag
+        return rebalance_result
     if target_position:
         if (
             result.get("authoritative") is not False

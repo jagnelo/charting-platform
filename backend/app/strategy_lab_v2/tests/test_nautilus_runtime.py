@@ -123,6 +123,24 @@ def _fixture_payload() -> dict[str, Any]:
                 "remaining_cash": "50000",
                 "authoritative": False,
             },
+            "component_priority_contention": {
+                "audit_fingerprint": content_digest("rc-priority-schedule-audit"),
+                "execution_status": "orders_submitted",
+                "submitted_order_count": 1,
+                "total_orders": 1,
+                "total_positions": 1,
+                "remaining_cash": "90000",
+                "component_order_tag": "strategy-lab-v2:component:satellite",
+                "authoritative": False,
+            },
+            "shared_risk_rejection": {
+                "risk_rejected": True,
+                "risk_gate": "shared_portfolio",
+                "submission_prevented": True,
+                "total_orders": 0,
+                "total_positions": 0,
+                "authoritative": False,
+            },
             "fail_on_misfire": {
                 "audit_fingerprint": content_digest("rc-misfire-schedule-audit"),
                 "execution_status": "failed_misfire",
@@ -314,6 +332,16 @@ def test_real_rc_fixture_receipt_rejects_multi_component_netting_mismatch() -> N
     multi_component["total_positions"] = 2
 
     with pytest.raises(ValueError, match="multi_component_shared_account schedule callbacks"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+
+def test_real_rc_fixture_receipt_rejects_component_attribution_drift() -> None:
+    runtime = _runtime()
+    payload = _fixture_payload()
+    priority_case = payload["portfolio_rebalance_schedule"]["component_priority_contention"]
+    priority_case["component_order_tag"] = "strategy-lab-v2:component:core"
+
+    with pytest.raises(ValueError, match="priority selection or component attribution"):
         NautilusRcFixtureReceipt.from_mapping(payload, runtime)
 
 

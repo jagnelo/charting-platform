@@ -242,6 +242,8 @@ def _require_rebalance_schedule_probe(value: Any) -> None:
         "session_open",
         "session_close",
         "multi_component_shared_account",
+        "component_priority_contention",
+        "shared_risk_rejection",
         "fail_on_misfire",
     }
     if (
@@ -254,6 +256,7 @@ def _require_rebalance_schedule_probe(value: Any) -> None:
         "session_open": ("orders_submitted", 1, 1, 1),
         "session_close": ("orders_submitted", 1, 1, 1),
         "multi_component_shared_account": ("orders_submitted", 2, 2, 1),
+        "component_priority_contention": ("orders_submitted", 1, 1, 1),
         "fail_on_misfire": ("failed_misfire", 0, 0, 0),
     }
     for case_name, (status, count, orders, positions) in expected.items():
@@ -268,6 +271,8 @@ def _require_rebalance_schedule_probe(value: Any) -> None:
         }
         if case_name == "multi_component_shared_account":
             expected_fields.add("remaining_cash")
+        if case_name == "component_priority_contention":
+            expected_fields.update({"remaining_cash", "component_order_tag"})
         if not isinstance(case, Mapping) or set(case) != expected_fields:
             raise ValueError(f"native {case_name} schedule evidence fields are invalid")
         require_sha256_digest(
@@ -286,6 +291,33 @@ def _require_rebalance_schedule_probe(value: Any) -> None:
             remaining_cash = _decimal(case["remaining_cash"], "remaining_cash")
             if not Decimal("40000") < remaining_cash < Decimal("60000"):
                 raise ValueError("native multi-component targets did not share the account budget")
+        if case_name == "component_priority_contention":
+            remaining_cash = _decimal(case["remaining_cash"], "remaining_cash")
+            if (
+                not Decimal("88000") < remaining_cash < Decimal("92000")
+                or case["component_order_tag"] != "strategy-lab-v2:component:satellite"
+            ):
+                raise ValueError("native priority selection or component attribution differs")
+
+    risk_rejection = value["shared_risk_rejection"]
+    if not isinstance(risk_rejection, Mapping) or set(risk_rejection) != {
+        "risk_rejected",
+        "risk_gate",
+        "submission_prevented",
+        "total_orders",
+        "total_positions",
+        "authoritative",
+    }:
+        raise ValueError("native shared-risk rejection evidence fields are invalid")
+    if (
+        risk_rejection["risk_rejected"] is not True
+        or risk_rejection["risk_gate"] != "shared_portfolio"
+        or risk_rejection["submission_prevented"] is not True
+        or risk_rejection["total_orders"] != 0
+        or risk_rejection["total_positions"] != 0
+        or risk_rejection["authoritative"] is not False
+    ):
+        raise ValueError("native shared-risk gate did not prevent over-limit orders")
 
 
 @dataclass(frozen=True, slots=True)
