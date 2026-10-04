@@ -851,21 +851,20 @@ progress:
     Options order admission remains fail-closed pending canonical event-time
     Greeks/delta and settlement evidence.
   next_action: >-
-    The ACK-after-publication path now composes the PostgreSQL search-dispatch
-    and submission/payload adapters, production search-worker callback factory,
-    owner-hydrated immutable trial graph, isolated process-executor seam, and
-    terminal result adapter. Deterministic SQL/persistence/process doubles
-    verify terminal publication completes before Redis acknowledgement; the
-    full Strategy Lab package suite passes. Next exercise pending-entry reclaim
-    and process/terminal-write failure recovery through the worker lifecycle,
-    then continue domain-backed mutations, missing metrics, and forward-shadow
-    event-tape parity. RC5 may publish local backtests after matching exact-pin
-    and four-check conformance; do not wait for stable labeling. Forward shadow
-    requires the fifth parity check; prereleases cannot connect to a broker or
-    control real capital. Keep immutable resources create-only; version changes
-    create new identities and mutable lifecycle changes use dedicated
-    owner-scoped commands. Options remain fail-closed pending canonical
-    event-time Greeks/delta and settlement evidence. Consume provider/ETF/TC2000
-    shared contracts only after their approved branches reach staging. Docker
-    Buildx is absent and the session cannot access the Docker socket, limiting
-    only the final Compose/browser validation gate.
+    The joined worker test now models a lost response after terminal state was
+    committed: the first delivery remains pending, Redis XAUTOCLAIM reclaims it,
+    the exact attempt is re-executed, terminal persistence replays the stable
+    result/artifact/settlement identities, and Redis ACK follows that receipt.
+    Next exercise this same callback/service path through the dedicated worker
+    entrypoint lifecycle (migration gate, runtime open/close, and bounded
+    restart), then continue domain-backed mutations, missing metrics, and
+    forward-shadow event-tape parity. RC5 may publish local backtests after
+    matching exact-pin and four-check conformance; do not wait for stable
+    labeling. Forward shadow requires the fifth parity check; prereleases
+    cannot connect to a broker or control real capital. Keep immutable resources
+    create-only; version changes create new identities and mutable lifecycle
+    changes use dedicated owner-scoped commands. Options remain fail-closed
+    pending canonical event-time Greeks/delta and settlement evidence. Consume
+    provider/ETF/TC2000 shared contracts only after their approved branches reach
+    staging. Docker Buildx is absent and the session cannot access the Docker
+    socket, limiting only the final Compose/browser validation gate.

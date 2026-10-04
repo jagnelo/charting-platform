@@ -9825,3 +9825,24 @@ still needs event-tape parity; prereleases cannot connect to brokers or control
 real capital. Provider/ETF/TC2000 shared contracts remain staging-gated, while
 domain-backed mutation flows, metrics, forward correctness, and final
 Compose/browser acceptance remain unfinished.
+
+## 2026-10-05 - Reclaim after ambiguous terminal commit
+
+The joined worker acceptance test now injects a lost terminal response after
+`PostgresWorkerTerminalAdapter` has committed its result. The first delivery is
+left unacknowledged, then Redis `XAUTOCLAIM` reclaims the pending entry. The
+worker re-executes the same immutable attempt, terminal persistence returns the
+same receipt/result/artifact/settlement identities, and only then does the
+transport ACK. A subsequent delivery also replays without duplicating result
+or settlement rows. The SQL session, Redis transport, terminal persistence
+ports, and process executor remain deterministic fakes; real Docker,
+PostgreSQL, Redis, and Nautilus-process evidence is still outstanding.
+
+Commit `552f35616275be64fdb6850a4f7618ac998907f1` contains this regression.
+The complete Strategy Lab v2 package passed `1,346/1,346` tests in 25.25
+seconds with scoped local Unix-domain-socket access. Ruff, Ruff format, focused
+MyPy, and `git diff --check` passed. The next step is to compose this worker
+path through `run_strategy_lab_v2_worker` and prove startup/migration gating,
+runtime closure, and bounded restart behavior before moving on to the
+domain-backed mutation flows. RC5 remains permitted for four-check local
+backtests; there is no stable-release wait condition.
