@@ -25,10 +25,14 @@ from app.strategy_lab_v2.postgres_search_dispatch import (
 )
 from app.strategy_lab_v2.postgres_search_state import PostgresSearchStateAdapter
 from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
-from app.strategy_lab_v2.runtime_execution import new_runtime_execution_state
+from app.strategy_lab_v2.runtime_execution import (
+    new_runtime_execution_state,
+    preflight_strategy_runtime,
+)
 from app.strategy_lab_v2.sandbox import build_nautilus_runtime_sandbox_command
 from app.strategy_lab_v2.search_dispatch import SearchDispatchDecision
 from app.strategy_lab_v2.search_state import new_search_execution_state
+from app.strategy_lab_v2.strategy_validation import validate_strategy_source_set
 from app.strategy_lab_v2.tests.test_admission import _fixture, _reservation
 from app.strategy_lab_v2.tests.test_runtime_execution import _profile
 from app.strategy_lab_v2.tests.test_worker_process import _request as _worker_request_fixture
@@ -586,6 +590,16 @@ async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_id
         lambda: session, search_state=search_state, worker_state=worker_state
     )
     authorization, runtime_request, runtime_preflight, pool = _fixture()
+    source_validation = validate_strategy_source_set(
+        {
+            content_digest("strategy-a"): "def run(context):\n    return None\n",
+            content_digest("strategy-b"): "def run(context):\n    return None\n",
+        }
+    )
+    assert source_validation.accepted
+    authorization = replace(authorization, source_digest=source_validation.source_digest)
+    runtime_request = replace(runtime_request, source_digest=source_validation.source_digest)
+    runtime_preflight = preflight_strategy_runtime(runtime_request, _profile())
     await search_state.initialize(
         principal="owner-1",
         state=new_search_execution_state(EXPERIMENT, (content_digest("trial-1"),), now=NOW),
@@ -629,6 +643,33 @@ async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_id
     assert owner_record is not None
     assert worker_record == owner_record
     assert worker_record.request.attempt_id == authorization.attempt_id
+    stored_payload = session.payloads[worker_record.request.payload_digest]
+    stored_worker_request = decode_worker_handoff(
+        DispatchPayload(
+            stored_payload["payload_digest"],
+            stored_payload["payload_json"],
+            stored_payload["byte_length"],
+        )
+    )
+    assert stored_worker_request.authorization.source_digest == source_validation.source_digest
+    assert stored_worker_request.runtime_request.source_digest == source_validation.source_digest
+
+    replay = await adapter.replay_idempotency(
+        principal="owner-1",
+        experiment_fingerprint=EXPERIMENT,
+        candidate_index=0,
+        attempt_id=authorization.attempt_id,
+        dispatch_intent=SearchDispatchIntent(
+            request.idempotency_key,
+            request.attempt_id,
+            request.queue_name,
+            request.created_at,
+        ),
+    )
+    assert replay is not None
+    assert replay.decision is SearchDispatchDecision.REPLAY_EXISTING
+    assert replay.envelope is not None
+    assert replay.envelope.request.payload_digest == request.payload_digest
     assert (
         await adapter.load(
             principal="owner-2", experiment_fingerprint=EXPERIMENT, candidate_index=0
