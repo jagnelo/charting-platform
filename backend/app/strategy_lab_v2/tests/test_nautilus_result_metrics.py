@@ -213,16 +213,72 @@ def test_native_realized_position_quality_is_currency_safe_and_oos_scoped(tmp_pa
     assert metrics["oos_realized_position_win_count"].value == Decimal(1)
     assert metrics["oos_realized_position_loss_count"].value == Decimal(1)
     assert metrics["oos_realized_position_break_even_count"].value == Decimal(1)
-    assert metrics["oos_realized_position_win_rate"].value == Decimal(1) / Decimal(3)
-    assert metrics["oos_realized_position_loss_rate"].value == Decimal(1) / Decimal(3)
-    assert metrics["oos_realized_position_break_even_rate"].value == Decimal(1) / Decimal(3)
+    third = Decimal("0.3333333333333333333333333333333333")
+    assert metrics["oos_realized_position_win_rate"].value == third
+    assert metrics["oos_realized_position_loss_rate"].value == third
+    assert metrics["oos_realized_position_break_even_rate"].value == third
     assert metrics["oos_realized_position_win_rate"].unit == "fraction"
     assert metrics["oos_realized_position_win_rate"].sample_size == 3
+    assert metrics["oos_realized_position_profit_factor:USD"].value is None
+    assert metrics["oos_realized_position_profit_factor:USD"].null_reason == (
+        "no losing OOS-closed positions in USD"
+    )
+    assert metric_set.definition_version == "strategy-lab.metrics.v8"
+    assert (
+        metrics["oos_realized_position_profit_factor:USD"].calculation_definition.parameters[
+            "decimal_precision"
+        ]
+        == 34
+    )
+    assert (
+        metrics["oos_realized_position_profit_factor:USD"].calculation_definition.parameters[
+            "decimal_rounding"
+        ]
+        == "ROUND_HALF_EVEN"
+    )
     assert (
         metrics["oos_realized_position_win_rate"].calculation_definition.parameters[
             "currency_aggregation"
         ]
         == "sign_only; native currencies are not summed"
+    )
+
+
+def test_native_realized_position_distribution_and_profit_factor_are_currency_scoped(
+    tmp_path,
+) -> None:
+    metric_set = _metric_set_for_positions(
+        tmp_path,
+        [
+            {"ts_opened": 105, "ts_closed": 110, "realized_pnl": "20 USD"},
+            {"ts_opened": 115, "ts_closed": 120, "realized_pnl": "-5 USD"},
+            {"ts_opened": 125, "ts_closed": 130, "realized_pnl": "4 EUR"},
+            {"ts_opened": 135, "ts_closed": 140, "realized_pnl": "-8 EUR"},
+            {"ts_opened": 145, "ts_closed": 150, "realized_pnl": "0 EUR"},
+        ],
+    )
+    metrics = {item.name: item for item in metric_set.values}
+
+    assert metrics["oos_realized_position_win_count:USD"].value == Decimal(1)
+    assert metrics["oos_realized_position_loss_count:USD"].value == Decimal(1)
+    assert metrics["oos_realized_position_win_rate:USD"].value == Decimal("0.5")
+    assert metrics["oos_realized_position_gross_winning_pnl:USD"].value == Decimal(20)
+    assert metrics["oos_realized_position_gross_losing_pnl_magnitude:USD"].value == Decimal(5)
+    assert metrics["oos_realized_position_profit_factor:USD"].value == Decimal(4)
+    assert metrics["oos_realized_position_win_count:EUR"].value == Decimal(1)
+    assert metrics["oos_realized_position_loss_count:EUR"].value == Decimal(1)
+    assert metrics["oos_realized_position_break_even_count:EUR"].value == Decimal(1)
+    assert metrics["oos_realized_position_win_rate:EUR"].value == Decimal(
+        "0.3333333333333333333333333333333333"
+    )
+    assert metrics["oos_realized_position_profit_factor:EUR"].value == Decimal("0.5")
+    assert metrics["oos_realized_position_profit_factor:USD"].unit == "ratio"
+    assert metrics["oos_realized_position_profit_factor:USD"].sample_size == 2
+    assert (
+        metrics["oos_realized_position_profit_factor:EUR"].calculation_definition.parameters[
+            "currency_aggregation"
+        ]
+        == "within_currency_only; no FX conversion"
     )
 
 
@@ -241,6 +297,8 @@ def test_native_realized_position_quality_fails_closed_on_missing_pnl(tmp_path) 
     assert "missing" in (metrics["oos_realized_position_win_rate"].null_reason or "")
     assert metrics["oos_realized_pnl_reported_position_count"].value == Decimal(1)
     assert metrics["oos_realized_pnl_unreported_position_count"].value == Decimal(1)
+    assert metrics["oos_realized_position_profit_factor:USD"].value is None
+    assert "missing" in (metrics["oos_realized_position_profit_factor:USD"].null_reason or "")
 
 
 def test_build_nautilus_oos_metric_set_rejects_report_scope_mismatch(tmp_path) -> None:

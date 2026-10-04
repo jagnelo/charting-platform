@@ -74,7 +74,11 @@ from app.strategy_lab_v2.lifecycle import (
     observe_forward_event,
     transition_attempt,
 )
-from app.strategy_lab_v2.metrics import calculate_performance_metrics, calculate_trade_metrics
+from app.strategy_lab_v2.metrics import (
+    METRIC_DEFINITION_VERSION,
+    calculate_performance_metrics,
+    calculate_trade_metrics,
+)
 from app.strategy_lab_v2.rebalance import (
     CalendarRebalancePolicy,
     RebalanceCadence,
@@ -938,7 +942,7 @@ def test_metric_contracts_include_basis_sample_size_and_null_reason() -> None:
     assert by_name["total_return"].basis is MetricBasis.NET
     assert by_name["sharpe_ratio"].value is not None
     assert by_name["sharpe_ratio"].annualization_basis == "252 observed periods per year"
-    assert all(item.definition_version == "strategy-lab.metrics.v7" for item in metrics)
+    assert all(item.definition_version == METRIC_DEFINITION_VERSION for item in metrics)
 
     trade_metrics = {
         item.name: item

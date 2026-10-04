@@ -19,6 +19,7 @@ from app.strategy_lab_v2.contracts import (
     MetricSet,
     MetricValue,
 )
+from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_decimal_math
 from app.strategy_lab_v2.metrics import (
     METRIC_DEFINITION_VERSION,
     calculate_event_aligned_equity_metrics,
@@ -159,6 +160,7 @@ def _require_matching_oos_references(
         raise ValueError("official Nautilus metrics require explicit OOS scoring bounds")
 
 
+@deterministic_decimal_math
 def _native_oos_report_metrics(
     reference: NautilusNativeReportsReference,
     path: str | Path,
@@ -178,6 +180,11 @@ def _native_oos_report_metrics(
     closed_position_time_coverage = True
     realized_pnl_amounts: dict[str, Decimal] = defaultdict(Decimal)
     realized_pnl_counts: dict[str, int] = defaultdict(int)
+    realized_position_win_counts: dict[str, int] = defaultdict(int)
+    realized_position_loss_counts: dict[str, int] = defaultdict(int)
+    realized_position_break_even_counts: dict[str, int] = defaultdict(int)
+    realized_position_gross_wins: dict[str, Decimal] = defaultdict(Decimal)
+    realized_position_gross_loss_magnitudes: dict[str, Decimal] = defaultdict(Decimal)
     realized_pnl_unreported = 0
     realized_position_wins = 0
     realized_position_losses = 0
@@ -230,10 +237,15 @@ def _native_oos_report_metrics(
                     realized_pnl_counts[currency] += 1
                     if amount > 0:
                         realized_position_wins += 1
+                        realized_position_win_counts[currency] += 1
+                        realized_position_gross_wins[currency] += amount
                     elif amount < 0:
                         realized_position_losses += 1
+                        realized_position_loss_counts[currency] += 1
+                        realized_position_gross_loss_magnitudes[currency] += amount.copy_abs()
                     else:
                         realized_position_break_even += 1
+                        realized_position_break_even_counts[currency] += 1
 
     artifact = reference.artifact.content_digest
     window = reference.evaluation_window_fingerprint
@@ -490,6 +502,102 @@ def _native_oos_report_metrics(
         )
     )
     for currency in sorted(realized_pnl_amounts):
+        currency_sample_size = realized_pnl_counts[currency]
+        gross_wins = realized_position_gross_wins[currency]
+        gross_loss_magnitude = realized_position_gross_loss_magnitudes[currency]
+        currency_metrics = (
+            (
+                "oos_realized_position_win_count",
+                Decimal(realized_position_win_counts[currency]),
+                "positions",
+                "count of OOS-closed native positions with positive realized P&L in the named currency",
+                None,
+            ),
+            (
+                "oos_realized_position_loss_count",
+                Decimal(realized_position_loss_counts[currency]),
+                "positions",
+                "count of OOS-closed native positions with negative realized P&L in the named currency",
+                None,
+            ),
+            (
+                "oos_realized_position_break_even_count",
+                Decimal(realized_position_break_even_counts[currency]),
+                "positions",
+                "count of OOS-closed native positions with zero realized P&L in the named currency",
+                None,
+            ),
+            (
+                "oos_realized_position_win_rate",
+                Decimal(realized_position_win_counts[currency]) / Decimal(currency_sample_size),
+                "fraction",
+                "positive-P&L OOS-closed positions divided by reported OOS-closed positions in the named currency",
+                None,
+            ),
+            (
+                "oos_realized_position_loss_rate",
+                Decimal(realized_position_loss_counts[currency]) / Decimal(currency_sample_size),
+                "fraction",
+                "negative-P&L OOS-closed positions divided by reported OOS-closed positions in the named currency",
+                None,
+            ),
+            (
+                "oos_realized_position_break_even_rate",
+                Decimal(realized_position_break_even_counts[currency])
+                / Decimal(currency_sample_size),
+                "fraction",
+                "zero-P&L OOS-closed positions divided by reported OOS-closed positions in the named currency",
+                None,
+            ),
+            (
+                "oos_realized_position_gross_winning_pnl",
+                gross_wins,
+                f"currency:{currency}",
+                "sum of positive native realized position P&L in the named currency",
+                None,
+            ),
+            (
+                "oos_realized_position_gross_losing_pnl_magnitude",
+                gross_loss_magnitude,
+                f"currency:{currency}",
+                "absolute sum of negative native realized position P&L in the named currency",
+                None,
+            ),
+            (
+                "oos_realized_position_profit_factor",
+                gross_wins / gross_loss_magnitude if gross_loss_magnitude > 0 else None,
+                "ratio",
+                "gross winning native realized position P&L divided by gross losing magnitude in the named currency",
+                (
+                    None
+                    if gross_loss_magnitude > 0
+                    else f"no losing OOS-closed positions in {currency}"
+                ),
+            ),
+        )
+        for metric_name, metric_value, unit, formula, specific_null_reason in currency_metrics:
+            result.append(
+                _native_metric(
+                    f"{metric_name}:{currency}",
+                    metric_value if realized_pnl_is_complete else None,
+                    unit=unit,
+                    sample_size=currency_sample_size,
+                    formula=formula,
+                    parameters={
+                        "currency": currency,
+                        "report_kind": "positions",
+                        "value_field": "realized_pnl",
+                        "currency_aggregation": "within_currency_only; no FX conversion",
+                        **shared_parameters,
+                    },
+                    evidence_digest=artifact,
+                    null_reason=(
+                        realized_pnl_null_reason
+                        if not realized_pnl_is_complete
+                        else specific_null_reason
+                    ),
+                )
+            )
         result.append(
             _native_metric(
                 f"oos_reported_realized_position_pnl:{currency}",
@@ -515,6 +623,13 @@ def _native_metric(
     evidence_digest: str,
     null_reason: str | None = None,
 ) -> MetricValue:
+    if {"decimal_precision", "decimal_rounding"} & parameters.keys():
+        raise ValueError("native metric parameters cannot override the Decimal context")
+    calculation_parameters = {
+        **parameters,
+        "decimal_precision": DECIMAL_PRECISION,
+        "decimal_rounding": "ROUND_HALF_EVEN",
+    }
     return MetricValue(
         name=name,
         value=value,
@@ -527,7 +642,7 @@ def _native_metric(
         calculation_definition=MetricCalculationDefinition(
             formula_id=f"strategy-lab.metrics/{name.partition(':')[0]}",
             contract_version=METRIC_CALCULATION_CONTRACT_VERSION,
-            parameters=parameters,
+            parameters=calculation_parameters,
         ),
         evidence_references=(MetricEvidenceReference("native_execution_reports", evidence_digest),),
     )

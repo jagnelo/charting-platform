@@ -336,7 +336,7 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and duplicate-trial results by default; an explicit exploratory opt-in can
   include non-authoritative engine output while retaining the exclusion label.
   It makes no profitability or statistical inference claim.
-- `metrics.py` v6 computes Decimal account P&L/return, drawdown duration, Ulcer,
+- `metrics.py` v8 computes Decimal account P&L/return, drawdown duration, Ulcer,
   annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
   historical VaR/expected shortfall, and trade outcome/streak summaries from
   authoritative engine equity and trade-P&L series. The equity input contains
@@ -410,6 +410,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   spacing is not treated as a fixed session cadence. Calendar-period, rolling,
   and session-distribution aggregators now consume the same boundary evidence;
   flow-adjusted status is retained on distribution summaries.
+  The official Nautilus OOS result path also reports native closed-position
+  win/loss/break-even counts and rates, plus per-currency gross winning P&L,
+  losing-P&L magnitude, and position profit factor. Currency-specific amounts
+  are never combined or FX-converted; any missing OOS close-time coverage or
+  realized-P&L value withholds the affected position-quality metrics. Native
+  calculations record their fixed Decimal precision and rounding context.
   `summarize_one_factor_metric_replicates()` adds a deterministic descriptive
   baseline/variant summary over complete replicate arms. It requires one result
   per planned replicate index, one canonical parameter change, identical fixed
@@ -434,9 +440,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   descriptive comparator withholds the delta. This is a calculation-identity
   primitive; the comparator validates shared run scope, declared data/coverage
   identity, currency, calendar evidence, and calculation compatibility
-  separately. Existing
-  `calculation_basis` strings remain display-compatible and the formula version
-  stays at v6 because this metadata addition does not change metric formulas.
+  separately. Existing `calculation_basis` strings remain display-compatible;
+  the metric formula version is bumped when the catalog or calculations change.
 - `lifecycle.py` contains pure attempt/forward state transitions, event
   anomaly classification, and typed monotonic execution-attempt leases.
   Running attempts can acquire a lease, active leases can renew, and expired or

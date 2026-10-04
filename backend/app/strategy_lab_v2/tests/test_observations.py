@@ -24,6 +24,7 @@ from app.strategy_lab_v2.contracts import (
     SessionReturnDistribution,
 )
 from app.strategy_lab_v2.metrics import (
+    METRIC_DEFINITION_VERSION,
     calculate_calendar_period_metrics,
     calculate_capital_margin_utilization_metrics,
     calculate_component_attribution_metrics,
@@ -816,7 +817,7 @@ def test_calendar_period_metrics_reconcile_complete_period_pnl_and_return() -> N
         MetricEvidenceReference("session_calendar", calendar.fingerprint)
         in period_metric.evidence_references
     )
-    assert all(item.definition_version == "strategy-lab.metrics.v7" for item in metrics.values())
+    assert all(item.definition_version == METRIC_DEFINITION_VERSION for item in metrics.values())
 
 
 def test_calendar_period_partial_and_external_flow_returns() -> None:
@@ -1164,7 +1165,7 @@ def test_rolling_equity_metrics_emit_reproducible_complete_session_windows() -> 
     assert metrics["rolling_sharpe_ratio"].calculation_definition.parameters[
         "risk_free_return_per_period"
     ] == Decimal(0)
-    assert all(item.definition_version == "strategy-lab.metrics.v7" for item in metrics.values())
+    assert all(item.definition_version == METRIC_DEFINITION_VERSION for item in metrics.values())
 
     risk_free_target = Decimal("0.001")
     targeted_metrics = _metric_map(
@@ -1518,7 +1519,7 @@ def test_session_return_distribution_metrics_use_pinned_nearest_rank_estimators(
     assert metrics["session_return_expected_shortfall:c=0.5"].value == Decimal("0.2")
     assert all(item.sample_size == 2 for item in metrics.values())
     assert all(item.basis is MetricBasis.NET for item in metrics.values())
-    assert all(item.definition_version == "strategy-lab.metrics.v7" for item in metrics.values())
+    assert all(item.definition_version == METRIC_DEFINITION_VERSION for item in metrics.values())
     assert (
         "one-based rank=1; no interpolation"
         in metrics["session_return_quantile:p=0.25"].calculation_basis
