@@ -2,6 +2,64 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Evaluation-window warm-up and OOS execution gate
+
+The package-owned Nautilus trial path now carries the exact immutable
+`EvaluationWindow` into engine input v4. Assembly restricts both the native
+event tape and strategy-context history to `[warmup_start or start, end)`,
+requires at least one event inside the scoring interval, and preserves
+streaming/disk-backed operation for frozen tapes. The native callback still
+invokes the strategy during warm-up so its local state can initialize, but
+removes warm-up intents before native order routing and before invocation
+results are emitted. Events outside the authenticated input interval fail
+closed. The legacy 1.226.0 backend environment remains untouched.
+
+Changed paths are the engine-neutral window contract and isolated Nautilus
+input/bridge, plus their focused tests:
+
+```text
+backend/app/strategy_lab_v2/contracts.py
+backend/app/strategy_lab_v2/nautilus_engine_input.py
+backend/app/strategy_lab_v2/nautilus_runtime_adapter.py
+backend/app/strategy_lab_v2/nautilus_runtime_adapter_probe.py
+backend/app/strategy_lab_v2/nautilus_runtime_bundle.py
+backend/app/strategy_lab_v2/nautilus_strategy_bridge.py
+backend/app/strategy_lab_v2/nautilus_trial_assembly.py
+backend/app/strategy_lab_v2/tests/test_nautilus_engine_input.py
+backend/app/strategy_lab_v2/tests/test_nautilus_runtime_adapter.py
+backend/app/strategy_lab_v2/tests/test_nautilus_strategy_bridge.py
+backend/app/strategy_lab_v2/tests/test_nautilus_trial_assembly.py
+```
+
+Implementation commit: `91e838a20d502de5426bfe8188d5e7fbb47e789b`.
+Validation: 1,188 Strategy Lab v2 tests passed; Ruff lint passed; all 11
+changed Python files passed formatting; MyPy passed across 341 source files;
+and `git diff --check` passed. A broader formatter check over the entire
+package was also attempted and reported 188 untouched existing files that
+would be reformatted; it did not modify them. The exact-pinned RC5 image probe
+could not be rerun because Docker access remains denied at
+`/var/run/docker.sock`. That blocks native image-backed validation and the
+final Compose/browser profile, not local feature implementation. OOS-native
+equity/result extraction and official versioned metrics remain a subsequent
+implementation slice; this commit gates simulator events and orders, not the
+full metrics acceptance criterion.
+
+No stable Nautilus 2.x release is required: `plan.yaml` permits the exact
+2.0.0rc5 pin after applicable conformance and bars prereleases from broker or
+real-capital control. Provider, ETF, and TC2000 shared-path use remains gated
+until their work reaches staging. The configured GitHub SSH key has also
+previously failed with `Permission denied (publickey)`. The elevated,
+user-authorized push of
+`1e3a861454f3c77bdac5efbb6957103f56f13238..91e838a20d502de5426bfe8188d5e7fbb47e789b`
+to `origin/feat/strategy-lab-v2` was attempted and failed because
+`/usr/bin/ssh-askpass` is missing and GitHub rejected the configured key. The
+remote is unchanged; no alternate credential path was probed. Local commits
+and implementation remain independent of this transport issue.
+
+Next: implement native result/equity extraction bound to the same evaluation
+window, with OOS-only official metrics; rerun the exact-pinned RC5 windowed,
+multi-component callback/fill probe when Docker API access is available.
+
 ## 2026-10-04 - Multi-strategy trial materialization
 
 Closed the gap between the multi-component Nautilus callback and host-side
