@@ -8318,3 +8318,43 @@ Changed source paths: `backend/app/strategy_lab_v2/metrics.py`,
 `backend/app/strategy_lab_v2/tests/test_nautilus_result_metrics.py`.
 Changed workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
 `handoff.md`, `session.json`, and `validation.jsonl`.
+
+## 2026-10-04 - Trusted capability-preflight composition (v1)
+
+Added `CapabilityPreflightService` as the typed API-side composition of
+capability requests. It strictly parses requested product/data/execution
+semantics and explicit degraded substitutions, checks the supplied request
+digest, obtains capability cells and the execution binding only from injected
+trusted host resolvers, then runs the existing data and engine preflight and
+builds the persisted API summary. The request schema rejects cells, engine
+build claims, and any other unrecognized evidence fields; missing coverage
+remains unsupported, and degraded results remain ineligible for rankings and
+authoritative publication. Sync and async host resolvers are both supported.
+
+This advances the production seam without claiming the API is fully live: the
+registered default PostgreSQL adapter is still created without the host
+capability resolvers and therefore returns the existing fail-closed 501. The
+host must still bind the provider-platform-backed coverage resolver and exact
+Nautilus conformance binding. Search dispatch likewise still needs its trusted
+market/runtime/worker preparation context; none is accepted from the client.
+Provider/ETF/TC2000 shared-contract gates remain unchanged, and stable Nautilus
+2.x remains unnecessary.
+
+At source commit `7bdddfa64e4d1d1cf641f03eff202e3358037202`, all 1,224 Strategy
+Lab v2 tests passed. The combined backend coverage gate passed 2,875 tests at
+83.41%; package Ruff passed, the new source/test passed Ruff format-check, and
+MyPy passed across all 346 Strategy Lab package/runtime sources. The
+post-run resource audit found zero containers, images, volumes, or active
+Testcontainers sessions. The full Compose/browser profile remains blocked only
+by the missing Docker Buildx CLI plugin; the combined coverage gate is now
+green again.
+
+Changed source paths: `backend/app/strategy_lab_v2/capability_preparation.py`,
+`backend/app/strategy_lab_v2/tests/test_capability_preparation.py`, and
+`docs/strategy-lab-v2.md`.
+Changed workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`handoff.md`, `session.json`, and `validation.jsonl`.
+
+Next: bind these typed resolvers to the local host's canonical coverage and
+exact engine-conformance sources, then compose the trusted search-preparation
+context without executing preparation inline in the API event loop.

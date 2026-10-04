@@ -809,27 +809,29 @@ progress:
     - strategy-lab-v2-host-composed-nautilus-backtest-dispatch
     - strategy-lab-v2-production-search-dispatch-evidence-preparation
   total: 18
-  current_phase: native-oos-position-pnl-quantiles-v11
+  current_phase: trusted-capability-preflight-composition-v1
   current_blocker: >-
     Stable Nautilus 2.x is not a release blocker: exact-pinned stable or
     pre-release v2 builds are eligible for authoritative local backtests after
     scope-specific conformance. Pre-releases remain barred from broker
     connections and real-capital control; forward shadow separately requires
-    event-tape parity. No external release or provider event blocks
-    package-owned implementation. The production API still lacks host-composed
-    capability and search-preparation inputs; keep those paths fail-closed until
-    trusted provider coverage, exact conformance, runtime profile, and an
-    isolated local preparation process are composed. Provider/ETF/TC2000
+    event-tape parity. The package now has a strict capability-preflight
+    composition service that accepts requested requirements/degradations and
+    joins only host-resolved coverage cells and exact engine bindings; the
+    production API still needs those trusted resolvers wired, and search
+    dispatch still needs its host preparation context. Provider/ETF/TC2000
     staging gates apply only when consuming their shared contracts or paths.
     Docker Engine and Compose are reachable, but the host has no Docker Buildx
     CLI plugin. The full-stack startup target therefore cannot create its
     named builder, and the legacy-builder fallback cannot resolve the
     frontend Dockerfile's BUILDPLATFORM argument. This blocks exact-tip
-    Compose/browser validation only; package-owned implementation and the
-    combined backend coverage gate continue independently.
+    Compose/browser validation only. The combined backend coverage gate now
+    passes at 2,875 tests and 83.41% coverage; no assertion failure remains
+    outstanding from the previous exit-152 run.
   next_action: >-
-    Continue composing the production capability/search-preparation path and
-    remaining worker/forward acceptance without inventing trusted evidence;
-    then run PostgreSQL/Redis/Compose and full-stack/browser validation at the
-    exact branch tip when a Buildx-capable Docker CLI is available. Do not wait
-    for stable Nautilus 2.x.
+    Wire the trusted capability-cell and exact engine-binding sources into the
+    registered API, then compose the isolated search-preparation host context
+    without accepting request-supplied evidence. Continue remaining worker and
+    forward acceptance; run PostgreSQL/Redis/Compose and browser validation at
+    the exact branch tip when a Buildx-capable Docker CLI is available. Do not
+    wait for stable Nautilus 2.x.
