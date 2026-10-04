@@ -825,9 +825,11 @@ progress:
     Provider/ETF/TC2000 contracts remain owned by their workstreams and are
     consumed only at approved staging boundaries. Docker Engine and Compose
     are reachable, but the host has no Docker Buildx CLI plugin. This blocks
-    exact-tip Compose/browser validation only. The Strategy Lab suite passes
-    1,229 tests; the combined backend coverage gate passes 2,880 tests at
-    83.41% on the same source tree.
+    exact-tip Compose/browser validation only. At commit
+    ce14d39e4bc8d00387ea1466e6437f7ab713d1ff, the combined backend coverage
+    gate passed 2,880 tests at 83.41%. The current follow-up factory-safety tip
+    passes all 1,231 Strategy Lab tests; the combined backend coverage gate has
+    not been rerun at this tip.
   next_action: >-
     Implement the concrete local host composition for the capability service
     and exact-pinned Nautilus binding using only canonical, trusted sources;

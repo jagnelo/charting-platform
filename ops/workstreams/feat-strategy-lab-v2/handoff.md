@@ -8409,3 +8409,34 @@ Testcontainers sessions). The helper's dirty-path formatter dropped the first
 character of `ops/.../handoff.md`; the session record was corrected to list the
 exact four branch-workstream paths changed in this checkpoint. The enclosing
 workstream commit is verified separately from the recorded implementation SHA.
+
+## 2026-10-04 - Host-factory lifecycle validation (v1)
+
+Committed and pushed `9137be084d4c642074f99eae5e164677be309385`. The adapter
+now rejects coroutine host factories before calling them and closes a coroutine
+returned by a misdeclared synchronous factory before raising, preventing an
+un-awaited-coroutine leak during invalid startup configuration. The full
+Strategy Lab suite passed 1,231 tests; focused application tests passed 24;
+Ruff, formatting, MyPy across 346 package/runtime sources, and `git diff
+--check` passed. The combined backend coverage gate was not rerun at this small
+follow-up tip; its latest 2,880-test/83.41% pass was at the preceding source
+commit `ce14d39e4bc8d00387ea1466e6437f7ab713d1ff`.
+
+The substantive next gap remains a concrete local host composition: trusted
+provider coverage cells, exact Nautilus conformance binding, and isolated
+search-preparation context/service. The API remains fail-closed until those
+inputs are available; no stable Nautilus release is required. Buildx still
+limits only the exact-tip Compose/browser profile.
+
+The active session checkpoint passed at 2026-10-04T10:29:09Z; resource
+accounting remained complete with zero assigned containers, volumes, or
+Testcontainers sessions. The helper's truncated `ps/.../handoff.md` path was
+corrected to the actual `ops/.../handoff.md` path in the session record.
+
+Changed source paths: `backend/app/strategy_lab_v2/application.py`,
+`backend/app/strategy_lab_v2/tests/test_application.py`, and
+`docs/strategy-lab-v2.md`. Changed workstream paths:
+`ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
