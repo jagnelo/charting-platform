@@ -8285,6 +8285,15 @@ reported realized P&L, the quantiles are null with the same explicit completenes
 reason as the related position-outcome aggregates. The metric definition is
 v11, giving the persisted metric set a new immutable identity.
 
+Release-policy reconciliation: the current human direction and this branch's
+acceptance contract permit the exact-pinned Nautilus 2.x pre-release after
+scope-specific conformance; no stable upstream label is required. The saved
+Codex goal text still says "after stable v2 conformance" and is stale on this
+point. Do not treat that wording as a release dependency: RC5's four local
+backtest fixture checks have passed, while formal result provenance and the
+separate forward event-tape parity gate remain applicable. Pre-releases remain
+barred from broker connections and real-capital control.
+
 At source commit `ca02dcc62a037770e0fb89d6ff93ffac97855d8c`, the complete
 Strategy Lab v2 suite passed 1,219 tests, including all 11 native result-metric
 tests. Ruff passed, the changed native result-metric and test files passed
