@@ -2,6 +2,28 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Evaluation-window-bound rebalance planner
+
+Added `schedule_rebalances_for_interval`, which retains exact calendar/policy
+validation and filters scheduled occurrences to a trial's half-open UTC
+execution interval. Warm-up boundaries before the scoring interval and an
+occurrence exactly at the exclusive end are omitted. Naive timestamps and empty
+or reversed intervals fail closed.
+
+Validation at implementation commit `e7ddfa52bb5a29ae9fe2098a3f25236a5698f59c`:
+18 rebalance-planning/allocation tests passed; Ruff, formatting, targeted MyPy,
+and `git diff --check` passed. The exact implementation commit was pushed to
+`origin/feat/strategy-lab-v2`.
+
+This is a planning primitive, not yet Nautilus execution support: trial assembly
+and engine input still reject rebalance policies. Next, provide a trusted frozen
+calendar through the preparation context, compile the exact schedule into the
+typed engine input, and implement callback-bound open/close and misfire behavior
+with auditable outcomes. Keep assembly fail-closed until the worker actually
+executes that plan. Provider canonical metadata/series decoding still await the
+provider contract reaching staging; Docker Buildx still limits only final
+Compose/browser validation. Stable Nautilus 2.x is not a blocker.
+
 ## 2026-10-04 - PostgreSQL owner-hydrated preparation integration
 
 The real PostgreSQL/Testcontainers dispatch test now exercises the package-owned
