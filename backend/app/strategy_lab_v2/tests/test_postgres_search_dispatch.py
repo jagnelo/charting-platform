@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from app.strategy_lab_v2.admission import ExecutionAdmissionLedger, resolve_execution_admission
+from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.dispatch import DispatchRequest, SearchDispatchIntent
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
@@ -31,11 +32,19 @@ from app.strategy_lab_v2.runtime_execution import (
 )
 from app.strategy_lab_v2.sandbox import build_nautilus_runtime_sandbox_command
 from app.strategy_lab_v2.search_dispatch import SearchDispatchDecision
+from app.strategy_lab_v2.search_dispatch_preparation import (
+    NautilusTrialSearchDispatchEvidenceResolver,
+)
 from app.strategy_lab_v2.search_state import new_search_execution_state
 from app.strategy_lab_v2.strategy_validation import validate_strategy_source_set
 from app.strategy_lab_v2.tests.test_admission import _fixture, _reservation
+from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
+from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import _add_second_strategy
 from app.strategy_lab_v2.tests.test_runtime_execution import _profile
+from app.strategy_lab_v2.tests.test_search_dispatch_preparation import _setup as _preparation_setup
+from app.strategy_lab_v2.tests.test_trial_hydration import MemoryDomainReader
 from app.strategy_lab_v2.tests.test_worker_process import _request as _worker_request_fixture
+from app.strategy_lab_v2.trial_hydration import NautilusTrialDomainHydrator
 from app.strategy_lab_v2.worker_handoff import decode_worker_handoff, encode_worker_handoff
 from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
 from app.strategy_lab_v2.workers import WorkerPoolState
@@ -676,6 +685,120 @@ async def test_postgres_search_dispatch_loads_owner_scoped_and_worker_request_id
         )
         is None
     )
+
+
+@pytest.mark.asyncio
+async def test_owner_hydrated_multi_strategy_trial_reaches_persisted_dispatch_and_replay(
+    tmp_path,
+) -> None:
+    graph, store, package_resolver, materializer, context, worker_state_reader = _preparation_setup(
+        tmp_path
+    )
+    graph = _add_second_strategy(_inputs(), graph, store)
+    reader = MemoryDomainReader(
+        {
+            "attempt": graph.attempt,
+            "trial": graph.trial,
+            "experiment": graph.experiment,
+            "portfolio": graph.portfolio,
+            "snapshot": graph.snapshot,
+            "strategies": graph.strategies,
+            "packages": graph.packages,
+        },
+        owner="owner-1",
+    )
+    resolver = NautilusTrialSearchDispatchEvidenceResolver(
+        domain_hydrator=NautilusTrialDomainHydrator(reader),
+        runtime_materializer=materializer,
+        strategy_package_resolver=package_resolver,
+        artifact_store=store,
+        worker_state_reader=worker_state_reader,
+        context_resolver=lambda _request, _graph: context,
+    )
+    session = FakeSession()
+    search_state = PostgresSearchStateAdapter(lambda: session)
+    worker_state = PostgresWorkerStateAdapter(lambda: session)
+    adapter = PostgresSearchDispatchAdapter(
+        lambda: session,
+        search_state=search_state,
+        worker_state=worker_state,
+    )
+    await search_state.initialize(
+        principal="owner-1",
+        state=new_search_execution_state(
+            graph.experiment.fingerprint,
+            (graph.trial.trial_id,),
+            now=context.now,
+        ),
+    )
+    await worker_state.ensure_profile(context.worker_profile)
+    intent = SearchDispatchIntent(
+        "owner-hydrated-multi-strategy-dispatch",
+        graph.attempt.attempt_id,
+        "strategy-backtest",
+        context.now,
+    )
+    evidence = await resolver(
+        principal="owner-1",
+        request_id="owner-hydrated-multi-strategy-request",
+        experiment_fingerprint=graph.experiment.fingerprint,
+        candidate_index=0,
+        attempt_id=graph.attempt.attempt_id,
+        dispatch_intent=intent,
+    )
+    await worker_state.persist_lease(evidence.worker_request.lease_state.lease)
+    payload = encode_worker_handoff(evidence.worker_request)
+    payload_record = DispatchPayload.from_mapping(payload)
+    request = intent.bind_payload(payload_record.payload_digest)
+
+    resolution = await adapter.dispatch(
+        principal="owner-1",
+        experiment_fingerprint=graph.experiment.fingerprint,
+        candidate_index=0,
+        attempt_id=graph.attempt.attempt_id,
+        authorization=evidence.authorization,
+        runtime_request=evidence.trial_runtime_evidence.runtime_request,
+        runtime_preflight=evidence.trial_runtime_evidence.runtime_preflight,
+        reservation_id=evidence.reservation_id,
+        dispatch_request=request,
+        payload=payload,
+        now=evidence.now,
+    )
+
+    assert len(graph.strategies) == 2
+    assert reader.calls[0] == ("id", ApiResourceType.ATTEMPT, (graph.attempt.attempt_id,))
+    assert evidence.authorization.source_digest != graph.strategies[0].source_digest
+    assert resolution.decision is SearchDispatchDecision.ENQUEUE
+    dispatch_record = await adapter.load(
+        principal="owner-1",
+        experiment_fingerprint=graph.experiment.fingerprint,
+        candidate_index=0,
+    )
+    assert dispatch_record is not None
+    persisted_payload = session.payloads[dispatch_record.request.payload_digest]
+    decoded_worker_request = decode_worker_handoff(
+        DispatchPayload(
+            persisted_payload["payload_digest"],
+            persisted_payload["payload_json"],
+            persisted_payload["byte_length"],
+        )
+    )
+    assert decoded_worker_request.authorization == evidence.authorization
+    assert (
+        decoded_worker_request.runtime_request.source_digest == evidence.authorization.source_digest
+    )
+
+    replay = await adapter.replay_idempotency(
+        principal="owner-1",
+        experiment_fingerprint=graph.experiment.fingerprint,
+        candidate_index=0,
+        attempt_id=graph.attempt.attempt_id,
+        dispatch_intent=intent,
+    )
+    assert replay is not None
+    assert replay.decision is SearchDispatchDecision.REPLAY_EXISTING
+    assert replay.envelope is not None
+    assert replay.envelope.request.payload_digest == request.payload_digest
 
 
 def test_postgres_search_dispatch_schema_is_additive_and_safe() -> None:

@@ -38,10 +38,17 @@ class MemoryDomainReader:
         )
         self._put(ApiResourceType.PORTFOLIO, values["portfolio"].fingerprint, values["portfolio"])
         self._put(ApiResourceType.SNAPSHOT, values["snapshot"].fingerprint, values["snapshot"])
-        strategy: StrategyVersion = values["strategy_manifest"].strategy
-        package: StrategyPackage = values["strategy_package"]
-        self._put(ApiResourceType.STRATEGY, strategy.fingerprint, strategy)
-        self._put(ApiResourceType.PACKAGE, package.fingerprint, package)
+        if "strategies" in values:
+            strategies = tuple(values["strategies"])
+            packages = values["packages"]
+        else:
+            strategy: StrategyVersion = values["strategy_manifest"].strategy
+            strategies = (strategy,)
+            packages = {strategy.fingerprint: values["strategy_package"]}
+        for strategy in strategies:
+            package: StrategyPackage = packages[strategy.fingerprint]
+            self._put(ApiResourceType.STRATEGY, strategy.fingerprint, strategy)
+            self._put(ApiResourceType.PACKAGE, package.fingerprint, package)
 
     def _put(
         self,
