@@ -39,6 +39,12 @@ must establish the requested product, data granularity, history, adjustment,
 session/feed, corporate-action, and execution-model semantics. Missing rigorous
 support fails closed. A degraded run is possible only through an explicit,
 evidence-backed substitution and is excluded from rigorous rankings by default.
+The API-side `CapabilityPreflightService` strictly parses those requested
+semantics and explicit substitutions, then combines them with typed capability
+cells and an exact execution/conformance binding supplied by trusted local host
+resolvers. Coverage evidence and engine claims are never accepted from the
+request body. The registered API remains fail-closed until the production host
+composes the provider-platform coverage resolver and local Nautilus binding.
 
 Data acquisition and repair belong to the shared market-data platform. The
 resulting series are verified and frozen into a content-addressed snapshot
