@@ -109,7 +109,10 @@ from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import (
     BASE,
     JsonFrozenSeriesDecoder,
 )
-from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import _build_inputs
+from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import (
+    _add_second_strategy,
+    _build_inputs,
+)
 from app.strategy_lab_v2.tests.test_trial_hydration import MemoryDomainReader
 from app.strategy_lab_v2.trial_hydration import NautilusTrialDomainHydrator
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision
@@ -156,7 +159,12 @@ class _MemoryCommitter:
         return resolution
 
 
-def _runtime_setup(tmp_path: Path, *, stable: bool = True):
+def _runtime_setup(
+    tmp_path: Path,
+    *,
+    stable: bool = True,
+    multi_strategy: bool = False,
+):
     engine_version = "2.0.0" if stable else NAUTILUS_V2_RC_PACKAGE_VERSION
     release_tag = "v2.0.0" if stable else NAUTILUS_V2_RC_RELEASE_TAG
     release_channel = (
@@ -186,6 +194,8 @@ def _runtime_setup(tmp_path: Path, *, stable: bool = True):
         trial=trial,
         attempt=replace(graph.attempt, trial_id=trial.trial_id),
     )
+    if multi_strategy:
+        graph = _add_second_strategy(values, graph, source_store)
     materializer = NautilusTrialRuntimeInputMaterializer(
         artifact_store=source_store,
         strategy_package_resolver=StrategyPackageArtifactResolver(
@@ -202,7 +212,9 @@ def _runtime_setup(tmp_path: Path, *, stable: bool = True):
         runtime_image_digest=content_digest({"nautilus-test-image": engine_version}),
         runtime_abi="worker-abi-v1",
         allowed_dependency_digests=frozenset(
-            dependency.artifact_digest for dependency in graph.strategies[0].dependencies
+            dependency.artifact_digest
+            for strategy in graph.strategies
+            for dependency in strategy.dependencies
         ),
     )
     runtime = build_nautilus_trial_runtime_evidence(
@@ -371,8 +383,17 @@ def _runtime_setup(tmp_path: Path, *, stable: bool = True):
     return graph, source_store, request, conformance_evidence
 
 
-def _successful_context_and_lookup(tmp_path: Path, *, stable: bool = True):
-    graph, source_store, request, _conformance_evidence = _runtime_setup(tmp_path, stable=stable)
+def _successful_context_and_lookup(
+    tmp_path: Path,
+    *,
+    stable: bool = True,
+    multi_strategy: bool = False,
+):
+    graph, source_store, request, _conformance_evidence = _runtime_setup(
+        tmp_path,
+        stable=stable,
+        multi_strategy=multi_strategy,
+    )
     sandbox = request.sandbox_plan
     runtime_input = request.runtime_input_artifact
     bundle = load_materialized_nautilus_runtime_bundle(
@@ -513,8 +534,8 @@ def _successful_context_and_lookup(tmp_path: Path, *, stable: bool = True):
         "experiment": graph.experiment,
         "portfolio": graph.portfolio,
         "snapshot": graph.snapshot,
-        "strategy_manifest": SimpleNamespace(strategy=graph.strategies[0]),
-        "strategy_package": graph.packages[graph.strategies[0].fingerprint],
+        "strategies": graph.strategies,
+        "packages": graph.packages,
     }
     reader = MemoryDomainReader(hydrator_values, owner="owner-terminal-test")
     publisher = LocalArtifactPublicationService(
@@ -647,8 +668,14 @@ async def test_failed_rebalance_misfire_publishes_authenticated_diagnostic_artif
 
 
 @pytest.mark.asyncio
-async def test_terminal_persistence_replays_success_with_stable_receipt_identity(tmp_path):
-    context, lookup, resolver, _publisher = _successful_context_and_lookup(tmp_path)
+async def test_multi_strategy_terminal_persistence_replays_success_with_stable_receipt_identity(
+    tmp_path,
+):
+    context, lookup, resolver, _publisher = _successful_context_and_lookup(
+        tmp_path,
+        stable=False,
+        multi_strategy=True,
+    )
 
     class RuntimePort:
         def __init__(self):
