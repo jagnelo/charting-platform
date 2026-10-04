@@ -817,7 +817,7 @@ progress:
     - native-component-pnl-attribution-v1
     - nautilus-native-signed-fee-reconciliation-v1
     - nautilus-listed-derivative-instrument-materialization-v1
-  total: 19
+  total: 18
   current_phase: nautilus-listed-derivative-instrument-materialization-v1
   current_blocker: >-
     No external release or upstream dependency blocks package-owned work.

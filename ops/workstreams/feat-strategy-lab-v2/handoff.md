@@ -2,6 +2,43 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Versioned native listed-derivative definitions v1
+
+Implementation `ee7a98510ab8b88d5ff08d756d99e90777d674f9` adds a strict v7
+native-runtime instrument contract for listed futures and vanilla options,
+including explicit underlying, expiry, multiplier/lot, option right/strike,
+and initial/maintenance margin terms. The adapter continues to accept the
+legacy v6 shape for spot instruments and fails closed when a v6 payload tries
+to declare a derivative. The isolated runtime bundle carries the new fields.
+
+Focused negative/positive validation covers wire-version shape, incomplete or
+inconsistent contract terms, serialization, and native `FuturesContract` and
+`OptionContract` construction. The exact pinned RC5 image was exercised with
+read-only source overlays: both native instrument types materialized, and the
+adapter probe completed with `authoritative: false`. This is runtime
+compatibility smoke evidence, not a rebuilt-image/source-digest qualification,
+derivative order execution proof, or authoritative result qualification.
+Futures/options order routing and target allocation remain explicitly rejected;
+this change does not claim those products are tradable.
+
+Validation at this implementation SHA: Strategy Lab package suite `1,312
+passed`; package Ruff, changed-file formatting, targeted MyPy, and `git diff
+--check` passed. The implementation commit is published on
+`origin/feat/strategy-lab-v2`.
+
+Next: implement an event-aligned futures margin/account-capacity bridge from
+the pinned native margin account and apply the existing shared margin-risk gate
+before engine submission. Keep options order admission closed until
+canonical event-time Greeks/delta and settlement semantics are available.
+Stable Nautilus v2 is not a prerequisite; exact-pinned pre-release use remains
+local-backtest-only and barred from brokers or real capital.
+
+Workstream records updated with this checkpoint: `plan.yaml`, `handoff.md`,
+`session.json`, and `validation.jsonl`. The current session refresh reports the
+Docker daemon available after the scoped checkpoint check (`29.1.3`); the Docker
+CLI has no Buildx plugin (`docker buildx` is unknown), so only the final
+full-stack browser profile remains deferred. Package-owned work continues.
+
 ## 2026-10-04 - Native component P&L attribution v1
 
 Committed and pushed implementation `11a5753de` (`feat(strategy-lab):
