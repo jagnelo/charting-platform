@@ -2,6 +2,63 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Native raw-order shared-risk routing
+
+Connected supported raw SDK `OrderIntent` batches to the engine-neutral
+`route_order_intents` gate before native submission. The bridge binds
+event-aligned Nautilus marks, native cash/equity and open-position exposure,
+instrument increments, and an evidence digest; batches are all-or-nothing and
+only the risk-approved original intents reach the engine. The initial native
+adapter supports base-quoted linear cash equities and crypto spot with unit
+multiplier; unsupported product/currency economics fail closed. The explicit
+runtime image allow-list now carries the shared `order_routing` and `risk_models`
+dependencies.
+
+The exact RC5 image fixture now exercises both native target allocation and
+raw-order risk routing. A 100-share AAPL market intent was approved at an
+estimated 10,001 USD exposure, then reconciled against one native order, one
+position, and 10,002 USD cash deployment. The 50% target probe still reconciles
+one order/position and 49,909.98 USD deployment after lot rounding. The four
+existing local conformance checks also pass: single/multi-instrument
+accounting, native orders/fills/costs, deterministic replay, and lifecycle.
+Forward event-tape parity remains deferred; the RC fixture remains
+non-authoritative. The scoped Docker cleanup left no labelled images,
+containers, or retained volumes.
+
+At this working tree, all 1,156 Strategy Lab v2 tests pass; MyPy passes across
+340 package/runtime files; package Ruff and changed-file formatting checks
+pass. No external release or upstream dependency blocks package-owned work.
+Stable Nautilus 2.x remains unnecessary under the branch plan. A remote-sync
+issue is separate: local commit `e78aa616` was rejected by the configured
+GitHub SSH path because the session agent has no identities; no alternate
+credential path was used. The goal remains active at 3/18 completed acceptance
+areas.
+
+Next: remove the one-component/one-strategy execution limitation so multiple
+portfolio components can share one native account and allocator/risk decision,
+with deterministic strategy ordering and component attribution. Do not broaden
+instrument support without exact risk economics.
+
+Files currently changed for this checkpoint:
+
+```text
+backend/app/strategy_lab_v2/nautilus_order_routing.py
+backend/app/strategy_lab_v2/nautilus_rc_fixture_probe.py
+backend/app/strategy_lab_v2/nautilus_runtime.py
+backend/app/strategy_lab_v2/nautilus_runtime_adapter_probe.py
+backend/app/strategy_lab_v2/nautilus_runtime_image/Dockerfile
+backend/app/strategy_lab_v2/nautilus_runtime_image/Dockerfile.dockerignore
+backend/app/strategy_lab_v2/nautilus_strategy_bridge.py
+backend/app/strategy_lab_v2/tests/test_conformance_fixtures.py
+backend/app/strategy_lab_v2/tests/test_engine_execution.py
+backend/app/strategy_lab_v2/tests/test_nautilus_order_routing.py
+backend/app/strategy_lab_v2/tests/test_nautilus_runtime.py
+backend/app/strategy_lab_v2/tests/test_nautilus_runtime_image.py
+ops/workstreams/feat-strategy-lab-v2/handoff.md
+ops/workstreams/feat-strategy-lab-v2/session.json
+ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+```
+
 ## 2026-10-04 - Native target-position allocation through RC5
 
 Connected `TargetPositionIntent` to the existing component-target allocator and

@@ -44,7 +44,10 @@ from nautilus_trader.testkit.providers import (
 )
 from nautilus_trader.trading import Strategy, StrategyConfig  # type: ignore[attr-defined]
 
-from app.strategy_lab_v2.nautilus_runtime_adapter_probe import run_target_allocation_probe
+from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
+    run_order_risk_probe,
+    run_target_allocation_probe,
+)
 
 
 class _FixtureConfig(StrategyConfig):
@@ -170,7 +173,12 @@ def run_fixture_suite() -> dict[str, Any]:
     second = _run(single)
     multi_result = _run(multi)
     target_result = run_target_allocation_probe()
-    native_order_fill_cost = {**first, "target_allocation_probe": target_result}
+    raw_order_result = run_order_risk_probe()
+    native_order_fill_cost = {
+        **first,
+        "raw_order_risk_probe": raw_order_result,
+        "target_allocation_probe": target_result,
+    }
     return {
         "engine_lifecycle": "passed",
         "native_order_fill_cost": native_order_fill_cost,

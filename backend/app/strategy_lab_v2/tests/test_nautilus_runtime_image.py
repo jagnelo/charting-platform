@@ -48,8 +48,16 @@ def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() ->
         in source
     )
     assert "COPY app/strategy_lab_v2/allocation.py app/strategy_lab_v2/allocation.py" in source
+    assert "COPY app/strategy_lab_v2/risk_models.py app/strategy_lab_v2/risk_models.py" in source
+    assert (
+        "COPY app/strategy_lab_v2/order_routing.py app/strategy_lab_v2/order_routing.py" in source
+    )
     assert (
         "COPY app/strategy_lab_v2/nautilus_target_allocation.py app/strategy_lab_v2/nautilus_target_allocation.py"
+        in source
+    )
+    assert (
+        "COPY app/strategy_lab_v2/nautilus_order_routing.py app/strategy_lab_v2/nautilus_order_routing.py"
         in source
     )
     assert (
@@ -77,7 +85,10 @@ def test_rc_runtime_context_excludes_everything_outside_the_pinned_runtime_sourc
     assert "!app/strategy_lab_v2/strategy_validation.py" in source
     assert "!app/strategy_lab_v2/nautilus_portfolio_wire.py" in source
     assert "!app/strategy_lab_v2/allocation.py" in source
+    assert "!app/strategy_lab_v2/risk_models.py" in source
+    assert "!app/strategy_lab_v2/order_routing.py" in source
     assert "!app/strategy_lab_v2/nautilus_target_allocation.py" in source
+    assert "!app/strategy_lab_v2/nautilus_order_routing.py" in source
     assert "!app/strategy_lab_v2/nautilus_native_event_stream.py" in source
     assert "!strategy_runtime/protocol.py" in source
     assert "!strategy_runtime/runner.py" in source

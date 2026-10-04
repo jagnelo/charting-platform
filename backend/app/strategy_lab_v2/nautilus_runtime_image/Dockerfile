@@ -37,7 +37,10 @@ COPY app/strategy_lab_v2/conformance.py app/strategy_lab_v2/conformance.py
 COPY app/strategy_lab_v2/nautilus_runtime_data.py app/strategy_lab_v2/nautilus_runtime_data.py
 COPY app/strategy_lab_v2/nautilus_portfolio_wire.py app/strategy_lab_v2/nautilus_portfolio_wire.py
 COPY app/strategy_lab_v2/allocation.py app/strategy_lab_v2/allocation.py
+COPY app/strategy_lab_v2/risk_models.py app/strategy_lab_v2/risk_models.py
+COPY app/strategy_lab_v2/order_routing.py app/strategy_lab_v2/order_routing.py
 COPY app/strategy_lab_v2/nautilus_target_allocation.py app/strategy_lab_v2/nautilus_target_allocation.py
+COPY app/strategy_lab_v2/nautilus_order_routing.py app/strategy_lab_v2/nautilus_order_routing.py
 COPY app/strategy_lab_v2/nautilus_runtime_adapter.py app/strategy_lab_v2/nautilus_runtime_adapter.py
 COPY app/strategy_lab_v2/nautilus_strategy_bridge.py app/strategy_lab_v2/nautilus_strategy_bridge.py
 COPY app/strategy_lab_v2/nautilus_runtime_adapter_probe.py app/strategy_lab_v2/nautilus_runtime_adapter_probe.py

@@ -204,6 +204,39 @@ def _require_target_allocation_probe(value: Any) -> None:
         raise ValueError("native target allocation order and account state do not reconcile")
 
 
+def _require_raw_order_risk_probe(value: Any) -> None:
+    if not isinstance(value, Mapping) or set(value) != {
+        "instrument_id",
+        "requested_order_quantity",
+        "estimated_signed_base_notional",
+        "total_orders",
+        "total_positions",
+        "initial_cash",
+        "remaining_cash",
+        "observed_deployment",
+        "account_base_currency",
+        "authoritative",
+    }:
+        raise ValueError("native raw-order risk probe fields are invalid")
+    initial_cash = _decimal(value["initial_cash"], "raw-order probe initial_cash")
+    remaining_cash = _decimal(value["remaining_cash"], "raw-order probe remaining_cash")
+    deployment = _decimal(value["observed_deployment"], "raw-order probe deployment")
+    if (
+        value["instrument_id"] != "AAPL.SIM"
+        or value["requested_order_quantity"] != "100"
+        or _decimal(value["estimated_signed_base_notional"], "raw-order estimated notional")
+        != Decimal("10001")
+        or value["account_base_currency"] != "USD"
+        or value["total_orders"] != 1
+        or value["total_positions"] != 1
+        or value["authoritative"] is not False
+        or initial_cash != Decimal("100000")
+        or not Decimal("89000") < remaining_cash < Decimal("91000")
+        or deployment != initial_cash - remaining_cash
+    ):
+        raise ValueError("native raw-order risk submission and account state do not reconcile")
+
+
 @dataclass(frozen=True, slots=True)
 class NautilusRcCompatibilityRuntime:
     """One exact v2 RC runtime boundary.
@@ -410,6 +443,7 @@ class NautilusRcFixtureReceipt:
         _require_native_accounting_run(multi)
         _require_native_accounting_run(native)
         _require_target_allocation_probe(native.get("target_allocation_probe"))
+        _require_raw_order_risk_probe(native.get("raw_order_risk_probe"))
         if multi["instrument_count"] < 2 or native["instrument_count"] != 1:
             raise ValueError("single- and multi-instrument fixtures must be distinct")
         if payload["forward_event_tape_parity"] != "deferred_authoritative_fixture":

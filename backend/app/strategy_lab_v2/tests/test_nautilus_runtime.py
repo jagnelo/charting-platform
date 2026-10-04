@@ -77,6 +77,18 @@ def _fixture_payload() -> dict[str, Any]:
         "account_base_currency": "USD",
         "authoritative": False,
     }
+    native_order_run["raw_order_risk_probe"] = {
+        "instrument_id": "AAPL.SIM",
+        "requested_order_quantity": "100",
+        "estimated_signed_base_notional": "10001",
+        "total_orders": 1,
+        "total_positions": 1,
+        "initial_cash": "100000",
+        "remaining_cash": "89997",
+        "observed_deployment": "10003",
+        "account_base_currency": "USD",
+        "authoritative": False,
+    }
     return {
         "authoritative": False,
         "deterministic_replay": {"equal": True},
@@ -245,6 +257,17 @@ def test_real_rc_fixture_receipt_rejects_unreconciled_target_allocation() -> Non
     target_probe["observed_deployment"] = "1000"
 
     with pytest.raises(ValueError, match="target allocation order and account state"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+
+def test_real_rc_fixture_receipt_rejects_unreconciled_raw_order_risk() -> None:
+    runtime = _runtime()
+    payload = _fixture_payload()
+    payload["native_order_fill_cost"]["raw_order_risk_probe"]["estimated_signed_base_notional"] = (
+        "10002"
+    )
+
+    with pytest.raises(ValueError, match="raw-order risk submission and account state"):
         NautilusRcFixtureReceipt.from_mapping(payload, runtime)
 
 

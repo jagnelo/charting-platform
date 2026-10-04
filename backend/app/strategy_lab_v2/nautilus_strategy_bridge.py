@@ -524,6 +524,7 @@ def build_native_strategy_bridge(
 ) -> NativeStrategyBridge:
     """Bind invocation inputs to callbacks and optionally stream callback results."""
 
+    from app.strategy_lab_v2.nautilus_order_routing import resolve_nautilus_order_intents
     from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_from_wire
     from app.strategy_lab_v2.nautilus_target_allocation import (
         resolve_nautilus_target_position_intents,
@@ -779,6 +780,84 @@ def build_native_strategy_bridge(
     native_base_currency = Currency.from_str(portfolio.base_currency)
     latest_marks: dict[str, tuple[Decimal, int]] = {}
 
+    def native_risk_state(
+        strategy: Any,
+        *,
+        event_time: datetime,
+        required_mark_ids: Sequence[str],
+    ) -> dict[str, Any]:
+        if venue_definition["account_type"].upper() != "CASH":
+            raise NautilusRuntimeDataError(
+                "native order-risk routing currently requires a cash account"
+            )
+        marks: dict[str, Decimal] = {}
+        quantities: dict[str, Decimal] = {}
+        exposures: dict[str, Decimal] = {}
+        for sdk_instrument_id in allocation_component.instrument_ids:
+            definition = instrument_by_id[sdk_instrument_id]
+            native_id = InstrumentId.from_str(sdk_instrument_id)
+            native_quantity = strategy.portfolio.net_position(native_id)
+            quantity = (
+                Decimal(0)
+                if native_quantity is None
+                else _native_decimal(native_quantity, "position quantity")
+            )
+            quantities[sdk_instrument_id] = quantity
+            if quantity == 0:
+                continue
+            mark_entry = latest_marks.get(sdk_instrument_id)
+            if mark_entry is None or _record_time_bucket(mark_entry[1]) != (
+                _datetime_microsecond_bucket(event_time)
+            ):
+                raise NautilusRuntimeDataError(
+                    "open holdings require event-aligned native marks for allocation"
+                )
+            mark = mark_entry[0]
+            marks[sdk_instrument_id] = mark
+            native_exposure = strategy.portfolio.net_exposure(
+                native_id,
+                price=Price(mark, definition["price_precision"]),
+                target_currency=native_base_currency,
+            )
+            if native_exposure is None:
+                raise NautilusRuntimeDataError(
+                    "native portfolio could not value an open holding for allocation"
+                )
+            exposure_amount = abs(_native_decimal(native_exposure, "position exposure"))
+            exposures[sdk_instrument_id] = exposure_amount if quantity > 0 else -exposure_amount
+
+        for sdk_instrument_id in required_mark_ids:
+            mark_entry = latest_marks.get(sdk_instrument_id)
+            if mark_entry is None or _record_time_bucket(mark_entry[1]) != (
+                _datetime_microsecond_bucket(event_time)
+            ):
+                raise NautilusRuntimeDataError(
+                    "native orders require an event-aligned native valuation mark"
+                )
+            marks[sdk_instrument_id] = mark_entry[0]
+
+        native_account = strategy.portfolio.account(venue=native_venue_id)
+        if native_account is None:
+            raise NautilusRuntimeDataError("native portfolio has no account for its venue")
+        account_base = getattr(native_account, "base_currency", None)
+        if getattr(account_base, "code", str(account_base)) != portfolio.base_currency:
+            raise NautilusRuntimeDataError("native cash account base currency differs")
+        return {
+            "account_equity": _native_money_amount_for_currency(
+                strategy.portfolio.equity(venue=native_venue_id),
+                portfolio.base_currency,
+                "account equity",
+            ),
+            "account_cash_balance": _native_money_amount_for_currency(
+                native_account.balances_total(),
+                portfolio.base_currency,
+                "account cash balance",
+            ),
+            "current_base_exposures": exposures,
+            "current_quantities": quantities,
+            "mark_prices": marks,
+        }
+
     class _InvocationStrategyConfig(StrategyConfig):
         def __new__(cls) -> Any:
             strategy_id = StrategyId(f"SL2-{content_digest(engine_input)[-8:]}")
@@ -1020,6 +1099,28 @@ def build_native_strategy_bridge(
                     instruments=instrument_by_id,
                 )
                 submission_intents = resolution.order_intents
+            elif result.intents:
+                raw_order_intents = tuple(
+                    intent for intent in result.intents if isinstance(intent, OrderIntent)
+                )
+                if len(raw_order_intents) != len(result.intents):
+                    raise NautilusRuntimeDataError("strategy emitted an unsupported typed intent")
+                native_state = native_risk_state(
+                    self,
+                    event_time=context.event_time,
+                    required_mark_ids=tuple(intent.instrument_id for intent in raw_order_intents),
+                )
+                order_resolution = resolve_nautilus_order_intents(
+                    portfolio=portfolio,
+                    component_id=allocation_component.component_id,
+                    intents=raw_order_intents,
+                    run_attempt_id=engine_input["attempt_id"],
+                    event_time=context.event_time,
+                    event_sequence=context.event_sequence,
+                    instruments=instrument_by_id,
+                    **native_state,
+                )
+                submission_intents = order_resolution.order_intents
             for intent in submission_intents:
                 if isinstance(intent, TargetPositionIntent):
                     raise NautilusRuntimeDataError("target-position conversion was incomplete")

@@ -93,6 +93,24 @@ class Strategy:
         return [TargetPositionIntent("AAPL.SIM", Decimal("0.5"))]
 """
 
+_RAW_ORDER_SOURCE = """
+class Strategy:
+    def __init__(self):
+        self.submitted = False
+
+    def on_event(self, context):
+        if self.submitted:
+            return []
+        self.submitted = True
+        return [OrderIntent(
+            instrument_id="AAPL.SIM",
+            side=OrderSide.BUY,
+            quantity=Decimal("100"),
+            order_type=OrderType.MARKET,
+            time_in_force=TimeInForce.DAY,
+        )]
+"""
+
 
 def _payload() -> dict[str, object]:
     manifest = _manifest()
@@ -263,7 +281,18 @@ def _invocation_batch() -> str:
 def run_target_allocation_probe() -> dict[str, Any]:
     """Exercise target allocation through the pinned native callback adapter."""
 
+    return _run_native_execution_probe(target_position=True)
+
+
+def run_order_risk_probe() -> dict[str, Any]:
+    """Exercise raw SDK orders through platform risk before native submission."""
+
+    return _run_native_execution_probe(target_position=False)
+
+
+def _run_native_execution_probe(*, target_position: bool) -> dict[str, Any]:
     instrument_id = "AAPL.SIM"
+    strategy_source = _TARGET_SOURCE if target_position else _RAW_ORDER_SOURCE
     later_time = _EVENT_TIME + timedelta(seconds=1)
     events = (
         MarketEvent(
@@ -307,7 +336,12 @@ def run_target_allocation_probe() -> dict[str, Any]:
         corporate_action_semantics="raw-unadjusted-v1",
     )
     manifest = StrategySdkManifest(
-        StrategyVersion("strategy-target-probe", "v1", "2.0", content_digest(_TARGET_SOURCE)),
+        StrategyVersion(
+            "strategy-target-probe" if target_position else "strategy-raw-order-probe",
+            "v1",
+            "2.0",
+            content_digest(strategy_source),
+        ),
         (StrategyDataDependency("prices", requirement, ("bid", "ask", "bid_size", "ask_size"), 1),),
     )
     portfolio = PortfolioComposition(
@@ -384,7 +418,7 @@ def run_target_allocation_probe() -> dict[str, Any]:
         "input_version": "strategy-lab.nautilus-engine-input.v2",
     }
     batch = serialize_invocation_batch(
-        source=_TARGET_SOURCE,
+        source=strategy_source,
         manifest=manifest,
         contexts=(
             StrategyContext(
@@ -415,16 +449,38 @@ def run_target_allocation_probe() -> dict[str, Any]:
     if len(balance_parts) != 2 or balance_parts[1] != "USD":
         raise RuntimeError("native target allocation summary balance is not denominated in USD")
     remaining_cash = Decimal(balance_parts[0])
+    if target_position:
+        if (
+            result.get("authoritative") is not False
+            or result.get("total_orders") != 1
+            or result.get("total_positions") != 1
+            or not Decimal("45000") < remaining_cash < Decimal("55000")
+        ):
+            raise RuntimeError(
+                "native target allocation did not reconcile order, position, and cash"
+            )
+        return {
+            "instrument_id": instrument_id,
+            "requested_target_fraction": "0.5",
+            "total_orders": result["total_orders"],
+            "total_positions": result["total_positions"],
+            "initial_cash": "100000",
+            "remaining_cash": str(remaining_cash),
+            "observed_deployment": str(Decimal("100000") - remaining_cash),
+            "account_base_currency": "USD",
+            "authoritative": False,
+        }
     if (
         result.get("authoritative") is not False
         or result.get("total_orders") != 1
         or result.get("total_positions") != 1
-        or not Decimal("45000") < remaining_cash < Decimal("55000")
+        or not Decimal("89000") < remaining_cash < Decimal("91000")
     ):
-        raise RuntimeError("native target allocation did not reconcile order, position, and cash")
+        raise RuntimeError("native raw-order risk probe did not reconcile order and account")
     return {
         "instrument_id": instrument_id,
-        "requested_target_fraction": "0.5",
+        "requested_order_quantity": "100",
+        "estimated_signed_base_notional": "10001",
         "total_orders": result["total_orders"],
         "total_positions": result["total_positions"],
         "initial_cash": "100000",

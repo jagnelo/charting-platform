@@ -467,6 +467,18 @@ def _rc_receipt(runtime: NautilusRcCompatibilityRuntime) -> NautilusRcFixtureRec
         "account_base_currency": "USD",
         "authoritative": False,
     }
+    native_order_run["raw_order_risk_probe"] = {
+        "instrument_id": "AAPL.SIM",
+        "requested_order_quantity": "100",
+        "estimated_signed_base_notional": "10001",
+        "total_orders": 1,
+        "total_positions": 1,
+        "initial_cash": "100000",
+        "remaining_cash": "89997",
+        "observed_deployment": "10003",
+        "account_base_currency": "USD",
+        "authoritative": False,
+    }
     return NautilusRcFixtureReceipt.from_mapping(
         {
             "authoritative": False,
