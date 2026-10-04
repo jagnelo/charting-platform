@@ -9,6 +9,7 @@ from decimal import ROUND_DOWN, Decimal
 
 from app.strategy_lab_v2.allocation import (
     AllocationDecision,
+    AllocationRejectionCode,
     ComponentPositionExposure,
     InstrumentRiskBinding,
     PortfolioExposureSnapshot,
@@ -33,6 +34,23 @@ class NautilusTargetAllocationResolution:
     exposure_snapshot: PortfolioExposureSnapshot
     allocation: AllocationDecision
     order_intents: tuple[OrderIntent, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class NautilusComponentTargetAllocationResolution:
+    """One shared target-allocation decision with orders retained by component."""
+
+    exposure_snapshot: PortfolioExposureSnapshot
+    allocation: AllocationDecision
+    component_order_intents: tuple[tuple[str, tuple[OrderIntent, ...]], ...]
+
+    @property
+    def order_intents(self) -> tuple[OrderIntent, ...]:
+        """Return the native-ready orders in deterministic component order."""
+
+        return tuple(
+            intent for _component_id, intents in self.component_order_intents for intent in intents
+        )
 
 
 def resolve_nautilus_target_position_intents(
@@ -196,6 +214,268 @@ def resolve_nautilus_target_position_intents(
     return NautilusTargetAllocationResolution(snapshot, allocation, tuple(orders))
 
 
+def resolve_nautilus_component_target_position_batches(
+    *,
+    portfolio: PortfolioComposition,
+    intents_by_component: Mapping[str, Sequence[TargetPositionIntent]],
+    run_attempt_id: str,
+    event_time: datetime,
+    event_sequence: int,
+    account_equity: Decimal,
+    account_cash_balance: Decimal,
+    current_base_exposures: Mapping[str, Decimal],
+    current_quantities: Mapping[str, Decimal],
+    current_component_exposures: Mapping[str, Mapping[str, Decimal]],
+    current_component_quantities: Mapping[str, Mapping[str, Decimal]],
+    mark_prices: Mapping[str, Decimal],
+    instruments: Mapping[str, Mapping[str, object]],
+) -> NautilusComponentTargetAllocationResolution:
+    """Allocate simultaneous component targets once, then size attributed deltas.
+
+    The component exposure and quantity ledgers must reconcile exactly to the
+    native account before allocation. This keeps the platform's shared-account
+    risk decision authoritative without pretending native net positions reveal
+    which strategy owns each lot.
+    """
+
+    if not isinstance(portfolio, PortfolioComposition):
+        raise TypeError("portfolio must be a PortfolioComposition")
+    if not isinstance(intents_by_component, Mapping) or not intents_by_component:
+        raise NautilusRuntimeDataError("native component target batches are required")
+    if not isinstance(current_component_exposures, Mapping) or not isinstance(
+        current_component_quantities, Mapping
+    ):
+        raise NautilusRuntimeDataError("native component position attribution is invalid")
+    if not isinstance(instruments, Mapping):
+        raise NautilusRuntimeDataError("native instrument catalog is invalid")
+    components = {item.component_id: item for item in portfolio.components}
+    component_ids = set(components)
+    if (
+        set(current_component_exposures) != component_ids
+        or set(current_component_quantities) != component_ids
+    ):
+        raise NautilusRuntimeDataError(
+            "native component exposure and quantity ledgers must cover the portfolio"
+        )
+
+    def reconcile_component_ledger(
+        ledger: Mapping[str, Mapping[str, Decimal]],
+        account_values: Mapping[str, Decimal],
+        field_name: str,
+    ) -> dict[str, Decimal]:
+        if not isinstance(ledger, Mapping) or not isinstance(account_values, Mapping):
+            raise NautilusRuntimeDataError(f"native {field_name} attribution is invalid")
+        totals: dict[str, Decimal] = {}
+        for component_id, values in ledger.items():
+            component = components.get(component_id)
+            if component is None or not isinstance(values, Mapping):
+                raise NautilusRuntimeDataError(f"native {field_name} attribution is invalid")
+            for instrument_id, value in values.items():
+                if instrument_id not in component.instrument_ids:
+                    raise NautilusRuntimeDataError(
+                        f"native {field_name} attribution contains an undeclared instrument"
+                    )
+                if not isinstance(value, Decimal) or not value.is_finite():
+                    raise NautilusRuntimeDataError(f"native {field_name} attribution is not finite")
+                if value != 0:
+                    totals[instrument_id] = totals.get(instrument_id, Decimal(0)) + value
+        normalized_account = {
+            instrument_id: value for instrument_id, value in account_values.items() if value != 0
+        }
+        if any(
+            not isinstance(value, Decimal) or not value.is_finite()
+            for value in account_values.values()
+        ):
+            raise NautilusRuntimeDataError(f"native {field_name} account values are not finite")
+        if totals != normalized_account:
+            raise NautilusRuntimeDataError(
+                f"component-attributed {field_name} do not reconcile to the native account"
+            )
+        return totals
+
+    reconcile_component_ledger(
+        current_component_exposures,
+        current_base_exposures,
+        "exposures",
+    )
+    reconcile_component_ledger(
+        current_component_quantities,
+        current_quantities,
+        "quantities",
+    )
+    declared_instruments = {
+        instrument_id
+        for component in portfolio.components
+        for instrument_id in component.instrument_ids
+    }
+    for values, field_name in (
+        (current_base_exposures, "current exposure"),
+        (current_quantities, "current quantity"),
+        (mark_prices, "mark price"),
+    ):
+        if any(instrument_id not in declared_instruments for instrument_id in values):
+            raise NautilusRuntimeDataError(f"{field_name} contains an undeclared instrument")
+
+    positions: list[ComponentPositionExposure] = []
+    for component_id in sorted(component_ids):
+        for instrument_id, exposure in sorted(current_component_exposures[component_id].items()):
+            if exposure != 0:
+                positions.append(ComponentPositionExposure(component_id, instrument_id, exposure))
+
+    policy_models = {item.product_class: item for item in portfolio.shared_risk_policy.risk_models}
+    risk_bindings: list[InstrumentRiskBinding] = []
+    for instrument_id in sorted(declared_instruments):
+        definition = instruments.get(instrument_id)
+        if definition is None:
+            raise NautilusRuntimeDataError("portfolio instrument is missing native economics")
+        risk_model = policy_models.get(_product_class(definition))
+        if risk_model is not None:
+            risk_bindings.append(InstrumentRiskBinding(instrument_id, risk_model))
+
+    evidence_digest = content_digest(
+        {
+            "attempt_id": run_attempt_id,
+            "event_time": event_time,
+            "event_sequence": event_sequence,
+            "account_equity": account_equity,
+            "account_cash_balance": account_cash_balance,
+            "current_base_exposures": dict(current_base_exposures),
+            "current_quantities": dict(current_quantities),
+            "current_component_exposures": {
+                component_id: dict(values)
+                for component_id, values in current_component_exposures.items()
+            },
+            "current_component_quantities": {
+                component_id: dict(values)
+                for component_id, values in current_component_quantities.items()
+            },
+            "mark_prices": dict(mark_prices),
+            "portfolio_fingerprint": portfolio.fingerprint,
+        }
+    )
+    snapshot = PortfolioExposureSnapshot(
+        portfolio_fingerprint=portfolio.fingerprint,
+        run_attempt_id=run_attempt_id,
+        event_time=event_time,
+        event_sequence=event_sequence,
+        account_equity=account_equity,
+        account_cash_balance=account_cash_balance,
+        base_currency=portfolio.base_currency,
+        valuation_evidence_digest=evidence_digest,
+        positions=tuple(positions),
+        instrument_risk_models=tuple(risk_bindings),
+    )
+    try:
+        requests = component_targets_from_intents(
+            portfolio,
+            intents_by_component,
+            event_time=event_time,
+            event_sequence=event_sequence,
+        )
+        allocation = allocate_component_targets(portfolio, snapshot, requests)
+    except (TypeError, ValueError) as error:
+        raise NautilusRuntimeDataError(
+            "component target allocation could not be validated"
+        ) from error
+    if not allocation.risk_limits_satisfied:
+        raise NautilusRuntimeDataError("target-position allocation breaches shared portfolio risk")
+    unexpected_rejections = tuple(
+        item
+        for item in allocation.rejected_targets
+        if item.code is not AllocationRejectionCode.LOWER_PRIORITY
+    )
+    if unexpected_rejections:
+        raise NautilusRuntimeDataError("component target allocation contains rejected targets")
+
+    request_keys = {
+        (component_id, intent.instrument_id)
+        for component_id, intents in intents_by_component.items()
+        for intent in intents
+    }
+    rejected_keys = {
+        (item.component_id, item.instrument_id) for item in allocation.rejected_targets
+    }
+    resolved_targets = {
+        (item.component_id, item.instrument_id): item.target_fraction_of_equity
+        for item in allocation.proposed_component_exposures
+        if (item.component_id, item.instrument_id) in request_keys
+        and (item.component_id, item.instrument_id) not in rejected_keys
+    }
+    orders_by_component: dict[str, list[OrderIntent]] = {
+        component_id: [] for component_id in sorted(component_ids)
+    }
+    for component_id, instrument_id in sorted(resolved_targets):
+        definition = instruments[instrument_id]
+        mark_price = mark_prices.get(instrument_id)
+        current_quantity = current_component_quantities[component_id].get(instrument_id, Decimal(0))
+        if mark_price is None or mark_price <= 0:
+            raise NautilusRuntimeDataError("target order requires verified instrument marks")
+        product_class = _product_class(definition)
+        risk_model = policy_models.get(product_class)
+        quote_currency = definition.get("quote_currency")
+        multiplier = _decimal_field(definition, "multiplier")
+        size_increment = _decimal_field(definition, "size_increment")
+        size_precision = definition.get("size_precision")
+        minimum_quantity = _optional_decimal_field(definition, "min_quantity")
+        maximum_quantity = _optional_decimal_field(definition, "max_quantity")
+        supported_model = (
+            product_class is ProductClass.EQUITY and risk_model == CASH_EQUITY_NOTIONAL_RISK_MODEL
+        ) or (
+            product_class is ProductClass.CRYPTO and risk_model == CRYPTO_SPOT_NOTIONAL_RISK_MODEL
+        )
+        if (
+            not supported_model
+            or quote_currency != portfolio.base_currency
+            or multiplier != Decimal(1)
+            or not isinstance(size_precision, int)
+            or isinstance(size_precision, bool)
+            or size_increment is None
+        ):
+            raise NautilusRuntimeDataError(
+                "target order economics require supported base-quoted linear spot instruments"
+            )
+        target_notional = resolved_targets[(component_id, instrument_id)] * account_equity
+        target_quantity = target_notional / mark_price
+        lot_count = (abs(target_quantity) / size_increment).to_integral_value(rounding=ROUND_DOWN)
+        sized_target = lot_count * size_increment
+        if target_quantity < 0:
+            sized_target = -sized_target
+        position_lots = current_quantity / size_increment
+        if position_lots != position_lots.to_integral_value():
+            raise NautilusRuntimeDataError(
+                "native position quantity is outside instrument lot size"
+            )
+        delta = sized_target - current_quantity
+        if delta == 0:
+            continue
+        quantity = abs(delta)
+        order_lots = quantity / size_increment
+        if order_lots != order_lots.to_integral_value():
+            raise NautilusRuntimeDataError("target delta is outside instrument lot size")
+        if minimum_quantity is not None and quantity < minimum_quantity:
+            raise NautilusRuntimeDataError("target delta is below native minimum quantity")
+        if maximum_quantity is not None and quantity > maximum_quantity:
+            raise NautilusRuntimeDataError("target delta exceeds native maximum quantity")
+        quantity = quantity.quantize(Decimal(1).scaleb(-size_precision))
+        orders_by_component[component_id].append(
+            OrderIntent(
+                instrument_id=instrument_id,
+                side=OrderSide.BUY if delta > 0 else OrderSide.SELL,
+                order_type=OrderType.MARKET,
+                quantity=quantity,
+            )
+        )
+    return NautilusComponentTargetAllocationResolution(
+        snapshot,
+        allocation,
+        tuple(
+            (component_id, tuple(orders))
+            for component_id, orders in sorted(orders_by_component.items())
+            if orders
+        ),
+    )
+
+
 def _product_class(definition: Mapping[str, object]) -> ProductClass:
     value = definition.get("product_class")
     if not isinstance(value, str):
@@ -225,6 +505,8 @@ def _optional_decimal_field(definition: Mapping[str, object], field_name: str) -
 
 
 __all__ = [
+    "NautilusComponentTargetAllocationResolution",
     "NautilusTargetAllocationResolution",
+    "resolve_nautilus_component_target_position_batches",
     "resolve_nautilus_target_position_intents",
 ]

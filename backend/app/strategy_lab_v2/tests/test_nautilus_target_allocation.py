@@ -18,6 +18,7 @@ from app.strategy_lab_v2.nautilus_portfolio_wire import (
 )
 from app.strategy_lab_v2.nautilus_runtime_data import NautilusRuntimeDataError
 from app.strategy_lab_v2.nautilus_target_allocation import (
+    resolve_nautilus_component_target_position_batches,
     resolve_nautilus_target_position_intents,
 )
 from app.strategy_lab_v2.sdk import OrderSide, TargetPositionIntent
@@ -59,6 +60,71 @@ def _instruments(*, quote_currency: str = "USD") -> dict[str, dict[str, object]]
             "max_quantity": None,
         }
     }
+
+
+def _multi_portfolio(*, max_gross: Decimal = Decimal("1")) -> PortfolioComposition:
+    return PortfolioComposition(
+        portfolio_id="portfolio-multi",
+        version_id="portfolio-multi-v1",
+        initial_capital=Decimal("100000"),
+        base_currency="USD",
+        components=(
+            PortfolioComponent(
+                component_id="core",
+                strategy_fingerprint=content_digest("strategy-core"),
+                instrument_ids=("US.AAPL",),
+                capital_weight=Decimal("0.5"),
+                priority=0,
+            ),
+            PortfolioComponent(
+                component_id="satellite",
+                strategy_fingerprint=content_digest("strategy-satellite"),
+                instrument_ids=("US.MSFT",),
+                capital_weight=Decimal("0.5"),
+                priority=1,
+            ),
+        ),
+        shared_risk_policy=SharedRiskPolicy(
+            max_gross_exposure_fraction=max_gross,
+            risk_models=(CASH_EQUITY_NOTIONAL_RISK_MODEL,),
+        ),
+    )
+
+
+def _multi_target_resolution(*, max_gross: Decimal = Decimal("1")):
+    portfolio = _multi_portfolio(max_gross=max_gross)
+    instruments = {
+        **_instruments(),
+        "US.MSFT": {
+            "instrument_id": "US.MSFT",
+            "product_class": "equity",
+            "quote_currency": "USD",
+            "multiplier": "1",
+            "size_increment": "1",
+            "size_precision": 0,
+            "min_quantity": "1",
+            "max_quantity": None,
+        },
+    }
+    empty_ledger = {"core": {}, "satellite": {}}
+    return resolve_nautilus_component_target_position_batches(
+        portfolio=portfolio,
+        intents_by_component={
+            "core": (TargetPositionIntent("US.AAPL", Decimal("0.4")),),
+            "satellite": (TargetPositionIntent("US.MSFT", Decimal("0.4")),),
+        },
+        run_attempt_id="attempt-multi",
+        event_time=EVENT_TIME,
+        event_sequence=5,
+        account_equity=Decimal("100000"),
+        account_cash_balance=Decimal("100000"),
+        current_base_exposures={},
+        current_quantities={},
+        current_component_exposures=empty_ledger,
+        current_component_quantities=empty_ledger,
+        mark_prices={"US.AAPL": Decimal("200"), "US.MSFT": Decimal("100")},
+        instruments=instruments,
+    )
 
 
 def _resolve(
@@ -130,3 +196,92 @@ def test_target_sizing_fails_closed_when_quote_currency_needs_conversion() -> No
 def test_target_allocation_fails_closed_on_short_without_policy_permission() -> None:
     with pytest.raises(NautilusRuntimeDataError, match="breaches shared portfolio risk"):
         _resolve(fraction=Decimal("-0.1"))
+
+
+def test_component_targets_share_one_allocation_and_keep_order_attribution() -> None:
+    result = _multi_target_resolution()
+
+    assert result.allocation.gross_exposure_fraction == Decimal("0.4")
+    assert tuple(component_id for component_id, _orders in result.component_order_intents) == (
+        "core",
+        "satellite",
+    )
+    assert tuple(
+        (orders[0].instrument_id, orders[0].quantity)
+        for _component_id, orders in result.component_order_intents
+    ) == (("US.AAPL", Decimal("100")), ("US.MSFT", Decimal("200")))
+
+
+def test_component_target_delta_uses_its_attributed_native_quantity() -> None:
+    portfolio = _multi_portfolio()
+    instruments = {
+        **_instruments(),
+        "US.MSFT": {
+            "instrument_id": "US.MSFT",
+            "product_class": "equity",
+            "quote_currency": "USD",
+            "multiplier": "1",
+            "size_increment": "1",
+            "size_precision": 0,
+            "min_quantity": "1",
+            "max_quantity": None,
+        },
+    }
+    result = resolve_nautilus_component_target_position_batches(
+        portfolio=portfolio,
+        intents_by_component={
+            "core": (TargetPositionIntent("US.AAPL", Decimal("0.4")),),
+            "satellite": (TargetPositionIntent("US.MSFT", Decimal("0.4")),),
+        },
+        run_attempt_id="attempt-multi",
+        event_time=EVENT_TIME,
+        event_sequence=5,
+        account_equity=Decimal("100000"),
+        account_cash_balance=Decimal("90000"),
+        current_base_exposures={"US.AAPL": Decimal("10000")},
+        current_quantities={"US.AAPL": Decimal("50")},
+        current_component_exposures={
+            "core": {"US.AAPL": Decimal("10000")},
+            "satellite": {},
+        },
+        current_component_quantities={
+            "core": {"US.AAPL": Decimal("50")},
+            "satellite": {},
+        },
+        mark_prices={"US.AAPL": Decimal("200"), "US.MSFT": Decimal("100")},
+        instruments=instruments,
+    )
+
+    assert tuple(
+        (component_id, orders[0].instrument_id, orders[0].quantity)
+        for component_id, orders in result.component_order_intents
+    ) == (
+        ("core", "US.AAPL", Decimal("50")),
+        ("satellite", "US.MSFT", Decimal("200")),
+    )
+
+
+def test_component_targets_fail_closed_on_combined_shared_risk_breach() -> None:
+    with pytest.raises(NautilusRuntimeDataError, match="breaches shared portfolio risk"):
+        _multi_target_resolution(max_gross=Decimal("0.3"))
+
+
+def test_component_target_positions_must_reconcile_to_native_account() -> None:
+    portfolio = _multi_portfolio()
+    empty_ledger = {"core": {}, "satellite": {}}
+    with pytest.raises(NautilusRuntimeDataError, match="do not reconcile"):
+        resolve_nautilus_component_target_position_batches(
+            portfolio=portfolio,
+            intents_by_component={"core": (TargetPositionIntent("US.AAPL", Decimal("0.2")),)},
+            run_attempt_id="attempt-multi",
+            event_time=EVENT_TIME,
+            event_sequence=5,
+            account_equity=Decimal("100000"),
+            account_cash_balance=Decimal("99000"),
+            current_base_exposures={"US.AAPL": Decimal("1000")},
+            current_quantities={"US.AAPL": Decimal("5")},
+            current_component_exposures=empty_ledger,
+            current_component_quantities=empty_ledger,
+            mark_prices={"US.AAPL": Decimal("200")},
+            instruments=_instruments(),
+        )
