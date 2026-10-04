@@ -2,6 +2,45 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - RC5 native fill-to-component report linkage
+
+Extended the isolated RC5 priority-contention probe to join its component-tagged
+native order to the fill report through `venue_order_id`. The exact-image
+receipt verified satellite order `SIM-1-1` produced a fill for 99 `AAPL.SIM`
+shares at USD 100.03 with a reported USD 0.00 commission. The strict receipt
+parser now requires a declared component, order id, instrument, positive fill
+quantity and price, and a currency-matched non-negative commission. This proves
+native fill attribution linkage only; it does not yet calculate component P&L or
+claim authoritative results.
+
+Exact-source RC5 qualification: source
+`sha256:aef2823b2a768eeb3d934d6049c58ec88e6ee4c2e7a2a0c90e7a1947516cbc19`,
+image `sha256:bd254e785733c0e6fec5810d60af615010358fef5bab8651a3eb90fcb7dfc7ba`,
+receipt `sha256:abd0e135ebc3dc8a96d6890499969bea3602193e1ee7730ee7392f1aa11c9583`,
+and conformance fingerprint
+`sha256:f1bfce36f2008e0b6e24d4b25356a23f12362f37f2d0757dded6dae591e46a2f`.
+
+Record correction: the preceding contention section mistyped its RC5 receipt
+content address. The canonical file under
+`.ai/runtime/strategy-lab-v2/nautilus-rc-evidence/` is
+`sha256:c3cad9703b8f81004914351350897d4d9eb29ef903e2c0e85438f8b35f3a27b3`;
+the source/image/conformance results there are unchanged.
+
+Validation: focused runtime/conformance/execution tests `58 passed`; Strategy
+Lab package tests `1,287 passed` with the one local-socket test excluded and
+then separately passing (`1 passed` with scoped socket permission); Ruff,
+changed-file formatting, targeted MyPy, and diff checks clean. Implementation
+commit `9ef96dcc2b980db4d3db32bc4b00668b480b1a8a` is published to
+`origin/feat/strategy-lab-v2`. Docker Buildx still limits only the final
+Compose/browser validation; no release-label or current upstream dependency
+blocks package-owned work.
+
+Next: implement component-level P&L/cost observation construction from the
+verified native fill/order/position artifacts and frozen marks. It must use
+explicit supported cost-basis/currency semantics, retain an explicit
+unallocated residual where native totals do not map to components, and exactly
+reconcile to the native portfolio result before entering official metrics.
+
 ## 2026-10-04 - RC5 competing-target priority and shared-risk conformance
 
 The stable-v2 release label is not a blocker: `plan.yaml` explicitly permits
