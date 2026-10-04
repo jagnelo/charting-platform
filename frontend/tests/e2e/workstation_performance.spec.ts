@@ -36,6 +36,7 @@ test.describe('TC2000 workstation performance guards', () => {
     expect(requestedScripts.some(path => deferredToolChunks.some(name => path.includes(`/${name}-`)))).toBe(false)
 
     const toolsOpened = [
+      { title: 'Market Map', chunk: 'MarketMapTool', selector: '.market-map-tool' },
       { title: 'Study Lab', chunk: 'StudyLabTool', selector: '.study-lab-tool' },
       { title: 'Study Results', chunk: 'ResearchResultsTool', selector: '.research-results-tool' },
       { title: 'Python Library', chunk: 'CodeLibraryTool', selector: '.code-library-tool' },

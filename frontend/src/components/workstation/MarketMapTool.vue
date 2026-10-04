@@ -457,6 +457,7 @@ const definitionName = ref(String(props.configuration.definition_name ?? ''))
 const definitionSaving = ref(false)
 const definitionMessage = ref('')
 const definitionError = ref('')
+let skipInitialSourceWatcher = false
 const skipNextSourceRun = ref(false)
 const loadingSources = computed(() => watchlistStore.watchlistSourcesLoading)
 const sourcesError = computed(() => watchlistStore.watchlistSourcesError)
@@ -1914,6 +1915,10 @@ watch(sourceId, () => {
   benchmarkCoverage.value = null
   benchmarkCoverageError.value = ''
   benchmarkCoverageLoading.value = false
+  if (skipInitialSourceWatcher) {
+    skipInitialSourceWatcher = false
+    return
+  }
   if (skipNextSourceRun.value) {
     skipNextSourceRun.value = false
     if (sourceId.value) {
@@ -1950,7 +1955,12 @@ onMounted(async () => {
   if (!sourceId.value && !explicitSymbols.value.trim()) {
     const preferred = sources.value.find((item: WatchlistSource) => isSourceSelectable(item) && (item.source_kind === 'index_membership' || item.source_kind === 'etf_holdings'))
       ?? sources.value.find((item: WatchlistSource) => isSourceSelectable(item))
-    if (preferred) sourceId.value = preferred.source_id
+    if (preferred) {
+      // The mount path explicitly runs its chosen initial source below; prevent
+      // the source watcher from racing it with the same first request.
+      skipInitialSourceWatcher = true
+      sourceId.value = preferred.source_id
+    }
   }
   if (!componentMounted) return
   if (sourceId.value || explicitSymbols.value.trim()) await run()

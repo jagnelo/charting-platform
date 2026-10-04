@@ -42,6 +42,14 @@ describe('MarketMapTool', () => {
     apiGet.mockResolvedValue([])
   })
 
+  it('runs an automatically selected initial source only once', async () => {
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    expect(apiPost.mock.calls.filter(([path]) => path === '/analysis/market-map')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
   it('announces history and benchmark readiness loading states politely', async () => {
     let resolveHistory!: (value: unknown) => void
     let resolveCoverage!: (value: unknown) => void
