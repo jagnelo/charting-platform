@@ -86,7 +86,12 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -122,14 +127,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "8802d250c8c426a9e808fbf10d937337b662142c",
+  "head": "ca02dcc62a037770e0fb89d6ff93ffac97855d8c",
   "implementation_sha": "fde37514c4a0c09db17b322d98d220e7a02eef59",
   "last_checkpoint": "2026-10-04T09:07:16.873849+00:00",
-  "last_human_progress_update": "2026-10-04T09:06:04.263759+00:00",
+  "last_human_progress_update": "2026-10-04T09:27:04.331294+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue composing trusted capability and search-preparation inputs behind the production API, preserving fail-closed host inputs; run exact-tip Compose/browser acceptance when a Buildx-capable Docker CLI is available.",
   "parent_branch": "staging",
-  "plan_hash": "4b0e086614c4f599df891fcbeec10acb38a1740e580dad3089299a68bc874acc",
+  "plan_hash": "8c59256d55855cba8485af6a13532a389ec4cae128a343fe0aa2b27dbcbe485a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -144,15 +149,15 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "Production API capability and search-preparation inputs remain to be composed; exact-tip Compose/browser validation is held by missing Docker Buildx CLI, not by Nautilus release status.",
-    "current_phase": "native-oos-position-hold-duration-v10",
-    "next_action": "Continue trusted production API/search-preparation composition and remaining worker/forward acceptance without crossing upstream staging boundaries; retry Compose/browser validation with a Buildx-capable Docker CLI.",
+    "current_blocker": "Production API capability/search-preparation composition remains; exact-tip Compose/browser validation is held by missing Docker Buildx CLI. The combined backend coverage run exited 152 without a reported failing assertion; isolated Strategy Lab and integration suites pass.",
+    "current_phase": "native-oos-position-pnl-quantiles-v11",
+    "next_action": "Continue the trusted production API/search-preparation and remaining worker/forward acceptance; preserve fail-closed inputs and rerun full Compose/browser validation when Buildx is available.",
     "total": 18,
-    "updated_at": "2026-10-04T09:06:04.263741+00:00"
+    "updated_at": "2026-10-04T09:27:04.331274+00:00"
   },
-  "remote": "8802d250c8c426a9e808fbf10d937337b662142c",
+  "remote": "c2f08ea6a809cbe6532139defeee6d9ec98d483f",
   "remote_sha": "fc88256816314ecc74fe968d7db67a973649df5c",
-  "remote_synchronized": true,
+  "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "7c50d5d3-c421-4827-add4-736006a8f07b",

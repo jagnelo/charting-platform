@@ -8273,3 +8273,39 @@ preserved; Ruff lint and MyPy both pass for the changed source.
 The next product step remains composing the production API's trusted capability
 and search-preparation inputs without crossing provider-platform staging
 boundaries or accepting client-supplied execution evidence.
+
+## 2026-10-04 - Native OOS position P&L quantiles (v11)
+
+Native closed-position outcomes now include currency-scoped nearest-rank P&L
+quantiles p05, p25, p50, p75, and p95. Each quantile sorts only the reported
+native realized P&L observations for that currency and records `ceil(p*n)`,
+one-based rank, and no interpolation in its formula metadata. No FX conversion
+or mixed-currency distribution is performed. If any OOS-closed position lacks
+reported realized P&L, the quantiles are null with the same explicit completeness
+reason as the related position-outcome aggregates. The metric definition is
+v11, giving the persisted metric set a new immutable identity.
+
+At source commit `ca02dcc62a037770e0fb89d6ff93ffac97855d8c`, the complete
+Strategy Lab v2 suite passed 1,219 tests, including all 11 native result-metric
+tests. Ruff passed, the changed native result-metric and test files passed
+format-check, and MyPy passed across 344 Strategy Lab sources. The separate
+Docker-backed integration suite passed 369 tests; its subsequent resource audit
+found no branch-owned containers, images, volumes, or Testcontainers sessions.
+
+The combined backend coverage target did not complete on this run: pytest exited
+152 at 37% without reporting an assertion failure, and the target's cleanup
+completed. A separate unit-only diagnostic reached 11% then emitted no further
+progress for about three minutes; it was interrupted (exit 130) to avoid leaving
+a silent run holding the work. Neither is recorded as a passing full backend
+coverage gate. The full Compose/browser gate remains unverified because Docker
+Buildx is absent; backend implementation continues independently.
+
+Next: compose trusted production API capability and search-preparation inputs,
+then continue the remaining worker and forward acceptance without crossing
+provider-platform, ETF, or TC2000 staging boundaries.
+
+Changed source paths: `backend/app/strategy_lab_v2/metrics.py`,
+`backend/app/strategy_lab_v2/nautilus_result_metrics.py`, and
+`backend/app/strategy_lab_v2/tests/test_nautilus_result_metrics.py`.
+Changed workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`handoff.md`, `session.json`, and `validation.jsonl`.

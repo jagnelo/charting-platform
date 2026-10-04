@@ -808,7 +808,7 @@ progress:
     - strategy-lab-v2-host-composed-nautilus-backtest-dispatch
     - strategy-lab-v2-production-search-dispatch-evidence-preparation
   total: 18
-  current_phase: native-oos-position-hold-duration-v10
+  current_phase: native-oos-position-pnl-quantiles-v11
   current_blocker: >-
     Stable Nautilus 2.x is not a release blocker: exact-pinned stable or
     pre-release v2 builds are eligible for authoritative local backtests after
