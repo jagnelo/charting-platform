@@ -2120,17 +2120,17 @@ onMounted(async () => {
   if (requestedTab && workspaceStore.workspace?.tabs.some(tab => tab.stable_key === requestedTab)) {
     workspaceStore.activeTabKey = requestedTab
   }
-  // A second browser pop-out can start while the first window is announcing a
-  // revisioned workspace snapshot. If that narrow race returns a stale snapshot
-  // without the requested tool, retry the canonical read once before rendering
-  // the honest unavailable-tool recovery state.
+  // A browser pop-out can start while the source window is still persisting a
+  // revisioned workspace snapshot. Keep retrying the canonical read for a short,
+  // bounded recovery window so transient stale reads do not strand a valid tool
+  // in the source workspace.
   if (isPopout.value && !popoutTool.value) {
     // A source window may still be settling a revisioned snapshot when the
-    // browser popup starts. Retry the canonical read for a bounded interval so
-    // a transient stale snapshot does not leave a black, empty pop-out.
-    for (let attempt = 0; attempt < 5 && !popoutTool.value; attempt += 1) {
+    // browser popup starts. Retry for up to roughly five seconds so a transient
+    // stale read does not leave an empty pop-out during normal persistence load.
+    for (let attempt = 0; attempt < 20 && !popoutTool.value; attempt += 1) {
       if (!componentMounted) return
-      await new Promise(resolve => window.setTimeout(resolve, 200))
+      await new Promise(resolve => window.setTimeout(resolve, 250))
       if (!componentMounted) return
       await workspaceStore.loadDefault()
       if (requestedTab && workspaceStore.workspace?.tabs.some(tab => tab.stable_key === requestedTab)) {
