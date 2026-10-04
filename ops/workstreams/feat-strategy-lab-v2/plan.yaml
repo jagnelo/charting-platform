@@ -819,8 +819,9 @@ progress:
     - nautilus-listed-derivative-instrument-materialization-v1
     - nautilus-futures-margin-admission-v1
     - nautilus-futures-target-allocation-v1
+    - nautilus-event-time-oos-drawdown-duration-v1
   total: 18
-  current_phase: nautilus-futures-target-allocation-v1
+  current_phase: nautilus-event-time-oos-drawdown-duration-v1
   current_blocker: >-
     No external release or upstream dependency blocks package-owned work.
     Exact-pinned Nautilus 2.0.0rc5 passes the platform's local backtest checks,
@@ -830,10 +831,12 @@ progress:
     or real-capital control, and forward shadow retains its separate event-tape
     parity gate. The exact RC5 source/image evidence now passes all four local
     backtest checks, and the rebuilt runtime image passes the native futures
-    margin-admission and futures-target probes. Probe results deliberately
-    remain authoritative=false until exact conformance evidence is bound to an
-    authoritative backtest scope. The full Compose/browser profile is pending
-    Docker Buildx availability, which does not block continued package-owned
+    margin-admission and futures-target probes. Probe receipts deliberately
+    remain authoritative=false because they are qualification evidence, not
+    published trial results; trial preparation binds exact conformance evidence
+    to its execution plan, and the worker result-publication path applies the
+    backtest-scope gate. The final full Compose/browser profile is pending Docker
+    Buildx availability, which does not block continued package-owned
     implementation. Provider/ETF/TC2000 contracts remain staging-gated only
     where shared-path consumption is needed. Broader metrics, remaining
     domain-backed mutation flows, workers, and forward-shadow acceptance are
@@ -841,14 +844,17 @@ progress:
     can materialize listed futures and vanilla options when complete contract
     terms are supplied; direct futures orders and whole-contract futures target
     allocation now pass native margin admission for base-currency settlement.
-    Option order admission remains fail-closed pending its separate event-time
-    risk inputs.
+    Native OOS metrics now include elapsed-UTC drawdown duration from the
+    verified event-time equity trace while withholding cadence-based metrics
+    without an explicit basis. Option order admission remains fail-closed
+    pending its separate event-time risk inputs.
   next_action: >-
-    Continue implementation against the broad acceptance criteria: complete
-    versioned result metrics, remaining domain-backed mutation flows, worker
-    recovery/scaling, and persistent forward-shadow correctness. Keep options
-    order admission fail-closed until canonical event-time Greeks/delta and
-    settlement evidence are available. Consume provider/ETF/TC2000-owned
-    contracts only after their approved branches reach staging. Run final
-    Compose/browser validation when Buildx is available; never wait for a stable
-    Nautilus v2 tag.
+    Continue versioned native OOS metric coverage, then remaining
+    domain-backed mutation flows, worker recovery/scaling, and persistent
+    forward-shadow correctness. Preserve explicit sampling/calendar and
+    annualization bases; do not derive cadence-sensitive statistics from
+    irregular event marks. Keep options order admission fail-closed until
+    canonical event-time Greeks/delta and settlement evidence are available.
+    Consume provider/ETF/TC2000-owned contracts only after their approved
+    branches reach staging. Run final Compose/browser validation when Buildx is
+    available; never wait for a stable Nautilus v2 tag.

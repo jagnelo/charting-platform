@@ -2,6 +2,61 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Event-time OOS drawdown duration
+
+Implementation commit `925be2d1d94c74e78b54a49385e9e54bdcb58ad6` adds
+`maximum_drawdown_duration_seconds` to the versioned native OOS metric set
+(`strategy-lab.metrics.v12`). It measures elapsed UTC time from the latest
+observed account-equity high-water mark through the first observed recovery, or
+through the final OOS mark when the account remains below that peak. The prior
+event-observation-count metric remains available. Missing timestamps produce an
+explicit null reason; supplied event timestamps must be non-negative,
+non-decreasing, and one-to-one with the verified equity trace. No sampling
+cadence or annualization convention is inferred.
+
+The byte- and frozen-tape-verified Parquet reader now also exposes typed
+event-time/equity observations. OOS result materialization streams those exact
+observations to the metric builder without retaining the full trace in memory;
+the existing marks-only reader remains compatible for its other callers.
+
+Validation: the focused metric/trace/materialization set passed `42/42`. The
+full Strategy Lab suite reported `1,323` passing tests; its one Unix-domain
+socket case was denied by the default sandbox and then passed separately with
+scoped local-socket permission. Ruff, formatting, `git diff --check`, and MyPy
+for the four changed production modules passed. A package-wide MyPy diagnostic
+reported five errors in three untouched test modules
+(`test_nautilus_target_allocation.py`, `test_nautilus_order_routing.py`, and
+`test_nautilus_runtime_adapter.py`); the changed production modules are clean.
+
+The exact RC5 runtime rebuild and local conformance qualification passed all
+four local backtest checks plus the recorded lifecycle/native probes. Source
+digest: `sha256:ca2135151d1bb28a03b2532e438533ba534d1ca15944e612ab9064730e79d635`;
+image digest:
+`sha256:7929a31f8a2533922533abea9c755992590400d85576868ab46149a77b894fdf`;
+receipt digest:
+`sha256:584a666ee9082595574f625065abc6f5f4f8901ad7af25d1d5d4b24ab53faed4`;
+conformance fingerprint:
+`sha256:e7ee4847904fc9530282bde8d781ccc4b05539db639b41961b222fba70eada3b`.
+Probe receipts correctly remain `authoritative: false`. Resource cleanup left no
+containers, images, volumes, or Testcontainers sessions.
+
+Stable Nautilus v2 remains unnecessary. Exact-pinned `2.0.0rc5` is isolated and
+qualified for local backtesting; a later release must pass the applicable
+conformance checks independently. The final `full_stack_browser` profile is
+still pending Docker Buildx, which does not stop package-owned implementation.
+Continue the broader metrics, domain-mutation, worker recovery/scaling, and
+persistent forward-shadow acceptance; keep option orders fail-closed until
+canonical event-time risk and settlement inputs are supported.
+
+Changed source paths: `backend/app/strategy_lab_v2/metrics.py`,
+`backend/app/strategy_lab_v2/nautilus_equity_trace.py`,
+`backend/app/strategy_lab_v2/nautilus_result_materialization.py`,
+`backend/app/strategy_lab_v2/nautilus_result_metrics.py`, and their focused
+tests. Changed workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
 ## 2026-10-04 - Futures target allocation through native margin admission v1
 
 Implementation `57fd82082e745fbfae62f2dcedc26eca235fdfc2` extends
