@@ -6929,6 +6929,45 @@ AC10 remains dependent on `feat/market-data-provider-platform` reaching
 staging; do not integrate it or create a competing shared runtime here. AC14
 remains a post-integration/deployment 30-day shadow-observation step.
 
+## Final receipt-tip CI confirmation — 2026-10-04
+
+The branch is clean and synchronized at exact HEAD
+`6f38901df5231158994497ce81fa54cd5850ca36`. GitHub Actions run
+`37197366134` completed successfully on that exact SHA: Backend Tests,
+Frontend Unit Tests, Branch-declared Tests, and E2E Tests (Playwright) passed;
+the protected Exhaustive Integration Gate was skipped as designed for a
+feature branch. The preceding receipt at `5c074c0d` had the same four green
+jobs, and the CI result now also covers the final receipt tip.
+
+The read-only origin ref check still finds `staging` at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35` and
+`feat/market-data-provider-platform` at
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`; the provider branch has not
+reached staging. No other branch or worktree was changed.
+
+The 2026-10-04 local Docker-backed full gate remains red at exact source
+`70359fb5e54a1e5238263647b58bdea2f78ddce0`: all preceding backend,
+frontend, build, Compose-contract, provider-probe, and security/resource
+stages passed, but functional Playwright reported three non-ETF failures
+(F9c chart-overlay click interception, F9f login-navigation timeout, and F9g
+`ERR_NETWORK_CHANGED`). `git diff --name-only 70359fb5..HEAD` confirms all
+later changes are limited to this workstream's handoff, session, and
+validation receipts; application code is unchanged. Those generic test paths
+are outside `owned_paths`, so no test skip or workaround was added here.
+
+Ten of fourteen acceptance criteria remain marked complete. AC7 and the
+ready-for-review stop (AC8) remain open; AC10 awaits the provider-platform
+staging dependency, and AC14 remains a post-integration/deployment 30-day
+observation. Continue only within this ETF worktree and do not interpret green
+branch CI as proof that the separate local full-integration gate passed.
+
+This durable checkpoint reconciles
+`ops/workstreams/feat-etf-holdings-constituents/plan.yaml`,
+`ops/workstreams/feat-etf-holdings-constituents/handoff.md`,
+`ops/workstreams/feat-etf-holdings-constituents/session.json`, and
+`ops/workstreams/feat-etf-holdings-constituents/validation.jsonl` with the
+current exact-SHA CI result and the still-open local/shared-platform gates.
+
 ## Exact-SHA branch-test anomaly and local rerun — 2026-10-04
 
 GitHub Actions run `37193942507` completed on exact ETF SHA
