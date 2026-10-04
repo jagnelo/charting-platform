@@ -29,6 +29,7 @@ from app.strategy_lab_v2.contracts import (
     ProductClass,
     SharedRiskPolicy,
     StrategyVersion,
+    TargetConflictPolicy,
 )
 from app.strategy_lab_v2.nautilus_equity_trace import (
     NautilusAccountEquityTraceReference,
@@ -77,8 +78,10 @@ from app.strategy_lab_v2.sdk import (
 from strategy_runtime import (
     MAX_INVOCATION_CONTEXT_STREAM_BYTES,
     MAX_INVOCATION_RESULT_STREAM_BYTES,
+    InvocationContextStreamSource,
     deserialize_invocation_batch,
     deserialize_invocation_result_stream,
+    serialize_component_invocation_context_stream,
     serialize_invocation_batch,
     serialize_invocation_context_stream,
 )
@@ -343,6 +346,11 @@ def run_rebalance_schedule_probe() -> dict[str, Any]:
             target_position=True,
             rebalance_trigger=RebalanceTrigger.SESSION_CLOSE_AFTER_EVENTS,
         ),
+        "multi_component_shared_account": _run_native_execution_probe(
+            target_position=True,
+            rebalance_trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+            multi_component_rebalance=True,
+        ),
         "fail_on_misfire": _run_native_execution_probe(
             target_position=True,
             rebalance_misfire_only=True,
@@ -357,11 +365,18 @@ def _run_native_execution_probe(
     include_native_report_diagnostics: bool = False,
     rebalance_trigger: RebalanceTrigger | None = None,
     rebalance_misfire_only: bool = False,
+    multi_component_rebalance: bool = False,
 ) -> dict[str, Any]:
     if rebalance_trigger is not None and rebalance_misfire_only:
         raise ValueError("rebalance trigger and misfire-only modes cannot be combined")
     if (rebalance_trigger is not None or rebalance_misfire_only) and not target_position:
         raise ValueError("rebalance probes require target-position intents")
+    if multi_component_rebalance and (
+        rebalance_trigger is not RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS
+        or rebalance_misfire_only
+        or not target_position
+    ):
+        raise ValueError("multi-component probe requires an open-boundary target rebalance")
     instrument_id = "AAPL.SIM"
     strategy_source = _TARGET_SOURCE if target_position else _RAW_ORDER_SOURCE
     later_time = _EVENT_TIME + timedelta(seconds=1)
@@ -462,21 +477,29 @@ def _run_native_execution_probe(
             calendar_fingerprint=calendar_fingerprint,
             occurrences=(occurrence,),
         )
+    component_ids = ("core", "satellite") if multi_component_rebalance else ("core",)
     portfolio = PortfolioComposition(
         portfolio_id="portfolio-target-probe",
         version_id="portfolio-v1",
         initial_capital=Decimal("100000"),
         base_currency="USD",
-        components=(
+        components=tuple(
             PortfolioComponent(
-                "core",
+                component_id,
                 manifest.strategy.fingerprint,
                 (instrument_id,),
-                Decimal("1"),
-            ),
+                Decimal("0.5") if multi_component_rebalance else Decimal("1"),
+                priority=index,
+            )
+            for index, component_id in enumerate(component_ids)
         ),
         shared_risk_policy=SharedRiskPolicy(
             risk_models=(CASH_EQUITY_NOTIONAL_RISK_MODEL,),
+            target_conflict_policy=(
+                TargetConflictPolicy.SUM_COMPONENT_TARGETS
+                if multi_component_rebalance
+                else TargetConflictPolicy.REJECT
+            ),
         ),
         rebalance_policy=rebalance_policy,
     )
@@ -538,7 +561,7 @@ def _run_native_execution_probe(
         "rebalance_plan": rebalance_execution_plan_to_wire(rebalance_plan),
         "strategy_bindings": [
             {
-                "component_id": "core",
+                "component_id": component_id,
                 "strategy_fingerprint": manifest.strategy.fingerprint,
                 "strategy_source_digest": manifest.strategy.source_digest,
                 "strategy_manifest_fingerprint": manifest.fingerprint,
@@ -546,42 +569,44 @@ def _run_native_execution_probe(
                 "parameters_digest": content_digest({}),
                 "max_intents_per_event": 100,
             }
+            for component_id in component_ids
         ],
         "input_version": "strategy-lab.nautilus-engine-input.v5",
     }
+    invocation_contexts = (
+        StrategyContext(
+            _EVENT_TIME,
+            2,
+            11,
+            {},
+            {"prices": events[:2]},
+        ),
+        StrategyContext(
+            later_time,
+            3,
+            11,
+            {},
+            # The manifest declares one prior event plus the current event.
+            {"prices": events[1:3]},
+        ),
+        *(
+            (
+                StrategyContext(
+                    events[-1].event_time,
+                    events[-1].sequence,
+                    11,
+                    {},
+                    {"prices": events[-2:]},
+                ),
+            )
+            if len(events) > 3
+            else ()
+        ),
+    )
     batch = serialize_invocation_batch(
         source=strategy_source,
         manifest=manifest,
-        contexts=(
-            StrategyContext(
-                _EVENT_TIME,
-                2,
-                11,
-                {},
-                {"prices": events[:2]},
-            ),
-            StrategyContext(
-                later_time,
-                3,
-                11,
-                {},
-                # The manifest declares one prior event plus the current event.
-                {"prices": events[1:3]},
-            ),
-            *(
-                (
-                    StrategyContext(
-                        events[-1].event_time,
-                        events[-1].sequence,
-                        11,
-                        {},
-                        {"prices": events[-2:]},
-                    ),
-                )
-                if len(events) > 3
-                else ()
-            ),
-        ),
+        contexts=invocation_contexts,
         entrypoint="strategy.main:Strategy",
     )
     native_report_diagnostics = None
@@ -658,6 +683,45 @@ def _run_native_execution_probe(
                 "samples": report_samples,
                 "verified_equity_observations": equity_reference.observation_count,
             }
+    elif multi_component_rebalance:
+        component_context_stream = BytesIO()
+        component_counts = serialize_component_invocation_context_stream(
+            component_context_stream,
+            components=tuple(
+                InvocationContextStreamSource(
+                    component_id,
+                    strategy_source,
+                    manifest,
+                    invocation_contexts,
+                    "strategy.main:Strategy",
+                )
+                for component_id in component_ids
+            ),
+        )
+        event_tape = payload["event_tape"]
+        if not isinstance(event_tape, dict):
+            raise RuntimeError("multi-component native event tape is invalid")
+        native_event_stream = BytesIO()
+        event_summary = serialize_nautilus_native_event_stream(
+            native_event_stream,
+            event_records,
+            source_tape_fingerprint=str(event_tape["source_tape_fingerprint"]),
+            adapter_version=str(event_tape["adapter_version"]),
+            expected_event_count=len(event_records),
+        )
+        payload["event_tape"] = {
+            "source_tape_fingerprint": event_summary.source_tape_fingerprint,
+            "adapter_version": event_summary.adapter_version,
+            "event_count": event_summary.event_count,
+        }
+        result = run_native_backtest(
+            payload,
+            invocation_context_stream=component_context_stream,
+            native_event_stream=native_event_stream,
+            native_event_stream_digest=event_summary.content_digest,
+            expected_context_count=sum(component_counts.values()),
+            expected_component_context_counts=component_counts,
+        )
     else:
         result = run_native_backtest(payload, serialized_strategy_invocation_batch=batch)
     summary = result.get("summary")
@@ -684,7 +748,7 @@ def _run_native_execution_probe(
             if rebalance_misfire_only
             else RebalanceExecutionStatus.ORDERS_SUBMITTED
         )
-        expected_orders = 0 if rebalance_misfire_only else 1
+        expected_orders = 0 if rebalance_misfire_only else 2 if multi_component_rebalance else 1
         expected_positions = 0 if rebalance_misfire_only else 1
         if (
             outcome.execution_status is not expected_status
@@ -694,12 +758,15 @@ def _run_native_execution_probe(
             or result.get("authoritative") is not False
         ):
             raise RuntimeError("native rebalance callback, audit, and account state disagree")
+        if multi_component_rebalance and not Decimal("40000") < remaining_cash < Decimal("60000"):
+            raise RuntimeError("native multi-component targets did not share the account budget")
         return {
             "audit_fingerprint": audit.fingerprint,
             "execution_status": outcome.execution_status.value,
             "submitted_order_count": outcome.submitted_order_count,
             "total_orders": result["total_orders"],
             "total_positions": result["total_positions"],
+            **({"remaining_cash": str(remaining_cash)} if multi_component_rebalance else {}),
             "authoritative": False,
         }
     if target_position:

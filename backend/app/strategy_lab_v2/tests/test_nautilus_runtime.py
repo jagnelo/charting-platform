@@ -114,6 +114,15 @@ def _fixture_payload() -> dict[str, Any]:
                 "total_positions": 1,
                 "authoritative": False,
             },
+            "multi_component_shared_account": {
+                "audit_fingerprint": content_digest("rc-multi-schedule-audit"),
+                "execution_status": "orders_submitted",
+                "submitted_order_count": 2,
+                "total_orders": 2,
+                "total_positions": 1,
+                "remaining_cash": "50000",
+                "authoritative": False,
+            },
             "fail_on_misfire": {
                 "audit_fingerprint": content_digest("rc-misfire-schedule-audit"),
                 "execution_status": "failed_misfire",
@@ -295,6 +304,16 @@ def test_real_rc_fixture_receipt_rejects_unreconciled_raw_order_risk() -> None:
     )
 
     with pytest.raises(ValueError, match="raw-order risk submission and account state"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+
+def test_real_rc_fixture_receipt_rejects_multi_component_netting_mismatch() -> None:
+    runtime = _runtime()
+    payload = _fixture_payload()
+    multi_component = payload["portfolio_rebalance_schedule"]["multi_component_shared_account"]
+    multi_component["total_positions"] = 2
+
+    with pytest.raises(ValueError, match="multi_component_shared_account schedule callbacks"):
         NautilusRcFixtureReceipt.from_mapping(payload, runtime)
 
 

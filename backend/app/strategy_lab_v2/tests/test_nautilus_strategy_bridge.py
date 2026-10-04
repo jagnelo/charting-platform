@@ -506,15 +506,17 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(monkeypa
         expected_component_context_counts=context_counts,
     )
     bridge.strategy.on_start()
+    prior_native_init_time_ns = -1
     for index, record in enumerate(event_records):
         assert isinstance(record, dict)
         event_time_ns = record["event_time_ns"]
         assert isinstance(event_time_ns, int)
+        prior_native_init_time_ns = max(event_time_ns + 1, prior_native_init_time_ns + 1)
         bridge.strategy.on_quote(
             SimpleNamespace(
                 instrument_id=record["instrument_id"],
                 ts_event=event_time_ns,
-                ts_init=event_time_ns if index == 0 else event_time_ns + 1,
+                ts_init=prior_native_init_time_ns,
                 bid_price=Decimal(record["values"]["bid"]),
                 ask_price=Decimal(record["values"]["ask"]),
             )
@@ -731,17 +733,19 @@ def test_native_bridge_runs_rebalance_at_exact_open_or_after_same_time_group(
         expected_context_count=context_count,
     )
     bridge.strategy.on_start()
+    prior_native_init_time_ns = -1
     for index, raw_record in enumerate(event_records):
         assert isinstance(raw_record, dict)
         event_time_ns = raw_record["event_time_ns"]
         values = raw_record["values"]
         assert isinstance(event_time_ns, int)
         assert isinstance(values, dict)
+        prior_native_init_time_ns = max(event_time_ns + 1, prior_native_init_time_ns + 1)
         bridge.strategy.on_quote(
             SimpleNamespace(
                 instrument_id=raw_record["instrument_id"],
                 ts_event=event_time_ns,
-                ts_init=event_time_ns if index == 0 else event_time_ns + 1,
+                ts_init=prior_native_init_time_ns,
                 bid_price=Decimal(values["bid"]),
                 ask_price=Decimal(values["ask"]),
             )

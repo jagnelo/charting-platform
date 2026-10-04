@@ -22,6 +22,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import PortfolioComposition
 from app.strategy_lab_v2.nautilus_equity_trace import NautilusAccountEquityTraceWriter
 from app.strategy_lab_v2.nautilus_native_event_stream import (
+    NautilusNativeEventStreamCursor,
     deserialize_nautilus_native_event_stream,
 )
 from app.strategy_lab_v2.nautilus_rebalance_schedule import (
@@ -1379,9 +1380,8 @@ def build_native_strategy_bridge(
             assert isinstance(native_event_count, int)
             assert isinstance(source_tape_fingerprint, str)
             assert isinstance(adapter_version, str)
-            native_event_stream.seek(0)
             yield from deserialize_nautilus_native_event_stream(
-                native_event_stream,
+                NautilusNativeEventStreamCursor(native_event_stream),
                 expected_source_tape_fingerprint=source_tape_fingerprint,
                 expected_adapter_version=adapter_version,
                 expected_event_count=native_event_count,
@@ -2100,7 +2100,7 @@ def build_native_strategy_bridge(
                 self._dispatch_native_event(event_type, event, instrument_id, ts_event, ts_init)
             except Exception as error:
                 failure = f"{type(error).__module__}.{type(error).__qualname__}"
-                if isinstance(error, NautilusRuntimeDataError):
+                if isinstance(error, NautilusRuntimeDataError | ValueError):
                     failure = f"{failure}: {error}"
                 callback_failure_types.append(failure)
 
@@ -2137,7 +2137,9 @@ def build_native_strategy_bridge(
                 and int(ts_init) != expected_record["native_init_time_ns"]
             ):
                 raise NautilusRuntimeDataError(
-                    "Nautilus callback init order differs from the authenticated event stream"
+                    "Nautilus callback init order differs from the authenticated event stream "
+                    f"for {expected_record['event_id']}: expected "
+                    f"{expected_record['native_init_time_ns']}, observed {int(ts_init)}"
                 )
             if rebalance_cursor is not None:
                 for transition in rebalance_cursor.before_event(int(ts_event)):

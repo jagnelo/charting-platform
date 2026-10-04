@@ -238,7 +238,12 @@ def _require_raw_order_risk_probe(value: Any) -> None:
 
 
 def _require_rebalance_schedule_probe(value: Any) -> None:
-    cases = {"session_open", "session_close", "fail_on_misfire"}
+    cases = {
+        "session_open",
+        "session_close",
+        "multi_component_shared_account",
+        "fail_on_misfire",
+    }
     if (
         not isinstance(value, Mapping)
         or set(value) != {"authoritative", *cases}
@@ -248,18 +253,22 @@ def _require_rebalance_schedule_probe(value: Any) -> None:
     expected = {
         "session_open": ("orders_submitted", 1, 1, 1),
         "session_close": ("orders_submitted", 1, 1, 1),
+        "multi_component_shared_account": ("orders_submitted", 2, 2, 1),
         "fail_on_misfire": ("failed_misfire", 0, 0, 0),
     }
     for case_name, (status, count, orders, positions) in expected.items():
         case = value[case_name]
-        if not isinstance(case, Mapping) or set(case) != {
+        expected_fields = {
             "audit_fingerprint",
             "execution_status",
             "submitted_order_count",
             "total_orders",
             "total_positions",
             "authoritative",
-        }:
+        }
+        if case_name == "multi_component_shared_account":
+            expected_fields.add("remaining_cash")
+        if not isinstance(case, Mapping) or set(case) != expected_fields:
             raise ValueError(f"native {case_name} schedule evidence fields are invalid")
         require_sha256_digest(
             case["audit_fingerprint"],
@@ -273,6 +282,10 @@ def _require_rebalance_schedule_probe(value: Any) -> None:
             or case["authoritative"] is not False
         ):
             raise ValueError(f"native {case_name} schedule callbacks did not reconcile")
+        if case_name == "multi_component_shared_account":
+            remaining_cash = _decimal(case["remaining_cash"], "remaining_cash")
+            if not Decimal("40000") < remaining_cash < Decimal("60000"):
+                raise ValueError("native multi-component targets did not share the account budget")
 
 
 @dataclass(frozen=True, slots=True)

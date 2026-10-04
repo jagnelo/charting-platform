@@ -819,27 +819,30 @@ progress:
   current_blocker: >-
     No external release dependency blocks package-owned implementation.
     Exact-pinned Nautilus 2.0.0rc5 has passed the four required local backtest
-    checks plus native open/close/fail-on-misfire rebalance callbacks; it is
-    barred from broker or real-capital control, and forward shadow keeps its
-    separate event-tape parity gate. The exact image and receipt are recorded in
-    the branch handoff. A real PostgreSQL/Testcontainers integration persists
+    checks plus native open/close/fail-on-misfire rebalance callbacks. A native
+    two-component shared-account case now reconciles two orders to one net
+    position and account cash; contention ordering across distinct targets,
+    shared-risk rejection, and component attribution remain to be proven. The
+    prerelease is barred from broker or real-capital control, and forward shadow
+    keeps its separate event-tape parity gate. Exact source/image/receipt pins
+    are recorded in the branch handoff. A real PostgreSQL/Testcontainers integration persists
     and rehydrates the owner-scoped trial graph, resolves package and
     frozen-series bytes through the shared artifact root, rejects foreign-owner
     hydration, and verifies RPC enqueue/exact replay with one admission,
-    dispatch, payload, and outbox message. The Strategy Lab suite passes 1,284
+    dispatch, payload, and outbox message. The Strategy Lab suite passes 1,286
     tests with narrow Unix-socket permission, Ruff and MyPy pass, and package
     Compose/workstream checks are green. Provider/ETF/TC2000-owned decoding,
     identity, membership, and code contracts remain staging-gated; that does not
     block owned-path work. Missing Docker Buildx limits only final
     Compose/browser runtime validation. Remaining domain-backed mutation flows,
-    multi-component native rebalance qualification, broader snapshot/metric,
+    remaining multi-component native rebalance qualification, broader snapshot/metric,
     worker, and forward-shadow acceptance are unfinished implementation, not
     external blockers.
   next_action: >-
-    Add an exact-RC5 native multi-component portfolio/rebalance fixture proving
-    shared-account allocation, contention ordering, and risk-gated order
-    submission against the frozen plan; preserve component attribution and
-    native account reconciliation. Then continue remaining domain-backed
+    Extend the exact-RC5 multi-component fixture with distinct competing
+    targets and priorities; prove contention ordering, shared-risk rejection,
+    component attribution, and native account reconciliation against the frozen
+    plan. Then continue remaining domain-backed
     mutation, snapshot, metric, worker, and forward-shadow acceptance. Consume
     provider/ETF/TC2000-owned contracts only after their approved branches reach
     staging. Run final Compose/browser validation when Buildx is available;

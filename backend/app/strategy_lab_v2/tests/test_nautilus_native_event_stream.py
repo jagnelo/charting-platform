@@ -8,6 +8,7 @@ import pytest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.nautilus_event_adapter import NautilusEventRecord
 from app.strategy_lab_v2.nautilus_native_event_stream import (
+    NautilusNativeEventStreamCursor,
     deserialize_nautilus_native_event_stream,
     serialize_nautilus_native_event_stream,
 )
@@ -65,8 +66,39 @@ def test_native_event_stream_is_reproducible_and_preserves_same_time_order() -> 
     assert first == second
     observed = _decode(first)
     assert [event["event_id"] for event in observed] == ["event-1", "event-2"]
-    assert [event["native_init_time_ns"] for event in observed] == [100, 101]
+    assert [event["native_init_time_ns"] for event in observed] == [101, 102]
     assert [event["event_time_ns"] for event in observed] == [100, 100]
+
+
+def test_native_event_stream_cursors_keep_independent_positions() -> None:
+    events = (
+        _event("event-1", event_time_ns=100, sequence=1),
+        _event("event-2", event_time_ns=100, sequence=2),
+    )
+    source = BytesIO(_wire(events))
+    cursor_a = NautilusNativeEventStreamCursor(source)
+    cursor_b = NautilusNativeEventStreamCursor(source)
+    iterator_a = deserialize_nautilus_native_event_stream(
+        cursor_a,
+        expected_source_tape_fingerprint=content_digest("source-tape"),
+        expected_adapter_version="strategy-lab.nautilus-event-adapter.v1",
+        expected_event_count=2,
+    )
+    iterator_b = deserialize_nautilus_native_event_stream(
+        cursor_b,
+        expected_source_tape_fingerprint=content_digest("source-tape"),
+        expected_adapter_version="strategy-lab.nautilus-event-adapter.v1",
+        expected_event_count=2,
+    )
+
+    assert next(iterator_a)["event_id"] == "event-1"
+    assert next(iterator_b)["event_id"] == "event-1"
+    assert next(iterator_a)["event_id"] == "event-2"
+    assert next(iterator_b)["event_id"] == "event-2"
+    with pytest.raises(StopIteration):
+        next(iterator_a)
+    with pytest.raises(StopIteration):
+        next(iterator_b)
 
 
 def test_native_event_stream_rejects_wrong_source_and_missing_trailer() -> None:

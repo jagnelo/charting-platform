@@ -511,6 +511,15 @@ def test_parsed_rc_receipt_can_feed_backtest_execution_scope() -> None:
                     "total_positions": 1,
                     "authoritative": False,
                 },
+                "multi_component_shared_account": {
+                    "audit_fingerprint": content_digest("rc-multi-schedule-audit"),
+                    "execution_status": "orders_submitted",
+                    "submitted_order_count": 2,
+                    "total_orders": 2,
+                    "total_positions": 1,
+                    "remaining_cash": "50000",
+                    "authoritative": False,
+                },
                 "fail_on_misfire": {
                     "audit_fingerprint": content_digest("rc-misfire-schedule-audit"),
                     "execution_status": "failed_misfire",

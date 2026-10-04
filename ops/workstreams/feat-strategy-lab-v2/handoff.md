@@ -2,6 +2,37 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - RC5 multi-component stream boundary and shared-account probe
+
+Confirmed that a stable Nautilus 2.x tag is not a prerequisite: the branch plan
+allows the exact-pinned `2.0.0rc5` build for offline backtests after conformance.
+The newly exercised catalog-backed callback path exposed two concrete boundary
+details, now handled in the owned stream adapter: native `ts_init` values must
+be strictly after `ts_event`, and bridge readers need independent logical
+cursors when catalog ingestion and callbacks share one seekable event stream.
+The serializer/decoder enforce the timestamp rule; independent cursors retain
+bounded streaming without duplicating the event tape.
+
+An exact-source hardened RC5 image passed the four existing local backtest
+checks and open/close/fail-on-misfire schedule probes. Its additional
+multi-component shared-account probe submitted two native orders, reconciled
+them to one net position, and left USD 50,185.06 cash from USD 100,000 initial
+capital. This is non-authoritative conformance evidence, not a live-capital
+qualification. Exact pins: source `sha256:c95d9cf3d4cd4b053e7826ffa5e8efb42b9a8528b1bf65288aaeae437d8f052b`,
+image `sha256:74f872392cf902725816dfd6ed85821269e2a5a65069cf41433c3ea540ed6db6`,
+receipt `sha256:904b18a38b87a4c63232bda128c3442d275ec76dbf8e8858b6da9a8ffbb0886c`,
+and conformance fingerprint
+`sha256:814544c9dc36ab80df8758106833390ebd5488953fb165cdccb15ca2f1f957aa`.
+
+Validation: full Strategy Lab package suite `1,286 passed`; focused native
+stream/bridge/runtime suite `90 passed`; Ruff clean; MyPy clean across 364
+package/runtime sources; all nine changed Python files formatted; diff check
+clean. Contention ordering under distinct component targets, shared-risk
+rejection, and persisted component attribution remain unproven and are the
+next native portfolio conformance work. Provider/ETF/TC2000 staged contracts
+remain gates only for consuming those workstreams' owned data and semantics.
+Missing Docker Buildx limits only the final Compose/browser profile.
+
 ## 2026-10-04 - Exact RC5 native rebalance schedule qualification
 
 Closed the native schedule-probe gap. The RC5 image now exercises open-boundary

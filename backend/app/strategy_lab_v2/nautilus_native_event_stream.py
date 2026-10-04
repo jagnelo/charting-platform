@@ -8,7 +8,7 @@ from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, Protocol
 
 from app.strategy_lab_v2.canonical import require_sha256_digest
 
@@ -36,6 +36,59 @@ class NautilusNativeEventStreamSummary:
     event_count: int
     byte_length: int
     content_digest: str
+
+
+class NautilusNativeEventStreamCursor:
+    """A seekable logical cursor over a shared seekable binary stream.
+
+    Nautilus catalog loading and authenticated strategy callbacks may consume
+    the same large event stream at different times. Keeping the logical offset
+    here prevents one reader from invalidating another without copying the
+    stream into memory or onto disk.
+    """
+
+    def __init__(self, stream: BinaryIO) -> None:
+        if not callable(getattr(stream, "seek", None)) or not callable(
+            getattr(stream, "tell", None)
+        ):
+            raise TypeError("native event stream cursor requires a seekable stream")
+        self._stream = stream
+        self._position = 0
+
+    def read(self, size: int = -1) -> bytes:
+        self._stream.seek(self._position)
+        value = self._stream.read(size)
+        self._position += len(value)
+        return value
+
+    def readline(self, size: int = -1) -> bytes:
+        self._stream.seek(self._position)
+        value = self._stream.readline(size)
+        self._position += len(value)
+        return value
+
+    def seek(self, offset: int, whence: int = 0) -> int:
+        if whence == 0:
+            position = offset
+        elif whence == 1:
+            position = self._position + offset
+        elif whence == 2:
+            self._stream.seek(0, 2)
+            position = self._stream.tell() + offset
+        else:
+            raise ValueError("invalid seek origin")
+        self._stream.seek(position)
+        self._position = self._stream.tell()
+        return self._position
+
+    def tell(self) -> int:
+        return self._position
+
+
+class _NativeEventStreamReader(Protocol):
+    def read(self, size: int = -1) -> bytes: ...
+
+    def readline(self, size: int = -1) -> bytes: ...
 
 
 def _wire_value(value: Any) -> Any:
@@ -86,7 +139,7 @@ def _reject_constant(_value: str) -> None:
     raise ValueError("native event stream contains a non-finite JSON number")
 
 
-def _read_record(stream: BinaryIO) -> tuple[Mapping[str, Any], bytes] | None:
+def _read_record(stream: _NativeEventStreamReader) -> tuple[Mapping[str, Any], bytes] | None:
     line = stream.readline(MAX_NAUTILUS_NATIVE_EVENT_ROW_BYTES + 2)
     if not line:
         return None
@@ -156,9 +209,10 @@ def serialize_nautilus_native_event_stream(
 ) -> NautilusNativeEventStreamSummary:
     """Serialize verified records with deterministic callback and catalog order.
 
-    ``native_init_time_ns`` is a monotonic tie-break timestamp derived from the
-    authenticated canonical order. ``event_time_ns`` remains untouched as the
-    market-event timestamp consumed by the SDK and matching engine.
+    ``native_init_time_ns`` is strictly after the event timestamp and increases
+    with authenticated canonical order. Nautilus catalog ingestion may
+    normalize ``ts_init`` to ``ts_event + 1``. ``event_time_ns`` remains
+    untouched as the market-event timestamp consumed by the SDK and matcher.
     """
 
     require_sha256_digest(source_tape_fingerprint, field_name="source_tape_fingerprint")
@@ -215,7 +269,7 @@ def serialize_nautilus_native_event_stream(
         if prior_key is not None and sort_key < prior_key:
             raise ValueError("native event stream is not in canonical event order")
         prior_key = sort_key
-        native_init_time_ns = max(event["event_time_ns"], native_init_time_ns + 1)
+        native_init_time_ns = max(event["event_time_ns"] + 1, native_init_time_ns + 1)
         if native_init_time_ns > 18_446_744_073_709_551_615:
             raise ValueError("native event sequence exceeds the supported timestamp range")
         write(
@@ -247,7 +301,7 @@ def serialize_nautilus_native_event_stream(
 
 
 def deserialize_nautilus_native_event_stream(
-    stream: BinaryIO,
+    stream: _NativeEventStreamReader,
     *,
     expected_source_tape_fingerprint: str,
     expected_adapter_version: str,
@@ -335,7 +389,7 @@ def deserialize_nautilus_native_event_stream(
             init_time = record["native_init_time_ns"]
             if not isinstance(init_time, int) or isinstance(init_time, bool):
                 raise ValueError("native event stream init time must be an integer")
-            if init_time < event["event_time_ns"] or init_time <= prior_native_init_time:
+            if init_time <= event["event_time_ns"] or init_time <= prior_native_init_time:
                 raise ValueError("native event stream init times are not strictly chronological")
             if init_time > 18_446_744_073_709_551_615:
                 raise ValueError("native event stream init time exceeds the supported range")
@@ -361,6 +415,7 @@ __all__ = [
     "MAX_NAUTILUS_NATIVE_EVENT_ROW_BYTES",
     "MAX_NAUTILUS_NATIVE_EVENT_STREAM_BYTES",
     "NAUTILUS_NATIVE_EVENT_STREAM_PROTOCOL",
+    "NautilusNativeEventStreamCursor",
     "NautilusNativeEventStreamSummary",
     "deserialize_nautilus_native_event_stream",
     "serialize_nautilus_native_event_stream",
