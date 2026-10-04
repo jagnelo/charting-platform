@@ -15,6 +15,7 @@ from app.strategy_lab_v2.nautilus_strategy_bridge import (
     _iter_replayed_context_trigger_indexes,
     _iter_stream_context_trigger_indexes,
     _match_contexts_to_events,
+    iter_component_context_trigger_groups,
 )
 from app.strategy_lab_v2.sdk import MarketEvent, StrategyContext
 
@@ -117,6 +118,45 @@ def test_stream_trigger_indexes_bind_batches_to_the_last_same_time_callback() ->
     assert list(_iter_context_trigger_indexes((context,), (_record(first), _record(second)))) == [
         (1, context)
     ]
+
+
+def test_component_context_streams_merge_by_event_then_portfolio_priority() -> None:
+    core_first = _context(1, {})
+    core_last = _context(4, {})
+    satellite_first = _context(2, {})
+    satellite_middle = _context(3, {})
+
+    groups = iter_component_context_trigger_groups(
+        {
+            "core": iter(((1, core_first), (4, core_last))),
+            "satellite": iter(((1, satellite_first), (3, satellite_middle))),
+        },
+        {"core": 10, "satellite": 2},
+    )
+
+    assert [
+        (
+            group.trigger_index,
+            tuple((item.component_id, item.context.event_sequence) for item in group.contexts),
+        )
+        for group in groups
+    ] == [
+        (1, (("satellite", 2), ("core", 1))),
+        (3, (("satellite", 3),)),
+        (4, (("core", 4),)),
+    ]
+
+
+def test_component_context_stream_rejects_non_advancing_native_callbacks() -> None:
+    contexts = iter(((2, _context(2, {})), (2, _context(3, {}))))
+
+    with pytest.raises(NautilusRuntimeDataError, match="must advance one per native event"):
+        list(iter_component_context_trigger_groups({"core": contexts}, {"core": 0}))
+
+
+def test_component_context_streams_require_exact_priority_bindings() -> None:
+    with pytest.raises(NautilusRuntimeDataError, match="priorities do not match"):
+        list(iter_component_context_trigger_groups({"core": iter(())}, {}))
 
 
 def test_replayed_stream_context_indexes_do_not_reopen_native_event_reader() -> None:

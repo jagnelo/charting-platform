@@ -65,20 +65,8 @@ _EVENT_TIME = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
 _EVENT_TIME_NS = 1_704_205_800_000_000_000
 _SOURCE = """
 class Strategy:
-    def __init__(self):
-        self.submitted = False
-
     def on_event(self, context):
-        if self.submitted:
-            return []
-        self.submitted = True
-        return [OrderIntent(
-            instrument_id='EURUSD.SIM',
-            side=OrderSide.BUY,
-            quantity=Decimal('1000'),
-            order_type=OrderType.MARKET,
-            time_in_force=TimeInForce.IOC,
-        )]
+        return []
 """
 
 _TARGET_SOURCE = """
@@ -690,6 +678,8 @@ def run_context_stream_cli_probe(
         result.get("strategy_invocation_input_protocol") != "context-stream"
         or result.get("authoritative") is not False
         or result.get("input_event_count") != event_count
+        or result.get("total_orders") != 0
+        or result.get("total_positions") != 0
         or result.get("native_data_source") != "parquet_catalog_chunks"
         or result.get("catalog_input_chunk_size") != NAUTILUS_CATALOG_INPUT_CHUNK_SIZE
         or result.get("catalog_replay_chunk_size")

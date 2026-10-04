@@ -2,6 +2,51 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Deterministic component callback scheduling
+
+Added a streaming scheduler that merges per-component strategy-context trigger
+streams by native event index, groups components due on the same callback, and
+orders each group by portfolio priority then component id. It retains at most
+one next context per component and rejects duplicate or regressing callback
+indices. The existing bridge currently routes its single component through
+this scheduler; the authenticated runtime bundle and callback still provide
+only one strategy stream, so this is not yet end-to-end multi-strategy
+execution.
+
+The real Nautilus adapter context-stream CLI now passes in a hardened,
+network-disabled, read-only container with one successful SDK invocation. Its
+generic FX/margin strategy was changed to emit no order because the native risk
+adapter intentionally supports only cash equity/crypto spot today; the former
+probe's FX order correctly failed closed as unsupported. Valid order behavior
+continues to be exercised by the separate cash-equity target and raw-order
+probes. The exact Nautilus 2.0.0rc5 image digest
+`sha256:e39663e985471102fc735f87e43e720421deb8ed23cdd7896c6c2f49a88fd6fd`
+also passed deterministic replay, single/multi-instrument accounting, native
+order/fill/cost reports, engine lifecycle, 50% target allocation, and shared
+raw-order risk. Both receipts remain non-authoritative; forward parity remains
+deferred. Worktree-scoped cleanup left no runtime image, container, or volume.
+
+The package suite passes all 1,162 tests, MyPy passes across 340 package/runtime
+files, package/runtime Ruff checks pass, changed-file formatting passes, and
+`git diff --check` is clean. No release or upstream event blocks package-owned
+work. Stable Nautilus 2.x is not required by the current branch plan.
+
+Next: add authenticated strategy bindings and per-component context streams to
+the engine input/runtime bundle, validate each stream against the portfolio
+component, and feed all streams into this scheduler. Then collect same-event
+intent batches for one shared allocation/risk decision and preserve native
+order/fill/position attribution.
+
+Files changed in this slice:
+
+```text
+backend/app/strategy_lab_v2/nautilus_runtime_adapter_probe.py
+backend/app/strategy_lab_v2/nautilus_strategy_bridge.py
+backend/app/strategy_lab_v2/tests/test_nautilus_strategy_bridge.py
+ops/workstreams/feat-strategy-lab-v2/handoff.md
+ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+```
+
 ## 2026-10-04 - Shared component order-risk contract
 
 Extended the native-evidence order adapter with a multi-component path. It

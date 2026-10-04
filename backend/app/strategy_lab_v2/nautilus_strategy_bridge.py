@@ -9,6 +9,7 @@ its position snapshot with positions read from the running Nautilus portfolio.
 from __future__ import annotations
 
 import hashlib
+import heapq
 from collections import defaultdict, deque
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, replace
@@ -22,6 +23,7 @@ from app.strategy_lab_v2.nautilus_native_event_stream import (
     deserialize_nautilus_native_event_stream,
 )
 from app.strategy_lab_v2.nautilus_runtime_data import NautilusRuntimeDataError
+from app.strategy_lab_v2.sdk import StrategyContext
 
 
 def _datetime_microsecond_ns(value: datetime) -> int:
@@ -510,6 +512,100 @@ class NativeStrategyBridge:
     input_protocol: str
 
 
+@dataclass(frozen=True, slots=True)
+class ComponentContextTrigger:
+    """One component's SDK context scheduled on a native event callback."""
+
+    component_id: str
+    priority: int
+    context: StrategyContext
+
+
+@dataclass(frozen=True, slots=True)
+class ComponentContextTriggerGroup:
+    """Component callbacks sharing one native event, in deterministic order."""
+
+    trigger_index: int
+    contexts: tuple[ComponentContextTrigger, ...]
+
+
+def iter_component_context_trigger_groups(
+    triggers_by_component: Mapping[str, Iterable[tuple[int, StrategyContext]]],
+    priorities: Mapping[str, int],
+) -> Iterator[ComponentContextTriggerGroup]:
+    """Merge per-component context streams by native event and portfolio priority.
+
+    Each component may provide no more than one strategy context for a single
+    native callback. Component streams must advance strictly; same-event
+    contexts across different components are grouped and ordered by priority,
+    then component id. The merge is streaming and retains at most one context
+    from each component.
+    """
+
+    if not isinstance(triggers_by_component, Mapping) or not triggers_by_component:
+        raise NautilusRuntimeDataError("component context trigger streams are required")
+    if not isinstance(priorities, Mapping) or set(priorities) != set(triggers_by_component):
+        raise NautilusRuntimeDataError("component context priorities do not match trigger streams")
+
+    def checked_stream(
+        component_id: str,
+        source: Iterable[tuple[int, StrategyContext]],
+    ) -> Iterator[tuple[int, StrategyContext]]:
+        previous_index: int | None = None
+        for item in source:
+            if not isinstance(item, tuple) or len(item) != 2:
+                raise NautilusRuntimeDataError("component context trigger record is invalid")
+            trigger_index, context = item
+            if (
+                not isinstance(trigger_index, int)
+                or isinstance(trigger_index, bool)
+                or trigger_index < 0
+                or (previous_index is not None and trigger_index <= previous_index)
+            ):
+                raise NautilusRuntimeDataError(
+                    "component context triggers must advance one per native event"
+                )
+            if not isinstance(context, StrategyContext):
+                raise NautilusRuntimeDataError("component trigger context is invalid")
+            previous_index = trigger_index
+            yield trigger_index, context
+
+    streams: dict[str, Iterator[tuple[int, StrategyContext]]] = {}
+    heap: list[tuple[int, int, str, StrategyContext]] = []
+    for component_id, source in triggers_by_component.items():
+        priority = priorities[component_id]
+        if (
+            not isinstance(component_id, str)
+            or not component_id.strip()
+            or not isinstance(priority, int)
+            or isinstance(priority, bool)
+            or priority < 0
+            or not isinstance(source, Iterable)
+            or isinstance(source, str | bytes)
+        ):
+            raise NautilusRuntimeDataError("component context trigger binding is invalid")
+        stream = iter(checked_stream(component_id, source))
+        streams[component_id] = stream
+        first = next(stream, None)
+        if first is not None:
+            heapq.heappush(heap, (first[0], priority, component_id, first[1]))
+
+    while heap:
+        trigger_index = heap[0][0]
+        group: list[ComponentContextTrigger] = []
+        while heap and heap[0][0] == trigger_index:
+            _index, priority, component_id, context = heapq.heappop(heap)
+            group.append(ComponentContextTrigger(component_id, priority, context))
+            following = next(streams[component_id], None)
+            if following is not None:
+                heapq.heappush(
+                    heap,
+                    (following[0], priority, component_id, following[1]),
+                )
+        group.sort(key=lambda item: (item.priority, item.component_id))
+        yield ComponentContextTriggerGroup(trigger_index, tuple(group))
+
+
 def build_native_strategy_bridge(
     engine_input: Mapping[str, Any],
     instrument_definitions: Sequence[Mapping[str, Any]],
@@ -746,7 +842,11 @@ def build_native_strategy_bridge(
         else iter(event_definitions)
     )
 
-    current_trigger = next(context_triggers, None)
+    component_trigger_stream = iter_component_context_trigger_groups(
+        {allocation_component.component_id: context_triggers},
+        {allocation_component.component_id: allocation_component.priority},
+    )
+    current_trigger = next(component_trigger_stream, None)
     callback_index = 0
 
     invocation_session = StrategyInvocationSession(
@@ -960,14 +1060,21 @@ def build_native_strategy_bridge(
                 )
             context = None
             if current_trigger is not None:
-                trigger_index, next_context = current_trigger
-                if trigger_index < callback_index:
+                if current_trigger.trigger_index < callback_index:
                     raise NautilusRuntimeDataError(
                         "Nautilus did not invoke the expected strategy context callback"
                     )
-                if trigger_index == callback_index:
-                    context = next_context
-                    current_trigger = next(context_triggers, None)
+                if current_trigger.trigger_index == callback_index:
+                    if (
+                        len(current_trigger.contexts) != 1
+                        or current_trigger.contexts[0].component_id
+                        != allocation_component.component_id
+                    ):
+                        raise NautilusRuntimeDataError(
+                            "native component context multiplexer binding differs"
+                        )
+                    context = current_trigger.contexts[0].context
+                    current_trigger = next(component_trigger_stream, None)
             callback_index += 1
             latest_marks[str(instrument_id)] = (
                 _native_event_mark_price(event_type, event),
