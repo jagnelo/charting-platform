@@ -18,6 +18,7 @@ from app.strategy_lab_v2.rebalance import (
     SessionSegment,
     TradingSession,
     schedule_rebalances,
+    schedule_rebalances_for_interval,
 )
 
 CALENDAR_ID = "XNYS"
@@ -41,7 +42,9 @@ def _trading_day(
     session = TradingSession(
         session_id=f"XNYS:{label.isoformat()}",
         session_label=label,
-        segments=tuple(SessionSegment(open_time, close_time) for open_time, close_time in segments_local),
+        segments=tuple(
+            SessionSegment(open_time, close_time) for open_time, close_time in segments_local
+        ),
     )
     return CalendarDay(label, CalendarDayStatus.TRADING, session)
 
@@ -135,12 +138,77 @@ def test_monthly_schedule_uses_first_actual_sessions_after_explicit_holidays() -
     ]
     assert all(item.trigger is RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS for item in schedule)
     assert all(item.misfire_policy is RebalanceMisfirePolicy.SKIP_OCCURRENCE for item in schedule)
-    assert schedule[0].occurrence_id == schedule_rebalances(
+    assert (
+        schedule[0].occurrence_id
+        == schedule_rebalances(
+            calendar,
+            policy,
+            from_session_label=date(2024, 1, 1),
+            through_session_label=date(2024, 3, 31),
+        )[0].occurrence_id
+    )
+
+
+def test_interval_schedule_is_half_open_and_uses_exact_utc_boundaries() -> None:
+    calendar = _calendar(
+        date(2024, 1, 1),
+        date(2024, 3, 31),
+        {
+            date(2024, 1, 2): _trading_day(date(2024, 1, 2)),
+            date(2024, 2, 1): _trading_day(date(2024, 2, 1)),
+            date(2024, 3, 1): _trading_day(date(2024, 3, 1)),
+        },
+    )
+    policy = _policy(
+        calendar,
+        RebalanceCadence.MONTHLY,
+        RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+    )
+    schedule = schedule_rebalances_for_interval(
         calendar,
         policy,
         from_session_label=date(2024, 1, 1),
         through_session_label=date(2024, 3, 31),
-    )[0].occurrence_id
+        interval_start=datetime(2024, 1, 2, 14, 30, tzinfo=UTC),
+        interval_end=datetime(2024, 3, 1, 14, 30, tzinfo=UTC),
+    )
+
+    assert [item.session_label for item in schedule] == [date(2024, 1, 2), date(2024, 2, 1)]
+    assert schedule[0].event_time == datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
+
+
+def test_interval_schedule_rejects_naive_or_empty_interval() -> None:
+    calendar = _calendar(
+        date(2024, 1, 1),
+        date(2024, 1, 31),
+        {date(2024, 1, 2): _trading_day(date(2024, 1, 2))},
+    )
+    policy = _policy(
+        calendar,
+        RebalanceCadence.MONTHLY,
+        RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+    )
+    labels = {
+        "from_session_label": date(2024, 1, 1),
+        "through_session_label": date(2024, 1, 31),
+    }
+
+    with pytest.raises(ValueError, match="interval_start must be timezone-aware"):
+        schedule_rebalances_for_interval(
+            calendar,
+            policy,
+            **labels,
+            interval_start=datetime(2024, 1, 2, 14, 30),
+            interval_end=datetime(2024, 1, 3, 14, 30, tzinfo=UTC),
+        )
+    with pytest.raises(ValueError, match="interval_end must be after interval_start"):
+        schedule_rebalances_for_interval(
+            calendar,
+            policy,
+            **labels,
+            interval_start=datetime(2024, 1, 3, tzinfo=UTC),
+            interval_end=datetime(2024, 1, 2, tzinfo=UTC),
+        )
 
 
 def test_monthly_last_session_uses_early_close_and_close_after_all_segments() -> None:
@@ -293,7 +361,9 @@ def test_calendar_is_canonical_and_rejects_omitted_dates_and_stale_policy() -> N
             through_session_label=end,
         )
 
-    stale_policy = _policy(complete, RebalanceCadence.MONTHLY, RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS)
+    stale_policy = _policy(
+        complete, RebalanceCadence.MONTHLY, RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS
+    )
     with pytest.raises(ValueError, match="stale or mismatched"):
         schedule_rebalances(
             permuted,
@@ -318,8 +388,12 @@ def test_calendar_rejects_invalid_period_boundaries_and_malformed_segments() -> 
             "overlap",
             label,
             (
-                SessionSegment(datetime(2024, 1, 2, 9, tzinfo=UTC), datetime(2024, 1, 2, 12, tzinfo=UTC)),
-                SessionSegment(datetime(2024, 1, 2, 11, tzinfo=UTC), datetime(2024, 1, 2, 15, tzinfo=UTC)),
+                SessionSegment(
+                    datetime(2024, 1, 2, 9, tzinfo=UTC), datetime(2024, 1, 2, 12, tzinfo=UTC)
+                ),
+                SessionSegment(
+                    datetime(2024, 1, 2, 11, tzinfo=UTC), datetime(2024, 1, 2, 15, tzinfo=UTC)
+                ),
             ),
         )
 

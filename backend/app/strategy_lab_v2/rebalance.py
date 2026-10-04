@@ -311,10 +311,9 @@ def require_complete_calendar_period_coverage(
 ) -> None:
     if cadence is RebalanceCadence.EACH_SESSION:
         return
-    if (
-        calendar.coverage_start != _period_start(calendar.coverage_start, cadence)
-        or calendar.coverage_end != _period_end(calendar.coverage_end, cadence)
-    ):
+    if calendar.coverage_start != _period_start(
+        calendar.coverage_start, cadence
+    ) or calendar.coverage_end != _period_end(calendar.coverage_end, cadence):
         raise ValueError(
             "calendar coverage must include complete cadence periods so omitted sessions "
             "cannot be mistaken for holidays"
@@ -369,10 +368,7 @@ def schedule_rebalances(
 
     selected: list[tuple[str, TradingSession]] = []
     if policy.cadence is RebalanceCadence.EACH_SESSION:
-        selected = [
-            (period, sessions[0])
-            for period, sessions in sessions_by_period.items()
-        ]
+        selected = [(period, sessions[0]) for period, sessions in sessions_by_period.items()]
     else:
         for period, sessions in sessions_by_period.items():
             session = (
@@ -415,3 +411,46 @@ def schedule_rebalances(
             )
         )
     return tuple(scheduled)
+
+
+def schedule_rebalances_for_interval(
+    calendar: SessionCalendarSnapshot,
+    policy: CalendarRebalancePolicy,
+    *,
+    from_session_label: date,
+    through_session_label: date,
+    interval_start: datetime,
+    interval_end: datetime,
+) -> tuple[ScheduledRebalance, ...]:
+    """Return only schedule boundaries inside one half-open evaluation interval.
+
+    The caller supplies the venue-local session-label range derived from its
+    frozen data/evaluation contract. Calendar planning still validates complete
+    cadence-period coverage and exact calendar identity; this final filter binds
+    occurrences to the actual UTC interval the trial is allowed to execute.
+    Warm-up occurrences before ``interval_start`` and boundaries at or after
+    ``interval_end`` are excluded.
+    """
+
+    if not isinstance(interval_start, datetime):
+        raise TypeError("interval_start must be a datetime")
+    if not isinstance(interval_end, datetime):
+        raise TypeError("interval_end must be a datetime")
+    if interval_start.tzinfo is None or interval_start.utcoffset() is None:
+        raise ValueError("interval_start must be timezone-aware")
+    if interval_end.tzinfo is None or interval_end.utcoffset() is None:
+        raise ValueError("interval_end must be timezone-aware")
+    normalized_start = interval_start.astimezone(UTC)
+    normalized_end = interval_end.astimezone(UTC)
+    if normalized_end <= normalized_start:
+        raise ValueError("interval_end must be after interval_start")
+    return tuple(
+        occurrence
+        for occurrence in schedule_rebalances(
+            calendar,
+            policy,
+            from_session_label=from_session_label,
+            through_session_label=through_session_label,
+        )
+        if normalized_start <= occurrence.event_time < normalized_end
+    )
