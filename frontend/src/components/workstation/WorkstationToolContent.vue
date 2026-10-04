@@ -3355,7 +3355,7 @@ const configuredColumnKeys = computed(() => {
 const configuredFilterText = computed(() => typeof props.tool.configuration.filter_text === 'string' ? props.tool.configuration.filter_text : '')
 const configuredConditionScreenerId = computed(() => Number.isInteger(props.tool.configuration.condition_screener_id) ? props.tool.configuration.condition_screener_id as number : null)
 const configuredConditionFilterMode = computed(() => ['active', 'inactive', 'off'].includes(String(props.tool.configuration.condition_filter_mode)) ? props.tool.configuration.condition_filter_mode as 'active' | 'inactive' | 'off' : 'off')
-const configuredPinnedBooleanKeys = computed(() => Array.isArray(props.tool.configuration.pinned_boolean_keys) ? props.tool.configuration.pinned_boolean_keys.filter((key): key is string => typeof key === 'string') : [])
+const configuredPinnedBooleanKeys = computed(() => Array.isArray(liveToolConfiguration.value.pinned_boolean_keys) ? liveToolConfiguration.value.pinned_boolean_keys.filter((key): key is string => typeof key === 'string') : [])
 const configuredColumnGroups = computed(() => {
   const groups = props.tool.configuration.column_groups
   if (!groups || typeof groups !== 'object' || Array.isArray(groups)) return {}

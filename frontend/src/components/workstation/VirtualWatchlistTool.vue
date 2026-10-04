@@ -1,5 +1,5 @@
 <template>
-  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--condition-open': Boolean(conditionFilterState || pythonConditionState), 'watchlist--grouped': hasColumnGroups, 'watchlist--plot-drop-active': plotDropActive }" :aria-label="label" :aria-busy="loading ? 'true' : 'false'" :data-row-count="filteredRows.length" :data-rendered-row-count="virtualItems.length" :data-row-budget="workstationRowBudgetState(filteredRows.length)" @click="contextMenu = null" @keydown.esc="handleWatchlistEscape" @dragenter.prevent="dragOverPlot" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
+  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--condition-open': Boolean(conditionFilterState || pythonConditionState), 'watchlist--grouped': hasColumnGroups, 'watchlist--plot-drop-active': plotDropActive }" :aria-label="label" :aria-busy="loading ? 'true' : 'false'" :data-row-count="filteredRows.length" :data-rendered-row-count="virtualItems.length" :data-row-budget="workstationRowBudgetState(filteredRows.length)" @click="contextMenu = null; pinContextMenu = null" @keydown.esc="handleWatchlistEscape" @dragenter.prevent="dragOverPlot" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
     <p v-if="plotDropActive" class="watchlist__plot-drop-hint" role="status" aria-live="polite" aria-atomic="true">Drop to add the chart plot as a numeric column</p>
     <p v-if="dropError" class="watchlist__drop-error" role="alert" aria-live="assertive" aria-atomic="true">{{ dropError }}</p>
     <p v-if="loading" class="watchlist__loading-status" role="status" aria-live="polite" aria-atomic="true">{{ loadingLabel }}</p>
@@ -56,10 +56,10 @@
         <template v-for="item in columnRenderItems" :key="item.column.key">
         <div class="watchlist__header-cell" :style="columnCellStyle(item)" @mousedown.capture="handleColumnMouseDown($event, item)">
           <div v-if="item.column.key === stackedColumnKey" class="watchlist__stack-header">
-            <button v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" type="button" :aria-label="sortButtonLabel(stackedColumn.key, stackedColumn.label)" :aria-pressed="sortKey === stackedColumn.key ? 'true' : 'false'" @click="toggleSort(stackedColumn.key)"><em v-if="columnGroups[stackedColumn.key]">{{ columnGroups[stackedColumn.key] }}</em>{{ stackedColumn.label }}<small v-if="sortKey === stackedColumn.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small></button>
+            <button v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" type="button" :aria-label="sortButtonLabel(stackedColumn.key, stackedColumn.label)" :aria-pressed="sortKey === stackedColumn.key ? 'true' : 'false'" :aria-haspopup="stackedColumn.kind === 'boolean' ? 'menu' : undefined" :aria-expanded="stackedColumn.kind === 'boolean' ? (pinContextMenu?.key === stackedColumn.key ? 'true' : 'false') : undefined" @click="handleColumnHeaderClick($event, stackedColumn)" @contextmenu="openColumnPinContextMenu($event, stackedColumn)"><em v-if="columnGroups[stackedColumn.key]">{{ columnGroups[stackedColumn.key] }}</em>{{ stackedColumn.label }}<WorkstationGlyph v-if="isBooleanColumnPinned(stackedColumn.key)" kind="pin" title="Pinned to top" /><small v-if="sortKey === stackedColumn.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small></button>
           </div>
-          <button v-else type="button" :aria-label="sortButtonLabel(item.column.key, item.column.label)" :aria-pressed="sortKey === item.column.key ? 'true' : 'false'" @click="toggleSort(item.column.key)">
-            <em v-if="columnGroups[item.column.key]">{{ columnGroups[item.column.key] }}</em>{{ item.column.label }}<small v-if="sortKey === item.column.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small>
+          <button v-else type="button" :aria-label="sortButtonLabel(item.column.key, item.column.label)" :aria-pressed="sortKey === item.column.key ? 'true' : 'false'" :aria-haspopup="item.column.kind === 'boolean' ? 'menu' : undefined" :aria-expanded="item.column.kind === 'boolean' ? (pinContextMenu?.key === item.column.key ? 'true' : 'false') : undefined" @click="handleColumnHeaderClick($event, item.column)" @contextmenu="openColumnPinContextMenu($event, item.column)">
+            <em v-if="columnGroups[item.column.key]">{{ columnGroups[item.column.key] }}</em>{{ item.column.label }}<WorkstationGlyph v-if="isBooleanColumnPinned(item.column.key)" kind="pin" title="Pinned to top" /><small v-if="sortKey === item.column.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small>
           </button>
           <span v-if="item.column.key !== stackedColumnKey" class="watchlist__column-resize-handle" role="separator" tabindex="0" aria-orientation="horizontal" :aria-valuemin="48" :aria-valuemax="600" :aria-valuenow="columnWidths[item.index]" :aria-valuetext="`${columnWidths[item.index]} pixels`" :aria-label="`Resize ${item.column.label} column`" @mousedown.prevent.stop="beginColumnMouseResize($event, item)" @keydown.stop="handleColumnResizeKeydown($event, item)" />
         </div>
@@ -127,6 +127,10 @@
         <button type="button" role="menuitem" tabindex="-1" :disabled="!canMoveToTarget" @click="runContextAction('move-to-watchlist')">{{ contextSelectionRows.length > 1 ? `Move ${contextSelectionRows.length} selected to list` : 'Move to list' }}</button>
       </template>
       <button v-if="allowRemove" type="button" role="menuitem" tabindex="-1" @click="runContextAction('remove')">Remove from list</button>
+    </div>
+    <div v-if="pinContextMenu" ref="pinContextMenuRoot" class="watchlist__context-menu watchlist__pin-context-menu" role="menu" :aria-label="`Column actions for ${pinContextMenu.label}`" :style="{ left: `${pinContextMenu.left}px`, top: `${pinContextMenu.top}px` }" @click.stop @keydown="handlePinContextMenuKeydown">
+      <strong>{{ pinContextMenu.label }}</strong>
+      <button ref="pinMenuItem" type="button" role="menuitem" tabindex="0" @click="applyColumnPinMenuAction">{{ isBooleanColumnPinned(pinContextMenu.key) ? 'Unpin from Top (ctrl-click)' : 'Pin to Top (ctrl-click)' }}</button>
     </div>
   </section>
 </template>
@@ -281,6 +285,10 @@ const keyboardActiveSymbol = ref<string | null>(props.selected || null)
 const contextMenu = ref<{ row: WatchlistRow; left: number; top: number } | null>(null)
 const contextMenuRoot = ref<HTMLElement | null>(null)
 const contextRowElement = ref<HTMLElement | null>(null)
+const pinContextMenu = ref<{ key: string; label: string; left: number; top: number } | null>(null)
+const pinContextMenuRoot = ref<HTMLElement | null>(null)
+const pinMenuItem = ref<HTMLButtonElement | null>(null)
+const pinMenuTriggerElement = ref<HTMLButtonElement | null>(null)
 const columnMenuTrigger = ref<HTMLButtonElement | null>(null)
 const columnMenuRoot = ref<HTMLElement | null>(null)
 const columnSetMenuTrigger = ref<HTMLButtonElement | null>(null)
@@ -466,6 +474,7 @@ function handleWatchlistEscape(event: KeyboardEvent) {
     return
   }
   if (columnSetMenuOpen.value) closeEditorToTrigger('sets')
+  else if (pinContextMenu.value) closePinContextMenu()
   else closeContextMenuToRow()
 }
 type PythonColumn = { code_version_id: number; name: string; timeframe?: string }
@@ -1375,8 +1384,20 @@ function toggleSort(key: string) {
   }
 }
 function sortButtonLabel(key: string, label: string) {
-  if (sortKey.value !== key) return `Sort by ${label}`
-  return `Sort by ${label}, ${sortDirection.value === 'asc' ? 'ascending' : 'descending'}`
+  const pinned = isBooleanColumnPinned(key) ? ', pinned to top' : ''
+  if (sortKey.value !== key) return `Sort by ${label}${pinned}`
+  return `Sort by ${label}, ${sortDirection.value === 'asc' ? 'ascending' : 'descending'}${pinned}`
+}
+function handleColumnHeaderClick(event: MouseEvent, column: WatchlistColumn) {
+  if (column.kind === 'boolean' && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault()
+    event.stopPropagation()
+    contextMenu.value = null
+    closePinContextMenu(false)
+    togglePinnedBoolean(column.key)
+    return
+  }
+  toggleSort(column.key)
 }
 
 function selectRow(row: WatchlistRow, event: MouseEvent) {
@@ -1413,10 +1434,55 @@ function openContextMenu(event: MouseEvent | KeyboardEvent, row: WatchlistRow) {
   const clientX = event.type === 'keydown' ? rowBounds.left : (event as MouseEvent).clientX
   const clientY = event.type === 'keydown' ? rowBounds.bottom : (event as MouseEvent).clientY
   contextRowElement.value = rowElement
+  pinContextMenu.value = null
   membershipTargetId.value = ''
   membershipInspectionOpen.value = false
   contextMenu.value = { row, left: Math.max(2, clientX - (bounds?.left ?? 0)), top: Math.max(2, clientY - (bounds?.top ?? 0)) }
   void nextTick(() => focusContextMenuItem(0))
+}
+
+function openColumnPinContextMenu(event: MouseEvent, column: WatchlistColumn) {
+  if (column.kind !== 'boolean') return
+  event.preventDefault()
+  event.stopPropagation()
+  const trigger = event.currentTarget as HTMLButtonElement
+  const bounds = trigger.closest('.watchlist')?.getBoundingClientRect()
+  const triggerBounds = trigger.getBoundingClientRect()
+  const left = event.clientX || triggerBounds.left
+  const top = event.clientY || triggerBounds.bottom
+  contextMenu.value = null
+  pinMenuTriggerElement.value = trigger
+  pinContextMenu.value = {
+    key: column.key,
+    label: column.label,
+    left: Math.max(2, left - (bounds?.left ?? 0)),
+    top: Math.max(2, top - (bounds?.top ?? 0)),
+  }
+  void nextTick(() => pinMenuItem.value?.focus())
+}
+
+function closePinContextMenu(restoreFocus = true) {
+  if (!pinContextMenu.value) return
+  pinContextMenu.value = null
+  if (restoreFocus) void nextTick(() => pinMenuTriggerElement.value?.focus())
+}
+
+function handlePinContextMenuKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    event.stopPropagation()
+    closePinContextMenu()
+  } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
+    event.preventDefault()
+    pinMenuItem.value?.focus()
+  }
+}
+
+function applyColumnPinMenuAction() {
+  const key = pinContextMenu.value?.key
+  if (!key) return
+  togglePinnedBoolean(key)
+  closePinContextMenu()
 }
 
 function openContextMarketMap() {
@@ -1546,6 +1612,10 @@ function dropColumn(targetKey: string) {
 function togglePinnedBoolean(key: string) {
   const current = props.pinnedBooleanKeys
   emit('update:pinnedBooleanKeys', current.includes(key) ? current.filter(item => item !== key) : [...current, key])
+}
+
+function isBooleanColumnPinned(key: string) {
+  return props.pinnedBooleanKeys.includes(key)
 }
 
 function setColumnGroup(key: string, value: string) {

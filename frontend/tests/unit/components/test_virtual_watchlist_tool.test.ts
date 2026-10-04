@@ -1093,6 +1093,44 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('update:pinnedBooleanKeys')?.at(-1)).toEqual([[]])
   })
 
+  it('pins Boolean columns from the TC2000 header context menu and ctrl-click gesture', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      attachTo: document.body,
+      props: {
+        label: 'Sectors', rows,
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'signal', label: 'Signal', kind: 'boolean' }],
+      },
+    })
+    const header = wrapper.get('button[aria-label="Sort by Signal"]')
+    expect(header.attributes('aria-haspopup')).toBe('menu')
+    expect(header.attributes('aria-expanded')).toBe('false')
+    expect(header.attributes('aria-pressed')).toBe('false')
+
+    await header.trigger('contextmenu', { clientX: 22, clientY: 30 })
+    const menu = wrapper.get('[role="menu"][aria-label="Column actions for Signal"]')
+    const pinAction = menu.get('[role="menuitem"]')
+    expect(pinAction.text()).toBe('Pin to Top (ctrl-click)')
+    expect(pinAction.element).toBe(document.activeElement)
+    await pinAction.trigger('keydown', { key: 'Escape' })
+    expect(wrapper.find('[role="menu"][aria-label="Column actions for Signal"]').exists()).toBe(false)
+    expect(header.element).toBe(document.activeElement)
+
+    await header.trigger('contextmenu', { clientX: 22, clientY: 30 })
+    await wrapper.get('[role="menuitem"]').trigger('click')
+    expect(wrapper.emitted('update:pinnedBooleanKeys')?.at(-1)).toEqual([['signal']])
+    expect(header.attributes('aria-pressed')).toBe('false')
+    await wrapper.setProps({ pinnedBooleanKeys: ['signal'] })
+    expect(header.attributes('aria-label')).toBe('Sort by Signal, pinned to top')
+    expect(header.find('.workstation-glyph--pin').exists()).toBe(true)
+
+    await header.trigger('click', { ctrlKey: true })
+    expect(wrapper.emitted('update:pinnedBooleanKeys')?.at(-1)).toEqual([[]])
+    expect(header.attributes('aria-pressed')).toBe('false')
+    expect(wrapper.find('.watchlist__pin-context-menu').exists()).toBe(false)
+    expect(wrapper.findAll('.watchlist__header button')[0].attributes('aria-pressed')).toBe('true')
+    wrapper.unmount()
+  })
+
   it('persists column grouping without changing virtualized canonical row identity', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {

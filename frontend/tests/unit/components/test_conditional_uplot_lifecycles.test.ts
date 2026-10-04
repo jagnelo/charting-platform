@@ -78,12 +78,15 @@ describe('conditional uPlot lifecycle contracts', () => {
     const drawBand = options.plugins?.[0]?.hooks?.draw?.[0]
     expect(drawBand).toBeTypeOf('function')
     const chart = vi.mocked(uPlot).mock.results[0]?.value as uPlot
+    let lineToCalls = 0
+    chart.valToPos = () => 100
+    chart.ctx.lineTo = () => { lineToCalls += 1 }
     chart.ctx.closePath = vi.fn()
     chart.ctx.fill = vi.fn()
     const started = performance.now()
     drawBand?.(chart)
     expect(performance.now() - started).toBeLessThan(1_000)
-    expect(chart.ctx.lineTo).toHaveBeenCalledTimes(pointCount * 2 - 1)
+    expect(lineToCalls).toBe(pointCount * 2 - 1)
     wrapper.unmount()
   }, 10_000)
 

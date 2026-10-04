@@ -5711,6 +5711,18 @@ test.describe('TC2000 workstation', () => {
     // the proof to that wrapper's label.
     const promotedHeader = page.locator('.watchlist__header button').filter({ hasText: 'RSI Boolean column' }).last()
     await expect(promotedHeader).toBeVisible({ timeout: 15_000 })
+    await expect(promotedHeader).toHaveAttribute('aria-pressed', 'false')
+    await promotedHeader.click({ button: 'right' })
+    const pinMenu = page.getByRole('menu', { name: 'Column actions for RSI Boolean column' })
+    await expect(pinMenu).toBeVisible()
+    await pinMenu.getByRole('menuitem', { name: 'Pin to Top (ctrl-click)' }).click()
+    await expect(promotedHeader).toHaveAttribute('aria-label', /pinned to top/)
+    await expect(promotedHeader.locator('.workstation-glyph--pin')).toBeVisible()
+    await expect(promotedHeader).toHaveAttribute('aria-pressed', 'false')
+    await promotedHeader.click({ modifiers: ['Control'] })
+    await expect(promotedHeader).toHaveAttribute('aria-label', 'Sort by RSI Boolean column')
+    await expect(promotedHeader.locator('.workstation-glyph--pin')).toHaveCount(0)
+    await expect(promotedHeader).toHaveAttribute('aria-pressed', 'false')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
