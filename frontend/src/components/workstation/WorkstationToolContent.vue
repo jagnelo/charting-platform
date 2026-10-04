@@ -658,7 +658,28 @@
         <button type="button" :disabled="(breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null) || (breadthComposition === 'tree' && breadthTreePythonSeriesLeaf !== null && pythonLeafAnchorId(breadthTreePythonSeriesLeaf) == null)" @click="runGenericBreadth">Evaluate</button>
         <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
         <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
-        <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
+        <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadth.excluded_count }} excluded · {{ genericBreadth.requested_count }} requested · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
+        <details v-if="genericBreadth" class="breadth-tool__generic-evidence" aria-label="Generic breadth result evidence">
+          <summary>Snapshot evidence</summary>
+          <dl>
+            <div><dt>Universe</dt><dd>{{ genericBreadthUniverseLabel }}</dd></div>
+            <div><dt>Membership version</dt><dd>{{ genericBreadthMembershipVersion }}</dd></div>
+            <div><dt>Observations</dt><dd>{{ genericBreadthObservationLabel }}</dd></div>
+            <div><dt>Sampling</dt><dd>{{ breadthTimeframeLabel }} · {{ breadthAdjusted ? 'split adjusted' : 'raw' }}</dd></div>
+            <div><dt>Data source</dt><dd>{{ genericBreadthProvenanceLabel }}</dd></div>
+            <div><dt>Freshness</dt><dd>{{ genericBreadthFreshnessLabel }}</dd></div>
+            <div v-if="genericBreadthFreshnessBreakdown"><dt>Freshness details</dt><dd>{{ genericBreadthFreshnessBreakdown }}</dd></div>
+            <div v-if="genericBreadth.calculation_version"><dt>Calculation</dt><dd>{{ genericBreadth.calculation_version }}</dd></div>
+            <div><dt>Definition</dt><dd><code>{{ genericBreadth.definition_hash }}</code></dd></div>
+          </dl>
+          <section aria-label="Generic breadth excluded member reasons">
+            <strong>Exclusions</strong>
+            <ul v-if="genericBreadthExclusionReasons.length">
+              <li v-for="reason in genericBreadthExclusionReasons" :key="reason.code + reason.message">{{ reason.message }} · {{ reason.count }} member{{ reason.count === 1 ? '' : 's' }}</li>
+            </ul>
+            <small v-else>No exclusion details were returned.</small>
+          </section>
+        </details>
         <div v-if="genericBreadth && !breadthUsesPython" class="breadth-tool__definition-actions" aria-label="Reusable breadth definition">
           <input v-model.trim="genericBreadthDefinitionName" aria-label="Breadth reusable definition name" placeholder="Definition name" maxlength="160" />
           <button type="button" :disabled="genericBreadthDefinitionSaving || !genericBreadthDefinitionName" @click="saveGenericBreadthDefinition">{{ genericBreadthDefinitionSaving ? 'Saving…' : 'Save as Study Lab definition' }}</button>
@@ -2333,6 +2354,8 @@ function asGenericBreadthState(state: NonNullable<typeof breadthPythonSeriesStat
   return {
     definition_version: 1,
     definition_hash: state.definition_hash,
+    calculation_version: state.calculation_version,
+    data_provenance: state.data_provenance,
     universe: state.universe,
     condition: state.condition,
     timeframe: String(state.dataset_manifest.timeframe ?? breadthTimeframe.value),
@@ -2347,7 +2370,6 @@ function asGenericBreadthState(state: NonNullable<typeof breadthPythonSeriesStat
     group_value: current?.group_value ?? null,
     members: current?.members ?? [],
     exclusions: current?.exclusions ?? [],
-    freshness: 'coverage_limited',
   }
 }
 
@@ -2728,6 +2750,53 @@ const genericBreadthError = computed(() => {
 })
 const genericBreadthPercentage = computed(() => genericBreadth.value?.percentage == null ? 'Unavailable' : `${(genericBreadth.value.percentage * 100).toFixed(1)}%`)
 const genericBreadthCoverage = computed(() => genericBreadth.value == null ? 'Unavailable' : `${(genericBreadth.value.coverage * 100).toFixed(1)}%`)
+const breadthTimeframeLabel = computed(() => ({ D1: 'Daily', W1: 'Weekly', MN: 'Monthly' }[genericBreadth.value?.timeframe ?? ''] ?? genericBreadth.value?.timeframe ?? 'Unavailable'))
+const genericBreadthUniverseLabel = computed(() => {
+  const universe = genericBreadth.value?.universe
+  if (!universe) return 'Unavailable'
+  const kind = typeof universe.kind === 'string' ? universe.kind.replace(/[_-]+/g, ' ') : 'Universe'
+  const identity = [universe.name, universe.stable_key, universe.etf_symbol, universe.family_key, universe.key, universe.source_id]
+    .find(value => typeof value === 'string' && value.trim())
+  const role = typeof universe.role === 'string' ? universe.role.replace(/[_-]+/g, ' ') : null
+  const proxy = typeof universe.proxy_symbol === 'string' ? 'proxy ' + universe.proxy_symbol : null
+  return [kind, identity, role, proxy].filter((value): value is string => typeof value === 'string' && value.length > 0).join(' · ')
+})
+const genericBreadthMembershipVersion = computed(() => {
+  const version = genericBreadth.value?.universe.membership_version
+  return typeof version === 'string' || typeof version === 'number' ? String(version) : 'Not reported'
+})
+const genericBreadthObservationLabel = computed(() => {
+  const timestamps = (genericBreadth.value?.members ?? [])
+    .map(member => member.observation_time)
+    .filter((value): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)))
+  const dates = [...new Set(timestamps.map(value => new Date(value).toISOString().slice(0, 10)))].sort()
+  if (!dates.length) return 'No member observation dates reported'
+  if (dates.length === 1) return dates[0] + ' · ' + timestamps.length + ' member observation' + (timestamps.length === 1 ? '' : 's')
+  return dates[0] + ' to ' + dates[dates.length - 1] + ' · ' + dates.length + ' distinct dates'
+})
+const genericBreadthProvenanceLabel = computed(() => {
+  const provenance = genericBreadth.value?.data_provenance
+  if (!provenance) return 'Not reported by this run'
+  if (provenance === 'canonical_local_database') return 'Canonical local database'
+  return provenance.replace(/[_-]+/g, ' ')
+})
+const genericBreadthFreshnessLabel = computed(() => genericBreadth.value?.freshness
+  ? formatWorkstationFreshness(genericBreadth.value.freshness)
+  : 'Not reported by this run')
+const genericBreadthFreshnessBreakdown = computed(() => Object.entries(genericBreadth.value?.freshness_detail ?? {})
+  .filter(([, count]) => Number.isFinite(count))
+  .map(([key, count]) => key.replace(/[_-]+/g, ' ') + ': ' + count)
+  .join(' · '))
+const genericBreadthExclusionReasons = computed(() => {
+  const grouped = new Map<string, { code: string; message: string; count: number }>()
+  for (const exclusion of genericBreadth.value?.exclusions ?? []) {
+    const key = exclusion.code + '\u0000' + exclusion.message
+    const current = grouped.get(key)
+    if (current) current.count += 1
+    else grouped.set(key, { code: exclusion.code, message: exclusion.message, count: 1 })
+  }
+  return [...grouped.values()].slice(0, 5)
+})
 const genericBreadthMemberState = ref<'pass' | 'fail'>('pass')
 const genericBreadthDefinitionName = ref('')
 const genericBreadthDefinitionSaving = ref(false)
@@ -3805,6 +3874,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .breadth-tool__generic-history-events { position: relative; z-index: 2; }
 .breadth-tool__member-diagnostics { flex:1 1 100%; margin-left:0 !important; color:#d0a66a !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .breadth-tool__generic-diagnostics { max-height:110px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; color:#d0a66a; font:9px "Segoe UI",Arial,sans-serif; }.breadth-tool__generic-diagnostics header { display:flex; justify-content:space-between; padding:4px 7px; position:sticky; top:0; background:#20282f; color:#9aabb6; }.breadth-tool__generic-diagnostics header span { color:#778994; }.breadth-tool__generic-diagnostics > div:not(header) { padding:2px 7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.breadth-tool__generic-evidence { padding:2px 7px 4px; border-top:1px solid #2b3841; color:#8497a4; font:9px "Segoe UI",Arial,sans-serif; }.breadth-tool__generic-evidence summary { width:max-content; color:#9aabb6; cursor:pointer; }.breadth-tool__generic-evidence dl { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:2px 8px; margin:5px 0; }.breadth-tool__generic-evidence dl > div { display:contents; }.breadth-tool__generic-evidence dt { color:#778994; }.breadth-tool__generic-evidence dd { min-width:0; margin:0; color:#b9c8d1; overflow-wrap:anywhere; }.breadth-tool__generic-evidence code { color:#9bb6c3; overflow-wrap:anywhere; }.breadth-tool__generic-evidence section > strong { color:#9aabb6; }.breadth-tool__generic-evidence ul { margin:3px 0 0; padding-left:18px; }.breadth-tool__generic-evidence li { margin-top:2px; }
 @container (max-width: 560px) {
   .breadth-tool__universe { flex-wrap:wrap; row-gap:4px; }
   .breadth-tool__universe > select { flex:1 1 100px; }

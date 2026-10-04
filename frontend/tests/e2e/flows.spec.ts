@@ -4922,7 +4922,7 @@ test.describe('TC2000 workstation', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ definition_version: 1, definition_hash: 'family-breadth', universe: { kind: 'benchmark_family', family_key: 'sp500', role: 'equal_weight', proxy_symbol: 'RSP' }, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, percentage: 1, coverage: 1, members: [{ instrument_id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', value: true, metric: 0.12, observation_time: '2026-06-27T00:00:00Z', diagnostics: [{ path: '$', kind: 'all', status: 'pass', value: true, metric: 0.12 }, { path: '$.conditions[0]', kind: 'comparison', status: 'pass', value: true, metric: 0.12 }] }], exclusions: [] }),
+        body: JSON.stringify({ calculation_version: 'analysis-v1', data_provenance: 'canonical_local_database', refreshed_at: '2026-06-28T00:00:00Z', freshness: 'partial', freshness_detail: { bars_ready: 1, bars_missing: 1 }, definition_version: 1, definition_hash: 'family-breadth', universe: { kind: 'benchmark_family', family_key: 'sp500', role: 'equal_weight', proxy_symbol: 'RSP', membership_version: 42 }, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', as_of: '2026-06-27T00:00:00Z', requested_count: 2, eligible_count: 1, pass_count: 1, excluded_count: 1, percentage: 1, coverage: 0.5, members: [{ instrument_id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', value: true, metric: 0.12, observation_time: '2026-06-27T00:00:00Z', diagnostics: [{ path: '$', kind: 'all', status: 'pass', value: true, metric: 0.12 }, { path: '$.conditions[0]', kind: 'comparison', status: 'pass', value: true, metric: 0.12 }] }], exclusions: [{ code: 'missing_bars', message: 'One member has no aligned D1 bars.', instrument_id: 2 }] }),
       })
     })
     await page.route('**/api/v1/analysis/breadth/history', async route => {
@@ -5245,6 +5245,17 @@ test.describe('TC2000 workstation', () => {
     await customUniverse.selectOption('benchmark_family')
     const initialRequest = await evaluateCustomBreadth()
     expect(initialRequest?.universe).toMatchObject({ kind: 'benchmark_family', key: 'sp500', role: 'equal_weight' })
+    await expect(breadth.locator('.breadth-tool__custom-result')).toContainText('1 excluded · 2 requested · 50.0% coverage')
+    const evidence = breadth.locator('[aria-label="Generic breadth result evidence"]')
+    await evidence.locator('summary').click()
+    await expect(evidence).toContainText('benchmark family · sp500 · equal weight · proxy RSP')
+    await expect(evidence.locator('dt').filter({ hasText: 'Membership version' })).toBeVisible()
+    await expect(evidence.locator('dd').filter({ hasText: /^42$/ })).toBeVisible()
+    await expect(evidence).toContainText('2026-06-27 · 1 member observation')
+    await expect(evidence).toContainText('Canonical local database')
+    await expect(evidence).toContainText('Partial coverage')
+    await expect(evidence).toContainText('bars missing: 1')
+    await expect(evidence.locator('[aria-label="Generic breadth excluded member reasons"]')).toContainText('One member has no aligned D1 bars.')
     await breadth.getByLabel('Breadth reusable definition name').fill('SPY breadth participation')
     await breadth.getByRole('button', { name: 'Save as Study Lab definition' }).click()
     await expect(breadth).toContainText('Saved immutable Study Lab definition.', { timeout: 10_000 })

@@ -706,6 +706,8 @@ export interface BreadthHistoryState {
 export interface GenericBreadthState {
   definition_version: number
   definition_hash: string
+  calculation_version?: string
+  data_provenance?: string
   universe: Record<string, unknown>
   condition: Record<string, unknown>
   timeframe: string
