@@ -9001,6 +9001,58 @@ Changed source paths: `backend/app/strategy_lab_v2/application.py`,
 `ops/workstreams/feat-strategy-lab-v2/session.json`, and
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
 
+## 2026-10-04 - Native signed fixed-per-fill fee reconciliation
+
+The engine-neutral venue contract now optionally carries a typed, immutable,
+fingerprinted fixed-per-fill commission/rebate definition. Its currency must be
+funded by the initial account cash, its canonical wire representation is bound
+into the runtime bundle digest, and the isolated runtime materializes only this
+platform-controlled deterministic fee model (not user-supplied callbacks).
+The engine input contract advanced to v6. Nautilus RC5's native `FeeModel`
+subclass applies both positive commissions and signed rebates to actual fills.
+
+The exact-source isolated RC5 build and network-disabled fixture suite passed.
+Native evidence joined four fills/orders/trade IDs across two closed cycles,
+including an archived position snapshot. With USD 1.00 per fill, native gross
+P&L was USD 395.00, cost deductions USD 4.00, and net USD 391.00. With a USD
+1.00 rebate per fill, gross remained USD 395.00, cost deductions were zero,
+rebates USD 4.00, and net USD 399.00; both cases reconciled exactly to native
+account P&L. Overall evidence remains `authoritative: false` until the complete
+platform authority and data-capability gates pass; RCs remain prohibited from
+broker/real-capital control and forward shadow remains separately gated.
+
+Exact RC5 evidence: source `sha256:bfe2ba4911ed05975c702622c99e39858bb485de38b57160b73317f4cb48625a`,
+runtime image `sha256:dd746072b14b690d04563ca5b7cbd162eeac2b6cc31554229395fe2f202227fe`,
+receipt artifact `sha256:608645a0f7d9d60b0b84012ab32959738f1d79fc0d15475ebcc8c9c422f0603`,
+and conformance fingerprint
+`sha256:34d6527b28bff9cb34c2ca229c6ddbb1dbace169ee5693d4496be95ca700c307`.
+The full Strategy Lab suite passed 1,299 tests, including local-socket RPC
+coverage. Ruff passed package checks, all 13 changed Python files passed
+format-check, MyPy passed across 359 sources, and `git diff --check` passed.
+
+No stable Nautilus 2.x release is required by the plan: exact-pinned pre-release
+builds are eligible after conformance. Docker Buildx remains a host-only gate
+for final Compose/browser validation; provider/ETF/TC2000-owned shared contracts
+remain staging-gated. Neither blocks continuing package-owned work.
+
+Next: continue broad metric acceptance, any remaining domain-backed mutation
+flows, worker recovery/scaling, and persistent broker-free forward-shadow
+correctness. Keep data capability fail-closed until canonical upstream
+contracts are available, and run the full Compose/browser gate when Buildx is
+available.
+
+Changed source paths: `backend/app/strategy_lab_v2/nautilus_engine_input.py`,
+`backend/app/strategy_lab_v2/nautilus_rc_fixture_probe.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_adapter.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_adapter_probe.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_bundle.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_data.py`, and their focused tests.
+Changed workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
 ## 2026-10-04 - Native component P&L RC5 reconciliation
 
 Completed the in-progress component-attribution slice against the actual
