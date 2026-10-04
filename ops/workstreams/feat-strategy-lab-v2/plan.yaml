@@ -829,39 +829,37 @@ progress:
     - nautilus-scope-qualified-backtest-authority-v1
     - nautilus-oos-absolute-drawdown-v1
     - nautilus-oos-session-risk-metric-wiring-v1
+    - nautilus-oos-session-close-intervals-v1
   total: 18
-  current_phase: nautilus-scope-qualified-rc-authority-v2
+  current_phase: strategy-domain-mutation-flows-v1
   current_blocker: >-
-    No upstream Nautilus release blocks local simulation. An exact-pinned
-    stable or release-candidate build may qualify for authoritative backtests
-    after four backtest checks, or broker-free full/forward shadow after all
-    five checks including event-tape parity; a stable release label is not
-    required. The current RC5 evidence covers the four backtest checks, not
-    forward parity. Prereleases remain prohibited from broker connections and
-    real-capital control. This clarification supersedes older stable-only
-    statements retained in the accumulated remaining_gaps and session snapshot.
-    Final full Compose/browser validation is environment-limited by the missing
-    Docker Buildx plugin and Docker API access. Provider/ETF/TC2000-owned
-    contracts are staging-gated only where shared-path consumption is needed.
-    The immediate product gap is the producer/materialization path for explicit
-    OOS session-close intervals; other domain-backed mutations, worker
-    recovery/scaling, forward-shadow acceptance, and remaining metrics are
-    implementation work. Options order admission remains fail-closed pending
-    canonical event-time Greeks/delta and settlement evidence.
+    No external release or upstream event blocks the next local implementation
+    context. An exact-pinned stable or release-candidate build may qualify for
+    authoritative backtests after four backtest checks; broker-free full/forward
+    shadow separately requires all five checks including event-tape parity.
+    Current RC5 evidence covers backtests but not forward parity, and no
+    prerelease may connect to a broker or control real capital. The only
+    environment-limited completion gate is full Compose/browser validation:
+    this host lacks Docker Buildx and the default sandbox cannot access the
+    Docker socket. Provider/ETF/TC2000
+    contracts are staging-gated only when an owned change overlaps their shared
+    paths. Remaining product work is domain-backed mutations, worker
+    recovery/scaling, forward-shadow correctness, and remaining metrics.
+    Stable-only wording retained in the accumulated remaining_gaps ledger is
+    historical and superseded by this explicit scope-specific release policy.
+    Options order admission remains fail-closed pending canonical event-time
+    Greeks/delta and settlement evidence.
   next_action: >-
-    Produce and persist verified native OOS session-close equity intervals,
-    bind them to the exact attempt, portfolio, OOS window, engine evidence, and
-    session calendar, and carry them through result materialization so the new
-    explicit-cadence risk metrics are available on ordinary results. Do not
-    infer close marks or cadence from irregular event callbacks. Then continue
-    domain-backed mutations, worker recovery/scaling, and
-    persistent broker-free forward-shadow correctness. Use explicit sampling,
-    calendar, and annualization bases; do not derive cadence-sensitive
-    statistics from irregular event marks. Keep options
-    order admission fail-closed until canonical event-time Greeks/delta and
-    settlement evidence are available. Permit exact-pinned prerelease authority
-    for backtests after four checks and broker-free full/forward shadow after
-    all five checks including event-tape parity; keep broker and real-capital
-    use prohibited. Consume
-    provider/ETF/TC2000-owned contracts only after their approved branches reach
-    staging. Run final Compose/browser validation when Buildx is available.
+    Continue domain-backed mutation flows, starting with owner-authorized
+    resource updates and the corresponding durable PostgreSQL aggregate bridge.
+    Keep immutable identities, idempotency, compare-and-set semantics, and
+    terminal-state rules aligned with existing create/read APIs. Then continue
+    worker recovery/scaling and persistent broker-free forward-shadow
+    correctness. Use the pinned RC5 runtime for local backtests under its four
+    passing checks; do not wait for a stable release. Do not enable full/forward
+    shadow until event-tape parity completes the fifth check, and never allow a
+    prerelease to connect to a broker or control real capital. Options remain
+    fail-closed pending canonical event-time Greeks/delta and settlement
+    evidence. Consume provider/ETF/TC2000 shared contracts only after their
+    approved branches reach staging. Run the final Compose/browser validation
+    when Docker Buildx and API access are available.

@@ -9551,3 +9551,85 @@ Changed workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
 `ops/workstreams/feat-strategy-lab-v2/session.json`,
 `ops/workstreams/feat-strategy-lab-v2/handoff.md`, and
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+## 2026-10-04 - OOS session-close equity result path (v1)
+
+This is the single implementation context closed by the source commit below.
+Exact native OOS
+session-close equity observations are now carried from the Nautilus bridge
+through the isolated runtime and ordinary result materialization. The runtime
+bundle binds the frozen session calendar and explicit annualization basis; the
+bridge samples only after the complete same-time event group and records its
+final native event index. The owner-side runner revalidates calendar, OOS
+bounds, and exact final event index against the authenticated tape. Expected
+versus observed close labels are persisted without interpolation or bridge
+marks, and missing intervals withhold cadence-sensitive risk metrics. The
+generated artifact remains attempt-, portfolio-, OOS-window-, engine-evidence-,
+and calendar-bound and is published with the other terminal artifacts.
+
+The implementation context owns these source and test paths:
+`backend/app/strategy_lab_v2/nautilus_calendar_wire.py`,
+`backend/app/strategy_lab_v2/nautilus_session_equity.py`,
+`backend/app/strategy_lab_v2/nautilus_equity_trace.py`,
+`backend/app/strategy_lab_v2/nautilus_result_materialization.py`,
+`backend/app/strategy_lab_v2/nautilus_result_metrics.py`,
+`backend/app/strategy_lab_v2/nautilus_runner.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_adapter.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_bundle.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_cli.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_protocol.py`,
+`backend/app/strategy_lab_v2/nautilus_strategy_bridge.py`,
+`backend/app/strategy_lab_v2/nautilus_trial_assembly.py`,
+`backend/app/strategy_lab_v2/nautilus_trial_materializer.py`,
+`backend/app/strategy_lab_v2/nautilus_worker_terminal.py`,
+`backend/app/strategy_lab_v2/tests/test_nautilus_runtime_adapter.py`,
+`backend/app/strategy_lab_v2/tests/test_nautilus_runtime_cli.py`,
+`backend/app/strategy_lab_v2/tests/test_nautilus_session_equity.py`,
+`backend/app/strategy_lab_v2/tests/test_nautilus_strategy_bridge.py`,
+`backend/app/strategy_lab_v2/tests/test_nautilus_trial_assembly.py`,
+`backend/app/strategy_lab_v2/tests/test_nautilus_trial_materializer.py`, and
+`backend/app/strategy_lab_v2/tests/test_result_materialization.py`.
+
+Validation on the final source state: 88 focused runtime/materialization tests
+passed, and the complete Strategy Lab v2 package suite passed 1,342 tests.
+Ruff, Ruff format, MyPy across 14 production modules, and `git diff --check`
+passed. The updated branch workstream also validated all 30 records. The final
+`full_stack_browser` profile remains unavailable because Docker Buildx is
+absent; Docker API access was available only under scoped elevated validation
+(the default sandbox denies `/var/run/docker.sock`). No Compose/browser claim
+is made. The 2.x release-candidate path
+remains valid for local backtests after four checks; RC5 has not passed the
+fifth forward event-tape parity check. Stable upstream release labeling is not
+a blocker.
+
+Review found and fixed one zero-observation wire edge: a configured calendar
+now emits an explicit empty session-close list, allowing the owner to persist
+expected/missing close labels instead of rejecting an omitted field. The
+runtime-adapter regression test covers configured-empty versus unconfigured.
+
+Operational resume state is also dirty in
+`ops/workstreams/feat-strategy-lab-v2/session.json`; this session owns that
+checkpoint together with this `ops/workstreams/feat-strategy-lab-v2/handoff.md`
+record. The validated source changes are complete in commit
+`d86c70bd1d8bab68e6ec5684d3ecc9e8dcfc9e3e`, pushed to
+`origin/feat/strategy-lab-v2`; its 21-file source/test boundary is separate
+from this operational checkpoint. The source commit is independently verified
+against the remote ref. This operational context updates the plan, session
+state, handoff, and append-only validation journal with that exact result and
+the next action. After its own commit/push, verify a clean synchronized
+boundary before starting the next implementation context: owner-authorized
+domain mutation flows, then worker recovery/scaling and persistent broker-free
+forward-shadow correctness. Options admission remains fail-closed pending
+canonical event-time Greeks/delta and settlement evidence; shared
+provider/ETF/TC2000 paths remain staging-gated.
+
+The session helper's dirty-path formatter dropped the first character from the
+handoff path; the persisted `session.json` list is corrected to exact paths.
+Do not modify shared workflow scripts from this feature branch. The session is
+now marked active under the resumed claim, and its plan hash, implementation
+SHA, remote SHA, blocker, and next action are refreshed. The first checkpoint
+attempt preceded the explicit active-goal update; retry after this operational
+commit, when the worktree is clean. Docker API access is available under the
+scoped elevated check (server 29.1.3), but `docker buildx version` still
+reports an unknown command, so the full Compose/browser profile remains
+unrun.
