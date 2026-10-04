@@ -851,19 +851,21 @@ progress:
     Options order admission remains fail-closed pending canonical event-time
     Greeks/delta and settlement evidence.
   next_action: >-
-    The aggregate multi-strategy source digest now survives persisted worker
-    payload decoding and owner-scoped dispatch replay. Extend the package-owned
-    vertical regression from the actual owner-hydrated immutable trial graph
-    through PostgreSQL dispatch and isolated worker terminal publication with
-    exact replay; keep canonical market-data acquisition outside the engine.
-    Then continue domain-backed mutations, worker recovery/scaling, and
-    broker-free forward-shadow parity. RC5 may publish local backtests only
-    with matching four-check conformance; do not wait for a stable label.
-    Forward shadow requires the fifth event-tape parity check, and no
-    prerelease may connect to a broker or control real capital. Keep immutable
-    resources create-only; version changes create new identities and mutable
-    lifecycle changes use dedicated owner-scoped commands. Options remain
-    fail-closed pending canonical event-time Greeks/delta and settlement
-    evidence. Consume provider/ETF/TC2000 shared contracts only after their
-    approved branches reach staging. Run final Compose/browser validation when
-    Docker Buildx and socket access are available.
+    Owner-hydrated multi-strategy trials now reach persisted PostgreSQL dispatch
+    and idempotent replay, and RC5 worker evidence reaches terminal result
+    publication/redelivery through the dedicated worker service. Next compose
+    the real persisted dispatch payload loader, authenticated handoff
+    materializer, isolated process executor, and persistence-bundle terminal
+    writer into one ACK-after-publication acceptance path. Then continue
+    worker crash recovery/scaling, domain-backed mutations, and broker-free
+    forward-shadow parity; keep canonical market-data acquisition outside the
+    engine. RC5 may publish local backtests only with matching four-check
+    conformance; do not wait for a stable label. Forward shadow requires the
+    fifth event-tape parity check, and no prerelease may connect to a broker or
+    control real capital. Keep immutable resources create-only; version changes
+    create new identities and mutable lifecycle changes use dedicated
+    owner-scoped commands. Options remain fail-closed pending canonical
+    event-time Greeks/delta and settlement evidence. Consume provider/ETF/TC2000
+    shared contracts only after their approved branches reach staging. Run
+    final Compose/browser validation when Docker Buildx and socket access are
+    available.

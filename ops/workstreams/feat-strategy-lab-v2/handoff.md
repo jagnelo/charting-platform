@@ -9760,3 +9760,36 @@ This workstream checkpoint updates the branch-owned
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`. The implementation
 SHA above is the last code checkpoint; the operational checkpoint commit is
 verified from Git after publication.
+
+## 2026-10-05 - Multi-strategy worker-service terminal replay
+
+The owner-hydrated multi-strategy dispatch boundary is now paired with a
+terminal-path regression that passes a release-candidate worker result through
+`DedicatedStrategyWorkerService` into `PostgresWorkerTerminalAdapter`. A
+redelivery with a later service observation time replays the stable terminal
+receipt, result completion, artifact plan, and worker settlement. The process
+executor and adapter persistence ports are deterministic test doubles; this is
+not a Docker/Nautilus process or real PostgreSQL integration run. Commit
+`7ac0c924a6e6ba16ea28a4e67d3f31f60c43b12d` is pushed to
+`origin/feat/strategy-lab-v2`.
+
+Validation at that code commit: the full Strategy Lab v2 package passed
+`1,346/1,346` tests in 42.76 seconds, including the local Unix-socket worker
+case under scoped local-socket permission. The multi-strategy terminal replay
+test passed directly; Ruff, Ruff format, focused MyPy, and `git diff --check`
+passed for the changed test file. The earlier owner-hydrated two-strategy
+regression separately proves materialization through PostgreSQL dispatch and
+payload replay; its SQL session is a deterministic adapter fake, not a live
+database.
+
+Next: compose the production Postgres dispatch-payload loader, authenticated
+worker-handoff materializer, isolated process runner, and persistence-bundle
+terminal writer into one ACK-after-publication integration path, then exercise
+recovery/scaling and forward parity. No Nautilus stable-release blocker exists:
+exact-pinned RC5 may publish authoritative local backtests after the four
+backtest checks. Forward shadow separately needs event-tape parity, and no
+prerelease may connect to brokers or control real capital. Provider-owned
+canonical context remains staging-gated. Docker Buildx is absent and the
+default session cannot access the Docker socket, so final Compose/browser
+acceptance remains environment-limited. Options orders remain fail-closed
+without canonical event-time Greeks/delta and settlement evidence.
