@@ -652,6 +652,16 @@ def build_native_strategy_bridge(
         getattr(invocation_result_stream, "write", None)
     ):
         raise NautilusRuntimeDataError("strategy result stream must provide write(bytes)")
+    raw_strategy_bindings = engine_input.get("strategy_bindings")
+    if (
+        not isinstance(raw_strategy_bindings, list)
+        or len(raw_strategy_bindings) != 1
+        or not isinstance(raw_strategy_bindings[0], Mapping)
+    ):
+        raise NautilusRuntimeDataError(
+            "current native bridge requires one authenticated component strategy binding"
+        )
+    strategy_binding = raw_strategy_bindings[0]
     result_stream_writer = None
     if invocation_result_stream is not None:
         result_stream_writer = InvocationResultStreamWriter(
@@ -725,9 +735,9 @@ def build_native_strategy_bridge(
 
         def validate_context_inputs(source_contexts: Iterable[Any]) -> Iterator[Any]:
             for context in source_contexts:
-                if context.parameters != engine_input["parameters"]:
+                if content_digest(context.parameters) != strategy_binding.get("parameters_digest"):
                     raise NautilusRuntimeDataError(
-                        "strategy context parameters differ from engine input"
+                        "strategy context parameters differ from component binding"
                     )
                 if context.random_seed != engine_input["random_seed"]:
                     raise NautilusRuntimeDataError(
@@ -781,6 +791,14 @@ def build_native_strategy_bridge(
         raise NautilusRuntimeDataError("strategy manifest differs from engine input")
     if entrypoint != engine_input["entrypoint"]:
         raise NautilusRuntimeDataError("strategy entrypoint differs from engine input")
+    if (
+        content_digest(source) != strategy_binding.get("strategy_source_digest")
+        or manifest.fingerprint != strategy_binding.get("strategy_manifest_fingerprint")
+        or manifest.strategy.fingerprint != strategy_binding.get("strategy_fingerprint")
+        or entrypoint != strategy_binding.get("entrypoint")
+        or max_intents != strategy_binding.get("max_intents_per_event")
+    ):
+        raise NautilusRuntimeDataError("strategy invocation differs from its component binding")
 
     instrument_by_id = {item["instrument_id"]: item for item in instrument_definitions}
     try:
@@ -795,6 +813,8 @@ def build_native_strategy_bridge(
     if len(portfolio.components) != 1:
         raise NautilusRuntimeDataError("native bridge currently requires one strategy component")
     allocation_component = portfolio.components[0]
+    if strategy_binding.get("component_id") != allocation_component.component_id:
+        raise NautilusRuntimeDataError("strategy binding component differs from the portfolio")
     if allocation_component.strategy_fingerprint != manifest.strategy.fingerprint:
         raise NautilusRuntimeDataError("native strategy differs from its portfolio component")
     declared_instruments = {
@@ -812,8 +832,13 @@ def build_native_strategy_bridge(
     expected_event_count = len(event_definitions)
     if invocation_context_stream is None:
         ordered_records = event_definitions
-        if any(context.parameters != engine_input["parameters"] for context in batch_contexts):
-            raise NautilusRuntimeDataError("strategy batch parameters differ from engine input")
+        if any(
+            content_digest(context.parameters) != strategy_binding.get("parameters_digest")
+            for context in batch_contexts
+        ):
+            raise NautilusRuntimeDataError(
+                "strategy batch parameters differ from component binding"
+            )
         if any(context.random_seed != engine_input["random_seed"] for context in batch_contexts):
             raise NautilusRuntimeDataError("strategy batch seed differs from engine input")
         expected_contexts = len(batch_contexts)
@@ -1082,9 +1107,9 @@ def build_native_strategy_bridge(
             )
             if context is None:
                 return
-            if context.parameters != engine_input["parameters"]:
+            if content_digest(context.parameters) != strategy_binding.get("parameters_digest"):
                 raise NautilusRuntimeDataError(
-                    "strategy context parameters differ from engine input"
+                    "strategy context parameters differ from component binding"
                 )
             if context.random_seed != engine_input["random_seed"]:
                 raise NautilusRuntimeDataError("strategy context seed differs from engine input")

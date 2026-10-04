@@ -32,6 +32,7 @@ from app.strategy_lab_v2.nautilus_runtime_data import (
     materialize_native_instrument,
     materialize_native_venue,
 )
+from app.strategy_lab_v2.nautilus_strategy_binding import component_strategy_bindings_from_wire
 from app.strategy_lab_v2.nautilus_strategy_bridge import build_native_strategy_bridge
 from strategy_runtime import (
     INVOCATION_RESULT_STREAM_PROTOCOL_VERSION,
@@ -55,6 +56,7 @@ _ENGINE_INPUT_FIELDS = frozenset(
         "entrypoint",
         "parameters",
         "random_seed",
+        "strategy_bindings",
         "input_version",
     }
 )
@@ -114,11 +116,39 @@ def _validate_engine_input(
         raise NautilusRuntimeDataError("engine input instrument ids must be unique")
     venue = _mapping(item["venue"], "venue definition")
     try:
-        portfolio_composition_from_wire(item["portfolio"])
+        portfolio = portfolio_composition_from_wire(item["portfolio"])
     except (TypeError, ValueError) as error:
         raise NautilusRuntimeDataError("engine input portfolio policy is invalid") from error
-    if item["input_version"] != "strategy-lab.nautilus-engine-input.v2":
+    if item["input_version"] != "strategy-lab.nautilus-engine-input.v3":
         raise NautilusRuntimeDataError("engine input version is unsupported")
+    try:
+        strategy_bindings = component_strategy_bindings_from_wire(item["strategy_bindings"])
+    except (TypeError, ValueError) as error:
+        raise NautilusRuntimeDataError(
+            "engine input component strategy bindings are invalid"
+        ) from error
+    components_by_id = {component.component_id: component for component in portfolio.components}
+    bindings_by_id = {binding.component_id: binding for binding in strategy_bindings}
+    if set(bindings_by_id) != set(components_by_id):
+        raise NautilusRuntimeDataError(
+            "engine input strategy bindings do not cover the complete portfolio"
+        )
+    if any(
+        bindings_by_id[component_id].strategy_fingerprint != component.strategy_fingerprint
+        for component_id, component in components_by_id.items()
+    ):
+        raise NautilusRuntimeDataError(
+            "engine input strategy binding differs from portfolio identity"
+        )
+    primary_binding = bindings_by_id[sorted(bindings_by_id)[0]]
+    if (
+        primary_binding.strategy_source_digest != item["strategy_source_digest"]
+        or primary_binding.strategy_manifest_fingerprint != item["strategy_manifest_fingerprint"]
+        or primary_binding.entrypoint != item["entrypoint"]
+    ):
+        raise NautilusRuntimeDataError(
+            "engine input strategy source digest/manifest anchor differs from component bindings"
+        )
     tape = _mapping(item["event_tape"], "event tape")
     tape_fields = frozenset(tape)
     if tape_fields not in {_TAPE_FIELDS, _STREAM_TAPE_FIELDS}:

@@ -27,7 +27,10 @@ from app.strategy_lab_v2.artifact_store import (
 from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
-from app.strategy_lab_v2.nautilus_engine_input import NautilusEngineInput
+from app.strategy_lab_v2.nautilus_engine_input import (
+    NautilusEngineInput,
+    component_strategy_binding_to_wire,
+)
 from app.strategy_lab_v2.nautilus_event_adapter import NautilusEventRecord
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     MAX_NAUTILUS_NATIVE_EVENT_STREAM_BYTES,
@@ -985,6 +988,10 @@ def build_nautilus_runtime_bundle(
             "entrypoint": engine_input.entrypoint,
             "parameters": _wire_value(engine_input.parameters),
             "random_seed": engine_input.random_seed,
+            "strategy_bindings": [
+                component_strategy_binding_to_wire(binding)
+                for binding in engine_input.strategy_bindings
+            ],
             "input_version": engine_input.input_version,
         },
     }

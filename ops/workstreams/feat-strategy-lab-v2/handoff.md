@@ -2,6 +2,64 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Authenticated component strategy input bindings
+
+Versioned the isolated engine input contract to v3 and added a canonical,
+digest-bound strategy binding for every portfolio component: component and
+strategy identities, source and manifest digests, entrypoint, parameter digest,
+and intent limit. The runtime bundle emits those bindings; strict decoding
+requires unique, complete component coverage and verifies the legacy single-
+strategy anchor. The runtime-safe binding codec is copied explicitly into the
+Nautilus image, avoiding imports of backend-only event-tape assembly code.
+Invocation source, manifest, strategy identity, parameters, entrypoint, and
+intent limits are checked against the binding before callbacks proceed.
+
+This is the authenticated input seam, not yet multi-strategy execution. The
+native bridge still accepts one binding and one invocation stream; a portfolio
+with multiple components is deliberately rejected there until each component
+has its own serialized context stream and same-event intents can be combined
+under one shared allocation/risk decision.
+
+Validation: all 1,164 Strategy Lab v2 tests pass; Ruff and formatting pass;
+MyPy passes across 341 package/runtime sources. The exact-pinned Nautilus
+`2.0.0rc5` image `sha256:9a09ced47208d2168941414555400b9d513c91d7d1c3abaa9449ff7808acb11e`
+passes the authenticated context-stream probe and native deterministic replay,
+single/multi-instrument accounting, orders/fills/costs, lifecycle, target
+allocation, and raw-order shared-risk probes in a network-disabled, read-only,
+unprivileged container. Receipts remain non-authoritative; forward event-tape
+parity remains deferred. The temporary validation image was removed after the
+probe. Stable Nautilus 2.x is not required: the plan explicitly accepts an
+exact-pinned pre-release for isolated local backtests, while barring it from
+broker/real-capital use.
+
+No external release or upstream event blocks package-owned work. Provider,
+ETF, and TC2000 staging contracts gate only their later shared-path
+integrations. Remote publication is separate from implementation: the previous
+configured key-only GitHub SSH push failed with `Permission denied (publickey)`,
+and the current sandbox cannot query the SSH agent (`Operation not permitted`).
+This does not prevent local development or commits.
+
+Next: extend the input artifact and runtime CLI to carry one invocation-context
+stream per component, feed them through the deterministic callback scheduler,
+then aggregate same-event intent batches into one shared risk decision and
+preserve component attribution for native orders, fills, and positions.
+
+Files changed in this slice:
+
+```text
+backend/app/strategy_lab_v2/nautilus_engine_input.py
+backend/app/strategy_lab_v2/nautilus_runtime_adapter.py
+backend/app/strategy_lab_v2/nautilus_runtime_adapter_probe.py
+backend/app/strategy_lab_v2/nautilus_runtime_bundle.py
+backend/app/strategy_lab_v2/nautilus_strategy_binding.py
+backend/app/strategy_lab_v2/nautilus_strategy_bridge.py
+backend/app/strategy_lab_v2/nautilus_runtime_image/Dockerfile
+backend/app/strategy_lab_v2/tests/test_nautilus_engine_input.py
+backend/app/strategy_lab_v2/tests/test_nautilus_runtime_adapter.py
+ops/workstreams/feat-strategy-lab-v2/handoff.md
+ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+```
+
 ## 2026-10-04 - Deterministic component callback scheduling
 
 Added a streaming scheduler that merges per-component strategy-context trigger

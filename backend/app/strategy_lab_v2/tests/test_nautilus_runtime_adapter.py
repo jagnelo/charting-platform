@@ -93,7 +93,18 @@ def _payload() -> dict[str, object]:
         "entrypoint": "strategy.main:Strategy",
         "parameters": {"window": 20},
         "random_seed": 17,
-        "input_version": "strategy-lab.nautilus-engine-input.v2",
+        "strategy_bindings": [
+            {
+                "component_id": "component-1",
+                "strategy_fingerprint": content_digest("strategy"),
+                "strategy_source_digest": content_digest("source"),
+                "strategy_manifest_fingerprint": content_digest("manifest"),
+                "entrypoint": "strategy.main:Strategy",
+                "parameters_digest": content_digest({"window": 20}),
+                "max_intents_per_event": 100,
+            }
+        ],
+        "input_version": "strategy-lab.nautilus-engine-input.v3",
     }
 
 

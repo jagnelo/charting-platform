@@ -188,7 +188,18 @@ def _payload() -> dict[str, object]:
         "entrypoint": "strategy.main:Strategy",
         "parameters": {"window": 20},
         "random_seed": 17,
-        "input_version": "strategy-lab.nautilus-engine-input.v2",
+        "strategy_bindings": [
+            {
+                "component_id": "component-1",
+                "strategy_fingerprint": manifest.strategy.fingerprint,
+                "strategy_source_digest": content_digest(_SOURCE),
+                "strategy_manifest_fingerprint": manifest.fingerprint,
+                "entrypoint": "strategy.main:Strategy",
+                "parameters_digest": content_digest({"window": 20}),
+                "max_intents_per_event": 100,
+            }
+        ],
+        "input_version": "strategy-lab.nautilus-engine-input.v3",
     }
 
 
@@ -403,7 +414,18 @@ def _run_native_execution_probe(*, target_position: bool) -> dict[str, Any]:
         "entrypoint": "strategy.main:Strategy",
         "parameters": {},
         "random_seed": 11,
-        "input_version": "strategy-lab.nautilus-engine-input.v2",
+        "strategy_bindings": [
+            {
+                "component_id": "core",
+                "strategy_fingerprint": manifest.strategy.fingerprint,
+                "strategy_source_digest": manifest.strategy.source_digest,
+                "strategy_manifest_fingerprint": manifest.fingerprint,
+                "entrypoint": "strategy.main:Strategy",
+                "parameters_digest": content_digest({}),
+                "max_intents_per_event": 100,
+            }
+        ],
+        "input_version": "strategy-lab.nautilus-engine-input.v3",
     }
     batch = serialize_invocation_batch(
         source=strategy_source,

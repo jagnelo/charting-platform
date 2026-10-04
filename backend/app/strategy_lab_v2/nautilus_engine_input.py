@@ -24,8 +24,13 @@ from app.strategy_lab_v2.contracts import (
     TargetConflictPolicy,
 )
 from app.strategy_lab_v2.nautilus_event_adapter import NautilusEventTape
+from app.strategy_lab_v2.nautilus_strategy_binding import (
+    NautilusComponentStrategyBinding,
+    component_strategy_binding_to_wire,
+    component_strategy_bindings_from_wire,
+)
 
-NAUTILUS_ENGINE_INPUT_VERSION = "strategy-lab.nautilus-engine-input.v2"
+NAUTILUS_ENGINE_INPUT_VERSION = "strategy-lab.nautilus-engine-input.v3"
 
 
 def _nonempty(value: str, field_name: str) -> None:
@@ -179,6 +184,7 @@ class NautilusEngineInput:
     entrypoint: str
     parameters: Mapping[str, object]
     random_seed: int
+    strategy_bindings: tuple[NautilusComponentStrategyBinding, ...] = ()
     input_version: str = NAUTILUS_ENGINE_INPUT_VERSION
 
     def __post_init__(self) -> None:
@@ -233,10 +239,53 @@ class NautilusEngineInput:
             raise TypeError("random_seed must be an integer")
         if self.input_version != NAUTILUS_ENGINE_INPUT_VERSION:
             raise ValueError("unsupported Nautilus engine input version")
+        bindings = tuple(self.strategy_bindings)
+        if not bindings:
+            if len(self.portfolio.components) != 1:
+                raise ValueError(
+                    "multi-component engine input requires explicit component strategy bindings"
+                )
+            component = self.portfolio.components[0]
+            bindings = (
+                NautilusComponentStrategyBinding(
+                    component_id=component.component_id,
+                    strategy_fingerprint=component.strategy_fingerprint,
+                    strategy_source_digest=self.strategy_source_digest,
+                    strategy_manifest_fingerprint=self.strategy_manifest_fingerprint,
+                    entrypoint=self.entrypoint,
+                    parameters_digest=content_digest(frozen_parameters),
+                ),
+            )
+        if any(not isinstance(item, NautilusComponentStrategyBinding) for item in bindings):
+            raise TypeError(
+                "strategy_bindings must contain NautilusComponentStrategyBinding values"
+            )
+        binding_ids = [item.component_id for item in bindings]
+        if len(binding_ids) != len(set(binding_ids)):
+            raise ValueError("component strategy binding ids must be unique")
+        if set(binding_ids) != {item.component_id for item in self.portfolio.components}:
+            raise ValueError("component strategy bindings must cover the complete portfolio")
+        bindings_by_component = {item.component_id: item for item in bindings}
+        for component in self.portfolio.components:
+            if (
+                bindings_by_component[component.component_id].strategy_fingerprint
+                != component.strategy_fingerprint
+            ):
+                raise ValueError("component strategy binding differs from portfolio identity")
+        bindings = tuple(sorted(bindings, key=lambda item: item.component_id))
+        primary_binding = bindings[0]
+        if (
+            primary_binding.strategy_source_digest != self.strategy_source_digest
+            or primary_binding.strategy_manifest_fingerprint != self.strategy_manifest_fingerprint
+            or primary_binding.entrypoint != self.entrypoint
+            or primary_binding.parameters_digest != content_digest(frozen_parameters)
+        ):
+            raise ValueError("legacy strategy fields must match the first component binding")
         object.__setattr__(
             self, "instruments", tuple(sorted(instruments, key=lambda item: item.instrument_id))
         )
         object.__setattr__(self, "parameters", frozen_parameters)
+        object.__setattr__(self, "strategy_bindings", bindings)
 
     @property
     def fingerprint(self) -> str:
@@ -257,6 +306,7 @@ def build_nautilus_engine_input(
     entrypoint: str,
     parameters: Mapping[str, object],
     random_seed: int,
+    strategy_bindings: Sequence[NautilusComponentStrategyBinding] | None = None,
 ) -> NautilusEngineInput:
     """Construct and validate the complete engine-input boundary."""
 
@@ -273,6 +323,7 @@ def build_nautilus_engine_input(
         entrypoint=entrypoint,
         parameters=parameters,
         random_seed=random_seed,
+        strategy_bindings=tuple(strategy_bindings or ()),
     )
 
 
@@ -475,8 +526,11 @@ def _wire_decimal(value: object, field_name: str) -> Decimal:
 __all__ = [
     "NAUTILUS_ENGINE_INPUT_VERSION",
     "NautilusCashDefinition",
+    "NautilusComponentStrategyBinding",
     "NautilusEngineInput",
     "NautilusInstrumentDefinition",
     "NautilusVenueDefinition",
     "build_nautilus_engine_input",
+    "component_strategy_binding_to_wire",
+    "component_strategy_bindings_from_wire",
 ]

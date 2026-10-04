@@ -15,10 +15,13 @@ from app.strategy_lab_v2.contracts import (
 )
 from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusCashDefinition,
+    NautilusComponentStrategyBinding,
     NautilusEngineInput,
     NautilusInstrumentDefinition,
     NautilusVenueDefinition,
     build_nautilus_engine_input,
+    component_strategy_binding_to_wire,
+    component_strategy_bindings_from_wire,
 )
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventRecord,
@@ -71,6 +74,47 @@ def _portfolio() -> PortfolioComposition:
     )
 
 
+def _multi_portfolio() -> PortfolioComposition:
+    return PortfolioComposition(
+        portfolio_id="portfolio-multi",
+        version_id="portfolio-multi-v1",
+        initial_capital=Decimal("100000"),
+        base_currency="USD",
+        components=(
+            PortfolioComponent(
+                component_id="alpha",
+                strategy_fingerprint=content_digest("strategy-alpha"),
+                instrument_ids=("EURUSD.SIM",),
+                capital_weight=Decimal("0.5"),
+            ),
+            PortfolioComponent(
+                component_id="beta",
+                strategy_fingerprint=content_digest("strategy-beta"),
+                instrument_ids=("EURUSD.SIM",),
+                capital_weight=Decimal("0.5"),
+            ),
+        ),
+        shared_risk_policy=SharedRiskPolicy(risk_models=(FX_BASE_NOTIONAL_RISK_MODEL,)),
+    )
+
+
+def _binding(
+    component_id: str,
+    strategy: str,
+    source: str,
+    params: dict[str, object],
+) -> NautilusComponentStrategyBinding:
+    return NautilusComponentStrategyBinding(
+        component_id=component_id,
+        strategy_fingerprint=content_digest(strategy),
+        strategy_source_digest=content_digest(source),
+        strategy_manifest_fingerprint=content_digest(f"manifest-{strategy}"),
+        entrypoint="strategy.main:Strategy",
+        parameters_digest=content_digest(params),
+        max_intents_per_event=50,
+    )
+
+
 def _tape(*, instrument_id: str = "EURUSD.SIM") -> NautilusEventTape:
     record = NautilusEventRecord(
         dependency_id="prices",
@@ -113,6 +157,10 @@ def test_engine_input_binds_tape_catalog_and_shared_account() -> None:
     assert isinstance(engine_input, NautilusEngineInput)
     assert engine_input.instruments == (instrument,)
     assert engine_input.parameters["window"] == 20
+    assert tuple(binding.component_id for binding in engine_input.strategy_bindings) == (
+        "component-1",
+    )
+    assert engine_input.input_version == "strategy-lab.nautilus-engine-input.v3"
     assert engine_input.fingerprint.startswith("sha256:")
 
 
@@ -194,6 +242,61 @@ def test_engine_input_rejects_identity_and_catalog_conflicts() -> None:
             strategy_source_digest="bad",
             **_without(kwargs, "strategy_source_digest"),
         )
+
+
+def test_engine_input_authenticates_every_portfolio_strategy_binding() -> None:
+    alpha = _binding("alpha", "strategy-alpha", "source-alpha", {"window": 10})
+    beta = _binding("beta", "strategy-beta", "source-beta", {"fast": 3})
+    engine_input = build_nautilus_engine_input(
+        trial_id="trial-multi",
+        attempt_id="attempt-multi",
+        data_snapshot_fingerprint=content_digest("snapshot-multi"),
+        event_tape=_tape(),
+        instruments=(_instrument(),),
+        venue=_venue(),
+        portfolio=_multi_portfolio(),
+        strategy_source_digest=alpha.strategy_source_digest,
+        strategy_manifest_fingerprint=alpha.strategy_manifest_fingerprint,
+        entrypoint=alpha.entrypoint,
+        parameters={"window": 10},
+        random_seed=17,
+        strategy_bindings=(beta, alpha),
+    )
+
+    assert tuple(binding.component_id for binding in engine_input.strategy_bindings) == (
+        "alpha",
+        "beta",
+    )
+    assert engine_input.strategy_bindings[1] == beta
+    assert component_strategy_bindings_from_wire(
+        [component_strategy_binding_to_wire(beta), component_strategy_binding_to_wire(alpha)]
+    ) == (alpha, beta)
+
+
+def test_engine_input_rejects_incomplete_or_misbound_multi_strategy_sets() -> None:
+    alpha = _binding("alpha", "strategy-alpha", "source-alpha", {"window": 10})
+    common: dict[str, Any] = dict(
+        trial_id="trial-multi",
+        attempt_id="attempt-multi",
+        data_snapshot_fingerprint=content_digest("snapshot-multi"),
+        event_tape=_tape(),
+        instruments=(_instrument(),),
+        venue=_venue(),
+        portfolio=_multi_portfolio(),
+        strategy_source_digest=alpha.strategy_source_digest,
+        strategy_manifest_fingerprint=alpha.strategy_manifest_fingerprint,
+        entrypoint=alpha.entrypoint,
+        parameters={"window": 10},
+        random_seed=17,
+    )
+
+    with pytest.raises(ValueError, match="requires explicit component strategy bindings"):
+        build_nautilus_engine_input(**common)
+    with pytest.raises(ValueError, match="cover the complete portfolio"):
+        build_nautilus_engine_input(strategy_bindings=(alpha,), **common)
+    wrong_beta = _binding("beta", "wrong-strategy", "source-beta", {"fast": 3})
+    with pytest.raises(ValueError, match="differs from portfolio identity"):
+        build_nautilus_engine_input(strategy_bindings=(alpha, wrong_beta), **common)
 
 
 def test_instrument_definition_rejects_invalid_lifecycle() -> None:
