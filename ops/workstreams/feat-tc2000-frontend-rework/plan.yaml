@@ -20,7 +20,10 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No product or environment blocker prevents independent TC-owned work. At
+  No product or environment blocker prevents independent TC-owned work. The
+  latest product tip c038aafc6fe8378cdf11d4b76006100488c75556 passes the full
+  frontend suite, production build, and focused authenticated breadth browser
+  regression; its full browser/visual gate remains required. At
   exact pushed product tip `a78812d33f6402b329c947b70765f2a84e5be9ac`, the
   pinned serial full functional browser gate passed 171 tests with 110
   documented skips and no failures. The unchanged 104-case visual matrix
@@ -31,9 +34,9 @@ current_blocker: >-
   remain for review. Current remote staging/provider/ETF refs are respectively
   `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`,
   `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and
-  `48512cd934759c8a52e9b4071c281ef763a08699`; neither dependency tip is an
-  ancestor of staging. Defer R2/R3/R7 integration and continue distinct TC-owned
-  UI/Study/Strategy work.
+  `c2a1626a496eacd13331bbe1b8be39bee2d33114`. Keep provider/ETF consumer
+  integration and shared-path reconciliation deferred until their work reaches
+  staging; continue distinct TC-owned UI/Study/Strategy work.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -271,7 +274,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_R5_R6_next_independent_gap
+  current_phase: R1_R4_read_side_lineage_presentation
   next_action: >-
     Select and implement the next bounded TC-owned workstation, Study, or
     Strategy gap after checking it against the upstream ownership boundary.
@@ -281,15 +284,20 @@ progress:
     dependencies reach staging; never consume their branch tips directly or
     mutate another worktree.
   current_blocker: >-
-    The exact-tip functional browser suite is green (171 passed, 110 documented
-    skips, zero failures); the unchanged visual matrix is complete at 94/104
-    with ten screenshot-only local-reference differences after all state
-    assertions passed. Do not change screenshots, masks, thresholds, skips,
-    fallbacks, or acceptance rules without the review required by the visual
-    policy. Provider and ETF remote tips remain outside staging, so consumer
-    integration and semantic overlap reconciliation are genuine deferred
-    dependencies, but they do not block independent TC-owned implementation.
+    At the last full gate, product tip a78812d33f6402b329c947b70765f2a84e5be9ac
+    passed the functional browser suite (171 passed, 110 documented skips,
+    zero failures); its unchanged visual matrix completed 94/104 with ten
+    screenshot-only differences after all state assertions passed. The newer
+    product tip c038aafc6fe8378cdf11d4b76006100488c75556 passes the full
+    frontend suite, production build, and focused authenticated breadth
+    browser regression, but the full browser/visual gate remains required.
+    Do not change screenshots, masks, thresholds, skips, fallbacks, or
+    acceptance rules without the review required by the visual policy. Provider
+    and ETF consumer integration and semantic overlap reconciliation remain
+    deferred until those branches reach staging; independent TC-owned work
+    continues.
 historical_implementation_records:
+  - "Product commit c038aafc6fe8378cdf11d4b76006100488c75556 adds compact requested/eligible/excluded/coverage counts and a collapsible generic-breadth evidence view for universe identity/role, membership version, member observation dates, sampling semantics, source provenance, freshness and details, calculation version, definition hash, and grouped exclusion reasons. Python-backed breadth now preserves reported calculation/provenance and no longer invents a freshness state. Full frontend Vitest passed 128 files / 1,197 tests; vue-tsc/type-check and Vite production build passed; the rebuilt authenticated Chromium F8s-breadth-family-ratio flow passed 1/1 with evidence assertions. The assigned Compose stack was removed and resource audit reported zero containers, volumes, test sessions, unknown components, or known bytes. The full branch-wide browser/visual gate was not rerun at this product tip; preserve every oracle and the ten screenshot-only differences last recorded at a78812d. No provider/ETF ownership or data acquisition changed."
   - "At exact pushed product tip a78812d33f6402b329c947b70765f2a84e5be9ac, the pinned serial functional browser suite passed 171 with 110 documented skips and zero failures. The unchanged pinned Playwright 1.62.1 104-case visual matrix passed 94/104; ten screenshot-only differences remain in workspace-floating (8,995/9,825/8,995/9,825 pixels), Study structured-result (109,320/105,698/22,099/21,352), and Study sandbox-error at 1080p (13,360/11,188). All interaction/state checks passed before comparison. No oracle or policy changed; scoped Docker cleanup and resource audit left zero assigned resources. Current remote dependency tips 88132e9145a08d1c935a0111b3dba0fbd88bdff1 and 48512cd934759c8a52e9b4071c281ef763a08699 are not ancestors of staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35."
   - "At clean branch tip 58975ea6bee3e506f64d97506aadf4026c626357 (product source defefaaafde1db3fc302dc50be923d06ccf84ea0), the pinned Playwright 1.62.1 four-viewport matrix passed 94/104. Ten screenshot-only mismatches remained: workspace-floating in four viewports, Study structured-result in four, and Study sandbox-error at 1080p/100 and 1080p/125. All pre-screenshot state checks passed, and all four Study-running states passed. No reference, mask, threshold, skip, or acceptance rule changed. Exact-project teardown and resource accounting left zero containers, volumes, images, test sessions, or unknown resources. Acceptance flexibility used: deterministic board-guided local screenshots for represented states, not exact V25 approval."
   - "Product commit d37a0f98769f01f3dc88e075c3ed3aa97381ad1f associates malformed Study parameter-schema input with its accessible error using aria-invalid and a unique per-instance aria-describedby target; correcting the JSON clears both. Focused StudyLabTool coverage passed 45/45, full frontend Vitest passed 128 files / 1,189 tests, type-check and Docker production build passed, the updated authenticated Chromium F8t flow passed 1/1 with clean browser diagnostics, and the TC scope guard accepted 122 paths with all six self-tests. The unchanged two-case sandbox-error screenshot replay at source 816fd82 remained at 17,559 / 16,644 differing pixels because the visible example placeholder is 20 while the saved image shows 2; no screenshot oracle or policy changed. Scoped Docker cleanup removed all assigned resources. No provider/ETF-owned behavior changed."

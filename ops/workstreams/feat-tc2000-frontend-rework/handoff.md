@@ -16767,3 +16767,46 @@ The checkpoint documentation commit
 HEAD, the origin tracking ref, and direct GitHub lookup all matched, and the
 worktree was clean. This entry records that verified checkpoint without
 self-referencing the follow-on workstream record.
+
+## 2026-10-04 — Generic breadth snapshot evidence
+
+Product commit c038aafc6fe8378cdf11d4b76006100488c75556 adds a compact
+requested/eligible/excluded/coverage summary and a collapsible evidence view to
+the TC-owned generic breadth result. It presents the returned universe
+identity/role, membership version, member observation dates, timeframe and
+adjustment, data provenance, freshness and freshness details, calculation
+version, definition hash, and grouped exclusion reasons. Python-backed breadth
+preserves calculation/provenance when present and no longer fabricates a
+freshness classification when the run did not report one. This is display of
+the existing TC breadth response only; it does not add provider, ETF, ingestion,
+or canonical-data ownership.
+
+Validation at this product tip: frontend Vitest passed 128 files / 1,197 tests;
+frontend type-check and production build passed; the authenticated Chromium
+F8s-breadth-family-ratio regression passed 1/1 against the rebuilt assigned
+stack with assertions for partial freshness, canonical-local provenance,
+membership version, observation date, requested/excluded counts, and the
+missing-bars exclusion reason. The full 171-test functional browser suite and
+104-case visual matrix were not rerun after this slice, so the last complete
+gate remains the a78812d checkpoint. Preserve the ten existing screenshot-only
+visual differences and every screenshot oracle/policy. The initial Make stack
+build could not use the absent host Buildx plugin; ordinary Compose build/start
+successfully brought up the exact assigned project for browser validation.
+Scoped teardown removed that project's containers, volumes, network, and four
+generated images; follow-up resource accounting reported zero containers,
+volumes, test sessions, unknown components, and known bytes.
+
+The product commit was pushed to origin/feat/tc2000-frontend-rework; direct
+remote lookup confirmed branch tip c038aafc6fe8378cdf11d4b76006100488c75556.
+Staging remains 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider platform
+88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF holdings
+c2a1626a496eacd13331bbe1b8be39bee2d33114. Keep both consumer integrations
+deferred until their work reaches staging. This operational handoff records the
+verified product tip; verify the enclosing workstream checkpoint externally
+after its push rather than self-referencing its future commit.
+
+Changed ops files in this checkpoint:
+- ops/workstreams/feat-tc2000-frontend-rework/plan.yaml
+- ops/workstreams/feat-tc2000-frontend-rework/handoff.md
+- ops/workstreams/feat-tc2000-frontend-rework/session.json
+- ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl
