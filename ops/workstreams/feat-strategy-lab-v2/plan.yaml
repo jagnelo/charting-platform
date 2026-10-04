@@ -609,14 +609,15 @@ remaining_gaps:
       fixture through an injected engine runner, canonicalizes observed output,
       reduces runner exceptions to deterministic failed evidence, and returns
       the fixture suite, engine evidence, and gated report as one identity-bound
-      resolution. Stable authoritative execution remains gated on a published
-      stable Nautilus release and a complete passing suite.
+      resolution. Authoritative local-backtest execution remains gated on a
+      complete passing suite and a valid exact isolated stable-or-release-
+      candidate pin; a published stable Nautilus 2.x release is not required.
   - >-
       `conformance.py` now binds a `NautilusReleasePin` to conformance evidence,
       recording the exact v2 package/tag, source and runtime-image digests,
-      Python/Rust versions, and legacy-runtime isolation. Complete stable
-      fixture evidence without a valid isolated pin remains compatibility
-      evidence but cannot become authoritative.
+      Python/Rust versions, and legacy-runtime isolation. Complete stable or
+      release-candidate fixture evidence without a valid isolated pin remains
+      compatibility evidence but cannot become authoritative.
   - >-
       `resource_mutations.py` and the registration-neutral API router now expose
       strict idempotent creation for mutable Strategy Lab resources. Exact
@@ -806,32 +807,25 @@ progress:
     - strategy-lab-v2-host-composed-nautilus-backtest-dispatch
     - strategy-lab-v2-production-search-dispatch-evidence-preparation
   total: 18
-  current_phase: strategy-lab-v2-production-search-dispatch-evidence-preparation
+  current_phase: native-oos-result-metrics
   current_blocker: >-
-    No external release or upstream branch dependency blocks package-owned
-    implementation. Exact-pinned Nautilus 2.0.0rc5 has passed the four actual
-    local backtest checks in its isolated image; stable 2.x is not required.
-    The raw fixture receipt remains non-authoritative until the scoped
-    conformance/publication path consumes it. Pre-releases cannot control real
-    capital or connect to brokers, and forward shadow separately requires
-    event-tape parity. The owner-scoped preparation resolver now hydrates and
-    verifies the trial graph, materializes frozen inputs, checks persisted pool
-    and lease state, binds exact runtime conformance, and builds the authenticated
-    backtest handoff. PostgreSQL atomically verifies persisted lease identity
-    before enqueue and resolves idempotency retries before evidence preparation.
-    Provider/ETF/TC2000 staged contracts gate only their shared-path integration
-    (canonical Arrow decoding, shared registration/schema/worker wiring); they do
-    not block current package-owned work. Remaining major work includes wiring
-    target-position allocation/risk into native engine execution, broader
-    accounting/persistence and integration validation, and the full-stack final
-    gate.
+    Stable Nautilus 2.x is not a release blocker: the plan and execution gate
+    accept an exact-pinned release candidate for authoritative local backtests
+    after the complete applicable conformance suite. Pre-releases remain barred
+    from broker connections and real-capital control; forward shadow separately
+    requires event-tape parity. Current external validation holds are denied
+    Docker API access for the exact-image/full-stack-browser gates and SSH
+    authentication for publishing. Neither blocks package-owned implementation.
+    The owned code gap is to export and host-verify native orders, fills,
+    positions, and costs, then bind them with OOS equity into official metrics
+    and result manifests. Provider/ETF/TC2000 staging gates apply only to shared-
+    path reconciliation, not this backend-only work.
   next_action: >-
-    Wire the existing pure component-target allocator and shared-risk gate into
-    the Nautilus strategy bridge. Build an adapter-verified account exposure
-    snapshot from native portfolio/account state, resolve simultaneous component
-    targets, translate only approved target deltas into correctly sized native
-    orders using exact instrument economics and precision, and fail closed on
-    unsupported product/FX/margin cases. Add image-backed accounting and
-    multi-component contention coverage; keep forward parity and live-capital
-    restrictions separate. No stable Nautilus release or unrelated upstream
+    Export native Nautilus orders, fills, positions, account, and cost reports
+    as bounded content-addressed output; verify exact report bytes and OOS scope
+    on the host; connect those observations and the verified equity trace to
+    official versioned MetricSet and RunResultManifest materialization. Do not
+    infer annualization or session semantics. Then complete exact-pinned RC5
+    windowed multi-component and full-stack/browser validation when Docker API
+    access is available. No stable Nautilus release or unrelated upstream
     branch blocks this package-owned work.

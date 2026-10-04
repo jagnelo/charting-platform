@@ -25,7 +25,11 @@ This slice produces equity-derived metrics only; it does not yet bind native
 order/fill/position/cost reports into the same `MetricSet` or finish
 `RunResultManifest` construction at the worker boundary. The current branch
 plan allows exact-pinned Nautilus 2.x prereleases for local authoritative
-backtests after conformance; stable 2.x is not a prerequisite. The external
+backtests after conformance; stable 2.x is not a prerequisite. I reconciled a
+stale `plan.yaml` conformance progress note that had incorrectly required a
+published stable release; the AC-NAUTILUS criterion and runtime gate already
+allow release candidates with a valid exact isolated pin and complete checks.
+The external
 Docker socket hold still prevents exact-image/full-stack validation, and SSH
 askpass/key authentication still prevents publishing. Neither blocks the next
 owned backend implementation slice.

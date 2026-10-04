@@ -107,7 +107,7 @@
   "goal_unavailable_reason": null,
   "head": "97ecadaf2a7c1fce49c67f15e2956d2aa87cc30c",
   "implementation_sha": "97ecadaf2a7c1fce49c67f15e2956d2aa87cc30c",
-  "last_checkpoint": "2026-10-04T04:39:02+00:00",
+  "last_checkpoint": "2026-10-04T04:44:12+00:00",
   "last_human_progress_update": "2026-10-04T02:20:29+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Export and host-verify native order/fill/position/cost reports; bind these with the verified OOS equity trace into official MetricSet and RunResultManifest construction. Preserve explicit sampling/calendar semantics; then retry the exact-pinned RC5 probe and full-stack/browser profile when Docker API access is available. Stable Nautilus 2.x is not a prerequisite.",
