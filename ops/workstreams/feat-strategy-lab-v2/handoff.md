@@ -2,6 +2,48 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Exact RC5 native rebalance schedule qualification
+
+Closed the native schedule-probe gap. The RC5 image now exercises open-boundary
+rebalance, close-after-complete-event-group rebalance, and fail-on-misfire
+through the actual Nautilus bridge. All three outcomes reconciled against the
+native account and plan-bound audit: open/close each submitted one order and
+created one position; fail-on-misfire submitted none, created no position, and
+remained non-authoritative. The initial probe failure was fixture input outside
+its declared one-event lookback; the bridge/SDK correctly rejected it. The
+probe now supplies only the permitted prior-plus-current events.
+
+Exact evidence: Nautilus `2.0.0rc5`, Python `3.12.4`, Rust `1.98.1`, source
+digest `sha256:6bd04ed844d8198f3c7ab1823b43533e3faa55729c0287b8548103df38dab759`,
+image digest `sha256:3c0cbaf543e1912cea0afe98e288793f7998cd5a457d814a64803dd3df8a43d6`,
+and content-addressed receipt
+`sha256:5ad969e9bbc99b94e8654c1e86532f8dbea1015b6d03760f768dbb236bc62a05` at
+`.ai/runtime/strategy-lab-v2/nautilus-rc-evidence/`. The isolated probes ran
+with networking disabled, read-only root, and capabilities dropped. This
+receipt remains non-authoritative runtime qualification evidence, not a
+backtest result or real-capital authorization.
+
+Validation: full Strategy Lab package suite `1,284 passed` (the single local
+Unix-socket test required the repository's narrow socket-enabled test run);
+focused runtime/conformance/engine suite `55 passed`; Ruff clean; MyPy clean
+across 358 package sources; six changed Python files formatted; workstream
+validator and `git diff --check` clean; exact-source RC5 image build and all
+fixture probes passed. Implementation commit
+`c0eb70737c34ee4576c8591d7b84c42c58b26e16` is pushed, and local/remote refs
+matched at the verified checkpoint. The operational record commit is separate.
+Owned paths:
+`backend/app/strategy_lab_v2/nautilus_runtime.py`,
+`nautilus_rc_fixture_probe.py`, `nautilus_runtime_adapter_probe.py`, and the
+three directly corresponding runtime/conformance/engine tests.
+
+No stable Nautilus 2.x release is required. Provider, ETF, and TC2000 staging
+contracts remain gates only for consuming those workstreams' owned data and
+semantics; they do not stop package-owned implementation. Missing Docker Buildx
+limits only final Compose/browser validation. Next: add exact-RC5 native
+multi-component rebalance/allocation coverage for shared-account routing and
+contention, then continue remaining metric, provider-snapshot, worker, and
+forward-shadow acceptance.
+
 ## 2026-10-04 - Durable diagnostics for failed rebalance schedules
 
 Closed the previous failure-audit gap without treating a failed simulation as

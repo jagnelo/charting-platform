@@ -815,34 +815,32 @@ progress:
     - strategy-lab-v2-local-preparation-composition-v1
     - strategy-lab-v2-postgres-search-preparation-rpc-v1
   total: 18
-  current_phase: postgres-owner-hydrated-preparation-integration-v1
+  current_phase: native-multi-component-rebalance-conformance-v1
   current_blocker: >-
-    Stable Nautilus 2.x is not a release blocker. Exact-pinned 2.0.0rc5 has
-    passed the four local backtest checks and remains barred from broker or
-    real-capital control; forward shadow keeps its separate event-tape parity
-    gate. The isolated RC image, exact local evidence artifact, four backtest
-    checks, authenticated Unix-socket RPC, and package-owned preparation
-    composition are in place. A real PostgreSQL/Testcontainers integration
-    now persists and rehydrates the complete owner-scoped trial graph, resolves
-    package and frozen-series bytes through the shared artifact root, rejects
-    foreign-owner hydration, and exercises RPC enqueue plus exact replay with
-    only one admission, dispatch, payload, and outbox message. The 1,261-test
-    Strategy Lab suite, PostgreSQL integration, Ruff, formatting, MyPy across
-    360 sources, Compose configuration, workstream validation, and diff check
-    pass. Provider-owned series decoding and canonical instrument metadata
-    remain fail-closed until their approved staging contract exists. Docker
-    Buildx is unavailable and limits only final Compose/browser runtime
-    validation. The next concrete portfolio gap is that the calendar rebalance
-    planner exists but Nautilus trial assembly/engine input still reject every
-    rebalance policy; broader portfolio, snapshot, metric, worker, and forward
-    acceptance remains open. No stable Nautilus release or human approval
-    blocks implementation.
+    No external release dependency blocks package-owned implementation.
+    Exact-pinned Nautilus 2.0.0rc5 has passed the four required local backtest
+    checks plus native open/close/fail-on-misfire rebalance callbacks; it is
+    barred from broker or real-capital control, and forward shadow keeps its
+    separate event-tape parity gate. The exact image and receipt are recorded in
+    the branch handoff. A real PostgreSQL/Testcontainers integration persists
+    and rehydrates the owner-scoped trial graph, resolves package and
+    frozen-series bytes through the shared artifact root, rejects foreign-owner
+    hydration, and verifies RPC enqueue/exact replay with one admission,
+    dispatch, payload, and outbox message. The Strategy Lab suite passes 1,284
+    tests with narrow Unix-socket permission, Ruff and MyPy pass, and package
+    Compose/workstream checks are green. Provider/ETF/TC2000-owned decoding,
+    identity, membership, and code contracts remain staging-gated; that does not
+    block owned-path work. Missing Docker Buildx limits only final
+    Compose/browser runtime validation. Remaining domain-backed mutation flows,
+    multi-component native rebalance qualification, broader snapshot/metric,
+    worker, and forward-shadow acceptance are unfinished implementation, not
+    external blockers.
   next_action: >-
-    Implement and validate frozen-calendar-bound portfolio rebalance semantics
-    through Nautilus trial assembly and engine input. Preserve exact calendar
-    identity, session boundaries, and declared misfire policy; do not silently
-    ignore rebalance rules or invent provider calendar data. Then continue the
-    remaining portfolio, metric, snapshot, worker, and forward acceptance;
-    consume provider-owned decoding and canonical metadata only after their
-    approved contract reaches staging. Run the final Compose/browser profile
-    when Buildx is available. Never wait for a stable Nautilus v2 tag.
+    Add an exact-RC5 native multi-component portfolio/rebalance fixture proving
+    shared-account allocation, contention ordering, and risk-gated order
+    submission against the frozen plan; preserve component attribution and
+    native account reconciliation. Then continue remaining domain-backed
+    mutation, snapshot, metric, worker, and forward-shadow acceptance. Consume
+    provider/ETF/TC2000-owned contracts only after their approved branches reach
+    staging. Run final Compose/browser validation when Buildx is available;
+    never wait for a stable Nautilus v2 tag.
