@@ -2418,6 +2418,88 @@ SEC reconstruction, or unapproved paid vendor. Evidence refs:
 `web:eodhd-fundamentals-holdings-41-99-monthly-2026-10-04`, and
 `web:eodhd-pricing-commercial-plan-distinction-2026-10-04`.
 
+## ETF Holdings API cost and entitlement recheck — 2026-10-04
+
+The provider's current pricing page advertises US$1 per 100,000 holdings
+returned and a US$10 minimum prepaid-credit top-up (one million rows at the
+published unit rate). That can fit the platform's US$20-equivalent ceiling as
+an initial credit amount, but it is usage billing rather than a fixed monthly
+subscription; no automatic monthly hard cap was verified. The current-holdings
+endpoint is billable per returned row. Its current-coverage endpoint is
+non-billable, but the API reference requires a bearer key for all v1 endpoints,
+so exact DXJ/NTSX coverage and freshness could not be independently checked
+without an account/credential. The docs list WisdomTree as a source family but
+do not enumerate those two tickers as covered.
+
+The API documents an issuer-snapshot `asOf` date and an optional SEC filing
+fallback; `fallback` defaults false. Any eventual adapter must explicitly send
+`fallback=false` and reject filing-backed rows as current issuer data. The
+published terms say holdings can be aggregated from official issuer sources
+and other third parties, warn that a ticker or source may cease to be supported,
+and describe the service as informational and “as is.” They do not expressly
+grant commercial display/redistribution rights or a freshness/availability
+SLA. Therefore the candidate remains research-only and is not current support:
+exact target coverage, source provenance, freshness service level, written
+commercial terms, and shared-provider budget controls must be established
+before separately human-authorized credentials or credits are used. No account,
+key, or payment was created.
+
+Evidence refs: `https://etf-holdings.com/`,
+`https://etf-holdings.com/docs`, `https://etf-holdings.com/terms`;
+`web:etf-holdings-api-docs-2026-10-04`,
+`web:etf-holdings-api-pricing-2026-10-04`, and
+`web:etf-holdings-api-terms-2026-10-04`.
+
+## FundFacts API eligibility recheck — 2026-10-04
+
+FundFacts advertises a no-card Free plan with 15 lookups per month, and a
+US$9.99/month Starter plan. Its pricing page limits Free and Starter to
+evaluation/personal use; commercial in-product use is listed for Pro and above,
+with Pro starting at US$49/month. That commercial tier exceeds the platform's
+US$20-equivalent monthly ceiling. The Free/Starter offers therefore cannot be
+treated as low-cost production entitlement for this platform.
+
+The public coverage hub lists WisdomTree UCITS ETF coverage, while the service
+notes that some U.S.-listed products from issuers with UCITS ranges may also be
+covered. It does not establish exact DXJ, NTSX, MINT, or BOND coverage or full
+holdings responses; PIMCO is not among the detailed issuer pages. The product
+describes source figures with an `asOf` date, but its terms disclaim accuracy,
+completeness, and timeliness warranties. No account, key, demo request,
+credential, or activation was used. The candidate is recorded as
+over-budget/not support-eligible, not promoted or substituted for issuer
+routes.
+
+Evidence refs: `https://fundfactsapi.com/coverage`,
+`https://fundfactsapi.com/pricing`, `https://fundfactsapi.com/terms`,
+`https://fundfactsapi.com/docs/authentication`;
+`web:fundfacts-api-coverage-2026-10-04`,
+`web:fundfacts-api-pricing-2026-10-04`,
+`web:fundfacts-api-terms-2026-10-04`, and
+`web:fundfacts-api-authentication-2026-10-04`.
+
+## PIMCO MINT/BOND source recheck — 2026-10-04
+
+PIMCO's current ETF catalogue still lists both products and reports AUM of
+US$17.526B for MINT and US$8.590B for BOND as of 2026-08-31. The reviewed
+catalogue and strategy pages provide product/NAV context, not a complete
+current constituents artifact. The latest reviewed official MINT and BOND
+factsheets are dated 2026-03-31, too old and insufficiently complete to support
+current constituent analysis. The previously observed authenticated fund-detail
+route remains the only declared full-holdings candidate; this recheck did not
+retry it or use credentials. Both symbols remain unavailable, while GEME stays
+separately current under Pacific Asset Management.
+
+Evidence refs: `https://www.pimco.com/us/en/investment-strategies/etfs?DocContent=ETF+Fund+Fact+Sheets`,
+`https://www.pimco.com/us/en/investment-strategies/short-term-strategies`,
+`https://www.pimco.com/us/en/investment-strategies/core-bonds`,
+`https://www.pimco.com/us/en/documents/f67aec88085c324bcdae7fdb1694127e0b0c477bf4175a1cf8cd4da06a0ea1eff30a8dd357e3d010b5bfc8e92b80d6b1?app=dot`,
+and `https://www.pimco.com/us/en/documents/59144abed4eff08608a1795abb7f24995835fe75754d94a5b2de52ae747e3e03a0484a00da3a59f799223b6307c30e37?app=dot`;
+`web:pimco-etf-suite-current-2026-10-04`,
+`web:pimco-mint-short-term-strategy-current-2026-10-04`,
+`web:pimco-core-bond-strategy-current-2026-10-04`,
+`web:pimco-mint-official-factsheet-2026-03-31`, and
+`web:pimco-bond-official-factsheet-2026-03-31`.
+
 ## Current audit checkpoint — ETFMG symbols reconciled to Amplify — 2026-10-02
 
 Amplify's current AIEQ, AWAY, BDRY, and BWET pages identify the four active

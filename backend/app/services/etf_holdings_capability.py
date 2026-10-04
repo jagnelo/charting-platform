@@ -540,10 +540,14 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         provider_identity="wisdomtree",
         investigated_at=date(2026, 10, 4),
         next_action=(
-            "Keep DXJ degraded while WisdomTree's application route and bounded HTTP/1.1 retry "
-            "are blocked by issuer challenges; the rendered top-ten preview is incomplete. "
-            "Restore current only after the adapter retrieves complete, dated, identity-verified "
-            "rows within the freshness window."
+            "Keep DXJ degraded. The issuer route is challenged and its rendered top-ten preview "
+            "is incomplete; StockAnalysis prohibits automated collection, and FMP/EODHD exceed "
+            "budget or lack a commercial quote. ETF Holdings API's US$10 minimum top-up may fit "
+            "the ceiling, but target coverage, freshness, and commercial redistribution terms "
+            "are unverified. FundFacts API has no exact target coverage and its commercially "
+            "usable Pro tier starts at US$49/month, above budget. Restore current only after a "
+            "complete, dated, identity-verified source is executable within approved terms and "
+            "the aggregate budget."
         ),
         evidence_refs=(
             "web:wisdomtree-public-fund-holdings-api-2026-09-05",
@@ -552,6 +556,9 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403",
             "live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1",
             "web:etf-holdings-api-contract-2026-09-06",
+            "web:etf-holdings-api-docs-2026-10-04",
+            "web:etf-holdings-api-pricing-2026-10-04",
+            "web:etf-holdings-api-terms-2026-10-04",
             "web:wisdomtree-dxj-product-page-2026-10-01-current",
             "live:wisdomtree-canary-2026-10-01-opt-in-skipped",
             "web:wisdomtree-dxj-product-page-2026-10-04-top-ten",
@@ -565,6 +572,9 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:fmp-etf-holder-daily-update-2026-10-04",
             "web:eodhd-fundamentals-holdings-41-99-monthly-2026-10-04",
             "web:eodhd-pricing-commercial-plan-distinction-2026-10-04",
+            "web:fundfacts-api-coverage-2026-10-04",
+            "web:fundfacts-api-pricing-2026-10-04",
+            "web:fundfacts-api-terms-2026-10-04",
         ),
     ),
     "NTSX": ETFHoldingsSymbolAudit(
@@ -574,10 +584,14 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         provider_identity="wisdomtree",
         investigated_at=date(2026, 10, 4),
         next_action=(
-            "Keep NTSX degraded while WisdomTree's application route and bounded HTTP/1.1 retry "
-            "are blocked by issuer challenges; the rendered top-ten preview is incomplete. "
-            "Restore current only after the adapter retrieves complete, dated, identity-verified "
-            "rows within the freshness window."
+            "Keep NTSX degraded. The issuer route is challenged and its rendered top-ten preview "
+            "is incomplete; StockAnalysis prohibits automated collection, and FMP/EODHD exceed "
+            "budget or lack a commercial quote. ETF Holdings API's US$10 minimum top-up may fit "
+            "the ceiling, but target coverage, freshness, and commercial redistribution terms "
+            "are unverified. FundFacts API has no exact target coverage and its commercially "
+            "usable Pro tier starts at US$49/month, above budget. Restore current only after a "
+            "complete, dated, identity-verified source is executable within approved terms and "
+            "the aggregate budget."
         ),
         evidence_refs=(
             "web:wisdomtree-public-fund-holdings-api-2026-09-05",
@@ -586,6 +600,9 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403",
             "live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1",
             "web:etf-holdings-api-contract-2026-09-06",
+            "web:etf-holdings-api-docs-2026-10-04",
+            "web:etf-holdings-api-pricing-2026-10-04",
+            "web:etf-holdings-api-terms-2026-10-04",
             "web:wisdomtree-ntsx-product-page-2026-10-01-current",
             "live:wisdomtree-canary-2026-10-01-opt-in-skipped",
             "web:wisdomtree-ntsx-product-page-2026-10-04-top-ten",
@@ -599,6 +616,9 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:fmp-etf-holder-daily-update-2026-10-04",
             "web:eodhd-fundamentals-holdings-41-99-monthly-2026-10-04",
             "web:eodhd-pricing-commercial-plan-distinction-2026-10-04",
+            "web:fundfacts-api-coverage-2026-10-04",
+            "web:fundfacts-api-pricing-2026-10-04",
+            "web:fundfacts-api-terms-2026-10-04",
         ),
     ),
     "MINT": ETFHoldingsSymbolAudit(
@@ -606,13 +626,14 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 10, 2),
+        investigated_at=date(2026, 10, 4),
         next_action=(
-            "Keep MINT unavailable: the current PIMCO ETF suite exposes catalogue/product and "
-            "daily-disclosure context but no complete executable basket, while the anonymous "
-            "fund-detail route requires authentication and remains gated. Re-test only when a complete public "
-            "or separately entitled route is exposed; do not promote QuickSheet, top-ten, "
-            "creation-basket, or SEC-derived candidates as current support."
+            "Keep MINT unavailable: PIMCO's current suite lists MINT at US$17.526B AUM as of "
+            "2026-08-31, but its catalogue exposes product/NAV context rather than complete "
+            "executable holdings; the latest reviewed official factsheet is dated 2026-03-31. "
+            "The anonymous fund-detail route remains authentication-gated. Re-test only when "
+            "a complete public or separately entitled route is exposed; do not promote "
+            "QuickSheet, top-ten, creation-basket, or SEC-derived candidates as current support."
         ),
         evidence_refs=(
             "web:pimco-mint-daily-disclosure-2026-09-05",
@@ -646,6 +667,11 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:pimco-etf-suite-current-2026-10-02",
             "web:pimco-mint-product-shell-current-2026-10-02",
             "live:pacific-pimco-route-recheck-2026-10-02-dns-failure",
+            "web:pimco-mint-short-term-strategy-current-2026-10-04",
+            "web:pimco-mint-official-factsheet-2026-03-31",
+            "web:fundfacts-api-coverage-2026-10-04",
+            "web:fundfacts-api-pricing-2026-10-04",
+            "web:fundfacts-api-terms-2026-10-04",
         ),
     ),
     "BOND": ETFHoldingsSymbolAudit(
@@ -653,13 +679,14 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 10, 2),
+        investigated_at=date(2026, 10, 4),
         next_action=(
-            "Keep BOND unavailable: the current PIMCO ETF suite exposes catalogue/product and "
-            "daily-disclosure context but no complete executable basket, while the anonymous "
-            "fund-detail route requires authentication and remains gated. Re-test only when a complete public "
-            "or separately entitled route is exposed; do not promote QuickSheet, top-ten, "
-            "creation-basket, or SEC-derived candidates as current support."
+            "Keep BOND unavailable: PIMCO's current suite lists BOND at US$8.590B AUM as of "
+            "2026-08-31, but its catalogue exposes product/NAV context rather than complete "
+            "executable holdings; the latest reviewed official factsheet is dated 2026-03-31. "
+            "The anonymous fund-detail route remains authentication-gated. Re-test only when "
+            "a complete public or separately entitled route is exposed; do not promote "
+            "QuickSheet, top-ten, creation-basket, or SEC-derived candidates as current support."
         ),
         evidence_refs=(
             "web:pimco-bond-daily-disclosure-2026-09-05",
@@ -693,6 +720,11 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:pimco-etf-suite-current-2026-10-02",
             "web:pimco-bond-product-shell-current-2026-10-02",
             "live:pacific-pimco-route-recheck-2026-10-02-dns-failure",
+            "web:pimco-core-bond-strategy-current-2026-10-04",
+            "web:pimco-bond-official-factsheet-2026-03-31",
+            "web:fundfacts-api-coverage-2026-10-04",
+            "web:fundfacts-api-pricing-2026-10-04",
+            "web:fundfacts-api-terms-2026-10-04",
         ),
     ),
     "GEME": ETFHoldingsSymbolAudit(

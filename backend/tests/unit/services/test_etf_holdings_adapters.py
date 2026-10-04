@@ -29105,6 +29105,13 @@ def test_vendor_source_candidates_are_cost_and_activation_governed():
     assert low_cost["published_minimum_activation_usd"] == 10
     assert low_cost["budget_disposition"] == "pending_coverage_and_entitlement"
 
+    fundfacts = next(row for row in rows if row["key"] == "fundfacts_api")
+    assert fundfacts["published_minimum_activation_usd"] == 0
+    assert fundfacts["published_monthly_cost_usd"] == 49
+    assert fundfacts["budget_disposition"] == "over_aggregate_budget"
+    assert "personal use" in fundfacts["quota_evidence"]
+    assert "commercial use" in fundfacts["terms_evidence"]
+
 
 def test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers():
     """Current durable summaries must not drift from code-derived coverage."""
