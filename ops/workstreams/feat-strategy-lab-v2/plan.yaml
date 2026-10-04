@@ -818,8 +818,9 @@ progress:
     - nautilus-native-signed-fee-reconciliation-v1
     - nautilus-listed-derivative-instrument-materialization-v1
     - nautilus-futures-margin-admission-v1
+    - nautilus-futures-target-allocation-v1
   total: 18
-  current_phase: nautilus-futures-margin-admission-v1
+  current_phase: nautilus-futures-target-allocation-v1
   current_blocker: >-
     No external release or upstream dependency blocks package-owned work.
     Exact-pinned Nautilus 2.0.0rc5 passes the platform's local backtest checks,
@@ -829,8 +830,8 @@ progress:
     or real-capital control, and forward shadow retains its separate event-tape
     parity gate. The exact RC5 source/image evidence now passes all four local
     backtest checks, and the rebuilt runtime image passes the native futures
-    margin-admission probe. Probe results deliberately remain
-    authoritative=false until exact conformance evidence is bound to an
+    margin-admission and futures-target probes. Probe results deliberately
+    remain authoritative=false until exact conformance evidence is bound to an
     authoritative backtest scope. The full Compose/browser profile is pending
     Docker Buildx availability, which does not block continued package-owned
     implementation. Provider/ETF/TC2000 contracts remain staging-gated only
@@ -838,16 +839,16 @@ progress:
     domain-backed mutation flows, workers, and forward-shadow acceptance are
     implementation work, not external blockers. Version-7 native definitions
     can materialize listed futures and vanilla options when complete contract
-    terms are supplied; direct futures orders now pass native margin admission,
-    while futures target allocation and options order admission remain
-    fail-closed until their separate risk inputs are supported.
+    terms are supplied; direct futures orders and whole-contract futures target
+    allocation now pass native margin admission for base-currency settlement.
+    Option order admission remains fail-closed pending its separate event-time
+    risk inputs.
   next_action: >-
-    Extend the native futures margin gate to futures target-position allocation,
-    retaining whole-contract sizing and shared-account admission. Keep options
+    Continue implementation against the broad acceptance criteria: complete
+    versioned result metrics, remaining domain-backed mutation flows, worker
+    recovery/scaling, and persistent forward-shadow correctness. Keep options
     order admission fail-closed until canonical event-time Greeks/delta and
-    settlement evidence are available. Continue remaining domain-backed
-    mutation flows, comprehensive versioned result metrics, worker recovery and
-    scaling, and persistent forward-shadow correctness. Consume
-    provider/ETF/TC2000-owned contracts only after their approved branches reach
-    staging. Run final Compose/browser validation when Buildx is available;
-    never wait for a stable Nautilus v2 tag.
+    settlement evidence are available. Consume provider/ETF/TC2000-owned
+    contracts only after their approved branches reach staging. Run final
+    Compose/browser validation when Buildx is available; never wait for a stable
+    Nautilus v2 tag.

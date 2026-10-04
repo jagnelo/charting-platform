@@ -127,7 +127,7 @@
   "head": "37ad0d19f73b6f94e985e6ed672475fe1ad9d8c8",
   "implementation_sha": "37ad0d19f73b6f94e985e6ed672475fe1ad9d8c8",
   "last_checkpoint": "2026-10-04T18:34:24.378271+00:00",
-  "last_human_progress_update": "2026-10-04T18:31:53.898074+00:00",
+  "last_human_progress_update": "2026-10-04T18:48:42.694670+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -144,10 +144,10 @@
   "progress": {
     "completed": [],
     "current_blocker": "No external release or upstream dependency blocks package-owned implementation. Docker Buildx is absent and defers only the final full_stack_browser profile.",
-    "current_phase": "nautilus-futures-margin-admission-v1",
-    "next_action": "Extend native futures margin admission to futures target-position allocation while preserving whole-contract sizing and shared-account risk; then continue remaining backend metrics, domain mutation flows, worker recovery/scaling, and broker-free forward shadow. Keep options fail-closed until canonical event-time Greeks/delta and settlement are supported.",
+    "current_phase": "nautilus-futures-target-allocation-v1",
+    "next_action": "Continue implementation against the broad acceptance criteria: complete versioned result metrics, remaining domain-backed mutation flows, worker recovery/scaling, and persistent forward-shadow correctness. Keep options order admission fail-closed until canonical event-time Greeks/delta and settlement evidence are supported.",
     "total": 18,
-    "updated_at": "2026-10-04T18:31:53.898056+00:00"
+    "updated_at": "2026-10-04T18:48:42.694648+00:00"
   },
   "remote": "37ad0d19f73b6f94e985e6ed672475fe1ad9d8c8",
   "remote_sha": "37ad0d19f73b6f94e985e6ed672475fe1ad9d8c8",

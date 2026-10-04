@@ -2,6 +2,56 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Futures target allocation through native margin admission v1
+
+Implementation `57fd82082e745fbfae62f2dcedc26eca235fdfc2` extends
+engine-neutral target sizing to complete, base-currency-settled futures
+contracts. Target notional is converted using native mark price multiplied by
+contract multiplier, rounded toward zero to whole contracts, then compared to
+the attributed native position to create only the delta order. Margin-account
+target sizing permits futures only; cash-account futures targets, unsupported
+products, and incomplete multiplier/lot/margin terms fail closed. Candidate
+orders still go through the combined account order router and the same native
+event-aligned initial/maintenance-margin gate before Nautilus submission.
+
+The exact-source RC5 build passed with source digest
+`sha256:cca3c58c536a2e8d175980cbbdc88223c005400c2ef72bbb9ac0385730b213fb`,
+runtime image digest
+`sha256:9f3148585fc4b30111608639f7099993d4488da75c3b9369901908403392a8ce`,
+receipt artifact digest
+`sha256:9b10357d27cef539dcc68a49eea53c2fc9c81ae8e19e5d8440c776592a548f9c`,
+and conformance fingerprint
+`sha256:68452501502527594fc0519637fb96c99ed1f187764c2095e798e555d93c907d`.
+The newly built image, without source overlays, converted a future target into
+one native order/position and approved it through the margin gate. The probe
+remains `authoritative: false`; publication still requires the exact
+backtest-scope evidence binding.
+
+Validation at the implementation commit: Strategy Lab package suite `1,321
+passed`; package Ruff, changed-file formatting, targeted MyPy, and `git diff
+--check` passed. The implementation commit is published on
+`origin/feat/strategy-lab-v2`.
+
+Stable Nautilus v2 is not a prerequisite. Exact RC5 source/image qualification
+continues to pass the four local backtest checks. Pre-releases remain barred
+from brokers and real capital; forward-shadow execution separately requires
+event-tape parity. Docker Buildx remains the environment limitation for only
+the final full Compose/browser profile; package-owned work continues.
+
+Next: continue the broad result-metrics, domain-mutation, worker
+recovery/scaling, and persistent forward-shadow acceptance criteria. Options
+remain fail-closed pending canonical event-time Greeks/delta and settlement
+evidence.
+
+Changed source paths: `backend/app/strategy_lab_v2/nautilus_runtime_adapter_probe.py`,
+`backend/app/strategy_lab_v2/nautilus_strategy_bridge.py`,
+`backend/app/strategy_lab_v2/nautilus_target_allocation.py`, and
+`backend/app/strategy_lab_v2/tests/test_nautilus_target_allocation.py`.
+Changed workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
 ## 2026-10-04 - Native futures margin admission v1
 
 Implementation `3f0ec64916fa184115970bfda7d9fab44365bf94` adds direct listed-
