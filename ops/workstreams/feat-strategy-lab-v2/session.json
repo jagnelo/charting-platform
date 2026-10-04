@@ -87,7 +87,9 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ps/workstreams/feat-strategy-lab-v2/session.json"
+    "ps/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -124,10 +126,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ef1708b5355e014ee3006c498d71e3bed2c0683f",
+  "head": "8f0afef4512f2a6d9594447b16802187b51d70a6",
   "implementation_sha": "ef1708b5355e014ee3006c498d71e3bed2c0683f",
-  "last_checkpoint": "2026-10-04T15:11:02.525044+00:00",
-  "last_human_progress_update": "2026-10-04T15:08:28.101993+00:00",
+  "last_checkpoint": "2026-10-04T15:35:51.581261+00:00",
+  "last_human_progress_update": "2026-10-04T15:34:29.439603+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -143,12 +145,12 @@
   "progress": {
     "completed": [],
     "current_blocker": "none",
-    "current_phase": "native-multi-component-rebalance-conformance-v1",
-    "next_action": "Extend exact-RC5 native multi-component fixture with distinct competing targets and priorities, shared-risk rejection, attribution, and reconciliation; then continue domain-backed mutation, metric, snapshot, worker, and forward-shadow acceptance.",
+    "current_phase": "official-component-pnl-attribution-v1",
+    "next_action": "Derive component-level P&L and costs from native fill/order evidence, reconcile exactly to native account/equity results, bind observations to immutable metrics, then continue snapshots, search, workers, APIs, and forward-shadow acceptance.",
     "total": 18,
-    "updated_at": "2026-10-04T15:08:28.101936+00:00"
+    "updated_at": "2026-10-04T15:34:29.439581+00:00"
   },
-  "remote": "ef1708b5355e014ee3006c498d71e3bed2c0683f",
+  "remote": "8f0afef4512f2a6d9594447b16802187b51d70a6",
   "remote_sha": "ef1708b5355e014ee3006c498d71e3bed2c0683f",
   "remote_synchronized": true,
   "retained_docker_resources": [],

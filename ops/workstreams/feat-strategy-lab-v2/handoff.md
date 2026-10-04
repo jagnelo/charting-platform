@@ -2,6 +2,47 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - RC5 competing-target priority and shared-risk conformance
+
+The stable-v2 release label is not a blocker: `plan.yaml` explicitly permits
+an exact-pinned stable or pre-release Nautilus v2 build after the same native
+backtest conformance. The exact `2.0.0rc5` path remains isolated to offline
+backtests; this evidence is non-authoritative qualification only and does not
+authorize broker connections or real capital.
+
+Extended the real RC5 shared-account rebalance probe with competing component
+targets (`core` 0.8 versus `satellite` 0.2) and distinct priorities. The native
+account selected the higher-priority satellite order, retained its
+`strategy-lab-v2:component:satellite` tag, and reconciled to one native order,
+one position, and USD 90,097.03 cash. A second probe exceeded the shared gross
+risk limit and verified rejection before any native orders or positions were
+created. The receipt parser now requires both outcomes, and a stale execution
+receipt fixture was updated to the stricter schema. Neither probe claims
+authoritative P&L or forward-shadow parity.
+
+Exact-source RC5 qualification for this runtime slice: source
+`sha256:8e70f068bbd6cc0d01748984d7731a571f0cff8676bdad011ea6729e69ee13ec`,
+image `sha256:b91351ff91970ec2134d2179609e0873de9df3e2bf51a209a093ddb2bb38aa19`,
+receipt `sha256:c3cad9703b8f81004914351350897d4d9eb29ef903e2c0e85438f8b35f3a27b3`,
+and conformance fingerprint
+`sha256:9c7f5f6d454819553fe68bb3f3ed1b5dd3716a6cdc385081f88078cab074ba8a`.
+
+Validation: Strategy Lab package suite `1,286 passed`; the existing Unix-domain
+RPC test passed separately with narrowly scoped socket permission (`1 passed`);
+focused native/runtime/conformance suite `71 passed`; Ruff and changed-file
+format checks clean; MyPy clean across 364 package/runtime sources; diff check
+clean. Implementation commit `8f0afef4512f2a6d9594447b16802187b51d70a6` is
+published to `origin/feat/strategy-lab-v2`. The checkout's remote-build
+environment still lacks Docker Buildx for the final Compose/browser profile;
+this does not block package-owned backend work. Provider, ETF, and TC2000
+staging remain contract-consumption gates only.
+
+Next: derive component-level P&L and costs from native fill/order evidence,
+reconcile them exactly to native account/equity results, and bind those
+observations into the existing immutable metric calculation path. Native order
+tags and component quantity accounting exist, but fill-level component P&L
+attribution remains unproven.
+
 ## 2026-10-04 - RC5 multi-component stream boundary and shared-account probe
 
 Confirmed that a stable Nautilus 2.x tag is not a prerequisite: the branch plan
