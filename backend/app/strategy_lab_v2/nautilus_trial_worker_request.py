@@ -156,9 +156,11 @@ def build_nautilus_trial_worker_request(
     context_stream = runtime_artifact.context_stream
     native_event_stream = runtime_artifact.native_event_stream
     result_stream_path = None
+    equity_trace_path = None
     if context_stream is not None:
         output = Path(output_path)
         result_stream_path = output.with_name(f"{output.name}.invocations.ndjson")
+        equity_trace_path = output.with_name(f"{output.name}.account-equity.parquet")
     sandbox_plan = build_nautilus_runtime_sandbox_command(
         runtime_request,
         runtime_profile,
@@ -184,6 +186,7 @@ def build_nautilus_trial_worker_request(
             native_event_stream.artifact.content_digest if native_event_stream is not None else None
         ),
         invocation_result_stream_path=result_stream_path,
+        account_equity_trace_path=equity_trace_path,
     )
     execution_plan = plan_nautilus_execution(
         authorization,

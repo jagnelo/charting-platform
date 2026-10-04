@@ -20,6 +20,7 @@ from typing import Any, BinaryIO
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import PortfolioComposition
+from app.strategy_lab_v2.nautilus_equity_trace import NautilusAccountEquityTraceWriter
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     deserialize_nautilus_native_event_stream,
 )
@@ -846,10 +847,11 @@ def _iter_replayed_component_context_trigger_groups(
 
 @dataclass(frozen=True, slots=True)
 class NativeStrategyBridge:
-    """Native strategy instance and its typed invocation-result wire output."""
+    """Native strategy instance and its typed runtime-evidence outputs."""
 
     strategy: Any
     result_output: Any
+    account_equity_trace_output: Any
     input_fingerprint: str
     input_protocol: str
 
@@ -1164,6 +1166,7 @@ def build_native_strategy_bridge(
     expected_component_context_counts: Mapping[str, int] | None = None,
     invocation_result_stream: BinaryIO | None = None,
     max_invocation_result_bytes: int | None = None,
+    account_equity_trace_writer: NautilusAccountEquityTraceWriter | None = None,
 ) -> NativeStrategyBridge:
     """Bind invocation inputs to callbacks and optionally stream callback results."""
 
@@ -1196,6 +1199,11 @@ def build_native_strategy_bridge(
         getattr(invocation_result_stream, "write", None)
     ):
         raise NautilusRuntimeDataError("strategy result stream must provide write(bytes)")
+    if account_equity_trace_writer is not None and (
+        not callable(getattr(account_equity_trace_writer, "write", None))
+        or not callable(getattr(account_equity_trace_writer, "finish", None))
+    ):
+        raise NautilusRuntimeDataError("account-equity trace writer is invalid")
     raw_strategy_bindings = engine_input.get("strategy_bindings")
     if (
         not isinstance(raw_strategy_bindings, list)
@@ -1911,11 +1919,35 @@ def build_native_strategy_bridge(
                 if current_trigger.trigger_index == callback_index:
                     contexts = current_trigger.contexts
                     current_trigger = next(component_trigger_stream, None)
+            native_event_index = callback_index
             callback_index += 1
             latest_marks[str(instrument_id)] = (
                 _native_event_mark_price(event_type, event),
                 int(ts_event),
             )
+            if account_equity_trace_writer is not None:
+                native_account = self.portfolio.account(venue=native_venue_id)
+                if native_account is None:
+                    raise NautilusRuntimeDataError("native portfolio has no account for its venue")
+                account_base = getattr(native_account, "base_currency", None)
+                if getattr(account_base, "code", str(account_base)) != portfolio.base_currency:
+                    raise NautilusRuntimeDataError("native cash account base currency differs")
+                account_equity_trace_writer.write(
+                    event_id=expected_record["event_id"],
+                    event_time_ns=int(ts_event),
+                    event_index=native_event_index,
+                    source_sequence=expected_record["sequence"],
+                    account_equity=_native_money_amount_for_currency(
+                        self.portfolio.equity(venue=native_venue_id),
+                        portfolio.base_currency,
+                        "account equity",
+                    ),
+                    account_cash_balance=_native_money_amount_for_currency(
+                        native_account.balances_total(),
+                        portfolio.base_currency,
+                        "account cash balance",
+                    ),
+                )
             if not contexts:
                 return
             callback_results: list[tuple[str, Any]] = []
@@ -2109,9 +2141,15 @@ def build_native_strategy_bridge(
         assert invocation_results is not None
         return serialize_invocation_batch_result(invocation_results)
 
+    def account_equity_trace_output() -> Any:
+        if account_equity_trace_writer is None:
+            return None
+        return account_equity_trace_writer.finish()
+
     return NativeStrategyBridge(
         strategy=strategy,
         result_output=result_output,
+        account_equity_trace_output=account_equity_trace_output,
         input_fingerprint=input_fingerprint,
         input_protocol=input_protocol,
     )

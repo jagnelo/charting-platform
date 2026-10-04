@@ -101,6 +101,7 @@ def test_rc_runtime_reporting_stack_is_exactly_pinned() -> None:
     assert source.splitlines() == [
         "numpy==2.2.6",
         "pandas==2.2.3",
+        "pyarrow==25.0.1",
         "python-dateutil==2.9.0.post0",
         "pytz==2025.2",
         "six==1.17.0",

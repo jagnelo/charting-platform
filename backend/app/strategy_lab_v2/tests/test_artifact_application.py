@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 import pytest
 
@@ -35,6 +36,7 @@ from app.strategy_lab_v2.artifact_store import (
 from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
+from app.strategy_lab_v2.nautilus_equity_trace import NautilusAccountEquityTraceWriter
 from app.strategy_lab_v2.nautilus_runner import NautilusRunResult, NautilusRunStatus
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     NautilusInvocationResultStreamReference,
@@ -196,6 +198,30 @@ async def test_publish_nautilus_invocation_result_stream_revalidates_and_streams
     output_path = tmp_path / "result.json"
     output_path.write_bytes(b"result")
     stream_path = tmp_path / "invocations.ndjson"
+    equity_trace_path = tmp_path / "account-equity.parquet"
+    equity_writer = NautilusAccountEquityTraceWriter(
+        equity_trace_path,
+        engine_input={
+            "trial_id": "trial-1",
+            "attempt_id": "attempt-1",
+            "data_snapshot_fingerprint": content_digest("snapshot"),
+            "event_tape": {"source_tape_fingerprint": content_digest("tape")},
+        },
+        portfolio={
+            "fingerprint": content_digest("portfolio"),
+            "base_currency": "USD",
+            "initial_capital": "1000",
+        },
+    )
+    equity_writer.write(
+        event_id="event-1",
+        event_time_ns=1,
+        event_index=0,
+        source_sequence=1,
+        account_equity=Decimal("1000"),
+        account_cash_balance=Decimal("1000"),
+    )
+    equity_reference = equity_writer.finish()
     invocation = StrategyInvocationResult(
         content_digest("source"),
         content_digest("manifest"),
@@ -218,11 +244,12 @@ async def test_publish_nautilus_invocation_result_stream_revalidates_and_streams
         ArtifactRetention.PINNED_RESULT,
     )
 
-    plan = sandbox_plan(output_limit=2048, output_path=os.fspath(output_path))
+    plan = sandbox_plan(output_limit=8192, output_path=os.fspath(output_path))
     argv = list(plan.argv)
     argv.insert(16, "--mount=type=bind,src=/tmp/contexts,dst=/inputs/contexts,readonly")
     argv.insert(18, f"--mount=type=bind,src={stream_path},dst=/outputs/invocations")
-    argv.insert(21, f"--env=STRATEGY_CONTEXT_STREAM_DIGEST={content_digest('contexts')}")
+    argv.insert(19, f"--mount=type=bind,src={equity_trace_path},dst=/outputs/account-equity")
+    argv.insert(22, f"--env=STRATEGY_CONTEXT_STREAM_DIGEST={content_digest('contexts')}")
     plan = replace(plan, argv=tuple(argv))
     assert sandbox_invocation_result_stream_path(plan) == stream_path
     sandbox_result = SandboxRunResult(
@@ -244,6 +271,7 @@ async def test_publish_nautilus_invocation_result_stream_revalidates_and_streams
         False,
         sandbox_result,
         NautilusInvocationResultStreamReference(stream_manifest, 1, True),
+        account_equity_trace=equity_reference,
     )
     service = LocalArtifactPublicationService(
         LocalArtifactStore(tmp_path / "artifacts"), _Committer()
@@ -260,10 +288,32 @@ async def test_publish_nautilus_invocation_result_stream_revalidates_and_streams
     assert published.storage.integrity is not None
     assert published.storage.integrity.observed_digest == summary.content_digest
     assert published.storage.integrity.observed_byte_length == len(payload)
+
+    equity_published = await service.publish_nautilus_account_equity_trace(
+        equity_reference.artifact,
+        plan,
+        run_result,
+        committed_at=NOW,
+    )
+    assert equity_published.decision is ArtifactPublicationDecision.COMMITTED
+    assert equity_published.storage.integrity is not None
+    assert (
+        equity_published.storage.integrity.observed_digest
+        == equity_reference.artifact.content_digest
+    )
+
     stream_path.write_bytes(b"drifted")
     with pytest.raises(ValueError, match="byte length differs|digest differs"):
         await service.publish_nautilus_invocation_result_stream(
             stream_manifest,
+            plan,
+            run_result,
+            committed_at=NOW,
+        )
+    equity_trace_path.write_bytes(b"drifted")
+    with pytest.raises(ValueError, match="file length differs|digest differs"):
+        await service.publish_nautilus_account_equity_trace(
+            equity_reference.artifact,
             plan,
             run_result,
             committed_at=NOW,

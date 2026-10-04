@@ -332,6 +332,22 @@ def _open_result_stream(path_value: str, *, max_bytes: int) -> Any:
         raise
 
 
+def _prepare_equity_trace_target(path_value: str, *, max_bytes: int) -> None:
+    """Safely clear one pre-created writable target before Parquet opens it."""
+
+    if not isinstance(max_bytes, int) or isinstance(max_bytes, bool) or max_bytes < 1:
+        raise ValueError("max_account_equity_trace_bytes must be positive")
+    descriptor = os.open(
+        path_value,
+        os.O_WRONLY | os.O_TRUNC | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0),
+    )
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise ValueError("runtime account-equity trace target must be a regular file")
+    finally:
+        os.close(descriptor)
+
+
 def run_bundle(
     input_path: str,
     output_path: str,
@@ -343,6 +359,8 @@ def run_bundle(
     native_event_stream_path: str | None = None,
     invocation_result_stream_path: str | None = None,
     max_result_bytes: int | None = None,
+    account_equity_trace_path: str | None = None,
+    max_account_equity_trace_bytes: int | None = None,
 ) -> int:
     """Run one bundle-bound SDK batch or verified stream into the result file."""
 
@@ -368,6 +386,8 @@ def run_bundle(
             or native_event_stream_path is not None
             or invocation_result_stream_path is not None
             or max_result_bytes is not None
+            or account_equity_trace_path is not None
+            or max_account_equity_trace_bytes is not None
             or os.environ.get("STRATEGY_CONTEXT_STREAM_DIGEST")
             or os.environ.get("STRATEGY_NATIVE_EVENT_STREAM_DIGEST")
         ):
@@ -403,7 +423,12 @@ def run_bundle(
             raise ValueError("legacy event-tape runtime bundle cannot bind a native event stream")
         if context_stream_path is None:
             raise ValueError("streaming runtime bundle requires its mounted context stream")
-        if invocation_result_stream_path is None or max_result_bytes is None:
+        if (
+            invocation_result_stream_path is None
+            or max_result_bytes is None
+            or account_equity_trace_path is None
+            or max_account_equity_trace_bytes is None
+        ):
             raise ValueError("streaming runtime bundle requires its bounded result stream")
         if (
             not isinstance(max_result_bytes, int)
@@ -411,6 +436,16 @@ def run_bundle(
             or max_result_bytes < 1
         ):
             raise ValueError("max_result_bytes must be a positive integer")
+        if (
+            not isinstance(max_account_equity_trace_bytes, int)
+            or isinstance(max_account_equity_trace_bytes, bool)
+            or max_account_equity_trace_bytes < 1
+        ):
+            raise ValueError("max_account_equity_trace_bytes must be a positive integer")
+        _prepare_equity_trace_target(
+            account_equity_trace_path,
+            max_bytes=max_account_equity_trace_bytes,
+        )
         (
             context_digest,
             context_byte_length,
@@ -468,6 +503,8 @@ def run_bundle(
                                 expected_context_count=context_count,
                                 invocation_result_stream=result_stream,
                                 max_invocation_result_bytes=max_result_bytes,
+                                account_equity_trace_path=account_equity_trace_path,
+                                max_account_equity_trace_bytes=max_account_equity_trace_bytes,
                             )
                         else:
                             if component_context_counts is None:
@@ -479,6 +516,8 @@ def run_bundle(
                                     expected_context_count=context_count,
                                     invocation_result_stream=result_stream,
                                     max_invocation_result_bytes=max_result_bytes,
+                                    account_equity_trace_path=account_equity_trace_path,
+                                    max_account_equity_trace_bytes=max_account_equity_trace_bytes,
                                 )
                             else:
                                 result = run_native_backtest(
@@ -490,6 +529,8 @@ def run_bundle(
                                     expected_component_context_counts=component_context_counts,
                                     invocation_result_stream=result_stream,
                                     max_invocation_result_bytes=max_result_bytes,
+                                    account_equity_trace_path=account_equity_trace_path,
+                                    max_account_equity_trace_bytes=max_account_equity_trace_bytes,
                                 )
                         result_stream.flush()
                         os.fsync(result_stream.fileno())
@@ -518,6 +559,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--native-event-stream")
     parser.add_argument("--invocation-results")
     parser.add_argument("--max-result-bytes", type=int)
+    parser.add_argument("--account-equity-trace")
+    parser.add_argument("--max-account-equity-trace-bytes", type=int)
     args = parser.parse_args(argv)
     if args.probe:
         if any(
@@ -530,6 +573,8 @@ def main(argv: list[str] | None = None) -> int:
                 args.native_event_stream,
                 args.invocation_results,
                 args.max_result_bytes,
+                args.account_equity_trace,
+                args.max_account_equity_trace_bytes,
             )
         ):
             parser.error("--probe cannot be combined with runtime bundle options")
@@ -548,6 +593,8 @@ def main(argv: list[str] | None = None) -> int:
         native_event_stream_path=args.native_event_stream,
         invocation_result_stream_path=args.invocation_results,
         max_result_bytes=args.max_result_bytes,
+        account_equity_trace_path=args.account_equity_trace,
+        max_account_equity_trace_bytes=args.max_account_equity_trace_bytes,
     )
 
 

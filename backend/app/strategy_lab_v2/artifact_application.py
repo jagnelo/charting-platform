@@ -38,6 +38,10 @@ from app.strategy_lab_v2.artifact_store import (
 )
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest
+from app.strategy_lab_v2.nautilus_equity_trace import (
+    MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES,
+    verify_nautilus_account_equity_trace_file,
+)
 from app.strategy_lab_v2.nautilus_runner import NautilusRunResult
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     verify_nautilus_invocation_result_stream_file,
@@ -46,6 +50,7 @@ from app.strategy_lab_v2.postgres_artifact_commit import PostgresArtifactCommitA
 from app.strategy_lab_v2.postgres_artifact_retention import PostgresArtifactRetentionAdapter
 from app.strategy_lab_v2.sandbox import (
     SandboxCommandPlan,
+    sandbox_account_equity_trace_path,
     sandbox_invocation_result_stream_path,
     sandbox_output_path,
 )
@@ -254,6 +259,47 @@ class LocalArtifactPublicationService:
             reference,
             path,
             max_result_bytes=sandbox_plan.output_limit_bytes,
+        )
+        return await self.publish_file(manifest, path, committed_at=committed_at)
+
+    async def publish_nautilus_account_equity_trace(
+        self,
+        manifest: ArtifactManifest,
+        sandbox_plan: SandboxCommandPlan,
+        run_result: NautilusRunResult,
+        *,
+        committed_at: datetime,
+    ) -> ArtifactPublicationResolution:
+        """Publish the exact native OOS equity trace accepted by the runner."""
+
+        if not isinstance(manifest, ArtifactManifest):
+            raise TypeError("manifest must be an ArtifactManifest")
+        if not isinstance(sandbox_plan, SandboxCommandPlan):
+            raise TypeError("sandbox_plan must be a SandboxCommandPlan")
+        if not isinstance(run_result, NautilusRunResult):
+            raise TypeError("run_result must be a NautilusRunResult")
+        reference = run_result.account_equity_trace
+        if reference is None:
+            raise ValueError("Nautilus run is missing its verified native account-equity trace")
+        if run_result.sandbox_plan_fingerprint != sandbox_plan.fingerprint:
+            raise ValueError("Nautilus run result does not match its sandbox plan")
+        if run_result.sandbox_result is None or (
+            run_result.sandbox_result.status is not SandboxRunStatus.SUCCEEDED
+        ):
+            raise ValueError("account-equity trace publication requires a successful sandbox")
+        if manifest != reference.artifact:
+            raise ValueError("artifact manifest does not match the verified account-equity trace")
+        path = sandbox_account_equity_trace_path(sandbox_plan)
+        if path is None:
+            raise ValueError("sandbox plan has no account-equity trace mount")
+        verify_nautilus_account_equity_trace_file(
+            reference,
+            path,
+            expected_events=None,
+            max_stream_bytes=min(
+                sandbox_plan.output_limit_bytes,
+                MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES,
+            ),
         )
         return await self.publish_file(manifest, path, committed_at=committed_at)
 

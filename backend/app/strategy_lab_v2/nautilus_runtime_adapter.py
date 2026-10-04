@@ -22,6 +22,11 @@ from typing import Any, BinaryIO
 from uuid import NAMESPACE_URL, uuid5
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.nautilus_equity_trace import (
+    MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES,
+    NautilusAccountEquityTraceReference,
+    NautilusAccountEquityTraceWriter,
+)
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     deserialize_nautilus_native_event_stream,
 )
@@ -335,6 +340,8 @@ def run_native_backtest(
     expected_component_context_counts: Mapping[str, int] | None = None,
     invocation_result_stream: BinaryIO | None = None,
     max_invocation_result_bytes: int = MAX_INVOCATION_RESULT_STREAM_BYTES,
+    account_equity_trace_path: str | Path | None = None,
+    max_account_equity_trace_bytes: int = MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES,
 ) -> dict[str, Any]:
     """Run one validated engine input and SDK invocation input in the isolated image."""
 
@@ -386,6 +393,15 @@ def run_native_backtest(
             raise NautilusRuntimeDataError(
                 "component context counts differ from the total authenticated context count"
             )
+    account_equity_trace_writer = None
+    if account_equity_trace_path is not None:
+        portfolio_wire = _mapping(payload["portfolio"], "portfolio")
+        account_equity_trace_writer = NautilusAccountEquityTraceWriter(
+            account_equity_trace_path,
+            engine_input=payload,
+            portfolio=portfolio_wire,
+            max_stream_bytes=max_account_equity_trace_bytes,
+        )
     strategy_bridge = build_native_strategy_bridge(
         payload,
         instrument_definitions,
@@ -397,6 +413,7 @@ def run_native_backtest(
         expected_component_context_counts=expected_component_context_counts,
         invocation_result_stream=invocation_result_stream,
         max_invocation_result_bytes=max_invocation_result_bytes,
+        account_equity_trace_writer=account_equity_trace_writer,
     )
 
     native_instruments = tuple(
@@ -415,7 +432,11 @@ def run_native_backtest(
         BacktestVenueConfig,
     )
 
-    def make_evidence(result: Any, invocation_result_output: Any) -> dict[str, Any]:
+    def make_evidence(
+        result: Any,
+        invocation_result_output: Any,
+        account_equity_trace: NautilusAccountEquityTraceReference | None,
+    ) -> dict[str, Any]:
         summary = getattr(result, "summary", {})
         if not isinstance(summary, Mapping):
             raise NautilusRuntimeDataError("Nautilus result summary is not a mapping")
@@ -480,6 +501,11 @@ def run_native_backtest(
             "total_positions": int(result.total_positions),
             "summary": scalar_summary,
             "forward_event_tape_parity": "deferred_authoritative_adapter",
+            **(
+                {"account_equity_trace": account_equity_trace.to_wire()}
+                if account_equity_trace is not None
+                else {}
+            ),
         }
         evidence["execution_evidence_digest"] = content_digest(evidence)
         return evidence
@@ -529,7 +555,8 @@ def run_native_backtest(
                         "catalog-backed Nautilus node did not return exactly one run result"
                     )
                 invocation_result_output = strategy_bridge.result_output()
-                return make_evidence(results[0], invocation_result_output)
+                account_equity_trace = strategy_bridge.account_equity_trace_output()
+                return make_evidence(results[0], invocation_result_output, account_equity_trace)
             finally:
                 node.dispose()
 
@@ -568,7 +595,8 @@ def run_native_backtest(
         engine.run()
         result = engine.get_result()
         invocation_result_output = strategy_bridge.result_output()
-        return make_evidence(result, invocation_result_output)
+        account_equity_trace = strategy_bridge.account_equity_trace_output()
+        return make_evidence(result, invocation_result_output, account_equity_trace)
     finally:
         engine.dispose()
 

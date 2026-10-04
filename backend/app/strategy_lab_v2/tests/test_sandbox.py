@@ -12,6 +12,7 @@ from app.strategy_lab_v2.sandbox import (
     build_nautilus_runtime_sandbox_command,
     build_nautilus_sandbox_command,
     build_sandbox_command,
+    sandbox_account_equity_trace_path,
     sandbox_context_stream_digest,
     sandbox_context_stream_path,
     sandbox_engine_id,
@@ -159,6 +160,7 @@ def test_nautilus_runtime_builder_binds_readonly_context_stream_sidecar(tmp_path
     context_path = tmp_path / "contexts.ndjson"
     native_event_path = tmp_path / "native-events.ndjson"
     invocation_result_path = tmp_path / "invocations.ndjson"
+    equity_trace_path = tmp_path / "account-equity.parquet"
     plan = build_nautilus_runtime_sandbox_command(
         _request(profile),
         profile,
@@ -172,10 +174,11 @@ def test_nautilus_runtime_builder_binds_readonly_context_stream_sidecar(tmp_path
         native_event_stream_path=native_event_path,
         native_event_stream_digest=native_event_digest,
         invocation_result_stream_path=invocation_result_path,
+        account_equity_trace_path=equity_trace_path,
     )
 
     command = sandbox_runtime_command(plan)
-    assert command[-8:] == (
+    assert command[-12:] == (
         "--context-stream",
         "/inputs/contexts",
         "--native-event-stream",
@@ -184,17 +187,23 @@ def test_nautilus_runtime_builder_binds_readonly_context_stream_sidecar(tmp_path
         "/outputs/invocations",
         "--max-result-bytes",
         str(profile.output_limit_bytes),
+        "--account-equity-trace",
+        "/outputs/account-equity",
+        "--max-account-equity-trace-bytes",
+        str(profile.output_limit_bytes),
     )
     assert sandbox_context_stream_path(plan) == context_path
     assert sandbox_context_stream_digest(plan) == context_digest
     assert sandbox_native_event_stream_path(plan) == native_event_path
     assert sandbox_native_event_stream_digest(plan) == native_event_digest
     assert sandbox_invocation_result_stream_path(plan) == invocation_result_path
+    assert sandbox_account_equity_trace_path(plan) == equity_trace_path
     assert f"--mount=type=bind,src={context_path},dst=/inputs/contexts,readonly" in plan.argv
     assert (
         f"--mount=type=bind,src={native_event_path},dst=/inputs/native-events,readonly" in plan.argv
     )
     assert f"--mount=type=bind,src={invocation_result_path},dst=/outputs/invocations" in plan.argv
+    assert f"--mount=type=bind,src={equity_trace_path},dst=/outputs/account-equity" in plan.argv
     assert f"--env=STRATEGY_CONTEXT_STREAM_DIGEST={context_digest}" in plan.argv
     assert f"--env=STRATEGY_NATIVE_EVENT_STREAM_DIGEST={native_event_digest}" in plan.argv
 

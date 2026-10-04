@@ -274,12 +274,14 @@ def test_runner_verifies_and_binds_invocation_result_stream(tmp_path: Path) -> N
     context_path = tmp_path / "contexts.ndjson"
     result_path = tmp_path / "result.json"
     stream_path = tmp_path / "invocations.ndjson"
+    equity_trace_path = tmp_path / "account-equity.parquet"
     input_bytes = b"verified bundle"
     context_bytes = b"verified contexts"
     input_path.write_bytes(input_bytes)
     context_path.write_bytes(context_bytes)
     result_path.touch()
     stream_path.touch()
+    equity_trace_path.touch()
     invocation = StrategyInvocationResult(
         content_digest("source"),
         content_digest("manifest"),
@@ -339,6 +341,7 @@ def test_runner_verifies_and_binds_invocation_result_stream(tmp_path: Path) -> N
         f"--mount=type=bind,src={context_path},dst=/inputs/contexts,readonly",
         f"--mount=type=bind,src={result_path},dst=/outputs/result",
         f"--mount=type=bind,src={stream_path},dst=/outputs/invocations",
+        f"--mount=type=bind,src={equity_trace_path},dst=/outputs/account-equity",
         "--env=STRATEGY_ATTEMPT_ID=attempt-1",
         f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
         f"--env=STRATEGY_CONTEXT_STREAM_DIGEST={context_digest}",

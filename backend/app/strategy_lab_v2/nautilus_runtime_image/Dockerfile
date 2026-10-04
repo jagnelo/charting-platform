@@ -35,6 +35,7 @@ COPY app/strategy_lab_v2/sdk.py app/strategy_lab_v2/sdk.py
 COPY app/strategy_lab_v2/strategy_validation.py app/strategy_lab_v2/strategy_validation.py
 COPY app/strategy_lab_v2/conformance.py app/strategy_lab_v2/conformance.py
 COPY app/strategy_lab_v2/nautilus_runtime_data.py app/strategy_lab_v2/nautilus_runtime_data.py
+COPY app/strategy_lab_v2/nautilus_equity_trace.py app/strategy_lab_v2/nautilus_equity_trace.py
 COPY app/strategy_lab_v2/nautilus_portfolio_wire.py app/strategy_lab_v2/nautilus_portfolio_wire.py
 COPY app/strategy_lab_v2/allocation.py app/strategy_lab_v2/allocation.py
 COPY app/strategy_lab_v2/risk_models.py app/strategy_lab_v2/risk_models.py

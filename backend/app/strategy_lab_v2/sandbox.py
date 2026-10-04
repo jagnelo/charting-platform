@@ -133,12 +133,17 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
     context_mount = _optional_mount_index(argv, "/inputs/contexts")
     native_event_mount = _optional_mount_index(argv, "/inputs/native-events")
     invocation_result_mount = _optional_mount_index(argv, "/outputs/invocations")
+    account_equity_trace_mount = _optional_mount_index(argv, "/outputs/account-equity")
     context_digest = _optional_argument_index(argv, _CONTEXT_STREAM_ENV_PREFIX)
     native_event_digest = _optional_argument_index(argv, _NATIVE_EVENT_STREAM_ENV_PREFIX)
-    if (context_mount is None) != (context_digest is None) or (context_mount is None) != (
-        invocation_result_mount is None
+    if (
+        (context_mount is None) != (context_digest is None)
+        or (context_mount is None) != (invocation_result_mount is None)
+        or (context_mount is None) != (account_equity_trace_mount is None)
     ):
-        raise ValueError("sandbox context and invocation-result streams must be bound together")
+        raise ValueError(
+            "sandbox context, invocation-result, and equity-trace streams must be bound together"
+        )
     if context_mount is not None:
         if context_digest is None:
             raise ValueError("sandbox context stream digest is required")
@@ -161,6 +166,8 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
         )
     if invocation_result_mount is not None:
         _validate_mount(argv[invocation_result_mount], "/outputs/invocations", "rw")
+    if account_equity_trace_mount is not None:
+        _validate_mount(argv[account_equity_trace_mount], "/outputs/account-equity", "rw")
     attempt_index = _argument_index(argv, "--env=STRATEGY_ATTEMPT_ID=", "attempt identity")
     if not argv[attempt_index].startswith("--env=STRATEGY_ATTEMPT_ID="):
         raise ValueError("sandbox command plan must bind the attempt identity")
@@ -187,6 +194,7 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
         [
             argv[output_mount_index],
             *(() if invocation_result_mount is None else (argv[invocation_result_mount],)),
+            *(() if account_equity_trace_mount is None else (argv[account_equity_trace_mount],)),
             argv[attempt_index],
             argv[input_digest_index],
         ]
@@ -349,6 +357,18 @@ def sandbox_invocation_result_stream_path(plan: SandboxCommandPlan) -> Path | No
     return Path(_mount_source(plan.argv[index], "/outputs/invocations", "rw"))
 
 
+def sandbox_account_equity_trace_path(plan: SandboxCommandPlan) -> Path | None:
+    """Return the optional host path bound to native OOS equity output."""
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    index = _optional_mount_index(plan.argv, "/outputs/account-equity")
+    if index is None:
+        return None
+    return Path(_mount_source(plan.argv[index], "/outputs/account-equity", "rw"))
+
+
 def sandbox_memory_limit_bytes(plan: SandboxCommandPlan) -> int:
     """Return the positive memory bound from a validated sandbox plan."""
 
@@ -432,6 +452,10 @@ def nautilus_runtime_command(
         "--invocation-results",
         "/outputs/invocations",
         "--max-result-bytes",
+        str(max_result_bytes),
+        "--account-equity-trace",
+        "/outputs/account-equity",
+        "--max-account-equity-trace-bytes",
         str(max_result_bytes),
     )
 
@@ -523,6 +547,7 @@ def build_sandbox_command(
     native_event_stream_path: str | os.PathLike[str] | None = None,
     native_event_stream_digest: str | None = None,
     invocation_result_stream_path: str | os.PathLike[str] | None = None,
+    account_equity_trace_path: str | os.PathLike[str] | None = None,
 ) -> SandboxCommandPlan:
     """Build a shell-free Docker argv after enforcing the runtime preflight."""
 
@@ -562,6 +587,8 @@ def build_sandbox_command(
         raise ValueError("native event stream path and digest must be provided together")
     if (context_stream_path is None) != (invocation_result_stream_path is None):
         raise ValueError("context and invocation-result stream paths must be provided together")
+    if (context_stream_path is None) != (account_equity_trace_path is None):
+        raise ValueError("context and account-equity trace paths must be provided together")
     if native_event_stream_path is not None and context_stream_path is None:
         raise ValueError("native event streaming requires strategy context streaming")
     context_path = (
@@ -578,6 +605,11 @@ def build_sandbox_command(
         None
         if invocation_result_stream_path is None
         else _mount_path(invocation_result_stream_path, "invocation_result_stream_path")
+    )
+    account_equity_path = (
+        None
+        if account_equity_trace_path is None
+        else _mount_path(account_equity_trace_path, "account_equity_trace_path")
     )
     if context_stream_digest is not None:
         require_sha256_digest(context_stream_digest, field_name="context_stream_digest")
@@ -620,6 +652,11 @@ def build_sandbox_command(
             if invocation_result_path is None
             else (f"--mount=type=bind,src={invocation_result_path},dst=/outputs/invocations",)
         ),
+        *(
+            ()
+            if account_equity_path is None
+            else (f"--mount=type=bind,src={account_equity_path},dst=/outputs/account-equity",)
+        ),
         f"--env=STRATEGY_ATTEMPT_ID={request.attempt_id}",
         f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={request.input_bundle_digest}",
         *(
@@ -657,6 +694,7 @@ def build_nautilus_sandbox_command(
     native_event_stream_path: str | os.PathLike[str] | None = None,
     native_event_stream_digest: str | None = None,
     invocation_result_stream_path: str | os.PathLike[str] | None = None,
+    account_equity_trace_path: str | os.PathLike[str] | None = None,
 ) -> SandboxCommandPlan:
     """Build a hardened command explicitly bound to the Nautilus engine."""
 
@@ -673,6 +711,7 @@ def build_nautilus_sandbox_command(
         native_event_stream_path=native_event_stream_path,
         native_event_stream_digest=native_event_stream_digest,
         invocation_result_stream_path=invocation_result_stream_path,
+        account_equity_trace_path=account_equity_trace_path,
     )
     image_index = _image_index(plan.argv)
     argv = (*plan.argv[:image_index], f"{_ENGINE_ENV_PREFIX}nautilus", *plan.argv[image_index:])
@@ -693,6 +732,7 @@ def build_nautilus_runtime_sandbox_command(
     native_event_stream_path: str | os.PathLike[str] | None = None,
     native_event_stream_digest: str | None = None,
     invocation_result_stream_path: str | os.PathLike[str] | None = None,
+    account_equity_trace_path: str | os.PathLike[str] | None = None,
 ) -> SandboxCommandPlan:
     """Build a hardened invocation bound to the runtime's fixed Nautilus CLI."""
 
@@ -717,6 +757,7 @@ def build_nautilus_runtime_sandbox_command(
         native_event_stream_path=native_event_stream_path,
         native_event_stream_digest=native_event_stream_digest,
         invocation_result_stream_path=invocation_result_stream_path,
+        account_equity_trace_path=account_equity_trace_path,
     )
 
 
@@ -728,6 +769,7 @@ __all__ = [
     "build_sandbox_command",
     "nautilus_runtime_command",
     "sandbox_attempt_id",
+    "sandbox_account_equity_trace_path",
     "sandbox_context_stream_digest",
     "sandbox_context_stream_path",
     "sandbox_invocation_result_stream_path",

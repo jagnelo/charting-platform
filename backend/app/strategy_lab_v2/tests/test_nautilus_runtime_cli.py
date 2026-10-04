@@ -215,9 +215,11 @@ def test_cli_verifies_and_streams_context_sidecar_before_native_run(tmp_path, mo
     input_path = tmp_path / "input.json"
     output_path = tmp_path / "result.json"
     result_stream_path = tmp_path / "invocations.ndjson"
+    equity_trace_path = tmp_path / "account-equity.parquet"
     input_path.write_bytes(bundle.wire_bytes)
     output_path.touch()
     result_stream_path.touch()
+    equity_trace_path.touch()
     monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle.input_bundle_digest)
     monkeypatch.setenv("STRATEGY_ATTEMPT_ID", bundle.attempt_id)
     monkeypatch.setenv(
@@ -232,8 +234,12 @@ def test_cli_verifies_and_streams_context_sidecar_before_native_run(tmp_path, mo
         expected_context_count,
         invocation_result_stream,
         max_invocation_result_bytes,
+        account_equity_trace_path,
+        max_account_equity_trace_bytes,
     ):
         invocation_result_stream.write(b"bounded-result-stream")
+        assert account_equity_trace_path == str(equity_trace_path)
+        assert max_account_equity_trace_bytes == 1024
         calls.append(
             (
                 engine_input,
@@ -260,6 +266,8 @@ def test_cli_verifies_and_streams_context_sidecar_before_native_run(tmp_path, mo
             context_stream_path=str(store.path_for(bundle.context_stream.artifact.storage_key)),
             invocation_result_stream_path=str(result_stream_path),
             max_result_bytes=1024,
+            account_equity_trace_path=str(equity_trace_path),
+            max_account_equity_trace_bytes=1024,
         )
         == 0
     )
@@ -284,9 +292,11 @@ def test_cli_verifies_and_streams_native_event_sidecar_to_the_adapter(
     input_path = tmp_path / "input.json"
     output_path = tmp_path / "result.json"
     result_stream_path = tmp_path / "invocations.ndjson"
+    equity_trace_path = tmp_path / "account-equity.parquet"
     input_path.write_bytes(bundle.wire_bytes)
     output_path.touch()
     result_stream_path.touch()
+    equity_trace_path.touch()
     monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle.input_bundle_digest)
     monkeypatch.setenv("STRATEGY_ATTEMPT_ID", bundle.attempt_id)
     monkeypatch.setenv(
@@ -307,6 +317,8 @@ def test_cli_verifies_and_streams_native_event_sidecar_to_the_adapter(
         expected_context_count,
         invocation_result_stream,
         max_invocation_result_bytes,
+        account_equity_trace_path,
+        max_account_equity_trace_bytes,
     ):
         invocation_result_stream.write(b"bounded-result-stream")
         calls.append(
@@ -340,6 +352,8 @@ def test_cli_verifies_and_streams_native_event_sidecar_to_the_adapter(
             ),
             invocation_result_stream_path=str(result_stream_path),
             max_result_bytes=1024,
+            account_equity_trace_path=str(equity_trace_path),
+            max_account_equity_trace_bytes=1024,
         )
         == 0
     )
@@ -366,9 +380,13 @@ def test_cli_rejects_native_event_sidecar_digest_drift_before_result_write(
     input_path = tmp_path / "input.json"
     output_path = tmp_path / "result.json"
     event_path = tmp_path / "native-events.ndjson"
+    result_stream_path = tmp_path / "invocations.ndjson"
+    equity_trace_path = tmp_path / "account-equity.parquet"
     input_path.write_bytes(bundle.wire_bytes)
     event_path.write_bytes(b"drifted")
     output_path.write_text("unchanged", encoding="utf-8")
+    result_stream_path.touch()
+    equity_trace_path.touch()
     monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle.input_bundle_digest)
     monkeypatch.setenv("STRATEGY_ATTEMPT_ID", bundle.attempt_id)
     monkeypatch.setenv(
@@ -389,8 +407,10 @@ def test_cli_rejects_native_event_sidecar_digest_drift_before_result_write(
             max_input_bytes=1_000_000,
             context_stream_path=str(store.path_for(bundle.context_stream.artifact.storage_key)),
             native_event_stream_path=str(event_path),
-            invocation_result_stream_path=str(tmp_path / "invocations.ndjson"),
+            invocation_result_stream_path=str(result_stream_path),
             max_result_bytes=1024,
+            account_equity_trace_path=str(equity_trace_path),
+            max_account_equity_trace_bytes=1024,
         )
     assert output_path.read_text(encoding="utf-8") == "unchanged"
 
@@ -405,10 +425,12 @@ def test_cli_rejects_context_sidecar_digest_drift_before_result_write(
     output_path = tmp_path / "result.json"
     result_stream_path = tmp_path / "invocations.ndjson"
     context_path = tmp_path / "contexts.ndjson"
+    equity_trace_path = tmp_path / "account-equity.parquet"
     input_path.write_bytes(bundle.wire_bytes)
     context_path.write_bytes(b"drifted")
     output_path.write_text("unchanged", encoding="utf-8")
     result_stream_path.touch()
+    equity_trace_path.touch()
     monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle.input_bundle_digest)
     monkeypatch.setenv("STRATEGY_ATTEMPT_ID", bundle.attempt_id)
     monkeypatch.setenv(
@@ -426,6 +448,8 @@ def test_cli_rejects_context_sidecar_digest_drift_before_result_write(
             context_stream_path=str(context_path),
             invocation_result_stream_path=str(result_stream_path),
             max_result_bytes=1024,
+            account_equity_trace_path=str(equity_trace_path),
+            max_account_equity_trace_bytes=1024,
         )
     assert output_path.read_text(encoding="utf-8") == "unchanged"
 
@@ -504,9 +528,11 @@ def test_cli_streams_component_context_reference_with_counts_to_adapter(
     input_path = tmp_path / "input.json"
     output_path = tmp_path / "result.json"
     result_stream_path = tmp_path / "invocations.ndjson"
+    equity_trace_path = tmp_path / "account-equity.parquet"
     input_path.write_bytes(bundle.wire_bytes)
     output_path.touch()
     result_stream_path.touch()
+    equity_trace_path.touch()
     monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle.input_bundle_digest)
     monkeypatch.setenv("STRATEGY_ATTEMPT_ID", bundle.attempt_id)
     monkeypatch.setenv(
@@ -528,6 +554,8 @@ def test_cli_streams_component_context_reference_with_counts_to_adapter(
         expected_component_context_counts,
         invocation_result_stream,
         max_invocation_result_bytes,
+        account_equity_trace_path,
+        max_account_equity_trace_bytes,
     ):
         invocation_result_stream.write(b"component-results")
         calls.append(
@@ -558,6 +586,8 @@ def test_cli_streams_component_context_reference_with_counts_to_adapter(
             ),
             invocation_result_stream_path=str(result_stream_path),
             max_result_bytes=1024,
+            account_equity_trace_path=str(equity_trace_path),
+            max_account_equity_trace_bytes=1024,
         )
         == 0
     )
