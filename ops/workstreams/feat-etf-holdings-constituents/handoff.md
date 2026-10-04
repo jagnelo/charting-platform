@@ -6807,12 +6807,19 @@ After refreshing the session and plan narrative, the focused
 passed, and the workstream validator accepted all 30 records.
 
 The implementation branch was clean at `3cf8552` and the local ETF tracking
-ref matched it before this documentation-only receipt update. This checkpoint
-changes only branch-owned workstream records. Next, when DNS is available,
-refresh refs read-only, push the local receipt checkpoint, and run
-`agent-session-plan-ready` plus the session checkpoint against synchronized
-heads. Require exact-SHA CI for that documentation checkpoint. AC7 must be
-rerun after the generic test/gate blocker is resolved or its ownership is
-explicitly expanded; do not relabel it green based on feature-branch CI. Resume
-AC10 only after the shared provider-platform branch has actually reached
-staging. AC14 remains a post-integration/deployment 30-day observation.
+ref matched it before this documentation-only receipt update. The receipt
+checkpoint is committed locally as `3cebf1ebf`, leaving the ETF branch one
+commit ahead of its last synchronized remote-tracking ref. A push attempt over
+the repository-configured SSH route reached GitHub but failed with
+`Permission denied (publickey)`; `ssh-add -l` confirms the active agent has no
+identities. The configured private-key file exists, but its passphrase is not
+available to this session. No private-key contents were read, no HTTPS fallback
+was attempted, and no remote ref changed. Publish the local checkpoint after
+the human unlocks/loads the configured key into the SSH agent; then refresh
+refs read-only, run `agent-session-plan-ready` plus the session checkpoint
+against synchronized heads, and require exact-SHA CI for the new documentation
+commit. AC7 must be rerun after the generic test/gate blocker is resolved or
+its ownership is explicitly expanded; do not relabel it green based on
+feature-branch CI. Resume AC10 only after the shared provider-platform branch
+has actually reached staging. AC14 remains a post-integration/deployment
+30-day observation.
