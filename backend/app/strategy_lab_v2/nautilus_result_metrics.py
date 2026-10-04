@@ -50,8 +50,8 @@ def build_nautilus_oos_equity_metric_set(
     ``equity_marks`` must be streamed from the byte-verified Parquet artifact
     identified by ``reference``. Its opening row is the first scoring-window
     account mark and the receipt count is enforced during metric calculation.
-    Other native reports (fills, positions, and costs) can be added as further
-    metric families without changing this equity-only evidence binding.
+    This equity-only builder stays independently usable; the OOS result builder
+    composes it with separately verified native execution-report metrics.
     """
 
     if not isinstance(reference, NautilusAccountEquityTraceReference):
@@ -179,6 +179,9 @@ def _native_oos_report_metrics(
     realized_pnl_amounts: dict[str, Decimal] = defaultdict(Decimal)
     realized_pnl_counts: dict[str, int] = defaultdict(int)
     realized_pnl_unreported = 0
+    realized_position_wins = 0
+    realized_position_losses = 0
+    realized_position_break_even = 0
 
     for kind, _, row in iter_nautilus_native_report_records(reference, path):
         if kind == "fills":
@@ -225,6 +228,12 @@ def _native_oos_report_metrics(
                     currency, amount = realized
                     realized_pnl_amounts[currency] += amount
                     realized_pnl_counts[currency] += 1
+                    if amount > 0:
+                        realized_position_wins += 1
+                    elif amount < 0:
+                        realized_position_losses += 1
+                    else:
+                        realized_position_break_even += 1
 
     artifact = reference.artifact.content_digest
     window = reference.evaluation_window_fingerprint
@@ -282,6 +291,97 @@ def _native_oos_report_metrics(
             ),
         )
     )
+    realized_pnl_reported_positions = sum(realized_pnl_counts.values())
+    realized_pnl_is_complete = closed_position_time_coverage and realized_pnl_unreported == 0
+    realized_pnl_null_reason = (
+        "native positions report lacks complete ts_closed coverage"
+        if not closed_position_time_coverage
+        else "native realized P&L is missing for one or more OOS-closed positions"
+        if realized_pnl_unreported
+        else None
+    )
+    for name, count, formula in (
+        (
+            "oos_realized_position_win_count",
+            realized_position_wins,
+            "count of OOS-closed native positions with strictly positive reported realized P&L",
+        ),
+        (
+            "oos_realized_position_loss_count",
+            realized_position_losses,
+            "count of OOS-closed native positions with strictly negative reported realized P&L",
+        ),
+        (
+            "oos_realized_position_break_even_count",
+            realized_position_break_even,
+            "count of OOS-closed native positions with zero reported realized P&L",
+        ),
+    ):
+        result.append(
+            _native_metric(
+                name,
+                Decimal(count) if realized_pnl_is_complete else None,
+                unit="positions",
+                sample_size=closed_positions,
+                formula=formula,
+                parameters={
+                    "report_kind": "positions",
+                    "value_field": "realized_pnl",
+                    "realized_pnl_source": "native_positions_report",
+                    "currency_aggregation": "sign_only; native currencies are not summed",
+                    **shared_parameters,
+                },
+                evidence_digest=artifact,
+                null_reason=realized_pnl_null_reason,
+            )
+        )
+
+    for name, numerator, formula in (
+        (
+            "oos_realized_position_win_rate",
+            realized_position_wins,
+            "OOS-closed positions with positive reported realized P&L divided by all OOS-closed positions",
+        ),
+        (
+            "oos_realized_position_loss_rate",
+            realized_position_losses,
+            "OOS-closed positions with negative reported realized P&L divided by all OOS-closed positions",
+        ),
+        (
+            "oos_realized_position_break_even_rate",
+            realized_position_break_even,
+            "OOS-closed positions with zero reported realized P&L divided by all OOS-closed positions",
+        ),
+    ):
+        result.append(
+            _native_metric(
+                name,
+                (
+                    Decimal(numerator) / Decimal(closed_positions)
+                    if realized_pnl_is_complete and closed_positions > 0
+                    else None
+                ),
+                unit="fraction",
+                sample_size=closed_positions,
+                formula=formula,
+                parameters={
+                    "report_kind": "positions",
+                    "value_field": "realized_pnl",
+                    "realized_pnl_source": "native_positions_report",
+                    "currency_aggregation": "sign_only; native currencies are not summed",
+                    **shared_parameters,
+                },
+                evidence_digest=artifact,
+                null_reason=(
+                    realized_pnl_null_reason
+                    if not realized_pnl_is_complete
+                    else "no OOS-closed positions"
+                    if closed_positions == 0
+                    else None
+                ),
+            )
+        )
+
     result.extend(
         (
             _native_metric(
@@ -351,11 +451,9 @@ def _native_oos_report_metrics(
         (
             _native_metric(
                 "oos_realized_pnl_reported_position_count",
-                (
-                    None
-                    if not closed_position_time_coverage
-                    else Decimal(sum(realized_pnl_counts.values()))
-                ),
+                None
+                if not closed_position_time_coverage
+                else Decimal(realized_pnl_reported_positions),
                 unit="positions",
                 sample_size=closed_positions,
                 formula="count of OOS-closed native position rows with explicit realized P&L and currency",

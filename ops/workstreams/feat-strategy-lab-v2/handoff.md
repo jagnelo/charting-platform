@@ -2,6 +2,38 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Native OOS position realized-P&L quality metrics
+
+Official Nautilus OOS metric sets now include position-level realized-P&L
+win/loss/break-even counts and rates from closed native position records. The
+records are filtered by the half-open OOS close-time window. Sign-based quality
+rates remain meaningful across native currencies without summing or converting
+amounts, and are withheld when close-time coverage or any OOS-closed position's
+realized-P&L value is incomplete. The existing per-currency realized-P&L totals
+remain separately reported.
+
+Tests cover OOS boundary exclusion, mixed native currencies, winning/losing/
+break-even positions, and fail-closed behavior for missing realized P&L.
+Validation: 1,215 Strategy Lab v2 tests passed; the focused native metric tests,
+Ruff, formatting, MyPy across 350 package/runtime sources, and `git diff
+--check` passed. Stable Nautilus 2.x is not required: exact-pinned RC5 remains
+eligible for isolated local backtests after conformance, while pre-releases
+remain barred from broker and real-capital use. No external dependency blocks
+package-owned implementation; the SSH key issue affects remote publishing
+only. The full Docker/Compose/browser profile remains a required completion
+gate.
+
+Next: continue the remaining API, worker, and forward acceptance gaps, then
+complete the full-stack/browser validation profile at the exact branch tip.
+
+Changed paths:
+
+- `backend/app/strategy_lab_v2/nautilus_result_metrics.py`
+- `backend/app/strategy_lab_v2/tests/test_nautilus_result_metrics.py`
+- `ops/workstreams/feat-strategy-lab-v2/handoff.md`
+- `ops/workstreams/feat-strategy-lab-v2/session.json`
+- `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
+
 ## 2026-10-04 - Owner-scoped typed-resource dependency validation
 
 `PostgresStrategyLabV2Adapter.create_resource()` now verifies the persisted

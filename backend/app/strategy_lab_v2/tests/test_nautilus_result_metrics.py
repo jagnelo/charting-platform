@@ -47,6 +47,44 @@ def _reference(*, windowed: bool = True) -> NautilusAccountEquityTraceReference:
     )
 
 
+def _metric_set_for_positions(tmp_path, positions: list[dict[str, object]]):
+    equity_reference = _reference()
+    reports_path = tmp_path / "position-reports.parquet"
+    writer = NautilusNativeReportsWriter(
+        reports_path,
+        engine_input={
+            "trial_id": equity_reference.trial_id,
+            "attempt_id": equity_reference.attempt_id,
+            "data_snapshot_fingerprint": equity_reference.snapshot_fingerprint,
+            "event_tape": {
+                "source_tape_fingerprint": equity_reference.source_tape_fingerprint,
+            },
+            "evaluation_window": {
+                "fingerprint": equity_reference.evaluation_window_fingerprint,
+                "start_ns": equity_reference.scoring_start_ns,
+                "end_ns": equity_reference.scoring_end_ns,
+            },
+        },
+        portfolio={"fingerprint": equity_reference.portfolio_fingerprint},
+    )
+    writer.write_reports(
+        {
+            "account": pd.DataFrame([{"currency": "USD"}]),
+            "fills": pd.DataFrame(columns=["ts_event", "commission"]),
+            "orders": pd.DataFrame(columns=["ts_init"]),
+            "positions": pd.DataFrame(positions),
+        }
+    )
+    reports_reference = writer.finish()
+    return build_nautilus_oos_metric_set(
+        equity_reference,
+        (Decimal("1000"), Decimal("1020"), Decimal("1010")),
+        reports_reference,
+        reports_path,
+        created_at=datetime(2026, 10, 4, tzinfo=UTC),
+    )
+
+
 def test_build_nautilus_oos_equity_metric_set_binds_trial_attempt_and_trace() -> None:
     reference = _reference()
     metric_set = build_nautilus_oos_equity_metric_set(
@@ -142,6 +180,10 @@ def test_build_nautilus_oos_metric_set_filters_and_binds_native_reports(tmp_path
     assert metrics["oos_commission_reporting_coverage"].value == Decimal("0.5")
     assert metrics["oos_reported_commission:USD"].value == Decimal("1.25")
     assert metrics["oos_reported_realized_position_pnl:USD"].value == Decimal("12.50")
+    assert metrics["oos_realized_position_win_count"].value == Decimal(1)
+    assert metrics["oos_realized_position_loss_count"].value == Decimal(0)
+    assert metrics["oos_realized_position_win_rate"].value == Decimal(1)
+    assert metrics["oos_realized_position_break_even_rate"].value == Decimal(0)
     assert metrics["oos_reported_commission:USD"].evidence_references[0].digest == (
         report_reference.artifact.content_digest
     )
@@ -153,6 +195,52 @@ def test_build_nautilus_oos_metric_set_filters_and_binds_native_reports(tmp_path
             created_at=datetime(2026, 10, 4, tzinfo=UTC),
         ).metric_set_id
     )
+
+
+def test_native_realized_position_quality_is_currency_safe_and_oos_scoped(tmp_path) -> None:
+    metric_set = _metric_set_for_positions(
+        tmp_path,
+        [
+            {"ts_opened": 105, "ts_closed": 110, "realized_pnl": "2 USD"},
+            {"ts_opened": 115, "ts_closed": 120, "realized_pnl": "-3 EUR"},
+            {"ts_opened": 125, "ts_closed": 130, "realized_pnl": "0 USD"},
+            {"ts_opened": 99, "ts_closed": 200, "realized_pnl": "9 USD"},
+        ],
+    )
+    metrics = {item.name: item for item in metric_set.values}
+
+    assert metrics["oos_position_records_closed_count"].value == Decimal(3)
+    assert metrics["oos_realized_position_win_count"].value == Decimal(1)
+    assert metrics["oos_realized_position_loss_count"].value == Decimal(1)
+    assert metrics["oos_realized_position_break_even_count"].value == Decimal(1)
+    assert metrics["oos_realized_position_win_rate"].value == Decimal(1) / Decimal(3)
+    assert metrics["oos_realized_position_loss_rate"].value == Decimal(1) / Decimal(3)
+    assert metrics["oos_realized_position_break_even_rate"].value == Decimal(1) / Decimal(3)
+    assert metrics["oos_realized_position_win_rate"].unit == "fraction"
+    assert metrics["oos_realized_position_win_rate"].sample_size == 3
+    assert (
+        metrics["oos_realized_position_win_rate"].calculation_definition.parameters[
+            "currency_aggregation"
+        ]
+        == "sign_only; native currencies are not summed"
+    )
+
+
+def test_native_realized_position_quality_fails_closed_on_missing_pnl(tmp_path) -> None:
+    metric_set = _metric_set_for_positions(
+        tmp_path,
+        [
+            {"ts_opened": 105, "ts_closed": 110, "realized_pnl": "2 USD"},
+            {"ts_opened": 115, "ts_closed": 120, "realized_pnl": None},
+        ],
+    )
+    metrics = {item.name: item for item in metric_set.values}
+
+    assert metrics["oos_realized_position_win_count"].value is None
+    assert metrics["oos_realized_position_win_rate"].value is None
+    assert "missing" in (metrics["oos_realized_position_win_rate"].null_reason or "")
+    assert metrics["oos_realized_pnl_reported_position_count"].value == Decimal(1)
+    assert metrics["oos_realized_pnl_unreported_position_count"].value == Decimal(1)
 
 
 def test_build_nautilus_oos_metric_set_rejects_report_scope_mismatch(tmp_path) -> None:
