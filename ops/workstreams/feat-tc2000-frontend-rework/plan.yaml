@@ -20,15 +20,15 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No environmental blocker prevents independent TC-owned work. At synchronized
-  test tip `d8553e5d93419d6f2315ff587d13b4d0e8145c9b` (product source
-  `74fc6061c6f0a567d4212b29405ed14be9b71195`), the focused 12-case pinned
-  browser replay passed all state checks; ten screenshot assertions differ from
-  board-guided local references and two pass. The fixture-only pagination
-  compatibility issue is fixed. Run the full exact-tip `full_stack_browser`
-  gate, including the complete 104-case visual matrix, without changing visual
-  oracles. Provider and ETF consumer integration remain deferred until their
-  work reaches staging; this does not block the current gate.
+  No environmental blocker prevents independent TC-owned work. At product
+  source `12ac1278a`, the clean-fixture functional browser suite reported 172
+  passed, 107 skipped, and two failures (F8r Python Library narrow-dock creation
+  and F8u Strategy-signal promotion). F8r passed both alone and in the complete
+  ordered F8r block (9/9) on fresh fixtures, so its full-suite failure has not
+  reproduced; isolate F8u next. The exact-current-source 104-case visual matrix
+  is pending; the previous-source matrix had 94 passes and ten screenshot-only
+  differences against local references. Do not alter visual oracles. Provider
+  and ETF integration remains deferred until their work reaches staging.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."

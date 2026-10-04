@@ -1,5 +1,38 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-04 — Dock activation fix and functional replay checkpoint
+
+Product commit `12ac1278a` (`fix(tc2000): keep dock tab selection current`) is
+the current synchronized source. It invalidates stale Golden Layout activation
+callbacks when a newer tab activation arrives and lets direct tab interaction
+supersede the startup-selection guard. The focused component regression passed
+10/10; `npm run type-check` and the full frontend gate passed (128 files,
+1,196 tests; 85.08% statements; uPlot contract 55/55; visual policy 26/26).
+
+At clean test fixtures on source `12ac1278a`, the full functional Playwright
+run completed with 172 passed, 107 skipped, and two failures: F8r Python
+Library narrow-dock creation and F8u single-output Strategy-signal promotion.
+The primary EasyScan-to-Market-Gauge stale-activation path and its F8x related
+tab activation case passed; the focused F8w regression also passed five
+consecutive runs. Python Library was then replayed alone (1/1 passed) and as
+the complete ordered F8r narrow-dock block (9/9 passed) on fresh assigned-stack
+fixtures, so its full-suite failure has not reproduced. This focused evidence
+does not clear the full functional gate. The F8u signal-promotion failure still
+needs an isolated fresh-fixture replay.
+
+The full 104-case visual matrix has not yet been rerun at `12ac1278a`. The prior
+pre-fix matrix recorded 94 passes and ten known local-reference screenshot
+deltas; preserve every reference, mask, threshold, skip, fallback, and policy
+while rerunning. Provider and ETF consumer integration remains deferred until
+both dependency branches reach staging.
+
+Next action: stop the temporary browser container, recreate only the assigned
+TC2000 Compose project with clean seeded fixtures, and replay F8u signal alone.
+If it passes, rerun the full functional suite from a clean stack, then run all
+104 visual cases at the exact synchronized branch tip and reconcile any
+repository-owned failures without weakening the oracles. Goal remains active
+at AC1/9; no product or environment blocker prevents this work.
+
 ## 2026-10-04 — Focused visual replay evidence published; branch synchronized
 
 ## Closed diagnostic checkpoint — R6 current-source visual replay
@@ -34,16 +67,6 @@ mask, threshold, skip, fallback, or acceptance rule changed. This focused
 generated resources were removed; exact inventories found zero containers,
 volumes, networks, or task-built images, and temporary browser output was
 removed.
-
-## Next context — R6 exact-tip full-stack/browser gate
-
-Run the repository-declared `full_stack_browser` gate at synchronized tip
-`d8553e5d93419d6f2315ff587d13b4d0e8145c9b`, including all four visual projects
-and the unchanged 104-case matrix. Fix repository-owned failures with focused
-regressions; preserve all screenshot oracles and record local-reference drift
-or external limitations precisely. Provider/ETF consumer integration remains
-deferred until both dependencies reach staging. The goal remains active at
-AC1/9; no current environment blocker prevents this exact-tip gate.
 
 ## Closed changeset — R5 Research Results older-run pagination
 
