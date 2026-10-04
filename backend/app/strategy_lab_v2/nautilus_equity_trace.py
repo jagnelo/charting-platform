@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import os
 import stat
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -495,14 +495,19 @@ class NautilusAccountEquityTraceWriter:
         )
 
 
-def verify_nautilus_account_equity_trace_file(
+def iter_verified_nautilus_account_equity_marks(
     reference: NautilusAccountEquityTraceReference,
     path: str | os.PathLike[str],
     *,
     expected_events: Iterable[Mapping[str, Any]] | None,
     max_stream_bytes: int = MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES,
-) -> None:
-    """Verify bytes, schema, scope, and optionally every mark against the tape."""
+) -> Iterator[Decimal]:
+    """Yield marks only after validating their exact artifact and OOS binding.
+
+    The digest is checked over the same no-follow descriptor that PyArrow reads.
+    Validation continues as the consumer streams the marks and the iterator
+    raises if the final count or frozen-tape comparison is incomplete.
+    """
 
     if not isinstance(reference, NautilusAccountEquityTraceReference):
         raise TypeError("reference must be a NautilusAccountEquityTraceReference")
@@ -643,6 +648,7 @@ def verify_nautilus_account_equity_trace_file(
                     previous_time = event_time_ns
                     previous_sequence = source_sequence
                     observed_count += 1
+                    yield equity
             if expected_iterator is not None:
                 for expected in expected_iterator:
                     event = expected.get("event", expected)
@@ -665,6 +671,24 @@ def verify_nautilus_account_equity_trace_file(
             os.close(descriptor)
 
 
+def verify_nautilus_account_equity_trace_file(
+    reference: NautilusAccountEquityTraceReference,
+    path: str | os.PathLike[str],
+    *,
+    expected_events: Iterable[Mapping[str, Any]] | None,
+    max_stream_bytes: int = MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES,
+) -> None:
+    """Verify bytes, schema, scope, and optionally every mark against the tape."""
+
+    for _ in iter_verified_nautilus_account_equity_marks(
+        reference,
+        path,
+        expected_events=expected_events,
+        max_stream_bytes=max_stream_bytes,
+    ):
+        pass
+
+
 __all__ = [
     "MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES",
     "NAUTILUS_ACCOUNT_EQUITY_TRACE_MEDIA_TYPE",
@@ -672,5 +696,6 @@ __all__ = [
     "NAUTILUS_ACCOUNT_EQUITY_TRACE_SCHEMA",
     "NautilusAccountEquityTraceReference",
     "NautilusAccountEquityTraceWriter",
+    "iter_verified_nautilus_account_equity_marks",
     "verify_nautilus_account_equity_trace_file",
 ]

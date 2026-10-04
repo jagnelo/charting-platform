@@ -38,6 +38,7 @@ from app.strategy_lab_v2.sandbox import (
     sandbox_context_stream_digest,
     sandbox_context_stream_path,
     sandbox_memory_limit_bytes,
+    sandbox_native_reports_path,
 )
 from app.strategy_lab_v2.worker_execution import (
     WorkerExecutionResolution,
@@ -106,11 +107,13 @@ class WorkerExecutionRequest:
             raise ValueError("runtime input artifact exceeds the worker memory-derived bound")
         context_reference = self.runtime_input_artifact.context_stream
         equity_trace_path = sandbox_account_equity_trace_path(self.sandbox_plan)
+        native_reports_path = sandbox_native_reports_path(self.sandbox_plan)
         if context_reference is None:
             if (
                 sandbox_context_stream_digest(self.sandbox_plan) is not None
                 or sandbox_context_stream_path(self.sandbox_plan) is not None
                 or equity_trace_path is not None
+                or native_reports_path is not None
             ):
                 raise ValueError(
                     "sandbox context/equity stream mounts are not bound to the runtime artifact"
@@ -120,6 +123,7 @@ class WorkerExecutionRequest:
             != context_reference.artifact.content_digest
             or sandbox_context_stream_path(self.sandbox_plan) is None
             or equity_trace_path is None
+            or native_reports_path is None
         ):
             raise ValueError(
                 "sandbox context/equity stream mounts differ from the runtime artifact"

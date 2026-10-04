@@ -42,6 +42,10 @@ from app.strategy_lab_v2.nautilus_equity_trace import (
     MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES,
     verify_nautilus_account_equity_trace_file,
 )
+from app.strategy_lab_v2.nautilus_native_reports import (
+    MAX_NAUTILUS_NATIVE_REPORTS_BYTES,
+    verify_nautilus_native_reports_file,
+)
 from app.strategy_lab_v2.nautilus_runner import NautilusRunResult
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     verify_nautilus_invocation_result_stream_file,
@@ -52,6 +56,7 @@ from app.strategy_lab_v2.sandbox import (
     SandboxCommandPlan,
     sandbox_account_equity_trace_path,
     sandbox_invocation_result_stream_path,
+    sandbox_native_reports_path,
     sandbox_output_path,
 )
 from app.strategy_lab_v2.sandbox_execution import SandboxRunResult, SandboxRunStatus
@@ -299,6 +304,46 @@ class LocalArtifactPublicationService:
             max_stream_bytes=min(
                 sandbox_plan.output_limit_bytes,
                 MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES,
+            ),
+        )
+        return await self.publish_file(manifest, path, committed_at=committed_at)
+
+    async def publish_nautilus_native_reports(
+        self,
+        manifest: ArtifactManifest,
+        sandbox_plan: SandboxCommandPlan,
+        run_result: NautilusRunResult,
+        *,
+        committed_at: datetime,
+    ) -> ArtifactPublicationResolution:
+        """Publish native account/order/fill/position reports without buffering."""
+
+        if not isinstance(manifest, ArtifactManifest):
+            raise TypeError("manifest must be an ArtifactManifest")
+        if not isinstance(sandbox_plan, SandboxCommandPlan):
+            raise TypeError("sandbox_plan must be a SandboxCommandPlan")
+        if not isinstance(run_result, NautilusRunResult):
+            raise TypeError("run_result must be a NautilusRunResult")
+        reference = run_result.native_reports
+        if reference is None:
+            raise ValueError("Nautilus run is missing its verified native reports")
+        if run_result.sandbox_plan_fingerprint != sandbox_plan.fingerprint:
+            raise ValueError("Nautilus run result does not match its sandbox plan")
+        if run_result.sandbox_result is None or (
+            run_result.sandbox_result.status is not SandboxRunStatus.SUCCEEDED
+        ):
+            raise ValueError("native report publication requires a successful sandbox")
+        if manifest != reference.artifact:
+            raise ValueError("artifact manifest does not match the verified native reports")
+        path = sandbox_native_reports_path(sandbox_plan)
+        if path is None:
+            raise ValueError("sandbox plan has no native report mount")
+        verify_nautilus_native_reports_file(
+            reference,
+            path,
+            max_stream_bytes=min(
+                sandbox_plan.output_limit_bytes,
+                MAX_NAUTILUS_NATIVE_REPORTS_BYTES,
             ),
         )
         return await self.publish_file(manifest, path, committed_at=committed_at)

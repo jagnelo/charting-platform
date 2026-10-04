@@ -8,12 +8,14 @@ from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
 
+import pandas as pd  # type: ignore[import-untyped]
 import pytest
 
 from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
 from app.strategy_lab_v2.engine_execution import EngineExecutionDecision, NautilusExecutionPlan
+from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsWriter
 from app.strategy_lab_v2.nautilus_runner import NautilusRunStatus, run_nautilus_plan
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     NAUTILUS_RUNTIME_ARTIFACT_MEDIA_TYPE,
@@ -275,6 +277,7 @@ def test_runner_verifies_and_binds_invocation_result_stream(tmp_path: Path) -> N
     result_path = tmp_path / "result.json"
     stream_path = tmp_path / "invocations.ndjson"
     equity_trace_path = tmp_path / "account-equity.parquet"
+    native_reports_path = tmp_path / "native-reports.parquet"
     input_bytes = b"verified bundle"
     context_bytes = b"verified contexts"
     input_path.write_bytes(input_bytes)
@@ -282,6 +285,25 @@ def test_runner_verifies_and_binds_invocation_result_stream(tmp_path: Path) -> N
     result_path.touch()
     stream_path.touch()
     equity_trace_path.touch()
+    report_writer = NautilusNativeReportsWriter(
+        native_reports_path,
+        engine_input={
+            "trial_id": "trial-1",
+            "attempt_id": "attempt-1",
+            "data_snapshot_fingerprint": content_digest("snapshot"),
+            "event_tape": {"source_tape_fingerprint": content_digest("tape")},
+        },
+        portfolio={"fingerprint": content_digest("portfolio")},
+    )
+    report_writer.write_reports(
+        {
+            "account": pd.DataFrame([{"total": "1000 USD"}]),
+            "fills": pd.DataFrame(columns=["fill_id"]),
+            "orders": pd.DataFrame([{"order_id": "order-1"}]),
+            "positions": pd.DataFrame(columns=["position_id"]),
+        }
+    )
+    native_reports = report_writer.finish()
     invocation = StrategyInvocationResult(
         content_digest("source"),
         content_digest("manifest"),
@@ -303,7 +325,8 @@ def test_runner_verifies_and_binds_invocation_result_stream(tmp_path: Path) -> N
                 "byte_length": len(stream_bytes),
                 "result_count": 1,
                 "all_succeeded": True,
-            }
+            },
+            "native_execution_reports": native_reports.to_wire(),
         },
         separators=(",", ":"),
         sort_keys=True,
@@ -327,6 +350,9 @@ def test_runner_verifies_and_binds_invocation_result_stream(tmp_path: Path) -> N
         )
     )
     sandbox = _sandbox()
+    sandbox_argv = list(sandbox.argv)
+    sandbox_argv[12] = "--ulimit=fsize=65536"
+    sandbox = replace(sandbox, argv=tuple(sandbox_argv), output_limit_bytes=65536)
     context_digest = f"sha256:{sha256(context_bytes).hexdigest()}"
     runtime_command = nautilus_runtime_command(
         expected_version="2.0.0",
@@ -342,6 +368,7 @@ def test_runner_verifies_and_binds_invocation_result_stream(tmp_path: Path) -> N
         f"--mount=type=bind,src={result_path},dst=/outputs/result",
         f"--mount=type=bind,src={stream_path},dst=/outputs/invocations",
         f"--mount=type=bind,src={equity_trace_path},dst=/outputs/account-equity",
+        f"--mount=type=bind,src={native_reports_path},dst=/outputs/native-reports",
         "--env=STRATEGY_ATTEMPT_ID=attempt-1",
         f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
         f"--env=STRATEGY_CONTEXT_STREAM_DIGEST={context_digest}",
@@ -389,3 +416,4 @@ def test_runner_verifies_and_binds_invocation_result_stream(tmp_path: Path) -> N
     assert result.invocation_result_stream.artifact.content_digest == summary.content_digest
     assert result.invocation_result_stream.artifact.byte_length == len(stream_bytes)
     assert result.invocation_result_stream.result_count == 1
+    assert result.native_reports == native_reports

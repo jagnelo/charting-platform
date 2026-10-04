@@ -30,6 +30,11 @@ from app.strategy_lab_v2.nautilus_equity_trace import (
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     deserialize_nautilus_native_event_stream,
 )
+from app.strategy_lab_v2.nautilus_native_reports import (
+    MAX_NAUTILUS_NATIVE_REPORTS_BYTES,
+    NautilusNativeReportsReference,
+    NautilusNativeReportsWriter,
+)
 from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_from_wire
 from app.strategy_lab_v2.nautilus_runtime_data import (
     NautilusRuntimeDataError,
@@ -342,6 +347,8 @@ def run_native_backtest(
     max_invocation_result_bytes: int = MAX_INVOCATION_RESULT_STREAM_BYTES,
     account_equity_trace_path: str | Path | None = None,
     max_account_equity_trace_bytes: int = MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES,
+    native_reports_path: str | Path | None = None,
+    max_native_reports_bytes: int = MAX_NAUTILUS_NATIVE_REPORTS_BYTES,
 ) -> dict[str, Any]:
     """Run one validated engine input and SDK invocation input in the isolated image."""
 
@@ -394,6 +401,7 @@ def run_native_backtest(
                 "component context counts differ from the total authenticated context count"
             )
     account_equity_trace_writer = None
+    native_reports_writer = None
     if account_equity_trace_path is not None:
         portfolio_wire = _mapping(payload["portfolio"], "portfolio")
         account_equity_trace_writer = NautilusAccountEquityTraceWriter(
@@ -401,6 +409,14 @@ def run_native_backtest(
             engine_input=payload,
             portfolio=portfolio_wire,
             max_stream_bytes=max_account_equity_trace_bytes,
+        )
+    if native_reports_path is not None:
+        portfolio_wire = _mapping(payload["portfolio"], "portfolio")
+        native_reports_writer = NautilusNativeReportsWriter(
+            native_reports_path,
+            engine_input=payload,
+            portfolio=portfolio_wire,
+            max_stream_bytes=max_native_reports_bytes,
         )
     strategy_bridge = build_native_strategy_bridge(
         payload,
@@ -436,6 +452,7 @@ def run_native_backtest(
         result: Any,
         invocation_result_output: Any,
         account_equity_trace: NautilusAccountEquityTraceReference | None,
+        native_reports: NautilusNativeReportsReference | None,
     ) -> dict[str, Any]:
         summary = getattr(result, "summary", {})
         if not isinstance(summary, Mapping):
@@ -506,9 +523,42 @@ def run_native_backtest(
                 if account_equity_trace is not None
                 else {}
             ),
+            **(
+                {"native_execution_reports": native_reports.to_wire()}
+                if native_reports is not None
+                else {}
+            ),
         }
         evidence["execution_evidence_digest"] = content_digest(evidence)
         return evidence
+
+    def export_native_reports(
+        source: Any, *, run_id: str | None = None
+    ) -> NautilusNativeReportsReference | None:
+        if native_reports_writer is None:
+            return None
+        reports: dict[str, Any] = {}
+        for kind in ("account", "fills", "orders", "positions"):
+            method = getattr(source, f"generate_{kind}_report", None)
+            if not callable(method):
+                raise NautilusRuntimeDataError(
+                    f"Nautilus runtime does not expose the native {kind} report"
+                )
+            if kind == "account":
+                report = (
+                    method(venue=native_venue)
+                    if run_id is None
+                    else method(run_id, venue=native_venue)
+                )
+            else:
+                report = method() if run_id is None else method(run_id)
+            if not callable(getattr(report, "itertuples", None)):
+                raise NautilusRuntimeDataError(
+                    f"Nautilus native {kind} report is not a tabular report"
+                )
+            reports[kind] = report
+        native_reports_writer.write_reports(reports)
+        return native_reports_writer.finish()
 
     if native_event_stream is not None:
         from nautilus_trader.model import BookType, Currency  # type: ignore[attr-defined]
@@ -556,9 +606,16 @@ def run_native_backtest(
                     )
                 invocation_result_output = strategy_bridge.result_output()
                 account_equity_trace = strategy_bridge.account_equity_trace_output()
-                return make_evidence(results[0], invocation_result_output, account_equity_trace)
+                native_reports = export_native_reports(node, run_id=run_config.id)
+                return make_evidence(
+                    results[0], invocation_result_output, account_equity_trace, native_reports
+                )
             finally:
-                node.dispose()
+                try:
+                    node.dispose()
+                finally:
+                    if native_reports_writer is not None:
+                        native_reports_writer.abort()
 
     from nautilus_trader.model import Currency  # type: ignore[attr-defined]
 
@@ -596,9 +653,14 @@ def run_native_backtest(
         result = engine.get_result()
         invocation_result_output = strategy_bridge.result_output()
         account_equity_trace = strategy_bridge.account_equity_trace_output()
-        return make_evidence(result, invocation_result_output, account_equity_trace)
+        native_reports = export_native_reports(engine)
+        return make_evidence(result, invocation_result_output, account_equity_trace, native_reports)
     finally:
-        engine.dispose()
+        try:
+            engine.dispose()
+        finally:
+            if native_reports_writer is not None:
+                native_reports_writer.abort()
 
 
 def result_invocation_count(result_wire: str) -> int:

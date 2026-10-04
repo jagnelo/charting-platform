@@ -2,6 +2,64 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Native OOS reports, metrics, and RC5 qualification probe
+
+The host now streams and verifies the exact content-addressed native Nautilus
+account, order, fill, and position reports, combines their OOS-scoped
+observations with the verified account-equity trace, and builds a versioned
+metric set bound to the same trial, attempt, portfolio, snapshot, tape, and
+evaluation window. A Strategy Lab-specific result materializer publishes both
+artifact manifests and the metric set through the immutable result path with
+retry-safe identity checks. Structured native report values are preserved as
+canonical JSON under nesting, value-count, and row-byte bounds. The account
+report call is scoped to the configured Nautilus venue, as required by RC5.
+
+The exact-pinned Nautilus `2.0.0rc5` runtime image was built from the pinned
+base digest and wheel SHA-256, then run with networking disabled, a read-only
+root, dropped capabilities, a non-root UID, bounded memory/CPU/PIDs, and a
+worktree ownership label. The native fixtures passed lifecycle, two-instrument
+accounting, order/fill/fee evidence, and deterministic replay. The actual native
+Parquet report schemas and three OOS equity observations were captured and
+host-verified. This is diagnostic conformance evidence only: the fixture
+receipt explicitly remains non-authoritative until the exact build and fixture
+fingerprints are installed through the formal conformance/provenance/publication
+path. Forward event-tape parity is still separate.
+
+Observed report schemas contained 2 account rows, 1 fill, 1 order, and 1 open
+position. RC5 columns used for half-open OOS filtering are `fills.ts_event`,
+`orders.ts_init`, and `positions.ts_opened`/`ts_closed`; account reports must be
+scoped with the configured native venue (`SIM`). Nested position `events`,
+order `commissions`, and trade/order ID sequences require structured-value
+preservation in the bounded report artifact.
+
+Validation: all 1,208 Strategy Lab v2 package tests passed; Ruff passed; MyPy
+reported no issues across 348 package sources; all 19 changed Python files
+passed formatting; and `git diff --check` passed. The repository's scoped Docker
+cleanup removed the temporary image after the probe and reported no containers,
+volumes, or retained resources. The legacy Docker builder transmitted a 2.1 GB
+backend build context because buildx is unavailable; this is local build
+overhead, not a product gate.
+
+Stable Nautilus 2.x is not a prerequisite. `plan.yaml` accepts the exact-pinned
+2.x release candidate after applicable conformance for local backtesting; the
+pre-release still cannot connect to brokers or control real capital. No
+external dependency blocks the next owned implementation slice. The
+previously recorded SSH askpass/public-key failure affects publishing only and
+should be rechecked during the next push. Provider/ETF/TC2000 staging gates
+apply only to their shared-path consumption.
+
+Changed paths: package-owned `nautilus_native_reports.py`,
+`nautilus_result_metrics.py`, `nautilus_result_materialization.py`, the
+isolated runtime/adapter wiring and image allowlist, corresponding tests, and
+this branch workstream.
+
+Next: wire `materialize_nautilus_oos_run_result` into the actual worker
+terminal-evidence callback; turn the passing exact RC5 fixture output into
+immutable `EngineConformanceEvidence` bound to source, wheel, image, and
+execution-plan digests; then proceed through remaining API/worker/metric
+acceptance and the full-stack/browser profile. Keep authoritative backtest
+publication, forward parity, and full feature completion distinct gates.
+
 ## 2026-10-04 - OOS native-equity metric-set materialization
 
 The verified native OOS account-equity trace now has a bounded-memory metric

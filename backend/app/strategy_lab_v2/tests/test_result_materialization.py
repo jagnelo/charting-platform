@@ -2,11 +2,20 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta, timezone
+from decimal import Decimal
 
+import pandas as pd  # type: ignore[import-untyped]
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import AttemptState
+from app.strategy_lab_v2.nautilus_equity_trace import (
+    NautilusAccountEquityTraceWriter,
+)
+from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsWriter
+from app.strategy_lab_v2.nautilus_result_materialization import (
+    materialize_nautilus_oos_run_result,
+)
 from app.strategy_lab_v2.result_materialization import (
     EngineResultEvidence,
     ResultMaterializationDecision,
@@ -198,3 +207,147 @@ def test_engine_evidence_canonicalizes_artifact_order() -> None:
         result.engine_provenance,
     )
     assert evidence.artifact_content_digests == tuple(sorted((first, second)))
+
+
+def _nautilus_oos_references(result, equity_path, reports_path):
+    window_fingerprint = content_digest("oos-window")
+    engine_input = {
+        "trial_id": result.trial.trial_id,
+        "attempt_id": result.attempt.attempt_id,
+        "data_snapshot_fingerprint": result.snapshot.fingerprint,
+        "event_tape": {"source_tape_fingerprint": content_digest("source-tape")},
+        "evaluation_window": {
+            "fingerprint": window_fingerprint,
+            "start_ns": 100,
+            "end_ns": 200,
+        },
+    }
+    equity_writer = NautilusAccountEquityTraceWriter(
+        equity_path,
+        engine_input=engine_input,
+        portfolio={
+            "fingerprint": result.portfolio.fingerprint,
+            "base_currency": result.portfolio.base_currency,
+            "initial_capital": format(result.portfolio.initial_capital, "f"),
+        },
+    )
+    expected_events = []
+    equity_values = ("1000", "1010", "1005")
+    for index, timestamp in enumerate((100, 150, 199)):
+        event_id = f"scoring-event-{index}"
+        sequence = index + 1
+        event = {"event_id": event_id, "event_time_ns": timestamp, "sequence": sequence}
+        equity_writer.write(
+            event_id=event_id,
+            event_time_ns=timestamp,
+            event_index=index,
+            source_sequence=sequence,
+            account_equity=Decimal(equity_values[index]),
+            account_cash_balance=Decimal("1000"),
+        )
+        expected_events.append({"index": index, "event": event})
+    trace_reference = equity_writer.finish()
+    writer = NautilusNativeReportsWriter(
+        reports_path,
+        engine_input={
+            "trial_id": trace_reference.trial_id,
+            "attempt_id": trace_reference.attempt_id,
+            "data_snapshot_fingerprint": trace_reference.snapshot_fingerprint,
+            "event_tape": {"source_tape_fingerprint": trace_reference.source_tape_fingerprint},
+            "evaluation_window": {
+                "fingerprint": window_fingerprint,
+                "start_ns": 100,
+                "end_ns": 200,
+            },
+        },
+        portfolio={"fingerprint": trace_reference.portfolio_fingerprint},
+    )
+    writer.write_reports(
+        {
+            "account": pd.DataFrame([{"currency": "USD", "total": "1000"}]),
+            "fills": pd.DataFrame([{"ts_event": 150, "commission": "2.00 USD"}]),
+            "orders": pd.DataFrame([{"ts_init": 150}]),
+            "positions": pd.DataFrame(columns=["ts_opened", "ts_closed", "realized_pnl"]),
+        }
+    )
+    return trace_reference, tuple(expected_events), writer.finish()
+
+
+def test_nautilus_oos_result_materialization_binds_metrics_and_native_artifacts(tmp_path) -> None:
+    existing_result, evidence = _inputs()
+    equity_path = tmp_path / "account-equity.parquet"
+    reports_path = tmp_path / "native-reports.parquet"
+    trace_reference, expected_events, reports_reference = _nautilus_oos_references(
+        existing_result,
+        equity_path,
+        reports_path,
+    )
+    arguments = (
+        existing_result.trial,
+        existing_result.attempt,
+        existing_result.strategy_packages,
+        existing_result.portfolio,
+        existing_result.snapshot,
+        evidence,
+        trace_reference,
+        equity_path,
+        expected_events,
+        reports_reference,
+        reports_path,
+        existing_result.output_artifacts,
+    )
+
+    materialized = materialize_nautilus_oos_run_result(
+        *arguments,
+        created_at=NOW,
+    )
+
+    assert materialized.decision is ResultMaterializationDecision.MATERIALIZE
+    assert materialized.manifest is not None
+    manifest = materialized.manifest
+    manifest_digests = {item.content_digest for item in manifest.output_artifacts}
+    assert trace_reference.artifact.content_digest in manifest_digests
+    assert reports_reference.artifact.content_digest in manifest_digests
+    metrics = {item.name: item for item in manifest.metric_set.values}
+    assert metrics["oos_fill_count"].value == Decimal(1)
+    assert metrics["oos_reported_commission:USD"].value == Decimal("2.00")
+
+    replay = materialize_nautilus_oos_run_result(
+        *arguments,
+        created_at=NOW,
+        existing=manifest,
+    )
+    assert replay.decision is ResultMaterializationDecision.REPLAY_EXISTING
+    assert replay.manifest == manifest
+
+
+def test_nautilus_oos_result_materialization_rejects_identity_drift(tmp_path) -> None:
+    existing_result, evidence = _inputs()
+    equity_path = tmp_path / "account-equity.parquet"
+    reports_path = tmp_path / "native-reports.parquet"
+    trace_reference, expected_events, reports_reference = _nautilus_oos_references(
+        existing_result,
+        equity_path,
+        reports_path,
+    )
+    drifted_reference = replace(
+        trace_reference,
+        portfolio_fingerprint=content_digest("different-portfolio"),
+    )
+
+    with pytest.raises(ValueError, match="do not match the result identities"):
+        materialize_nautilus_oos_run_result(
+            existing_result.trial,
+            existing_result.attempt,
+            existing_result.strategy_packages,
+            existing_result.portfolio,
+            existing_result.snapshot,
+            evidence,
+            drifted_reference,
+            equity_path,
+            expected_events,
+            reports_reference,
+            reports_path,
+            existing_result.output_artifacts,
+            created_at=NOW,
+        )

@@ -348,6 +348,21 @@ def _prepare_equity_trace_target(path_value: str, *, max_bytes: int) -> None:
         os.close(descriptor)
 
 
+def _prepare_native_reports_target(path_value: str, *, max_bytes: int) -> None:
+    """Safely clear the pre-created report artifact target before Parquet opens it."""
+    if not isinstance(max_bytes, int) or isinstance(max_bytes, bool) or max_bytes < 1:
+        raise ValueError("max_native_reports_bytes must be positive")
+    descriptor = os.open(
+        path_value,
+        os.O_WRONLY | os.O_TRUNC | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0),
+    )
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise ValueError("runtime native reports target must be a regular file")
+    finally:
+        os.close(descriptor)
+
+
 def run_bundle(
     input_path: str,
     output_path: str,
@@ -361,6 +376,8 @@ def run_bundle(
     max_result_bytes: int | None = None,
     account_equity_trace_path: str | None = None,
     max_account_equity_trace_bytes: int | None = None,
+    native_reports_path: str | None = None,
+    max_native_reports_bytes: int | None = None,
 ) -> int:
     """Run one bundle-bound SDK batch or verified stream into the result file."""
 
@@ -388,6 +405,8 @@ def run_bundle(
             or max_result_bytes is not None
             or account_equity_trace_path is not None
             or max_account_equity_trace_bytes is not None
+            or native_reports_path is not None
+            or max_native_reports_bytes is not None
             or os.environ.get("STRATEGY_CONTEXT_STREAM_DIGEST")
             or os.environ.get("STRATEGY_NATIVE_EVENT_STREAM_DIGEST")
         ):
@@ -446,6 +465,19 @@ def run_bundle(
             account_equity_trace_path,
             max_bytes=max_account_equity_trace_bytes,
         )
+        if (native_reports_path is None) != (max_native_reports_bytes is None):
+            raise ValueError("native report path and byte bound must be provided together")
+        if native_reports_path is not None:
+            if (
+                not isinstance(max_native_reports_bytes, int)
+                or isinstance(max_native_reports_bytes, bool)
+                or max_native_reports_bytes < 1
+            ):
+                raise ValueError("max_native_reports_bytes must be a positive integer")
+            _prepare_native_reports_target(
+                native_reports_path,
+                max_bytes=max_native_reports_bytes,
+            )
         (
             context_digest,
             context_byte_length,
@@ -492,6 +524,14 @@ def run_bundle(
                         byte_length=native_byte_length,
                     )
                 try:
+                    native_report_options: dict[str, Any] = (
+                        {}
+                        if native_reports_path is None
+                        else {
+                            "native_reports_path": native_reports_path,
+                            "max_native_reports_bytes": max_native_reports_bytes,
+                        }
+                    )
                     with _open_result_stream(
                         invocation_result_stream_path,
                         max_bytes=max_result_bytes,
@@ -505,6 +545,7 @@ def run_bundle(
                                 max_invocation_result_bytes=max_result_bytes,
                                 account_equity_trace_path=account_equity_trace_path,
                                 max_account_equity_trace_bytes=max_account_equity_trace_bytes,
+                                **native_report_options,
                             )
                         else:
                             if component_context_counts is None:
@@ -518,6 +559,7 @@ def run_bundle(
                                     max_invocation_result_bytes=max_result_bytes,
                                     account_equity_trace_path=account_equity_trace_path,
                                     max_account_equity_trace_bytes=max_account_equity_trace_bytes,
+                                    **native_report_options,
                                 )
                             else:
                                 result = run_native_backtest(
@@ -531,6 +573,7 @@ def run_bundle(
                                     max_invocation_result_bytes=max_result_bytes,
                                     account_equity_trace_path=account_equity_trace_path,
                                     max_account_equity_trace_bytes=max_account_equity_trace_bytes,
+                                    **native_report_options,
                                 )
                         result_stream.flush()
                         os.fsync(result_stream.fileno())
@@ -561,6 +604,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-result-bytes", type=int)
     parser.add_argument("--account-equity-trace")
     parser.add_argument("--max-account-equity-trace-bytes", type=int)
+    parser.add_argument("--native-reports")
+    parser.add_argument("--max-native-reports-bytes", type=int)
     args = parser.parse_args(argv)
     if args.probe:
         if any(
@@ -575,6 +620,8 @@ def main(argv: list[str] | None = None) -> int:
                 args.max_result_bytes,
                 args.account_equity_trace,
                 args.max_account_equity_trace_bytes,
+                args.native_reports,
+                args.max_native_reports_bytes,
             )
         ):
             parser.error("--probe cannot be combined with runtime bundle options")
@@ -595,6 +642,8 @@ def main(argv: list[str] | None = None) -> int:
         max_result_bytes=args.max_result_bytes,
         account_equity_trace_path=args.account_equity_trace,
         max_account_equity_trace_bytes=args.max_account_equity_trace_bytes,
+        native_reports_path=args.native_reports,
+        max_native_reports_bytes=args.max_native_reports_bytes,
     )
 
 

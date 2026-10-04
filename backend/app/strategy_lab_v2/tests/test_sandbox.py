@@ -161,6 +161,7 @@ def test_nautilus_runtime_builder_binds_readonly_context_stream_sidecar(tmp_path
     native_event_path = tmp_path / "native-events.ndjson"
     invocation_result_path = tmp_path / "invocations.ndjson"
     equity_trace_path = tmp_path / "account-equity.parquet"
+    native_reports_path = tmp_path / "native-reports.parquet"
     plan = build_nautilus_runtime_sandbox_command(
         _request(profile),
         profile,
@@ -175,10 +176,11 @@ def test_nautilus_runtime_builder_binds_readonly_context_stream_sidecar(tmp_path
         native_event_stream_digest=native_event_digest,
         invocation_result_stream_path=invocation_result_path,
         account_equity_trace_path=equity_trace_path,
+        native_reports_path=native_reports_path,
     )
 
     command = sandbox_runtime_command(plan)
-    assert command[-12:] == (
+    assert command[-16:] == (
         "--context-stream",
         "/inputs/contexts",
         "--native-event-stream",
@@ -190,6 +192,10 @@ def test_nautilus_runtime_builder_binds_readonly_context_stream_sidecar(tmp_path
         "--account-equity-trace",
         "/outputs/account-equity",
         "--max-account-equity-trace-bytes",
+        str(profile.output_limit_bytes),
+        "--native-reports",
+        "/outputs/native-reports",
+        "--max-native-reports-bytes",
         str(profile.output_limit_bytes),
     )
     assert sandbox_context_stream_path(plan) == context_path

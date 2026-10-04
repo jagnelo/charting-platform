@@ -22,6 +22,7 @@ from app.strategy_lab_v2.contracts import (
     CASH_EQUITY_NOTIONAL_RISK_MODEL,
     FX_BASE_NOTIONAL_RISK_MODEL,
     AdjustmentMode,
+    EvaluationWindow,
     EventGranularity,
     PortfolioComponent,
     PortfolioComposition,
@@ -29,8 +30,16 @@ from app.strategy_lab_v2.contracts import (
     SharedRiskPolicy,
     StrategyVersion,
 )
+from app.strategy_lab_v2.nautilus_equity_trace import (
+    NautilusAccountEquityTraceReference,
+    verify_nautilus_account_equity_trace_file,
+)
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     serialize_nautilus_native_event_stream,
+)
+from app.strategy_lab_v2.nautilus_native_reports import (
+    NautilusNativeReportsReference,
+    iter_nautilus_native_report_records,
 )
 from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_to_wire
 from app.strategy_lab_v2.nautilus_runtime_adapter import (
@@ -63,6 +72,15 @@ from strategy_runtime import (
 
 _EVENT_TIME = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
 _EVENT_TIME_NS = 1_704_205_800_000_000_000
+
+
+def _datetime_ns(value: datetime) -> int:
+    normalized = value.astimezone(UTC)
+    epoch = datetime(1970, 1, 1, tzinfo=UTC)
+    delta = normalized - epoch
+    return (delta.days * 86_400 + delta.seconds) * 1_000_000_000 + delta.microseconds * 1_000
+
+
 _SOURCE = """
 class Strategy:
     def on_event(self, context):
@@ -290,7 +308,20 @@ def run_order_risk_probe() -> dict[str, Any]:
     return _run_native_execution_probe(target_position=False)
 
 
-def _run_native_execution_probe(*, target_position: bool) -> dict[str, Any]:
+def run_native_reports_schema_probe() -> dict[str, Any]:
+    """Inspect real RC report fields through the streamed artifact boundary."""
+
+    return _run_native_execution_probe(
+        target_position=False,
+        include_native_report_diagnostics=True,
+    )
+
+
+def _run_native_execution_probe(
+    *,
+    target_position: bool,
+    include_native_report_diagnostics: bool = False,
+) -> dict[str, Any]:
     instrument_id = "AAPL.SIM"
     strategy_source = _TARGET_SOURCE if target_position else _RAW_ORDER_SOURCE
     later_time = _EVENT_TIME + timedelta(seconds=1)
@@ -450,7 +481,82 @@ def _run_native_execution_probe(*, target_position: bool) -> dict[str, Any]:
         ),
         entrypoint="strategy.main:Strategy",
     )
-    result = run_native_backtest(payload, serialized_strategy_invocation_batch=batch)
+    native_report_diagnostics = None
+    if include_native_report_diagnostics:
+        scoring_start_ns = event_records[0].get("event_time_ns")
+        scoring_end_ns = event_records[-1].get("event_time_ns")
+        if (
+            not isinstance(scoring_start_ns, int)
+            or isinstance(scoring_start_ns, bool)
+            or not isinstance(scoring_end_ns, int)
+            or isinstance(scoring_end_ns, bool)
+        ):
+            raise RuntimeError("native report diagnostic tape timestamps are invalid")
+        evaluation_window = EvaluationWindow(
+            start=_EVENT_TIME,
+            end=later_time + timedelta(microseconds=1),
+            purpose="native-report-schema-probe",
+        )
+        window_wire = {
+            "fingerprint": evaluation_window.fingerprint,
+            "purpose": evaluation_window.purpose,
+            "warmup_start_ns": None,
+            "start_ns": _datetime_ns(evaluation_window.start),
+            "end_ns": _datetime_ns(evaluation_window.end),
+        }
+        window_start_ns = window_wire.get("start_ns")
+        window_end_ns = window_wire.get("end_ns")
+        if (
+            not isinstance(window_start_ns, int)
+            or isinstance(window_start_ns, bool)
+            or not isinstance(window_end_ns, int)
+            or isinstance(window_end_ns, bool)
+        ):
+            raise RuntimeError("native report diagnostic evaluation bounds are invalid")
+        if window_start_ns > scoring_start_ns or window_end_ns <= scoring_end_ns:
+            raise RuntimeError("native report diagnostic window does not cover its event tape")
+        payload["evaluation_window"] = window_wire
+        with tempfile.TemporaryDirectory(prefix="strategy-lab-native-report-probe-") as root:
+            equity_path = Path(root) / "account-equity.parquet"
+            reports_path = Path(root) / "native-reports.parquet"
+            result = run_native_backtest(
+                payload,
+                serialized_strategy_invocation_batch=batch,
+                account_equity_trace_path=equity_path,
+                native_reports_path=reports_path,
+            )
+            equity_reference = NautilusAccountEquityTraceReference.from_wire(
+                result.get("account_equity_trace")
+            )
+            verify_nautilus_account_equity_trace_file(
+                equity_reference,
+                equity_path,
+                expected_events=tuple(
+                    {"index": index, "event": event} for index, event in enumerate(event_records)
+                ),
+            )
+            reports_reference = NautilusNativeReportsReference.from_wire(
+                result.get("native_execution_reports")
+            )
+            report_samples: dict[str, dict[str, Any]] = {}
+            for kind, _, record in iter_nautilus_native_report_records(
+                reports_reference,
+                reports_path,
+            ):
+                sample = report_samples.setdefault(
+                    kind,
+                    {"columns": sorted(record), "sample_record": record},
+                )
+                if tuple(sample["columns"]) != tuple(sorted(record)):
+                    raise RuntimeError(f"native {kind} report changed columns between rows")
+            native_report_diagnostics = {
+                "evaluation_window_fingerprint": equity_reference.evaluation_window_fingerprint,
+                "row_counts": dict(reports_reference.row_counts),
+                "samples": report_samples,
+                "verified_equity_observations": equity_reference.observation_count,
+            }
+    else:
+        result = run_native_backtest(payload, serialized_strategy_invocation_batch=batch)
     summary = result.get("summary")
     if not isinstance(summary, dict):
         raise RuntimeError("target allocation probe has no native account summary")
@@ -471,7 +577,7 @@ def _run_native_execution_probe(*, target_position: bool) -> dict[str, Any]:
             raise RuntimeError(
                 "native target allocation did not reconcile order, position, and cash"
             )
-        return {
+        probe_result = {
             "instrument_id": instrument_id,
             "requested_target_fraction": "0.5",
             "total_orders": result["total_orders"],
@@ -482,6 +588,9 @@ def _run_native_execution_probe(*, target_position: bool) -> dict[str, Any]:
             "account_base_currency": "USD",
             "authoritative": False,
         }
+        if native_report_diagnostics is not None:
+            probe_result["native_report_diagnostics"] = native_report_diagnostics
+        return probe_result
     if (
         result.get("authoritative") is not False
         or result.get("total_orders") != 1
@@ -489,7 +598,7 @@ def _run_native_execution_probe(*, target_position: bool) -> dict[str, Any]:
         or not Decimal("89000") < remaining_cash < Decimal("91000")
     ):
         raise RuntimeError("native raw-order risk probe did not reconcile order and account")
-    return {
+    probe_result = {
         "instrument_id": instrument_id,
         "requested_order_quantity": "100",
         "estimated_signed_base_notional": "10001",
@@ -501,6 +610,9 @@ def _run_native_execution_probe(*, target_position: bool) -> dict[str, Any]:
         "account_base_currency": "USD",
         "authoritative": False,
     }
+    if native_report_diagnostics is not None:
+        probe_result["native_report_diagnostics"] = native_report_diagnostics
+    return probe_result
 
 
 def run_context_stream_cli_probe(
@@ -742,8 +854,15 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="cross the native-input writer boundary and multiple BacktestNode replay chunks",
     )
+    parser.add_argument(
+        "--native-report-schema",
+        action="store_true",
+        help="verify actual RC report schemas and OOS artifacts through the native report writer",
+    )
     args = parser.parse_args(argv)
-    if args.context_stream_cli:
+    if args.native_report_schema:
+        result = run_native_reports_schema_probe()
+    elif args.context_stream_cli:
         result = run_context_stream_cli_probe()
     elif args.catalog_chunk_cli:
         result = run_context_stream_cli_probe(
@@ -763,4 +882,4 @@ if __name__ == "__main__":  # pragma: no cover - image entrypoint
     raise SystemExit(main())
 
 
-__all__ = ["main", "run_context_stream_cli_probe"]
+__all__ = ["main", "run_context_stream_cli_probe", "run_native_reports_schema_probe"]

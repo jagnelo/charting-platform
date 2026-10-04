@@ -33,6 +33,11 @@ from app.strategy_lab_v2.nautilus_native_event_stream import (
     MAX_NAUTILUS_NATIVE_EVENT_STREAM_BYTES,
     deserialize_nautilus_native_event_stream,
 )
+from app.strategy_lab_v2.nautilus_native_reports import (
+    MAX_NAUTILUS_NATIVE_REPORTS_BYTES,
+    NautilusNativeReportsReference,
+    verify_nautilus_native_reports_file,
+)
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     NautilusInvocationResultStreamReference,
     NautilusNativeEventStreamArtifactReference,
@@ -60,6 +65,7 @@ from app.strategy_lab_v2.sandbox import (
     sandbox_memory_limit_bytes,
     sandbox_native_event_stream_digest,
     sandbox_native_event_stream_path,
+    sandbox_native_reports_path,
     sandbox_output_path,
     sandbox_runtime_command,
 )
@@ -93,6 +99,7 @@ class NautilusRunResult:
     result_failure_digest: str | None = None
     rejection_reasons: tuple[str, ...] = ()
     account_equity_trace: NautilusAccountEquityTraceReference | None = None
+    native_reports: NautilusNativeReportsReference | None = None
 
     def __post_init__(self) -> None:
         require_sha256_digest(
@@ -121,6 +128,10 @@ class NautilusRunResult:
             self.account_equity_trace, NautilusAccountEquityTraceReference
         ):
             raise TypeError("account_equity_trace must be a NautilusAccountEquityTraceReference")
+        if self.native_reports is not None and not isinstance(
+            self.native_reports, NautilusNativeReportsReference
+        ):
+            raise TypeError("native_reports must be a NautilusNativeReportsReference")
         if self.result_failure_digest is not None:
             require_sha256_digest(self.result_failure_digest, field_name="result_failure_digest")
         reasons = tuple(self.rejection_reasons)
@@ -133,6 +144,7 @@ class NautilusRunResult:
                 self.sandbox_result is not None
                 or self.invocation_result_stream is not None
                 or self.account_equity_trace is not None
+                or self.native_reports is not None
                 or self.result_failure_digest is not None
                 or self.authoritative
                 or not reasons
@@ -190,6 +202,7 @@ def run_nautilus_plan(
         raise TypeError("runtime_input_artifact must be a NautilusRuntimeInputArtifactReference")
     result_stream_path = None
     equity_trace_path = None
+    native_reports_path = None
     try:
         engine_marker = sandbox_engine_id(sandbox_plan)
         attempt_id = sandbox_attempt_id(sandbox_plan)
@@ -200,6 +213,7 @@ def run_nautilus_plan(
         native_event_path = sandbox_native_event_stream_path(sandbox_plan)
         result_stream_path = sandbox_invocation_result_stream_path(sandbox_plan)
         equity_trace_path = sandbox_account_equity_trace_path(sandbox_plan)
+        native_reports_path = sandbox_native_reports_path(sandbox_plan)
         memory_limit_bytes = sandbox_memory_limit_bytes(sandbox_plan)
     except (TypeError, ValueError):
         reasons.append("sandbox_plan_not_hardened")
@@ -230,6 +244,7 @@ def run_nautilus_plan(
                     or native_event_path is not None
                     or result_stream_path is not None
                     or equity_trace_path is not None
+                    or native_reports_path is not None
                 ):
                     reasons.append("nautilus_stream_artifact_unbound")
             else:
@@ -248,6 +263,8 @@ def run_nautilus_plan(
                         reasons.append("nautilus_context_stream_integrity_failed")
                 if result_stream_path is None:
                     reasons.append("nautilus_invocation_result_stream_mount_required")
+                if native_reports_path is None:
+                    reasons.append("nautilus_native_reports_mount_required")
                 if runtime_input_artifact.trial_binding is not None and equity_trace_path is None:
                     reasons.append("nautilus_account_equity_trace_mount_required")
             native_event_reference = runtime_input_artifact.native_event_stream
@@ -314,6 +331,7 @@ def run_nautilus_plan(
     status = _status(sandbox_result.status)
     invocation_result_stream = None
     account_equity_trace = None
+    native_reports = None
     result_failure_digest = None
     if status is NautilusRunStatus.SUCCEEDED and runtime_input_artifact is not None:
         context_reference = runtime_input_artifact.context_stream
@@ -330,10 +348,29 @@ def run_nautilus_plan(
                 if not invocation_result_stream.all_succeeded:
                     status = NautilusRunStatus.FAILED
                     result_failure_digest = content_digest("strategy invocation result failure")
+                if native_reports_path is None:
+                    raise ValueError("Nautilus native report mount is missing")
+                result_wire = _read_sandbox_result(sandbox_plan, sandbox_result)
+                native_reports = NautilusNativeReportsReference.from_wire(
+                    result_wire.get("native_execution_reports")
+                )
+                _verify_native_reports_input_binding(
+                    native_reports,
+                    execution_plan,
+                    sandbox_plan,
+                    runtime_input_artifact,
+                )
+                verify_nautilus_native_reports_file(
+                    native_reports,
+                    native_reports_path,
+                    max_stream_bytes=min(
+                        sandbox_plan.output_limit_bytes,
+                        MAX_NAUTILUS_NATIVE_REPORTS_BYTES,
+                    ),
+                )
                 if runtime_input_artifact.trial_binding is not None:
                     if equity_trace_path is None:
                         raise ValueError("Nautilus account-equity trace mount is missing")
-                    result_wire = _read_sandbox_result(sandbox_plan, sandbox_result)
                     account_equity_trace = NautilusAccountEquityTraceReference.from_wire(
                         result_wire.get("account_equity_trace")
                     )
@@ -359,6 +396,7 @@ def run_nautilus_plan(
             except (OSError, TypeError, ValueError, json.JSONDecodeError):
                 status = NautilusRunStatus.FAILED
                 account_equity_trace = None
+                native_reports = None
                 result_failure_digest = content_digest(
                     "Nautilus result artifact verification failure"
                 )
@@ -371,6 +409,7 @@ def run_nautilus_plan(
         invocation_result_stream,
         result_failure_digest,
         account_equity_trace=account_equity_trace,
+        native_reports=native_reports,
     )
 
 
@@ -483,6 +522,67 @@ def _verify_account_equity_trace_input_binding(
         or reference.initial_capital != portfolio.initial_capital
     ):
         raise ValueError("Nautilus account-equity trace differs from its frozen trial input")
+
+
+def _verify_native_reports_input_binding(
+    reference: NautilusNativeReportsReference,
+    execution_plan: NautilusExecutionPlan,
+    sandbox_plan: SandboxCommandPlan,
+    runtime_input_artifact: NautilusRuntimeInputArtifactReference,
+) -> None:
+    if runtime_input_artifact.trial_binding is None:
+        if (
+            reference.trial_id != execution_plan.trial_id
+            or reference.attempt_id != execution_plan.attempt_id
+            or reference.attempt_id != runtime_input_artifact.attempt_id
+            or reference.snapshot_fingerprint != execution_plan.data_snapshot_fingerprint
+        ):
+            raise ValueError("Nautilus native reports differ from their execution plan")
+        return
+    bundle = _read_runtime_input_bundle(
+        sandbox_plan,
+        max_input_bytes=max(1, sandbox_memory_limit_bytes(sandbox_plan) // 8),
+    )
+    engine_input = bundle["engine_input"]
+    assert isinstance(engine_input, Mapping)
+    from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_from_wire
+
+    portfolio = portfolio_composition_from_wire(engine_input["portfolio"])
+    tape = engine_input.get("event_tape")
+    if not isinstance(tape, Mapping):
+        raise ValueError("Nautilus runtime input event tape is invalid")
+    raw_window = engine_input.get("evaluation_window")
+    window_fingerprint = None
+    start_ns = None
+    end_ns = None
+    if raw_window is not None:
+        if not isinstance(raw_window, Mapping):
+            raise ValueError("Nautilus runtime input evaluation window is invalid")
+        window_fingerprint = raw_window.get("fingerprint")
+        start_ns = raw_window.get("start_ns")
+        end_ns = raw_window.get("end_ns")
+    expected_trial_id = (
+        runtime_input_artifact.trial_binding.trial_fingerprint
+        if runtime_input_artifact.trial_binding is not None
+        else engine_input.get("trial_id")
+    )
+    expected_snapshot = (
+        runtime_input_artifact.trial_binding.snapshot_fingerprint
+        if runtime_input_artifact.trial_binding is not None
+        else engine_input.get("data_snapshot_fingerprint")
+    )
+    if (
+        reference.trial_id != expected_trial_id
+        or reference.attempt_id != execution_plan.attempt_id
+        or reference.attempt_id != runtime_input_artifact.attempt_id
+        or reference.portfolio_fingerprint != portfolio.fingerprint
+        or reference.snapshot_fingerprint != expected_snapshot
+        or reference.source_tape_fingerprint != tape.get("source_tape_fingerprint")
+        or reference.evaluation_window_fingerprint != window_fingerprint
+        or reference.scoring_start_ns != start_ns
+        or reference.scoring_end_ns != end_ns
+    ):
+        raise ValueError("Nautilus native reports differ from their frozen trial input")
 
 
 def _expected_native_equity_events(
