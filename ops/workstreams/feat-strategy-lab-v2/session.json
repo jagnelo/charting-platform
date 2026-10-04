@@ -87,6 +87,7 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
@@ -125,14 +126,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "485b7ce7c42b6cc84e96658c57a271c8758fa058",
+  "head": "ded3714158d5428508241ac380d945f4f835c723",
   "implementation_sha": "485b7ce7c42b6cc84e96658c57a271c8758fa058",
   "last_checkpoint": "2026-10-04T07:20:58.403141+00:00",
   "last_human_progress_update": "2026-10-04T07:18:27.714137+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue remaining backend API, worker, and forward acceptance gaps; then run full-stack/browser validation at the exact branch tip",
   "parent_branch": "staging",
-  "plan_hash": "a761d73f1282d805cb804fe2697ce8fd34c8597342600b1de112e92fa82c3c87",
+  "plan_hash": "57ffdec75c2e4ef3259ac995c7e23d839fb47b9105cbb7afc39e85f264daf8a7",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [

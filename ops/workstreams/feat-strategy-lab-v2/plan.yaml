@@ -808,30 +808,22 @@ progress:
     - strategy-lab-v2-host-composed-nautilus-backtest-dispatch
     - strategy-lab-v2-production-search-dispatch-evidence-preparation
   total: 18
-  current_phase: worker-terminal-oos-result-publication
+  current_phase: native-oos-position-realized-trade-quality
   current_blocker: >-
-    Stable Nautilus 2.x is not a release blocker: the plan and execution gate
-    accept an exact-pinned release candidate for authoritative local backtests
-    after the complete applicable conformance suite. Pre-releases remain barred
-    from broker connections and real-capital control; forward shadow separately
-    requires event-tape parity. The owned worker-terminal resolver now
-    authenticates the trial graph and exact conformance evidence, verifies and
-    publishes native OOS result artifacts, and constructs the official result
-    manifest and publication plan. The full terminal success/redelivery
-    coordinator is now covered using in-memory persistence ports and confirms
-    stable completion/settlement identity across callback times. Remaining code
-    work includes owner-scoped domain graph validation on creation and other
-    API, worker, and forward acceptance gaps. Denied Docker API access blocks
-    real PostgreSQL/Redis/Compose and full-stack-browser validation; SSH
-    authentication blocks remote publishing. Neither blocks package-owned
-    implementation. Provider/ETF/TC2000 staging gates apply only to shared-path
-    reconciliation, not this backend-only work.
+    Stable Nautilus 2.x is not a release blocker: this plan accepts exact-pinned
+    pre-release v2 builds for authoritative local backtests after applicable
+    conformance; pre-releases remain barred from broker connections and
+    real-capital control, and forward shadow separately requires event-tape
+    parity. No external dependency blocks package-owned implementation. The
+    production API still lacks host-composed capability and search-preparation
+    inputs; this is an implementation gap and must remain fail-closed until the
+    provider evidence, exact conformance, runtime profile, and local preparation
+    process are composed. Provider/ETF/TC2000 staging gates apply only when
+    consuming their shared contracts or paths. Docker is currently available,
+    but the full PostgreSQL/Redis/Compose/browser profile has not yet run at the
+    exact branch tip. Missing SSH identity blocks remote publishing only.
   next_action: >-
-    Validate immutable domain-resource dependencies before application-backed
-    creation (for example package/portfolio references to owner-scoped strategy
-    versions), failing closed without revealing cross-owner existence; then
-    expand that graph validation to snapshot/trial/attempt/result relationships
-    and continue dedicated worker/runtime and forward acceptance gaps. Run real
-    PostgreSQL/Redis/Compose and full-stack/browser validation when Docker API
-    access is available. No stable Nautilus release or unrelated upstream
-    branch blocks this package-owned work.
+    Continue closing production API, dedicated backtest worker, and forward
+    acceptance gaps without inventing provider or runtime evidence; then run
+    PostgreSQL/Redis/Compose and full-stack/browser validation at the exact
+    branch tip. Do not wait for a stable Nautilus 2.x release.
