@@ -686,11 +686,21 @@ function comparisonArtifactSummary(artifact: ResearchArtifact) {
   if (artifact.artifact_type === 'boolean') return `Value: ${value === true ? 'True' : value === false ? 'False' : '—'}`
   if (artifact.artifact_type === 'series') {
     const data = seriesData(artifact)
-    return data ? `${data.values.length} observations; latest ${data.values[data.values.length - 1] ?? '—'}` : 'Series output'
+    if (!data) return 'Series output'
+    const latestIndex = data.values.length - 1
+    const latestTimestamp = data.timestamps[latestIndex]
+    const latestDate = latestTimestamp ? ` as of ${latestTimestamp}` : ''
+    const observations = `${data.values.length} observation${data.values.length === 1 ? '' : 's'}`
+    return `${observations}; latest ${data.values[latestIndex] ?? '—'}${latestDate}`
   }
   if (artifact.artifact_type === 'range') {
     const data = rangeData(artifact)
-    return data ? `${data.timestamps.length} observations; latest center ${data.center?.[data.center.length - 1] ?? '—'}` : 'Range output'
+    if (!data) return 'Range output'
+    const latestIndex = data.timestamps.length - 1
+    const latestTimestamp = data.timestamps[latestIndex]
+    const latestDate = latestTimestamp ? ` as of ${latestTimestamp}` : ''
+    const observations = `${data.timestamps.length} observation${data.timestamps.length === 1 ? '' : 's'}`
+    return `${observations}; latest center ${data.center?.[latestIndex] ?? '—'}${latestDate}`
   }
   if (artifact.artifact_type === 'table') return `${tableRows(artifact).length} rows · ${tableColumns(artifact).length} columns`
   if (artifact.artifact_type === 'events') return `${Array.isArray(value) ? value.length : 0} occurrences`

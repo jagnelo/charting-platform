@@ -124,6 +124,7 @@ describe('ResearchResultsTool', () => {
         { id: 3, name: 'config', artifact_type: 'custom', payload: { value: { alpha: 1, beta: 2 } } },
         { id: 4, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-02'], lower: [1], upper: [3], center: [2] } } },
         { id: 5, name: 'different_dates', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-02'], values: [2] } } },
+        { id: 6, name: 'different_range_dates', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-02'], lower: [4], upper: [6], center: [5] } } },
       ] })
       if (path === '/research/runs/11') return Promise.resolve({ ...compactRuns[1], artifacts: [
         { id: 3, name: 'sample_size', artifact_type: 'scalar', payload: { value: 5 } },
@@ -132,6 +133,7 @@ describe('ResearchResultsTool', () => {
         { id: 6, name: 'config', artifact_type: 'custom', payload: { value: { beta: 2, alpha: 1 } } },
         { id: 7, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-02'], lower: [0], upper: [2], center: [1] } } },
         { id: 8, name: 'different_dates', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-03'], values: [4] } } },
+        { id: 9, name: 'different_range_dates', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-03'], lower: [5], upper: [7], center: [6] } } },
       ] })
       return Promise.reject(new Error(`unexpected request: ${path}`))
     })
@@ -160,7 +162,14 @@ describe('ResearchResultsTool', () => {
     expect(differentDatesRow.text()).not.toContain('Latest aligned change')
     expect(comparison.text()).toContain('Only in run 11')
     expect(comparison.text()).toContain('Not produced')
-    expect(comparison.text()).toContain('2 observations; latest 3')
+    expect(comparison.text()).toContain('2 observations; latest 3 as of 2026-01-02')
+    expect(differentDatesRow.text()).toContain('1 observation; latest 2 as of 2026-01-02')
+    expect(differentDatesRow.text()).toContain('1 observation; latest 4 as of 2026-01-03')
+    expect(comparison.text()).toContain('1 observation; latest center 2 as of 2026-01-02')
+    const differentRangeDatesRow = comparison.findAll('tr').find(row => row.text().includes('different_range_dates'))!
+    expect(differentRangeDatesRow.text()).toContain('1 observation; latest center 5 as of 2026-01-02')
+    expect(differentRangeDatesRow.text()).toContain('1 observation; latest center 6 as of 2026-01-03')
+    expect(differentRangeDatesRow.text()).not.toContain('Latest aligned center change')
     expect(comparison.text()).toContain('Same output')
     expect(comparison.text()).toContain('Inspect output')
     expect(comparison.text()).not.toContain('"values"')
