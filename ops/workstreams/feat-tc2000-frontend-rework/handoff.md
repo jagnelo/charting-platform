@@ -1,5 +1,35 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-04 — Study source validation errors are associated with the editor
+
+Product commit `e29518bf9b51cd5417a0b0176a20b5ad874c26c4` makes the Study
+Python editor expose `aria-invalid=true` only when the current source has failed
+validation, and points `aria-describedby` at the visible diagnostic. When the
+source changes, it is no longer labelled invalid; the stale-validation notice
+remains associated until the edited source is revalidated. The shared Python
+editor preserves its live SDK-suggestion description alongside the validation
+description, so the completion popup and error state remain independently
+announced. The rule is limited to Study validation and does not change execution,
+Python assets, visible layout, or any upstream provider/ETF behavior.
+
+The focused StudyLabTool suite passed `46/46`, PythonSourceEditor passed `6/6`,
+and the full serial frontend suite passed `128/128` files and `1,191/1,191`
+tests. `npm run type-check` and the production Vue/Vite build passed. The
+authenticated pinned Playwright 1.62.1 Chromium `F8t` flow passed `1/1`,
+checking the field/error association and the stale-then-revalidated recovery;
+browser diagnostics were clean. The TC scope guard accepted all `122` changed
+paths, its six ownership self-tests passed, and `git diff --check` passed.
+
+The usual stack target stopped before building because this host lacks Docker
+Buildx and cleaned up its empty attempt. Compose's default builder then built
+and started only the assigned TC project with seeded fixtures. After browser
+verification, teardown removed the six stack containers, four volumes, network,
+and four generated images; resource cleanup reported no remaining owned images,
+volumes, or test sessions. No screenshot, baseline, threshold, mask, skip, or
+acceptance policy changed. No blocker prevents independent TC work. The ten
+protected screenshot differences and deferred provider/ETF staging integrations
+remain open; continue R1/R5/R6 work and keep the full goal active.
+
 ## 2026-10-04 — Study parameter-schema errors are tied to their field
 
 Product commit `d37a0f98769f01f3dc88e075c3ed3aa97381ad1f` marks the Study

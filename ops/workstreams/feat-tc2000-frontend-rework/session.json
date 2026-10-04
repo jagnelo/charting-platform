@@ -49,9 +49,7 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "docs/tc2000-visual-parity.md",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
@@ -113,13 +111,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "d37a0f98769f01f3dc88e075c3ed3aa97381ad1f",
+  "head": "a3b94ea736f48add9e9e375b127935ff46b3b2f0",
   "implementation_sha": "695d79557f94581bf3dfed7b2b394496a8b59955",
   "interrupted": false,
-  "last_checkpoint": "2026-10-04T02:54:04.212153+00:00",
-  "last_human_progress_update": "2026-10-04T02:53:49.779492+00:00",
+  "last_checkpoint": "2026-10-04T03:11:22.183365+00:00",
+  "last_human_progress_update": "2026-10-04T03:08:31.263000+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue TC-owned workstation and Study/Strategy work. Compare the remaining mapped V25 interactions and promotion gaps against current tests, select the next concrete product gap, and validate at its exact tip. Keep screenshot oracles unchanged; provider/ETF consumer work remains sequenced after staging promotion.",
+  "next_action": "Continue independent TC-owned R1/R5/R6 frontend work; select the next verified V25 interaction or Study/Strategy capability gap, and defer R2/R3 integration until both upstream branches reach staging.",
   "plan_hash": "da97a5efa116000f6ab0d25a75ed6dba5604cef30ff43243e51766dd087d6cbd",
   "planning_required": false,
   "planning_state": "ready",
@@ -133,18 +131,18 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "No blocker prevents independent TC work. Ten protected screenshot mismatches still need the documented review; provider/ETF integration waits for both changes to reach staging; final exact-tip full browser gate remains pending.",
-    "current_phase": "R5_study_parameter_schema_accessibility",
-    "next_action": "Continue TC-owned V25 workstation and Study/Strategy roadmap; select and validate the next material frontend gap.",
+    "current_blocker": "No blocker prevents independent TC work. Ten protected visual screenshot differences still require the review in docs/tc2000-visual-parity.md; provider and ETF consumer integration waits until both branches reach staging; the exact-tip full browser gate remains pending. Do not alter screenshot policy or bypass the remote egress safeguard.",
+    "current_phase": "R5_study_source_validation_accessibility",
+    "next_action": "Continue independent TC-owned R1/R5/R6 frontend work; select the next verified V25 interaction or Study/Strategy capability gap, and defer R2/R3 integration until both upstream branches reach staging.",
     "total": 9,
-    "updated_at": "2026-10-04T02:53:49.779473+00:00"
+    "updated_at": "2026-10-04T03:08:31.262981+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "a7b1c11ce3927beb17cc52391a8a04b615430cb1",
-    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..a7b1c11ce3927beb17cc52391a8a04b615430cb1",
-    "failure_category": "The execution boundary previously rejected a push attempt through 98e38784b8c09b5acfde911318f2842fc4d33562 before Git ran because it would export 1,628 private-repository commits without explicit authorization. The subsequent expanded payload was not attempted. A read-only git ls-remote refresh on 2026-10-04 failed before authentication because github.com DNS resolution failed. Current local range is 63d64bfe95c98bfe6e550bf69c213ae1cd64a629..a7b1c11ce3927beb17cc52391a8a04b615430cb1 (1,634 commits); no push of that range was attempted. Do not use an alternate route or bypass the egress safeguard.",
+    "current_local_head": "a3b94ea736f48add9e9e375b127935ff46b3b2f0",
+    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..a3b94ea736f48add9e9e375b127935ff46b3b2f0",
+    "failure_category": "The execution boundary previously rejected a push attempt through 98e38784b8c09b5acfde911318f2842fc4d33562 before Git ran because it would export 1,628 private-repository commits without explicit authorization. The subsequent expanded payload was not attempted. A read-only git ls-remote refresh on 2026-10-04 failed before authentication because github.com DNS resolution failed. The current local range is 63d64bfe95c98bfe6e550bf69c213ae1cd64a629..a3b94ea736f48add9e9e375b127935ff46b3b2f0 (1,641 commits); no push of this range was attempted. Do not use an alternate route or bypass the egress safeguard.",
     "head_at_product_checkpoint": "695d79557f94581bf3dfed7b2b394496a8b59955",
     "last_attempted_local_head": "98e38784b8c09b5acfde911318f2842fc4d33562",
     "last_attempted_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..98e38784b8c09b5acfde911318f2842fc4d33562",
