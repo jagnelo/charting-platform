@@ -537,11 +537,13 @@ current_blocker: >-
   remain open pending Docker/browser full integration and exact-SHA CI.
 next_action: >-
   Keep the goal active. The Dimensional date-scoped fallback is implemented,
-  identity/date validated, and covered by 595 adapter-unit passes, the passing
-  DFAC live case, and the passing full live matrix (509 passed, 28 classified
-  skips). Commit and push only this ETF worktree, then run the required
-  Docker/browser full-integration gate and establish hosted CI for that exact
-  pushed SHA. Do not alter unrelated workstation behavior, assertions, or
+  identity/date validated, committed, and pushed at
+  `594864f69bfa5b016fc2eb4015509de6dbd7d8d6`; the exact feature ref was
+  confirmed remotely. Its complete adapter unit suite passed 595/595, the DFAC
+  live case passed its 1,000-row minimum, and the full opt-in provider matrix
+  passed 509 with 28 classified skips. Run the required Docker/browser
+  full-integration gate on the pushed source and continue exact-SHA hosted CI
+  verification. Do not alter unrelated workstation behavior, assertions, or
   snapshots without a reproduced cause. AC10 remains dependent on
   `feat/market-data-provider-platform` reaching staging; AC14 remains the
   post-integration/deployment 30-day shadow gate. Do not integrate, promote,

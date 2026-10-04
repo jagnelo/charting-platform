@@ -7708,14 +7708,17 @@ issuer matrix passed (509 passed, 28 narrowly classified skips, zero failures).
 The skips retain explicit issuer-access, temporary-availability, identity, and
 future-date dispositions; none was relabeled as supported.
 
-The Docker/browser full-integration gate and exact-SHA hosted CI have not yet
-run on this code change. The previous full gate stopped at two unrelated,
-non-reproducing generic workstation E2E cases; its visual and trailing
-branch-declared stages were therefore not reached. Next: commit/push this
-worktree-only fix and evidence, then run the exact branch full-integration gate
-and inspect CI for the pushed SHA. AC10 still depends on the separate provider
-platform reaching staging; AC14 remains the later post-integration/deployment
-30-day observation. No other worktree or branch has been changed.
+The implementation and evidence were committed as
+`594864f69bfa5b016fc2eb4015509de6dbd7d8d6` and pushed only to
+`feat/etf-holdings-constituents`; `git ls-remote` verified that exact remote
+SHA. The full Docker/browser integration gate has not yet run on it. The
+GitHub connector returned empty commit statuses and no commit-associated
+workflow runs; its workflow-run wrapper exposes PR-triggered runs only, so
+push-event CI remains unverified, not green or absent. Next: run the exact
+branch full-integration gate and recheck hosted evidence for the pushed SHA.
+AC10 still depends on the separate provider platform reaching staging; AC14
+remains the later post-integration/deployment 30-day observation. No other
+worktree or branch has been changed.
 This checkpoint changes only `backend/app/services/etf_holdings_adapters.py`,
 `backend/tests/unit/services/test_etf_holdings_adapters.py`, and the ETF
 workstream's `plan.yaml`, `handoff.md`, `session.json`, and `validation.jsonl`.
