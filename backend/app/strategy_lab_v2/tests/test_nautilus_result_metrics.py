@@ -230,7 +230,7 @@ def test_native_realized_position_quality_is_currency_safe_and_oos_scoped(tmp_pa
         "no losing OOS-closed positions in USD"
     )
     assert metrics["oos_realized_position_win_loss_ratio:USD"].value is None
-    assert metric_set.definition_version == "strategy-lab.metrics.v9"
+    assert metric_set.definition_version == "strategy-lab.metrics.v10"
     assert (
         metrics["oos_realized_position_profit_factor:USD"].calculation_definition.parameters[
             "decimal_precision"
@@ -304,6 +304,72 @@ def test_native_realized_position_distribution_and_profit_factor_are_currency_sc
         metrics["oos_realized_position_win_loss_ratio:USD"].calculation_definition.formula_id
         == "strategy-lab.metrics/oos_realized_position_win_loss_ratio"
     )
+
+
+def test_native_oos_position_holding_duration_uses_full_lifecycle_and_explicit_median(
+    tmp_path,
+) -> None:
+    metric_set = _metric_set_for_positions(
+        tmp_path,
+        [
+            {"ts_opened": 105, "ts_closed": 110, "realized_pnl": "1 USD"},
+            {"ts_opened": 114, "ts_closed": 120, "realized_pnl": "2 USD"},
+            {"ts_opened": 121, "ts_closed": 130, "realized_pnl": "3 USD"},
+            # Closing in OOS includes the complete lifecycle even when opening
+            # precedes the scoring window.
+            {"ts_opened": 99, "ts_closed": 140, "realized_pnl": "4 USD"},
+            # A position closing exactly at the OOS end is excluded even though
+            # its full lifecycle begins before the scoring window.
+            {"ts_opened": 99, "ts_closed": 200, "realized_pnl": "4 USD"},
+        ],
+    )
+    metrics = {item.name: item for item in metric_set.values}
+
+    assert metrics["oos_position_holding_duration_reported_count"].value == Decimal(4)
+    assert metrics["oos_position_holding_duration_coverage"].value == Decimal(1)
+    assert metrics["oos_position_mean_holding_duration_seconds"].value == Decimal("0.00000001525")
+    assert metrics["oos_position_median_holding_duration_seconds"].value == Decimal("0.0000000075")
+    mean = metrics["oos_position_mean_holding_duration_seconds"]
+    assert mean.unit == "seconds"
+    assert mean.sample_size == 4
+    assert mean.calculation_definition.parameters["duration_basis"] == (
+        "full_position_lifecycle_elapsed_time"
+    )
+    assert mean.calculation_definition.parameters["timestamp_unit"] == "unix_nanoseconds"
+
+
+def test_native_oos_position_holding_duration_withholds_incomplete_open_times(tmp_path) -> None:
+    metric_set = _metric_set_for_positions(
+        tmp_path,
+        [
+            {"ts_opened": 105, "ts_closed": 110, "realized_pnl": "1 USD"},
+            {"ts_opened": None, "ts_closed": 120, "realized_pnl": "2 USD"},
+            # Null close times are live positions, not malformed closed rows.
+            {"ts_opened": 190, "ts_closed": None, "realized_pnl": None},
+        ],
+    )
+    metrics = {item.name: item for item in metric_set.values}
+
+    assert metrics["oos_position_records_closed_count"].value == Decimal(2)
+    assert metrics["oos_position_holding_duration_reported_count"].value == Decimal(1)
+    assert metrics["oos_position_holding_duration_coverage"].value == Decimal("0.5")
+    for name in (
+        "oos_position_mean_holding_duration_seconds",
+        "oos_position_median_holding_duration_seconds",
+    ):
+        assert metrics[name].value is None
+        assert metrics[name].sample_size == 1
+        assert metrics[name].null_reason == (
+            "native positions report lacks ts_opened for one or more OOS-closed positions"
+        )
+
+
+def test_native_oos_position_holding_duration_rejects_reversed_timestamps(tmp_path) -> None:
+    with pytest.raises(ValueError, match="ts_opened must not follow ts_closed"):
+        _metric_set_for_positions(
+            tmp_path,
+            [{"ts_opened": 121, "ts_closed": 120, "realized_pnl": "1 USD"}],
+        )
 
 
 def test_native_realized_position_quality_fails_closed_on_missing_pnl(tmp_path) -> None:

@@ -7,6 +7,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime
 from decimal import Decimal
+from math import isnan
 from pathlib import Path
 from typing import Any
 
@@ -178,6 +179,8 @@ def _native_oos_report_metrics(
     commission_unreported = 0
     closed_positions = 0
     closed_position_time_coverage = True
+    holding_duration_time_coverage = True
+    holding_durations_ns: list[int] = []
     realized_pnl_amounts: dict[str, Decimal] = defaultdict(Decimal)
     realized_pnl_counts: dict[str, int] = defaultdict(int)
     realized_position_win_counts: dict[str, int] = defaultdict(int)
@@ -222,12 +225,17 @@ def _native_oos_report_metrics(
             if "ts_closed" not in row:
                 closed_position_time_coverage = False
                 continue
-            closed_value = row["ts_closed"]
-            if closed_value is None:
+            closed = _row_timestamp_ns(row, "ts_closed")
+            if closed is None:
                 continue
-            closed = _timestamp_ns(closed_value, field_name="positions.ts_closed")
             if start_ns <= closed < end_ns:
                 closed_positions += 1
+                if opened is None:
+                    holding_duration_time_coverage = False
+                elif opened > closed:
+                    raise ValueError("native position ts_opened must not follow ts_closed")
+                else:
+                    holding_durations_ns.append(closed - opened)
                 realized = _reported_money(row, "realized_pnl")
                 if realized is None:
                     realized_pnl_unreported += 1
@@ -300,6 +308,134 @@ def _native_oos_report_metrics(
                 "native positions report lacks ts_closed needed to identify closed records"
                 if not closed_position_time_coverage
                 else None
+            ),
+        )
+    )
+    holding_duration_reported = len(holding_durations_ns)
+    holding_duration_coverage_complete = (
+        closed_position_time_coverage
+        and holding_duration_time_coverage
+        and holding_duration_reported == closed_positions
+    )
+    holding_duration_null_reason = (
+        "native positions report lacks complete ts_closed coverage"
+        if not closed_position_time_coverage
+        else "native positions report lacks ts_opened for one or more OOS-closed positions"
+        if not holding_duration_time_coverage
+        else None
+    )
+    holding_seconds = [Decimal(value) / Decimal(1_000_000_000) for value in holding_durations_ns]
+    median_holding_seconds = _median_decimal(holding_seconds)
+    result.extend(
+        (
+            _native_metric(
+                "oos_position_holding_duration_reported_count",
+                None if not closed_position_time_coverage else Decimal(holding_duration_reported),
+                unit="positions",
+                sample_size=closed_positions,
+                formula=("count of OOS-closed native positions with both ts_opened and ts_closed"),
+                parameters={
+                    "report_kind": "positions",
+                    "open_timestamp_field": "ts_opened",
+                    "close_timestamp_field": "ts_closed",
+                    **shared_parameters,
+                },
+                evidence_digest=artifact,
+                null_reason=(
+                    "native positions report lacks complete ts_closed coverage"
+                    if not closed_position_time_coverage
+                    else None
+                ),
+            ),
+            _native_metric(
+                "oos_position_holding_duration_coverage",
+                (
+                    Decimal(holding_duration_reported) / Decimal(closed_positions)
+                    if closed_position_time_coverage and closed_positions > 0
+                    else None
+                ),
+                unit="fraction",
+                sample_size=closed_positions,
+                formula=(
+                    "OOS-closed native positions with both open and close timestamps "
+                    "divided by all OOS-closed native positions"
+                ),
+                parameters={
+                    "report_kind": "positions",
+                    "open_timestamp_field": "ts_opened",
+                    "close_timestamp_field": "ts_closed",
+                    **shared_parameters,
+                },
+                evidence_digest=artifact,
+                null_reason=(
+                    "native positions report lacks complete ts_closed coverage"
+                    if not closed_position_time_coverage
+                    else "no OOS-closed native positions"
+                    if closed_positions == 0
+                    else None
+                ),
+            ),
+            _native_metric(
+                "oos_position_mean_holding_duration_seconds",
+                (
+                    sum(holding_seconds, Decimal(0)) / Decimal(holding_duration_reported)
+                    if holding_duration_coverage_complete and holding_duration_reported > 0
+                    else None
+                ),
+                unit="seconds",
+                sample_size=holding_duration_reported,
+                formula=(
+                    "arithmetic mean of full native position ts_closed minus ts_opened "
+                    "elapsed durations, in seconds, for positions closed in the half-open OOS window"
+                ),
+                parameters={
+                    "report_kind": "positions",
+                    "open_timestamp_field": "ts_opened",
+                    "close_timestamp_field": "ts_closed",
+                    "duration_basis": "full_position_lifecycle_elapsed_time",
+                    "timestamp_unit": "unix_nanoseconds",
+                    **shared_parameters,
+                },
+                evidence_digest=artifact,
+                null_reason=(
+                    holding_duration_null_reason
+                    if not holding_duration_coverage_complete
+                    else "no OOS-closed native positions"
+                    if closed_positions == 0
+                    else None
+                ),
+            ),
+            _native_metric(
+                "oos_position_median_holding_duration_seconds",
+                (
+                    median_holding_seconds
+                    if holding_duration_coverage_complete and holding_duration_reported > 0
+                    else None
+                ),
+                unit="seconds",
+                sample_size=holding_duration_reported,
+                formula=(
+                    "median full native position ts_closed minus ts_opened elapsed durations "
+                    "in seconds; even samples use the arithmetic mean of the two middle values; "
+                    "positions are selected by close timestamp in the half-open OOS window"
+                ),
+                parameters={
+                    "report_kind": "positions",
+                    "open_timestamp_field": "ts_opened",
+                    "close_timestamp_field": "ts_closed",
+                    "duration_basis": "full_position_lifecycle_elapsed_time",
+                    "timestamp_unit": "unix_nanoseconds",
+                    "median_rule": "middle value; even sample averages the two middle values",
+                    **shared_parameters,
+                },
+                evidence_digest=artifact,
+                null_reason=(
+                    holding_duration_null_reason
+                    if not holding_duration_coverage_complete
+                    else "no OOS-closed native positions"
+                    if closed_positions == 0
+                    else None
+                ),
             ),
         )
     )
@@ -724,9 +860,20 @@ def _native_metric(
 
 
 def _row_timestamp_ns(row: Mapping[str, Any], field_name: str) -> int | None:
-    if field_name not in row or row[field_name] is None:
+    value = row.get(field_name)
+    if field_name not in row or value is None or (isinstance(value, float) and isnan(value)):
         return None
-    return _timestamp_ns(row[field_name], field_name=field_name)
+    return _timestamp_ns(value, field_name=field_name)
+
+
+def _median_decimal(values: list[Decimal]) -> Decimal | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    middle = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[middle]
+    return (ordered[middle - 1] + ordered[middle]) / Decimal(2)
 
 
 def _timestamp_ns(value: Any, *, field_name: str) -> int:
