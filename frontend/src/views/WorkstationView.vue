@@ -331,6 +331,10 @@ const ctrlWheelHeld = ref(false)
 let symbolSelectionGeneration = 0
 let drilldownSelectionGeneration = 0
 let componentMounted = false
+let resolveComponentMountSettled: (() => void) | null = null
+const componentMountSettled = new Promise<void>(resolve => {
+  resolveComponentMountSettled = resolve
+})
 const preserveDrilldownSymbol = ref<string | null>(null)
 // SPX is a logical benchmark identity. When an official SPX series is not
 // entitled or cannot be resolved, keep the requested workflow usable through
@@ -1149,13 +1153,13 @@ async function selectIndustryProxy(symbol: string, instrumentId?: number | null)
 }
 
 async function openTool(tool: OpenableToolDefinition, configurationOverride: Record<string, unknown> = {}) {
-  // A shell click can arrive in the same render turn as the workstation's
-  // asynchronous onMounted hook. Yield once so the hook can mark the
-  // component live; only abort when the component is genuinely being torn
-  // down. Dropping that first Add-tool command leaves the menu open and makes
-  // the action appear unresponsive on a cold /chart navigation.
+  // A shell click can arrive before the asynchronous onMounted hook marks the
+  // component live. Wait for that lifecycle boundary instead of yielding one
+  // render turn and accidentally dropping the first Add-tool action on a cold
+  // /chart navigation. Unmount resolves the same signal so teardown still
+  // cancels the command.
   if (!componentMounted) {
-    await nextTick()
+    await componentMountSettled
     if (!componentMounted) return
   }
   // The dock can already expose a fully usable active tab while the initial
@@ -2059,6 +2063,9 @@ watch(() => workspaceStore.workspace?.id, (workspaceId, previousWorkspaceId) => 
 
 onMounted(async () => {
   componentMounted = true
+  const resolveMount = resolveComponentMountSettled
+  resolveComponentMountSettled = null
+  resolveMount?.()
   const mountSelectionGeneration = symbolSelectionGeneration
   // Capture before chart/uPlot gesture handlers can stop propagation. A chart
   // owns Ctrl+wheel for timeframe navigation; non-chart targets pass through
@@ -2173,6 +2180,9 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   componentMounted = false
+  const resolveMount = resolveComponentMountSettled
+  resolveComponentMountSettled = null
+  resolveMount?.()
   symbolSelectionGeneration += 1
   drilldownSelectionGeneration += 1
   searchRequest += 1
