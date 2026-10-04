@@ -2,6 +2,42 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Exercise the mixed-intent bridge routing seam directly
+
+Extracted the native callback's target conversion and combined order-risk path
+into `_route_component_callback_orders(...)`, which is now called by the real
+bridge callback and its focused tests. The tests no longer reimplement the
+combination sequence: they exercise this production seam for target-plus-raw
+gross-limit rejection/approval and for a target-only interim net breach that
+is offset by a same-event component short. Standalone target allocation still
+rejects the same net breach by default; the callback's combined router is the
+only order-submission gate.
+
+Validation: all 1,181 Strategy Lab v2 tests pass; package Ruff, changed-file
+formatting, MyPy across 341 sources, and `git diff --check` pass. The current
+workstream validator also passes. This remains package-local evidence, not a
+native Nautilus probe: Docker API access is still denied, so the exact-pinned
+RC5 image-backed callback/fill reconciliation check remains outstanding.
+Stable Nautilus 2.x is not required; the plan accepts an exact-pinned
+pre-release for local backtests after conformance and forbids it from
+broker/real-capital use.
+
+No package-owned coding blocker is recorded. Continue the remaining backend
+acceptance gaps without weakening fail-closed handling for products that lack
+exact native contract/account risk inputs. Re-run the RC5 multi-component
+callback and fill probe when Docker is accessible. The latest successful code
+checkpoint is `5f790de06e3055144df73f6a451a76f08a316ef5`.
+
+Files changed in this slice:
+
+```text
+backend/app/strategy_lab_v2/nautilus_strategy_bridge.py
+backend/app/strategy_lab_v2/tests/test_nautilus_target_allocation.py
+ops/workstreams/feat-strategy-lab-v2/handoff.md
+ops/workstreams/feat-strategy-lab-v2/session.json
+ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+```
+
 ## 2026-10-04 - Defer mixed-intent risk to the shared order gate
 
 Closed a gap in same-event mixed raw/target execution. The native bridge now
