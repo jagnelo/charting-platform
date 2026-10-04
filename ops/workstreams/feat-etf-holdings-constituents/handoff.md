@@ -7270,3 +7270,36 @@ the saved goal active; do not touch another branch/worktree, staging, or generic
 visual baselines. Next: append validation rows, refresh this session's durable
 checkpoint, make the separate operational-record commit/push, and verify the
 exact branch tip and clean worktree.
+
+## Session blocker resolved; remaining gates — 2026-10-04
+
+The apparent local blocker was workflow mechanics, not a missing password or
+an ETF code defect. The sandbox's default file-write boundary covered this
+worktree but not its shared Git index; the narrowly scoped host-context
+checkpoint, commit, and push operations were accepted. The session helper also
+requires the plan/session state to be synchronized before it records its
+checkpoint. That ordering is now complete. No password was used, and no other
+branch or worktree was changed.
+
+The final receipt commit `76f9815db7d015dc61d5ee978ba4cc1504abf318` is pushed
+to `origin/feat/etf-holdings-constituents`; the local worktree is clean and the
+local tip matches that branch. The workstream validator accepts all 30 records.
+The implementation CI result remains run `37217132920` on source commit
+`8077facb83b8114f6b85155d7fbf9988547b73e9`; the later commit contains only
+session/validation receipts.
+
+There is no remaining ETF-owned implementation action that resolves the
+outstanding gates independently. AC7 remains open because the required local
+full-integration run fails only in the generic visual suite (93/104 cases,
+stable 1–3% pixel differences against 0.5%); its tests and snapshots are
+outside this workstream's `owned_paths`, so they were not changed or
+rebaselined. AC10 still requires `feat/market-data-provider-platform` to reach
+`staging` before this branch can implement the shared-capability bridge. The
+last successful remote-ref observation recorded above had provider-platform
+at `88132e9145a08d1c935a0111b3dba0fbd88bdff1` and staging at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, with the provider branch not yet
+staged. A fresh read-only lookup during this receipt failed because this host
+could not resolve `github.com`, so those older values are not asserted as
+current. AC14 cannot start until after integration/deployment and then requires
+its full 30-day shadow period. Keep the goal active; do not touch the visual
+suite, another worktree, staging, or deployment from this feature session.
