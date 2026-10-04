@@ -6928,3 +6928,29 @@ invariant passed. The validation ledger records these post-update checks.
 AC10 remains dependent on `feat/market-data-provider-platform` reaching
 staging; do not integrate it or create a competing shared runtime here. AC14
 remains a post-integration/deployment 30-day shadow-observation step.
+
+## Exact-SHA branch-test anomaly and local rerun — 2026-10-04
+
+GitHub Actions run `37193942507` completed on exact ETF SHA
+`0a8de9095cba3508447c8cd2c18a44c540b39451`. Backend Tests, Frontend Unit
+Tests, and E2E Tests (Playwright) passed; the protected Exhaustive Integration
+Gate was skipped as designed. Branch-declared Tests failed with exit code 2.
+The public check-run annotation exposes only `Process completed with exit code 2`;
+its log-download endpoint returned HTTP 403 without authentication, so no
+test-level cause is established and no credential store was probed.
+
+The exact same committed source was then rerun locally with
+`make branch-tests INTEGRATION_BRANCH=feat/etf-holdings-constituents`; all eight
+steps passed: 592 deterministic ETF adapter tests; default live contracts (3
+passed, 534 opt-in skipped); all 537 opt-in cases (507 passed, 30 narrowly
+evidenced skips); Ruff; validation of the single ETF workstream record; frontend
+type-check; all 17 ETF panel/view tests; and the frontend production build. The
+live route classifications and skip evidence did not change. This local pass
+does not explain or erase the GitHub exit-2 result; a fresh pushed receipt will
+receive a new exact-SHA CI run.
+
+AC7 remains open: the prior local full-integration run at `70359fb5` still
+fails functional Playwright on three non-ETF tests, even though GitHub
+Playwright passed. The generic paths remain outside ETF `owned_paths` and were
+not changed. AC10 still awaits provider-platform in staging; AC14 remains a
+post-integration/deployment observation.
