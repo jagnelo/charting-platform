@@ -70,9 +70,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-etf-holdings-constituents/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -108,10 +106,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "70359fb5e54a1e5238263647b58bdea2f78ddce0",
+  "head": "94457b897c19f3ba9d180773de5a92ec47fd37e3",
   "implementation_sha": "4da62c54d1465835e4562115e12513c984cd7962",
-  "last_checkpoint": "2026-10-02T17:10:58Z",
-  "last_human_progress_update": "2026-10-04T09:56:15.945644+00:00",
+  "last_checkpoint": "2026-10-04T09:58:37.906352+00:00",
+  "last_human_progress_update": "2026-10-04T09:59:35.209350+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "2ad28323cb4c753184ea3159c3c20b5b260be88267ded83abe36c8ecb5a65fbf",
@@ -135,13 +133,13 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Five receipt commits were pushed; exact-SHA CI run 37191774477 on 70359fb5 passed Backend, Frontend Unit, Branch-declared, and Playwright jobs (Exhaustive Integration Gate skipped as designed). The host-context Docker-backed full gate now passes 1,876 backend tests at 81.13%, 945 frontend unit tests at 81.81%, lint/typecheck/build/Compose/provider/security probes, but local functional Playwright has three non-ETF failures: generic F9c overlay click interception, F9f login-navigation timeout, and F9g ERR_NETWORK_CHANGED. AC7 remains open; those paths are outside ETF owned_paths. AC8 remains open until the updated branch-only receipts are committed/pushed and synchronized. AC10 awaits provider-platform staging; AC14 requires post-integration/deployment 30-day observation.",
-    "current_phase": "local_full_gate_e2e_scope_blocker",
-    "next_action": "Commit and push the current ETF-only handoff, validation, and session receipts; verify exact-SHA CI. Keep AC7 open unless the generic E2E failures are resolved within an explicitly authorized scope. Do not integrate provider-platform before it reaches staging; retain AC14 as post-integration/deployment observation.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. ETF branch tip 94457b897c19f3ba9d180773de5a92ec47fd37e3 is pushed and synchronized; the session checkpoint recorded clean local/remote heads and Docker available, and exact-SHA CI run 37193835761 is running for that SHA. AC7 remains open because the host-context local full gate passed backend (1,876 at 81.13%), frontend unit (945 at 81.81%), lint/typecheck/build, Compose/provider/security checks but E2E failed three non-ETF tests: F9c chart overlay intercept, F9f login-navigation timeout, F9g ERR_NETWORK_CHANGED. These tests/files are outside ETF owned_paths. AC8 remains open until ready-for-human-review is appropriate after open criteria are resolved. AC10 awaits provider-platform staging (remote 88132e9 is not in staging 8b885a2); AC14 requires post-integration/deployment 30-day observation.",
+    "current_phase": "receipt_checkpoint_pushed_full_gate_scope_failure",
+    "next_action": "Commit and push the session checkpoint update and verify exact-SHA CI on that final receipt SHA. Keep AC7 open: the local full gate has three non-ETF Playwright failures outside ETF owned_paths; do not alter those paths without scope authorization. Do not integrate provider-platform before it reaches staging. AC14 remains post-integration/deployment observation.",
     "total": 14,
-    "updated_at": "2026-10-04T09:56:15.945626+00:00"
+    "updated_at": "2026-10-04T09:59:35.209329+00:00"
   },
-  "remote": "70359fb5e54a1e5238263647b58bdea2f78ddce0",
+  "remote": "94457b897c19f3ba9d180773de5a92ec47fd37e3",
   "remote_sha": "a13fccfd0bf9666ff471aac566cf0bc4f367c4e1",
   "remote_synchronized": true,
   "schema": 2,
