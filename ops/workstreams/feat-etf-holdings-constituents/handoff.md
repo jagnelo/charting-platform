@@ -6823,3 +6823,38 @@ its ownership is explicitly expanded; do not relabel it green based on
 feature-branch CI. Resume AC10 only after the shared provider-platform branch
 has actually reached staging. AC14 remains a post-integration/deployment
 30-day observation.
+
+## Current issuer-matrix revalidation — 2026-10-04
+
+The first current-source opt-in matrix run completed with 504 passed, 31
+classified skips, and two failures: Zacks ZECP raised `Zacks holdings download
+did not expose rows`, and the Kovitz FilePoint request raised `httpx.ReadTimeout`.
+Both exact live cases passed immediately when rerun alone. A subsequent
+app-equivalent ZECP adapter fetch returned 61 rows with composition/as-of date
+2026-10-02 from the configured Zacks holdings route. Zacks' first-party product
+page still displays its summary count of 62 with page facts dated 2026-08-31,
+but its separate downloaded artifact was current as of October 2; the older
+page summary was not substituted for holdings evidence. The direct download is
+served as `application/octet-stream`; the adapter parsed the dated payload
+without relaxing row, identity, or date validation.
+
+The second complete `make branch-tests INTEGRATION_BRANCH=feat/etf-holdings-constituents`
+run then passed on the current worktree: 592 deterministic adapter tests;
+default live contracts (3 passed, 534 opt-in skipped); the 537-case opt-in
+matrix (507 passed, 30 narrowly classified skips); Ruff; branch validation;
+frontend type-check; 17 ETF panel/view tests; and the frontend production
+build. The 30 skips retain their narrow issuer access/source-variant evidence;
+no skip was added for either first-run failure, and no adapter/support
+classification changed. The first-pass Zacks/Kovitz anomalies were therefore
+not reproduced in focused or full reruns, although their precise transient
+cause is unknown. Today's full branch-declared validation is green, but it does
+not replace the separate Docker-backed integration gate.
+
+The full local gate remains unresolved at the generic backend process
+termination recorded above, and a prior fresh-stack run ended on the unrelated
+F9c chart-overlay interaction. Both are outside ETF `owned_paths`; no generic
+runner or chart code was modified. Current workstream receipt commits remain
+local pending SSH-agent unlock; exact-SHA CI and a current remote-ref refresh
+are still outstanding for those commits. AC10 remains dependent on the shared
+provider-platform branch reaching staging, and AC14 remains post-integration/
+deployment observation.
