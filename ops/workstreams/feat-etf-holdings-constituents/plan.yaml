@@ -495,7 +495,7 @@ current_blocker: >-
   containers, volumes, network, images, and uniquely named Buildx builder; no
   other worktree resources or host-wide cache were touched. AC7 and AC8 remain
   open. The GitHub status and workflow-run lookups for synchronized SHA
-  `f78b37999419dd5e957b6082491d9122519416e8` returned empty lists, so exact-SHA
+  `feff07376d240b3dd2e73018aa1bef868cbc6875` returned empty lists, so exact-SHA
   CI is not claimed. The provider-platform branch remains 1,856 commits ahead
   of staging at staging SHA `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; AC10
   remains dependency-gated and AC14 remains post-integration/deployment.
@@ -504,7 +504,7 @@ next_action: >-
   open because the full gate currently stops on the general chart-template
   interaction failure `F9c-template-comparison`; do not hide it by weakening
   the assertion, changing generic visual baselines, or making unrelated chart
-  UI changes in this ETF workstream. Exact-SHA CI for f78b37999419dd5e957b6082491d9122519416e8 is
+  UI changes in this ETF workstream. Exact-SHA CI for feff07376d240b3dd2e73018aa1bef868cbc6875 is
   not exposed by the connected status/workflow interfaces. AC10 awaits the
   shared provider-platform branch reaching staging before this branch implements
   its bridge; AC14 is the later 30-day post-integration/deployment shadow.

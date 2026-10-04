@@ -7507,3 +7507,33 @@ chart interaction failure, and AC8 remains open. Read-only provider/staging
 comparison still shows the provider-platform branch 1,856 commits ahead of
 staging (`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`); AC10 remains dependency-
 gated and AC14 remains post-integration/deployment. The goal remains active.
+
+## Post-run synchronization — 2026-10-04
+
+The preceding note that the Ruff formatting correction was still pending is
+superseded: the full-gate result, the one-line formatting correction, and the
+workstream update were committed and pushed as
+`feff07376d240b3dd2e73018aa1bef868cbc6875` on the ETF branch. The gate itself
+ran on source based on `f78b37999419dd5e957b6082491d9122519416e8` plus that
+mechanical formatting correction. GitHub's combined-status and workflow-run
+lookups for synchronized SHA `feff07376d240b3dd2e73018aa1bef868cbc6875`
+returned empty lists; exact-SHA CI remains unverified. Provider-platform is
+still 1,856 commits ahead of staging at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`. The session goal remains active
+with AC7/AC8 open, AC10 waiting for the shared branch to reach staging, and
+AC14 reserved for the post-integration/deployment observation period.
+
+## Post-run synchronization — 2026-10-04
+
+The preceding note that the Ruff formatting correction was still pending is
+superseded: the full-gate result, the one-line formatting correction, and the
+workstream update were committed and pushed as
+`feff07376d240b3dd2e73018aa1bef868cbc6875` on the ETF branch. The gate itself
+ran on source based on `f78b37999419dd5e957b6082491d9122519416e8` plus that
+mechanical formatting correction. GitHub's combined-status and workflow-run
+lookups for current synchronized SHA `feff07376d240b3dd2e73018aa1bef868cbc6875`
+returned empty lists; exact-SHA CI remains unverified. Provider-platform is
+still 1,856 commits ahead of staging at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
+The session goal remains active with AC7/AC8 open, AC10 waiting for the shared
+branch to reach staging, and AC14 reserved for the post-integration/deployment
+observation period.
