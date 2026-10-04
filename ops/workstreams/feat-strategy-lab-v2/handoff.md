@@ -8237,8 +8237,39 @@ Next: compose trusted capability and search-preparation inputs behind the
 production API while preserving the isolated preparation boundary and
 fail-closed behavior for missing provider, runtime, or conformance evidence.
 
-Current changed workstream records for this checkpoint are
+At the v9 checkpoint, changed workstream records were
 `ops/workstreams/feat-strategy-lab-v2/plan.yaml`, `handoff.md`, `session.json`,
-and `validation.jsonl`. The product source is committed as
-`2aed7030cebf0289494e713cb0fb472cef9dd483`; this handoff records the pending
-publication/record checkpoint separately.
+and `validation.jsonl`. Its product source commit was
+`2aed7030cebf0289494e713cb0fb472cef9dd483`; the v9 checkpoint was subsequently
+published and is superseded by the v10 source checkpoint below.
+
+## 2026-10-04 - Native OOS position holding-duration metrics (v10)
+
+Native OOS position results now include reported-duration count and coverage,
+mean elapsed holding duration, and median elapsed holding duration. Positions
+are selected by `ts_closed` in the half-open OOS scoring window, while the
+duration measures their complete `ts_closed - ts_opened` lifecycle, including
+positions opened before OOS. Native nanoseconds convert deterministically to
+seconds; the median uses the middle observation or the arithmetic mean of the
+two middle observations for even samples. Missing opening times remain visible
+in coverage and withhold aggregate durations; a null close timestamp is treated
+as an open position, and reversed open/close timestamps fail closed. Metric
+identity advanced to v10 so stored metric sets cannot alias the prior contract.
+
+Validation at source commit `82bbe659570a058759525ae3c47230247619a415`:
+all 1,219 Strategy Lab v2 tests passed; all 11 native-result-metric tests
+passed; Ruff passed; the changed result-metrics implementation and test files
+passed format-check; MyPy passed across all 344 Strategy Lab sources. The
+combined backend unit, integration, and Strategy Lab coverage gate passed
+2,870 tests at 83.40% coverage. Post-test Docker accounting found no assigned
+containers, images, volumes, or Testcontainers sessions. The full-stack
+Compose/browser gate remains separately unverified because this host lacks the
+Docker Buildx CLI plugin; this does not block continued backend implementation.
+
+The `metrics.py` edit is only the v10 metric-definition constant. Its current
+Ruff formatter diff consists of pre-existing unrelated reflows, which were
+preserved; Ruff lint and MyPy both pass for the changed source.
+
+The next product step remains composing the production API's trusted capability
+and search-preparation inputs without crossing provider-platform staging
+boundaries or accepting client-supplied execution evidence.
