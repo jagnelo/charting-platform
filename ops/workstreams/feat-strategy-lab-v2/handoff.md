@@ -26,8 +26,13 @@ schedule same-event invocations, route combined raw and target intents through
 shared risk, and maintain fill-derived component position attribution. Docker
 access will be needed for the recorded final integration profile; provider,
 ETF, and TC2000 staging gates apply only to their later shared-path work.
-Publishing the local branch remains separately held by GitHub SSH
-authentication, not by implementation.
+This slice is committed locally as `3eec8f11bd4bde0c6e14ae3fc4d8ac5a01f7eac9`.
+The branch is 11 commits ahead of tracking ref
+`1e3a861454f3c77bdac5efbb6957103f56f13238`; the authorized
+`rtk git push origin feat/strategy-lab-v2` retry failed because `ssh-askpass` is
+missing and GitHub rejected the configured SSH key (`Permission denied
+(publickey)`). No alternate credential path was attempted. This is a publish
+hold only and does not stop further local feature work.
 
 The global session-claim lock and runtime-allocation registry are read-only in
 the current sandbox, so the repository-managed context/progress helpers cannot
