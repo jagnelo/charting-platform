@@ -37,6 +37,14 @@ SSH key (`Permission denied (publickey)`). The remote remains at
 `1e3a861454f3c77bdac5efbb6957103f56f13238`; this is a publication hold, not a
 package-owned coding blocker. No alternate credential path was probed.
 
+The operational workstream checkpoint was committed locally and its publish
+retry for
+`1e3a861454f3c77bdac5efbb6957103f56f13238..342fc346e4573588cfd898a4020aa291057c30b5`
+failed with the same missing-askpass/`Permission denied (publickey)` error. The
+remote remains unchanged. The enclosing workstream-record commit is verified
+externally with `git rev-parse`; `session.json` retains the last known product
+implementation SHA to avoid a self-referential commit hash.
+
 The Nautilus release-label question is not a blocker: the plan explicitly
 permits a pinned pre-release for local backtests after conformance; the current
 RC5 receipt covers the four simulator checks, while forward parity remains
