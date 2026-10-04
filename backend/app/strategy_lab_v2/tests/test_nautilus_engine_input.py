@@ -6,7 +6,13 @@ from typing import Any
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.contracts import ProductClass
+from app.strategy_lab_v2.contracts import (
+    FX_BASE_NOTIONAL_RISK_MODEL,
+    PortfolioComponent,
+    PortfolioComposition,
+    ProductClass,
+    SharedRiskPolicy,
+)
 from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusCashDefinition,
     NautilusEngineInput,
@@ -20,7 +26,9 @@ from app.strategy_lab_v2.nautilus_event_adapter import (
 )
 
 
-def _instrument(*, venue_id: str = "SIM", instrument_id: str = "EURUSD.SIM") -> NautilusInstrumentDefinition:
+def _instrument(
+    *, venue_id: str = "SIM", instrument_id: str = "EURUSD.SIM"
+) -> NautilusInstrumentDefinition:
     return NautilusInstrumentDefinition(
         instrument_id=instrument_id,
         raw_symbol=instrument_id.split(".", 1)[0],
@@ -42,6 +50,24 @@ def _venue(*, venue_id: str = "SIM") -> NautilusVenueDefinition:
         account_type="cash",
         cash=(NautilusCashDefinition("USD", Decimal("100000")),),
         base_currency="USD",
+    )
+
+
+def _portfolio() -> PortfolioComposition:
+    return PortfolioComposition(
+        portfolio_id="portfolio-1",
+        version_id="portfolio-v1",
+        initial_capital=Decimal("100000"),
+        base_currency="USD",
+        components=(
+            PortfolioComponent(
+                component_id="component-1",
+                strategy_fingerprint=content_digest("strategy"),
+                instrument_ids=("EURUSD.SIM",),
+                capital_weight=Decimal("1"),
+            ),
+        ),
+        shared_risk_policy=SharedRiskPolicy(risk_models=(FX_BASE_NOTIONAL_RISK_MODEL,)),
     )
 
 
@@ -76,6 +102,7 @@ def test_engine_input_binds_tape_catalog_and_shared_account() -> None:
         event_tape=_tape(),
         instruments=(instrument,),
         venue=_venue(),
+        portfolio=_portfolio(),
         strategy_source_digest=content_digest("source"),
         strategy_manifest_fingerprint=content_digest("manifest"),
         entrypoint="strategy.main:Strategy",
@@ -97,6 +124,7 @@ def test_engine_input_is_deterministic_and_freezes_parameters() -> None:
         event_tape=_tape(),
         instruments=(_instrument(),),
         venue=_venue(),
+        portfolio=_portfolio(),
         strategy_source_digest=content_digest("source"),
         strategy_manifest_fingerprint=content_digest("manifest"),
         entrypoint="strategy.main:Strategy",
@@ -118,6 +146,7 @@ def test_engine_input_rejects_missing_or_cross_venue_instruments() -> None:
         data_snapshot_fingerprint=content_digest("snapshot"),
         event_tape=_tape(),
         venue=_venue(),
+        portfolio=_portfolio(),
         strategy_source_digest=content_digest("source"),
         strategy_manifest_fingerprint=content_digest("manifest"),
         entrypoint="strategy.main:Strategy",
@@ -143,6 +172,7 @@ def test_engine_input_rejects_identity_and_catalog_conflicts() -> None:
         event_tape=_tape(),
         instruments=(instrument,),
         venue=_venue(),
+        portfolio=_portfolio(),
         strategy_source_digest=content_digest("source"),
         strategy_manifest_fingerprint=content_digest("manifest"),
         entrypoint="strategy.main:Strategy",

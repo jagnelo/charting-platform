@@ -25,6 +25,7 @@ from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     deserialize_nautilus_native_event_stream,
 )
+from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_from_wire
 from app.strategy_lab_v2.nautilus_runtime_data import (
     NautilusRuntimeDataError,
     materialize_native_event,
@@ -48,6 +49,7 @@ _ENGINE_INPUT_FIELDS = frozenset(
         "event_tape",
         "instruments",
         "venue",
+        "portfolio",
         "strategy_source_digest",
         "strategy_manifest_fingerprint",
         "entrypoint",
@@ -111,6 +113,12 @@ def _validate_engine_input(
     if len(instrument_ids) != len(set(instrument_ids)):
         raise NautilusRuntimeDataError("engine input instrument ids must be unique")
     venue = _mapping(item["venue"], "venue definition")
+    try:
+        portfolio_composition_from_wire(item["portfolio"])
+    except (TypeError, ValueError) as error:
+        raise NautilusRuntimeDataError("engine input portfolio policy is invalid") from error
+    if item["input_version"] != "strategy-lab.nautilus-engine-input.v2":
+        raise NautilusRuntimeDataError("engine input version is unsupported")
     tape = _mapping(item["event_tape"], "event tape")
     tape_fields = frozenset(tape)
     if tape_fields not in {_TAPE_FIELDS, _STREAM_TAPE_FIELDS}:
@@ -429,6 +437,8 @@ def run_native_backtest(
             finally:
                 node.dispose()
 
+    from nautilus_trader.model import Currency  # type: ignore[attr-defined]
+
     engine = BacktestEngine(
         BacktestEngineConfig(
             logging=LoggerConfig(bypass_logging=True),
@@ -436,7 +446,13 @@ def run_native_backtest(
         )
     )
     try:
-        engine.add_venue(native_venue, oms_type, account_type, balances)
+        engine.add_venue(
+            native_venue,
+            oms_type,
+            account_type,
+            balances,
+            base_currency=Currency.from_str(venue_definition["base_currency"]),
+        )
         for instrument in native_instruments:
             engine.add_instrument(instrument)
         engine.add_strategy(strategy_bridge.strategy)

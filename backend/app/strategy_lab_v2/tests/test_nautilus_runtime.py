@@ -65,13 +65,25 @@ def _native_fill_report(instrument_count: int = 1) -> dict[str, Any]:
 
 
 def _fixture_payload() -> dict[str, Any]:
+    native_order_run = _native_fill_report()
+    native_order_run["target_allocation_probe"] = {
+        "instrument_id": "AAPL.SIM",
+        "requested_target_fraction": "0.5",
+        "total_orders": 1,
+        "total_positions": 1,
+        "initial_cash": "100000",
+        "remaining_cash": "50000",
+        "observed_deployment": "50000",
+        "account_base_currency": "USD",
+        "authoritative": False,
+    }
     return {
         "authoritative": False,
         "deterministic_replay": {"equal": True},
         "engine_lifecycle": "passed",
         "forward_event_tape_parity": "deferred_authoritative_fixture",
         "multi_instrument_accounting": _native_fill_report(2),
-        "native_order_fill_cost": _native_fill_report(),
+        "native_order_fill_cost": native_order_run,
     }
 
 
@@ -223,6 +235,16 @@ def test_real_rc_fixture_receipt_rejects_unreconciled_account_cash() -> None:
     payload["native_order_fill_cost"]["account_total"] = "98897.78 USD"
 
     with pytest.raises(ValueError, match="account report does not reconcile"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
+
+
+def test_real_rc_fixture_receipt_rejects_unreconciled_target_allocation() -> None:
+    runtime = _runtime()
+    payload = _fixture_payload()
+    target_probe = payload["native_order_fill_cost"]["target_allocation_probe"]
+    target_probe["observed_deployment"] = "1000"
+
+    with pytest.raises(ValueError, match="target allocation order and account state"):
         NautilusRcFixtureReceipt.from_mapping(payload, runtime)
 
 

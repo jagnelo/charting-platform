@@ -335,6 +335,7 @@ def assemble_nautilus_trial_runtime_input(
             event_tape=native_tape,
             instruments=instrument_definitions,
             venue=venue,
+            portfolio=portfolio,
             strategy_source_digest=strategy.source_digest,
             strategy_manifest_fingerprint=strategy_manifest.fingerprint,
             entrypoint=strategy_package.entrypoint,

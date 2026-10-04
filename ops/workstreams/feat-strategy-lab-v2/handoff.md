@@ -2,6 +2,71 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Native target-position allocation through RC5
+
+Connected `TargetPositionIntent` to the existing component-target allocator and
+shared portfolio-risk gate before orders reach the native engine. The bridge
+uses Nautilus-native cash/account equity, positions, net exposure, and
+event-aligned marks; order sizing currently fails closed unless exact metadata
+supports cash-account, base-quoted linear equity or crypto spot with unit
+multiplier. It floors to native lots and submits only the approved delta as a
+market order. This slice explicitly does not claim multi-component execution,
+raw-order shared-risk routing, forward parity, or official result authority.
+
+The image-backed RC5 run exposed and fixed two package issues: the direct
+`BacktestEngine.add_venue` path had omitted its explicit base currency, and the
+target probe parsed Nautilus' native money summary as a bare decimal instead of
+validating its `amount USD` representation. The hardened, network-disabled
+fixture now passes: deterministic replay is equal; single- and
+multi-instrument native accounting/orders/fills/costs reconcile; the target
+probe requested 50%, placed one order, opened one position, and reconciled
+100,000 USD starting cash to 50,090.02 USD remaining (49,909.98 USD deployed
+after lot rounding). The fixture remains non-authoritative and forward event
+parity remains deferred. The worktree-scoped Docker cleanup left no labelled
+images, containers, or retained volumes.
+
+At the current working tree, all 1,151 Strategy Lab v2 tests pass; MyPy passes
+for 338 package/runtime files; package Ruff checks and formatting checks pass;
+`git diff --check` is clean. No external release or upstream dependency blocks
+this package-owned work. Stable Nautilus 2.x is not required by the branch plan:
+the exact RC5 is usable for isolated local backtests after scoped conformance,
+but not broker/real-capital use; forward shadow separately requires event-tape
+parity. Provider, ETF, and TC2000 staging contracts gate only their later shared
+path integrations. Branch progress remains 3/18 acceptance criteria complete.
+
+Next: route supported raw `OrderIntent` through the platform allocation/risk
+boundary and reconcile its projected exposure with native account state; then
+extend the single-component bridge toward the plan's shared multi-strategy
+portfolio execution contract. Keep unsupported product economics fail-closed.
+
+Files currently changed for this checkpoint:
+
+```text
+backend/app/strategy_lab_v2/nautilus_engine_input.py
+backend/app/strategy_lab_v2/nautilus_rc_fixture_probe.py
+backend/app/strategy_lab_v2/nautilus_runtime.py
+backend/app/strategy_lab_v2/nautilus_runtime_adapter.py
+backend/app/strategy_lab_v2/nautilus_runtime_adapter_probe.py
+backend/app/strategy_lab_v2/nautilus_runtime_bundle.py
+backend/app/strategy_lab_v2/nautilus_runtime_image/Dockerfile
+backend/app/strategy_lab_v2/nautilus_runtime_image/Dockerfile.dockerignore
+backend/app/strategy_lab_v2/nautilus_strategy_bridge.py
+backend/app/strategy_lab_v2/nautilus_trial_assembly.py
+backend/app/strategy_lab_v2/nautilus_portfolio_wire.py
+backend/app/strategy_lab_v2/nautilus_target_allocation.py
+backend/app/strategy_lab_v2/tests/test_conformance_fixtures.py
+backend/app/strategy_lab_v2/tests/test_engine_execution.py
+backend/app/strategy_lab_v2/tests/test_nautilus_engine_input.py
+backend/app/strategy_lab_v2/tests/test_nautilus_runtime.py
+backend/app/strategy_lab_v2/tests/test_nautilus_runtime_adapter.py
+backend/app/strategy_lab_v2/tests/test_nautilus_runtime_cli.py
+backend/app/strategy_lab_v2/tests/test_nautilus_runtime_image.py
+backend/app/strategy_lab_v2/tests/test_nautilus_target_allocation.py
+ops/workstreams/feat-strategy-lab-v2/handoff.md
+ops/workstreams/feat-strategy-lab-v2/session.json
+ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+```
+
 ## 2026-10-03 - Production search-dispatch preparation and idempotent replay
 
 Added `NautilusTrialSearchDispatchEvidenceResolver` as the package-owned

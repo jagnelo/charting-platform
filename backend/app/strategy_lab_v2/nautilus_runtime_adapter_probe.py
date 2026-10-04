@@ -10,6 +10,7 @@ import tempfile
 from collections import deque
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -18,14 +19,20 @@ from app.strategy_lab_v2 import nautilus_runtime_adapter
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capabilities import CapabilityRequirement
 from app.strategy_lab_v2.contracts import (
+    CASH_EQUITY_NOTIONAL_RISK_MODEL,
+    FX_BASE_NOTIONAL_RISK_MODEL,
     AdjustmentMode,
     EventGranularity,
+    PortfolioComponent,
+    PortfolioComposition,
     ProductClass,
+    SharedRiskPolicy,
     StrategyVersion,
 )
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     serialize_nautilus_native_event_stream,
 )
+from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_to_wire
 from app.strategy_lab_v2.nautilus_runtime_adapter import (
     NAUTILUS_CATALOG_INPUT_CHUNK_SIZE,
     NAUTILUS_CATALOG_REPLAY_CHUNK_SIZE,
@@ -74,8 +81,36 @@ class Strategy:
         )]
 """
 
+_TARGET_SOURCE = """
+class Strategy:
+    def __init__(self):
+        self.submitted = False
+
+    def on_event(self, context):
+        if self.submitted:
+            return []
+        self.submitted = True
+        return [TargetPositionIntent("AAPL.SIM", Decimal("0.5"))]
+"""
+
 
 def _payload() -> dict[str, object]:
+    manifest = _manifest()
+    portfolio = PortfolioComposition(
+        portfolio_id="portfolio-adapter-probe",
+        version_id="portfolio-v1",
+        initial_capital=Decimal("100000"),
+        base_currency="USD",
+        components=(
+            PortfolioComponent(
+                component_id="component-1",
+                strategy_fingerprint=manifest.strategy.fingerprint,
+                instrument_ids=("EURUSD.SIM",),
+                capital_weight=Decimal("1"),
+            ),
+        ),
+        shared_risk_policy=SharedRiskPolicy(risk_models=(FX_BASE_NOTIONAL_RISK_MODEL,)),
+    )
     return {
         "trial_id": "trial-adapter-probe",
         "attempt_id": "attempt-adapter-probe",
@@ -141,12 +176,13 @@ def _payload() -> dict[str, object]:
             "base_currency": "USD",
             "cash": [{"currency": "USD", "amount": "100000"}],
         },
+        "portfolio": portfolio_composition_to_wire(portfolio),
         "strategy_source_digest": content_digest(_SOURCE),
-        "strategy_manifest_fingerprint": _manifest().fingerprint,
+        "strategy_manifest_fingerprint": manifest.fingerprint,
         "entrypoint": "strategy.main:Strategy",
         "parameters": {"window": 20},
         "random_seed": 17,
-        "input_version": "strategy-lab.nautilus-engine-input.v1",
+        "input_version": "strategy-lab.nautilus-engine-input.v2",
     }
 
 
@@ -222,6 +258,181 @@ def _invocation_batch() -> str:
         contexts=contexts,
         entrypoint="strategy.main:Strategy",
     )
+
+
+def run_target_allocation_probe() -> dict[str, Any]:
+    """Exercise target allocation through the pinned native callback adapter."""
+
+    instrument_id = "AAPL.SIM"
+    later_time = _EVENT_TIME + timedelta(seconds=1)
+    events = (
+        MarketEvent(
+            "prices",
+            "target-event-1",
+            instrument_id,
+            _EVENT_TIME,
+            1,
+            {"bid": "99.99", "ask": "100.01", "bid_size": "1000", "ask_size": "1000"},
+        ),
+        MarketEvent(
+            "prices",
+            "target-event-2",
+            instrument_id,
+            _EVENT_TIME,
+            2,
+            {"bid": "100.00", "ask": "100.02", "bid_size": "1000", "ask_size": "1000"},
+        ),
+        MarketEvent(
+            "prices",
+            "target-event-3",
+            instrument_id,
+            later_time,
+            3,
+            {"bid": "100.01", "ask": "100.03", "bid_size": "1000", "ask_size": "1000"},
+        ),
+    )
+    requirement = CapabilityRequirement(
+        instrument_id=instrument_id,
+        product_class=ProductClass.EQUITY,
+        event_granularity=EventGranularity.QUOTE,
+        event_type="quote",
+        timeframe="tick",
+        start=_EVENT_TIME - timedelta(days=1),
+        end=later_time + timedelta(days=1),
+        adjustment=AdjustmentMode.RAW,
+        session="regular",
+        feed="consolidated",
+        execution_model="market",
+        account_model="cash",
+        corporate_action_semantics="raw-unadjusted-v1",
+    )
+    manifest = StrategySdkManifest(
+        StrategyVersion("strategy-target-probe", "v1", "2.0", content_digest(_TARGET_SOURCE)),
+        (StrategyDataDependency("prices", requirement, ("bid", "ask", "bid_size", "ask_size"), 1),),
+    )
+    portfolio = PortfolioComposition(
+        portfolio_id="portfolio-target-probe",
+        version_id="portfolio-v1",
+        initial_capital=Decimal("100000"),
+        base_currency="USD",
+        components=(
+            PortfolioComponent(
+                "core",
+                manifest.strategy.fingerprint,
+                (instrument_id,),
+                Decimal("1"),
+            ),
+        ),
+        shared_risk_policy=SharedRiskPolicy(
+            risk_models=(CASH_EQUITY_NOTIONAL_RISK_MODEL,),
+        ),
+    )
+    event_records = [
+        {
+            "dependency_id": event.dependency_id,
+            "event_id": event.event_id,
+            "instrument_id": event.instrument_id,
+            "event_type": "quote",
+            "event_time_ns": int(event.event_time.timestamp()) * 1_000_000_000,
+            "sequence": event.sequence,
+            "values": dict(event.values),
+        }
+        for event in events
+    ]
+    payload: dict[str, object] = {
+        "trial_id": "trial-target-probe",
+        "attempt_id": "attempt-target-probe",
+        "data_snapshot_fingerprint": content_digest("target-probe-snapshot"),
+        "event_tape": {
+            "source_tape_fingerprint": content_digest(event_records),
+            "adapter_version": "strategy-lab.nautilus-event-adapter.v1",
+            "events": event_records,
+        },
+        "instruments": [
+            {
+                "instrument_id": instrument_id,
+                "raw_symbol": "AAPL",
+                "venue_id": "SIM",
+                "product_class": "equity",
+                "base_currency": None,
+                "quote_currency": "USD",
+                "price_precision": 2,
+                "size_precision": 0,
+                "price_increment": "0.01",
+                "size_increment": "1",
+                "multiplier": "1",
+                "min_quantity": "1",
+                "max_quantity": None,
+                "activation_ns": None,
+                "expiration_ns": None,
+                "bar_type": None,
+            }
+        ],
+        "venue": {
+            "venue_id": "SIM",
+            "oms_type": "netting",
+            "account_type": "cash",
+            "base_currency": "USD",
+            "cash": [{"currency": "USD", "amount": "100000"}],
+        },
+        "portfolio": portfolio_composition_to_wire(portfolio),
+        "strategy_source_digest": manifest.strategy.source_digest,
+        "strategy_manifest_fingerprint": manifest.fingerprint,
+        "entrypoint": "strategy.main:Strategy",
+        "parameters": {},
+        "random_seed": 11,
+        "input_version": "strategy-lab.nautilus-engine-input.v2",
+    }
+    batch = serialize_invocation_batch(
+        source=_TARGET_SOURCE,
+        manifest=manifest,
+        contexts=(
+            StrategyContext(
+                _EVENT_TIME,
+                2,
+                11,
+                {},
+                {"prices": events[:2]},
+            ),
+            StrategyContext(
+                later_time,
+                3,
+                11,
+                {},
+                {"prices": events},
+            ),
+        ),
+        entrypoint="strategy.main:Strategy",
+    )
+    result = run_native_backtest(payload, serialized_strategy_invocation_batch=batch)
+    summary = result.get("summary")
+    if not isinstance(summary, dict):
+        raise RuntimeError("target allocation probe has no native account summary")
+    balance_text = summary.get("account.SIM.balance.USD.total")
+    if not isinstance(balance_text, str):
+        raise RuntimeError("native target allocation summary has no formatted USD balance")
+    balance_parts = balance_text.split()
+    if len(balance_parts) != 2 or balance_parts[1] != "USD":
+        raise RuntimeError("native target allocation summary balance is not denominated in USD")
+    remaining_cash = Decimal(balance_parts[0])
+    if (
+        result.get("authoritative") is not False
+        or result.get("total_orders") != 1
+        or result.get("total_positions") != 1
+        or not Decimal("45000") < remaining_cash < Decimal("55000")
+    ):
+        raise RuntimeError("native target allocation did not reconcile order, position, and cash")
+    return {
+        "instrument_id": instrument_id,
+        "requested_target_fraction": "0.5",
+        "total_orders": result["total_orders"],
+        "total_positions": result["total_positions"],
+        "initial_cash": "100000",
+        "remaining_cash": str(remaining_cash),
+        "observed_deployment": str(Decimal("100000") - remaining_cash),
+        "account_base_currency": "USD",
+        "authoritative": False,
+    }
 
 
 def run_context_stream_cli_probe(

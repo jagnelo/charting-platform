@@ -14,10 +14,18 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
-from app.strategy_lab_v2.contracts import ProductClass
+from app.strategy_lab_v2.contracts import (
+    PortfolioComponent,
+    PortfolioComposition,
+    ProductClass,
+    ProductRiskModel,
+    RiskExposureMeasure,
+    SharedRiskPolicy,
+    TargetConflictPolicy,
+)
 from app.strategy_lab_v2.nautilus_event_adapter import NautilusEventTape
 
-NAUTILUS_ENGINE_INPUT_VERSION = "strategy-lab.nautilus-engine-input.v1"
+NAUTILUS_ENGINE_INPUT_VERSION = "strategy-lab.nautilus-engine-input.v2"
 
 
 def _nonempty(value: str, field_name: str) -> None:
@@ -72,7 +80,9 @@ class NautilusInstrumentDefinition:
             raise TypeError("product_class must be a ProductClass")
         object.__setattr__(self, "quote_currency", _currency(self.quote_currency, "quote_currency"))
         if self.base_currency is not None:
-            object.__setattr__(self, "base_currency", _currency(self.base_currency, "base_currency"))
+            object.__setattr__(
+                self, "base_currency", _currency(self.base_currency, "base_currency")
+            )
         for name in ("price_precision", "size_precision"):
             value = getattr(self, name)
             if not isinstance(value, int) or isinstance(value, bool) or value < 0:
@@ -163,6 +173,7 @@ class NautilusEngineInput:
     event_tape: NautilusEventTape
     instruments: tuple[NautilusInstrumentDefinition, ...]
     venue: NautilusVenueDefinition
+    portfolio: PortfolioComposition
     strategy_source_digest: str
     strategy_manifest_fingerprint: str
     entrypoint: str
@@ -181,6 +192,12 @@ class NautilusEngineInput:
             raise TypeError("event_tape must be a NautilusEventTape")
         if not isinstance(self.venue, NautilusVenueDefinition):
             raise TypeError("venue must be a NautilusVenueDefinition")
+        if not isinstance(self.portfolio, PortfolioComposition):
+            raise TypeError("portfolio must be a PortfolioComposition")
+        if self.portfolio.base_currency != self.venue.base_currency:
+            raise ValueError("portfolio and venue base currencies must match")
+        if self.portfolio.rebalance_policy is not None:
+            raise ValueError("calendar rebalancing is not represented by the current engine input")
         instruments = tuple(self.instruments)
         if not instruments or any(
             not isinstance(item, NautilusInstrumentDefinition) for item in instruments
@@ -190,9 +207,7 @@ class NautilusEngineInput:
         if len(instrument_ids) != len(set(instrument_ids)):
             raise ValueError("instrument definitions must be unique")
         instrument_map = {item.instrument_id: item for item in instruments}
-        if any(
-            record.instrument_id not in instrument_map for record in self.event_tape.events
-        ):
+        if any(record.instrument_id not in instrument_map for record in self.event_tape.events):
             raise ValueError("event tape contains an instrument without a definition")
         if any(
             instrument_map[record.instrument_id].venue_id != self.venue.venue_id
@@ -206,8 +221,7 @@ class NautilusEngineInput:
         )
         parts = self.entrypoint.split(":")
         if len(parts) != 2 or any(
-            not part or any(not token.isidentifier() for token in part.split("."))
-            for part in parts
+            not part or any(not token.isidentifier() for token in part.split(".")) for part in parts
         ):
             raise ValueError("entrypoint must use module.path:callable syntax")
         if not isinstance(self.parameters, Mapping):
@@ -219,7 +233,9 @@ class NautilusEngineInput:
             raise TypeError("random_seed must be an integer")
         if self.input_version != NAUTILUS_ENGINE_INPUT_VERSION:
             raise ValueError("unsupported Nautilus engine input version")
-        object.__setattr__(self, "instruments", tuple(sorted(instruments, key=lambda item: item.instrument_id)))
+        object.__setattr__(
+            self, "instruments", tuple(sorted(instruments, key=lambda item: item.instrument_id))
+        )
         object.__setattr__(self, "parameters", frozen_parameters)
 
     @property
@@ -235,6 +251,7 @@ def build_nautilus_engine_input(
     event_tape: NautilusEventTape,
     instruments: Sequence[NautilusInstrumentDefinition],
     venue: NautilusVenueDefinition,
+    portfolio: PortfolioComposition,
     strategy_source_digest: str,
     strategy_manifest_fingerprint: str,
     entrypoint: str,
@@ -250,12 +267,209 @@ def build_nautilus_engine_input(
         event_tape=event_tape,
         instruments=tuple(instruments),
         venue=venue,
+        portfolio=portfolio,
         strategy_source_digest=strategy_source_digest,
         strategy_manifest_fingerprint=strategy_manifest_fingerprint,
         entrypoint=entrypoint,
         parameters=parameters,
         random_seed=random_seed,
     )
+
+
+def portfolio_composition_to_wire(portfolio: PortfolioComposition) -> dict[str, object]:
+    """Serialize the exact allocation policy needed by the isolated callback bridge."""
+
+    if not isinstance(portfolio, PortfolioComposition):
+        raise TypeError("portfolio must be a PortfolioComposition")
+    if portfolio.rebalance_policy is not None:
+        raise ValueError("calendar rebalancing is not represented by the current engine input")
+    policy = portfolio.shared_risk_policy
+    return {
+        "fingerprint": portfolio.fingerprint,
+        "portfolio_id": portfolio.portfolio_id,
+        "version_id": portfolio.version_id,
+        "initial_capital": str(portfolio.initial_capital),
+        "base_currency": portfolio.base_currency,
+        "components": [
+            {
+                "component_id": item.component_id,
+                "strategy_fingerprint": item.strategy_fingerprint,
+                "instrument_ids": list(item.instrument_ids),
+                "capital_weight": str(item.capital_weight),
+                "priority": item.priority,
+            }
+            for item in portfolio.components
+        ],
+        "shared_risk_policy": {
+            "max_gross_exposure_fraction": str(policy.max_gross_exposure_fraction),
+            "max_net_exposure_fraction": str(policy.max_net_exposure_fraction),
+            "max_instrument_gross_exposure_fraction": str(
+                policy.max_instrument_gross_exposure_fraction
+            ),
+            "max_component_gross_exposure_fraction": str(
+                policy.max_component_gross_exposure_fraction
+            ),
+            "max_component_leverage": str(policy.max_component_leverage),
+            "max_open_instruments": policy.max_open_instruments,
+            "allow_short_positions": policy.allow_short_positions,
+            "target_conflict_policy": policy.target_conflict_policy.value,
+            "risk_models": [
+                {
+                    "product_class": item.product_class.value,
+                    "exposure_measure": item.exposure_measure.value,
+                    "definition_digest": item.definition_digest,
+                }
+                for item in policy.risk_models
+            ],
+            "definition_version": policy.definition_version,
+        },
+        "rebalance_policy": None,
+    }
+
+
+def portfolio_composition_from_wire(value: object) -> PortfolioComposition:
+    """Validate and reconstruct the allocation policy supplied to the worker."""
+
+    if not isinstance(value, Mapping):
+        raise ValueError("portfolio execution policy must be a mapping")
+    if set(value) != {
+        "fingerprint",
+        "portfolio_id",
+        "version_id",
+        "initial_capital",
+        "base_currency",
+        "components",
+        "shared_risk_policy",
+        "rebalance_policy",
+    }:
+        raise ValueError("portfolio execution policy fields are invalid")
+    if value["rebalance_policy"] is not None:
+        raise ValueError("calendar rebalancing is not represented by the current engine input")
+    components_wire = value["components"]
+    if not isinstance(components_wire, list):
+        raise ValueError("portfolio components must be a list")
+    components: list[PortfolioComponent] = []
+    for item in components_wire:
+        if not isinstance(item, Mapping) or set(item) != {
+            "component_id",
+            "strategy_fingerprint",
+            "instrument_ids",
+            "capital_weight",
+            "priority",
+        }:
+            raise ValueError("portfolio component fields are invalid")
+        instrument_ids = item["instrument_ids"]
+        if not isinstance(instrument_ids, list) or any(
+            not isinstance(instrument_id, str) for instrument_id in instrument_ids
+        ):
+            raise ValueError("portfolio component instrument ids are invalid")
+        if not isinstance(item["priority"], int) or isinstance(item["priority"], bool):
+            raise ValueError("portfolio component priority is invalid")
+        components.append(
+            PortfolioComponent(
+                component_id=_wire_text(item["component_id"], "component_id"),
+                strategy_fingerprint=_wire_text(
+                    item["strategy_fingerprint"], "strategy_fingerprint"
+                ),
+                instrument_ids=tuple(instrument_ids),
+                capital_weight=_wire_decimal(item["capital_weight"], "capital_weight"),
+                priority=item["priority"],
+            )
+        )
+    policy_wire = value["shared_risk_policy"]
+    if not isinstance(policy_wire, Mapping) or set(policy_wire) != {
+        "max_gross_exposure_fraction",
+        "max_net_exposure_fraction",
+        "max_instrument_gross_exposure_fraction",
+        "max_component_gross_exposure_fraction",
+        "max_component_leverage",
+        "max_open_instruments",
+        "allow_short_positions",
+        "target_conflict_policy",
+        "risk_models",
+        "definition_version",
+    }:
+        raise ValueError("shared risk policy fields are invalid")
+    models_wire = policy_wire["risk_models"]
+    if not isinstance(models_wire, list):
+        raise ValueError("portfolio risk models must be a list")
+    risk_models: list[ProductRiskModel] = []
+    for item in models_wire:
+        if not isinstance(item, Mapping) or set(item) != {
+            "product_class",
+            "exposure_measure",
+            "definition_digest",
+        }:
+            raise ValueError("portfolio risk model fields are invalid")
+        risk_models.append(
+            ProductRiskModel(
+                product_class=ProductClass(_wire_text(item["product_class"], "product_class")),
+                exposure_measure=RiskExposureMeasure(
+                    _wire_text(item["exposure_measure"], "exposure_measure")
+                ),
+                definition_digest=_wire_text(item["definition_digest"], "definition_digest"),
+            )
+        )
+    max_open = policy_wire["max_open_instruments"]
+    if max_open is not None and (not isinstance(max_open, int) or isinstance(max_open, bool)):
+        raise ValueError("shared risk max_open_instruments is invalid")
+    allow_short = policy_wire["allow_short_positions"]
+    if not isinstance(allow_short, bool):
+        raise ValueError("shared risk allow_short_positions is invalid")
+    portfolio = PortfolioComposition(
+        portfolio_id=_wire_text(value["portfolio_id"], "portfolio_id"),
+        version_id=_wire_text(value["version_id"], "version_id"),
+        initial_capital=_wire_decimal(value["initial_capital"], "initial_capital"),
+        base_currency=_wire_text(value["base_currency"], "base_currency"),
+        components=tuple(components),
+        shared_risk_policy=SharedRiskPolicy(
+            max_gross_exposure_fraction=_wire_decimal(
+                policy_wire["max_gross_exposure_fraction"], "max_gross_exposure_fraction"
+            ),
+            max_net_exposure_fraction=_wire_decimal(
+                policy_wire["max_net_exposure_fraction"], "max_net_exposure_fraction"
+            ),
+            max_instrument_gross_exposure_fraction=_wire_decimal(
+                policy_wire["max_instrument_gross_exposure_fraction"],
+                "max_instrument_gross_exposure_fraction",
+            ),
+            max_component_gross_exposure_fraction=_wire_decimal(
+                policy_wire["max_component_gross_exposure_fraction"],
+                "max_component_gross_exposure_fraction",
+            ),
+            max_component_leverage=_wire_decimal(
+                policy_wire["max_component_leverage"], "max_component_leverage"
+            ),
+            max_open_instruments=max_open,
+            allow_short_positions=allow_short,
+            target_conflict_policy=TargetConflictPolicy(
+                _wire_text(policy_wire["target_conflict_policy"], "target_conflict_policy")
+            ),
+            risk_models=tuple(risk_models),
+            definition_version=_wire_text(policy_wire["definition_version"], "definition_version"),
+        ),
+    )
+    if value["fingerprint"] != portfolio.fingerprint:
+        raise ValueError("portfolio execution policy fingerprint is invalid")
+    return portfolio
+
+
+def _wire_text(value: object, field_name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field_name} must be non-empty text")
+    return value
+
+
+def _wire_decimal(value: object, field_name: str) -> Decimal:
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be encoded as text")
+    try:
+        parsed = Decimal(value)
+    except Exception as error:
+        raise ValueError(f"{field_name} is not a valid decimal") from error
+    if not parsed.is_finite():
+        raise ValueError(f"{field_name} must be finite")
+    return parsed
 
 
 __all__ = [

@@ -8,7 +8,13 @@ import pytest
 from app.strategy_lab_v2 import nautilus_runtime_cli
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.contracts import ProductClass
+from app.strategy_lab_v2.contracts import (
+    FX_BASE_NOTIONAL_RISK_MODEL,
+    PortfolioComponent,
+    PortfolioComposition,
+    ProductClass,
+    SharedRiskPolicy,
+)
 from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusCashDefinition,
     NautilusInstrumentDefinition,
@@ -91,6 +97,21 @@ def _runtime_bundle(
         event_tape=event_tape,
         instruments=(instrument,),
         venue=venue,
+        portfolio=PortfolioComposition(
+            portfolio_id="portfolio-1",
+            version_id="portfolio-v1",
+            initial_capital=Decimal("100000"),
+            base_currency="USD",
+            components=(
+                PortfolioComponent(
+                    component_id="component-1",
+                    strategy_fingerprint=manifest.strategy.fingerprint,
+                    instrument_ids=(instrument.instrument_id,),
+                    capital_weight=Decimal("1"),
+                ),
+            ),
+            shared_risk_policy=SharedRiskPolicy(risk_models=(FX_BASE_NOTIONAL_RISK_MODEL,)),
+        ),
         strategy_source_digest=content_digest(_SOURCE),
         strategy_manifest_fingerprint=manifest.fingerprint,
         entrypoint="strategy.main:Strategy",

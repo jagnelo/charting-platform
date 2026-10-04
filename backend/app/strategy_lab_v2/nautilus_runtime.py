@@ -174,6 +174,36 @@ def _require_native_accounting_run(run: Any) -> None:
         raise ValueError("native account report does not reconcile fills and commissions")
 
 
+def _require_target_allocation_probe(value: Any) -> None:
+    if not isinstance(value, Mapping) or set(value) != {
+        "instrument_id",
+        "requested_target_fraction",
+        "total_orders",
+        "total_positions",
+        "initial_cash",
+        "remaining_cash",
+        "observed_deployment",
+        "account_base_currency",
+        "authoritative",
+    }:
+        raise ValueError("native target-allocation probe fields are invalid")
+    initial_cash = _decimal(value["initial_cash"], "target probe initial_cash")
+    remaining_cash = _decimal(value["remaining_cash"], "target probe remaining_cash")
+    observed_deployment = _decimal(value["observed_deployment"], "target probe observed_deployment")
+    if (
+        value["instrument_id"] != "AAPL.SIM"
+        or value["requested_target_fraction"] != "0.5"
+        or value["account_base_currency"] != "USD"
+        or value["total_orders"] != 1
+        or value["total_positions"] != 1
+        or value["authoritative"] is not False
+        or initial_cash != Decimal("100000")
+        or not Decimal("45000") < remaining_cash < Decimal("55000")
+        or observed_deployment != initial_cash - remaining_cash
+    ):
+        raise ValueError("native target allocation order and account state do not reconcile")
+
+
 @dataclass(frozen=True, slots=True)
 class NautilusRcCompatibilityRuntime:
     """One exact v2 RC runtime boundary.
@@ -379,6 +409,7 @@ class NautilusRcFixtureReceipt:
             raise ValueError("multi-instrument fixture did not cover two instruments")
         _require_native_accounting_run(multi)
         _require_native_accounting_run(native)
+        _require_target_allocation_probe(native.get("target_allocation_probe"))
         if multi["instrument_count"] < 2 or native["instrument_count"] != 1:
             raise ValueError("single- and multi-instrument fixtures must be distinct")
         if payload["forward_event_tape_parity"] != "deferred_authoritative_fixture":

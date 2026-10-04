@@ -7,6 +7,13 @@ from io import BytesIO
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import (
+    FX_BASE_NOTIONAL_RISK_MODEL,
+    PortfolioComponent,
+    PortfolioComposition,
+    SharedRiskPolicy,
+)
+from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_to_wire
 from app.strategy_lab_v2.nautilus_runtime_adapter import (
     NautilusRuntimeDataError,
     run_native_backtest,
@@ -14,6 +21,21 @@ from app.strategy_lab_v2.nautilus_runtime_adapter import (
 
 
 def _payload() -> dict[str, object]:
+    portfolio = PortfolioComposition(
+        portfolio_id="portfolio-1",
+        version_id="portfolio-v1",
+        initial_capital=Decimal("100000"),
+        base_currency="USD",
+        components=(
+            PortfolioComponent(
+                component_id="component-1",
+                strategy_fingerprint=content_digest("strategy"),
+                instrument_ids=("EURUSD.SIM",),
+                capital_weight=Decimal("1"),
+            ),
+        ),
+        shared_risk_policy=SharedRiskPolicy(risk_models=(FX_BASE_NOTIONAL_RISK_MODEL,)),
+    )
     return {
         "trial_id": "trial-1",
         "attempt_id": "attempt-1",
@@ -65,12 +87,13 @@ def _payload() -> dict[str, object]:
             "base_currency": "USD",
             "cash": [{"currency": "USD", "amount": Decimal("100000")}],
         },
+        "portfolio": portfolio_composition_to_wire(portfolio),
         "strategy_source_digest": content_digest("source"),
         "strategy_manifest_fingerprint": content_digest("manifest"),
         "entrypoint": "strategy.main:Strategy",
         "parameters": {"window": 20},
         "random_seed": 17,
-        "input_version": "strategy-lab.nautilus-engine-input.v1",
+        "input_version": "strategy-lab.nautilus-engine-input.v2",
     }
 
 

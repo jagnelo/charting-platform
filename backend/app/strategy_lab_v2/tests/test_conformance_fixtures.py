@@ -455,6 +455,18 @@ def _rc_accounting_run(instrument_count: int) -> dict[str, Any]:
 
 
 def _rc_receipt(runtime: NautilusRcCompatibilityRuntime) -> NautilusRcFixtureReceipt:
+    native_order_run = _rc_accounting_run(1)
+    native_order_run["target_allocation_probe"] = {
+        "instrument_id": "AAPL.SIM",
+        "requested_target_fraction": "0.5",
+        "total_orders": 1,
+        "total_positions": 1,
+        "initial_cash": "100000",
+        "remaining_cash": "50000",
+        "observed_deployment": "50000",
+        "account_base_currency": "USD",
+        "authoritative": False,
+    }
     return NautilusRcFixtureReceipt.from_mapping(
         {
             "authoritative": False,
@@ -462,7 +474,7 @@ def _rc_receipt(runtime: NautilusRcCompatibilityRuntime) -> NautilusRcFixtureRec
             "engine_lifecycle": "passed",
             "forward_event_tape_parity": "deferred_authoritative_fixture",
             "multi_instrument_accounting": _rc_accounting_run(2),
-            "native_order_fill_cost": _rc_accounting_run(1),
+            "native_order_fill_cost": native_order_run,
         },
         runtime,
     )

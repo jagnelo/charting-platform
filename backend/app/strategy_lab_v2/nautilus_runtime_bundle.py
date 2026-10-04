@@ -34,6 +34,7 @@ from app.strategy_lab_v2.nautilus_native_event_stream import (
     NautilusNativeEventStreamSummary,
     serialize_nautilus_native_event_stream,
 )
+from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_to_wire
 from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
     NAUTILUS_CONTEXT_STREAM_SCHEMA,
@@ -978,6 +979,7 @@ def build_nautilus_runtime_bundle(
                     for item in engine_input.venue.cash
                 ],
             },
+            "portfolio": portfolio_composition_to_wire(engine_input.portfolio),
             "strategy_source_digest": engine_input.strategy_source_digest,
             "strategy_manifest_fingerprint": engine_input.strategy_manifest_fingerprint,
             "entrypoint": engine_input.entrypoint,
