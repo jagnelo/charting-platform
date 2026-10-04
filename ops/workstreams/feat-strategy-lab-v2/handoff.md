@@ -7968,3 +7968,40 @@ remains the final branch acceptance gate.
 Next: bind the backtest-authoritative execution plan and exact engine provenance
 through result materialization/publication without weakening the independent
 forward parity gate.
+
+## 2026-10-04 - Persist native OOS result manifests
+
+Stable Nautilus 2.x remains unnecessary for local backtesting. The branch-owned
+acceptance rule permits an exact-pinned stable or pre-release v2 build after
+scope-specific conformance; RC5 has passed the four backtest-authoritative
+checks in the isolated runtime. Pre-release builds remain prohibited from
+broker connections and real-capital control.
+
+The PostgreSQL result materialization adapter now exposes
+`materialize_nautilus_oos()`. It verifies the native account-equity and
+execution-report Parquet artifacts, derives the OOS metric set, binds both
+artifacts into the result manifest, persists through the existing owner-scoped
+attempt key, and distinguishes exact replays from changed-content conflicts.
+The adapter regression covers manifest round-trip persistence and replay.
+
+Validation at source commit `d6c9e721069f157ac3b1202a15316d70abdc8056`: all
+1,209 Strategy Lab v2 tests passed; Ruff passed; both changed Python files are
+formatted; MyPy passed across 342 package sources; and `git diff --check`
+passed. Docker conformance was not
+rerun for this persistence-only change; the prior isolated RC5 fixture and
+native report probe remain the latest engine evidence.
+
+No external release or workstream dependency blocks further implementation.
+The current internal integration gap is that the worker terminal evidence
+resolver still expects an already-persisted result manifest/publication, while
+the OOS materializer is not yet invoked from that completion path. The
+authenticated terminal callback also needs a trusted source for the typed
+trial/package/portfolio/snapshot graph and exact conformance/provenance inputs;
+these are code-owned interfaces to build, not reasons to wait for stable v2.
+The full-stack-browser acceptance profile is still outstanding. GitHub push is
+not currently possible because the configured SSH key is rejected and
+`ssh-askpass` is unavailable; local feature work is unaffected.
+
+Next: connect verified Nautilus terminal files to the owner-authenticated
+result context, construct and persist the OOS manifest plus publication plan,
+and preserve prerelease/local-only safety boundaries.

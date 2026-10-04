@@ -86,7 +86,11 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -122,10 +126,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b1eec9f6c5a87b49d22bb8afaa2d99f2d96a7fb7",
-  "implementation_sha": "b1eec9f6c5a87b49d22bb8afaa2d99f2d96a7fb7",
-  "last_checkpoint": "2026-10-04T05:51:09.156711+00:00",
-  "last_human_progress_update": "2026-10-04T05:48:18.807581+00:00",
+  "head": "d6c9e721069f157ac3b1202a15316d70abdc8056",
+  "implementation_sha": "d6c9e721069f157ac3b1202a15316d70abdc8056",
+  "last_checkpoint": "2026-10-04T06:00:49.858025+00:00",
+  "last_human_progress_update": "2026-10-04T06:00:33.719226+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -144,11 +148,11 @@
       "AC-SEARCH",
       "AC-FORWARD"
     ],
-    "current_blocker": "No external dependency blocks package-owned implementation. The isolated exact-pinned RC5 diagnostics passed all four backtest fixtures and native report/equity verification, but authoritative publication still requires formal conformance and exact build provenance. Full-stack/browser is a final validation gate; previously recorded SSH authentication affects publishing only; provider, ETF, and TC2000 staging gates apply only to shared-path consumption.",
-    "current_phase": "native-oos-report-metric-materialization",
-    "next_action": "Wire the OOS report and equity MetricSet plus RunResultManifest materializer into the worker terminal-evidence path, then capture exact RC5 source, wheel, image, fixture, and execution-plan fingerprints in formal conformance provenance.",
+    "current_blocker": "No external dependency blocks implementation. RC5 passed the four backtest checks. Internal completion requires wiring authenticated domain and conformance inputs into the worker terminal resolver and persisting the OOS result/publication; SSH blocks remote sync only; full-stack-browser remains final acceptance.",
+    "current_phase": "postgres-nautilus-oos-manifest-persistence",
+    "next_action": "Connect the OOS materializer to worker terminal evidence using owner-authenticated trial/package/portfolio/snapshot resolution and exact conformance provenance; then persist artifact publication without weakening prerelease local-only limits.",
     "total": 18,
-    "updated_at": "2026-10-04T05:48:18.807561+00:00"
+    "updated_at": "2026-10-04T06:00:33.719208+00:00"
   },
   "remote": "1e3a861454f3c77bdac5efbb6957103f56f13238",
   "remote_sha": "1e3a861454f3c77bdac5efbb6957103f56f13238",
