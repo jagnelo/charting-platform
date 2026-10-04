@@ -1,13 +1,24 @@
 # TC2000 Version 25 Visual-Parity Specification
 
 The latest complete board run used product source
-`a78812d33f6402b329c947b70765f2a84e5be9ac` at clean branch tip
-`a78812d33f6402b329c947b70765f2a84e5be9ac`. It passed `94/104`; ten
+`c038aafc6fe8378cdf11d4b76006100488c75556` at clean branch tip
+`0dc73b5b402c28f2762ac9fe487106bafe29dfa5`. It passed `94/104`; ten
 screenshot comparisons remain open for the review recorded below. No
 references, masks, thresholds, skips, or acceptance rules have been modified.
-The new Chart Plot Library search interaction has functional browser coverage,
+The Chart Plot Library search interaction has authenticated browser coverage,
 but the checked-in board does not capture that panel open, so its exact styling
 still lacks screenshot coverage.
+
+## 2026-10-04 — Chart Plot Library open/search state inspected without a visual oracle
+
+An authenticated Chromium review opened the Chart Plot Library, filtered to the
+full `Relative Strength Index` name, expanded the selector to confirm the RSI
+result is visible, and confirmed the no-match message is exposed as a live
+status. The screenshot at `/tmp/tc2000-chart-open-rsi-dropdown.png` records the
+current TC render only. The branch-local reference pack has no authoritative
+V25 capture for this exact state, so this image is not a baseline and does not
+close the visual-parity gap. No screenshot, mask, threshold, skip, or acceptance
+policy changed.
 
 ## 2026-10-04 — Exact-tip pinned visual matrix at a78812d
 

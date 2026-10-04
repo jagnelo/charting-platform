@@ -703,6 +703,28 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F9e-plot-library-search — chart plot library filters indicators and announces empty results', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart plot library' }) }).first()
+    await expect(chart).toBeVisible({ timeout: 15_000 })
+    await chart.getByRole('button', { name: 'Chart plot library' }).click()
+
+    const panel = page.getByRole('dialog', { name: 'Chart plot library panel' }).last()
+    const search = panel.getByRole('searchbox', { name: 'Filter indicators' })
+    const pickerOptions = panel.getByRole('combobox', { name: 'Add indicator plot' }).locator('option')
+    await expect(panel).toBeVisible()
+    await expect(search).toBeFocused()
+
+    await search.fill('relative strength index')
+    await expect(pickerOptions).toHaveText(['Add indicator plot…', 'RSI - Relative Strength Index'])
+
+    await search.fill('no-such-indicator-tc2000')
+    const noMatchStatus = panel.getByText('No indicators match “no-such-indicator-tc2000”.', { exact: true })
+    await expect(noMatchStatus).toHaveAttribute('role', 'status')
+    await expect(noMatchStatus).toBeVisible()
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F9e-plot-library-narrow — chart plot library clamps to a narrow viewport and recovers on close', async ({ page, browserDiagnostics }) => {
     await page.setViewportSize({ width: 390, height: 800 })
     await page.goto('/chart/SPY')

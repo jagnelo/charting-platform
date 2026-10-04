@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-04
 
+## 2026-10-04 — Chart Plot Library search browser proof
+
+An authenticated Chromium flow now verifies that the Chart Plot Library opens
+with its search field focused, filters the catalog by the full indicator name,
+and exposes no-match feedback through a status role. The new
+`F9e-plot-library-search` flow passed `1/1`; the existing Chart Plot Library
+component suite passed `45/45`. The full frontend coverage suite passed
+`129/129` files and `1,200/1,200` tests, and `vue-tsc` type-check plus the Vite
+production build passed.
+
+A separate local-browser review captured the open dialog with the filtered RSI
+option expanded (`/tmp/tc2000-chart-open-rsi-dropdown.png`). This is a screenshot
+of the current TC implementation, not V25 visual authority. The local reference
+board has no exact open/search capture for this panel, so screenshot parity stays
+an explicit open gap; no reference, mask, threshold, skip, or visual-acceptance
+rule changed. The assigned stack, fixture volumes, and generated images were
+removed after the browser check. No provider-platform or ETF-owned behavior
+changed.
+
 ## 2026-10-04 — Pinned exact-source visual matrix at c038aaf
 
 At product source `c038aafc6fe8378cdf11d4b76006100488c75556` (the current

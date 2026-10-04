@@ -1,5 +1,27 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-04 — Chart Plot Library search E2E checkpoint
+
+Added `F9e-plot-library-search` to the TC-owned authenticated browser flows. It
+checks initial search focus, filtering by the full RSI label, and accessible
+no-match status without changing chart data or indicator-engine behavior. The
+new browser case passed `1/1`; the focused plot-library component suite passed
+`45/45`; full frontend coverage passed `129` files / `1,200` tests; type-check
+and production build passed.
+
+The live browser screenshot
+`/tmp/tc2000-chart-open-rsi-dropdown.png` was inspected as current-app evidence.
+It is not a V25 reference. The existing reference board lacks this exact panel
+state, so visual coverage remains explicitly open and no visual oracle or
+policy changed. Only the assigned TC Compose project was started; its six
+containers, four fixture volumes, network, and four generated images were
+removed after the browser run. No provider/ETF worktree or owner path changed.
+
+The next independent task remains a bounded TC-owned workstation, Study, or
+Strategy gap. The backend coverage/TestClient diagnostic and exact-tip full
+integration gate are still unresolved; this search E2E receipt does not close
+the broader goal.
+
 ## 2026-10-04 — Exact-source visual gate checkpoint at c038aaf
 
 Product source `c038aafc6fe8378cdf11d4b76006100488c75556` remains unchanged;
