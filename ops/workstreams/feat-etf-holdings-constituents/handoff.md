@@ -6858,3 +6858,18 @@ local pending SSH-agent unlock; exact-SHA CI and a current remote-ref refresh
 are still outstanding for those commits. AC10 remains dependent on the shared
 provider-platform branch reaching staging, and AC14 remains post-integration/
 deployment observation.
+
+## Latest full-gate retry — 2026-10-04
+
+After the green current-source branch-declared suite, the required
+`make validate-integration` was retried at worktree HEAD `8bcb37e04`. Workstream
+validation, locked dependencies, migration checks, frontend installation,
+Ruff/format, and TypeScript passed again. Combined backend coverage then
+terminated around 69% with GNU make exit 152 and no pytest summary, matching
+the earlier verbose reproduction that last showed the generic
+`test_runner_enforces_wall_time_limit_and_restores_signal` case. The gate did
+not reach frontend unit tests, Compose/browser validation, or visual E2E on
+this retry. Its cleanup confirmed zero remaining ETF test containers, images,
+or testcontainer sessions and did not prune host-wide resources. AC7 remains
+open; no generic research-runner code was changed because it is outside ETF
+`owned_paths`.
