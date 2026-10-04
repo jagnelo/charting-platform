@@ -29,6 +29,12 @@ backtests after conformance; stable 2.x is not a prerequisite. The external
 Docker socket hold still prevents exact-image/full-stack validation, and SSH
 askpass/key authentication still prevents publishing. Neither blocks the next
 owned backend implementation slice.
+The elevated push attempt for
+`1e3a861454f3c77bdac5efbb6957103f56f13238..226d891f08bed910e33dd017459d267916491bfb`
+failed because `/usr/bin/ssh-askpass` is absent and GitHub rejected the
+configured SSH key with `Permission denied (publickey)`. The cached remote ref
+remains `1e3a861454f3c77bdac5efbb6957103f56f13238`; no alternate credential
+path was probed.
 
 Next: export and host-verify native orders, fills, positions, and cost evidence;
 feed those reports plus the OOS equity series into the official metric-set and
