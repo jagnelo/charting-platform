@@ -183,6 +183,7 @@ def _native_oos_report_metrics(
     holding_durations_ns: list[int] = []
     realized_pnl_amounts: dict[str, Decimal] = defaultdict(Decimal)
     realized_pnl_counts: dict[str, int] = defaultdict(int)
+    realized_pnl_values: dict[str, list[Decimal]] = defaultdict(list)
     realized_position_win_counts: dict[str, int] = defaultdict(int)
     realized_position_loss_counts: dict[str, int] = defaultdict(int)
     realized_position_break_even_counts: dict[str, int] = defaultdict(int)
@@ -243,6 +244,7 @@ def _native_oos_report_metrics(
                     currency, amount = realized
                     realized_pnl_amounts[currency] += amount
                     realized_pnl_counts[currency] += 1
+                    realized_pnl_values[currency].append(amount)
                     if amount > 0:
                         realized_position_wins += 1
                         realized_position_win_counts[currency] += 1
@@ -807,6 +809,43 @@ def _native_oos_report_metrics(
                         if not realized_pnl_is_complete
                         else specific_null_reason
                     ),
+                )
+            )
+        ordered_pnl = sorted(realized_pnl_values[currency])
+        for quantile_name, numerator, denominator in (
+            ("p05", 1, 20),
+            ("p25", 1, 4),
+            ("p50", 1, 2),
+            ("p75", 3, 4),
+            ("p95", 19, 20),
+        ):
+            rank = max(
+                1,
+                (currency_sample_size * numerator + denominator - 1) // denominator,
+            )
+            quantile = Decimal(numerator) / Decimal(denominator)
+            result.append(
+                _native_metric(
+                    f"oos_realized_position_pnl_quantile_{quantile_name}:{currency}",
+                    ordered_pnl[rank - 1] if realized_pnl_is_complete else None,
+                    unit=f"currency:{currency}",
+                    sample_size=currency_sample_size,
+                    formula=(
+                        f"nearest-rank {quantile_name} of native realized OOS-closed "
+                        "position P&L in the named currency; rank is ceil(p*n), one-based, "
+                        "with no interpolation"
+                    ),
+                    parameters={
+                        "currency": currency,
+                        "quantile": str(quantile),
+                        "quantile_rule": "ceil(p*n), one-based rank, no interpolation",
+                        "report_kind": "positions",
+                        "value_field": "realized_pnl",
+                        "currency_aggregation": "within_currency_only; no FX conversion",
+                        **shared_parameters,
+                    },
+                    evidence_digest=artifact,
+                    null_reason=realized_pnl_null_reason,
                 )
             )
         result.append(
