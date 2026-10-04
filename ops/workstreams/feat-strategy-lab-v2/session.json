@@ -130,7 +130,7 @@
   "head": "ee7a98510ab8b88d5ff08d756d99e90777d674f9",
   "implementation_sha": "ee7a98510ab8b88d5ff08d756d99e90777d674f9",
   "last_checkpoint": "2026-10-04T17:54:30.089104+00:00",
-  "last_human_progress_update": "2026-10-04T17:51:59.344612+00:00",
+  "last_human_progress_update": "2026-10-04T18:31:53.898074+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -146,11 +146,11 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "The local Docker CLI has no Buildx plugin (docker buildx is unknown), deferring only the final full_stack_browser profile; no external release or upstream dependency blocks package-owned implementation.",
-    "current_phase": "nautilus-listed-derivative-instrument-materialization-v1-complete",
-    "next_action": "Implement the futures event-aligned margin/account-capacity bridge and apply the existing margin-risk gate before engine submission. Keep options routing fail-closed until canonical event-time Greeks/delta and settlement evidence are available; continue broader metrics, domain mutation, workers, and forward-shadow acceptance.",
+    "current_blocker": "No external release or upstream dependency blocks package-owned implementation. Docker Buildx is absent and defers only the final full_stack_browser profile.",
+    "current_phase": "nautilus-futures-margin-admission-v1",
+    "next_action": "Extend native futures margin admission to futures target-position allocation while preserving whole-contract sizing and shared-account risk; then continue remaining backend metrics, domain mutation flows, worker recovery/scaling, and broker-free forward shadow. Keep options fail-closed until canonical event-time Greeks/delta and settlement are supported.",
     "total": 18,
-    "updated_at": "2026-10-04T17:51:59.344573+00:00"
+    "updated_at": "2026-10-04T18:31:53.898056+00:00"
   },
   "remote": "ee7a98510ab8b88d5ff08d756d99e90777d674f9",
   "remote_sha": "ee7a98510ab8b88d5ff08d756d99e90777d674f9",

@@ -2,6 +2,62 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Native futures margin admission v1
+
+Implementation `3f0ec64916fa184115970bfda7d9fab44365bf94` adds direct listed-
+futures order admission on the exact-pinned Nautilus margin account. Before
+submission, the bridge binds account currency/equity and native initial and
+maintenance requirements to the current event, projects the whole-contract
+post-order position through RC5's native calculators, replaces existing
+per-instrument futures requirements (rather than double-counting them), and
+applies the shared margin-risk gate. Margin valuation uses an adverse
+event-aligned ask/trade/bar-high price rounded to the native tick; unsupported
+settlement currencies, missing native evidence, and unbounded stop-market
+orders fail closed. Equities and crypto spot retain their existing paths;
+futures target allocation and option orders remain unsupported.
+
+Exact-source RC5 evidence build passed with source digest
+`sha256:bdd1e626c8c45b96d031cbfc4412c637850e17ceb837d03f27a1628969366a78`,
+runtime image digest
+`sha256:723390861b3e7ac8671ea43d7670fc1a25b54e035186021e1408012958a59851`,
+receipt artifact digest
+`sha256:74ffacb0706cb75e26935a3ad709b0a2450dcbcc506c6ccb0208f4b8aa8d4009`,
+and conformance fingerprint
+`sha256:acc25b0f47efa55e36b3c35b66299dd5f37ddefcd790c0724973e894c6b56af5`.
+The new isolated image, without source overlays, admitted one `CLZ26.SIM`
+contract on a USD margin account and produced one native order/position. The
+receipt remains `authoritative: false` by design: it is a probe, not a
+scope-bound published backtest result.
+
+Validation at the implementation commit: Strategy Lab package suite `1,317
+passed`; package Ruff, changed-file formatting, targeted MyPy, and `git diff
+--check` passed. The implementation commit is published on
+`origin/feat/strategy-lab-v2`.
+
+Stable Nautilus v2 is not a prerequisite. The exact RC5 build passes all four
+local backtest conformance checks; pre-releases remain barred from brokers and
+real capital, and forward-shadow execution separately requires event-tape
+parity. No external release or upstream dependency blocks package-owned work.
+Provider/ETF/TC2000 staging gates apply only when consuming their shared-path
+contracts. Docker Buildx remains the sole environment limitation for the final
+full Compose/browser profile, not a reason to pause implementation.
+
+Next: extend native futures margin admission to futures target-position
+allocation while preserving whole-contract sizing and shared-account risk.
+Options remain fail-closed pending canonical event-time Greeks/delta and
+settlement evidence; continue the remaining domain mutations, metrics, worker
+recovery/scaling, and persistent forward-shadow acceptance.
+
+Changed source paths: `backend/app/strategy_lab_v2/nautilus_order_routing.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_adapter_probe.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_image/Dockerfile`,
+`backend/app/strategy_lab_v2/nautilus_strategy_bridge.py`, and
+`backend/app/strategy_lab_v2/tests/test_nautilus_order_routing.py`. Changed
+workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
 ## 2026-10-04 - Versioned native listed-derivative definitions v1
 
 Implementation `ee7a98510ab8b88d5ff08d756d99e90777d674f9` adds a strict v7
