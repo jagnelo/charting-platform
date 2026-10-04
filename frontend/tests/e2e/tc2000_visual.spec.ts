@@ -873,8 +873,11 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       if (route.request().method() !== 'GET') return route.continue()
       await new Promise<void>(() => {})
     })
+    // R5 uses a 26-row lookahead; keep this deterministic loading fixture tied
+    // to the initial page rather than a particular requested page size.
     await page.route(url => url.pathname.endsWith('/api/v1/research/runs')
-      && url.searchParams.get('limit') === '25', async route => {
+      && !url.searchParams.has('before_created_at')
+      && !url.searchParams.has('before_id'), async route => {
       if (route.request().method() !== 'GET') return route.continue()
       await new Promise<void>(() => {})
     })
