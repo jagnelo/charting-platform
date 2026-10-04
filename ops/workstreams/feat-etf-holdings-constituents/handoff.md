@@ -6759,3 +6759,60 @@ Read-only `git ls-remote` at 12:38 UTC confirms origin ETF
 the staging tip is an ancestor of this branch. No new staging merge is needed.
 The provider-platform branch still has not reached staging, so AC10 remains a
 real external dependency; no non-ETF branch or worktree was modified.
+
+## Exact-SHA CI pass and local full-gate process termination — 2026-10-04
+
+The VUSV fail-closed implementation and its branch-owned receipts are committed
+at `3cf8552456ec6b7f417b27e0f28279efdedb33e1`. Exact-SHA GitHub Actions run
+[37123623300](https://github.com/jagnelo/charting-platform/actions/runs/37123623300)
+completed successfully on that SHA: Backend Tests, Branch-declared Tests,
+Frontend Unit Tests, and Playwright passed; the protected Exhaustive
+Integration Gate was skipped as designed for a feature branch. The success
+was confirmed during the resumed implementation session. The present
+environment cannot refresh GitHub refs: `git ls-remote` failed before
+authentication because `github.com` did not resolve, and the `gh` CLI is not
+installed. Local `origin/feat/etf-holdings-constituents` still points at the
+current SHA `3cf8552`; the last remotely verified staging and provider-platform
+tips remain those recorded above and must not be treated as freshly checked.
+
+The required local `make validate-integration` was retried against the exact
+current SHA with the repository-managed runtime and the temporary Buildx plugin
+under `/tmp`. Workstream validation (30 records), locked backend dependencies,
+migration head/compatibility, `npm ci`, Ruff/format, and frontend TypeScript
+checks passed. The gate then stopped during combined backend coverage: the
+pytest process disappeared at about 69% and GNU make reported exit 152 without
+a pytest summary. A verbose retry of `make test-backend-coverage` narrowed the
+last active case to the generic, non-ETF
+`test_runner_enforces_wall_time_limit_and_restores_signal` test, again ending
+with exit 152 and no test assertion or coverage report. The isolated test
+itself passed when selected, but that filtered coverage target then failed its
+threshold as expected because 1,875 tests were deselected. A previous full
+verbose backend run completed all 1,876 tests with 81.13% coverage. These
+contradictory outcomes point to a
+process/resource interaction in the generic research-runner test context, but
+the exact signal was not captured and no root cause is claimed. Do not modify
+the research-runner implementation or its generic test from this ETF branch;
+neither is in `owned_paths`.
+
+This exact-SHA local gate therefore remains non-green. A prior fresh-stack run
+also remains relevant: after 152 functional Playwright passes and 106 skips,
+generic `F9c-template-comparison` failed because the chart plot overlay
+intercepted the `Remove RSP` click. That chart/UI path is outside ETF
+`owned_paths` and was not changed. AC7 stays open; neither the generic backend
+termination nor the earlier generic E2E failure is an ETF product regression.
+The resumed gate's backend cleanup reported zero remaining ETF test containers,
+images, and testcontainer sessions; it did not prune host-wide Docker state.
+After refreshing the session and plan narrative, the focused
+`test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers`
+passed, and the workstream validator accepted all 30 records.
+
+The implementation branch was clean at `3cf8552` and the local ETF tracking
+ref matched it before this documentation-only receipt update. This checkpoint
+changes only branch-owned workstream records. Next, when DNS is available,
+refresh refs read-only, push the local receipt checkpoint, and run
+`agent-session-plan-ready` plus the session checkpoint against synchronized
+heads. Require exact-SHA CI for that documentation checkpoint. AC7 must be
+rerun after the generic test/gate blocker is resolved or its ownership is
+explicitly expanded; do not relabel it green based on feature-branch CI. Resume
+AC10 only after the shared provider-platform branch has actually reached
+staging. AC14 remains a post-integration/deployment 30-day observation.

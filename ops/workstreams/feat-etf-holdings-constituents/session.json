@@ -114,7 +114,7 @@
   "head": "cfec6a5a0d8f6102bc757bbd431a5fd288b77674",
   "implementation_sha": "4da62c54d1465835e4562115e12513c984cd7962",
   "last_checkpoint": "2026-10-02T17:10:58Z",
-  "last_human_progress_update": "2026-10-03T12:39:52.146338+00:00",
+  "last_human_progress_update": "2026-10-04T01:20:36.477884+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "242f7d0c21e4ec1ae3db7442a216a41a3e07773a3624ed40387896e52916d719",
@@ -138,11 +138,11 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Wellington VUSV empty HTTP 200 HTML now fails closed and is a narrow source-variant skip; the complete branch-declared runner passes (592 deterministic, default live 3/534, opt-in 506/31). Exact-SHA CI and a fresh full Docker/browser gate remain pending; the previous full gate failed only at generic F9c chart-overlay click interception outside ETF owned_paths. Current refs at 12:38 show staging 8b885a2 and provider platform 88132e91; the provider branch has not reached staging. AC14 is post-integration/deployment observation.",
-    "current_phase": "vanguard_vusv_matrix_pass_exact_ci_and_full_gate_pending",
-    "next_action": "Commit and push the VUSV fail-closed correction and durable receipts; inspect exact-SHA CI; retry the required local full integration gate against the exact commit. Revisit AC10 only after provider-platform reaches staging; AC14 remains post-integration/deployment observation.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. VUSV fails closed on the empty-HTML source variant and the exact-SHA feature-branch CI passed. AC7 remains open: the local full gate reproducibly terminates at a generic research-runner test with make exit 152, while a prior full backend run passed; that generic test is outside ETF owned_paths and must not be changed here. Remote ref refresh and pushing the durable receipt checkpoint are temporarily unavailable because github.com DNS fails. AC10 awaits the provider-platform branch reaching staging; AC14 requires post-integration deployment and 30 days of observation.",
+    "current_phase": "exact_ci_green_local_gate_generic_backend_termination",
+    "next_action": "Once GitHub DNS is available, refresh refs read-only, push the local workstream receipt checkpoint, run agent-session-plan-ready and the session checkpoint against synchronized heads, and require exact-SHA CI. Rerun AC7 after the generic research-runner test/gate blocker is resolved or its ownership is explicitly expanded. Consume ETF_HOLDINGS only after provider-platform reaches staging; keep AC14 as a post-integration 30-day observation.",
     "total": 14,
-    "updated_at": "2026-10-03T12:39:52.146318+00:00"
+    "updated_at": "2026-10-04T01:20:36.477865+00:00"
   },
   "remote": "cfec6a5a0d8f6102bc757bbd431a5fd288b77674",
   "remote_sha": "a13fccfd0bf9666ff471aac566cf0bc4f367c4e1",
