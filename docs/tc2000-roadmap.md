@@ -5,7 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-04
 
-## 2026-10-04 — Current-source visual replay and fixture disposition
+## 2026-10-04 — Exact-tip browser gate at a78812d
+
+The full serial functional browser suite passed at pushed product tip
+`a78812d33f6402b329c947b70765f2a84e5be9ac`: `171` passed, `110`
+documented skips, and no failures. The full pinned Playwright 1.62.1 visual
+matrix then completed all `104` cases across the four viewport projects:
+`94` passed and `10` failed only at screenshot comparison after state and
+interaction assertions passed.
+
+The ten unchanged local-reference differences are workspace-floating in all
+four projects (`8,995/9,825/8,995/9,825` pixels), Study structured-result in
+all four (`109,320/105,698/22,099/21,352`), and Study sandbox-error at the
+two 1080p scales (`13,360/11,188`; both 1440p cases pass). The visual
+threshold remains 0.5%; no reference, mask, threshold, skip, fallback, or
+acceptance rule changed. These board-guided local screenshots are not exact
+V25 authority and remain review items.
+
+The assigned TC2000 stack was cleaned with the scoped resource helper. The
+post-cleanup audit reports zero containers, volumes, images, test sessions, or
+unknown components. Current remote refs are staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`48512cd934759c8a52e9b4071c281ef763a08699`. Neither dependency tip is an
+ancestor of staging, so consumer integration and shared-path reconciliation
+remain deferred. Continue a distinct TC-owned UI/Study/Strategy task without
+expanding into provider or ETF ownership.
+
+## 2026-10-04 — Earlier focused visual replay and fixture disposition
 
 The focused pinned Playwright 1.62.1 replay at test SHA
 `d8553e5d93419d6f2315ff587d13b4d0e8145c9b` (product source
@@ -12252,22 +12279,19 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 
 ## Immediate next checkpoint
 
-Run the full exact-tip `full_stack_browser` gate at synchronized test tip
-`d8553e5d93419d6f2315ff587d13b4d0e8145c9b`, including the unchanged 104-case
-four-project visual matrix. Preserve screenshot references, masks, thresholds,
-skips, fallbacks, and acceptance rules. Diagnose and fix repository-owned
-failures with focused regressions; record local-reference drift and external
-limits without treating them as accepted visual parity. Do not add provider
-routing, ETF adapters, live probes, generic ingestion, or refresh workers to
-TC.
+Continue with the next bounded TC-owned workstation, Study, or Strategy gap
+after checking the candidate against this branch's ownership boundary and the
+upstream workstreams. Add focused regression evidence and run the relevant
+frontend/browser checks. Keep the unchanged visual references and 0.5%
+threshold intact; the ten screenshot-only differences at `a78812d` remain
+open for the review specified in this document. Do not add provider routing,
+ETF adapters, live probes, generic ingestion, or refresh workers to TC.
 
-The latest full matrix remains the historical `94/104` result at clean tip
-`58975ea6bee3e506f64d97506aadf4026c626357`; the focused current-source replay
-at `d8553e5d` recorded ten screenshot differences and two passes across its 12
-cases. It is not a full-matrix result. No screenshot baseline or policy has
-changed. Provider and ETF consumer integration and semantic path reconciliation
-remain deferred until those dependencies reach staging; this does not prevent
-the current exact-tip gate or independent TC-owned work.
+Provider and ETF consumer integration and semantic shared-path reconciliation
+remain deferred until their work reaches staging. Do not consume their branch
+tips directly or mutate another worktree. After both dependencies reach
+staging, use the prescribed coordinator workflow, reconcile every shared path,
+and rerun the exact-tip full gate before recording `ready_for_human_review`.
 
 ## 2026-09-08 — Chart Plot Library Strategy-signal adapter
 

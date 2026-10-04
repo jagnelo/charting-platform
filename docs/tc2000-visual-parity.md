@@ -1,13 +1,37 @@
 # TC2000 Version 25 Visual-Parity Specification
 
 The latest complete board run used product source
-`defefaaafde1db3fc302dc50be923d06ccf84ea0` at clean branch tip
-`58975ea6bee3e506f64d97506aadf4026c626357`. It passed `94/104`; ten stable
-screenshot comparisons still need the review recorded below. No references,
-masks, thresholds, skips, or acceptance rules have been modified. The new Chart
-Plot Library search interaction has functional browser coverage, but the
-checked-in board does not capture that panel open, so its exact styling still
-lacks screenshot coverage.
+`a78812d33f6402b329c947b70765f2a84e5be9ac` at clean branch tip
+`a78812d33f6402b329c947b70765f2a84e5be9ac`. It passed `94/104`; ten
+screenshot comparisons remain open for the review recorded below. No
+references, masks, thresholds, skips, or acceptance rules have been modified.
+The new Chart Plot Library search interaction has functional browser coverage,
+but the checked-in board does not capture that panel open, so its exact styling
+still lacks screenshot coverage.
+
+## 2026-10-04 — Exact-tip pinned visual matrix at a78812d
+
+At exact pushed branch tip `a78812d33f6402b329c947b70765f2a84e5be9ac`, the
+complete pinned Playwright 1.62.1 matrix ran all 104 cases across four viewport
+projects. Result: `94` passed and `10` screenshot comparisons failed after
+their state and interaction assertions passed.
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | --- | --- | --- |
+| `visual-1080p-100` | 8,995 pixels | 109,320 pixels | 13,360 pixels |
+| `visual-1080p-125` | 9,825 pixels | 105,698 pixels | 11,188 pixels |
+| `visual-1440p-100` | 8,995 pixels | 22,099 pixels | Passed |
+| `visual-1440p-125` | 9,825 pixels | 21,352 pixels | Passed |
+
+The workspace-floating state expects five seeded rows while the local reference
+shows an empty table. The structured-result output includes newer result and
+promotion controls absent from the stored reference. In the two 1080p
+sandbox-error captures, the visible parameter-schema example shows lookback
+`20` while the saved images show `2`; this does not account for every pixel.
+These are board-guided local regression screenshots, not authoritative V25
+captures. The 0.5% threshold and all screenshots, masks, skips, and acceptance
+rules remain unchanged. No visual acceptance is inferred from the test's
+pre-screenshot state assertions.
 
 ## 2026-10-04 — Focused current-source visual replay and fixture disposition
 

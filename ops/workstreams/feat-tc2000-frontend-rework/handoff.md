@@ -16720,3 +16720,44 @@ refs are staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
 `71d36f1aceaef21f77453495aeb05fdb92bfe81d`. Both dependency tips remain outside
 staging. Continue independent TC-owned R1/R5 work; defer R2/R3 consumer
 integration until staging promotion.
+
+## 2026-10-04 — Exact-tip browser gate at a78812d
+
+The three pushed product commits at exact branch tip
+`a78812d33f6402b329c947b70765f2a84e5be9ac` close bounded TC-owned workstation
+and chart-promotion races: opening tools waits for workstation mount, chart
+signal/alert promotions resolve canonical instrument identity when the panel
+has not hydrated it, and pop-out workspace hydration retries stale snapshots
+for up to five seconds.
+
+On a fresh seeded assigned TC Compose stack, the pinned serial full functional
+browser gate passed `171`, with `110` documented skips and zero failures.
+The complete pinned Playwright 1.62.1 visual matrix ran all `104` cases and
+passed `94`; its ten failures were screenshot comparisons only, after
+interaction/state assertions passed. Differences are workspace-floating in all
+four projects (`8,995/9,825/8,995/9,825` pixels), Study structured-result in
+all four (`109,320/105,698/22,099/21,352`), and Study sandbox-error at 1080p
+(`13,360/11,188`); both 1440p sandbox-error captures pass. No reference,
+mask, threshold, skip, fallback, or acceptance rule changed.
+
+The local Playwright output was retained under
+`/tmp/tc2000-full-gate-e2e.DSLVIN/full-functional-final-a78812d/visual-matrix-a78812d`
+for review; no generated screenshots were added to Git. The repository's
+worktree-scoped cleanup removed six assigned containers and one generated
+image. A follow-up resource audit reported zero containers, volumes, images,
+test sessions, or unknown components.
+
+Read-only remote refs now show staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`48512cd934759c8a52e9b4071c281ef763a08699`; both dependency tips are outside
+staging. Continue a distinct TC-owned workstation/Study/Strategy gap. Keep
+provider/ETF integration and shared-path reconciliation deferred, preserve all
+visual oracles, and do not mutate another worktree. Exact next action: audit
+the next candidate against upstream ownership, implement one bounded TC-owned
+slice with focused regression evidence, then run its relevant browser gate.
+
+The post-edit checkpoint validators passed: all 30 workstream records validate,
+the TC ownership guard accepts 126 changed paths and all six self-tests pass,
+and the session JSON plus validation journal parse. The journal parse was
+repeated after the validator receipt was appended; `git diff --check` is clean.
