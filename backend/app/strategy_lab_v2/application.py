@@ -33,7 +33,19 @@ from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
-from app.strategy_lab_v2.contracts import ArtifactManifest, ForwardInstance, ForwardState
+from app.strategy_lab_v2.contracts import (
+    ArtifactManifest,
+    DataSnapshot,
+    ExperimentDefinition,
+    ForwardInstance,
+    ForwardState,
+    MetricSet,
+    PortfolioComposition,
+    RunAttempt,
+    ScientificTrial,
+    StrategyPackage,
+    StrategyVersion,
+)
 from app.strategy_lab_v2.dispatch import DispatchRequest, SearchDispatchIntent
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.execution import ExecutionAuthorization
@@ -592,6 +604,136 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             now=evidence.now,
         )
 
+    async def _validate_domain_dependencies(
+        self,
+        principal: _PrincipalIdentity,
+        contract: Any,
+    ) -> None:
+        """Require typed references to exist and agree within one owner scope."""
+
+        if contract is None or isinstance(contract, StrategyVersion | DataSnapshot):
+            return
+
+        references: dict[ApiResourceType, set[str]] = {}
+
+        def add(resource_type: ApiResourceType, fingerprint: str) -> None:
+            references.setdefault(resource_type, set()).add(fingerprint)
+
+        if isinstance(contract, StrategyPackage):
+            add(ApiResourceType.STRATEGY, contract.strategy_fingerprint)
+        elif isinstance(contract, PortfolioComposition):
+            for component in contract.components:
+                add(ApiResourceType.STRATEGY, component.strategy_fingerprint)
+        elif isinstance(contract, ExperimentDefinition):
+            add(ApiResourceType.PORTFOLIO, contract.portfolio_fingerprint)
+            add(ApiResourceType.SNAPSHOT, contract.snapshot_fingerprint)
+            for fingerprint in contract.strategy_fingerprints:
+                add(ApiResourceType.STRATEGY, fingerprint)
+            for fingerprint in contract.strategy_package_fingerprints.values():
+                add(ApiResourceType.PACKAGE, fingerprint)
+        elif isinstance(contract, ScientificTrial):
+            add(ApiResourceType.EXPERIMENT, contract.experiment_fingerprint)
+            add(ApiResourceType.SNAPSHOT, contract.snapshot_fingerprint)
+        elif isinstance(contract, RunAttempt):
+            add(ApiResourceType.TRIAL, contract.trial_id)
+        elif isinstance(contract, MetricSet):
+            add(ApiResourceType.TRIAL, contract.trial_id)
+        elif isinstance(contract, ForwardInstance):
+            add(ApiResourceType.PORTFOLIO, contract.portfolio_fingerprint)
+            add(ApiResourceType.SNAPSHOT, contract.warmup_snapshot_fingerprint)
+        else:
+            return
+
+        resolved: dict[ApiResourceType, Mapping[str, Any]] = {}
+        for resource_type, fingerprints in references.items():
+            matches = await self._resources.get_domain_contracts_by_fingerprint(
+                principal=principal,
+                resource_type=resource_type,
+                fingerprints=tuple(sorted(fingerprints)),
+            )
+            if set(matches) != fingerprints:
+                # The same response covers missing objects and objects owned by
+                # another principal; domain creation cannot probe existence.
+                raise ValueError("a referenced Strategy Lab domain object is unavailable")
+            resolved[resource_type] = matches
+
+        def require(
+            resource_type: ApiResourceType,
+            fingerprint: str,
+            expected_type: type[Any],
+        ) -> Any:
+            value = resolved[resource_type].get(fingerprint)
+            if not isinstance(value, expected_type):
+                raise ValueError("a referenced Strategy Lab domain object is unavailable")
+            return value
+
+        if isinstance(contract, StrategyPackage):
+            strategy = require(
+                ApiResourceType.STRATEGY,
+                contract.strategy_fingerprint,
+                StrategyVersion,
+            )
+            if strategy.sdk_version != contract.sdk_version:
+                raise ValueError("package SDK version does not match its strategy")
+        elif isinstance(contract, PortfolioComposition):
+            for component in contract.components:
+                require(ApiResourceType.STRATEGY, component.strategy_fingerprint, StrategyVersion)
+        elif isinstance(contract, ExperimentDefinition):
+            portfolio = require(
+                ApiResourceType.PORTFOLIO,
+                contract.portfolio_fingerprint,
+                PortfolioComposition,
+            )
+            require(ApiResourceType.SNAPSHOT, contract.snapshot_fingerprint, DataSnapshot)
+            portfolio_strategies = {item.strategy_fingerprint for item in portfolio.components}
+            if portfolio_strategies != set(contract.strategy_fingerprints):
+                raise ValueError("experiment strategies do not match its portfolio composition")
+            for strategy_fingerprint in contract.strategy_fingerprints:
+                require(ApiResourceType.STRATEGY, strategy_fingerprint, StrategyVersion)
+            for (
+                strategy_fingerprint,
+                package_fingerprint,
+            ) in contract.strategy_package_fingerprints.items():
+                package = require(ApiResourceType.PACKAGE, package_fingerprint, StrategyPackage)
+                if package.strategy_fingerprint != strategy_fingerprint:
+                    raise ValueError("experiment package binding does not match its strategy")
+        elif isinstance(contract, ScientificTrial):
+            experiment = require(
+                ApiResourceType.EXPERIMENT,
+                contract.experiment_fingerprint,
+                ExperimentDefinition,
+            )
+            snapshot = require(
+                ApiResourceType.SNAPSHOT,
+                contract.snapshot_fingerprint,
+                DataSnapshot,
+            )
+            if experiment.snapshot_fingerprint != contract.snapshot_fingerprint:
+                raise ValueError("trial snapshot does not match its experiment")
+            if snapshot.preflight_report.fingerprint != contract.preflight_report.fingerprint:
+                raise ValueError("trial preflight does not match its frozen snapshot")
+        elif isinstance(contract, RunAttempt):
+            require(ApiResourceType.TRIAL, contract.trial_id, ScientificTrial)
+        elif isinstance(contract, MetricSet):
+            require(ApiResourceType.TRIAL, contract.trial_id, ScientificTrial)
+            attempt = await self._resources.get_run_attempt_by_attempt_id(
+                principal=principal,
+                attempt_id=contract.attempt_id,
+            )
+            if attempt is None or attempt.trial_id != contract.trial_id:
+                raise ValueError("metric set attempt is unavailable for its trial")
+        elif isinstance(contract, ForwardInstance):
+            require(
+                ApiResourceType.PORTFOLIO,
+                contract.portfolio_fingerprint,
+                PortfolioComposition,
+            )
+            require(
+                ApiResourceType.SNAPSHOT,
+                contract.warmup_snapshot_fingerprint,
+                DataSnapshot,
+            )
+
     async def create_resource(
         self,
         *,
@@ -599,12 +741,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         request_id: str,
         request: ResourceMutationRequest,
     ) -> ResourceMutationServiceResult:
-        """Persist one generic resource envelope through aggregate CAS storage.
-
-        Domain-specific validation remains owned by future command adapters.
-        This bridge nevertheless supplies a durable owner-bound create/replay
-        boundary for the registration-neutral API resource envelope.
-        """
+        """Persist a validated resource envelope through aggregate CAS storage."""
 
         owner = _principal_identity(principal)
         if not isinstance(request_id, str) or not request_id.strip():
@@ -619,6 +756,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         if not isinstance(relationships, Mapping) or not isinstance(meta, Mapping):
             raise ValueError("resource relationships and meta must be mappings")
         normalized_domain = normalize_resource_attributes(request.resource_type, attributes)
+        await self._validate_domain_dependencies(owner, normalized_domain.typed_contract)
         attributes = normalized_domain.attributes
         state_meta = dict(meta)
         if normalized_domain.domain_fingerprint is not None:

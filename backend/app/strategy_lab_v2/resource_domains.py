@@ -621,7 +621,7 @@ def _normalize_trial(attributes: Mapping[str, Any]) -> ResourceDomainNormalizati
         )
         evaluation_window = (
             _evaluation_window(attributes["evaluation_window"])
-            if "evaluation_window" in attributes
+            if attributes.get("evaluation_window") is not None
             else None
         )
         trial = ScientificTrial.create(

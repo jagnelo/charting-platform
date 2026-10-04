@@ -2,6 +2,56 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Owner-scoped typed-resource dependency validation
+
+`PostgresStrategyLabV2Adapter.create_resource()` now verifies the persisted
+typed dependency graph through owner-scoped reads before it writes. Package
+and portfolio strategy references must resolve for the authenticated owner.
+Experiments must resolve their portfolio, strategies, snapshot, and optional
+strategy packages; experiment strategy membership must match the portfolio,
+and package bindings must match the bound strategy. Trials must resolve their
+experiment and snapshot, match the experiment snapshot, and carry the same
+preflight fingerprint as the frozen snapshot. Attempts must reference an
+existing trial. Metric sets must reference an existing trial and an attempt
+belonging to that same trial. Forward instances must reference an existing
+portfolio and warm-up snapshot. Missing and foreign-owner fingerprints return
+the same fail-closed validation response.
+
+The owner-scoped reader now resolves a run attempt by its stable domain
+`attempt_id`, which metric lineage uses instead of an API resource ID. Exercising
+persisted trial rehydration also uncovered that normalization writes an
+explicit `evaluation_window: null` while the inverse path rejected it; null is
+now restored as `None`.
+
+The application boundary test creates and validates a strategy → package →
+portfolio → snapshot → experiment → trial → attempt → metric-set graph and a
+forward instance, plus a cross-owner package reference rejection. Validation:
+all 1,213 Strategy Lab v2 tests passed; package/runtime Ruff, formatting, and
+MyPy passed (350 sources); the branch workstream validator and `git diff
+--check` passed. Docker is available via the managed runner and this worktree
+currently owns no containers or volumes. The full PostgreSQL/Redis/Compose and
+browser profile has not yet been run; the repository-wide testcontainers
+backend integration suite passed, though it does not directly exercise this
+feature's new resource writer path. Nautilus 2.0.0rc5 is the current upstream
+2.x release candidate and remains valid for isolated local backtests after
+conformance; no stable release is required. The SSH agent API is inaccessible
+in this session, so publishing is still an operational hold only.
+
+Next: continue package-owned API, worker, and forward acceptance work, then run
+the Docker-backed database/Redis/Compose and full-stack/browser profile at the
+exact branch tip. Forward-shadow qualification remains separately gated by
+event-tape parity; prereleases remain prohibited from broker/real-capital use.
+
+Changed paths:
+
+- `backend/app/strategy_lab_v2/application.py`
+- `backend/app/strategy_lab_v2/postgres_resources.py`
+- `backend/app/strategy_lab_v2/resource_domains.py`
+- `backend/app/strategy_lab_v2/tests/test_application.py`
+- `ops/workstreams/feat-strategy-lab-v2/handoff.md`
+- `ops/workstreams/feat-strategy-lab-v2/session.json`
+- `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
+
 ## 2026-10-04 - Owner-authenticated Nautilus OOS terminal publication
 
 The actual worker-completion evidence path now consumes the parent-owned exact

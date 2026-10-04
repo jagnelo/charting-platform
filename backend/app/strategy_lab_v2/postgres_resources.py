@@ -23,6 +23,7 @@ from app.strategy_lab_v2.api_resources import (
     ResourceIdentifier,
 )
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.contracts import RunAttempt
 from app.strategy_lab_v2.resource_domains import (
     DomainResourceContract,
     rehydrate_resource_contract,
@@ -202,6 +203,52 @@ class PostgresResourceReader:
             fingerprints=(fingerprint,),
         )
         return matches.get(fingerprint)
+
+    async def get_run_attempt_by_attempt_id(
+        self,
+        *,
+        principal: Any,
+        attempt_id: str,
+    ) -> RunAttempt | None:
+        """Resolve an attempt's stable domain id without exposing other owners."""
+
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        resource_type = ApiResourceType.ATTEMPT
+        projection = self._projections.get(resource_type)
+        if projection is not None:
+            documents = await self._load_projection(projection, principal)
+        else:
+            aggregates = await self._store.list_type(resource_type.value)
+            documents = tuple(
+                self._project(aggregate, resource_type)
+                for aggregate in aggregates
+                if self._owned_by(aggregate, principal)
+            )
+
+        matches = [
+            document
+            for document in documents
+            if document.attributes.get("attempt_id") == attempt_id
+        ]
+        if len(matches) > 1:
+            raise ValueError("owner has duplicate run attempts for one attempt id")
+        if not matches:
+            return None
+        document = matches[0]
+        expected_domain_fingerprint = document.meta.get("domain_fingerprint")
+        if expected_domain_fingerprint is not None and not isinstance(
+            expected_domain_fingerprint, str
+        ):
+            raise ValueError("persisted attempt domain fingerprint is malformed")
+        contract = rehydrate_resource_contract(
+            resource_type,
+            document.attributes,
+            expected_domain_fingerprint=expected_domain_fingerprint,
+        )
+        if not isinstance(contract, RunAttempt):
+            raise ValueError("persisted attempt has the wrong domain contract")
+        return contract
 
     async def list_resources(
         self,

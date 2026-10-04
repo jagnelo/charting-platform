@@ -84,6 +84,7 @@ from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import (
 )
 from app.strategy_lab_v2.tests.test_postgres_forward_state import _instance
 from app.strategy_lab_v2.tests.test_postgres_forward_state import _receipt as _forward_receipt
+from app.strategy_lab_v2.tests.test_resource_domains import _preflight_payload
 from app.strategy_lab_v2.tests.test_result_completion import _runtime_success
 from app.strategy_lab_v2.worker_handoff import encode_worker_handoff
 from app.strategy_lab_v2.workers import (
@@ -816,8 +817,12 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     strategy_clock = NOW.replace(hour=15)
     package_clock = NOW.replace(hour=16)
     portfolio_clock = NOW.replace(hour=17)
-    experiment_clock = NOW.replace(hour=18)
-    attempt_clock = NOW.replace(hour=19)
+    snapshot_clock = NOW.replace(hour=18)
+    experiment_clock = NOW.replace(hour=19)
+    trial_clock = NOW.replace(hour=20)
+    attempt_clock = NOW.replace(hour=21)
+    metric_clock = NOW.replace(hour=22)
+    forward_clock = NOW.replace(hour=23)
     clocks = iter(
         (
             accepted_at,
@@ -825,8 +830,12 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
             strategy_clock,
             package_clock,
             portfolio_clock,
+            snapshot_clock,
             experiment_clock,
+            trial_clock,
             attempt_clock,
+            metric_clock,
+            forward_clock,
         )
     )
     adapter._clock = lambda: next(clocks)
@@ -880,6 +889,33 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     assert strategy.receipt is not None
     assert strategy.receipt.resource.attributes["strategy_id"] == "momentum"
     assert strategy.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")
+
+    with pytest.raises(ValueError, match="referenced Strategy Lab domain object is unavailable"):
+        await adapter.create_resource(
+            principal=_User(7),
+            request_id="request-cross-owner-package",
+            request=ResourceMutationRequest(
+                ApiResourceType.PACKAGE,
+                "cross-owner-package-key",
+                {
+                    "attributes": {
+                        "package_id": "unauthorized-package",
+                        "strategy_fingerprint": strategy.receipt.resource.meta[
+                            "domain_fingerprint"
+                        ],
+                        "package_format": "source_archive",
+                        "archive_digest": content_digest("unauthorized-archive"),
+                        "manifest_digest": content_digest("unauthorized-manifest"),
+                        "dependency_lock_digest": content_digest("unauthorized-lock"),
+                        "archive_byte_length": 128,
+                        "entrypoint": "strategy.main:run",
+                        "sdk_version": "strategy-sdk.v2",
+                        "runtime_abi": "python3.12-linux-arm64",
+                    }
+                },
+                NOW,
+            ),
+        )
 
     package = await adapter.create_resource(
         principal=_User(42),
@@ -941,9 +977,46 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     assert portfolio.receipt.resource.attributes["base_currency"] == "USD"
     assert portfolio.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")
 
-    experiment = await adapter.create_resource(
+    snapshot = await adapter.create_resource(
         principal=_User(42),
         request_id="request-7",
+        request=ResourceMutationRequest(
+            ApiResourceType.SNAPSHOT,
+            "snapshot-key",
+            {
+                "attributes": {
+                    "snapshot_id": "snapshot-v1",
+                    "provider_snapshot_id": "provider-snapshot-v1",
+                    "preflight_report": _preflight_payload(),
+                    "series": [
+                        {
+                            "instrument_id": "US.AAPL",
+                            "event_type": "ohlcv",
+                            "event_granularity": "bar",
+                            "timeframe": "1d",
+                            "session": "regular",
+                            "feed": "consolidated",
+                            "start": "2020-01-01T00:00:00Z",
+                            "end": "2022-01-01T00:00:00Z",
+                            "adjustment": "split_adjusted",
+                            "corporate_action_semantics": "split-adjusted-v1",
+                            "coverage_evidence_digest": content_digest("coverage-v1"),
+                            "content_digest": content_digest("series-v1"),
+                            "row_count": 500,
+                        }
+                    ],
+                    "created_at": "2026-09-17T12:00:00Z",
+                }
+            },
+            NOW,
+        ),
+    )
+    assert snapshot.resolution.decision.value == "accept"
+    assert snapshot.receipt is not None
+
+    experiment = await adapter.create_resource(
+        principal=_User(42),
+        request_id="request-8",
         request=ResourceMutationRequest(
             ApiResourceType.EXPERIMENT,
             "experiment-key",
@@ -952,11 +1025,16 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
                     "experiment_id": "momentum-search",
                     "portfolio_fingerprint": portfolio.receipt.resource.meta["domain_fingerprint"],
                     "strategy_fingerprints": [strategy.receipt.resource.meta["domain_fingerprint"]],
-                    "snapshot_fingerprint": content_digest("snapshot-v1"),
+                    "snapshot_fingerprint": snapshot.receipt.resource.meta["domain_fingerprint"],
                     "capability_contract_digest": content_digest("capability-v1"),
                     "seed": 42,
                     "metric_definition_version": "strategy-lab.metrics.v1",
                     "engine_contract": {"engine": "nautilus", "version": "v2"},
+                    "strategy_package_fingerprints": {
+                        strategy.receipt.resource.meta[
+                            "domain_fingerprint"
+                        ]: package.receipt.resource.meta["domain_fingerprint"]
+                    },
                 }
             },
             NOW,
@@ -967,16 +1045,40 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     assert experiment.receipt.resource.attributes["seed"] == 42
     assert experiment.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")
 
+    trial = await adapter.create_resource(
+        principal=_User(42),
+        request_id="request-9",
+        request=ResourceMutationRequest(
+            ApiResourceType.TRIAL,
+            "trial-domain-key",
+            {
+                "attributes": {
+                    "experiment_fingerprint": experiment.receipt.resource.meta[
+                        "domain_fingerprint"
+                    ],
+                    "snapshot_fingerprint": snapshot.receipt.resource.meta["domain_fingerprint"],
+                    "preflight_report": _preflight_payload(),
+                    "parameter_set": {"lookback": 20},
+                    "scenario": {"slippage_bps": 2},
+                    "seed": 42,
+                }
+            },
+            NOW,
+        ),
+    )
+    assert trial.resolution.decision.value == "accept"
+    assert trial.receipt is not None
+
     attempt = await adapter.create_resource(
         principal=_User(42),
-        request_id="request-8",
+        request_id="request-10",
         request=ResourceMutationRequest(
             ApiResourceType.ATTEMPT,
             "attempt-key",
             {
                 "attributes": {
                     "attempt_id": content_digest("attempt-1"),
-                    "trial_id": content_digest("trial-1"),
+                    "trial_id": trial.receipt.resource.attributes["trial_id"],
                     "ordinal": 1,
                     "state": "queued",
                     "created_at": "2026-09-17T12:00:00Z",
@@ -989,3 +1091,63 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     assert attempt.receipt is not None
     assert attempt.receipt.resource.attributes["state"] == "queued"
     assert attempt.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")
+
+    metric_set = await adapter.create_resource(
+        principal=_User(42),
+        request_id="request-11",
+        request=ResourceMutationRequest(
+            ApiResourceType.METRIC_SET,
+            "metric-set-key",
+            {
+                "attributes": {
+                    "metric_set_id": "metric-set-v1",
+                    "trial_id": trial.receipt.resource.attributes["trial_id"],
+                    "attempt_id": attempt.receipt.resource.attributes["attempt_id"],
+                    "definition_version": "strategy-lab.metrics.v1",
+                    "values": [
+                        {
+                            "name": "cumulative_net_return",
+                            "value": "0.05",
+                            "unit": "fraction",
+                            "definition_version": "strategy-lab.metrics.v1",
+                            "basis": "net",
+                            "sample_size": 1,
+                            "calculation_basis": "native_equity_trace",
+                        }
+                    ],
+                    "created_at": "2026-09-17T12:00:00Z",
+                }
+            },
+            NOW,
+        ),
+    )
+    assert metric_set.resolution.decision.value == "accept"
+    assert metric_set.receipt is not None
+
+    forward_instance = await adapter.create_resource(
+        principal=_User(42),
+        request_id="request-12",
+        request=ResourceMutationRequest(
+            ApiResourceType.FORWARD_INSTANCE,
+            "forward-instance-key",
+            {
+                "attributes": {
+                    "instance_id": "forward-v1",
+                    "portfolio_fingerprint": portfolio.receipt.resource.meta["domain_fingerprint"],
+                    "warmup_snapshot_fingerprint": snapshot.receipt.resource.meta[
+                        "domain_fingerprint"
+                    ],
+                    "carry_in_mode": "flat",
+                    "state": "created",
+                    "last_event_id": None,
+                    "last_event_sequence": 0,
+                    "correction_count": 0,
+                    "created_at": "2026-09-17T12:00:00Z",
+                    "updated_at": "2026-09-17T12:00:00Z",
+                }
+            },
+            NOW,
+        ),
+    )
+    assert forward_instance.resolution.decision.value == "accept"
+    assert forward_instance.receipt is not None
