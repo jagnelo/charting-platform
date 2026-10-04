@@ -16942,6 +16942,17 @@ through the default sandbox route, but the same read-only `git ls-remote`
 succeeded through the permitted elevated Git path. No other branch/worktree was
 changed.
 
+## 2026-10-04 — Diagnostic checkpoint published
+
+Workstream-only commit `d76e009b6880a7e5808405bc87150756c3984c7a`
+(`docs(tc2000): diagnose backend test-client stall`) was pushed to
+`origin/feat/tc2000-frontend-rework`. Local `HEAD`, the origin tracking ref, and
+direct GitHub lookup all resolve to that exact SHA; the worktree was clean after
+the push. The ordinary commit first hit the sandbox's Git-metadata write
+boundary; after confirming the repository-owned index was healthy and no stale
+lock or competing Git process existed, the standard Git commit/push succeeded
+through the permitted elevated path. No product source changed.
+
 Changed ops files in this checkpoint:
 - ops/workstreams/feat-tc2000-frontend-rework/plan.yaml
 - ops/workstreams/feat-tc2000-frontend-rework/handoff.md
