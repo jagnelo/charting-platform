@@ -2,6 +2,49 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Multi-component native bridge orchestration
+
+Extended the native bridge to bind every portfolio component to its own
+authenticated source/manifest/parameter binding and invocation session. The
+component event-tape verifier now validates each rolling history on the shared
+native stream, groups callbacks at the same event time, and invokes them in
+portfolio-priority order. A callback collects all component results before
+submission; any failed result suppresses the entire callback's order batch.
+Raw orders and target-position intents from different components are combined
+after one target-allocation pass and pass through one shared order-risk decision.
+Mixing raw and target intents inside a single component callback remains
+fail-closed. Fill events now update component-attributed quantities, with
+partial-order tracking and reconciliation against native net positions.
+
+Validation: all 1,179 Strategy Lab v2 tests pass; Ruff, changed-file formatting,
+MyPy across 341 package/runtime sources, and `git diff --check` pass. A bridge
+regression uses a minimal Nautilus test double to verify two authenticated
+component sessions execute on one callback in priority order, including
+fail-closed behavior when one strategy result fails. It is not an image-backed
+Nautilus compatibility or native fill/economics probe. The current sandbox
+still denies Docker API access, so rerunning the exact RC5 runtime against this
+new callback path remains a validation task. Existing RC5 receipts establish
+only their previously recorded single-strategy probe scope.
+
+Stable Nautilus 2.x is not a prerequisite: the branch plan allows an exact-pinned
+pre-release for local backtests after applicable conformance, and excludes
+pre-releases from broker/real-capital use. Package-local implementation is not
+blocked by the Docker validation boundary. Next: execute a multi-component RC5
+probe with mixed raw/target intents, native order/fill callbacks, and component
+quantity/exposure reconciliation; adjust only on observed runtime evidence.
+Publisher SSH authentication remains an operational hold on the unpublished
+branch range, not a development blocker.
+
+Files changed in this slice:
+
+```text
+backend/app/strategy_lab_v2/nautilus_strategy_bridge.py
+backend/app/strategy_lab_v2/tests/test_nautilus_strategy_bridge.py
+ops/workstreams/feat-strategy-lab-v2/handoff.md
+ops/workstreams/feat-strategy-lab-v2/session.json
+ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+```
+
 ## 2026-10-04 - Component context-stream artifact and CLI wiring
 
 Added a bounded, digest-checked component context-stream protocol and immutable

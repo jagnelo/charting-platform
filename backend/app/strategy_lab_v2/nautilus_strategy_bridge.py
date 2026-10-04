@@ -19,11 +19,12 @@ from itertools import groupby
 from typing import Any, BinaryIO
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import PortfolioComposition
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     deserialize_nautilus_native_event_stream,
 )
 from app.strategy_lab_v2.nautilus_runtime_data import NautilusRuntimeDataError
-from app.strategy_lab_v2.sdk import StrategyContext
+from app.strategy_lab_v2.sdk import MarketEvent, OrderSide, StrategyContext
 
 
 def _datetime_microsecond_ns(value: datetime) -> int:
@@ -471,6 +472,238 @@ def _iter_stream_context_trigger_indexes(
         )
 
 
+def _iter_stream_component_context_trigger_groups(
+    contexts: Iterable[tuple[str, StrategyContext]],
+    native_event_records: Iterable[Mapping[str, Any]],
+    bindings: Mapping[str, Any],
+    priorities: Mapping[str, int],
+) -> Iterator[ComponentContextTriggerGroup]:
+    """Validate per-component histories and merge them on one native event tape."""
+
+    if not isinstance(bindings, Mapping) or not bindings:
+        raise NautilusRuntimeDataError("component context bindings are required")
+    if not isinstance(priorities, Mapping) or set(priorities) != set(bindings):
+        raise NautilusRuntimeDataError("component context priorities do not match bindings")
+
+    dependencies_by_component: dict[str, dict[str, Any]] = {}
+    shared_dependency_shapes: dict[str, tuple[Any, tuple[str, ...]]] = {}
+    components_by_dependency: dict[str, list[str]] = defaultdict(list)
+    histories: dict[str, dict[str, deque[MarketEvent]]] = {}
+    prior_by_dependency: dict[tuple[str, str], tuple[int, int]] = {}
+    observed_dependencies: dict[str, set[str]] = {}
+    for component_id, binding in bindings.items():
+        if not isinstance(component_id, str) or not component_id.strip():
+            raise NautilusRuntimeDataError("component context binding id is invalid")
+        manifest = getattr(binding, "manifest", None)
+        raw_dependencies = getattr(manifest, "data_dependencies", None)
+        if not isinstance(raw_dependencies, tuple) or not raw_dependencies:
+            raise NautilusRuntimeDataError("component strategy manifest has no data dependencies")
+        dependencies = {item.dependency_id: item for item in raw_dependencies}
+        if len(dependencies) != len(raw_dependencies):
+            raise NautilusRuntimeDataError("component strategy dependency ids are not unique")
+        dependencies_by_component[component_id] = dependencies
+        histories[component_id] = {
+            dependency_id: deque(maxlen=dependency.lookback_periods + 1)
+            for dependency_id, dependency in dependencies.items()
+        }
+        observed_dependencies[component_id] = set()
+        for dependency_id, dependency in dependencies.items():
+            shape = (dependency.requirement, dependency.fields)
+            previous_shape = shared_dependency_shapes.get(dependency_id)
+            if previous_shape is not None and previous_shape != shape:
+                raise NautilusRuntimeDataError(
+                    "components bind one dependency id to different market-data semantics"
+                )
+            shared_dependency_shapes[dependency_id] = shape
+            components_by_dependency[dependency_id].append(component_id)
+            prior_by_dependency[(component_id, dependency_id)] = (-1, -1)
+        priority = priorities[component_id]
+        if not isinstance(priority, int) or isinstance(priority, bool) or priority < 0:
+            raise NautilusRuntimeDataError("component context priority is invalid")
+
+    event_iterator = iter(native_event_records)
+    context_iterator = iter(contexts)
+    current_record = next(event_iterator, None)
+    current_context = next(context_iterator, None)
+    event_offset = 0
+    previous_context_key: dict[str, tuple[datetime, int]] = {}
+    max_same_time_events = 100_000
+
+    while current_record is not None:
+        time_bucket = _record_time_bucket(current_record.get("event_time_ns"))
+        records: list[Mapping[str, Any]] = []
+        event_ids: set[str] = set()
+        records_by_component: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
+        while (
+            current_record is not None
+            and _record_time_bucket(current_record.get("event_time_ns")) == time_bucket
+        ):
+            event_id = current_record.get("event_id")
+            dependency_id = current_record.get("dependency_id")
+            instrument_id = current_record.get("instrument_id")
+            event_time_ns = current_record.get("event_time_ns")
+            sequence = current_record.get("sequence")
+            event_type = current_record.get("event_type")
+            values = current_record.get("values")
+            if (
+                not isinstance(event_id, str)
+                or not event_id
+                or event_id in event_ids
+                or not isinstance(dependency_id, str)
+                or not isinstance(instrument_id, str)
+                or not isinstance(event_time_ns, int)
+                or isinstance(event_time_ns, bool)
+                or not isinstance(sequence, int)
+                or isinstance(sequence, bool)
+                or not isinstance(event_type, str)
+                or not isinstance(values, Mapping)
+            ):
+                raise NautilusRuntimeDataError("native component event fields are invalid")
+            dependency_shape = shared_dependency_shapes.get(dependency_id)
+            if dependency_shape is None:
+                raise NautilusRuntimeDataError(
+                    "native event stream contains a dependency undeclared by every component"
+                )
+            requirement, fields = dependency_shape
+            event_time = _datetime_from_unix_nanos(event_time_ns)
+            if (
+                instrument_id != requirement.instrument_id
+                or event_type != requirement.event_type
+                or set(values) != set(fields)
+                or not requirement.start <= event_time < requirement.end
+            ):
+                raise NautilusRuntimeDataError(
+                    "native event stream differs from a component data dependency"
+                )
+            event_ids.add(event_id)
+            records.append(current_record)
+            if len(records) > max_same_time_events:
+                raise NautilusRuntimeDataError(
+                    "same-time native event group exceeds its configured bound"
+                )
+            for component_id in components_by_dependency[dependency_id]:
+                previous = prior_by_dependency[(component_id, dependency_id)]
+                if previous != (-1, -1) and (
+                    sequence <= previous[1] or event_time_ns < previous[0]
+                ):
+                    raise NautilusRuntimeDataError(
+                        "component dependency events must advance sequence and time"
+                    )
+                prior_by_dependency[(component_id, dependency_id)] = (
+                    event_time_ns,
+                    sequence,
+                )
+                histories[component_id][dependency_id].append(
+                    MarketEvent(
+                        dependency_id,
+                        event_id,
+                        instrument_id,
+                        event_time,
+                        sequence,
+                        values,
+                    )
+                )
+                observed_dependencies[component_id].add(dependency_id)
+                records_by_component[component_id].append(current_record)
+            current_record = next(event_iterator, None)
+
+        contexts_by_component: dict[str, StrategyContext] = {}
+        if current_context is not None and (
+            _datetime_microsecond_bucket(current_context[1].event_time) < time_bucket
+        ):
+            raise NautilusRuntimeDataError(
+                "component context stream regresses behind native events"
+            )
+        while current_context is not None and (
+            _datetime_microsecond_bucket(current_context[1].event_time) == time_bucket
+        ):
+            component_id, context = current_context
+            if component_id not in bindings or not isinstance(context, StrategyContext):
+                raise NautilusRuntimeDataError(
+                    "component context record has no authenticated binding"
+                )
+            if component_id in contexts_by_component:
+                raise NautilusRuntimeDataError(
+                    "a component emitted multiple contexts for one native event time"
+                )
+            context_key = (context.event_time, context.event_sequence)
+            previous_key = previous_context_key.get(component_id)
+            if previous_key is not None and context_key <= previous_key:
+                raise NautilusRuntimeDataError(
+                    "component strategy contexts are not strictly chronological"
+                )
+            previous_context_key[component_id] = context_key
+            contexts_by_component[component_id] = context
+            current_context = next(context_iterator, None)
+
+        relevant_components = {
+            component_id
+            for component_id, component_records in records_by_component.items()
+            if component_records
+        }
+        if set(contexts_by_component) != relevant_components:
+            raise NautilusRuntimeDataError(
+                "component contexts do not cover their declared native event groups"
+            )
+
+        group: list[ComponentContextTrigger] = []
+        for component_id, context in contexts_by_component.items():
+            dependencies = dependencies_by_component[component_id]
+            if set(context.market_events) != set(dependencies):
+                raise NautilusRuntimeDataError(
+                    "component context dependencies differ from its authenticated manifest"
+                )
+            component_records = records_by_component[component_id]
+            current_ids = {record["event_id"] for record in component_records}
+            observed_current_ids: set[str] = set()
+            for dependency_id, market_events in context.market_events.items():
+                expected_history = tuple(histories[component_id][dependency_id])
+                if len(market_events) != len(expected_history):
+                    raise NautilusRuntimeDataError(
+                        "component context history length differs from its declared lookback"
+                    )
+                for actual, expected in zip(market_events, expected_history, strict=True):
+                    if actual != expected:
+                        raise NautilusRuntimeDataError(
+                            "component strategy history differs from the authenticated event tape"
+                        )
+                    if _datetime_microsecond_bucket(actual.event_time) == time_bucket:
+                        if actual.event_id in observed_current_ids:
+                            raise NautilusRuntimeDataError(
+                                "component context repeats a same-time native event"
+                            )
+                        observed_current_ids.add(actual.event_id)
+            if observed_current_ids != current_ids:
+                raise NautilusRuntimeDataError(
+                    "component context does not expose every declared same-time event"
+                )
+            if context.event_sequence != max(record["sequence"] for record in component_records):
+                raise NautilusRuntimeDataError(
+                    "component context sequence differs from its native event group"
+                )
+            group.append(
+                ComponentContextTrigger(
+                    component_id,
+                    priorities[component_id],
+                    context,
+                )
+            )
+
+        if not group:
+            raise NautilusRuntimeDataError("native event group has no component invocation")
+        group.sort(key=lambda item: (item.priority, item.component_id))
+        yield ComponentContextTriggerGroup(event_offset + len(records) - 1, tuple(group))
+        event_offset += len(records)
+
+    if current_context is not None:
+        raise NautilusRuntimeDataError("component context stream contains an extra event group")
+    for component_id, dependencies in dependencies_by_component.items():
+        if observed_dependencies[component_id] != set(dependencies):
+            raise NautilusRuntimeDataError(
+                "native event stream dependencies differ from a component manifest"
+            )
+
+
 def _iter_replayed_context_trigger_indexes(contexts: Iterable[Any]) -> Iterator[tuple[int, Any]]:
     """Recreate validated native callback indexes from the authenticated contexts.
 
@@ -502,6 +735,65 @@ def _iter_replayed_context_trigger_indexes(contexts: Iterable[Any]) -> Iterator[
         yield event_offset - 1, context
 
 
+def _iter_replayed_component_context_trigger_groups(
+    contexts: Iterable[tuple[str, StrategyContext]],
+    priorities: Mapping[str, int],
+) -> Iterator[ComponentContextTriggerGroup]:
+    """Replay prevalidated component callbacks without reopening the native tape."""
+
+    iterator = iter(contexts)
+    current = next(iterator, None)
+    event_offset = 0
+    previous_bucket: int | None = None
+    while current is not None:
+        component_id, context = current
+        if component_id not in priorities or not isinstance(context, StrategyContext):
+            raise NautilusRuntimeDataError("replayed component context binding is invalid")
+        time_bucket = _datetime_microsecond_bucket(context.event_time)
+        if previous_bucket is not None and time_bucket <= previous_bucket:
+            raise NautilusRuntimeDataError(
+                "replayed component contexts are not strictly chronological by event time"
+            )
+        contexts_by_component: dict[str, StrategyContext] = {}
+        event_ids: set[str] = set()
+        while current is not None and (
+            _datetime_microsecond_bucket(current[1].event_time) == time_bucket
+        ):
+            component_id, context = current
+            if component_id not in priorities or not isinstance(context, StrategyContext):
+                raise NautilusRuntimeDataError("replayed component context binding is invalid")
+            if component_id in contexts_by_component:
+                raise NautilusRuntimeDataError(
+                    "replayed component stream has multiple contexts for one event time"
+                )
+            contexts_by_component[component_id] = context
+            component_event_ids: set[str] = set()
+            for market_events in context.market_events.values():
+                for event in market_events:
+                    if _datetime_microsecond_bucket(event.event_time) == time_bucket:
+                        if event.event_id in component_event_ids:
+                            raise NautilusRuntimeDataError(
+                                "replayed component context repeats a same-time native event"
+                            )
+                        component_event_ids.add(event.event_id)
+                        event_ids.add(event.event_id)
+            current = next(iterator, None)
+        if not event_ids:
+            raise NautilusRuntimeDataError(
+                "replayed component contexts do not expose their current native event group"
+            )
+        previous_bucket = time_bucket
+        event_offset += len(event_ids)
+        group = tuple(
+            ComponentContextTrigger(component_id, priorities[component_id], context)
+            for component_id, context in sorted(
+                contexts_by_component.items(),
+                key=lambda item: (priorities[item[0]], item[0]),
+            )
+        )
+        yield ComponentContextTriggerGroup(event_offset - 1, group)
+
+
 @dataclass(frozen=True, slots=True)
 class NativeStrategyBridge:
     """Native strategy instance and its typed invocation-result wire output."""
@@ -527,6 +819,139 @@ class ComponentContextTriggerGroup:
 
     trigger_index: int
     contexts: tuple[ComponentContextTrigger, ...]
+
+
+@dataclass(slots=True)
+class _PendingComponentOrder:
+    component_id: str
+    instrument_id: str
+    side: OrderSide
+    remaining_quantity: Decimal
+
+
+class NautilusComponentFillLedger:
+    """Attribute native order fills to portfolio components and reconcile net lots."""
+
+    def __init__(self, portfolio: PortfolioComposition) -> None:
+        if not isinstance(portfolio, PortfolioComposition):
+            raise TypeError("portfolio must be a PortfolioComposition")
+        self._instruments_by_component = {
+            component.component_id: frozenset(component.instrument_ids)
+            for component in portfolio.components
+        }
+        self._quantities = {
+            component.component_id: {
+                instrument_id: Decimal(0) for instrument_id in component.instrument_ids
+            }
+            for component in portfolio.components
+        }
+        self._pending_orders: dict[str, _PendingComponentOrder] = {}
+
+    def quantity(self, component_id: str, instrument_id: str) -> Decimal:
+        try:
+            return self._quantities[component_id][instrument_id]
+        except KeyError as error:
+            raise NautilusRuntimeDataError(
+                "component fill ledger references an undeclared position"
+            ) from error
+
+    def quantities_by_component(self) -> Mapping[str, Mapping[str, Decimal]]:
+        return {
+            component_id: dict(quantities) for component_id, quantities in self._quantities.items()
+        }
+
+    def register_order(
+        self,
+        *,
+        client_order_id: str,
+        component_id: str,
+        instrument_id: str,
+        side: OrderSide,
+        quantity: Decimal,
+    ) -> None:
+        if (
+            not isinstance(client_order_id, str)
+            or not client_order_id.strip()
+            or any(character in client_order_id for character in "\x00\r\n")
+        ):
+            raise NautilusRuntimeDataError("native client order id is invalid")
+        if client_order_id in self._pending_orders:
+            raise NautilusRuntimeDataError("native client order id is already attributed")
+        if (
+            component_id not in self._instruments_by_component
+            or instrument_id not in (self._instruments_by_component[component_id])
+        ):
+            raise NautilusRuntimeDataError("native order is outside its portfolio component")
+        if not isinstance(side, OrderSide):
+            raise NautilusRuntimeDataError("native order side is invalid")
+        if not isinstance(quantity, Decimal) or not quantity.is_finite() or quantity <= 0:
+            raise NautilusRuntimeDataError("native order quantity must be positive and finite")
+        self._pending_orders[client_order_id] = _PendingComponentOrder(
+            component_id,
+            instrument_id,
+            side,
+            quantity,
+        )
+
+    def record_fill(
+        self,
+        *,
+        client_order_id: str,
+        instrument_id: str,
+        quantity: Decimal,
+    ) -> None:
+        order = self._pending_orders.get(client_order_id)
+        if order is None:
+            raise NautilusRuntimeDataError("native fill has no component-attributed order")
+        if instrument_id != order.instrument_id:
+            raise NautilusRuntimeDataError(
+                "native fill instrument differs from its attributed order"
+            )
+        if not isinstance(quantity, Decimal) or not quantity.is_finite() or quantity <= 0:
+            raise NautilusRuntimeDataError("native fill quantity must be positive and finite")
+        if quantity > order.remaining_quantity:
+            raise NautilusRuntimeDataError("native fill exceeds its attributed order quantity")
+        sign = Decimal(1) if order.side is OrderSide.BUY else Decimal(-1)
+        self._quantities[order.component_id][instrument_id] += sign * quantity
+        order.remaining_quantity -= quantity
+        if order.remaining_quantity == 0:
+            del self._pending_orders[client_order_id]
+
+    def release_terminal_order(self, client_order_id: str) -> None:
+        if client_order_id not in self._pending_orders:
+            raise NautilusRuntimeDataError("terminal native order has no component attribution")
+        del self._pending_orders[client_order_id]
+
+    def reconcile(self, account_quantities: Mapping[str, Decimal]) -> None:
+        declared = {
+            instrument_id
+            for instruments in self._instruments_by_component.values()
+            for instrument_id in instruments
+        }
+        if not isinstance(account_quantities, Mapping) or any(
+            instrument_id not in declared
+            or not isinstance(quantity, Decimal)
+            or not quantity.is_finite()
+            for instrument_id, quantity in account_quantities.items()
+        ):
+            raise NautilusRuntimeDataError("native account position quantities are invalid")
+        attributed: dict[str, Decimal] = {}
+        for quantities in self._quantities.values():
+            for instrument_id, quantity in quantities.items():
+                if quantity:
+                    attributed[instrument_id] = attributed.get(instrument_id, Decimal(0)) + quantity
+        attributed = {
+            instrument_id: quantity for instrument_id, quantity in attributed.items() if quantity
+        }
+        native = {
+            instrument_id: quantity
+            for instrument_id, quantity in account_quantities.items()
+            if quantity
+        }
+        if attributed != native:
+            raise NautilusRuntimeDataError(
+                "component fill quantities do not reconcile to native account positions"
+            )
 
 
 def iter_component_context_trigger_groups(
@@ -621,10 +1046,12 @@ def build_native_strategy_bridge(
 ) -> NativeStrategyBridge:
     """Bind invocation inputs to callbacks and optionally stream callback results."""
 
-    from app.strategy_lab_v2.nautilus_order_routing import resolve_nautilus_order_intents
+    from app.strategy_lab_v2.nautilus_order_routing import (
+        resolve_nautilus_component_order_batches,
+    )
     from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_from_wire
     from app.strategy_lab_v2.nautilus_target_allocation import (
-        resolve_nautilus_target_position_intents,
+        resolve_nautilus_component_target_position_batches,
     )
     from app.strategy_lab_v2.sdk import (
         OrderIntent,
@@ -662,13 +1089,44 @@ def build_native_strategy_bridge(
     raw_strategy_bindings = engine_input.get("strategy_bindings")
     if (
         not isinstance(raw_strategy_bindings, list)
-        or len(raw_strategy_bindings) != 1
-        or not isinstance(raw_strategy_bindings[0], Mapping)
+        or not raw_strategy_bindings
+        or any(not isinstance(item, Mapping) for item in raw_strategy_bindings)
     ):
         raise NautilusRuntimeDataError(
-            "current native bridge requires one authenticated component strategy binding"
+            "native bridge requires authenticated component strategy bindings"
         )
-    strategy_binding = raw_strategy_bindings[0]
+    strategy_bindings: dict[str, Mapping[str, Any]] = {}
+    for item in raw_strategy_bindings:
+        assert isinstance(item, Mapping)
+        component_id = item.get("component_id")
+        if (
+            not isinstance(component_id, str)
+            or not component_id.strip()
+            or component_id in strategy_bindings
+        ):
+            raise NautilusRuntimeDataError("native component strategy binding ids are invalid")
+        strategy_bindings[component_id] = item
+    if not component_context_stream and len(strategy_bindings) != 1:
+        raise NautilusRuntimeDataError(
+            "multiple strategy bindings require authenticated component context streams"
+        )
+    strategy_binding = strategy_bindings[min(strategy_bindings)]
+    try:
+        portfolio = portfolio_composition_from_wire(engine_input.get("portfolio"))
+    except (TypeError, ValueError) as error:
+        raise NautilusRuntimeDataError("engine input portfolio policy is invalid") from error
+    portfolio_components = {item.component_id: item for item in portfolio.components}
+    component_priorities = {item.component_id: item.priority for item in portfolio.components}
+    if set(strategy_bindings) != set(portfolio_components):
+        raise NautilusRuntimeDataError(
+            "authenticated strategy bindings must cover the complete portfolio"
+        )
+    venue_definition = engine_input.get("venue")
+    if not isinstance(venue_definition, Mapping) or portfolio.base_currency != venue_definition.get(
+        "base_currency"
+    ):
+        raise NautilusRuntimeDataError("portfolio and native account base currencies differ")
+    component_context_bindings: dict[str, Any] = {}
     if component_context_stream:
         if (
             not isinstance(expected_component_context_counts, Mapping)
@@ -700,37 +1158,34 @@ def build_native_strategy_bridge(
             invocation_context_stream,
             expected_component_counts=expected_component_context_counts,
         )
-        component_id = strategy_binding.get("component_id")
-        if not isinstance(component_id, str) or set(bindings) != {component_id}:
+        if set(bindings) != set(strategy_bindings):
             raise NautilusRuntimeDataError(
-                "current native bridge requires one component context stream"
+                "component context streams differ from authenticated strategy bindings"
             )
-        binding = bindings[component_id]
-        if (
-            content_digest(binding.source) != strategy_binding.get("strategy_source_digest")
-            or binding.manifest.fingerprint != strategy_binding.get("strategy_manifest_fingerprint")
-            or binding.manifest.strategy.fingerprint != strategy_binding.get("strategy_fingerprint")
-            or binding.entrypoint != strategy_binding.get("entrypoint")
-            or binding.max_intents_per_event != strategy_binding.get("max_intents_per_event")
-        ):
-            raise NautilusRuntimeDataError(
-                "component context stream metadata differs from its authenticated binding"
-            )
-
-        def component_contexts() -> Iterator[Any]:
-            for record_component_id, context in component_records:
-                if record_component_id != component_id:
-                    raise NautilusRuntimeDataError(
-                        "component context record differs from its authenticated binding"
-                    )
-                yield context
-
+        for component_id, binding in bindings.items():
+            strategy_binding_for_component = strategy_bindings[component_id]
+            if (
+                content_digest(binding.source)
+                != strategy_binding_for_component.get("strategy_source_digest")
+                or binding.manifest.fingerprint
+                != strategy_binding_for_component.get("strategy_manifest_fingerprint")
+                or binding.manifest.strategy.fingerprint
+                != strategy_binding_for_component.get("strategy_fingerprint")
+                or binding.entrypoint != strategy_binding_for_component.get("entrypoint")
+                or binding.max_intents_per_event
+                != strategy_binding_for_component.get("max_intents_per_event")
+            ):
+                raise NautilusRuntimeDataError(
+                    "component context stream metadata differs from its authenticated binding"
+                )
+        component_context_bindings.update(bindings)
+        primary_binding = bindings[next(iter(sorted(bindings)))]
         return (
-            binding.source,
-            binding.manifest,
-            component_contexts(),
-            binding.entrypoint,
-            binding.max_intents_per_event,
+            primary_binding.source,
+            primary_binding.manifest,
+            component_records,
+            primary_binding.entrypoint,
+            primary_binding.max_intents_per_event,
         )
 
     result_stream_writer = None
@@ -799,9 +1254,47 @@ def build_native_strategy_bridge(
                     manifest,
                 )
 
+        def iter_component_context_groups(
+            contexts: Iterable[Any],
+        ) -> Iterator[ComponentContextTriggerGroup]:
+            if component_context_stream:
+                yield from _iter_stream_component_context_trigger_groups(
+                    contexts,
+                    iter_native_event_records(),
+                    component_context_bindings,
+                    component_priorities,
+                )
+                return
+            component_id = min(strategy_bindings)
+
+            def checked_triggers() -> Iterator[tuple[int, StrategyContext]]:
+                for trigger_index, context in iter_context_triggers(contexts):
+                    if not isinstance(context, StrategyContext):
+                        raise NautilusRuntimeDataError(
+                            "strategy context stream contains an invalid context"
+                        )
+                    yield trigger_index, context
+
+            yield from iter_component_context_trigger_groups(
+                {component_id: checked_triggers()},
+                component_priorities,
+            )
+
         def validate_context_inputs(source_contexts: Iterable[Any]) -> Iterator[Any]:
-            for context in source_contexts:
-                if content_digest(context.parameters) != strategy_binding.get("parameters_digest"):
+            for record in source_contexts:
+                if component_context_stream:
+                    component_id, context = record
+                    binding_for_context = strategy_bindings.get(component_id)
+                    if binding_for_context is None:
+                        raise NautilusRuntimeDataError(
+                            "component context record has no authenticated strategy binding"
+                        )
+                else:
+                    context = record
+                    binding_for_context = strategy_binding
+                if content_digest(context.parameters) != binding_for_context.get(
+                    "parameters_digest"
+                ):
                     raise NautilusRuntimeDataError(
                         "strategy context parameters differ from component binding"
                     )
@@ -809,11 +1302,17 @@ def build_native_strategy_bridge(
                     raise NautilusRuntimeDataError(
                         "strategy context seed differs from engine input"
                     )
-                yield context
+                yield record
 
-        stream_context_count = sum(
-            1 for _trigger in iter_context_triggers(validate_context_inputs(stream_contexts))
-        )
+        if component_context_stream:
+            stream_context_count = sum(
+                len(group.contexts)
+                for group in iter_component_context_groups(validate_context_inputs(stream_contexts))
+            )
+        else:
+            stream_context_count = sum(
+                1 for _trigger in iter_context_triggers(validate_context_inputs(stream_contexts))
+            )
         if expected_context_count is not None and stream_context_count != expected_context_count:
             raise NautilusRuntimeDataError(
                 "strategy context stream count differs from its authenticated bundle"
@@ -827,11 +1326,31 @@ def build_native_strategy_bridge(
         )
         expected_contexts = stream_context_count
         replay_contexts = validate_context_inputs(stream_contexts)
-        context_triggers = (
-            iter_context_triggers(replay_contexts)
-            if native_event_stream is None
-            else _iter_replayed_context_trigger_indexes(replay_contexts)
-        )
+        if component_context_stream:
+            context_trigger_groups = _iter_replayed_component_context_trigger_groups(
+                replay_contexts,
+                component_priorities,
+            )
+        else:
+            context_triggers = (
+                iter_context_triggers(replay_contexts)
+                if native_event_stream is None
+                else _iter_replayed_context_trigger_indexes(replay_contexts)
+            )
+            component_id = min(strategy_bindings)
+
+            def checked_replayed_triggers() -> Iterator[tuple[int, StrategyContext]]:
+                for trigger_index, context in context_triggers:
+                    if not isinstance(context, StrategyContext):
+                        raise NautilusRuntimeDataError(
+                            "strategy context stream contains an invalid context"
+                        )
+                    yield trigger_index, context
+
+            context_trigger_groups = iter_component_context_trigger_groups(
+                {component_id: checked_replayed_triggers()},
+                component_priorities,
+            )
     else:
         if (
             not isinstance(serialized_invocation_batch, str)
@@ -844,49 +1363,56 @@ def build_native_strategy_bridge(
         input_fingerprint = content_digest(serialized_invocation_batch)
         input_protocol = "batch"
 
-    if content_digest(source) != engine_input["strategy_source_digest"]:
-        raise NautilusRuntimeDataError("strategy source digest differs from engine input")
-    if manifest.fingerprint != engine_input["strategy_manifest_fingerprint"]:
-        raise NautilusRuntimeDataError("strategy manifest differs from engine input")
-    if entrypoint != engine_input["entrypoint"]:
-        raise NautilusRuntimeDataError("strategy entrypoint differs from engine input")
+    instrument_by_id = {item["instrument_id"]: item for item in instrument_definitions}
+    strategy_binding = strategy_bindings[min(strategy_bindings)]
     if (
-        content_digest(source) != strategy_binding.get("strategy_source_digest")
+        content_digest(source) != engine_input["strategy_source_digest"]
+        or manifest.fingerprint != engine_input["strategy_manifest_fingerprint"]
+        or entrypoint != engine_input["entrypoint"]
+        or content_digest(source) != strategy_binding.get("strategy_source_digest")
         or manifest.fingerprint != strategy_binding.get("strategy_manifest_fingerprint")
         or manifest.strategy.fingerprint != strategy_binding.get("strategy_fingerprint")
         or entrypoint != strategy_binding.get("entrypoint")
         or max_intents != strategy_binding.get("max_intents_per_event")
     ):
-        raise NautilusRuntimeDataError("strategy invocation differs from its component binding")
+        raise NautilusRuntimeDataError(
+            "primary strategy invocation differs from its authenticated engine binding"
+        )
 
-    instrument_by_id = {item["instrument_id"]: item for item in instrument_definitions}
-    try:
-        portfolio = portfolio_composition_from_wire(engine_input.get("portfolio"))
-    except (TypeError, ValueError) as error:
-        raise NautilusRuntimeDataError("engine input portfolio policy is invalid") from error
-    venue_definition = engine_input.get("venue")
-    if not isinstance(venue_definition, Mapping) or portfolio.base_currency != venue_definition.get(
-        "base_currency"
-    ):
-        raise NautilusRuntimeDataError("portfolio and native account base currencies differ")
-    if len(portfolio.components) != 1:
-        raise NautilusRuntimeDataError("native bridge currently requires one strategy component")
-    allocation_component = portfolio.components[0]
-    if strategy_binding.get("component_id") != allocation_component.component_id:
-        raise NautilusRuntimeDataError("strategy binding component differs from the portfolio")
-    if allocation_component.strategy_fingerprint != manifest.strategy.fingerprint:
-        raise NautilusRuntimeDataError("native strategy differs from its portfolio component")
-    declared_instruments = {
-        requirement.instrument_id for requirement in manifest.capability_requirements
-    }
-    if not declared_instruments.issubset(instrument_by_id):
-        raise NautilusRuntimeDataError(
-            "strategy manifest instrument ids must match the native instrument catalog"
-        )
-    if set(allocation_component.instrument_ids) != declared_instruments:
-        raise NautilusRuntimeDataError(
-            "portfolio component scope differs from the strategy manifest"
-        )
+    manifests_by_component: dict[str, Any] = {}
+    declared_instruments: set[str] = set()
+    if component_context_stream:
+        for component_id, component_binding in component_context_bindings.items():
+            manifests_by_component[component_id] = component_binding.manifest
+    else:
+        only_component_id = min(strategy_bindings)
+        manifests_by_component[only_component_id] = manifest
+    for component_id, component in portfolio_components.items():
+        component_manifest = manifests_by_component.get(component_id)
+        component_binding = strategy_bindings[component_id]
+        if (
+            component_manifest is None
+            or component_binding.get("component_id") != component_id
+            or component_binding.get("strategy_fingerprint") != component.strategy_fingerprint
+            or component_manifest.strategy.fingerprint != component.strategy_fingerprint
+            or component_manifest.fingerprint
+            != component_binding.get("strategy_manifest_fingerprint")
+        ):
+            raise NautilusRuntimeDataError(
+                "component strategy manifest differs from its authenticated portfolio binding"
+            )
+        component_instruments = {
+            requirement.instrument_id for requirement in component_manifest.capability_requirements
+        }
+        if component_instruments != set(component.instrument_ids):
+            raise NautilusRuntimeDataError(
+                "portfolio component scope differs from its strategy manifest"
+            )
+        if not component_instruments.issubset(instrument_by_id):
+            raise NautilusRuntimeDataError(
+                "strategy manifest instrument ids must match the native instrument catalog"
+            )
+        declared_instruments.update(component_instruments)
 
     expected_event_count = len(event_definitions)
     if invocation_context_stream is None:
@@ -903,11 +1429,17 @@ def build_native_strategy_bridge(
         expected_contexts = len(batch_contexts)
         # Exhaust once so malformed same-time mappings are rejected before a
         # native callback can submit any orders, then recreate from the tuple.
-        if sum(
-            1 for _trigger in _iter_context_trigger_indexes(batch_contexts, ordered_records)
-        ) != (expected_contexts):
+        if (
+            sum(1 for _trigger in _iter_context_trigger_indexes(batch_contexts, ordered_records))
+            != expected_contexts
+        ):
             raise NautilusRuntimeDataError("strategy context count differs from its native tape")
         context_triggers = _iter_context_trigger_indexes(batch_contexts, ordered_records)
+        only_component_id = min(strategy_bindings)
+        context_trigger_groups = iter_component_context_trigger_groups(
+            {only_component_id: context_triggers},
+            component_priorities,
+        )
     else:
         if native_event_stream is None:
             expected_event_count = len(event_definitions)
@@ -926,19 +1458,28 @@ def build_native_strategy_bridge(
         else iter(event_definitions)
     )
 
-    component_trigger_stream = iter_component_context_trigger_groups(
-        {allocation_component.component_id: context_triggers},
-        {allocation_component.component_id: allocation_component.priority},
-    )
+    component_trigger_stream = context_trigger_groups
     current_trigger = next(component_trigger_stream, None)
     callback_index = 0
+    fill_ledger = NautilusComponentFillLedger(portfolio)
 
-    invocation_session = StrategyInvocationSession(
-        source,
-        manifest=manifest,
-        entrypoint=entrypoint,
-        max_intents_per_event=max_intents,
-    )
+    invocation_sessions = {
+        component_id: StrategyInvocationSession(
+            component_binding.source,
+            manifest=component_binding.manifest,
+            entrypoint=component_binding.entrypoint,
+            max_intents_per_event=component_binding.max_intents_per_event,
+        )
+        for component_id, component_binding in component_context_bindings.items()
+    }
+    if not invocation_sessions:
+        only_component_id = min(strategy_bindings)
+        invocation_sessions[only_component_id] = StrategyInvocationSession(
+            source,
+            manifest=manifest,
+            entrypoint=entrypoint,
+            max_intents_per_event=max_intents,
+        )
     invocation_results: list[Any] | None = [] if result_stream_writer is None else None
     invocation_result_count = 0
     callback_failure_types: list[str] = []
@@ -964,6 +1505,19 @@ def build_native_strategy_bridge(
     native_base_currency = Currency.from_str(portfolio.base_currency)
     latest_marks: dict[str, tuple[Decimal, int]] = {}
 
+    def native_account_quantities(account: Any) -> dict[str, Decimal]:
+        quantities: dict[str, Decimal] = {}
+        for instrument_id in declared_instruments:
+            native_quantity = account.net_position(InstrumentId.from_str(instrument_id))
+            quantity = (
+                Decimal(0)
+                if native_quantity is None
+                else _native_decimal(native_quantity, "position quantity")
+            )
+            if quantity:
+                quantities[instrument_id] = quantity
+        return quantities
+
     def native_risk_state(
         strategy: Any,
         *,
@@ -974,51 +1528,102 @@ def build_native_strategy_bridge(
             raise NautilusRuntimeDataError(
                 "native order-risk routing currently requires a cash account"
             )
+        account_quantities = native_account_quantities(strategy.portfolio)
+        fill_ledger.reconcile(account_quantities)
         marks: dict[str, Decimal] = {}
-        quantities: dict[str, Decimal] = {}
-        exposures: dict[str, Decimal] = {}
-        for sdk_instrument_id in allocation_component.instrument_ids:
+        component_quantities: dict[str, dict[str, Decimal]] = {
+            component_id: {
+                sdk_instrument_id: fill_ledger.quantity(component_id, sdk_instrument_id)
+                for sdk_instrument_id in component.instrument_ids
+            }
+            for component_id, component in portfolio_components.items()
+        }
+        component_exposures: dict[str, dict[str, Decimal]] = {
+            component_id: {} for component_id in portfolio_components
+        }
+        required_ids = set(required_mark_ids)
+        for sdk_instrument_id in declared_instruments:
             definition = instrument_by_id[sdk_instrument_id]
             native_id = InstrumentId.from_str(sdk_instrument_id)
-            native_quantity = strategy.portfolio.net_position(native_id)
-            quantity = (
-                Decimal(0)
-                if native_quantity is None
-                else _native_decimal(native_quantity, "position quantity")
-            )
-            quantities[sdk_instrument_id] = quantity
-            if quantity == 0:
+            total_quantity = account_quantities.get(sdk_instrument_id, Decimal(0))
+            component_quantities_for_instrument = {
+                component_id: values[sdk_instrument_id]
+                for component_id, values in component_quantities.items()
+                if sdk_instrument_id in values
+            }
+            if total_quantity == 0 and not any(component_quantities_for_instrument.values()):
+                if sdk_instrument_id in required_ids:
+                    mark_entry = latest_marks.get(sdk_instrument_id)
+                    if mark_entry is None or _record_time_bucket(mark_entry[1]) != (
+                        _datetime_microsecond_bucket(event_time)
+                    ):
+                        raise NautilusRuntimeDataError(
+                            "native orders require an event-aligned native valuation mark"
+                        )
+                    marks[sdk_instrument_id] = mark_entry[0]
                 continue
             mark_entry = latest_marks.get(sdk_instrument_id)
             if mark_entry is None or _record_time_bucket(mark_entry[1]) != (
                 _datetime_microsecond_bucket(event_time)
             ):
                 raise NautilusRuntimeDataError(
-                    "open holdings require event-aligned native marks for allocation"
+                    "open component holdings require event-aligned native marks for allocation"
                 )
             mark = mark_entry[0]
             marks[sdk_instrument_id] = mark
-            native_exposure = strategy.portfolio.net_exposure(
-                native_id,
-                price=Price(mark, definition["price_precision"]),
-                target_currency=native_base_currency,
+            if total_quantity:
+                native_exposure = strategy.portfolio.net_exposure(
+                    native_id,
+                    price=Price(mark, definition["price_precision"]),
+                    target_currency=native_base_currency,
+                )
+                if native_exposure is None:
+                    raise NautilusRuntimeDataError(
+                        "native portfolio could not value an open holding for allocation"
+                    )
+                exposure_amount = abs(_native_decimal(native_exposure, "position exposure"))
+                native_signed_exposure = exposure_amount if total_quantity > 0 else -exposure_amount
+                exposure_per_unit = exposure_amount / abs(total_quantity)
+            else:
+                native_signed_exposure = Decimal(0)
+                exposure_per_unit = mark
+            nonzero_components = [
+                (component_id, quantity)
+                for component_id, quantity in component_quantities_for_instrument.items()
+                if quantity
+            ]
+            attributed_so_far = Decimal(0)
+            for index, (component_id, quantity) in enumerate(nonzero_components):
+                if index == len(nonzero_components) - 1:
+                    component_exposure = native_signed_exposure - attributed_so_far
+                else:
+                    component_exposure = quantity * exposure_per_unit
+                    attributed_so_far += component_exposure
+                component_exposures[component_id][sdk_instrument_id] = component_exposure
+            attributed_exposure = sum(
+                (
+                    component_exposures[component_id].get(sdk_instrument_id, Decimal(0))
+                    for component_id in component_exposures
+                ),
+                Decimal(0),
             )
-            if native_exposure is None:
+            if attributed_exposure != native_signed_exposure:
                 raise NautilusRuntimeDataError(
-                    "native portfolio could not value an open holding for allocation"
+                    "component exposure attribution differs from native account valuation"
                 )
-            exposure_amount = abs(_native_decimal(native_exposure, "position exposure"))
-            exposures[sdk_instrument_id] = exposure_amount if quantity > 0 else -exposure_amount
-
-        for sdk_instrument_id in required_mark_ids:
-            mark_entry = latest_marks.get(sdk_instrument_id)
-            if mark_entry is None or _record_time_bucket(mark_entry[1]) != (
-                _datetime_microsecond_bucket(event_time)
-            ):
-                raise NautilusRuntimeDataError(
-                    "native orders require an event-aligned native valuation mark"
-                )
-            marks[sdk_instrument_id] = mark_entry[0]
+        quantities = {
+            instrument_id: quantity
+            for instrument_id, quantity in account_quantities.items()
+            if quantity != 0
+        }
+        exposures = {
+            instrument_id: sum(
+                (values.get(instrument_id, Decimal(0)) for values in component_exposures.values()),
+                Decimal(0),
+            )
+            for instrument_id in declared_instruments
+        }
+        exposures = {instrument_id: value for instrument_id, value in exposures.items() if value}
 
         native_account = strategy.portfolio.account(venue=native_venue_id)
         if native_account is None:
@@ -1040,6 +1645,8 @@ def build_native_strategy_bridge(
             "current_base_exposures": exposures,
             "current_quantities": quantities,
             "mark_prices": marks,
+            "current_component_exposures": component_exposures,
+            "current_component_quantities": component_quantities,
         }
 
     class _InvocationStrategyConfig(StrategyConfig):
@@ -1049,16 +1656,17 @@ def build_native_strategy_bridge(
 
     class _InvocationStrategy(Strategy):
         def on_start(self) -> None:
-            subscriptions: set[tuple[str, str]] = (
-                {
-                    (dependency.requirement.event_type, dependency.requirement.instrument_id)
-                    for dependency in manifest.data_dependencies
-                }
-                if native_event_stream is not None
-                else {
+            subscriptions: set[tuple[str, str]] = set()
+            if native_event_stream is not None:
+                for component_manifest in manifests_by_component.values():
+                    subscriptions.update(
+                        (dependency.requirement.event_type, dependency.requirement.instrument_id)
+                        for dependency in component_manifest.data_dependencies
+                    )
+            else:
+                subscriptions.update(
                     (record["event_type"], record["instrument_id"]) for record in event_definitions
-                }
-            )
+                )
             for event_type, instrument_id in sorted(subscriptions):
                 native_id = InstrumentId.from_str(instrument_id)
                 if event_type == "quote":
@@ -1095,6 +1703,40 @@ def build_native_strategy_bridge(
                 event.ts_event,
                 event.ts_init,
             )
+
+        def on_order_filled(self, event: Any) -> None:
+            try:
+                fill_ledger.record_fill(
+                    client_order_id=str(event.client_order_id),
+                    instrument_id=str(event.instrument_id),
+                    quantity=_native_decimal(event.last_qty, "fill quantity"),
+                )
+            except Exception as error:
+                self._record_callback_failure(error)
+
+        def on_order_canceled(self, event: Any) -> None:
+            self._release_terminal_order(event)
+
+        def on_order_expired(self, event: Any) -> None:
+            self._release_terminal_order(event)
+
+        def on_order_rejected(self, event: Any) -> None:
+            self._release_terminal_order(event)
+
+        def on_order_denied(self, event: Any) -> None:
+            self._release_terminal_order(event)
+
+        def _release_terminal_order(self, event: Any) -> None:
+            try:
+                fill_ledger.release_terminal_order(str(event.client_order_id))
+            except Exception as error:
+                self._record_callback_failure(error)
+
+        def _record_callback_failure(self, error: Exception) -> None:
+            failure = f"{type(error).__module__}.{type(error).__qualname__}"
+            if isinstance(error, NautilusRuntimeDataError):
+                failure = f"{failure}: {error}"
+            callback_failure_types.append(failure)
 
         def _on_native_event(
             self,
@@ -1142,215 +1784,207 @@ def build_native_strategy_bridge(
                 raise NautilusRuntimeDataError(
                     "Nautilus callback init order differs from the authenticated event stream"
                 )
-            context = None
+            fill_ledger.reconcile(native_account_quantities(self.portfolio))
+            contexts: tuple[ComponentContextTrigger, ...] = ()
             if current_trigger is not None:
                 if current_trigger.trigger_index < callback_index:
                     raise NautilusRuntimeDataError(
                         "Nautilus did not invoke the expected strategy context callback"
                     )
                 if current_trigger.trigger_index == callback_index:
-                    if (
-                        len(current_trigger.contexts) != 1
-                        or current_trigger.contexts[0].component_id
-                        != allocation_component.component_id
-                    ):
-                        raise NautilusRuntimeDataError(
-                            "native component context multiplexer binding differs"
-                        )
-                    context = current_trigger.contexts[0].context
+                    contexts = current_trigger.contexts
                     current_trigger = next(component_trigger_stream, None)
             callback_index += 1
             latest_marks[str(instrument_id)] = (
                 _native_event_mark_price(event_type, event),
                 int(ts_event),
             )
-            if context is None:
+            if not contexts:
                 return
-            if content_digest(context.parameters) != strategy_binding.get("parameters_digest"):
-                raise NautilusRuntimeDataError(
-                    "strategy context parameters differ from component binding"
-                )
-            if context.random_seed != engine_input["random_seed"]:
-                raise NautilusRuntimeDataError("strategy context seed differs from engine input")
-            positions: dict[str, Any] = {}
-            for requirement in manifest.capability_requirements:
-                sdk_instrument_id = requirement.instrument_id
-                native_id = InstrumentId.from_str(sdk_instrument_id)
-                native_quantity = self.portfolio.net_position(native_id)
-                if native_quantity is None:
-                    quantity = Decimal(0)
-                elif isinstance(native_quantity, Decimal):
-                    quantity = native_quantity
-                else:
-                    quantity = native_quantity.as_decimal()
-                positions[sdk_instrument_id] = PositionSnapshot(
-                    instrument_id=sdk_instrument_id,
-                    quantity=quantity,
-                    average_price=None,
-                    market_value=None,
-                )
-            runtime_context = replace(context, positions=positions)
-            result = invocation_session.invoke(runtime_context)
-            if result_stream_writer is None:
-                assert invocation_results is not None
-                invocation_results.append(result)
-            else:
-                result_stream_writer.write(result)
-            invocation_result_count += 1
-            if result.status is not InvocationStatus.SUCCEEDED:
-                return
-            submission_intents = result.intents
-            target_intents = tuple(
-                intent for intent in result.intents if isinstance(intent, TargetPositionIntent)
-            )
-            if target_intents:
-                if len(target_intents) != len(result.intents):
+            callback_results: list[tuple[str, Any]] = []
+            raw_intents_by_component: dict[str, tuple[Any, ...]] = {}
+            target_intents_by_component: dict[str, tuple[Any, ...]] = {}
+            for trigger in contexts:
+                component_id = trigger.component_id
+                context = trigger.context
+                strategy_binding_for_component = strategy_bindings[component_id]
+                component_manifest = manifests_by_component[component_id]
+                if content_digest(context.parameters) != strategy_binding_for_component.get(
+                    "parameters_digest"
+                ):
                     raise NautilusRuntimeDataError(
-                        "target-position and raw order intents cannot be mixed in one callback"
+                        "strategy context parameters differ from component binding"
                     )
+                if context.random_seed != engine_input["random_seed"]:
+                    raise NautilusRuntimeDataError(
+                        "strategy context seed differs from engine input"
+                    )
+                positions: dict[str, Any] = {}
+                for requirement in component_manifest.capability_requirements:
+                    sdk_instrument_id = requirement.instrument_id
+                    quantity = fill_ledger.quantity(component_id, sdk_instrument_id)
+                    positions[sdk_instrument_id] = PositionSnapshot(
+                        instrument_id=sdk_instrument_id,
+                        quantity=quantity,
+                        average_price=None,
+                        market_value=None,
+                    )
+                result = invocation_sessions[component_id].invoke(
+                    replace(context, positions=positions)
+                )
+                callback_results.append((component_id, result))
+                if result_stream_writer is None:
+                    assert invocation_results is not None
+                    invocation_results.append(result)
+                else:
+                    result_stream_writer.write(result)
+                invocation_result_count += 1
+                if result.status is InvocationStatus.SUCCEEDED and result.intents:
+                    target_intents = tuple(
+                        intent
+                        for intent in result.intents
+                        if isinstance(intent, TargetPositionIntent)
+                    )
+                    if target_intents:
+                        if len(target_intents) != len(result.intents):
+                            raise NautilusRuntimeDataError(
+                                "target-position and raw order intents cannot be mixed"
+                                " for one component callback"
+                            )
+                        target_intents_by_component[component_id] = target_intents
+                    else:
+                        raw_intents = tuple(
+                            intent for intent in result.intents if isinstance(intent, OrderIntent)
+                        )
+                        if len(raw_intents) != len(result.intents):
+                            raise NautilusRuntimeDataError(
+                                "strategy emitted an unsupported typed intent"
+                            )
+                        raw_intents_by_component[component_id] = raw_intents
+            if any(
+                result.status is not InvocationStatus.SUCCEEDED
+                for _component_id, result in callback_results
+            ):
+                return
+            if not raw_intents_by_component and not target_intents_by_component:
+                return
+
+            event_time = contexts[0].context.event_time
+            event_sequence = max(trigger.context.event_sequence for trigger in contexts)
+            required_mark_ids = tuple(
+                intent.instrument_id
+                for intents in (
+                    *raw_intents_by_component.values(),
+                    *target_intents_by_component.values(),
+                )
+                for intent in intents
+            )
+            native_state = native_risk_state(
+                self,
+                event_time=event_time,
+                required_mark_ids=required_mark_ids,
+            )
+            orders_by_component: dict[str, list[OrderIntent]] = {
+                component_id: list(intents)
+                for component_id, intents in raw_intents_by_component.items()
+            }
+            if target_intents_by_component:
                 assert isinstance(venue_definition, Mapping)
                 if venue_definition["account_type"].upper() != "CASH":
                     raise NautilusRuntimeDataError(
                         "target-position sizing currently requires a cash account"
                     )
-                marks: dict[str, Decimal] = {}
-                quantities: dict[str, Decimal] = {}
-                exposures: dict[str, Decimal] = {}
-                for sdk_instrument_id in allocation_component.instrument_ids:
-                    definition = instrument_by_id[sdk_instrument_id]
-                    native_id = InstrumentId.from_str(sdk_instrument_id)
-                    native_quantity = self.portfolio.net_position(native_id)
-                    quantity = (
-                        Decimal(0)
-                        if native_quantity is None
-                        else _native_decimal(native_quantity, "position quantity")
-                    )
-                    quantities[sdk_instrument_id] = quantity
-                    if quantity == 0:
-                        continue
-                    mark_entry = latest_marks.get(sdk_instrument_id)
-                    if mark_entry is None or _record_time_bucket(mark_entry[1]) != (
-                        _datetime_microsecond_bucket(context.event_time)
-                    ):
-                        raise NautilusRuntimeDataError(
-                            "open holdings require event-aligned native marks for allocation"
-                        )
-                    mark = mark_entry[0]
-                    marks[sdk_instrument_id] = mark
-                    native_exposure = self.portfolio.net_exposure(
-                        native_id,
-                        price=Price(mark, definition["price_precision"]),
-                        target_currency=native_base_currency,
-                    )
-                    if native_exposure is None:
-                        raise NautilusRuntimeDataError(
-                            "native portfolio could not value an open target-position holding"
-                        )
-                    exposure_amount = abs(_native_decimal(native_exposure, "position exposure"))
-                    exposures[sdk_instrument_id] = (
-                        exposure_amount if quantity > 0 else -exposure_amount
-                    )
-                for target_intent in target_intents:
-                    mark_entry = latest_marks.get(target_intent.instrument_id)
-                    if mark_entry is None or _record_time_bucket(mark_entry[1]) != (
-                        _datetime_microsecond_bucket(context.event_time)
-                    ):
-                        raise NautilusRuntimeDataError(
-                            "target-position intents require an event-aligned native mark"
-                        )
-                    marks[target_intent.instrument_id] = mark_entry[0]
-                native_account = self.portfolio.account(venue=native_venue_id)
-                if native_account is None:
-                    raise NautilusRuntimeDataError("native portfolio has no account for its venue")
-                account_base = getattr(native_account, "base_currency", None)
-                if getattr(account_base, "code", str(account_base)) != portfolio.base_currency:
-                    raise NautilusRuntimeDataError("native cash account base currency differs")
-                account_equity = _native_money_amount_for_currency(
-                    self.portfolio.equity(venue=native_venue_id),
-                    portfolio.base_currency,
-                    "account equity",
-                )
-                account_cash = _native_money_amount_for_currency(
-                    native_account.balances_total(),
-                    portfolio.base_currency,
-                    "account cash balance",
-                )
-                resolution = resolve_nautilus_target_position_intents(
+                target_resolution = resolve_nautilus_component_target_position_batches(
                     portfolio=portfolio,
-                    component_id=allocation_component.component_id,
-                    intents=target_intents,
+                    intents_by_component=target_intents_by_component,
                     run_attempt_id=engine_input["attempt_id"],
-                    event_time=context.event_time,
-                    event_sequence=context.event_sequence,
-                    account_equity=account_equity,
-                    account_cash_balance=account_cash,
-                    current_base_exposures=exposures,
-                    current_quantities=quantities,
-                    mark_prices=marks,
+                    event_time=event_time,
+                    event_sequence=event_sequence,
+                    account_equity=native_state["account_equity"],
+                    account_cash_balance=native_state["account_cash_balance"],
+                    current_base_exposures=native_state["current_base_exposures"],
+                    current_quantities=native_state["current_quantities"],
+                    current_component_exposures=native_state["current_component_exposures"],
+                    current_component_quantities=native_state["current_component_quantities"],
+                    mark_prices=native_state["mark_prices"],
                     instruments=instrument_by_id,
                 )
-                submission_intents = resolution.order_intents
-            elif result.intents:
-                raw_order_intents = tuple(
-                    intent for intent in result.intents if isinstance(intent, OrderIntent)
-                )
-                if len(raw_order_intents) != len(result.intents):
-                    raise NautilusRuntimeDataError("strategy emitted an unsupported typed intent")
-                native_state = native_risk_state(
-                    self,
-                    event_time=context.event_time,
-                    required_mark_ids=tuple(intent.instrument_id for intent in raw_order_intents),
-                )
-                order_resolution = resolve_nautilus_order_intents(
-                    portfolio=portfolio,
-                    component_id=allocation_component.component_id,
-                    intents=raw_order_intents,
-                    run_attempt_id=engine_input["attempt_id"],
-                    event_time=context.event_time,
-                    event_sequence=context.event_sequence,
-                    instruments=instrument_by_id,
-                    **native_state,
-                )
-                submission_intents = order_resolution.order_intents
-            for intent in submission_intents:
-                if isinstance(intent, TargetPositionIntent):
-                    raise NautilusRuntimeDataError("target-position conversion was incomplete")
-                if not isinstance(intent, OrderIntent):
-                    raise NautilusRuntimeDataError("strategy emitted an unsupported typed intent")
-                definition = instrument_by_id[intent.instrument_id]
-                native_instrument_id = InstrumentId.from_str(intent.instrument_id)
-                native_side = NativeOrderSide.from_str(intent.side.value.upper())
-                native_quantity = Quantity(intent.quantity, definition["size_precision"])
-                native_tif = NativeTimeInForce.from_str(intent.time_in_force.value.upper())
-                tag_values = [intent.client_tag] if intent.client_tag else None
-                order_arguments = {
-                    "instrument_id": native_instrument_id,
-                    "order_side": native_side,
-                    "quantity": native_quantity,
-                    "time_in_force": native_tif,
-                    "tags": tag_values,
-                }
-                if intent.order_type.value == "market":
-                    order = self.order_factory.market(**order_arguments)
-                elif intent.order_type.value == "limit":
-                    order = self.order_factory.limit(
-                        **order_arguments,
-                        price=Price(intent.limit_price, definition["price_precision"]),
+                for component_id, intents in target_resolution.component_order_intents:
+                    orders_by_component.setdefault(component_id, []).extend(intents)
+            component_order_batches = {
+                component_id: tuple(intents)
+                for component_id, intents in orders_by_component.items()
+                if intents
+            }
+            if not component_order_batches:
+                return
+            order_resolution = resolve_nautilus_component_order_batches(
+                portfolio=portfolio,
+                intents_by_component=component_order_batches,
+                run_attempt_id=engine_input["attempt_id"],
+                event_time=event_time,
+                event_sequence=event_sequence,
+                instruments=instrument_by_id,
+                **{
+                    key: value
+                    for key, value in native_state.items()
+                    if key != "current_component_quantities"
+                },
+            )
+            for component_id, intents in order_resolution.component_order_intents:
+                for intent in intents:
+                    if isinstance(intent, TargetPositionIntent):
+                        raise NautilusRuntimeDataError("target-position conversion was incomplete")
+                    if not isinstance(intent, OrderIntent):
+                        raise NautilusRuntimeDataError(
+                            "strategy emitted an unsupported typed intent"
+                        )
+                    definition = instrument_by_id[intent.instrument_id]
+                    native_instrument_id = InstrumentId.from_str(intent.instrument_id)
+                    native_side = NativeOrderSide.from_str(intent.side.value.upper())
+                    native_quantity = Quantity(intent.quantity, definition["size_precision"])
+                    native_tif = NativeTimeInForce.from_str(intent.time_in_force.value.upper())
+                    tag_values = [intent.client_tag] if intent.client_tag else None
+                    order_arguments = {
+                        "instrument_id": native_instrument_id,
+                        "order_side": native_side,
+                        "quantity": native_quantity,
+                        "time_in_force": native_tif,
+                        "tags": tag_values,
+                    }
+                    if intent.order_type.value == "market":
+                        order = self.order_factory.market(**order_arguments)
+                    elif intent.order_type.value == "limit":
+                        order = self.order_factory.limit(
+                            **order_arguments,
+                            price=Price(intent.limit_price, definition["price_precision"]),
+                        )
+                    elif intent.order_type.value == "stop_market":
+                        order = self.order_factory.stop_market(
+                            **order_arguments,
+                            trigger_price=Price(intent.stop_price, definition["price_precision"]),
+                        )
+                    elif intent.order_type.value == "stop_limit":
+                        order = self.order_factory.stop_limit(
+                            **order_arguments,
+                            price=Price(intent.limit_price, definition["price_precision"]),
+                            trigger_price=Price(intent.stop_price, definition["price_precision"]),
+                        )
+                    else:
+                        raise NautilusRuntimeDataError("strategy emitted an unsupported order type")
+                    client_order_id = getattr(order, "client_order_id", None)
+                    if client_order_id is None:
+                        raise NautilusRuntimeDataError(
+                            "native order factory omitted its client order id"
+                        )
+                    fill_ledger.register_order(
+                        client_order_id=str(client_order_id),
+                        component_id=component_id,
+                        instrument_id=intent.instrument_id,
+                        side=intent.side,
+                        quantity=intent.quantity,
                     )
-                elif intent.order_type.value == "stop_market":
-                    order = self.order_factory.stop_market(
-                        **order_arguments,
-                        trigger_price=Price(intent.stop_price, definition["price_precision"]),
-                    )
-                elif intent.order_type.value == "stop_limit":
-                    order = self.order_factory.stop_limit(
-                        **order_arguments,
-                        price=Price(intent.limit_price, definition["price_precision"]),
-                        trigger_price=Price(intent.stop_price, definition["price_precision"]),
-                    )
-                else:
-                    raise NautilusRuntimeDataError("strategy emitted an unsupported order type")
-                self.submit_order(order)
+                    self.submit_order(order)
 
     strategy = _InvocationStrategy(_InvocationStrategyConfig())
 
@@ -1358,6 +1992,7 @@ def build_native_strategy_bridge(
         if callback_failure_types:
             failure_types = ",".join(sorted(set(callback_failure_types)))
             raise NautilusRuntimeDataError(f"native strategy callback failed with {failure_types}")
+        fill_ledger.reconcile(native_account_quantities(strategy.portfolio))
         if callback_index != expected_event_count:
             raise NautilusRuntimeDataError(
                 "Nautilus did not invoke every event in the authenticated event tape"

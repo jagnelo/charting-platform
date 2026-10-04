@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 import pytest
 
+from app.strategy_lab_v2.contracts import PortfolioComponent, PortfolioComposition
 from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
     _EVENT_TIME,
     _EVENT_TIME_NS,
@@ -11,13 +13,17 @@ from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
 )
 from app.strategy_lab_v2.nautilus_runtime_data import NautilusRuntimeDataError
 from app.strategy_lab_v2.nautilus_strategy_bridge import (
+    NautilusComponentFillLedger,
     _iter_context_trigger_indexes,
+    _iter_replayed_component_context_trigger_groups,
     _iter_replayed_context_trigger_indexes,
+    _iter_stream_component_context_trigger_groups,
     _iter_stream_context_trigger_indexes,
     _match_contexts_to_events,
     iter_component_context_trigger_groups,
 )
-from app.strategy_lab_v2.sdk import MarketEvent, StrategyContext
+from app.strategy_lab_v2.sdk import MarketEvent, OrderSide, StrategyContext
+from strategy_runtime import InvocationContextStreamBinding
 
 EVENT_TIME = datetime(2024, 1, 1, tzinfo=UTC)
 EVENT_TIME_NS = 1_704_067_200_000_000_000
@@ -157,6 +163,447 @@ def test_component_context_stream_rejects_non_advancing_native_callbacks() -> No
 def test_component_context_streams_require_exact_priority_bindings() -> None:
     with pytest.raises(NautilusRuntimeDataError, match="priorities do not match"):
         list(iter_component_context_trigger_groups({"core": iter(())}, {}))
+
+
+def _authenticated_quote_event(event_id: str, sequence: int, event_time: datetime) -> MarketEvent:
+    return MarketEvent(
+        "prices",
+        event_id,
+        "EURUSD.SIM",
+        event_time,
+        sequence,
+        {"bid": "1.1000", "ask": "1.1002", "bid_size": "100", "ask_size": "100"},
+    )
+
+
+def _quote_record(event: MarketEvent) -> dict[str, object]:
+    return {
+        "dependency_id": event.dependency_id,
+        "event_id": event.event_id,
+        "instrument_id": event.instrument_id,
+        "event_type": "quote",
+        "event_time_ns": int(event.event_time.timestamp()) * 1_000_000_000,
+        "sequence": event.sequence,
+        "values": event.values,
+    }
+
+
+def test_stream_component_context_groups_share_verified_native_callbacks() -> None:
+    from app.strategy_lab_v2.nautilus_runtime_adapter_probe import _SOURCE
+
+    manifest = _manifest()
+    first = _authenticated_quote_event("quote-1", 1, _EVENT_TIME)
+    second = _authenticated_quote_event("quote-2", 2, _EVENT_TIME)
+    third = _authenticated_quote_event("quote-3", 3, _EVENT_TIME + timedelta(seconds=1))
+    first_context = StrategyContext(_EVENT_TIME, 2, 17, {}, {"prices": (first, second)})
+    second_context = StrategyContext(
+        _EVENT_TIME + timedelta(seconds=1),
+        3,
+        17,
+        {},
+        {"prices": (first, second, third)},
+    )
+    bindings = {
+        component_id: InvocationContextStreamBinding(
+            component_id, _SOURCE, manifest, "strategy.main:Strategy", 100
+        )
+        for component_id in ("core", "satellite")
+    }
+    contexts = iter(
+        (
+            ("core", first_context),
+            ("satellite", first_context),
+            ("core", second_context),
+            ("satellite", second_context),
+        )
+    )
+    native_records = tuple(map(_quote_record, (first, second, third)))
+    priorities = {"core": 5, "satellite": 1}
+
+    groups = list(
+        _iter_stream_component_context_trigger_groups(
+            contexts,
+            native_records,
+            bindings,
+            priorities,
+        )
+    )
+
+    assert [group.trigger_index for group in groups] == [1, 2]
+    assert [tuple(item.component_id for item in group.contexts) for group in groups] == [
+        ("satellite", "core"),
+        ("satellite", "core"),
+    ]
+    replayed = list(
+        _iter_replayed_component_context_trigger_groups(
+            (
+                ("core", first_context),
+                ("satellite", first_context),
+                ("core", second_context),
+                ("satellite", second_context),
+            ),
+            priorities,
+        )
+    )
+    assert [(group.trigger_index, group.contexts) for group in replayed] == [
+        (group.trigger_index, group.contexts) for group in groups
+    ]
+
+
+def test_stream_component_context_groups_reject_manifest_history_mismatch() -> None:
+    from app.strategy_lab_v2.nautilus_runtime_adapter_probe import _SOURCE
+
+    event = _authenticated_quote_event("quote-1", 1, _EVENT_TIME)
+    wrong_event = MarketEvent(
+        "prices",
+        "quote-wrong",
+        "EURUSD.SIM",
+        _EVENT_TIME,
+        1,
+        {"bid": "1.2000", "ask": "1.2002", "bid_size": "100", "ask_size": "100"},
+    )
+    binding = InvocationContextStreamBinding(
+        "core", _SOURCE, _manifest(), "strategy.main:Strategy", 100
+    )
+
+    with pytest.raises(
+        NautilusRuntimeDataError,
+        match="differs from the authenticated event tape",
+    ):
+        list(
+            _iter_stream_component_context_trigger_groups(
+                (("core", StrategyContext(_EVENT_TIME, 1, 17, {}, {"prices": (wrong_event,)})),),
+                (_quote_record(event),),
+                {"core": binding},
+                {"core": 0},
+            )
+        )
+
+
+def test_native_bridge_invokes_component_contexts_by_portfolio_priority(monkeypatch) -> None:
+    import sys
+    from io import BytesIO
+    from types import ModuleType, SimpleNamespace
+    from typing import Any
+
+    from app.strategy_lab_v2.canonical import content_digest
+    from app.strategy_lab_v2.contracts import StrategyVersion
+    from app.strategy_lab_v2.nautilus_native_event_stream import (
+        serialize_nautilus_native_event_stream,
+    )
+    from app.strategy_lab_v2.nautilus_portfolio_wire import (
+        portfolio_composition_from_wire,
+        portfolio_composition_to_wire,
+    )
+    from app.strategy_lab_v2.nautilus_runtime_adapter_probe import (
+        _SOURCE,
+        _invocation_batch,
+        _payload,
+    )
+    from app.strategy_lab_v2.nautilus_strategy_bridge import build_native_strategy_bridge
+    from app.strategy_lab_v2.sdk import StrategySdkManifest
+    from strategy_runtime import (
+        InvocationContextStreamSource,
+        deserialize_invocation_batch,
+        deserialize_invocation_batch_result,
+        serialize_component_invocation_context_stream,
+    )
+
+    class _FromString:
+        def __new__(cls, value: str) -> Any:
+            return value
+
+        @classmethod
+        def from_str(cls, value: str) -> str:
+            return value
+
+    class _FakePortfolio:
+        def net_position(self, _instrument_id: str) -> None:
+            return None
+
+    class _FakeStrategyConfig:
+        def __new__(cls, *_args: object) -> Any:
+            return object.__new__(cls)
+
+    class _FakeStrategy:
+        def __init__(self, _config: object) -> None:
+            self.portfolio = _FakePortfolio()
+
+        def subscribe_quotes(self, _instrument_id: str) -> None:
+            return None
+
+        def subscribe_trades(self, _instrument_id: str) -> None:
+            return None
+
+        def subscribe_bars(self, _bar_type: str) -> None:
+            return None
+
+    class _FakeScalar:
+        def __init__(self, *_args: object) -> None:
+            return None
+
+    model_module = ModuleType("nautilus_trader.model")
+    for name in (
+        "BarType",
+        "Currency",
+        "InstrumentId",
+        "OrderSide",
+        "StrategyId",
+        "TimeInForce",
+        "Venue",
+    ):
+        setattr(model_module, name, _FromString)
+    for name in ("Price", "Quantity"):
+        setattr(model_module, name, _FakeScalar)
+    trading_module = ModuleType("nautilus_trader.trading")
+    setattr(trading_module, "Strategy", _FakeStrategy)
+    setattr(trading_module, "StrategyConfig", _FakeStrategyConfig)
+    package_module = ModuleType("nautilus_trader")
+    setattr(package_module, "model", model_module)
+    setattr(package_module, "trading", trading_module)
+    monkeypatch.setitem(sys.modules, "nautilus_trader", package_module)
+    monkeypatch.setitem(sys.modules, "nautilus_trader.model", model_module)
+    monkeypatch.setitem(sys.modules, "nautilus_trader.trading", trading_module)
+
+    payload = _payload()
+    source_alpha = _SOURCE
+    source_beta = "\nclass Strategy:\n    def on_event(self, context):\n        return [1]\n"
+    base_manifest = _manifest()
+
+    def component_manifest(component_id: str, source: str) -> StrategySdkManifest:
+        return StrategySdkManifest(
+            StrategyVersion(
+                component_id,
+                "v1",
+                "2.0",
+                content_digest(source),
+            ),
+            base_manifest.data_dependencies,
+        )
+
+    manifest_alpha = component_manifest("alpha", source_alpha)
+    manifest_beta = component_manifest("beta", source_beta)
+    base_portfolio = portfolio_composition_from_wire(payload["portfolio"])
+    portfolio = PortfolioComposition(
+        portfolio_id="portfolio-multi-component-bridge-test",
+        version_id="v1",
+        initial_capital=base_portfolio.initial_capital,
+        base_currency=base_portfolio.base_currency,
+        components=(
+            PortfolioComponent(
+                "alpha",
+                manifest_alpha.strategy.fingerprint,
+                ("EURUSD.SIM",),
+                Decimal("0.5"),
+                priority=5,
+            ),
+            PortfolioComponent(
+                "beta",
+                manifest_beta.strategy.fingerprint,
+                ("EURUSD.SIM",),
+                Decimal("0.5"),
+                priority=1,
+            ),
+        ),
+        shared_risk_policy=base_portfolio.shared_risk_policy,
+    )
+    payload["portfolio"] = portfolio_composition_to_wire(portfolio)
+    contexts = deserialize_invocation_batch(_invocation_batch())[2]
+    context_stream = BytesIO()
+    context_counts = serialize_component_invocation_context_stream(
+        context_stream,
+        components=(
+            InvocationContextStreamSource(
+                "alpha", source_alpha, manifest_alpha, contexts, "strategy.main:Strategy"
+            ),
+            InvocationContextStreamSource(
+                "beta", source_beta, manifest_beta, contexts, "strategy.main:Strategy"
+            ),
+        ),
+    )
+    original_tape = payload["event_tape"]
+    assert isinstance(original_tape, dict)
+    source_tape_fingerprint = original_tape["source_tape_fingerprint"]
+    adapter_version = original_tape["adapter_version"]
+    event_records = original_tape["events"]
+    assert isinstance(source_tape_fingerprint, str)
+    assert isinstance(adapter_version, str)
+    assert isinstance(event_records, list)
+    native_event_stream = BytesIO()
+    serialize_nautilus_native_event_stream(
+        native_event_stream,
+        event_records,
+        source_tape_fingerprint=source_tape_fingerprint,
+        adapter_version=adapter_version,
+        expected_event_count=len(event_records),
+    )
+    payload["event_tape"] = {
+        "source_tape_fingerprint": source_tape_fingerprint,
+        "adapter_version": adapter_version,
+        "event_count": len(event_records),
+    }
+    payload["strategy_source_digest"] = content_digest(source_alpha)
+    payload["strategy_manifest_fingerprint"] = manifest_alpha.fingerprint
+    payload["strategy_bindings"] = [
+        {
+            "component_id": component_id,
+            "strategy_fingerprint": component_manifest_value.strategy.fingerprint,
+            "strategy_source_digest": content_digest(source),
+            "strategy_manifest_fingerprint": component_manifest_value.fingerprint,
+            "entrypoint": "strategy.main:Strategy",
+            "parameters_digest": content_digest({"window": 20}),
+            "max_intents_per_event": 100,
+        }
+        for component_id, source, component_manifest_value in (
+            ("alpha", source_alpha, manifest_alpha),
+            ("beta", source_beta, manifest_beta),
+        )
+    ]
+    instrument_definitions = payload["instruments"]
+    assert isinstance(instrument_definitions, list)
+
+    bridge = build_native_strategy_bridge(
+        payload,
+        instrument_definitions,
+        (),
+        invocation_context_stream=context_stream,
+        native_event_stream=native_event_stream,
+        expected_context_count=sum(context_counts.values()),
+        expected_component_context_counts=context_counts,
+    )
+    bridge.strategy.on_start()
+    for index, record in enumerate(event_records):
+        assert isinstance(record, dict)
+        event_time_ns = record["event_time_ns"]
+        assert isinstance(event_time_ns, int)
+        bridge.strategy.on_quote(
+            SimpleNamespace(
+                instrument_id=record["instrument_id"],
+                ts_event=event_time_ns,
+                ts_init=event_time_ns if index == 0 else event_time_ns + 1,
+                bid_price=Decimal(record["values"]["bid"]),
+                ask_price=Decimal(record["values"]["ask"]),
+            )
+        )
+
+    results = deserialize_invocation_batch_result(bridge.result_output())
+    assert [result.status.value for result in results] == ["failed", "succeeded"]
+
+
+def _component_fill_ledger() -> NautilusComponentFillLedger:
+    strategy_fingerprint = _manifest().strategy.fingerprint
+    return NautilusComponentFillLedger(
+        PortfolioComposition(
+            portfolio_id="portfolio-fill-ledger",
+            version_id="v1",
+            initial_capital=Decimal("100000"),
+            base_currency="USD",
+            components=(
+                PortfolioComponent(
+                    "core", strategy_fingerprint, ("US.AAPL",), Decimal("0.5"), priority=0
+                ),
+                PortfolioComponent(
+                    "satellite",
+                    strategy_fingerprint,
+                    ("US.AAPL",),
+                    Decimal("0.5"),
+                    priority=1,
+                ),
+            ),
+        )
+    )
+
+
+def test_component_fill_ledger_tracks_partial_fills_and_reconciles_net_positions() -> None:
+    ledger = _component_fill_ledger()
+    ledger.register_order(
+        client_order_id="core-buy",
+        component_id="core",
+        instrument_id="US.AAPL",
+        side=OrderSide.BUY,
+        quantity=Decimal("10"),
+    )
+    ledger.record_fill(
+        client_order_id="core-buy",
+        instrument_id="US.AAPL",
+        quantity=Decimal("4"),
+    )
+    ledger.register_order(
+        client_order_id="satellite-sell",
+        component_id="satellite",
+        instrument_id="US.AAPL",
+        side=OrderSide.SELL,
+        quantity=Decimal("4"),
+    )
+    ledger.record_fill(
+        client_order_id="satellite-sell",
+        instrument_id="US.AAPL",
+        quantity=Decimal("4"),
+    )
+
+    assert ledger.quantities_by_component() == {
+        "core": {"US.AAPL": Decimal("4")},
+        "satellite": {"US.AAPL": Decimal("-4")},
+    }
+    ledger.reconcile({})
+    ledger.record_fill(
+        client_order_id="core-buy",
+        instrument_id="US.AAPL",
+        quantity=Decimal("6"),
+    )
+    ledger.reconcile({"US.AAPL": Decimal("6")})
+
+
+@pytest.mark.parametrize(
+    ("client_order_id", "instrument_id", "quantity", "message"),
+    (
+        ("unknown", "US.AAPL", Decimal("1"), "no component-attributed order"),
+        ("core-buy", "US.MSFT", Decimal("1"), "instrument differs"),
+        ("core-buy", "US.AAPL", Decimal("11"), "exceeds its attributed"),
+    ),
+)
+def test_component_fill_ledger_rejects_unattributed_or_invalid_fills(
+    client_order_id: str,
+    instrument_id: str,
+    quantity: Decimal,
+    message: str,
+) -> None:
+    ledger = _component_fill_ledger()
+    ledger.register_order(
+        client_order_id="core-buy",
+        component_id="core",
+        instrument_id="US.AAPL",
+        side=OrderSide.BUY,
+        quantity=Decimal("10"),
+    )
+
+    with pytest.raises(NautilusRuntimeDataError, match=message):
+        ledger.record_fill(
+            client_order_id=client_order_id,
+            instrument_id=instrument_id,
+            quantity=quantity,
+        )
+
+
+def test_component_fill_ledger_releases_unfilled_terminal_orders() -> None:
+    ledger = _component_fill_ledger()
+    ledger.register_order(
+        client_order_id="core-buy",
+        component_id="core",
+        instrument_id="US.AAPL",
+        side=OrderSide.BUY,
+        quantity=Decimal("10"),
+    )
+    ledger.record_fill(
+        client_order_id="core-buy",
+        instrument_id="US.AAPL",
+        quantity=Decimal("2"),
+    )
+    ledger.release_terminal_order("core-buy")
+
+    assert ledger.quantities_by_component()["core"]["US.AAPL"] == Decimal("2")
+    with pytest.raises(NautilusRuntimeDataError, match="no component attribution"):
+        ledger.release_terminal_order("core-buy")
 
 
 def test_replayed_stream_context_indexes_do_not_reopen_native_event_reader() -> None:

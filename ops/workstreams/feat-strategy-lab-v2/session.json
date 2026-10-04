@@ -87,6 +87,8 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
+    "backend/app/strategy_lab_v2/nautilus_strategy_bridge.py",
+    "backend/app/strategy_lab_v2/tests/test_nautilus_strategy_bridge.py",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
@@ -114,7 +116,7 @@
   "last_checkpoint": "2026-10-04T02:04:04.236333+00:00",
   "last_human_progress_update": "2026-10-04T02:20:29+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Extend the native bridge from its one-component limit to all authenticated portfolio bindings; then invoke same-event contexts together, route combined raw and target orders through shared risk, and attribute native fills and positions.",
+  "next_action": "Run an image-backed exact-pinned Nautilus RC5 bridge probe for multi-component same-event callbacks, mixed raw/target shared-risk routing, native order/fill handling, and component quantity/exposure reconciliation; preserve the existing package-local tests and continue adjacent backend gaps while Docker remains unavailable.",
   "parent_branch": "staging",
   "plan_hash": "3f8f16a536269570eb9d78bc283916498afac57845f70a0c58aef81519de6176",
   "planning_required": false,
@@ -131,10 +133,10 @@
       "AC-FORWARD"
     ],
     "current_blocker": "none",
-    "current_phase": "component-context-stream-artifact-and-cli",
-    "next_action": "Extend the native bridge from its one-component limit to all authenticated portfolio bindings; then invoke same-event contexts together, route combined raw and target orders through shared risk, and attribute native fills and positions.",
+    "current_phase": "multi-component-native-bridge-orchestration",
+    "next_action": "Run an image-backed exact-pinned Nautilus RC5 bridge probe for multi-component same-event callbacks, mixed raw/target shared-risk routing, native order/fill handling, and component quantity/exposure reconciliation; preserve the existing package-local tests and continue adjacent backend gaps while Docker remains unavailable.",
     "total": 18,
-    "updated_at": "2026-10-04T02:20:29+00:00"
+    "updated_at": "2026-10-04T02:48:52+00:00"
   },
   "remote": "1e3a861454f3c77bdac5efbb6957103f56f13238",
   "remote_sha": "1e3a861454f3c77bdac5efbb6957103f56f13238",
