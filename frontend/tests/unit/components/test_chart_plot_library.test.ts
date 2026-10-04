@@ -881,6 +881,37 @@ describe('ChartPlotLibrary', () => {
     expect(apiMock.post).toHaveBeenCalledWith('/strategy-lab/signals/from-code/121', {})
   })
 
+  it('resolves canonical instrument identity when a chart panel is still hydrating before Strategy signal promotion', async () => {
+    apiMock.get.mockImplementation((path: string) => {
+      if (path === '/indicators/registry') return Promise.resolve(apiMock.registry)
+      if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY' })
+      return Promise.resolve([])
+    })
+    apiMock.post.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 121 }] })
+      if (path === '/strategy-lab/signals/from-code/121') return Promise.resolve({ id: 122, name: 'RSI signal Strategy Signal' })
+      return Promise.resolve({})
+    })
+    const chart = usePanelStore('signal-promotion-hydration-test')
+    chart.symbol = 'SPY'
+    chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'separate' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'signal-promotion-hydration-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote RSI(14)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('signal')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('70')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('RSI signal')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[role="status"]').text()).toContain('Strategy signal'))
+
+    expect(apiMock.get).toHaveBeenCalledWith('/instruments/SPY')
+    expect(apiMock.post).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      initial_version: expect.objectContaining({ lineage: expect.objectContaining({ source_instrument_id: 42, source_symbol: 'SPY' }) }),
+    }))
+    expect(apiMock.post).toHaveBeenCalledWith('/strategy-lab/signals/from-code/121', {})
+    wrapper.unmount()
+  })
+
   it('refuses an ambiguous multi-output chart indicator Strategy signal', async () => {
     const chart = usePanelStore('multi-output-signal-test')
     chart.instrument = { id: 42, symbol: 'SPY' } as any

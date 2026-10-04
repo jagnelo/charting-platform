@@ -5675,9 +5675,8 @@ test.describe('TC2000 workstation', () => {
     await instrumentLoaded
     await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
     // The persisted Golden Layout can mount a chart root before its panel-scoped
-    // instrument hydration completes. Wait for the bounded initial data window
-    // so promotion observes the same canonical instrument as the chart surface.
-    await page.waitForTimeout(2_000)
+    // instrument hydration completes. Promotion resolves the selected chart's
+    // canonical identity itself, so this flow also covers that mount race.
     const chart = page.locator('.chart-tool:visible').last()
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')

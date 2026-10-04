@@ -76,7 +76,7 @@ import { usePanelStore } from '@/stores/chart'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { cloneDefaultIndicator, INDICATOR_CATALOG, indicatorDisplayName } from '@/lib/indicators/catalog'
 import { api } from '@/lib/api'
-import type { IndicatorConfig, IndicatorType } from '@/types'
+import type { IndicatorConfig, IndicatorType, Instrument } from '@/types'
 import { getTechnicalIndicatorOutputOptions } from '@/lib/technicalConditions'
 import { clearAnalysisDrag, createChartPlotDragPayload, createPythonPlotDragPayload, indicatorOutputFromConfig, scheduleAnalysisDragCleanup, writeChartPlotDrag, writePythonPlotDrag } from '@/lib/workstation/plotDrag'
 import { fetchCodeAssets } from '@/lib/workstation/libraryQueries'
@@ -496,6 +496,28 @@ function chartSignalSource(item: IndicatorConfig, output: string) {
   const expression = operator === 'gte' ? `latest >= ${threshold}` : operator === 'lt' ? `latest < ${threshold}` : operator === 'lte' ? `latest <= ${threshold}` : `latest > ${threshold}`
   return `values = ta.indicator(${JSON.stringify(item.type)}, ${params}, ${JSON.stringify(output)})\nlatest = values[-1] if values else float('nan')\noutput.boolean(${JSON.stringify(item.type)}, bool(${expression}))`
 }
+async function canonicalPromotionContext() {
+  const selectedSymbol = chartStore.symbol.trim()
+  const timeframe = chartStore.timeframe
+  const current = chartStore.instrument
+  const currentSymbol = current?.symbol?.trim() ?? ''
+  if (current?.id && (!selectedSymbol || currentSymbol.toUpperCase() === selectedSymbol.toUpperCase())) {
+    return { instrument: current, timeframe }
+  }
+
+  const symbol = selectedSymbol || currentSymbol
+  if (!symbol) throw new Error('Select a canonical instrument before promoting this plot')
+  const instrument = await api.get<Instrument>(`/instruments/${encodeURIComponent(symbol)}`)
+
+  const currentSelection = chartStore.symbol.trim()
+  if ((currentSelection && currentSelection.toUpperCase() !== symbol.toUpperCase()) || chartStore.timeframe !== timeframe) {
+    throw new Error('The chart selection changed before promotion completed. Please retry.')
+  }
+  if (!instrument?.id || instrument.symbol.trim().toUpperCase() !== symbol.toUpperCase()) {
+    throw new Error('Select a canonical instrument before promoting this plot')
+  }
+  return { instrument, timeframe }
+}
 async function promoteSelected() {
   const item = chartStore.indicators[Number(selectedPromotionIndex.value)]
   if (!item || !promotionName.value || !Number.isFinite(promotionThreshold.value) || promotionBusy.value) return
@@ -504,8 +526,7 @@ async function promoteSelected() {
     const output = indicatorOutputFromConfig(item)
     if (!output) throw new Error('Select an explicit output for this multi-output indicator before promoting it.')
     if (promotionTarget.value === 'signal') {
-      const instrumentId = chartStore.instrument?.id
-      if (!instrumentId) throw new Error('Select a canonical instrument before creating a Strategy signal')
+      const { instrument, timeframe } = await canonicalPromotionContext()
       const source = chartSignalSource(item, output)
       const asset = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
         stable_key: uniqueAssetKey(`${promotionName.value}-signal`, 'signal'),
@@ -520,9 +541,9 @@ async function promoteSelected() {
           lineage: {
             type: 'chart_plot_promotion',
             source: 'chart_plot_library',
-            source_instrument_id: instrumentId,
-            source_symbol: chartStore.instrument?.symbol ?? null,
-            source_timeframe: chartStore.timeframe,
+            source_instrument_id: instrument.id,
+            source_symbol: instrument.symbol,
+            source_timeframe: timeframe,
             indicator_type: item.type,
             indicator_params: { ...item.params },
             indicator_output: output,
@@ -589,9 +610,8 @@ async function promoteSelected() {
         ? `Copied ${label(item)} to condition and Market Gauge`
         : `Copied ${label(item)} to condition and EasyScan`
     } else if (promotionTarget.value === 'alert') {
-      const instrumentId = chartStore.instrument?.id
-      if (!instrumentId) throw new Error('Select a canonical instrument before creating an indicator alert')
-      await api.post('/alerts/indicator', { instrument_id: instrumentId, timeframe: chartStore.timeframe, indicator_a_type: item.type, indicator_a_params: { ...item.params, output }, condition: promotionOperator.value, threshold_value: promotionThreshold.value, repeat: true, notes: promotionName.value })
+      const { instrument, timeframe } = await canonicalPromotionContext()
+      await api.post('/alerts/indicator', { instrument_id: instrument.id, timeframe, indicator_a_type: item.type, indicator_a_params: { ...item.params, output }, condition: promotionOperator.value, threshold_value: promotionThreshold.value, repeat: true, notes: promotionName.value })
       promotionStatus.value = `Copied ${label(item)} to condition and indicator alert`
     } else promotionStatus.value = `Copied ${label(item)} to reusable condition`
   } catch (cause: any) {
