@@ -2016,10 +2016,27 @@ test.describe('TC2000 workstation', () => {
     // store event to settle before publishing the next linked symbol.
     await page.waitForTimeout(250)
     const wildcardTarget = isolatedTarget === 'XLK' ? 'XLE' : 'XLK'
+    const savedWildcard = page.waitForResponse(response => {
+      const request = response.request()
+      if (request.method() !== 'PUT' || !/\/api\/v1\/workspaces\/\d+\/snapshot$/.test(response.url()) || !response.ok()) return false
+      try {
+        const settings = request.postDataJSON()?.settings
+        return settings?.linked_symbols?.blue?.symbol === wildcardTarget
+          && settings?.linked_symbols?.yellow?.symbol === wildcardTarget
+          && settings?.linked_symbols?.yellow?.source_group === 'blue'
+      } catch {
+        return false
+      }
+    }, { timeout: 15_000 })
     await sectors.getByRole('option', { name: new RegExp(wildcardTarget) }).first().click({ position: { x: 8, y: 14 } })
     await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(wildcardTarget)
+    await savedWildcard
+    await page.reload()
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(wildcardTarget, { timeout: 15_000 })
+    await expect(chartSymbol).toHaveText(wildcardTarget, { timeout: 15_000 })
     // The shell's canonical wildcard publication is the cross-window contract;
-    // chart-level resolution is covered by the workspace-store unit matrix.
+    // both the persisted shell symbol and chart-level wildcard value must
+    // survive a full workspace reload.
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

@@ -1173,13 +1173,97 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return JSON.stringify(left) === JSON.stringify(right)
   }
 
+  type SettingEntry = { present: boolean; value?: unknown }
+
+  function settingEntry(settings: Record<string, unknown>, key: string): SettingEntry {
+    return Object.prototype.hasOwnProperty.call(settings, key)
+      ? { present: true, value: settings[key] }
+      : { present: false }
+  }
+
+  function sameSettingEntry(left: SettingEntry, right: SettingEntry) {
+    return left.present === right.present && (!left.present || sameJson(left.value, right.value))
+  }
+
+  function mergeSettingEntry(baseline: SettingEntry, local: SettingEntry, remote: SettingEntry): SettingEntry {
+    if (sameSettingEntry(local, baseline)) return remote
+    if (sameSettingEntry(remote, baseline) || sameSettingEntry(local, remote)) return local
+    // A conflict on one group's link state is resolved in favour of this
+    // workstation's latest local interaction, matching the same-window
+    // configuration tie-breaker used below.
+    return local
+  }
+
+  function isSettingsRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+  }
+
+  function mergeLinkSettingsMap(
+    baseline: SettingEntry,
+    local: SettingEntry,
+    remote: SettingEntry,
+  ): SettingEntry {
+    const values = [baseline, local, remote]
+    if (values.some(entry => !entry.present || !isSettingsRecord(entry.value))) {
+      return mergeSettingEntry(baseline, local, remote)
+    }
+    const baseMap = baseline.present ? baseline.value as Record<string, unknown> : {}
+    const localMap = local.present ? local.value as Record<string, unknown> : {}
+    const remoteMap = remote.present ? remote.value as Record<string, unknown> : {}
+    const merged: Record<string, unknown> = {}
+    const keys = new Set([...Object.keys(baseMap), ...Object.keys(localMap), ...Object.keys(remoteMap)])
+    for (const key of keys) {
+      const entry = mergeSettingEntry(
+        settingEntry(baseMap, key),
+        settingEntry(localMap, key),
+        settingEntry(remoteMap, key),
+      )
+      if (entry.present) merged[key] = entry.value
+    }
+    return { present: true, value: merged }
+  }
+
+  function mergeLinkSettings(
+    baseline: Record<string, unknown>,
+    local: Record<string, unknown>,
+    remote: Record<string, unknown>,
+  ): Record<string, unknown> | null {
+    const merged = cloneSerializable(remote)
+    const keys = new Set([...Object.keys(baseline), ...Object.keys(local), ...Object.keys(remote)])
+    for (const key of keys) {
+      const baseEntry = settingEntry(baseline, key)
+      const localEntry = settingEntry(local, key)
+      const remoteEntry = settingEntry(remote, key)
+      if (key === 'linked_symbols' || key === 'linked_timeframes') {
+        const entry = mergeLinkSettingsMap(baseEntry, localEntry, remoteEntry)
+        if (entry.present) merged[key] = entry.value
+        else delete merged[key]
+        continue
+      }
+      if (key === 'linked_timeframe') {
+        const entry = mergeSettingEntry(baseEntry, localEntry, remoteEntry)
+        if (entry.present) merged[key] = entry.value
+        else delete merged[key]
+        continue
+      }
+      // Unknown workspace settings are not inferred or merged. Preserve the
+      // existing recovery behavior if either side changed anything else.
+      if (!sameSettingEntry(localEntry, baseEntry) || !sameSettingEntry(remoteEntry, baseEntry)) return null
+    }
+    return merged
+  }
+
   function isEditorTarget(target: EventTarget | null) {
     return isWorkstationEditorTarget(target)
   }
 
   function applySharedSymbol(event: LinkEvent) {
     if (event.group === 'grey') return
-    linkedSymbols.value = { ...linkedSymbols.value, [event.group]: { ...event } }
+    linkedSymbols.value = {
+      ...linkedSymbols.value,
+      [event.group]: { ...event },
+      yellow: { ...event },
+    }
     wildcardSymbol.value = { ...event }
     linkedTimestamps.value = { ...linkedTimestamps.value, [event.group]: event.timestamp ?? null }
     wildcardTimestamp.value = event.timestamp ?? null
@@ -1199,7 +1283,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function applySharedTimeframe(timeframe: string, group: LinkGroup) {
     if (group === 'grey') return
     timeframe = normalizeWorkstationTimeframe(timeframe)
-    linkedTimeframes.value = { ...linkedTimeframes.value, [group]: timeframe }
+    linkedTimeframes.value = { ...linkedTimeframes.value, [group]: timeframe, yellow: timeframe }
     wildcardTimeframe.value = timeframe
     if (group === 'blue') linkedTimeframe.value = timeframe
   }
@@ -1388,6 +1472,25 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
     locallyPublishedSymbols.value = { ...locallyPublishedSymbols.value, [event.group]: event.symbol }
     applySharedSymbol(event)
+    if (workspace.value) {
+      const existing = workspace.value.settings.linked_symbols
+      const linkedSymbols = existing && typeof existing === 'object' && !Array.isArray(existing)
+        ? existing as Record<string, unknown>
+        : {}
+      const persistedSymbol = {
+        symbol: event.symbol,
+        ...(typeof event.instrumentId === 'number' ? { instrument_id: event.instrumentId } : {}),
+      }
+      workspace.value.settings = {
+        ...workspace.value.settings,
+        linked_symbols: {
+          ...linkedSymbols,
+          [event.group]: persistedSymbol,
+          yellow: { ...persistedSymbol, source_group: event.group },
+        },
+      }
+      scheduleSnapshot()
+    }
     // Keep each concrete linked tool's serializable fallback current as the
     // shared symbol changes. This is important when a tool is moved to Grey:
     // the isolation boundary must capture the symbol the user was actually
@@ -1470,6 +1573,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const linked_timeframes = {
         ...(existing && typeof existing === 'object' && !Array.isArray(existing) ? existing as Record<string, string> : {}),
         [group]: timeframe,
+        yellow: timeframe,
       }
       workspace.value.settings = {
         ...workspace.value.settings,
@@ -1498,43 +1602,73 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       }]
       persistedWorkspace = cloneSerializable(workspace.value)
       activeTabKey.value = workspace.value.tabs[0]?.stable_key ?? 'us-top-down'
-      // Persisted tool configuration is the durable source of the active
-      // symbol. Hydrate the shared blue link before tools mount so a reload
-      // restores the user's last workstation symbol (and ratio legs) rather
-      // than defaulting every linked surface back to SPY.
-      const savedSymbol = workspace.value.tabs
-        .flatMap(tab => tab.windows)
-        .find(window => window.link_group === 'blue' && typeof window.configuration?.symbol === 'string')
-        ?.configuration.symbol
-      if (typeof savedSymbol === 'string' && savedSymbol.trim()) {
-        const normalizedSymbol = savedSymbol.trim().toUpperCase()
-        const configuredInstrumentId = workspace.value.tabs
-          .flatMap(tab => tab.windows)
-          .find(window => window.link_group === 'blue' && typeof window.configuration?.symbol === 'string' && window.configuration.symbol.trim().toUpperCase() === normalizedSymbol)
-          ?.configuration?.instrument_id
-        const event: LinkEvent = {
-          symbol: normalizedSymbol,
-          ...(typeof configuredInstrumentId === 'number' ? { instrumentId: configuredInstrumentId } : {}),
-          group: 'blue',
-          sourceWindowKey: 'workstation',
+      // Link selections are shared workspace state. Restore each concrete
+      // group's last symbol plus Yellow's last received symbol from settings;
+      // older workspaces fall back to the persisted symbols on their tools.
+      const tools = workspace.value.tabs.flatMap(tab => tab.windows)
+      const restoredSymbols: Partial<Record<LinkGroup, LinkEvent>> = {}
+      for (const tool of tools) {
+        const group = configuredLinkGroup(tool.link_group, 'blue')
+        if (group === 'grey' || group === 'yellow' || restoredSymbols[group]) continue
+        const symbol = typeof tool.configuration.symbol === 'string'
+          ? tool.configuration.symbol.trim().toUpperCase()
+          : ''
+        if (!symbol) continue
+        restoredSymbols[group] = {
+          symbol,
+          ...(typeof tool.configuration.instrument_id === 'number' ? { instrumentId: tool.configuration.instrument_id } : {}),
+          group,
+          sourceWindowKey: tool.instance_key,
         }
-        linkedSymbol.value = normalizedSymbol
-        linkedSymbols.value = { ...linkedSymbols.value, blue: event }
-        locallyPublishedSymbols.value = { ...locallyPublishedSymbols.value, blue: normalizedSymbol }
-        latestWorkstationSymbol.value = normalizedSymbol
-        latestWorkstationInstrumentId.value = typeof configuredInstrumentId === 'number' ? configuredInstrumentId : null
-        wildcardSymbol.value = event
       }
-      const savedTimeframe = workspace.value.settings.linked_timeframe
-      linkedTimeframe.value = typeof savedTimeframe === 'string' ? normalizeWorkstationTimeframe(savedTimeframe) : 'D1'
+      const persistedSymbols = workspace.value.settings.linked_symbols
+      if (persistedSymbols && typeof persistedSymbols === 'object' && !Array.isArray(persistedSymbols)) {
+        for (const [groupName, value] of Object.entries(persistedSymbols)) {
+          if (!(LINK_GROUPS as readonly string[]).includes(groupName) || groupName === 'grey') continue
+          if (!value || typeof value !== 'object' || Array.isArray(value)) continue
+          const persisted = value as Record<string, unknown>
+          const symbol = typeof persisted.symbol === 'string' ? persisted.symbol.trim().toUpperCase() : ''
+          if (!symbol) continue
+          const sourceGroup = groupName === 'yellow'
+            ? configuredLinkGroup(persisted.source_group, 'blue')
+            : groupName as LinkGroup
+          const eventGroup = sourceGroup === 'grey' ? 'blue' : sourceGroup
+          restoredSymbols[groupName as LinkGroup] = {
+            symbol,
+            ...(typeof persisted.instrument_id === 'number' ? { instrumentId: persisted.instrument_id } : {}),
+            group: eventGroup,
+            sourceWindowKey: 'workspace-restore',
+          }
+        }
+      }
+      const restoredBlue = restoredSymbols.blue ?? { symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' }
+      const restoredWildcard = restoredSymbols.yellow ?? restoredBlue
+      linkedSymbols.value = { blue: restoredBlue, ...restoredSymbols }
+      linkedSymbol.value = restoredBlue.symbol
+      locallyPublishedSymbols.value = Object.fromEntries(
+        Object.entries(restoredSymbols).map(([group, event]) => [group, event.symbol]),
+      ) as Partial<Record<LinkGroup, string>>
+      latestWorkstationSymbol.value = restoredBlue.symbol
+      latestWorkstationInstrumentId.value = restoredBlue.instrumentId ?? null
+      wildcardSymbol.value = restoredWildcard
+      linkedTimestamps.value = {}
+      wildcardTimestamp.value = null
+
       const savedTimeframes = workspace.value.settings.linked_timeframes
-      linkedTimeframes.value = {
-        blue: linkedTimeframe.value,
-        ...(savedTimeframes && typeof savedTimeframes === 'object' && !Array.isArray(savedTimeframes)
-          ? Object.fromEntries(Object.entries(savedTimeframes).map(([group, timeframe]) => [group, typeof timeframe === 'string' ? normalizeWorkstationTimeframe(timeframe) : timeframe])) as Partial<Record<LinkGroup, string>>
-          : {}),
+      const restoredTimeframes: Partial<Record<LinkGroup, string>> = {}
+      if (savedTimeframes && typeof savedTimeframes === 'object' && !Array.isArray(savedTimeframes)) {
+        for (const [group, timeframe] of Object.entries(savedTimeframes)) {
+          if ((LINK_GROUPS as readonly string[]).includes(group) && typeof timeframe === 'string') {
+            restoredTimeframes[group as LinkGroup] = normalizeWorkstationTimeframe(timeframe)
+          }
+        }
       }
-      wildcardTimeframe.value = linkedTimeframes.value.blue ?? 'D1'
+      const savedBlueTimeframe = workspace.value.settings.linked_timeframe
+      linkedTimeframe.value = typeof savedBlueTimeframe === 'string'
+        ? normalizeWorkstationTimeframe(savedBlueTimeframe)
+        : restoredTimeframes.blue ?? 'D1'
+      linkedTimeframes.value = { ...restoredTimeframes, blue: linkedTimeframe.value }
+      wildcardTimeframe.value = restoredTimeframes.yellow ?? linkedTimeframe.value
     } catch (cause: any) {
       error.value = cause?.message ?? 'Unable to load workstation'
     } finally {
@@ -1714,9 +1848,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
    * a tool is mounting or a tab is becoming active. Treating every concurrent
    * layout/active-tab difference as unrecoverable would create a recovery copy for
    * a normal single-window interaction. In that narrow case the current window's
-   * latest layout wins; identity, settings, and tab membership still require
-   * recovery because they cannot be safely inferred. Same-window record
-   * conflicts use the explicit current-window-wins tie-breaker below.
+   * latest layout wins; identity, non-link settings, and tab membership still
+   * require recovery because they cannot be safely inferred. Known link-state
+   * settings merge per group, and same-window conflicts use the current-window
+   * tie-breaker below.
    */
   function mergeDisjointWindowChanges(
     baseline: WorkspaceState | null,
@@ -1724,8 +1859,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     remote: WorkspaceState,
   ): WorkspaceState | null {
     if (!baseline
-      || !sameJson(local.settings, baseline.settings)
-      || !sameJson(remote.settings, baseline.settings)
       || local.name !== baseline.name
       || remote.name !== baseline.name
       || local.schema_version !== baseline.schema_version
@@ -1733,6 +1866,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       || local.tabs.length !== baseline.tabs.length
       || remote.tabs.length !== baseline.tabs.length) return null
     const merged = cloneSerializable(remote)
+    const mergedSettings = mergeLinkSettings(baseline.settings, local.settings, remote.settings)
+    if (!mergedSettings) return null
+    merged.settings = mergedSettings
     for (const baseTab of baseline.tabs) {
       const localTab = local.tabs.find(tab => tab.stable_key === baseTab.stable_key)
       const remoteTab = remote.tabs.find(tab => tab.stable_key === baseTab.stable_key)
@@ -2964,21 +3100,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     // symbol before detaching it from a shared group so a later linked selection
     // cannot overwrite the isolated view through the global active-symbol state.
     if (group === 'grey') {
-      const configuredSymbol = typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : null
-      const configuredInstrumentId = typeof tool.configuration.instrument_id === 'number'
-        ? tool.configuration.instrument_id
-        : tool.link_group === 'blue'
-          ? latestWorkstationInstrumentId.value
-          : linkedSymbols.value[tool.link_group]?.instrumentId
+      const configuredInstrumentId = tool.link_group === 'yellow'
+        ? wildcardSymbol.value.instrumentId
+        : typeof tool.configuration.instrument_id === 'number'
+          ? tool.configuration.instrument_id
+          : tool.link_group === 'blue'
+            ? latestWorkstationInstrumentId.value
+            : linkedSymbols.value[tool.link_group]?.instrumentId
       const isolatedSymbol = displayedSymbol
         ? (tool.link_group === 'blue' ? latestWorkstationSymbol.value : displayedSymbol.trim().toUpperCase())
         : locallyPublishedSymbols.value[tool.link_group]
-          || symbolForLinkGroup(tool.link_group, configuredSymbol)
-      tool.configuration = {
+          || symbolForLinkGroup(tool.link_group, typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : null)
+      const configuration: Record<string, unknown> & { symbol: string } = {
         ...tool.configuration,
         symbol: isolatedSymbol,
-        ...(typeof configuredInstrumentId === 'number' ? { instrument_id: configuredInstrumentId } : {}),
       }
+      if (typeof configuredInstrumentId === 'number') configuration.instrument_id = configuredInstrumentId
+      else delete configuration.instrument_id
+      tool.configuration = configuration
       recentLinkGroupOverrides.set(windowKey, { group, symbol: isolatedSymbol, at: Date.now() })
     } else {
       const configuredSymbol = typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : 'SPY'
