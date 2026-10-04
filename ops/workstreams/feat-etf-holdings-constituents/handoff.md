@@ -7012,3 +7012,57 @@ functional Playwright on F9c-template-comparison (overlay intercept), F9f
 outside ETF `owned_paths` and no workaround or skip was introduced. The shared
 provider-platform branch remains outside staging, and AC14 remains a future
 post-integration/deployment 30-day observation.
+
+## Fresh live matrix and full-gate replay — 2026-10-04
+
+The active session resumed on the existing claim
+`70226446-14cf-41f6-828c-abe83c833146` in the assigned `/home/m920q` ETF
+worktree. The repository preflight classified this checkout as the correct
+implementation worktree. Its required UV cache was set to
+`/tmp/charting-platform-uv-cache`; the shared allocation registry needed the
+approved host-context preflight, and the existing session claim already
+matched, so no takeover or new claim was created.
+
+At source `a67ceed7ba4a482aabf0af481f41131ad53505d4`, the complete opt-in live
+holdings matrix collected 537 cases and passed 508 with 29 skipped in
+916.28 seconds. No provider disposition or native/fallback classification was
+changed by this pass. Exact-SHA GitHub run `37199309834` on the same source had
+passed Backend Tests, Frontend Unit Tests, Branch-declared Tests, and Playwright;
+the protected Exhaustive Integration Gate was skipped as designed on a feature
+branch.
+
+The required local full-integration gate was also rerun at that exact product
+source. Workstream validation (30 records), dependency/lock and migration
+checks, Ruff/format on 282 files, frontend type-check, all 1,876 backend tests
+at 81.13% coverage, all 945 frontend tests at 82.08% coverage, production
+build, Compose contracts and health checks, and research-runner
+security/resource probes passed. Functional Playwright failed with 134 passed,
+106 skipped, and 20 failed of 260 scenarios. Thirteen failure artifacts record
+Chromium `ERR_NETWORK_CHANGED` across unrelated chart, alerts, drawing,
+dashboard, and workstation API requests. The report artifact was written at
+13:05:29Z. Read-only Docker inspection showed other worktree stacks starting at
+13:03:37Z and 13:03:49Z; the host kernel recorded Docker bridge/veth creation
+during the same interval. This timing makes shared-host Docker network churn a
+plausible contributor, but does not prove it caused every failure. The other
+failures include generic UI/navigation assertions (including an overlay
+intercept); they remain unclassified until a stable replay. ETF backend and
+frontend containers stayed healthy during the run.
+
+The gate cleanup removed only this worktree's Compose resources and four
+worktree-tagged images; the receipt reported `host_wide_prune: false` and zero
+retained testcontainer sessions. The other active worktree stacks were not
+stopped, pruned, or modified. At the time of this checkpoint they remained
+active on the shared host, so no immediate full-gate retry was launched. A
+read-only origin check found ETF at `a67ceed7`, provider-platform at
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and staging at
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; the provider branch is still not
+in staging. AC7 and AC8 remain open; AC10 remains dependent on provider-platform
+reaching staging; AC14 remains the documented post-integration/deployment
+30-day shadow observation. The next step is a full-gate replay after foreign
+Docker activity has stopped and the host is stable, followed by classification
+of any failures that persist.
+
+This checkpoint updates the branch-owned `plan.yaml`, `handoff.md`,
+`session.json`, and `validation.jsonl`; it does not alter application code,
+provider routes, source classifications, another worktree, staging, or Docker
+resources outside this ETF stack.

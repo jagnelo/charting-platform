@@ -70,10 +70,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -109,10 +106,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "a10a3d0b16cea13a3c651b4f71a450614e496b3a",
+  "head": "a67ceed7ba4a482aabf0af481f41131ad53505d4",
   "implementation_sha": "a10a3d0b16cea13a3c651b4f71a450614e496b3a",
   "last_checkpoint": "2026-10-04T11:36:00.686125+00:00",
-  "last_human_progress_update": "2026-10-04T11:31:47.276324+00:00",
+  "last_human_progress_update": "2026-10-04T13:20:09.258325+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "8188eb22974a3936f0dd8e972f0706bcb0caa38d99b0d6a33c273e69719fe93f",
@@ -133,16 +130,16 @@
       "AC6",
       "AC9",
       "AC11",
-      "AC12",
-      "AC13"
+      "AC13",
+      "AC12"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The assigned worktree and origin branch are synchronized at 6f38901df5231158994497ce81fa54cd5850ca36; exact-SHA GitHub run 37197366134 passed Backend Tests, Frontend Unit Tests, Branch-declared Tests, and Playwright, with the protected Exhaustive Integration Gate skipped as designed. AC7 remains open because the local Docker-backed full gate at 70359fb5 failed three generic non-ETF Playwright scenarios outside ETF owned_paths: F9c overlay interception, F9f login-navigation timeout, and F9g ERR_NETWORK_CHANGED. AC8 remains open pending that gate and the review-ready checkpoint. AC10 awaits feat/market-data-provider-platform reaching staging (current provider ref 88132e91; staging 8b885a2f). AC14 requires post-integration/deployment 30-day observation.",
-    "current_phase": "branch_ci_green_local_gate_and_shared_provider_dependency_open",
-    "next_action": "Keep the feature worktree clean and isolated. Do not alter generic E2E paths or integrate/promote/deploy. When provider-platform reaches staging, inspect and consume the shared ETF_HOLDINGS entitlement, quota, aggregate budget, health, and availability contracts in ETF-owned paths. Resolve generic full-gate failures in their owning scope or obtain explicit scope expansion, then rerun the full Docker-backed profile and exact-SHA CI. Begin AC14 only after separately authorized integration/deployment.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. ETF tip a67ceed7ba4a482aabf0af481f41131ad53505d4 is synchronized and its exact-SHA CI passed. The fresh live matrix passed 508/537 with 29 skips. The local full gate passed every stage through Compose/security checks, then functional Playwright reported 134 passed, 106 skipped, 20 failed; 13 failures log ERR_NETWORK_CHANGED. Other worktree stacks started at 13:03:37Z and 13:03:49Z while the report was written at 13:05:29Z, making Docker network churn plausible but unproven. A quiet-host replay is needed; do not alter those stacks. AC7 and AC8 remain open. Provider-platform origin is 88132e9145a08d1c935a0111b3dba0fbd88bdff1 and staging is 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, so AC10 awaits staging. AC14 remains the post-integration/deployment 30-day observation.",
+    "current_phase": "fresh_live_matrix_passed_full_gate_browser_replay_needed_shared_platform_dependency_open",
+    "next_action": "Keep working only in the ETF worktree. Wait for foreign Docker activity to finish, then rerun the full integration profile and classify any repeat failures. Preserve generic failures outside ETF ownership. Track shared-branch refs read-only and consume ETF_HOLDINGS only after provider-platform reaches staging. Keep the goal active through synchronized exact-SHA CI and ready-for-review; AC14 follows separately authorized integration/deployment.",
     "total": 14,
-    "updated_at": "2026-10-04T11:31:47.276304+00:00"
+    "updated_at": "2026-10-04T13:20:09.258303+00:00"
   },
-  "remote": "a10a3d0b16cea13a3c651b4f71a450614e496b3a",
+  "remote": "a67ceed7ba4a482aabf0af481f41131ad53505d4",
   "remote_sha": "a10a3d0b16cea13a3c651b4f71a450614e496b3a",
   "remote_synchronized": true,
   "schema": 2,
