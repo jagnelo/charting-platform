@@ -6954,3 +6954,22 @@ fails functional Playwright on three non-ETF tests, even though GitHub
 Playwright passed. The generic paths remain outside ETF `owned_paths` and were
 not changed. AC10 still awaits provider-platform in staging; AC14 remains a
 post-integration/deployment observation.
+
+## Fresh exact-SHA CI confirmation — 2026-10-04
+
+The follow-up receipt commit `5c074c0d80ed4cc8badd56545ee4505658516ce6`
+triggered GitHub Actions run `37196138026`. Backend Tests, Frontend Unit
+Tests, Branch-declared Tests, and E2E Tests (Playwright) all passed; the
+protected Exhaustive Integration Gate was skipped as designed for this feature
+branch. Thus the prior Branch-declared Tests exit 2 did not recur on the
+follow-up SHA. Its exact cause remains unknown because the public annotation
+exposed only the exit code and logs require authentication.
+
+This closes the CI/local-matrix discrepancy for the current receipt without
+changing any ETF application code or provider disposition. AC7 remains open
+because the host-context local full-integration gate still fails at generic
+functional Playwright on F9c-template-comparison (overlay intercept), F9f
+(login navigation timeout), and F9g (`ERR_NETWORK_CHANGED`). These paths are
+outside ETF `owned_paths` and no workaround or skip was introduced. The shared
+provider-platform branch remains outside staging, and AC14 remains a future
+post-integration/deployment 30-day observation.

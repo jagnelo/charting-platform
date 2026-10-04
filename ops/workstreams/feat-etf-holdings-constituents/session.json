@@ -109,7 +109,7 @@
   "head": "94457b897c19f3ba9d180773de5a92ec47fd37e3",
   "implementation_sha": "4da62c54d1465835e4562115e12513c984cd7962",
   "last_checkpoint": "2026-10-04T09:58:37.906352+00:00",
-  "last_human_progress_update": "2026-10-04T10:40:10.049960+00:00",
+  "last_human_progress_update": "2026-10-04T11:01:49.848818+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "2ad28323cb4c753184ea3159c3c20b5b260be88267ded83abe36c8ecb5a65fbf",
@@ -133,11 +133,11 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. On exact SHA 0a8de9095, GitHub run 37193942507 passed Backend Tests, Frontend Unit Tests, and Playwright; Branch-declared Tests exited 2 and the protected Exhaustive Integration Gate was skipped as expected. Public annotations expose only exit 2 and the log endpoint requires authentication. Local replay of all eight branch-test steps on the same source passed: 592 deterministic, default live 3/534, opt-in 507/30, Ruff, workstream validator, frontend type-check, 17 ETF UI tests, and build. The discrepancy is unexplained. AC7 remains open because the host-context local full gate has three non-ETF E2E failures (F9c overlay intercept, F9f login timeout, F9g ERR_NETWORK_CHANGED). AC8 awaits ready-for-review after open gates; AC10 awaits provider-platform staging; AC14 needs post-integration/deployment 30-day observation.",
-    "current_phase": "exact_sha_ci_branch_matrix_mismatch_confirmed_local_pass",
-    "next_action": "Validate and commit the ETF-only receipts for CI run 37193942507 and the same-SHA local branch-tests pass; push the new receipt and inspect its exact-SHA CI. Keep AC7 open because the local full integration gate has three generic Playwright failures outside ETF owned_paths; do not alter those paths without explicit scope expansion. Do not merge provider-platform before it reaches staging, and preserve AC14 as post-integration/deployment observation.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Exact-SHA GitHub run 37196138026 on 5c074c0d passed Backend Tests, Frontend Unit Tests, Branch-declared Tests, and Playwright; the protected Exhaustive Integration Gate was skipped as designed. The earlier branch-matrix exit 2 did not recur; exact cause unknown. Local replay of the declared suite passed all 8 steps (592 deterministic; live 3/534; opt-in 507/30; Ruff, workstream validator, type-check, 17 ETF UI tests, build). AC7 remains open because the host-context local full gate still has three non-ETF Playwright failures: F9c overlay intercept, F9f login timeout, F9g ERR_NETWORK_CHANGED; these paths are outside ETF owned_paths. AC8 remains open until overall workstream can stop at ready-for-review. AC10 awaits provider-platform staging; AC14 awaits post-integration/deployment 30-day observation.",
+    "current_phase": "exact_ci_green_local_full_gate_generic_e2e_blocker",
+    "next_action": "Validate and commit the ETF-only confirmation of CI run 37196138026, push it, and verify exact-SHA CI. Then keep the branch active for only the remaining in-scope/unblocked work; do not change generic chart/auth/E2E paths without explicit scope expansion. Consume the shared ETF_HOLDINGS contract only after provider-platform reaches staging; AC14 remains post-integration/deployment observation.",
     "total": 14,
-    "updated_at": "2026-10-04T10:40:10.049932+00:00"
+    "updated_at": "2026-10-04T11:01:49.848798+00:00"
   },
   "remote": "94457b897c19f3ba9d180773de5a92ec47fd37e3",
   "remote_sha": "a13fccfd0bf9666ff471aac566cf0bc4f367c4e1",
