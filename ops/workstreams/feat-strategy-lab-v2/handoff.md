@@ -26,6 +26,18 @@ upgraded to authority. The current official upstream release list still labels
 so this authority activation gate is external; it does not block the remaining
 owned implementation work.
 
+Implementation commit `d10600e5f` is published to
+`origin/feat/strategy-lab-v2`. Validation at that exact code commit: all 1,329
+Strategy Lab tests passed (1,328 package tests plus the Unix-socket RPC test
+under scoped local-socket permission); Ruff check and format checks passed;
+targeted MyPy passed across the 10 changed production modules; `git diff
+--check` and all 30 workstream records validated. A broader package MyPy run
+still reports five type errors in three unchanged test modules
+(`test_nautilus_target_allocation.py`, `test_nautilus_order_routing.py`, and
+`test_nautilus_runtime_adapter.py`); that diagnostic does not affect the passing
+focused production-module check. The full Compose/browser gate remains pending
+Docker Buildx.
+
 ## 2026-10-04 - Event-time OOS annualized return and Calmar
 
 Implementation `c0f67e080` advances the native OOS metric definition to
