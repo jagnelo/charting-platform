@@ -7655,3 +7655,35 @@ validation. Next: validate the workstream/diff, commit and push this branch-only
 checkpoint, synchronize the plan hash, then query exact-SHA hosted checks. Keep
 AC7/AC8 open until hosted and local-gate evidence meets the criteria. AC10 still
 waits for provider-platform staging; AC14 is post-integration/deployment.
+
+## Published chart-control fix and current gate state — 2026-10-04
+
+The F9c comparison/plot hit-target overlap is fixed in
+`frontend/src/components/workstation/WorkstationToolContent.vue`; the existing
+F9c assertion passed in subsequent full-browser runs. The scoped fix and
+workstream evidence were committed as `23e34353f1376364b6d925678c9815f18ac7f891`
+and pushed to `feat/etf-holdings-constituents`. An explicit fast-forward push
+reported `115af3661..23e34353f`, and a read-only fetch then confirmed local HEAD
+and `origin/feat/etf-holdings-constituents` both at the exact new SHA.
+
+The latest full gate on application-equivalent source passed dependency,
+migration, lint/format, type-check, full backend/frontend tests, build, stack
+health, and research-runner probes. Playwright then failed at `e2e-functional`
+on unrelated generic workstation cases `F8j-conflict` and
+`F8s-market-map-watchlist`; fresh-stack targeted replays passed both. The full
+gate is therefore not green and did not reach separate visual parity or the
+trailing branch-declared stage. No generic assertion or snapshot was changed.
+Earlier full runs also had transient localhost `ERR_NETWORK_CHANGED` cases;
+their focused replays passed. The chart hit-target issue itself is not the
+remaining failure.
+
+GitHub's commit endpoint recognizes the new SHA, but combined commit statuses
+are empty. The connected workflow-run endpoint exposes PR-triggered runs only,
+and a branch-head PR search returned no matching PR; therefore push-event CI
+for this SHA remains unverified through the available connector, not claimed
+green or absent. The default sandbox also denies Docker socket access and writes
+to the repository's common Git/runtime metadata. To keep work scoped, only
+branch-specific Git operations were retried through the approved escalation
+path; no other branch/worktree was modified. AC7/AC8 remain open. AC10 still
+depends on `feat/market-data-provider-platform` reaching staging; AC14 remains
+the post-integration/deployment shadow period.
