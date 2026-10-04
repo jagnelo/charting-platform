@@ -12,6 +12,8 @@ import hashlib
 import json
 import os
 import stat
+import tempfile
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -30,6 +32,12 @@ from app.strategy_lab_v2.nautilus_runtime import (
 
 LOCAL_NAUTILUS_RC_EVIDENCE_SCHEMA = "strategy-lab.nautilus-rc-evidence-artifact.v1"
 DEFAULT_MAX_ARTIFACT_BYTES = 2 * 1024 * 1024
+LOCAL_NAUTILUS_RC_EVIDENCE_ENV = {
+    "artifact_directory": "STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY",
+    "artifact_digest": "STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256",
+    "source_digest": "STRATEGY_LAB_V2_NAUTILUS_RC_SOURCE_SHA256",
+    "runtime_image_digest": "STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256",
+}
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -43,6 +51,154 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 def _reject_json_constant(value: str) -> None:
     raise ValueError(f"local Nautilus evidence artifact contains invalid JSON constant {value}")
+
+
+@dataclass(frozen=True, slots=True)
+class PublishedLocalNautilusRcEvidence:
+    """Content address and validated typed evidence returned by publication."""
+
+    artifact_digest: str
+    source: LocalNautilusRcConformanceEvidenceSource
+    resolution: NautilusRcConformanceResolution
+
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.artifact_digest, field_name="artifact_digest")
+        if not isinstance(self.source, LocalNautilusRcConformanceEvidenceSource):
+            raise TypeError("source must be a LocalNautilusRcConformanceEvidenceSource")
+        if not isinstance(self.resolution, NautilusRcConformanceResolution):
+            raise TypeError("resolution must be a NautilusRcConformanceResolution")
+        if self.artifact_digest != self.source.artifact_digest:
+            raise ValueError("published evidence digest differs from its source pin")
+
+
+@dataclass(frozen=True, slots=True)
+class LocalNautilusRcConformanceEvidencePublisher:
+    """Validate and atomically publish one exact-pinned RC fixture artifact.
+
+    The caller is the trusted local qualification command: it supplies probe
+    and fixture output captured from the exact isolated image. This class
+    validates those outputs before writing and never contacts a provider or
+    starts an engine itself.
+    """
+
+    artifact_directory: Path
+    max_artifact_bytes: int = DEFAULT_MAX_ARTIFACT_BYTES
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.artifact_directory, Path):
+            raise TypeError("artifact_directory must be a Path")
+        if (
+            not isinstance(self.max_artifact_bytes, int)
+            or isinstance(self.max_artifact_bytes, bool)
+            or self.max_artifact_bytes <= 0
+        ):
+            raise ValueError("max_artifact_bytes must be a positive integer")
+
+    def publish(
+        self,
+        *,
+        runtime: NautilusRcCompatibilityRuntime,
+        probe_payload: Mapping[str, Any],
+        fixture_payload: Mapping[str, Any],
+        build_digest: str,
+        tested_at: datetime,
+    ) -> PublishedLocalNautilusRcEvidence:
+        """Validate observed image output, then store it at its immutable digest path."""
+
+        if not isinstance(runtime, NautilusRcCompatibilityRuntime):
+            raise TypeError("runtime must be a NautilusRcCompatibilityRuntime")
+        if not isinstance(probe_payload, Mapping) or not isinstance(fixture_payload, Mapping):
+            raise TypeError("probe_payload and fixture_payload must be mappings")
+        probe = NautilusRuntimeProbeEvidence.from_mapping(probe_payload, runtime)
+        receipt = NautilusRcFixtureReceipt.from_mapping(fixture_payload, runtime)
+        resolution = resolve_nautilus_rc_conformance(
+            runtime,
+            probe,
+            receipt,
+            build_digest=build_digest,
+            tested_at=tested_at,
+        )
+        payload = {
+            "artifact_schema": LOCAL_NAUTILUS_RC_EVIDENCE_SCHEMA,
+            "build_digest": build_digest,
+            "probe": dict(probe_payload),
+            "receipt": dict(fixture_payload),
+            "runtime": {
+                "python_version": runtime.python_version,
+                "runtime_image_digest": runtime.runtime_image_digest,
+                "rust_version": runtime.rust_version,
+                "source_digest": runtime.source_digest,
+            },
+            "tested_at": tested_at.isoformat(),
+        }
+        raw = json.dumps(
+            payload,
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        if len(raw) > self.max_artifact_bytes:
+            raise ValueError("local Nautilus evidence artifact exceeds its size limit")
+        artifact_digest = f"sha256:{hashlib.sha256(raw).hexdigest()}"
+        source = LocalNautilusRcConformanceEvidenceSource(
+            artifact_directory=self.artifact_directory,
+            artifact_digest=artifact_digest,
+            expected_source_digest=runtime.source_digest,
+            expected_runtime_image_digest=runtime.runtime_image_digest,
+            max_artifact_bytes=self.max_artifact_bytes,
+        )
+        self._write_once(source, raw)
+        persisted = source.load()
+        if persisted.fingerprint != resolution.fingerprint:
+            raise RuntimeError("published Nautilus evidence changed during artifact round-trip")
+        return PublishedLocalNautilusRcEvidence(artifact_digest, source, persisted)
+
+    def _write_once(
+        self,
+        source: LocalNautilusRcConformanceEvidenceSource,
+        raw: bytes,
+    ) -> None:
+        try:
+            directory = self.artifact_directory.resolve(strict=True)
+            if not directory.is_dir():
+                raise ValueError("local Nautilus evidence directory must be a directory")
+            descriptor, temporary_name = tempfile.mkstemp(
+                prefix=".nautilus-rc-evidence-", dir=directory
+            )
+        except OSError as exc:
+            raise ValueError("local Nautilus evidence directory is unavailable") from exc
+
+        temporary_path = Path(temporary_name)
+        try:
+            os.fchmod(descriptor, 0o600)
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(raw)
+                stream.flush()
+                os.fsync(stream.fileno())
+            try:
+                os.link(
+                    temporary_path,
+                    directory / source.artifact_path.name,
+                    follow_symlinks=False,
+                )
+            except FileExistsError:
+                existing = source._read_pinned_bytes()
+                if existing != raw:
+                    raise ValueError(
+                        "content-addressed Nautilus evidence path has conflicting bytes"
+                    )
+                source.load()
+            directory_fd = os.open(
+                directory,
+                os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_CLOEXEC", 0),
+            )
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        finally:
+            temporary_path.unlink(missing_ok=True)
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +228,40 @@ class LocalNautilusRcConformanceEvidenceSource:
             or self.max_artifact_bytes <= 0
         ):
             raise ValueError("max_artifact_bytes must be a positive integer")
+
+    @classmethod
+    def from_environment(
+        cls,
+        environment: Mapping[str, str] | None = None,
+    ) -> LocalNautilusRcConformanceEvidenceSource | None:
+        """Load operator-pinned local evidence config without discovering artifacts.
+
+        No configured values means RC-backed authoritative execution stays
+        unavailable. Partial configuration is an error instead of silently
+        selecting an arbitrary file or runtime image.
+        """
+
+        values = os.environ if environment is None else environment
+        configured = {
+            field: values.get(variable, "").strip()
+            for field, variable in LOCAL_NAUTILUS_RC_EVIDENCE_ENV.items()
+        }
+        if not any(configured.values()):
+            return None
+        missing = tuple(field for field, value in configured.items() if not value)
+        if missing:
+            raise ValueError(
+                "local Nautilus RC evidence configuration is incomplete: " + ", ".join(missing)
+            )
+        artifact_directory = Path(configured["artifact_directory"]).expanduser()
+        if not artifact_directory.is_absolute():
+            raise ValueError("local Nautilus evidence directory must be an absolute path")
+        return cls(
+            artifact_directory=artifact_directory,
+            artifact_digest=configured["artifact_digest"],
+            expected_source_digest=configured["source_digest"],
+            expected_runtime_image_digest=configured["runtime_image_digest"],
+        )
 
     @property
     def artifact_path(self) -> Path:
@@ -192,6 +382,9 @@ class LocalNautilusRcConformanceEvidenceSource:
 
 __all__ = [
     "DEFAULT_MAX_ARTIFACT_BYTES",
+    "LOCAL_NAUTILUS_RC_EVIDENCE_ENV",
     "LOCAL_NAUTILUS_RC_EVIDENCE_SCHEMA",
+    "LocalNautilusRcConformanceEvidencePublisher",
     "LocalNautilusRcConformanceEvidenceSource",
+    "PublishedLocalNautilusRcEvidence",
 ]

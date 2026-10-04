@@ -14,6 +14,11 @@ from app.strategy_lab_v2.contracts import AttemptState, ProductClass
 from app.strategy_lab_v2.dispatch import SearchDispatchIntent
 from app.strategy_lab_v2.lease_observations import LeaseObservationState
 from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease, transition_attempt
+from app.strategy_lab_v2.local_conformance_source import (
+    LOCAL_NAUTILUS_RC_EVIDENCE_ENV,
+    LocalNautilusRcConformanceEvidencePublisher,
+    LocalNautilusRcConformanceEvidenceSource,
+)
 from app.strategy_lab_v2.nautilus_trial_materializer import (
     NautilusTrialMarketContext,
     NautilusTrialRuntimeInputMaterializer,
@@ -26,6 +31,7 @@ from app.strategy_lab_v2.search_dispatch_preparation import (
 )
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.tests.test_conformance_fixtures import (
+    _rc_evidence_artifact,
     _rc_probe,
     _rc_receipt,
     _rc_runtime,
@@ -42,6 +48,54 @@ from app.strategy_lab_v2.trial_hydration import HydratedNautilusTrial
 from app.strategy_lab_v2.workers import WorkerKind, WorkerPoolState, WorkerProfile
 
 PREPARED_AT = BASE + timedelta(seconds=4)
+
+
+def test_host_preparation_context_loads_operator_pinned_local_rc_evidence(
+    tmp_path: Path,
+) -> None:
+    _graph, _store, _package_resolver, _materializer, existing, _worker_reader = _setup(
+        tmp_path / "trial"
+    )
+    runtime = _rc_runtime()
+    payload = _rc_evidence_artifact(runtime)
+    evidence_directory = tmp_path / "rc-evidence"
+    evidence_directory.mkdir()
+    published = LocalNautilusRcConformanceEvidencePublisher(evidence_directory).publish(
+        runtime=runtime,
+        probe_payload=payload["probe"],
+        fixture_payload=payload["receipt"],
+        build_digest=payload["build_digest"],
+        tested_at=BASE,
+    )
+    source = LocalNautilusRcConformanceEvidenceSource.from_environment(
+        {
+            LOCAL_NAUTILUS_RC_EVIDENCE_ENV["artifact_directory"]: str(evidence_directory),
+            LOCAL_NAUTILUS_RC_EVIDENCE_ENV["artifact_digest"]: published.artifact_digest,
+            LOCAL_NAUTILUS_RC_EVIDENCE_ENV["source_digest"]: runtime.source_digest,
+            LOCAL_NAUTILUS_RC_EVIDENCE_ENV["runtime_image_digest"]: runtime.runtime_image_digest,
+        }
+    )
+    assert source is not None
+
+    configured = NautilusTrialPreparationContext.from_operator_pinned_local_backtest_evidence(
+        conformance_source=source,
+        product_classes=frozenset({ProductClass.EQUITY}),
+        execution_models=frozenset({"bar-close-v1"}),
+        account_models=frozenset({"cash-equity-v1"}),
+        market_context=existing.market_context,
+        runtime_profile=existing.runtime_profile,
+        worker_profile=existing.worker_profile,
+        admission_ledger=existing.admission_ledger,
+        reservation_id=existing.reservation_id,
+        lease_id=existing.lease_id,
+        image_name=existing.image_name,
+        output_path=existing.output_path,
+        now=existing.now,
+    )
+
+    assert configured.conformance_evidence == published.resolution.evidence
+    assert configured.conformance_report.authoritative is False
+    assert configured.capability_binding.authoritative is True
 
 
 class _Hydrator:

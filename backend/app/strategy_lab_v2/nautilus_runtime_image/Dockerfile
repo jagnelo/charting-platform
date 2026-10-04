@@ -7,6 +7,11 @@ FROM ${PYTHON_BASE_IMAGE}
 ARG NAUTILUS_WHEEL_URL
 ARG NAUTILUS_WHEEL_SHA256
 ARG NAUTILUS_WHEEL_FILENAME
+ARG NAUTILUS_SOURCE_DIGEST
+
+LABEL org.charting-platform.strategy-lab.nautilus-source-digest=${NAUTILUS_SOURCE_DIGEST} \
+    org.charting-platform.strategy-lab.nautilus-package-version=2.0.0rc5 \
+    org.charting-platform.strategy-lab.nautilus-wheel-sha256=${NAUTILUS_WHEEL_SHA256}
 
 WORKDIR /opt/strategy-lab-v2
 

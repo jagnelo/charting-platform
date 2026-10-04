@@ -36,6 +36,9 @@ from app.strategy_lab_v2.execution_capabilities import (
 )
 from app.strategy_lab_v2.lease_observations import LeaseObservationState
 from app.strategy_lab_v2.lifecycle import AttemptLeaseStatus
+from app.strategy_lab_v2.local_conformance_source import (
+    LocalNautilusRcConformanceEvidenceSource,
+)
 from app.strategy_lab_v2.nautilus_trial_materializer import (
     NautilusTrialMarketContext,
     NautilusTrialRuntimeEvidence,
@@ -204,6 +207,46 @@ class NautilusTrialPreparationContext:
             now=now,
             execution_scope=NautilusExecutionScope.BACKTEST_AUTHORITATIVE,
             requested_authoritative=True,
+            docker_binary=docker_binary,
+        )
+
+    @classmethod
+    def from_operator_pinned_local_backtest_evidence(
+        cls,
+        *,
+        conformance_source: LocalNautilusRcConformanceEvidenceSource,
+        product_classes: frozenset[ProductClass],
+        execution_models: frozenset[str],
+        account_models: frozenset[str],
+        market_context: NautilusTrialMarketContext,
+        runtime_profile: RuntimeIsolationProfile,
+        worker_profile: WorkerProfile,
+        admission_ledger: ExecutionAdmissionLedger,
+        reservation_id: str,
+        lease_id: str,
+        image_name: str,
+        output_path: str | Path,
+        now: datetime,
+        docker_binary: str = "docker",
+    ) -> NautilusTrialPreparationContext:
+        """Bind search preparation to the operator's content-addressed RC evidence."""
+
+        if not isinstance(conformance_source, LocalNautilusRcConformanceEvidenceSource):
+            raise TypeError("conformance_source must be a LocalNautilusRcConformanceEvidenceSource")
+        return cls.from_authoritative_backtest_conformance(
+            conformance_resolution=conformance_source.load(),
+            product_classes=product_classes,
+            execution_models=execution_models,
+            account_models=account_models,
+            market_context=market_context,
+            runtime_profile=runtime_profile,
+            worker_profile=worker_profile,
+            admission_ledger=admission_ledger,
+            reservation_id=reservation_id,
+            lease_id=lease_id,
+            image_name=image_name,
+            output_path=output_path,
+            now=now,
             docker_binary=docker_binary,
         )
 

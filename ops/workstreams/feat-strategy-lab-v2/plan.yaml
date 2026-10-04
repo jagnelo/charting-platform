@@ -810,6 +810,7 @@ progress:
     - strategy-lab-v2-production-search-dispatch-evidence-preparation
     - nautilus-backtest-scoped-conformance-context-binding-v1
     - nautilus-rc-pinned-local-evidence-reader-v1
+    - nautilus-rc-reproducible-local-evidence-build-v1
   total: 18
   current_phase: local-evidence-publication-and-preparation-service-v1
   current_blocker: >-
@@ -822,24 +823,30 @@ progress:
     exact conformance evidence and reject worker image drift. Commit
     52c38ce457a5d5c7e7ea5c2bcfaff9d0f4610625 adds a read-only content-addressed
     evidence source that verifies raw artifact bytes, operator-pinned source
-    and image digests, and strict RC5 probe/fixture payloads. The exact-tip
-    Strategy Lab suite passes 1,237 tests, Ruff passes, and MyPy passes across
-    347 sources; the combined backend gate most recently passed 2,885 tests at
-    83.42% on `5d2a937`. The local RC5 image fixture passes the four backtest
-    checks, but the available image lacks source-build provenance and is not a
-    reproducible authoritative artifact. The production host still needs an
-    operator-controlled artifact publisher/configuration, a registered
-    preparation service/client, and canonical provider coverage/market
-    metadata. Keep product capability fail-closed until canonical metadata is
-    approved at staging. Provider/ETF/TC2000 contracts remain owned by their
-    workstreams. Docker Buildx is absent; this limits exact-tip Compose/browser
-    validation only, not backend implementation or focused/integration tests.
+    and image digests, and strict RC5 probe/fixture payloads. The exact-source
+    image builder now hashes its Dockerfile inputs and qualification code,
+    labels the image with source/wheel/package pins, runs lifecycle and fixture
+    probes without network or writable root, and publishes only after typed
+    evidence round-trips. Artifact `sha256:aca8b8b50714d13aeb5333fa8d02f310d9ececb95726a44f940e6aa327258b26`
+    binds source `sha256:cc3a13652edf026eb0c60eccbdcaca64fa3281065afb7fe0cfe2c824aade6a82`
+    to image `sha256:5e2c4bb2fa8013578d6761f9a3a504467c31f653c9c0025915b72e36c88df3e7`;
+    its four backtest checks pass, while overall pre-release authority remains
+    false because forward parity is deferred. Operator environment loading and
+    a preparation-context constructor now consume the pinned source, but the
+    production host factory still must register it and use a dedicated
+    preparation process/client. The exact-tip Strategy Lab suite passes 1,247
+    tests, Ruff passes, and MyPy passes across 349 sources. The combined backend
+    gate most recently passed 2,885 tests at 83.42% on `5d2a937`. Canonical
+    provider coverage/market metadata remains fail-closed until approved at
+    staging. Provider/ETF/TC2000 contracts remain owned by their workstreams.
+    Docker Buildx is absent; this limits exact-tip Compose/browser validation
+    only, not backend implementation or focused/integration tests.
   next_action: >-
-    Produce and pin the evidence artifact from a reproducible exact RC5 runtime
-    build, register the source in the local host factory, and add the dedicated
-    search-preparation process plus async API client. Do not run trial
-    hydration/materialization on FastAPI's event loop. Keep provider capability
-    unsupported until canonical coverage and instrument metadata are approved
-    at staging; continue independent worker, portfolio, metrics, snapshot, and
-    forward acceptance. Run the Compose/browser profile when a Buildx-capable
-    Docker CLI is available. Never wait for a stable v2 tag.
+    Register the operator-pinned RC5 evidence source in the local host factory,
+    then add the dedicated search-preparation process plus async API client.
+    Do not run trial hydration/materialization on FastAPI's event loop. Keep
+    provider capability unsupported until canonical coverage and instrument
+    metadata are approved at staging; continue independent worker, portfolio,
+    metrics, snapshot, and forward acceptance. Run the Compose/browser profile
+    when a Buildx-capable Docker CLI is available. Never wait for a stable v2
+    tag.

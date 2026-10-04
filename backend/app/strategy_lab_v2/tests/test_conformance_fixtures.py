@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import hashlib
-import json
+import stat
 from datetime import UTC, datetime
 from typing import Any, cast
 
@@ -33,7 +32,9 @@ from app.strategy_lab_v2.conformance_fixtures import (
 from app.strategy_lab_v2.contracts import ProductClass
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.local_conformance_source import (
+    LOCAL_NAUTILUS_RC_EVIDENCE_ENV,
     LOCAL_NAUTILUS_RC_EVIDENCE_SCHEMA,
+    LocalNautilusRcConformanceEvidencePublisher,
     LocalNautilusRcConformanceEvidenceSource,
 )
 from app.strategy_lab_v2.nautilus_event_adapter import (
@@ -524,12 +525,64 @@ def _rc_evidence_artifact(runtime: NautilusRcCompatibilityRuntime) -> dict[str, 
 
 
 def _write_local_evidence_artifact(directory: Any, runtime: NautilusRcCompatibilityRuntime) -> str:
-    raw = json.dumps(
-        _rc_evidence_artifact(runtime), ensure_ascii=False, allow_nan=False, sort_keys=True
-    ).encode("utf-8")
-    artifact_digest = f"sha256:{hashlib.sha256(raw).hexdigest()}"
-    (directory / f"{artifact_digest.removeprefix('sha256:')}.json").write_bytes(raw)
-    return artifact_digest
+    payload = _rc_evidence_artifact(runtime)
+    return (
+        LocalNautilusRcConformanceEvidencePublisher(directory)
+        .publish(
+            runtime=runtime,
+            probe_payload=payload["probe"],
+            fixture_payload=payload["receipt"],
+            build_digest=payload["build_digest"],
+            tested_at=NOW,
+        )
+        .artifact_digest
+    )
+
+
+def test_local_conformance_publisher_retries_atomically_without_overwrite(tmp_path: Any) -> None:
+    runtime = _rc_runtime()
+    payload = _rc_evidence_artifact(runtime)
+    publisher = LocalNautilusRcConformanceEvidencePublisher(tmp_path)
+
+    first = publisher.publish(
+        runtime=runtime,
+        probe_payload=payload["probe"],
+        fixture_payload=payload["receipt"],
+        build_digest=payload["build_digest"],
+        tested_at=NOW,
+    )
+    second = publisher.publish(
+        runtime=runtime,
+        probe_payload=payload["probe"],
+        fixture_payload=payload["receipt"],
+        build_digest=payload["build_digest"],
+        tested_at=NOW,
+    )
+
+    assert first.artifact_digest == second.artifact_digest
+    assert first.resolution.fingerprint == second.resolution.fingerprint
+    assert stat.S_IMODE(first.source.artifact_path.stat().st_mode) == 0o600
+
+
+def test_local_conformance_publisher_rejects_failed_fixtures_before_writing(
+    tmp_path: Any,
+) -> None:
+    runtime = _rc_runtime()
+    payload = _rc_evidence_artifact(runtime)
+    failed_fixture = dict(payload["receipt"])
+    failed_fixture["engine_lifecycle"] = "failed"
+    publisher = LocalNautilusRcConformanceEvidencePublisher(tmp_path)
+
+    with pytest.raises(ValueError, match="lifecycle must pass"):
+        publisher.publish(
+            runtime=runtime,
+            probe_payload=payload["probe"],
+            fixture_payload=failed_fixture,
+            build_digest=payload["build_digest"],
+            tested_at=NOW,
+        )
+
+    assert not tuple(tmp_path.iterdir())
 
 
 def test_local_conformance_source_verifies_content_and_exact_rc5_runtime_pins(
@@ -585,6 +638,31 @@ def test_local_conformance_source_rejects_operator_pin_mismatch(tmp_path: Any) -
 
     with pytest.raises(ValueError, match="source digest differs"):
         source.load()
+
+
+def test_local_conformance_source_loads_only_complete_operator_environment(
+    tmp_path: Any,
+) -> None:
+    runtime = _rc_runtime()
+    artifact_digest = _write_local_evidence_artifact(tmp_path, runtime)
+    environment = {
+        LOCAL_NAUTILUS_RC_EVIDENCE_ENV["artifact_directory"]: str(tmp_path),
+        LOCAL_NAUTILUS_RC_EVIDENCE_ENV["artifact_digest"]: artifact_digest,
+        LOCAL_NAUTILUS_RC_EVIDENCE_ENV["source_digest"]: runtime.source_digest,
+        LOCAL_NAUTILUS_RC_EVIDENCE_ENV["runtime_image_digest"]: runtime.runtime_image_digest,
+    }
+
+    assert LocalNautilusRcConformanceEvidenceSource.from_environment({}) is None
+    with pytest.raises(ValueError, match="configuration is incomplete"):
+        LocalNautilusRcConformanceEvidenceSource.from_environment(
+            {LOCAL_NAUTILUS_RC_EVIDENCE_ENV["artifact_digest"]: artifact_digest}
+        )
+    source = LocalNautilusRcConformanceEvidenceSource.from_environment(environment)
+
+    assert source is not None
+    resolution = source.load()
+    assert resolution.evidence.release_pin == runtime.release_pin
+    assert resolution.report.authoritative is False
 
 
 def test_executable_rc_suite_binds_to_the_probed_runtime_image() -> None:

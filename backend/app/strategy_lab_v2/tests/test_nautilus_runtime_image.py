@@ -3,6 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.strategy_lab_v2.conformance import NAUTILUS_V2_RC_WHEEL_SHA256
+from app.strategy_lab_v2.nautilus_runtime_image.evidence_build import (
+    PACKAGE_VERSION_LABEL,
+    SOURCE_DIGEST_LABEL,
+    WHEEL_DIGEST_LABEL,
+)
 
 DOCKERFILE = Path(__file__).parents[1] / "nautilus_runtime_image" / "Dockerfile"
 DOCKERIGNORE = DOCKERFILE.with_name("Dockerfile.dockerignore")
@@ -23,6 +28,10 @@ def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() ->
         in source
     )
     assert 'test -n "${NAUTILUS_WHEEL_FILENAME}"' in source
+    assert "ARG NAUTILUS_SOURCE_DIGEST" in source
+    assert f"{SOURCE_DIGEST_LABEL}=${{NAUTILUS_SOURCE_DIGEST}}" in source
+    assert f"{PACKAGE_VERSION_LABEL}=2.0.0rc5" in source
+    assert f"{WHEEL_DIGEST_LABEL}=${{NAUTILUS_WHEEL_SHA256}}" in source
     assert "ADD --checksum=sha256:${NAUTILUS_WHEEL_SHA256}" in source
     assert "COPY app/strategy_lab_v2/nautilus_runtime_image/reporting-requirements.txt" in source
     assert "--requirement /opt/strategy-lab-v2/reporting-requirements.txt" in source

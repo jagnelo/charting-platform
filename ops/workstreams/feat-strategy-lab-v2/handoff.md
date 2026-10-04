@@ -2,6 +2,69 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+## 2026-10-04 - Reproducible local Nautilus RC evidence build and host binding
+
+Stable Nautilus 2.x remains unnecessary. Added
+`nautilus_runtime_image/evidence_build.py`, which reconstructs a minimal Docker
+context from exact `COPY` inputs, hashes those inputs plus the qualification
+script and pinned base/wheel/build versions, writes the source digest into
+image labels, checks the resulting image ID and labels, then runs the runtime
+lifecycle and four-check simulator fixture with networking disabled, a
+read-only root, and dropped Linux capabilities. It publishes evidence only
+after strict payload validation and a content-addressed read-back.
+
+The exact current-source qualification passed with Nautilus `2.0.0rc5`, Python
+`3.12.4`, and Rust `1.98.1` (the release tag's toolchain pin). The four
+backtest checks passed: multi-instrument accounting, native order/fill/cost,
+deterministic replay, and engine lifecycle. Forward event-tape parity remains
+deferred; the overall release-candidate report is still non-authoritative and
+the runtime remains forbidden from broker/real-capital use. The scoped
+backtest binding can consume these four checks only when the worker image
+matches the exact digest.
+
+Pins: source `sha256:cc3a13652edf026eb0c60eccbdcaca64fa3281065afb7fe0cfe2c824aade6a82`,
+image `sha256:5e2c4bb2fa8013578d6761f9a3a504467c31f653c9c0025915b72e36c88df3e7`,
+artifact `sha256:aca8b8b50714d13aeb5333fa8d02f310d9ececb95726a44f940e6aa327258b26`,
+and conformance resolution `sha256:d5a48fb93cbebe68303f8e42255453e37a7971fa315ad0f155e09fc25ff05984`.
+The artifact is currently held at the ignored local path
+`.ai/runtime/strategy-lab-v2/nautilus-rc-evidence/`; its exact operator pins
+are loaded using `STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY`,
+`STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256`,
+`STRATEGY_LAB_V2_NAUTILUS_RC_SOURCE_SHA256`, and
+`STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256`. Empty configuration disables this
+binding; partial configuration fails closed. Search-preparation context now
+has a constructor that loads this source and binds the exact image and scoped
+backtest conformance together. The actual production API host factory and
+dedicated preparation process/client are still not registered/implemented.
+
+Validation: 1,247 Strategy Lab tests passed; package Ruff checks passed,
+changed-file formatting passed, and MyPy passed across 349 sources. The new
+image was rebuilt from current package sources, both hardened probes passed,
+and the emitted artifact loaded through the operator environment configuration.
+The broad backend coverage gate remains the previously recorded 2,885 tests at
+83.42% on `5d2a937`; it was not rerun for this local evidence/build slice.
+Buildx still limits only the final Compose/browser profile. Canonical provider
+coverage and instrument metadata remain fail-closed until staging approval.
+
+Next: register these pins/source in the local API host factory, then move
+hydration and runtime-input materialization to the dedicated local
+search-preparation process with an async API client. Continue remaining
+portfolio, metric, snapshot, worker, and forward acceptance; do not wait for a
+stable 2.x Nautilus tag.
+
+Changed source paths: `backend/app/strategy_lab_v2/local_conformance_source.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_image/Dockerfile`,
+`backend/app/strategy_lab_v2/nautilus_runtime_image/evidence_build.py`,
+`backend/app/strategy_lab_v2/search_dispatch_preparation.py`,
+`backend/app/strategy_lab_v2/tests/test_conformance_fixtures.py`,
+`backend/app/strategy_lab_v2/tests/test_nautilus_runtime_image.py`,
+`backend/app/strategy_lab_v2/tests/test_nautilus_runtime_evidence_build.py`,
+`backend/app/strategy_lab_v2/tests/test_search_dispatch_preparation.py`,
+`ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`,
+and `ops/workstreams/feat-strategy-lab-v2/session.json`.
+
 ## 2026-10-04 - Content-addressed local Nautilus RC evidence source
 
 Committed and pushed `52c38ce457a5d5c7e7ea5c2bcfaff9d0f4610625`. The new
