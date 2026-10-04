@@ -111,6 +111,87 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.find('.research-results-tool__comparison').exists()).toBe(true)
   })
 
+  it('loads full outputs only when comparison opens and reports changed and missing artifacts', async () => {
+    const compactRuns = [
+      { id: 10, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifact_count: 3, artifacts: [] },
+      { id: 11, status: 'completed', code_version_id: 5, run_config: {}, dataset_manifest: {}, artifact_count: 4, artifacts: [] },
+    ]
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve(compactRuns)
+      if (path === '/research/runs/10') return Promise.resolve({ ...compactRuns[0], artifacts: [
+        { id: 1, name: 'sample_size', artifact_type: 'scalar', payload: { value: 4 } },
+        { id: 2, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] } } },
+        { id: 3, name: 'config', artifact_type: 'custom', payload: { value: { alpha: 1, beta: 2 } } },
+      ] })
+      if (path === '/research/runs/11') return Promise.resolve({ ...compactRuns[1], artifacts: [
+        { id: 3, name: 'sample_size', artifact_type: 'scalar', payload: { value: 5 } },
+        { id: 4, name: 'trend', artifact_type: 'series', payload: { value: { values: [1, 3], timestamps: ['2026-01-01', '2026-01-02'] } } },
+        { id: 5, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } },
+        { id: 6, name: 'config', artifact_type: 'custom', payload: { value: { beta: 2, alpha: 1 } } },
+      ] })
+      return Promise.reject(new Error(`unexpected request: ${path}`))
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/10')
+    expect(apiGet).not.toHaveBeenCalledWith('/research/runs/11')
+    await wrapper.get('input[aria-label="Compare run 10"]').setValue(true)
+    await wrapper.get('input[aria-label="Compare run 11"]').setValue(true)
+    await wrapper.findAll('button').find(button => button.text() === 'Compare')!.trigger('click')
+    await flushPromises()
+
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/10')
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/11')
+    const comparison = wrapper.get('[aria-label="Study output comparison"]')
+    expect(comparison.text()).toContain('sample_size')
+    expect(comparison.text()).toContain('Value: 4')
+    expect(comparison.text()).toContain('Value: 5')
+    expect(comparison.text()).toContain('Changed')
+    expect(comparison.text()).toContain('Only in run 11')
+    expect(comparison.text()).toContain('Not produced')
+    expect(comparison.text()).toContain('2 observations; latest 3')
+    expect(comparison.text()).toContain('Same output')
+    expect(comparison.text()).toContain('Inspect output')
+    expect(comparison.text()).not.toContain('"values"')
+    const inspectTrend = comparison.findAll('details')[2]
+    const inspectElement = inspectTrend.element as HTMLDetailsElement
+    inspectElement.open = true
+    await inspectTrend.trigger('toggle')
+    await flushPromises()
+    expect(comparison.text()).toContain('"values"')
+  })
+
+  it('allows retrying a failed comparison detail request', async () => {
+    const compactRuns = [
+      { id: 12, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifact_count: 0, artifacts: [] },
+      { id: 13, status: 'completed', code_version_id: 5, run_config: {}, dataset_manifest: {}, artifact_count: 1, artifacts: [] },
+    ]
+    let detailAttempts = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve(compactRuns)
+      if (path === '/research/runs/13') {
+        detailAttempts += 1
+        if (detailAttempts === 1) return Promise.reject(new Error('run details unavailable'))
+      }
+      const id = Number(path.split('/').at(-1))
+      return Promise.resolve({ ...compactRuns.find(run => run.id === id), artifacts: [{ id, name: 'score', artifact_type: 'scalar', payload: { value: id } }] })
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+    await wrapper.get('input[aria-label="Compare run 12"]').setValue(true)
+    await wrapper.get('input[aria-label="Compare run 13"]').setValue(true)
+    await wrapper.findAll('button').find(button => button.text() === 'Compare')!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('run details unavailable')
+    expect(wrapper.findAll('button').some(button => button.text() === 'Retry comparison')).toBe(true)
+    await wrapper.findAll('button').find(button => button.text() === 'Retry comparison')!.trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('score')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
   it('shows a bounded detail-loading state while compact run artifacts hydrate', async () => {
     let resolveDetail!: (value: unknown) => void
     const detail = new Promise(resolve => { resolveDetail = resolve })

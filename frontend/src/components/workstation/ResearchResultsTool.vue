@@ -37,6 +37,38 @@
       <div><span>Parameters</span><b :class="comparisonClass('run_config')">{{ compact(comparisonRuns[0].run_config) }} / {{ compact(comparisonRuns[1].run_config) }}</b></div>
       <div><span>Dataset</span><b :class="comparisonClass('dataset_manifest')">{{ compact(comparisonRuns[0].dataset_manifest) }} / {{ compact(comparisonRuns[1].dataset_manifest) }}</b></div>
       <div><span>Reproducibility</span><b :class="comparisonClass('reproducibility_hash')">{{ comparisonRuns[0].reproducibility_hash ?? '—' }} / {{ comparisonRuns[1].reproducibility_hash ?? '—' }}</b></div>
+      <section class="research-results-tool__output-comparison" aria-label="Study output comparison">
+        <strong>Study outputs</strong>
+        <p v-if="comparisonLoading" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading outputs for comparison…</p>
+        <p v-else-if="comparisonError" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">
+          {{ comparisonError }} <button type="button" :disabled="comparisonLoading" @click="retryComparison">Retry comparison</button>
+        </p>
+        <p v-else-if="!comparisonArtifacts.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">Neither run produced study outputs.</p>
+        <table v-else class="research-results-tool__comparison-table">
+          <caption class="sr-only">Study output differences between runs {{ comparisonRuns[0].id }} and {{ comparisonRuns[1].id }}</caption>
+          <thead><tr><th scope="col">Output</th><th scope="col">Run {{ comparisonRuns[0].id }}</th><th scope="col">Run {{ comparisonRuns[1].id }}</th><th scope="col">Difference</th></tr></thead>
+          <tbody>
+            <tr v-for="pair in comparisonArtifacts" :key="pair.key">
+              <th scope="row"><strong>{{ pair.name }}</strong><small>{{ pair.artifactType }}</small></th>
+              <td>
+                <template v-if="pair.left">
+                  <span>{{ comparisonArtifactSummary(pair.left) }}</span>
+                  <details @toggle="setComparisonOutputOpen(pair.key, 'left', $event)"><summary>Inspect output</summary><pre v-if="comparisonOutputIsOpen(pair.key, 'left')">{{ artifactText(pair.left.payload) }}</pre></details>
+                </template>
+                <span v-else>Not produced</span>
+              </td>
+              <td>
+                <template v-if="pair.right">
+                  <span>{{ comparisonArtifactSummary(pair.right) }}</span>
+                  <details @toggle="setComparisonOutputOpen(pair.key, 'right', $event)"><summary>Inspect output</summary><pre v-if="comparisonOutputIsOpen(pair.key, 'right')">{{ artifactText(pair.right.payload) }}</pre></details>
+                </template>
+                <span v-else>Not produced</span>
+              </td>
+              <td><span :class="comparisonArtifactClass(pair)" :data-difference="pair.difference">{{ pair.difference }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
     </section>
     <article v-if="selectedRun" class="research-results-tool__detail" :aria-label="`Research run ${selectedRun.id} details`">
       <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button v-if="canCancel(selectedRun)" type="button" :disabled="canceling" @click="cancel(selectedRun)">Cancel</button><button v-if="canPromoteBreadth(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteScan(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to EasyScan' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to alert' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteGauge(selectedRun)">{{ promoting ? 'Promoting…' : 'Use as Market Gauge' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Strategy signal' }}</button><button v-if="canPromoteEventSignal(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save events as Strategy signal' }}</button><button v-if="canPromoteEventFilter(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventFilter(selectedRun)">{{ promoting ? 'Promoting…' : 'Save events as watchlist filter' }}</button><button v-if="canPromoteEventFilter(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote events to alert' }}</button><button v-if="canPromoteBreadthStudy(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteStudy(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Study Lab study' }}</button><button v-if="canPromoteBreadthPlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promotePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as chart plot' }}</button><button v-if="canPromoteBreadthAggregatePlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAggregatePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as aggregate chart plot' }}</button><button v-if="canPromoteBreadthColumn(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteColumn(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as watchlist column' }}</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, false)">Rerun latest</button></div>
@@ -173,6 +205,15 @@ interface ResearchRunSummary {
   artifact_count?: number
   artifacts: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }>
 }
+type ResearchArtifact = ResearchRunSummary['artifacts'][number]
+interface ComparisonArtifactPair {
+  key: string
+  name: string
+  artifactType: string
+  left: ResearchArtifact | null
+  right: ResearchArtifact | null
+  difference: string
+}
 
 const runs = ref<ResearchRunSummary[]>([])
 const resultsRoot = ref<HTMLElement | null>(null)
@@ -185,6 +226,11 @@ const resultsInstanceId = (() => {
 const selectedRun = ref<ResearchRunSummary | null>(null)
 const comparisonIds = ref<number[]>([])
 const comparisonOpen = ref(false)
+const comparisonDetails = ref<Record<number, ResearchRunSummary>>({})
+const comparisonOutputOpen = ref<Record<string, boolean>>({})
+const comparisonLoading = ref(false)
+const comparisonError = ref('')
+const comparisonAttempt = ref(0)
 const error = ref('')
 const rerunning = ref(false)
 const canceling = ref(false)
@@ -202,6 +248,36 @@ const seriesConditionOperator = ref<'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'ne'>('
 const seriesConditionThreshold = ref(0)
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string; instrument_id?: number }] }>()
 const comparisonRuns = computed(() => comparisonIds.value.map(id => runs.value.find(run => run.id === id)).filter((run): run is ResearchRunSummary => Boolean(run)))
+const comparisonArtifacts = computed<ComparisonArtifactPair[]>(() => {
+  const [leftRun, rightRun] = comparisonRuns.value.map(run => comparisonDetails.value[run.id] ?? run)
+  if (!leftRun || !rightRun) return []
+  const keyed = (artifacts: ResearchArtifact[]) => {
+    const occurrences = new Map<string, number>()
+    return artifacts.map(artifact => {
+      const base = `${artifact.artifact_type}\u0000${artifact.name}`
+      const occurrence = occurrences.get(base) ?? 0
+      occurrences.set(base, occurrence + 1)
+      return { key: `${base}\u0000${occurrence}`, artifact }
+    })
+  }
+  const left = keyed(leftRun.artifacts)
+  const right = keyed(rightRun.artifacts)
+  const leftByKey = new Map(left.map(item => [item.key, item.artifact]))
+  const rightByKey = new Map(right.map(item => [item.key, item.artifact]))
+  const keys = [...left.map(item => item.key), ...right.map(item => item.key).filter(key => !leftByKey.has(key))]
+  return keys.map(key => {
+    const artifact = leftByKey.get(key) ?? rightByKey.get(key)!
+    const leftArtifact = leftByKey.get(key) ?? null
+    const rightArtifact = rightByKey.get(key) ?? null
+    const difference = !leftArtifact || !rightArtifact
+      ? `Only in run ${leftArtifact ? leftRun.id : rightRun.id}`
+      : JSON.stringify(stableValue(comparisonArtifactValue(leftArtifact))) === JSON.stringify(stableValue(comparisonArtifactValue(rightArtifact))) ? 'Same output' : 'Changed'
+    return { key, name: artifact.name, artifactType: artifact.artifact_type, left: leftArtifact, right: rightArtifact, difference }
+  })
+})
+const comparisonLoadKey = computed(() => comparisonOpen.value && comparisonRuns.value.length === 2
+  ? `${comparisonRuns.value.map(run => `${run.id}:${run.status}:${run.artifact_count ?? run.artifacts.length}`).join('|')}|retry:${comparisonAttempt.value}`
+  : '')
 const surfaceVisible = ref(true)
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
 const runsQueryKey = ['workstation', 'research-runs'] as const
@@ -210,6 +286,7 @@ const artifactSummaryId = (artifactId: number) => `${resultsInstanceId}-research
 let visibilityObserver: IntersectionObserver | null = null
 let mounted = false
 let mutationGeneration = 0
+let comparisonGeneration = 0
 function isCurrentMutation(generation: number) { return mounted && generation === mutationGeneration }
 function beginPromotion() {
   const generation = mutationGeneration
@@ -259,6 +336,40 @@ watch(() => runsQuery.error.value, cause => {
 watch(() => selectedRunDetailQuery.data.value, detail => {
   if (detail && detail.id === selectedRun.value?.id) selectedRun.value = detail
 })
+watch(comparisonLoadKey, key => { void loadComparisonDetails(key) }, { immediate: true })
+
+async function loadComparisonDetails(key: string) {
+  const generation = ++comparisonGeneration
+  comparisonError.value = ''
+  if (!key) {
+    comparisonLoading.value = false
+    return
+  }
+  const selected = comparisonRuns.value.slice()
+  comparisonLoading.value = true
+  const results = await Promise.allSettled(selected.map(run => {
+    const artifactCount = run.artifact_count ?? run.artifacts.length
+    if (run.artifacts.length >= artifactCount) return Promise.resolve(run)
+    return queryClient.fetchQuery<ResearchRunSummary>({
+      queryKey: ['workstation', 'research-run', run.id],
+      queryFn: () => api.get<ResearchRunSummary>(`/research/runs/${run.id}`),
+      staleTime: 5_000,
+      retry: false,
+    })
+  }))
+  if (!mounted || generation !== comparisonGeneration || key !== comparisonLoadKey.value) return
+  const detailUpdates: Record<number, ResearchRunSummary> = {}
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') detailUpdates[selected[index].id] = result.value
+  })
+  comparisonDetails.value = { ...comparisonDetails.value, ...detailUpdates }
+  const failure = results.find((result): result is PromiseRejectedResult => result.status === 'rejected')
+  comparisonError.value = failure
+    ? (failure.reason instanceof Error ? failure.reason.message : 'Unable to load study outputs for comparison')
+    : ''
+  comparisonLoading.value = false
+}
+function retryComparison() { comparisonAttempt.value += 1 }
 
 function artifactText(payload: Record<string, unknown>) { return JSON.stringify(payload.value ?? payload, null, 2) }
 function statusLabel(status: string) {
@@ -497,6 +608,54 @@ function toggleComparison(id: number) {
 }
 function compact(value: unknown) { return JSON.stringify(value) }
 function comparisonClass(key: keyof ResearchRunSummary) { return JSON.stringify(comparisonRuns.value[0][key]) === JSON.stringify(comparisonRuns.value[1][key]) ? 'research-results-tool__same' : 'research-results-tool__changed' }
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableValue)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key, item]) => [key, stableValue(item)]))
+  }
+  return value
+}
+function comparisonArtifactValue(artifact: ResearchArtifact) {
+  return Object.prototype.hasOwnProperty.call(artifact.payload, 'value') ? artifact.payload.value : artifact.payload
+}
+function comparisonArtifactClass(pair: ComparisonArtifactPair) {
+  return pair.difference === 'Same output' ? 'research-results-tool__same' : 'research-results-tool__changed'
+}
+function comparisonOutputKey(pairKey: string, side: 'left' | 'right') { return `${pairKey}\u0000${side}` }
+function comparisonOutputIsOpen(pairKey: string, side: 'left' | 'right') { return Boolean(comparisonOutputOpen.value[comparisonOutputKey(pairKey, side)]) }
+function setComparisonOutputOpen(pairKey: string, side: 'left' | 'right', event: Event) {
+  comparisonOutputOpen.value = { ...comparisonOutputOpen.value, [comparisonOutputKey(pairKey, side)]: (event.currentTarget as HTMLDetailsElement).open }
+}
+function comparisonArtifactSummary(artifact: ResearchArtifact) {
+  const value = comparisonArtifactValue(artifact)
+  if (artifact.artifact_type === 'scalar') return `Value: ${value == null ? '—' : String(value)}`
+  if (artifact.artifact_type === 'boolean') return `Value: ${value === true ? 'True' : value === false ? 'False' : '—'}`
+  if (artifact.artifact_type === 'series') {
+    const data = seriesData(artifact)
+    return data ? `${data.values.length} observations; latest ${data.values[data.values.length - 1] ?? '—'}` : 'Series output'
+  }
+  if (artifact.artifact_type === 'range') {
+    const data = rangeData(artifact)
+    return data ? `${data.timestamps.length} observations; latest center ${data.center?.[data.center.length - 1] ?? '—'}` : 'Range output'
+  }
+  if (artifact.artifact_type === 'table') return `${tableRows(artifact).length} rows · ${tableColumns(artifact).length} columns`
+  if (artifact.artifact_type === 'events') return `${Array.isArray(value) ? value.length : 0} occurrences`
+  if (artifact.artifact_type === 'breadth_history') {
+    const data = breadthHistoryData(artifact)
+    return data ? `${data.points.length} history points · ${data.occurrences?.length ?? 0} occurrences` : 'Historical breadth output'
+  }
+  if (artifact.artifact_type === 'bar') return `${barData(artifact)?.labels.length ?? 0} categories`
+  if (artifact.artifact_type === 'histogram') return `${histogramData(artifact)?.bins.length ?? 0} bins`
+  if (artifact.artifact_type === 'scatter') return `${scatterData(artifact)?.x.length ?? 0} paired observations`
+  if (artifact.artifact_type === 'heatmap') {
+    const data = heatmapData(artifact)
+    return data ? `${data.rows.length} × ${data.columns.length} cells` : 'Heatmap output'
+  }
+  if (artifact.artifact_type === 'dashboard') return `${dashboardData(artifact)?.length ?? 0} panels`
+  if (Array.isArray(value)) return `${value.length} items`
+  if (value && typeof value === 'object') return `${Object.keys(value).length} fields`
+  return value == null ? 'No value' : String(value)
+}
 function canCancel(run: ResearchRunSummary) { return !['completed', 'failed', 'canceled'].includes(run.status) }
 function canPromoteBreadth(run: ResearchRunSummary) {
   return run.status === 'completed'
@@ -1380,6 +1539,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   mounted = false
   mutationGeneration += 1
+  comparisonGeneration += 1
   document.removeEventListener('visibilitychange', updateDocumentVisibility)
   visibilityObserver?.disconnect()
   visibilityObserver = null
@@ -1395,4 +1555,5 @@ onBeforeUnmount(() => {
 .research-results-tool__event-promotions { display:flex; flex-wrap:wrap; gap:4px; }.research-results-tool__event-promotions button { padding:2px 4px; }
 .research-results-tool__artifact-promotions { display:flex; flex-wrap:wrap; gap:4px; }.research-results-tool__artifact-promotions button { padding:2px 4px; }
 .research-results-tool__series-condition { display:flex; align-items:center; flex-wrap:wrap; gap:4px; flex-basis:100%; color:#91a8b4; }.research-results-tool__series-condition label { display:flex; align-items:center; gap:3px; }.research-results-tool__series-condition select,.research-results-tool__series-condition input { min-width:52px; border:1px solid #3a4954; background:#121a20; color:#dce6ed; font:inherit; padding:2px 3px; }.research-results-tool__series-condition button { padding:2px 4px; }
+.research-results-tool__output-comparison { margin-top:7px; border-top:1px solid #34424c; padding-top:5px; }.research-results-tool__comparison-table { width:100%; border-collapse:collapse; margin-top:4px; }.research-results-tool__comparison-table th,.research-results-tool__comparison-table td { padding:3px 4px; border:1px solid #2c3943; text-align:left; vertical-align:top; overflow-wrap:anywhere; }.research-results-tool__comparison-table th small { display:block; color:#8195a3; font-weight:400; }.research-results-tool__comparison-table details { margin-top:3px; }.research-results-tool__comparison-table summary { color:#91a8b4; cursor:pointer; }.research-results-tool__comparison-table pre { max-width:280px; max-height:140px; margin:3px 0; overflow:auto; white-space:pre-wrap; }
 </style>
