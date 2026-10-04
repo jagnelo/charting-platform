@@ -120,7 +120,7 @@ from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import (
     _build_inputs,
 )
 from app.strategy_lab_v2.tests.test_trial_hydration import MemoryDomainReader
-from app.strategy_lab_v2.tests.test_worker_consumer import FakeRedis, _stream_response
+from app.strategy_lab_v2.tests.test_worker_consumer import FakeRedis, _raw_entry, _stream_response
 from app.strategy_lab_v2.trial_hydration import NautilusTrialDomainHydrator
 from app.strategy_lab_v2.worker_callbacks import create_search_dispatch
 from app.strategy_lab_v2.worker_consumer import (
@@ -1046,10 +1046,16 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         sleep=scheduler_sleep,
     )
     clock_value = [context.observed_at]
+    terminal_write_attempts = 0
 
     async def persist_terminal(completion_context: WorkerCompletionContext) -> WorkerHandleResult:
+        nonlocal terminal_write_attempts
+        terminal_write_attempts += 1
         assert callbacks.terminal_writer is not None
         receipt = await callbacks.terminal_writer(completion_context)
+        if terminal_write_attempts == 1:
+            timeline.append("terminal-commit-response-lost")
+            raise TimeoutError("terminal receipt response was interrupted after commit")
         timeline.append("terminal-persisted")
         return receipt
 
@@ -1063,16 +1069,31 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         terminal_writer=persist_terminal,
     )
 
-    first_cycle = await dispatch_worker.handle_materialized_once(
+    failed_cycle = await dispatch_worker.handle_materialized_once(
         submission_adapter,
         service.handle,
     )
-    assert len(first_cycle.entries) == 1
-    first_resolution = first_cycle.entries[0]
+    assert len(failed_cycle.entries) == 1
+    failed_resolution = failed_cycle.entries[0]
+    assert failed_resolution.decision.value == "retry"
+    assert failed_resolution.handler.rejection_reason == (
+        "worker terminal completion failed: TimeoutError"
+    )
+    assert timeline == ["terminal-commit-response-lost"]
+    assert not any(call[0] == "xack" for call in redis.calls)
+
+    redis.fresh = ()
+    redis.reclaimed = (_raw_entry(entry),)
+    recovered_cycle = await dispatch_worker.handle_materialized_once(
+        submission_adapter,
+        service.handle,
+    )
+    assert len(recovered_cycle.entries) == 1
+    first_resolution = recovered_cycle.entries[0]
     assert (
         first_resolution.decision.value == "acknowledged"
     ), first_resolution.handler.rejection_reason
-    assert timeline == ["terminal-persisted", "ack"]
+    assert timeline == ["terminal-commit-response-lost", "terminal-persisted", "ack"]
     first = first_resolution.handler
     clock_value[0] += timedelta(seconds=30)
     redelivered = await service.handle(entry, payload)
@@ -1080,9 +1101,9 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
     assert first.decision is WorkerHandleDecision.COMPLETE
     assert redelivered.decision is WorkerHandleDecision.COMPLETE
     assert redelivered.receipt_digest == first.receipt_digest
-    assert runtime_port.observed_at == [NOW, NOW]
-    assert worker_state_port.release_times == [NOW, NOW]
-    assert completion_port.completed_at == [NOW, NOW]
+    assert runtime_port.observed_at == [NOW, NOW, NOW]
+    assert worker_state_port.release_times == [NOW, NOW, NOW]
+    assert completion_port.completed_at == [NOW, NOW, NOW]
     assert len(settlement_port.ledger.records) == 1
     assert len(completion_port.completions.records) == 1
     assert not worker_state_port.pool.active_reservations
