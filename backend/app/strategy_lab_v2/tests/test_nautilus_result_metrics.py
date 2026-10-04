@@ -133,6 +133,8 @@ def test_build_nautilus_oos_equity_metric_set_binds_trial_attempt_and_trace() ->
     assert metric_set.definition_version == METRIC_DEFINITION_VERSION
     assert metrics["total_pnl"].value == Decimal("60")
     assert metrics["total_return"].value == Decimal("0.05")
+    assert metrics["maximum_drawdown_amount"].value == Decimal("40")
+    assert metrics["maximum_drawdown_amount"].unit == "currency:USD"
     assert metrics["total_return"].evidence_references[0].digest == (
         reference.artifact.content_digest
     )

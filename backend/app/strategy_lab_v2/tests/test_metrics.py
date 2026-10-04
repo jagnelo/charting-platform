@@ -45,6 +45,8 @@ def test_performance_metrics_report_currency_drawdown_recovery_and_empirical_tai
     assert metrics["total_pnl"].value == Decimal("20")  # type: ignore[attr-defined]
     assert metrics["total_pnl"].unit == "currency:USD"  # type: ignore[attr-defined]
     assert metrics["total_return"].value == Decimal("0.2")  # type: ignore[attr-defined]
+    assert metrics["maximum_drawdown_amount"].value == Decimal("10")  # type: ignore[attr-defined]
+    assert metrics["maximum_drawdown_amount"].unit == "currency:USD"  # type: ignore[attr-defined]
     assert metrics["maximum_drawdown_duration"].value == Decimal("1")  # type: ignore[attr-defined]
     assert metrics["recovery_factor"].value == Decimal("2.0")  # type: ignore[attr-defined]
     with localcontext() as decimal_context:
@@ -83,6 +85,9 @@ def test_event_aligned_equity_metrics_use_oos_opening_mark_and_withhold_annualiz
         decimal_context.prec = 34
         expected_drawdown = Decimal("126") / Decimal("130") - Decimal(1)
     assert metrics["maximum_drawdown"].value == expected_drawdown  # type: ignore[attr-defined]
+    assert metrics["maximum_drawdown_amount"].value == Decimal("4")  # type: ignore[attr-defined]
+    assert metrics["maximum_drawdown_amount"].unit == "currency:USD"  # type: ignore[attr-defined]
+    assert metrics["maximum_drawdown_amount"].sample_size == 2  # type: ignore[attr-defined]
     assert metrics["maximum_drawdown_duration"].value == Decimal(1)  # type: ignore[attr-defined]
     assert metrics["maximum_drawdown_duration_seconds"].value is None  # type: ignore[attr-defined]
     assert metrics["maximum_drawdown_duration_seconds"].null_reason == (  # type: ignore[attr-defined]
@@ -231,6 +236,10 @@ def test_event_aligned_equity_metrics_do_not_claim_returns_without_oos_intervals
     assert metrics["total_pnl"].value is None  # type: ignore[attr-defined]
     assert metrics["total_pnl"].sample_size == 0  # type: ignore[attr-defined]
     assert metrics["total_pnl"].null_reason == "no_scored_observations"  # type: ignore[attr-defined]
+    assert metrics["maximum_drawdown_amount"].value is None  # type: ignore[attr-defined]
+    assert (
+        metrics["maximum_drawdown_amount"].null_reason == "no post-opening OOS equity observations"
+    )  # type: ignore[attr-defined]
 
 
 def test_event_aligned_equity_metrics_require_verified_trace_count_and_digest() -> None:

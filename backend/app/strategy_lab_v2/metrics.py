@@ -52,7 +52,7 @@ from app.strategy_lab_v2.rebalance import (
     require_complete_calendar_period_coverage,
 )
 
-METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v13"
+METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v14"
 DEFAULT_SESSION_RETURN_QUANTILE_PROBABILITIES = (
     Decimal("0.05"),
     Decimal("0.25"),
@@ -65,6 +65,7 @@ _METRIC_FORMULAS = {
     "total_pnl": "terminal equity minus initial capital; external cash flows are not modeled",
     "total_return": "terminal equity divided by initial capital minus one",
     "maximum_drawdown": "minimum observed equity divided by running peak minus one",
+    "maximum_drawdown_amount": "largest observed peak-to-trough equity loss in account base currency",
     "maximum_drawdown_duration": "longest count of sampled observations below the running peak",
     "maximum_drawdown_duration_seconds": "longest elapsed UTC duration from an observed running peak to its first observed recovery or terminal under-water mark",
     "ulcer_index": "square root of the mean squared observed drawdown fractions",
@@ -381,6 +382,17 @@ def calculate_performance_metrics(
             basis=basis,
             sample_size=len(curve),
             calculation_basis="equity versus running peak, including initial capital",
+        ),
+        _value(
+            "maximum_drawdown_amount",
+            max_drawdown_amount,
+            unit=f"currency:{currency}",
+            basis=basis,
+            sample_size=len(curve),
+            calculation_basis=(
+                "largest observed running-peak equity minus subsequent trough equity; "
+                "includes initial capital and is not annualized"
+            ),
         ),
         _value(
             "maximum_drawdown_duration",
@@ -827,6 +839,7 @@ def calculate_event_aligned_equity_metrics(
     )
     no_scored_observations = scored_observations == 0
     drawdown_null_reason: str | None
+    drawdown_amount_null_reason: str | None
     return_null_reason: str | None
     recovery_null_reason: str | None
     if no_scored_observations:
@@ -834,10 +847,12 @@ def calculate_event_aligned_equity_metrics(
         total_pnl: Decimal | None = None
         total_return: Decimal | None = None
         drawdown_value: Decimal | None = None
+        drawdown_amount_value: Decimal | None = None
         drawdown_duration: Decimal | None = None
         ulcer_index: Decimal | None = None
         recovery_factor: Decimal | None = None
         drawdown_null_reason = unavailable
+        drawdown_amount_null_reason = unavailable
         return_null_reason = unavailable
         recovery_null_reason = unavailable
     else:
@@ -845,6 +860,7 @@ def calculate_event_aligned_equity_metrics(
         total_return = terminal_equity / opening_equity - Decimal(1) if opening_equity > 0 else None
         return_null_reason = None if opening_equity > 0 else "opening equity is zero"
         drawdown_value = maximum_drawdown if opening_equity > 0 else None
+        drawdown_amount_value = maximum_drawdown_amount
         drawdown_duration = Decimal(maximum_drawdown_duration)
         ulcer_index = (
             (squared_drawdown_total / Decimal(observed_drawdowns)).sqrt()
@@ -852,6 +868,7 @@ def calculate_event_aligned_equity_metrics(
             else None
         )
         drawdown_null_reason = None if opening_equity > 0 else "opening equity is zero"
+        drawdown_amount_null_reason = None
         if maximum_drawdown_amount > 0:
             recovery_factor = total_pnl / maximum_drawdown_amount
             recovery_null_reason = None
@@ -953,6 +970,18 @@ def calculate_event_aligned_equity_metrics(
             sample_size=scored_observations,
             calculation_basis=f"event-mark equity versus running peak, including opening OOS equity; {observation_basis}",
             null_reason=drawdown_null_reason,
+        ),
+        _value(
+            "maximum_drawdown_amount",
+            drawdown_amount_value,
+            unit=f"currency:{currency}",
+            basis=basis,
+            sample_size=scored_observations,
+            calculation_basis=(
+                "largest observed running-peak equity minus subsequent trough equity, "
+                f"including opening OOS equity; {observation_basis}"
+            ),
+            null_reason=drawdown_amount_null_reason,
         ),
         _value(
             "maximum_drawdown_duration",
