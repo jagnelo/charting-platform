@@ -419,59 +419,52 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: wisdomtree_symbols_degraded_recovery_vendor_reviewed_branch_tests_pass_visual_gate_failure_shared_platform_open
+current_phase: exact_sha_ci_passed_local_visual_gate_and_shared_platform_dependency_open
 current_blocker: >-
-  The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. This
-  changeset started from synchronized ETF branch tip
-  48512cd934759c8a52e9b4071c281ef763a08699; the current worktree contains the
-  in-progress ETF-only source/audit correction. Exact-SHA GitHub run
-  37209026444 on 48512cd passed Backend Tests, Frontend Unit Tests,
-  Branch-declared Tests, and Playwright; the protected Exhaustive Integration
-  Gate was skipped as designed for a feature branch. The full opt-in holdings
-  matrix on source a67ceed7 collected 537 cases and passed 508 with 29 skips.
-  A fresh host-context canary run for DXJ/NTSX skipped both symbols because
-  WisdomTree issuer access challenges blocked the application request and its
-  bounded HTTP/1.1 retry; the official pages crawled the same day expose only
-  ten named rows plus Remaining Portfolio. Accordingly, this changeset updates
-  both symbol audits to degraded and ensures stored snapshots cannot remain
-  usable for current analysis without renewed complete-route evidence. The
-  provider-specific adapter and provider-level 496/421/75 split remain
-  unchanged. The corrected full local gate passed combined backend coverage,
-  frontend coverage/build, Compose/runtime health, research-runner probes, and
-  functional Playwright. It stopped at generic visual E2E with 93 screenshot
-  mismatches across profiles (stable 1-3% pixel differences against a 0.5%
-  threshold); those tests and snapshots are outside ETF owned_paths and were
-  not changed. The previous F9c/F8j functional failures did not reproduce.
-  Gate cleanup was limited to this worktree; host-wide prune was false. A
-  post-audit `symbol_audit_revalidated_at` marker now permits recovery only
-  after successful bounded fetch/ingestion and all normal current-data checks;
-  stale stored success remains degraded, and failure clears the marker. ETF is
-  still uncommitted from synchronized base
-  `48512cd934759c8a52e9b4071c281ef763a08699`. Current remote refs are ETF
-  48512cd9, provider-platform 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and
-  staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35; provider-platform is not
-  in staging. AC7 remains open on the unrelated visual gate; AC8 remains open
-  Exact-SHA CI and synchronization remain pending. AC10 awaits provider-platform
-  reaching staging; AC14 remains the documented post-integration/deployment
-  30-day shadow observation. The free-first review found no compliant DXJ/NTSX
-  third-party holdings route within the US$20 platform-wide budget: StockAnalysis
-  prohibits automated collection and lacks an API, FMP lists holdings at
-  US$149/month, and EODHD fundamentals are listed at US$41.99/month with
-  commercial pricing requiring separate review. Both symbols stay degraded.
-  The complete branch-declared suite passed 592 deterministic cases, the
-  537-case opt-in matrix (506 passed/31 narrow skips), three default live
-  contracts, Ruff, workstream validation, frontend type-check, 17 ETF UI tests,
-  and production build. The fresh two-symbol canary skipped on issuer
-  challenges. No live skip is claimed as a pass.
+  The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The
+  ETF-only recovery and source-review changeset was committed as
+  8077facb83b8114f6b85155d7fbf9988547b73e9 and pushed; local HEAD and
+  origin/feat/etf-holdings-constituents were verified identical before this
+  receipt update. The exact-SHA GitHub Actions run 37217132920 on that commit
+  passed Backend Tests, Frontend Unit Tests, Branch-declared Tests, and
+  Playwright E2E; the protected Exhaustive Integration Gate was skipped as
+  designed for this feature branch. The 537-case declared opt-in matrix passed
+  506 with 31 narrowly evidenced external/access/current-source-variant skips;
+  default live contracts were 3 passed/534 opt-in skipped. The bounded DXJ/NTSX
+  canary itself skipped both symbols because issuer access challenges blocked
+  the application request and HTTP/1.1 retry; these are not live passes. Both
+  symbols remain degraded until a complete fresh identity-bound route succeeds.
+  Recovery is implemented safely: only a successful bounded fetch/identity
+  check/ingestion sets `symbol_audit_revalidated_at`, while old stored success
+  stays degraded and any later failed canary clears the marker. Provider counts
+  remain 496/421/75. A free-first source review found StockAnalysis exposes only
+  the top 25 publicly and prohibits automated collection; FMP lists holdings
+  at US$149/month billed annually; EODHD lists Fundamentals at US$41.99/month
+  and directs commercial users to a separate plan. No reviewed vendor fits the
+  shared US$20/month budget with approved commercial terms, and none was
+  activated.
+
+  The corrected Docker full-integration gate passed all stages through
+  functional Playwright and failed at generic visual E2E: 93 of 104 screenshots
+  mismatch by stable 1-3% pixel differences against a 0.5% threshold. The
+  report timestamp is 2026-10-04T15:57:36Z. These generic workstation visual
+  tests/snapshots are outside ETF owned_paths and were not changed. No other
+  worktree was modified, and cleanup was restricted to this ETF stack. AC7
+  remains open on this local visual gate. AC8 also remains open because the
+  branch cannot claim ready_for_human_review while the required local gate is
+  red, even though the implementation SHA, exact-SHA CI, and remote sync pass.
+  The current operational receipt is being checkpointed separately. The
+  provider-platform branch is still not in staging, so AC10 remains
+  dependency-gated; AC14 remains the documented post-integration/deployment
+  30-day shadow observation.
 next_action: >-
-  Rerun branch validation and focused runtime/YAML/session invariants after the
-  documented source review, then commit and push the ETF-owned implementation
-  changeset and its separate operational receipt. Obtain exact-SHA CI and keep
-  the goal active: AC7 remains open because the local full gate fails on 93
-  generic visual screenshots outside ETF ownership, AC8 awaits a clean
-  synchronized exact-CI checkpoint, and AC10 awaits provider-platform reaching
-  staging. Keep DXJ/NTSX degraded until a complete, dated, identity-verified
-  source is executable within approved terms and the budget; do not substitute
-  top-ten, SEC, or unapproved paid data. Preserve visual artifacts for their
-  owners and do not rebaseline them from this ETF scope. AC14 remains a
-  post-integration/deployment observation.
+  Finish and verify the separate operational receipt for implementation SHA
+  8077facb83b8114f6b85155d7fbf9988547b73e9. Keep the goal active with scope
+  boundaries intact: no ETF-owned assertion failed in the passing exact-SHA CI;
+  the remaining gates are the unrelated local visual suite, provider-platform
+  reaching staging before the `ETF_HOLDINGS` bridge, and the later 30-day shadow
+  observation. Keep DXJ/NTSX degraded until a complete dated identity-verified
+  public/already-entitled route is executable within approved terms and budget.
+  On the next continuation, refresh provider/staging refs read-only and proceed
+  only if an ETF-owned task can advance without crossing branch boundaries.
+  Do not change generic visual tests/baselines, staging, or another worktree.

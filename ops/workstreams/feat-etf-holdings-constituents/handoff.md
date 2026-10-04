@@ -7211,14 +7211,14 @@ update cadence, but show only the top 25 and gate the rest behind a subscription
 their current terms prohibit automated/programmatic collection and the help
 center says there is no API or redistribution entitlement. Do not scrape it.
 Financial Modeling Prep lists ETF holdings only in its US$149/month Ultimate
-tier, billed annually. EODHD documents ETF holdings but lists the Fundamentals feed at
-US$41.99/month; its US$19.99 plan is EOD-only, and commercial users are directed
-to separate terms/pricing. These alternatives are above the platform-wide
-US$20/month ceiling, prohibited for automation, or lack an approved commercial
-quote. No purchase, credential, or paid activation was made. The provider audit
-and universe documentation now record these sources; DXJ/NTSX remain degraded
-and may recover only through a complete, current, identity-verified route within
-approved terms and budget.
+tier, billed annually. EODHD documents ETF holdings but lists the Fundamentals
+feed at US$41.99/month; its US$19.99 plan is EOD-only, and commercial users are
+directed to separate terms/pricing. These alternatives are above the platform-
+wide US$20/month ceiling, prohibited for automation, or lack an approved
+commercial quote. No purchase, credential, or paid activation was made. The
+provider audit and universe documentation now record these sources; DXJ/NTSX
+remain degraded and may recover only through a complete, current,
+identity-verified route within approved terms and budget.
 
 The complete branch-declared runner passed after the recovery fix: 592
 deterministic adapter tests; default live contracts (3 passed, 534 opt-in
@@ -7233,11 +7233,40 @@ outside ETF ownership and were not changed. The first full-gate attempt caught
 and led to the canary-recovery fix; the corrected full gate is the current
 result.
 
-Next: re-run branch/workstream and focused runtime/YAML/session invariants for
-the final documentation diff, commit and push the self-contained ETF
-implementation/source-review changeset, then publish the separate operational
-receipt and obtain exact-SHA CI. Keep AC7 open on the generic visual gate, AC8
-open until exact-SHA CI and synchronization, AC10 gated on the other feature
-branch reaching staging, and AC14 as post-integration/deployment evidence. Do
-not alter visual baselines, other worktrees, staging, or the shared provider
-runtime from this feature worktree.
+The branch-local checks and exact-SHA CI have since completed; see the latest
+checkpoint below. Keep AC7 open on the generic visual gate, AC8 open until the
+operational receipt is synchronized, AC10 gated on the other feature branch
+reaching staging, and AC14 as post-integration/deployment evidence. Do not alter
+visual baselines, other worktrees, staging, or the shared provider runtime from
+this feature worktree.
+
+## Exact-SHA CI and operational checkpoint — 2026-10-04
+
+Implementation changeset `8077facb83b8114f6b85155d7fbf9988547b73e9` was pushed
+to `origin/feat/etf-holdings-constituents`; local and remote refs matched. GitHub
+Actions run `37217132920` on that exact SHA passed Backend Tests, Frontend Unit
+Tests, Branch-declared Tests, and Playwright E2E. The protected Exhaustive
+Integration Gate was skipped by design on the feature branch. The branch suite
+recorded 592 deterministic adapter passes, 3 default live-contract passes with
+534 opt-in cases skipped, and the 537-case opt-in matrix with 506 passes and 31
+narrowly evidenced skips. The DXJ/NTSX issuer canary skipped both on current
+issuer challenges; neither skip is called a pass.
+
+The corrected local full-integration replay reached its visual stage and failed
+only on the generic visual suite: 93 of 104 screenshot cases had stable 1–3%
+pixel differences against the 0.5% limit. The report was last updated at
+2026-10-04T15:57:36Z. The generic test files and snapshots are outside ETF
+ownership; none were changed or skipped. All prior full-gate stages, including
+functional Playwright, passed. Branch-local closeout checks passed 113 ETF
+capability/refresh tests; 3 vendor/Tier-0/session narrative invariants; Ruff
+and format; workstream validation of 30 records; and `git diff --check`.
+
+Current blockers are explicit and separate: AC7 awaits resolution by the owner
+of the generic visual gate; AC10 awaits `feat/market-data-provider-platform`
+reaching staging before the ETF capability bridge can be implemented; AC14 is
+the later 30-day post-integration/deployment observation. AC8 remains pending
+until this operational receipt is separately committed and synchronized. Keep
+the saved goal active; do not touch another branch/worktree, staging, or generic
+visual baselines. Next: append validation rows, refresh this session's durable
+checkpoint, make the separate operational-record commit/push, and verify the
+exact branch tip and clean worktree.
