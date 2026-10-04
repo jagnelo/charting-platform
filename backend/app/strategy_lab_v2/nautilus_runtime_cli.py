@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, BinaryIO
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.nautilus_calendar_wire import session_calendar_from_wire
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     MAX_NAUTILUS_NATIVE_EVENT_STREAM_BYTES,
 )
@@ -31,6 +32,7 @@ from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4,
+    NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V5,
 )
 
 _LEGACY_BUNDLE_FIELDS = frozenset(
@@ -99,6 +101,30 @@ def _read_bundle(path_value: str, *, max_bytes: int) -> Mapping[str, Any]:
             raise ValueError("component streaming runtime bundle fields are invalid")
         _native_event_stream_reference(decoded)
         _context_stream_reference(decoded)
+    elif schema == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V5:
+        expected_fields = {
+            "schema",
+            "engine_input",
+            "strategy_context_stream",
+            "session_calendar",
+            "session_periods_per_year",
+        }
+        if "native_event_stream" in decoded:
+            expected_fields.add("native_event_stream")
+            _native_event_stream_reference(decoded)
+        if set(decoded) != expected_fields:
+            raise ValueError("session-metric runtime bundle fields are invalid")
+        _context_stream_reference(decoded)
+        calendar = session_calendar_from_wire(decoded["session_calendar"])
+        if calendar is None:
+            raise ValueError("session-metric runtime bundle calendar is missing")
+        periods = decoded["session_periods_per_year"]
+        if not isinstance(periods, int) or isinstance(periods, bool) or periods < 1:
+            raise ValueError("session-metric annualization must be a positive integer")
+        context_reference = decoded["strategy_context_stream"]
+        if isinstance(context_reference, Mapping) and "component_counts" in context_reference:
+            if "native_event_stream" not in decoded:
+                raise ValueError("component session-metric bundles require native event streaming")
     else:
         raise ValueError("runtime bundle schema is unsupported")
     if not isinstance(decoded["engine_input"], Mapping):
@@ -393,6 +419,10 @@ def run_bundle(
     )
     bundle = _read_bundle(input_path, max_bytes=max_input_bytes)
     engine_input = bundle["engine_input"]
+    session_calendar = session_calendar_from_wire(bundle.get("session_calendar"))
+    session_calendar_options: dict[str, Any] = (
+        {} if session_calendar is None else {"session_calendar": session_calendar}
+    )
     if engine_input["data_snapshot_fingerprint"] != expected_snapshot_fingerprint:
         raise ValueError("runtime bundle snapshot differs from the Nautilus execution plan")
     if runtime_package_version() != expected_version:
@@ -418,10 +448,18 @@ def run_bundle(
     else:
         native_stream_binding: tuple[str, int] | None = None
         component_stream_bundle = bundle["schema"] == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4
+        if bundle["schema"] == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V5:
+            context_reference = bundle["strategy_context_stream"]
+            component_stream_bundle = (
+                isinstance(context_reference, Mapping) and "component_counts" in context_reference
+            )
         if bundle["schema"] in {
             NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3,
             NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4,
-        }:
+        } or (
+            bundle["schema"] == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V5
+            and "native_event_stream" in bundle
+        ):
             if native_event_stream_path is None:
                 raise ValueError(
                     "native streaming runtime bundle requires its mounted event stream"
@@ -545,6 +583,7 @@ def run_bundle(
                                 max_invocation_result_bytes=max_result_bytes,
                                 account_equity_trace_path=account_equity_trace_path,
                                 max_account_equity_trace_bytes=max_account_equity_trace_bytes,
+                                **session_calendar_options,
                                 **native_report_options,
                             )
                         else:
@@ -559,6 +598,7 @@ def run_bundle(
                                     max_invocation_result_bytes=max_result_bytes,
                                     account_equity_trace_path=account_equity_trace_path,
                                     max_account_equity_trace_bytes=max_account_equity_trace_bytes,
+                                    **session_calendar_options,
                                     **native_report_options,
                                 )
                             else:
@@ -573,6 +613,7 @@ def run_bundle(
                                     max_invocation_result_bytes=max_result_bytes,
                                     account_equity_trace_path=account_equity_trace_path,
                                     max_account_equity_trace_bytes=max_account_equity_trace_bytes,
+                                    **session_calendar_options,
                                     **native_report_options,
                                 )
                         result_stream.flush()

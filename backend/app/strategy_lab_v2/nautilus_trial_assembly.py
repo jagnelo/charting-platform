@@ -320,6 +320,7 @@ def assemble_nautilus_trial_runtime_input(
     max_intents_per_event: int = 100,
     component_inputs: Sequence[NautilusComponentTrialInput] | None = None,
     session_calendar: SessionCalendarSnapshot | None = None,
+    session_periods_per_year: int | None = None,
 ) -> NautilusTrialRuntimeAssembly:
     """Bind one persisted trial's exact inputs and publish its pinned worker bundle.
 
@@ -715,6 +716,8 @@ def assemble_nautilus_trial_runtime_input(
             engine_input,
             context_stream=context_stream,
             native_event_stream=native_event_stream,
+            session_calendar=(session_calendar if session_periods_per_year is not None else None),
+            session_periods_per_year=session_periods_per_year,
         )
         engine_input_fingerprint = content_digest(
             {"engine_input": engine_input.fingerprint, "native_event_stream": native_event_stream}
@@ -773,6 +776,7 @@ def assemble_nautilus_trial_runtime_input_from_package(
     artifact_store: LocalArtifactStore,
     max_intents_per_event: int = 100,
     session_calendar: SessionCalendarSnapshot | None = None,
+    session_periods_per_year: int | None = None,
 ) -> NautilusTrialRuntimeAssembly:
     """Resolve a pinned strategy package before building its worker input."""
 
@@ -796,6 +800,7 @@ def assemble_nautilus_trial_runtime_input_from_package(
         artifact_store=artifact_store,
         max_intents_per_event=max_intents_per_event,
         session_calendar=session_calendar,
+        session_periods_per_year=session_periods_per_year,
     )
 
 

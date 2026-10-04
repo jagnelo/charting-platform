@@ -50,6 +50,7 @@ class NautilusTrialMarketContext:
     instruments: tuple[NautilusInstrumentDefinition, ...]
     venue: NautilusVenueDefinition
     session_calendar: SessionCalendarSnapshot | None = None
+    session_periods_per_year: int | None = None
 
     def __post_init__(self) -> None:
         instruments = tuple(self.instruments)
@@ -63,6 +64,15 @@ class NautilusTrialMarketContext:
             self.session_calendar, SessionCalendarSnapshot
         ):
             raise TypeError("session_calendar must be a SessionCalendarSnapshot")
+        if self.session_periods_per_year is not None and (
+            self.session_calendar is None
+            or not isinstance(self.session_periods_per_year, int)
+            or isinstance(self.session_periods_per_year, bool)
+            or self.session_periods_per_year < 1
+        ):
+            raise ValueError(
+                "session_periods_per_year requires a calendar and must be a positive integer"
+            )
         instrument_ids = tuple(item.instrument_id for item in instruments)
         if len(set(instrument_ids)) != len(instrument_ids):
             raise ValueError("market context instrument ids must be unique")
@@ -343,6 +353,7 @@ class NautilusTrialRuntimeInputMaterializer:
             max_intents_per_event=self._max_intents_per_event,
             component_inputs=tuple(resolved_component_inputs),
             session_calendar=market_context.session_calendar,
+            session_periods_per_year=market_context.session_periods_per_year,
         )
         return MaterializedNautilusTrialInput(graph, assembly)
 

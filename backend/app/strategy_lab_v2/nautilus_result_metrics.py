@@ -6,7 +6,7 @@ import re
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from math import isnan
 from pathlib import Path
@@ -75,6 +75,7 @@ def _session_interval_metrics(
     periods_per_year: int | None,
     risk_free_return_per_period: Decimal,
     historical_confidence_level: Decimal,
+    session_label_range: tuple[date, date] | None,
 ) -> tuple[tuple[MetricValue, ...], str | None]:
     if observations is None:
         if (
@@ -82,6 +83,7 @@ def _session_interval_metrics(
             or periods_per_year is not None
             or risk_free_return_per_period != Decimal(0)
             or historical_confidence_level != Decimal("0.95")
+            or session_label_range is not None
         ):
             raise ValueError(
                 "session calendar and periods_per_year require session equity intervals"
@@ -140,11 +142,24 @@ def _session_interval_metrics(
     ):
         raise ValueError("session interval closes must fall inside the half-open OOS window")
 
+    if session_label_range is None:
+        start_session_label = intervals[0].session_label
+        end_session_label = intervals[-1].session_label
+    else:
+        if (
+            not isinstance(session_label_range, tuple)
+            or len(session_label_range) != 2
+            or type(session_label_range[0]) is not date
+            or type(session_label_range[1]) is not date
+            or session_label_range[0] > session_label_range[1]
+        ):
+            raise ValueError("session_label_range must contain ordered date bounds")
+        start_session_label, end_session_label = session_label_range
     distribution = calculate_session_return_distribution_metrics(
         intervals,
         calendar=calendar,
-        start_session_label=intervals[0].session_label,
-        end_session_label=intervals[-1].session_label,
+        start_session_label=start_session_label,
+        end_session_label=end_session_label,
     )
     metrics = [
         replace(
@@ -224,13 +239,19 @@ def _session_interval_metrics(
 def _merge_session_metrics(
     event_metrics: Sequence[MetricValue],
     session_metrics: Sequence[MetricValue],
+    *,
+    suppress_event_sampled_risk: bool = False,
 ) -> tuple[MetricValue, ...]:
     sampled_risk = {
         (item.name, item.basis): item
         for item in session_metrics
         if item.name in _SESSION_RISK_METRIC_NAMES
     }
-    merged = [sampled_risk.get((item.name, item.basis), item) for item in event_metrics]
+    merged = [
+        sampled_risk.get((item.name, item.basis), item)
+        for item in event_metrics
+        if not suppress_event_sampled_risk or item.name not in _SESSION_RISK_METRIC_NAMES
+    ]
     merged.extend(item for item in session_metrics if item.name not in _SESSION_RISK_METRIC_NAMES)
     return tuple(merged)
 
@@ -245,6 +266,8 @@ def _build_oos_equity_metric_values(
     session_periods_per_year: int | None,
     session_risk_free_return_per_period: Decimal,
     session_historical_confidence_level: Decimal,
+    session_label_range: tuple[date, date] | None,
+    suppress_event_sampled_risk: bool,
 ) -> tuple[tuple[MetricValue, ...], str | None]:
     event_metrics = calculate_event_aligned_equity_metrics(
         equity_marks,
@@ -260,8 +283,16 @@ def _build_oos_equity_metric_values(
         periods_per_year=session_periods_per_year,
         risk_free_return_per_period=session_risk_free_return_per_period,
         historical_confidence_level=session_historical_confidence_level,
+        session_label_range=session_label_range,
     )
-    return _merge_session_metrics(event_metrics, session_metrics), session_input_digest
+    return (
+        _merge_session_metrics(
+            event_metrics,
+            session_metrics,
+            suppress_event_sampled_risk=suppress_event_sampled_risk,
+        ),
+        session_input_digest,
+    )
 
 
 def build_nautilus_oos_equity_metric_set(
@@ -275,6 +306,8 @@ def build_nautilus_oos_equity_metric_set(
     session_periods_per_year: int | None = None,
     session_risk_free_return_per_period: Decimal = Decimal(0),
     session_historical_confidence_level: Decimal = Decimal("0.95"),
+    session_label_range: tuple[date, date] | None = None,
+    suppress_event_sampled_risk: bool = False,
 ) -> MetricSet:
     """Build reproducible official OOS equity metrics for one native attempt.
 
@@ -301,6 +334,8 @@ def build_nautilus_oos_equity_metric_set(
         session_periods_per_year=session_periods_per_year,
         session_risk_free_return_per_period=session_risk_free_return_per_period,
         session_historical_confidence_level=session_historical_confidence_level,
+        session_label_range=session_label_range,
+        suppress_event_sampled_risk=suppress_event_sampled_risk,
     )
     metric_set_identity = content_digest(
         {
@@ -335,6 +370,8 @@ def build_nautilus_oos_metric_set(
     session_periods_per_year: int | None = None,
     session_risk_free_return_per_period: Decimal = Decimal(0),
     session_historical_confidence_level: Decimal = Decimal("0.95"),
+    session_label_range: tuple[date, date] | None = None,
+    suppress_event_sampled_risk: bool = False,
 ) -> MetricSet:
     """Build one OOS metric set from byte-verified native engine outputs.
 
@@ -381,6 +418,8 @@ def build_nautilus_oos_metric_set(
         session_periods_per_year=session_periods_per_year,
         session_risk_free_return_per_period=session_risk_free_return_per_period,
         session_historical_confidence_level=session_historical_confidence_level,
+        session_label_range=session_label_range,
+        suppress_event_sampled_risk=suppress_event_sampled_risk,
     )
     native_values = _native_oos_report_metrics(native_reports_reference, native_reports_path)
     component_values: tuple[MetricValue, ...] = ()

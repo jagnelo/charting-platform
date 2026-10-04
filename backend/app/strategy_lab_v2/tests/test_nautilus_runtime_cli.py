@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
@@ -38,6 +39,13 @@ from app.strategy_lab_v2.nautilus_runtime_bundle import (
     materialize_nautilus_context_stream_artifact,
     materialize_nautilus_native_event_stream_artifact,
 )
+from app.strategy_lab_v2.rebalance import (
+    CalendarDay,
+    CalendarDayStatus,
+    SessionCalendarSnapshot,
+    SessionSegment,
+    TradingSession,
+)
 from strategy_runtime import InvocationContextStreamSource, deserialize_invocation_batch
 
 
@@ -48,6 +56,8 @@ def _runtime_bundle(
     component_context_stream: bool = False,
     fee_model: NautilusFixedPerFillFeeModelDefinition | None = None,
     instrument_definition: NautilusInstrumentDefinition | None = None,
+    session_calendar: SessionCalendarSnapshot | None = None,
+    session_periods_per_year: int | None = None,
 ):
     instrument = instrument_definition or NautilusInstrumentDefinition(
         "EURUSD.SIM",
@@ -180,7 +190,81 @@ def _runtime_bundle(
         engine_input,
         context_stream=context_stream,
         native_event_stream=native_event_stream,
+        session_calendar=session_calendar,
+        session_periods_per_year=session_periods_per_year,
     )
+
+
+def _one_session_calendar() -> SessionCalendarSnapshot:
+    label = date(2026, 9, 1)
+    session = TradingSession(
+        "XNYS:2026-09-01",
+        label,
+        (
+            SessionSegment(
+                datetime(2026, 9, 1, 14, 30, tzinfo=UTC),
+                datetime(2026, 9, 1, 21, 0, tzinfo=UTC),
+            ),
+        ),
+    )
+    return SessionCalendarSnapshot(
+        calendar_id="XNYS",
+        definition_version="XNYS-session-wire-test-v1",
+        timezone_name="America/New_York",
+        timezone_database_version="test-tzdb-v1",
+        coverage_start=label,
+        coverage_end=label,
+        days=(CalendarDay(label, CalendarDayStatus.TRADING, session),),
+        source_evidence_digest=content_digest("session-wire-test-calendar"),
+    )
+
+
+def test_v5_cli_bundle_verifies_and_passes_frozen_session_calendar(tmp_path, monkeypatch) -> None:
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    calendar = _one_session_calendar()
+    bundle = _runtime_bundle(
+        context_stream_store=store,
+        session_calendar=calendar,
+        session_periods_per_year=252,
+    )
+    assert bundle.context_stream is not None
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "result.json"
+    result_stream_path = tmp_path / "invocations.ndjson"
+    equity_trace_path = tmp_path / "account-equity.parquet"
+    input_path.write_bytes(bundle.wire_bytes)
+    output_path.touch()
+    result_stream_path.touch()
+    equity_trace_path.touch()
+    monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle.input_bundle_digest)
+    monkeypatch.setenv("STRATEGY_ATTEMPT_ID", bundle.attempt_id)
+    monkeypatch.setenv(
+        "STRATEGY_CONTEXT_STREAM_DIGEST", bundle.context_stream.artifact.content_digest
+    )
+    monkeypatch.setattr(nautilus_runtime_cli, "runtime_package_version", lambda: "2.0.0rc5")
+    observed = []
+
+    def fake_run(engine_input, *, session_calendar, **kwargs):
+        observed.append(session_calendar)
+        return {"engine_version": "2.0.0rc5", "authoritative": False}
+
+    monkeypatch.setattr(nautilus_runtime_cli, "run_native_backtest", fake_run)
+    assert (
+        nautilus_runtime_cli.run_bundle(
+            str(input_path),
+            str(output_path),
+            expected_version="2.0.0rc5",
+            expected_snapshot_fingerprint=content_digest("snapshot"),
+            max_input_bytes=1_000_000,
+            context_stream_path=str(store.path_for(bundle.context_stream.artifact.storage_key)),
+            invocation_result_stream_path=str(result_stream_path),
+            max_result_bytes=1024,
+            account_equity_trace_path=str(equity_trace_path),
+            max_account_equity_trace_bytes=1024,
+        )
+        == 0
+    )
+    assert observed == [calendar]
 
 
 def test_runtime_bundle_binds_cli_digest_to_the_readonly_wire_bytes() -> None:

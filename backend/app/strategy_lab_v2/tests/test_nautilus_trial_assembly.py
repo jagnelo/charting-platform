@@ -380,6 +380,7 @@ def test_trial_assembly_freezes_rebalance_plan_to_evaluation_window(tmp_path) ->
         **values,
         artifact_store=store,
         session_calendar=calendar,
+        session_periods_per_year=252,
     )
     bundle = load_materialized_nautilus_runtime_bundle(
         assembly.runtime_input_artifact,
@@ -393,6 +394,8 @@ def test_trial_assembly_freezes_rebalance_plan_to_evaluation_window(tmp_path) ->
     decoded_plan = rebalance_execution_plan_from_wire(engine_input["rebalance_plan"])
     assert decoded_plan is not None
     assert decoded_plan.occurrences[0].event_time == BASE + timedelta(days=1)
+    assert bundle.session_calendar == calendar
+    assert bundle.session_periods_per_year == 252
 
 
 def test_trial_assembly_rejects_rebalance_without_trusted_calendar(tmp_path) -> None:

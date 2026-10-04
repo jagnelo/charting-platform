@@ -590,10 +590,15 @@ def test_native_bridge_runs_rebalance_at_exact_open_or_after_same_time_group(
     )
     from app.strategy_lab_v2.nautilus_strategy_bridge import build_native_strategy_bridge
     from app.strategy_lab_v2.rebalance import (
+        CalendarDay,
+        CalendarDayStatus,
         CalendarRebalancePolicy,
         RebalanceCadence,
         RebalanceExecutionPlan,
         ScheduledRebalance,
+        SessionCalendarSnapshot,
+        SessionSegment,
+        TradingSession,
     )
     from strategy_runtime import deserialize_invocation_batch, serialize_invocation_context_stream
 
@@ -608,6 +613,17 @@ def test_native_bridge_runs_rebalance_at_exact_open_or_after_same_time_group(
     class _FakePortfolio:
         def net_position(self, _instrument_id: str) -> None:
             return None
+
+        def account(self, venue: str) -> Any:
+            del venue
+            return SimpleNamespace(
+                base_currency=SimpleNamespace(code="USD"),
+                balances_total=lambda: {"USD": Decimal("100000")},
+            )
+
+        def equity(self, venue: str) -> dict[str, Decimal]:
+            del venue
+            return {"USD": Decimal("100000")}
 
     class _FakeStrategyConfig:
         def __new__(cls, *_args: object) -> Any:
@@ -655,7 +671,33 @@ def test_native_bridge_runs_rebalance_at_exact_open_or_after_same_time_group(
 
     payload = _payload()
     original_portfolio = portfolio_composition_from_wire(payload["portfolio"])
-    calendar_fingerprint = content_digest("bridge-rebalance-calendar")
+    session_label = _EVENT_TIME.date()
+    session_calendar = SessionCalendarSnapshot(
+        calendar_id="XNYS",
+        definition_version="bridge-session-test-v1",
+        timezone_name="America/New_York",
+        timezone_database_version="test-tzdb-v1",
+        coverage_start=session_label,
+        coverage_end=session_label,
+        days=(
+            CalendarDay(
+                session_label,
+                CalendarDayStatus.TRADING,
+                TradingSession(
+                    f"XNYS:{session_label.isoformat()}",
+                    session_label,
+                    (
+                        SessionSegment(
+                            _EVENT_TIME - timedelta(hours=4),
+                            _EVENT_TIME,
+                        ),
+                    ),
+                ),
+            ),
+        ),
+        source_evidence_digest=content_digest("bridge-session-test-calendar"),
+    )
+    calendar_fingerprint = session_calendar.fingerprint
     policy = CalendarRebalancePolicy(
         calendar_id="XNYS",
         calendar_fingerprint=calendar_fingerprint,
@@ -692,6 +734,13 @@ def test_native_bridge_runs_rebalance_at_exact_open_or_after_same_time_group(
     portfolio = replace(original_portfolio, rebalance_policy=policy)
     payload["portfolio"] = portfolio_composition_to_wire(portfolio)
     payload["rebalance_plan"] = rebalance_execution_plan_to_wire(plan)
+    payload["evaluation_window"] = {
+        "fingerprint": content_digest("bridge-session-test-window"),
+        "purpose": "out_of_sample",
+        "warmup_start_ns": None,
+        "start_ns": _EVENT_TIME_NS - 1_000,
+        "end_ns": _EVENT_TIME_NS + 1_000,
+    }
 
     _, manifest, contexts, _, _ = deserialize_invocation_batch(_invocation_batch())
     context_stream = BytesIO()
@@ -731,6 +780,7 @@ def test_native_bridge_runs_rebalance_at_exact_open_or_after_same_time_group(
         invocation_context_stream=context_stream,
         native_event_stream=native_event_stream,
         expected_context_count=context_count,
+        session_calendar=session_calendar,
     )
     bridge.strategy.on_start()
     prior_native_init_time_ns = -1
@@ -755,6 +805,11 @@ def test_native_bridge_runs_rebalance_at_exact_open_or_after_same_time_group(
 
     assert bridge.result_output()
     schedule_evidence = bridge.rebalance_schedule_output()
+    session_close_observations = bridge.session_close_equity_output()
+    assert len(session_close_observations) == 1
+    assert session_close_observations[0].session_label == session_label
+    assert session_close_observations[0].event_time_ns == _EVENT_TIME_NS
+    assert session_close_observations[0].event_index == 1
     assert len(schedule_evidence) == 1
     transition = schedule_evidence[0]["transition"]
     assert isinstance(transition, dict)

@@ -47,8 +47,10 @@ from app.strategy_lab_v2.nautilus_runtime_data import (
     materialize_native_instrument,
     materialize_native_venue,
 )
+from app.strategy_lab_v2.nautilus_session_equity import NautilusSessionCloseEquityObservation
 from app.strategy_lab_v2.nautilus_strategy_binding import component_strategy_bindings_from_wire
 from app.strategy_lab_v2.nautilus_strategy_bridge import build_native_strategy_bridge
+from app.strategy_lab_v2.rebalance import SessionCalendarSnapshot
 from strategy_runtime import (
     INVOCATION_RESULT_STREAM_PROTOCOL_VERSION,
     MAX_INVOCATION_RESULT_STREAM_BYTES,
@@ -409,6 +411,7 @@ def run_native_backtest(
     max_invocation_result_bytes: int = MAX_INVOCATION_RESULT_STREAM_BYTES,
     account_equity_trace_path: str | Path | None = None,
     max_account_equity_trace_bytes: int = MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES,
+    session_calendar: SessionCalendarSnapshot | None = None,
     native_reports_path: str | Path | None = None,
     max_native_reports_bytes: int = MAX_NAUTILUS_NATIVE_REPORTS_BYTES,
 ) -> dict[str, Any]:
@@ -476,6 +479,8 @@ def run_native_backtest(
             portfolio=portfolio_wire,
             max_stream_bytes=max_account_equity_trace_bytes,
         )
+    if session_calendar is not None and not isinstance(session_calendar, SessionCalendarSnapshot):
+        raise TypeError("session_calendar must be a SessionCalendarSnapshot or None")
     if native_reports_path is not None:
         portfolio_wire = _mapping(payload["portfolio"], "portfolio")
         native_reports_writer = NautilusNativeReportsWriter(
@@ -496,6 +501,7 @@ def run_native_backtest(
         invocation_result_stream=invocation_result_stream,
         max_invocation_result_bytes=max_invocation_result_bytes,
         account_equity_trace_writer=account_equity_trace_writer,
+        session_calendar=session_calendar,
     )
 
     native_instruments = tuple(
@@ -519,6 +525,7 @@ def run_native_backtest(
         result: Any,
         invocation_result_output: Any,
         account_equity_trace: NautilusAccountEquityTraceReference | None,
+        session_close_equity_observations: tuple[NautilusSessionCloseEquityObservation, ...],
         rebalance_schedule_transitions: list[dict[str, object]],
         native_reports: NautilusNativeReportsReference | None,
     ) -> dict[str, Any]:
@@ -616,6 +623,10 @@ def run_native_backtest(
                 if native_reports is not None
                 else {}
             ),
+            **_session_close_equity_observations_wire(
+                session_close_equity_observations,
+                configured=session_calendar is not None,
+            ),
         }
         evidence["execution_evidence_digest"] = content_digest(evidence)
         return evidence
@@ -695,12 +706,14 @@ def run_native_backtest(
                     )
                 invocation_result_output = strategy_bridge.result_output()
                 account_equity_trace = strategy_bridge.account_equity_trace_output()
+                session_close_equity_observations = strategy_bridge.session_close_equity_output()
                 rebalance_schedule_transitions = strategy_bridge.rebalance_schedule_output()
                 native_reports = export_native_reports(node, run_id=run_config.id)
                 return make_evidence(
                     results[0],
                     invocation_result_output,
                     account_equity_trace,
+                    session_close_equity_observations,
                     rebalance_schedule_transitions,
                     native_reports,
                 )
@@ -748,12 +761,14 @@ def run_native_backtest(
         result = engine.get_result()
         invocation_result_output = strategy_bridge.result_output()
         account_equity_trace = strategy_bridge.account_equity_trace_output()
+        session_close_equity_observations = strategy_bridge.session_close_equity_output()
         rebalance_schedule_transitions = strategy_bridge.rebalance_schedule_output()
         native_reports = export_native_reports(engine)
         return make_evidence(
             result,
             invocation_result_output,
             account_equity_trace,
+            session_close_equity_observations,
             rebalance_schedule_transitions,
             native_reports,
         )
@@ -763,6 +778,16 @@ def run_native_backtest(
         finally:
             if native_reports_writer is not None:
                 native_reports_writer.abort()
+
+
+def _session_close_equity_observations_wire(
+    observations: tuple[NautilusSessionCloseEquityObservation, ...],
+    *,
+    configured: bool,
+) -> dict[str, list[dict[str, object]]]:
+    if not configured:
+        return {}
+    return {"session_close_equity_observations": [item.to_wire() for item in observations]}
 
 
 def result_invocation_count(result_wire: str) -> int:

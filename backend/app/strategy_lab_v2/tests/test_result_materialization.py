@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from decimal import Decimal
 
 import pandas as pd  # type: ignore[import-untyped]
@@ -15,6 +15,14 @@ from app.strategy_lab_v2.nautilus_equity_trace import (
 from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsWriter
 from app.strategy_lab_v2.nautilus_result_materialization import (
     materialize_nautilus_oos_run_result,
+)
+from app.strategy_lab_v2.nautilus_session_equity import NautilusSessionCloseEquityObservation
+from app.strategy_lab_v2.rebalance import (
+    CalendarDay,
+    CalendarDayStatus,
+    SessionCalendarSnapshot,
+    SessionSegment,
+    TradingSession,
 )
 from app.strategy_lab_v2.result_materialization import (
     EngineResultEvidence,
@@ -209,8 +217,17 @@ def test_engine_evidence_canonicalizes_artifact_order() -> None:
     assert evidence.artifact_content_digests == tuple(sorted((first, second)))
 
 
-def _nautilus_oos_references(result, equity_path, reports_path):
+def _nautilus_oos_references(
+    result,
+    equity_path,
+    reports_path,
+    *,
+    event_times_ns: tuple[int, ...] = (100, 150, 199),
+    scoring_end_ns: int | None = None,
+    equity_values: tuple[str, ...] | None = None,
+):
     window_fingerprint = content_digest("oos-window")
+    scoring_end = scoring_end_ns if scoring_end_ns is not None else event_times_ns[-1] + 1
     engine_input = {
         "trial_id": result.trial.trial_id,
         "attempt_id": result.attempt.attempt_id,
@@ -218,8 +235,8 @@ def _nautilus_oos_references(result, equity_path, reports_path):
         "event_tape": {"source_tape_fingerprint": content_digest("source-tape")},
         "evaluation_window": {
             "fingerprint": window_fingerprint,
-            "start_ns": 100,
-            "end_ns": 200,
+            "start_ns": event_times_ns[0],
+            "end_ns": scoring_end,
         },
     }
     equity_writer = NautilusAccountEquityTraceWriter(
@@ -232,8 +249,12 @@ def _nautilus_oos_references(result, equity_path, reports_path):
         },
     )
     expected_events = []
-    equity_values = ("1000", "1010", "1005")
-    for index, timestamp in enumerate((100, 150, 199)):
+    resolved_equity_values = (
+        equity_values or ("1000", "1010", "1005", "1020")[: len(event_times_ns)]
+    )
+    if len(resolved_equity_values) != len(event_times_ns):
+        raise ValueError("test equity values must match their event timestamps")
+    for index, timestamp in enumerate(event_times_ns):
         event_id = f"scoring-event-{index}"
         sequence = index + 1
         event = {"event_id": event_id, "event_time_ns": timestamp, "sequence": sequence}
@@ -242,7 +263,7 @@ def _nautilus_oos_references(result, equity_path, reports_path):
             event_time_ns=timestamp,
             event_index=index,
             source_sequence=sequence,
-            account_equity=Decimal(equity_values[index]),
+            account_equity=Decimal(resolved_equity_values[index]),
             account_cash_balance=Decimal("1000"),
         )
         expected_events.append({"index": index, "event": event})
@@ -256,8 +277,8 @@ def _nautilus_oos_references(result, equity_path, reports_path):
             "event_tape": {"source_tape_fingerprint": trace_reference.source_tape_fingerprint},
             "evaluation_window": {
                 "fingerprint": window_fingerprint,
-                "start_ns": 100,
-                "end_ns": 200,
+                "start_ns": event_times_ns[0],
+                "end_ns": scoring_end,
             },
         },
         portfolio={"fingerprint": trace_reference.portfolio_fingerprint},
@@ -271,6 +292,11 @@ def _nautilus_oos_references(result, equity_path, reports_path):
         }
     )
     return trace_reference, tuple(expected_events), writer.finish()
+
+
+def _datetime_ns(value: datetime) -> int:
+    delta = value.astimezone(UTC) - datetime(1970, 1, 1, tzinfo=UTC)
+    return ((delta.days * 86_400 + delta.seconds) * 1_000_000 + delta.microseconds) * 1_000
 
 
 def test_nautilus_oos_result_materialization_binds_metrics_and_native_artifacts(tmp_path) -> None:
@@ -320,6 +346,113 @@ def test_nautilus_oos_result_materialization_binds_metrics_and_native_artifacts(
     )
     assert replay.decision is ResultMaterializationDecision.REPLAY_EXISTING
     assert replay.manifest == manifest
+
+
+def test_nautilus_oos_materialization_persists_calendar_bound_session_intervals(tmp_path) -> None:
+    existing_result, evidence = _inputs()
+    labels = tuple(date(2026, 9, 1) + timedelta(days=index) for index in range(4))
+    sessions = tuple(
+        TradingSession(
+            f"XNYS:{label.isoformat()}",
+            label,
+            (
+                SessionSegment(
+                    datetime(label.year, label.month, label.day, 14, 30, tzinfo=UTC),
+                    datetime(label.year, label.month, label.day, 21, 0, tzinfo=UTC),
+                ),
+            ),
+        )
+        for label in labels
+    )
+    calendar = SessionCalendarSnapshot(
+        calendar_id="XNYS",
+        definition_version="XNYS-result-test-v1",
+        timezone_name="America/New_York",
+        timezone_database_version="test-tzdb-v1",
+        coverage_start=labels[0],
+        coverage_end=labels[-1],
+        days=tuple(
+            CalendarDay(label, CalendarDayStatus.TRADING, session)
+            for label, session in zip(labels, sessions, strict=True)
+        ),
+        source_evidence_digest=content_digest("XNYS-result-calendar"),
+    )
+    event_times = tuple(_datetime_ns(session.close_time) for session in sessions)
+    equity_path = tmp_path / "account-equity-session.parquet"
+    reports_path = tmp_path / "native-reports-session.parquet"
+    trace_reference, expected_events, reports_reference = _nautilus_oos_references(
+        existing_result,
+        equity_path,
+        reports_path,
+        event_times_ns=event_times,
+        scoring_end_ns=event_times[-1] + 1_000,
+    )
+    session_closes = tuple(
+        NautilusSessionCloseEquityObservation(
+            session_label=sessions[index].session_label,
+            event_time_ns=event_times[index],
+            event_index=index,
+            account_equity=Decimal(("1010", "1005", "1020")[index - 1]),
+            account_cash_balance=Decimal("1000"),
+        )
+        for index in range(1, 4)
+    )
+    result = materialize_nautilus_oos_run_result(
+        existing_result.trial,
+        existing_result.attempt,
+        existing_result.strategy_packages,
+        existing_result.portfolio,
+        existing_result.snapshot,
+        evidence,
+        trace_reference,
+        equity_path,
+        expected_events,
+        reports_reference,
+        reports_path,
+        existing_result.output_artifacts,
+        created_at=NOW,
+        session_calendar=calendar,
+        session_close_observations=session_closes,
+        session_periods_per_year=252,
+    )
+
+    assert result.decision is ResultMaterializationDecision.MATERIALIZE
+    assert result.manifest is not None
+    assert result.generated_session_intervals is not None
+    interval_artifact = result.generated_session_intervals
+    assert interval_artifact.observed_session_labels == labels[1:]
+    assert interval_artifact.artifact in result.manifest.output_artifacts
+    metrics = {item.name: item for item in result.manifest.metric_set.values}
+    assert metrics["historical_value_at_risk"].value is not None
+    assert metrics["historical_value_at_risk"].sample_size == 3
+
+    missing_closes = materialize_nautilus_oos_run_result(
+        existing_result.trial,
+        existing_result.attempt,
+        existing_result.strategy_packages,
+        existing_result.portfolio,
+        existing_result.snapshot,
+        evidence,
+        trace_reference,
+        equity_path,
+        expected_events,
+        reports_reference,
+        reports_path,
+        existing_result.output_artifacts,
+        created_at=NOW,
+        session_calendar=calendar,
+        session_close_observations=(),
+        session_periods_per_year=252,
+    )
+    assert missing_closes.manifest is not None
+    assert missing_closes.generated_session_intervals is not None
+    assert missing_closes.generated_session_intervals.expected_session_labels == labels[1:]
+    assert missing_closes.generated_session_intervals.observed_session_labels == ()
+    assert missing_closes.generated_session_intervals.artifact in (
+        missing_closes.manifest.output_artifacts
+    )
+    missing_metric_names = {item.name for item in missing_closes.manifest.metric_set.values}
+    assert "historical_value_at_risk" not in missing_metric_names
 
 
 def test_nautilus_oos_result_materialization_rejects_identity_drift(tmp_path) -> None:

@@ -15,6 +15,7 @@ import os
 import stat
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -24,6 +25,7 @@ from app.strategy_lab_v2.engine_execution import (
     EngineExecutionDecision,
     NautilusExecutionPlan,
 )
+from app.strategy_lab_v2.nautilus_calendar_wire import session_calendar_to_wire
 from app.strategy_lab_v2.nautilus_equity_trace import (
     MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES,
     NautilusAccountEquityTraceReference,
@@ -56,6 +58,8 @@ from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_INVOCATION_RESULT_STREAM_MEDIA_TYPE,
     NAUTILUS_INVOCATION_RESULT_STREAM_SCHEMA,
 )
+from app.strategy_lab_v2.nautilus_session_equity import NautilusSessionCloseEquityObservation
+from app.strategy_lab_v2.rebalance import SessionCalendarSnapshot
 from app.strategy_lab_v2.sandbox import (
     SandboxCommandPlan,
     nautilus_runtime_command,
@@ -106,6 +110,9 @@ class NautilusRunResult:
     account_equity_trace: NautilusAccountEquityTraceReference | None = None
     native_reports: NautilusNativeReportsReference | None = None
     rebalance_schedule_audit: NautilusRebalanceScheduleAudit | None = None
+    session_calendar: SessionCalendarSnapshot | None = None
+    session_close_equity_observations: tuple[NautilusSessionCloseEquityObservation, ...] = ()
+    session_periods_per_year: int | None = None
 
     def __post_init__(self) -> None:
         require_sha256_digest(
@@ -142,6 +149,28 @@ class NautilusRunResult:
             self.rebalance_schedule_audit, NautilusRebalanceScheduleAudit
         ):
             raise TypeError("rebalance_schedule_audit must be a NautilusRebalanceScheduleAudit")
+        if self.session_calendar is not None and not isinstance(
+            self.session_calendar, SessionCalendarSnapshot
+        ):
+            raise TypeError("session_calendar must be a SessionCalendarSnapshot")
+        session_observations = tuple(self.session_close_equity_observations)
+        if any(
+            not isinstance(item, NautilusSessionCloseEquityObservation)
+            for item in session_observations
+        ):
+            raise TypeError(
+                "session_close_equity_observations must contain typed native observations"
+            )
+        if (self.session_calendar is None) != (self.session_periods_per_year is None):
+            raise ValueError("session calendar and annualization must be supplied together")
+        if self.session_periods_per_year is not None and (
+            not isinstance(self.session_periods_per_year, int)
+            or isinstance(self.session_periods_per_year, bool)
+            or self.session_periods_per_year < 1
+        ):
+            raise ValueError("session_periods_per_year must be a positive integer")
+        if session_observations and self.session_calendar is None:
+            raise ValueError("session-close observations require their frozen calendar")
         if self.result_failure_digest is not None:
             require_sha256_digest(self.result_failure_digest, field_name="result_failure_digest")
         reasons = tuple(self.rejection_reasons)
@@ -156,6 +185,9 @@ class NautilusRunResult:
                 or self.account_equity_trace is not None
                 or self.native_reports is not None
                 or self.rebalance_schedule_audit is not None
+                or self.session_calendar is not None
+                or session_observations
+                or self.session_periods_per_year is not None
                 or self.result_failure_digest is not None
                 or self.authoritative
                 or not reasons
@@ -181,6 +213,7 @@ class NautilusRunResult:
         ):
             raise ValueError("sandbox result does not reference the execution sandbox plan")
         object.__setattr__(self, "rejection_reasons", reasons)
+        object.__setattr__(self, "session_close_equity_observations", session_observations)
 
     @property
     def fingerprint(self) -> str:
@@ -344,6 +377,13 @@ def run_nautilus_plan(
     account_equity_trace = None
     native_reports = None
     rebalance_schedule_audit = None
+    session_calendar = (
+        None if runtime_input_artifact is None else runtime_input_artifact.session_calendar
+    )
+    session_periods_per_year = (
+        None if runtime_input_artifact is None else runtime_input_artifact.session_periods_per_year
+    )
+    session_close_equity_observations: tuple[NautilusSessionCloseEquityObservation, ...] = ()
     result_failure_digest = None
     if status is NautilusRunStatus.SUCCEEDED and runtime_input_artifact is not None:
         context_reference = runtime_input_artifact.context_stream
@@ -368,6 +408,7 @@ def run_nautilus_plan(
                     execution_plan.authoritative
                     or runtime_input_artifact.trial_binding is not None
                     or raw_rebalance_audit is not None
+                    or session_calendar is not None
                 ):
                     runtime_bundle = _read_runtime_input_bundle(
                         sandbox_plan,
@@ -378,6 +419,17 @@ def run_nautilus_plan(
                     engine_input = runtime_bundle.get("engine_input")
                     if not isinstance(engine_input, Mapping):
                         raise ValueError("Nautilus runtime input engine input is invalid")
+                    if session_calendar is not None:
+                        if runtime_bundle.get("session_calendar") is None:
+                            raise ValueError("Nautilus runtime bundle omitted its session calendar")
+                        if runtime_bundle.get("session_calendar") != session_calendar_to_wire(
+                            session_calendar
+                        ) or runtime_bundle.get("session_periods_per_year") != (
+                            session_periods_per_year
+                        ):
+                            raise ValueError(
+                                "Nautilus runtime session metrics differ from the request"
+                            )
                     rebalance_plan = rebalance_execution_plan_from_wire(
                         engine_input.get("rebalance_plan")
                     )
@@ -403,6 +455,23 @@ def run_nautilus_plan(
                             )
                 native_reports = NautilusNativeReportsReference.from_wire(
                     result_wire.get("native_execution_reports")
+                )
+                session_close_equity_observations = _read_session_close_equity_observations(
+                    result_wire.get("session_close_equity_observations"),
+                    calendar=session_calendar,
+                    session_periods_per_year=session_periods_per_year,
+                    equity_reference=(
+                        None
+                        if runtime_input_artifact.session_calendar is None
+                        else NautilusAccountEquityTraceReference.from_wire(
+                            result_wire.get("account_equity_trace")
+                        )
+                    ),
+                    expected_events=(
+                        None
+                        if runtime_input_artifact.session_calendar is None
+                        else expected_native_equity_events(runtime_input_artifact, sandbox_plan)
+                    ),
                 )
                 _verify_native_reports_input_binding(
                     native_reports,
@@ -448,6 +517,9 @@ def run_nautilus_plan(
                 account_equity_trace = None
                 native_reports = None
                 rebalance_schedule_audit = None
+                session_close_equity_observations = ()
+                session_calendar = None
+                session_periods_per_year = None
                 result_failure_digest = content_digest(
                     "Nautilus result artifact verification failure"
                 )
@@ -462,6 +534,9 @@ def run_nautilus_plan(
         account_equity_trace=account_equity_trace,
         native_reports=native_reports,
         rebalance_schedule_audit=rebalance_schedule_audit,
+        session_calendar=session_calendar,
+        session_close_equity_observations=session_close_equity_observations,
+        session_periods_per_year=session_periods_per_year,
     )
 
 
@@ -494,6 +569,97 @@ def _read_sandbox_result(
     if not isinstance(value, Mapping):
         raise ValueError("Nautilus result receipt must be a JSON object")
     return value
+
+
+def _read_session_close_equity_observations(
+    value: object,
+    *,
+    calendar: SessionCalendarSnapshot | None,
+    session_periods_per_year: int | None,
+    equity_reference: NautilusAccountEquityTraceReference | None,
+    expected_events: Any,
+) -> tuple[NautilusSessionCloseEquityObservation, ...]:
+    if calendar is None:
+        if value not in (None, []):
+            raise ValueError("Nautilus result emitted session marks without a frozen calendar")
+        if session_periods_per_year is not None:
+            raise ValueError("session annualization was supplied without a calendar")
+        return ()
+    if (
+        not isinstance(session_periods_per_year, int)
+        or isinstance(session_periods_per_year, bool)
+        or session_periods_per_year < 1
+        or equity_reference is None
+        or expected_events is None
+    ):
+        raise ValueError("session-close verification inputs are incomplete")
+    if not isinstance(value, list) or len(value) > 100_000:
+        raise ValueError("Nautilus session-close result must be a bounded list")
+    observations = tuple(NautilusSessionCloseEquityObservation.from_wire(item) for item in value)
+    if equity_reference.scoring_start_ns is None or equity_reference.scoring_end_ns is None:
+        raise ValueError("session-close marks require a bounded OOS equity trace")
+
+    sessions_by_label = {day.label: day.session for day in calendar.days if day.session is not None}
+    close_time_to_label: dict[int, object] = {}
+    expected_labels_by_time: dict[int, object] = {}
+    for label, session in sessions_by_label.items():
+        close_ns = _session_timestamp_ns(session.close_time)
+        if close_ns in close_time_to_label:
+            raise ValueError("session calendar has ambiguous close instants")
+        close_time_to_label[close_ns] = label
+        if equity_reference.scoring_start_ns < close_ns < equity_reference.scoring_end_ns:
+            expected_labels_by_time[close_ns] = label
+
+    final_event_index_by_time: dict[int, int] = {}
+    for fallback_index, expected in enumerate(expected_events):
+        if not isinstance(expected, Mapping):
+            raise ValueError("expected native session event is invalid")
+        event = expected.get("event", expected)
+        if not isinstance(event, Mapping):
+            raise ValueError("expected native session event payload is invalid")
+        event_time_ns = event.get("event_time_ns")
+        event_index = expected.get("index", fallback_index)
+        if (
+            not isinstance(event_time_ns, int)
+            or isinstance(event_time_ns, bool)
+            or not isinstance(event_index, int)
+            or isinstance(event_index, bool)
+        ):
+            raise ValueError("expected native session event identity is invalid")
+        if event_time_ns in expected_labels_by_time:
+            final_event_index_by_time[event_time_ns] = event_index
+
+    previous_time_ns = equity_reference.scoring_start_ns
+    previous_index = -1
+    seen_labels: set[object] = set()
+    for observation in observations:
+        expected_label = expected_labels_by_time.get(observation.event_time_ns)
+        if (
+            expected_label is None
+            or observation.session_label != expected_label
+            or observation.session_label in seen_labels
+            or close_time_to_label.get(observation.event_time_ns) != observation.session_label
+        ):
+            raise ValueError("Nautilus session-close mark differs from the frozen OOS calendar")
+        if (
+            observation.event_time_ns <= previous_time_ns
+            or observation.event_index <= previous_index
+            or final_event_index_by_time.get(observation.event_time_ns) != observation.event_index
+        ):
+            raise ValueError(
+                "Nautilus session-close mark is not after its complete native event group"
+            )
+        seen_labels.add(observation.session_label)
+        previous_time_ns = observation.event_time_ns
+        previous_index = observation.event_index
+    return observations
+
+
+def _session_timestamp_ns(value: datetime) -> int:
+    normalized = value.astimezone(UTC)
+    epoch = datetime(1970, 1, 1, tzinfo=UTC)
+    delta = normalized - epoch
+    return (delta.days * 86_400 + delta.seconds) * 1_000_000_000 + delta.microseconds * 1_000
 
 
 def _read_runtime_input_bundle(

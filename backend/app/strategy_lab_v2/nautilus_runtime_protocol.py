@@ -4,6 +4,7 @@ NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1 = "strategy-lab.nautilus-runtime-bundle.v1"
 NAUTILUS_RUNTIME_BUNDLE_SCHEMA = "strategy-lab.nautilus-runtime-bundle.v2"
 NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3 = "strategy-lab.nautilus-runtime-bundle.v3"
 NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4 = "strategy-lab.nautilus-runtime-bundle.v4"
+NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V5 = "strategy-lab.nautilus-runtime-bundle.v5"
 NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE = (
     "application/vnd.charting.strategy-lab.strategy-context-stream+ndjson"
 )
@@ -37,4 +38,5 @@ __all__ = [
     "NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1",
     "NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3",
     "NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4",
+    "NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V5",
 ]

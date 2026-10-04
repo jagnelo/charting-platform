@@ -31,6 +31,8 @@ from app.strategy_lab_v2.nautilus_rebalance_schedule import (
     RebalanceBoundaryTransition,
 )
 from app.strategy_lab_v2.nautilus_runtime_data import NautilusRuntimeDataError
+from app.strategy_lab_v2.nautilus_session_equity import NautilusSessionCloseEquityObservation
+from app.strategy_lab_v2.rebalance import SessionCalendarSnapshot
 from app.strategy_lab_v2.sdk import (
     MarketEvent,
     OrderIntent,
@@ -876,6 +878,7 @@ class NativeStrategyBridge:
     strategy: Any
     result_output: Any
     account_equity_trace_output: Any
+    session_close_equity_output: Any
     rebalance_schedule_output: Any
     input_fingerprint: str
     input_protocol: str
@@ -1217,6 +1220,7 @@ def build_native_strategy_bridge(
     invocation_result_stream: BinaryIO | None = None,
     max_invocation_result_bytes: int | None = None,
     account_equity_trace_writer: NautilusAccountEquityTraceWriter | None = None,
+    session_calendar: SessionCalendarSnapshot | None = None,
 ) -> NativeStrategyBridge:
     """Bind invocation inputs to callbacks and optionally stream callback results."""
 
@@ -1265,6 +1269,18 @@ def build_native_strategy_bridge(
             "native bridge requires authenticated component strategy bindings"
         )
     evaluation_window_bounds = _evaluation_window_bounds(engine_input)
+    if session_calendar is not None and not isinstance(session_calendar, SessionCalendarSnapshot):
+        raise TypeError("session_calendar must be a SessionCalendarSnapshot or None")
+    session_close_times: dict[int, Any] = {}
+    if session_calendar is not None:
+        for calendar_day in session_calendar.days:
+            if calendar_day.session is None:
+                continue
+            close_ns = _datetime_microsecond_ns(calendar_day.session.close_time)
+            if close_ns in session_close_times:
+                raise NautilusRuntimeDataError("session calendar has ambiguous close instants")
+            session_close_times[close_ns] = calendar_day.session
+    session_close_equity_observations: list[NautilusSessionCloseEquityObservation] = []
     strategy_bindings: dict[str, Mapping[str, Any]] = {}
     for item in raw_strategy_bindings:
         assert isinstance(item, Mapping)
@@ -2154,8 +2170,6 @@ def build_native_strategy_bridge(
             event_time_ns: int,
             following_record: Mapping[str, Any] | None,
         ) -> None:
-            if rebalance_cursor is None:
-                return
             following_time_ns = (
                 None if following_record is None else following_record.get("event_time_ns")
             )
@@ -2165,12 +2179,47 @@ def build_native_strategy_bridge(
                 not isinstance(following_time_ns, int) or isinstance(following_time_ns, bool)
             ):
                 raise NautilusRuntimeDataError("rebalance lookahead timestamp is invalid")
-            transitions = rebalance_cursor.after_event_group(
-                event_time_ns,
-                next_event_time_ns=following_time_ns,
+            if rebalance_cursor is not None:
+                transitions = rebalance_cursor.after_event_group(
+                    event_time_ns,
+                    next_event_time_ns=following_time_ns,
+                )
+                for transition in transitions:
+                    self._apply_rebalance_transition(transition)
+
+            session = session_close_times.get(event_time_ns)
+            if session is None or session_calendar is None:
+                return
+            if evaluation_window_bounds is None:
+                return
+            _input_start_ns, scoring_start_ns, scoring_end_ns = evaluation_window_bounds
+            if not scoring_start_ns < event_time_ns < scoring_end_ns:
+                return
+            account = self.portfolio.account(venue=native_venue_id)
+            if account is None:
+                raise NautilusRuntimeDataError("native portfolio has no account for its venue")
+            account_base = getattr(account, "base_currency", None)
+            if getattr(account_base, "code", str(account_base)) != portfolio.base_currency:
+                raise NautilusRuntimeDataError("native cash account base currency differs")
+            if callback_index < 1:
+                raise NautilusRuntimeDataError("session-close boundary has no native event index")
+            session_close_equity_observations.append(
+                NautilusSessionCloseEquityObservation(
+                    session_label=session.session_label,
+                    event_time_ns=event_time_ns,
+                    event_index=callback_index - 1,
+                    account_equity=_native_money_amount_for_currency(
+                        self.portfolio.equity(venue=native_venue_id),
+                        portfolio.base_currency,
+                        "session-close account equity",
+                    ),
+                    account_cash_balance=_native_money_amount_for_currency(
+                        account.balances_total(),
+                        portfolio.base_currency,
+                        "session-close account cash balance",
+                    ),
+                )
             )
-            for transition in transitions:
-                self._apply_rebalance_transition(transition)
 
         def _on_native_event(
             self,
@@ -2448,6 +2497,9 @@ def build_native_strategy_bridge(
             return None
         return account_equity_trace_writer.finish()
 
+    def session_close_equity_output() -> tuple[NautilusSessionCloseEquityObservation, ...]:
+        return tuple(session_close_equity_observations)
+
     def rebalance_schedule_output() -> list[dict[str, object]]:
         return list(rebalance_schedule_evidence)
 
@@ -2455,6 +2507,7 @@ def build_native_strategy_bridge(
         strategy=strategy,
         result_output=result_output,
         account_equity_trace_output=account_equity_trace_output,
+        session_close_equity_output=session_close_equity_output,
         rebalance_schedule_output=rebalance_schedule_output,
         input_fingerprint=input_fingerprint,
         input_protocol=input_protocol,

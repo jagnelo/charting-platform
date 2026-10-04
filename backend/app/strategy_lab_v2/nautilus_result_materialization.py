@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import datetime
 from itertools import tee
 from pathlib import Path
 from typing import Any
 
+from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
     ArtifactManifest,
     DataSnapshot,
@@ -24,11 +25,42 @@ from app.strategy_lab_v2.nautilus_equity_trace import (
 )
 from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsReference
 from app.strategy_lab_v2.nautilus_result_metrics import build_nautilus_oos_metric_set
+from app.strategy_lab_v2.nautilus_session_equity import (
+    NautilusSessionCloseEquityObservation,
+    NautilusSessionEquityIntervalsArtifact,
+    build_nautilus_session_equity_intervals_artifact,
+)
+from app.strategy_lab_v2.rebalance import SessionCalendarSnapshot
 from app.strategy_lab_v2.result_materialization import (
     EngineResultEvidence,
+    ResultMaterializationDecision,
     ResultMaterializationResolution,
     materialize_run_result,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class NautilusOosResultMaterialization:
+    """Canonical run-result resolution and any generated interval artifact bytes."""
+
+    resolution: ResultMaterializationResolution
+    generated_session_intervals: NautilusSessionEquityIntervalsArtifact | None = None
+
+    @property
+    def decision(self) -> ResultMaterializationDecision:
+        return self.resolution.decision
+
+    @property
+    def manifest(self) -> RunResultManifest | None:
+        return self.resolution.manifest
+
+    @property
+    def rejection_reason(self) -> str | None:
+        return self.resolution.rejection_reason
+
+    @property
+    def candidate_fingerprint(self) -> str:
+        return self.resolution.candidate_fingerprint
 
 
 def materialize_nautilus_oos_run_result(
@@ -47,7 +79,10 @@ def materialize_nautilus_oos_run_result(
     *,
     created_at: datetime,
     existing: RunResultManifest | None = None,
-) -> ResultMaterializationResolution:
+    session_calendar: SessionCalendarSnapshot | None = None,
+    session_close_observations: Sequence[NautilusSessionCloseEquityObservation] | None = None,
+    session_periods_per_year: int | None = None,
+) -> NautilusOosResultMaterialization:
     """Create a reproducible Nautilus OOS manifest from verified run evidence.
 
     The two native Parquet references are made mandatory result artifacts and
@@ -88,9 +123,59 @@ def materialize_nautilus_oos_run_result(
         equity_trace_path,
         expected_events=equity_expected_events,
     )
-    equity_observations, event_time_observations = tee(verified_observations)
+    equity_observations, event_time_observations, session_observations = tee(
+        verified_observations,
+        3,
+    )
     equity_marks = (item.account_equity for item in equity_observations)
     event_time_ns = (item.event_time_ns for item in event_time_observations)
+    session_intervals_artifact: NautilusSessionEquityIntervalsArtifact | None = None
+    close_observations = tuple(session_close_observations or ())
+    if session_calendar is not None and not isinstance(session_calendar, SessionCalendarSnapshot):
+        raise TypeError("session_calendar must be a SessionCalendarSnapshot or None")
+    if (session_calendar is None) != (session_periods_per_year is None):
+        raise ValueError("session calendar and annualization must be supplied together")
+    if session_periods_per_year is not None and (
+        not isinstance(session_periods_per_year, int)
+        or isinstance(session_periods_per_year, bool)
+        or session_periods_per_year < 1
+    ):
+        raise ValueError("session_periods_per_year must be a positive integer")
+    if session_calendar is not None or close_observations:
+        if session_calendar is None:
+            raise ValueError("native session-close observations require their frozen calendar")
+        if (
+            not isinstance(session_periods_per_year, int)
+            or isinstance(session_periods_per_year, bool)
+            or session_periods_per_year < 1
+        ):
+            raise ValueError("native session intervals require explicit periods_per_year")
+        evidence_digest = content_digest(
+            {
+                "schema": "strategy-lab.nautilus-session-engine-evidence.v1",
+                "trial_id": evidence.trial_id,
+                "attempt_id": evidence.attempt_id,
+                "engine_name": evidence.engine_name,
+                "engine_version": evidence.engine_version,
+                "engine_build_digest": evidence.engine_build_digest,
+                "allocation_definition_version": evidence.allocation_definition_version,
+                "dependency_catalog_digest": evidence.dependency_catalog_digest,
+                "assumptions_digest": evidence.assumptions_digest,
+                "authoritative": evidence.authoritative,
+                "engine_provenance": evidence.engine_provenance,
+                "equity_trace_digest": equity_reference.artifact.content_digest,
+                "native_reports_digest": native_reports_reference.artifact.content_digest,
+                "session_close_observations": close_observations,
+            }
+        )
+        session_intervals_artifact = build_nautilus_session_equity_intervals_artifact(
+            equity_reference,
+            session_observations,
+            close_observations,
+            calendar=session_calendar,
+            engine_evidence_digest=evidence_digest,
+            session_periods_per_year=session_periods_per_year,
+        )
     metric_set = build_nautilus_oos_metric_set(
         equity_reference,
         equity_marks,
@@ -99,6 +184,34 @@ def materialize_nautilus_oos_run_result(
         event_time_ns=event_time_ns,
         created_at=created_at,
         portfolio=portfolio,
+        session_equity_intervals=(
+            None
+            if session_intervals_artifact is None or not session_intervals_artifact.intervals
+            else session_intervals_artifact.intervals
+        ),
+        session_calendar=(
+            session_calendar
+            if session_intervals_artifact is not None and session_intervals_artifact.intervals
+            else None
+        ),
+        session_periods_per_year=(
+            None
+            if session_intervals_artifact is None or not session_intervals_artifact.intervals
+            else session_intervals_artifact.session_periods_per_year
+        ),
+        session_label_range=(
+            None
+            if session_intervals_artifact is None
+            or not session_intervals_artifact.intervals
+            or not session_intervals_artifact.expected_session_labels
+            else (
+                session_intervals_artifact.expected_session_labels[0],
+                session_intervals_artifact.expected_session_labels[-1],
+            )
+        ),
+        suppress_event_sampled_risk=(
+            session_intervals_artifact is not None and not session_intervals_artifact.intervals
+        ),
     )
 
     artifacts_by_digest: dict[str, ArtifactManifest] = {}
@@ -106,6 +219,7 @@ def materialize_nautilus_oos_run_result(
         *tuple(output_artifacts),
         equity_reference.artifact,
         native_reports_reference.artifact,
+        *(() if session_intervals_artifact is None else (session_intervals_artifact.artifact,)),
     ):
         if not isinstance(artifact, ArtifactManifest):
             raise TypeError("output_artifacts must contain ArtifactManifest values")
@@ -122,18 +236,24 @@ def materialize_nautilus_oos_run_result(
         metric_set_fingerprint=metric_set.fingerprint,
         artifact_content_digests=tuple(artifact.content_digest for artifact in artifacts),
     )
-    return materialize_run_result(
-        trial,
-        attempt,
-        strategy_packages,
-        portfolio,
-        snapshot,
-        bound_evidence,
-        metric_set,
-        artifacts,
-        created_at=created_at,
-        existing=existing,
+    return NautilusOosResultMaterialization(
+        resolution=materialize_run_result(
+            trial,
+            attempt,
+            strategy_packages,
+            portfolio,
+            snapshot,
+            bound_evidence,
+            metric_set,
+            artifacts,
+            created_at=created_at,
+            existing=existing,
+        ),
+        generated_session_intervals=session_intervals_artifact,
     )
 
 
-__all__ = ["materialize_nautilus_oos_run_result"]
+__all__ = [
+    "NautilusOosResultMaterialization",
+    "materialize_nautilus_oos_run_result",
+]

@@ -400,6 +400,9 @@ async def _materialize_successful_oos_result(
         output_artifacts,
         created_at=existing.created_at if existing is not None else terminal_at,
         existing=existing,
+        session_calendar=run_result.session_calendar,
+        session_close_observations=run_result.session_close_equity_observations,
+        session_periods_per_year=run_result.session_periods_per_year,
     )
     if (
         materialized.decision
@@ -412,11 +415,13 @@ async def _materialize_successful_oos_result(
         raise ValueError(materialized.rejection_reason or "Nautilus OOS result was rejected")
     result = materialized.manifest
 
+    session_intervals = materialized.generated_session_intervals
     artifact_sources = _artifact_sources(
         tuple(
             artifact
             for artifact in result.output_artifacts
-            if schedule_audit_artifact is None or artifact != schedule_audit_artifact
+            if (schedule_audit_artifact is None or artifact != schedule_audit_artifact)
+            and (session_intervals is None or artifact != session_intervals.artifact)
         ),
         equity_reference,
         reports_reference,
@@ -431,6 +436,12 @@ async def _materialize_successful_oos_result(
             publication_result = await artifact_publisher.publish(
                 artifact,
                 schedule_audit.artifact_bytes(),
+                committed_at=terminal_at,
+            )
+        elif session_intervals is not None and artifact == session_intervals.artifact:
+            publication_result = await artifact_publisher.publish(
+                artifact,
+                session_intervals.payload,
                 committed_at=terminal_at,
             )
         else:

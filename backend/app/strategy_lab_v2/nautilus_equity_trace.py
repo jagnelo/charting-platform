@@ -245,6 +245,7 @@ class NautilusAccountEquityObservation:
 
     event_time_ns: int
     account_equity: Decimal
+    event_index: int
 
     def __post_init__(self) -> None:
         if (
@@ -253,6 +254,12 @@ class NautilusAccountEquityObservation:
             or self.event_time_ns < 0
         ):
             raise ValueError("event_time_ns must be a non-negative integer")
+        if (
+            not isinstance(self.event_index, int)
+            or isinstance(self.event_index, bool)
+            or self.event_index < 0
+        ):
+            raise ValueError("event_index must be a non-negative integer")
         _decimal(self.account_equity, "account_equity", non_negative=True)
 
 
@@ -665,7 +672,7 @@ def iter_verified_nautilus_account_equity_observations(
                     previous_time = event_time_ns
                     previous_sequence = source_sequence
                     observed_count += 1
-                    yield NautilusAccountEquityObservation(event_time_ns, equity)
+                    yield NautilusAccountEquityObservation(event_time_ns, equity, event_index)
             if expected_iterator is not None:
                 for expected in expected_iterator:
                     event = expected.get("event", expected)

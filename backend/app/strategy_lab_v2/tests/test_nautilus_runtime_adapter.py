@@ -16,6 +16,7 @@ from app.strategy_lab_v2.contracts import (
 from app.strategy_lab_v2.nautilus_portfolio_wire import portfolio_composition_to_wire
 from app.strategy_lab_v2.nautilus_runtime_adapter import (
     NautilusRuntimeDataError,
+    _session_close_equity_observations_wire,
     _validate_engine_input,
     run_native_backtest,
 )
@@ -123,6 +124,13 @@ def test_runtime_adapter_rejects_unknown_engine_input_fields_before_native_impor
 
 def test_runtime_adapter_keeps_v6_spot_wire_compatibility() -> None:
     _validate_engine_input(_payload())
+
+
+def test_configured_session_calendar_serializes_empty_close_observations() -> None:
+    assert _session_close_equity_observations_wire((), configured=True) == {
+        "session_close_equity_observations": []
+    }
+    assert _session_close_equity_observations_wire((), configured=False) == {}
 
 
 def test_runtime_adapter_requires_v7_instrument_fields_to_match_version() -> None:

@@ -311,7 +311,10 @@ def test_materializer_passes_trusted_calendar_into_frozen_trial_plan(tmp_path: P
     materialized = materializer.materialize(
         graph=graph,
         market_context=NautilusTrialMarketContext(
-            values["instruments"], values["venue"], session_calendar=calendar
+            values["instruments"],
+            values["venue"],
+            session_calendar=calendar,
+            session_periods_per_year=252,
         ),
     )
     bundle = load_materialized_nautilus_runtime_bundle(
@@ -323,6 +326,8 @@ def test_materializer_passes_trusted_calendar_into_frozen_trial_plan(tmp_path: P
     payload = json.loads(bundle.wire_bytes)
     assert len(payload["engine_input"]["rebalance_plan"]["occurrences"]) == 1
     assert payload["engine_input"]["rebalance_plan"]["calendar_fingerprint"] == calendar.fingerprint
+    assert bundle.session_calendar == calendar
+    assert bundle.session_periods_per_year == 252
 
 
 def test_materializer_resolves_every_strategy_in_a_shared_portfolio(tmp_path: Path) -> None:

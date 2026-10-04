@@ -27,6 +27,10 @@ from app.strategy_lab_v2.artifact_store import (
 from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
+from app.strategy_lab_v2.nautilus_calendar_wire import (
+    session_calendar_from_wire,
+    session_calendar_to_wire,
+)
 from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusEngineInput,
     component_strategy_binding_to_wire,
@@ -53,7 +57,9 @@ from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4,
+    NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V5,
 )
+from app.strategy_lab_v2.rebalance import SessionCalendarSnapshot
 from app.strategy_lab_v2.sdk import StrategyContext, StrategySdkManifest
 from strategy_runtime import (
     MAX_INVOCATION_CONTEXT_STREAM_BYTES,
@@ -470,6 +476,8 @@ class NautilusRuntimeBundle:
     wire_bytes: bytes
     context_stream: NautilusContextStreamArtifactReference | None = None
     native_event_stream: NautilusNativeEventStreamArtifactReference | None = None
+    session_calendar: SessionCalendarSnapshot | None = None
+    session_periods_per_year: int | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.attempt_id, str) or not self.attempt_id.strip():
@@ -477,12 +485,26 @@ class NautilusRuntimeBundle:
         require_sha256_digest(self.input_bundle_digest, field_name="input_bundle_digest")
         if not isinstance(self.wire_bytes, bytes) or not self.wire_bytes:
             raise ValueError("wire_bytes must be non-empty bytes")
+        if (self.session_calendar is None) != (self.session_periods_per_year is None):
+            raise ValueError("session calendar and annualization must be supplied together")
+        if self.session_calendar is not None and not isinstance(
+            self.session_calendar, SessionCalendarSnapshot
+        ):
+            raise TypeError("session_calendar must be a SessionCalendarSnapshot")
+        if self.session_periods_per_year is not None and (
+            not isinstance(self.session_periods_per_year, int)
+            or isinstance(self.session_periods_per_year, bool)
+            or self.session_periods_per_year < 1
+        ):
+            raise ValueError("session_periods_per_year must be a positive integer")
         _validate_runtime_bundle_wire_bytes(
             self.wire_bytes,
             attempt_id=self.attempt_id,
             input_bundle_digest=self.input_bundle_digest,
             context_stream=self.context_stream,
             native_event_stream=self.native_event_stream,
+            session_calendar=self.session_calendar,
+            session_periods_per_year=self.session_periods_per_year,
         )
 
     @property
@@ -537,6 +559,8 @@ class NautilusRuntimeInputArtifactReference:
     context_stream: NautilusContextStreamArtifactReference | None = None
     native_event_stream: NautilusNativeEventStreamArtifactReference | None = None
     trial_binding: NautilusTrialInputBinding | None = None
+    session_calendar: SessionCalendarSnapshot | None = None
+    session_periods_per_year: int | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.attempt_id, str) or not self.attempt_id.strip():
@@ -568,6 +592,18 @@ class NautilusRuntimeInputArtifactReference:
             raise TypeError("trial_binding must be a NautilusTrialInputBinding")
         if self.trial_binding is not None and self.trial_binding.attempt_id != self.attempt_id:
             raise ValueError("trial input binding must reference the runtime attempt")
+        if (self.session_calendar is None) != (self.session_periods_per_year is None):
+            raise ValueError("session calendar and annualization must be supplied together")
+        if self.session_calendar is not None and not isinstance(
+            self.session_calendar, SessionCalendarSnapshot
+        ):
+            raise TypeError("session_calendar must be a SessionCalendarSnapshot")
+        if self.session_periods_per_year is not None and (
+            not isinstance(self.session_periods_per_year, int)
+            or isinstance(self.session_periods_per_year, bool)
+            or self.session_periods_per_year < 1
+        ):
+            raise ValueError("session_periods_per_year must be a positive integer")
 
     @property
     def fingerprint(self) -> str:
@@ -620,6 +656,8 @@ def materialize_nautilus_runtime_bundle(
         context_stream=bundle.context_stream,
         native_event_stream=bundle.native_event_stream,
         trial_binding=trial_binding,
+        session_calendar=bundle.session_calendar,
+        session_periods_per_year=bundle.session_periods_per_year,
     )
 
 
@@ -665,6 +703,8 @@ def load_materialized_nautilus_runtime_bundle(
         wire_bytes=wire_bytes,
         context_stream=reference.context_stream,
         native_event_stream=reference.native_event_stream,
+        session_calendar=reference.session_calendar,
+        session_periods_per_year=reference.session_periods_per_year,
     )
 
 
@@ -889,6 +929,8 @@ def _validate_runtime_bundle_wire_bytes(
     input_bundle_digest: str,
     context_stream: NautilusContextStreamArtifactReference | None,
     native_event_stream: NautilusNativeEventStreamArtifactReference | None,
+    session_calendar: SessionCalendarSnapshot | None,
+    session_periods_per_year: int | None,
 ) -> None:
     try:
         payload = json.loads(
@@ -1008,6 +1050,60 @@ def _validate_runtime_bundle_wire_bytes(
             component_id for component_id, _count in context_stream.component_counts
         }:
             raise ValueError("component context stream ids differ from engine input bindings")
+    elif schema == NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V5:
+        expected_fields = {
+            "schema",
+            "engine_input",
+            "strategy_context_stream",
+            "session_calendar",
+            "session_periods_per_year",
+        }
+        if native_event_stream is not None:
+            expected_fields.add("native_event_stream")
+        if (
+            context_stream is None
+            or session_calendar is None
+            or session_periods_per_year is None
+            or set(payload) != expected_fields
+        ):
+            raise ValueError("session-metric Nautilus runtime bundle fields are invalid")
+        if payload["strategy_context_stream"] != context_stream.to_wire():
+            raise ValueError("Nautilus context stream reference differs from the bundle")
+        if payload["session_calendar"] != session_calendar_to_wire(session_calendar):
+            raise ValueError("Nautilus session calendar differs from the bundle")
+        wire_periods = payload["session_periods_per_year"]
+        if (
+            not isinstance(wire_periods, int)
+            or isinstance(wire_periods, bool)
+            or wire_periods < 1
+            or wire_periods != session_periods_per_year
+        ):
+            raise ValueError("Nautilus session annualization differs from the bundle")
+        if native_event_stream is not None:
+            if payload.get("native_event_stream") != native_event_stream.to_wire():
+                raise ValueError("Nautilus native event stream reference differs from the bundle")
+            engine_input = payload["engine_input"]
+            event_tape = (
+                engine_input.get("event_tape") if isinstance(engine_input, Mapping) else None
+            )
+            if not isinstance(event_tape, Mapping) or set(event_tape) != {
+                "source_tape_fingerprint",
+                "adapter_version",
+                "event_count",
+            }:
+                raise ValueError("session-metric engine input must not inline native event records")
+            if (
+                event_tape["source_tape_fingerprint"] != native_event_stream.source_tape_fingerprint
+                or event_tape["adapter_version"] != native_event_stream.adapter_version
+                or not isinstance(event_tape["event_count"], int)
+                or isinstance(event_tape["event_count"], bool)
+                or event_tape["event_count"] != native_event_stream.event_count
+            ):
+                raise ValueError("native event stream identity differs from the engine input")
+        elif context_stream.component_counts:
+            raise ValueError("component session-metric bundles require native event streaming")
+        if session_calendar_from_wire(payload["session_calendar"]) != session_calendar:
+            raise ValueError("Nautilus session calendar fingerprint differs from the bundle")
     else:
         raise ValueError("Nautilus runtime input artifact schema is unsupported")
     engine_input = payload["engine_input"]
@@ -1023,11 +1119,25 @@ def build_nautilus_runtime_bundle(
     *,
     context_stream: NautilusContextStreamArtifactReference | None = None,
     native_event_stream: NautilusNativeEventStreamArtifactReference | None = None,
+    session_calendar: SessionCalendarSnapshot | None = None,
+    session_periods_per_year: int | None = None,
 ) -> NautilusRuntimeBundle:
     """Serialize frozen engine inputs with exactly one batch or stream reference."""
 
     if not isinstance(engine_input, NautilusEngineInput):
         raise TypeError("engine_input must be a NautilusEngineInput")
+    if (session_calendar is None) != (session_periods_per_year is None):
+        raise TypeError("session calendar and annualization must be supplied together")
+    if session_calendar is not None and not isinstance(session_calendar, SessionCalendarSnapshot):
+        raise TypeError("session_calendar must be a SessionCalendarSnapshot")
+    if session_periods_per_year is not None and (
+        not isinstance(session_periods_per_year, int)
+        or isinstance(session_periods_per_year, bool)
+        or session_periods_per_year < 1
+    ):
+        raise ValueError("session_periods_per_year must be a positive integer")
+    if session_calendar is not None and context_stream is None:
+        raise TypeError("session metrics require an authenticated strategy context stream")
     if (serialized_strategy_invocation_batch is None) == (context_stream is None):
         raise TypeError("provide exactly one strategy invocation batch or context stream")
     if context_stream is not None:
@@ -1082,15 +1192,19 @@ def build_nautilus_runtime_bundle(
     tape = engine_input.event_tape
     payload: dict[str, Any] = {
         "schema": (
-            NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4
-            if component_context
+            NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V5
+            if session_calendar is not None
             else (
-                NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3
-                if native_event_stream is not None
+                NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4
+                if component_context
                 else (
-                    NAUTILUS_RUNTIME_BUNDLE_SCHEMA
-                    if context_stream is not None
-                    else NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1
+                    NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3
+                    if native_event_stream is not None
+                    else (
+                        NAUTILUS_RUNTIME_BUNDLE_SCHEMA
+                        if context_stream is not None
+                        else NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V1
+                    )
                 )
             )
         ),
@@ -1187,6 +1301,9 @@ def build_nautilus_runtime_bundle(
         payload["serialized_strategy_invocation_batch"] = serialized_strategy_invocation_batch
     if native_event_stream is not None:
         payload["native_event_stream"] = native_event_stream.to_wire()
+    if session_calendar is not None:
+        payload["session_calendar"] = session_calendar_to_wire(session_calendar)
+        payload["session_periods_per_year"] = session_periods_per_year
     wire = json.dumps(
         payload,
         ensure_ascii=False,
@@ -1200,6 +1317,8 @@ def build_nautilus_runtime_bundle(
         wire_bytes=wire,
         context_stream=context_stream,
         native_event_stream=native_event_stream,
+        session_calendar=session_calendar,
+        session_periods_per_year=session_periods_per_year,
     )
 
 
@@ -1209,6 +1328,7 @@ __all__ = [
     "NAUTILUS_RUNTIME_BUNDLE_SCHEMA",
     "NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V3",
     "NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4",
+    "NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V5",
     "NautilusContextStreamArtifactReference",
     "NautilusInvocationResultStreamReference",
     "NautilusNativeEventStreamArtifactReference",
