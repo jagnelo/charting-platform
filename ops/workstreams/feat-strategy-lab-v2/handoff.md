@@ -11279,3 +11279,44 @@ Changed paths: `backend/app/strategy_lab_v2/authenticated_event_tape.py` and
 `backend/app/strategy_lab_v2/tests/test_event_tape_artifacts.py`.
 Next: select bounded snapshot warm-up events and load only the exact processed
 canonical prefix for each authenticated component before one shared runtime.
+
+## 2026-10-05 - Bounded owner-authenticated frozen history window
+
+Commit `b587334255cd17503f49f1c11f9e31197600d434` is pushed to
+`origin/feat/strategy-lab-v2`. The frozen event-tape resolver can now return
+only the last `lookback_periods + 1` events for each declared strategy-data
+dependency. It verifies the complete content-addressed tape before selection,
+keeps memory bounded by declared lookbacks, and can stop at an exact frozen
+warm-up event ID. The authenticated snapshot wrapper performs this through the
+same owner-scoped `DataSnapshot` read and offloads local decoding; it never
+falls back to a provider or mutable current data.
+
+The complete event-tape artifact module passed 17 tests. The full Strategy Lab
+suite passed 1,439 tests; its single default-sandbox Unix-domain-socket test
+failed at `bind()` and passed on an exact local-permission retry (1,440 total).
+Ruff, formatting, focused MyPy for both production modules, and `git diff
+--check` passed.
+
+This is the bounded frozen warm-up context slice, not the canonical processed
+live suffix or a concrete persistent runtime. Frozen tape `MarketEvent`
+sequences are scoped to their individual dependencies and do not carry the
+canonical forward event's arrival/global-sequence contract; do not synthesize
+that identity while joining historical and processed live events. The exact
+RC5 image remains qualified by all five recorded scope checks. Nautilus's
+upstream release list now includes `2.0.0rc6`, released 2026-10-04; the branch
+has not qualified that newer pin, but stable 2.x is not a prerequisite and no
+version wait blocks implementation. See the
+[upstream NautilusTrader releases](https://github.com/nautechsystems/nautilus_trader/releases).
+
+Next: resolve each authenticated admission checkpoint's exact processed event
+IDs through the source-verified local canonical payload port, merge that
+bounded suffix with the frozen per-component warm-up tail without lookahead,
+then feed all components into one shared-account persistent Nautilus session.
+Durable native output/checkpoint restore and deterministic crash replay remain
+open. Docker Buildx and default Docker API socket access constrain final
+Compose/browser acceptance only; provider/ETF/TC2000 staging gates apply only
+to eventual shared-path reconciliation.
+
+Changed paths: `backend/app/strategy_lab_v2/event_tape_artifacts.py`,
+`backend/app/strategy_lab_v2/authenticated_event_tape.py`, and
+`backend/app/strategy_lab_v2/tests/test_event_tape_artifacts.py`.

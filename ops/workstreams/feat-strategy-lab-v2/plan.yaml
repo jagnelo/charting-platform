@@ -856,26 +856,32 @@ progress:
   current_blocker: >-
     No external dependency blocks package-owned implementation. The exact RC5
     source/image built from this worktree passed all five scope checks, including
-    forward event-tape parity; stable release labeling is not a gate. Immutable
-    per-component forward execution plans now pin strategy/package fingerprints,
-    parameters, and seeds, and activation requires a valid owner-scoped plan.
-    The plan resolver authenticates the portfolio and every strategy/package
-    reference and verifies exact package artifacts. The persistent isolated
-    Nautilus session, bounded warm-up context window, canonical processed-prefix
-    reader, durable output/checkpoint restore, and deterministic crash replay
-    remain code-owned work. Frozen DataSnapshot identity and source bytes now
-    resolve through an owner-scoped adapter into the existing verified streaming
-    event-tape artifact resolver, with no provider fallback. Full
-    Compose/browser acceptance remains environment-limited by unavailable
+    forward event-tape parity; stable release labeling is not a gate. Upstream
+    published RC6 on 2026-10-04, but this branch's exact conformance evidence is
+    for RC5; changing the pin requires independently rerunning the applicable
+    checks and is not needed to continue. Immutable per-component forward plans
+    now pin strategy/package fingerprints, parameters, and seeds, and activation
+    requires a valid owner-scoped plan. Snapshot resolution now exposes a
+    bounded per-dependency SDK lookback window from the fully verified frozen
+    tape, optionally cut at the exact warm-up event ID. The canonical processed
+    live-prefix reader, portfolio-wide shared-account context composition,
+    persistent isolated Nautilus session, durable output/checkpoint restore, and
+    deterministic crash replay remain code-owned work. Do not infer canonical
+    arrival/global sequence identity from per-dependency frozen series rows.
+    Full Compose/browser acceptance remains environment-limited by unavailable
     Docker Buildx and default Docker API socket access. Shared provider, ETF, and
     TC2000 contracts gate only their eventual shared-path integration; options
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Implement bounded owner-scoped warm-up context and canonical processed-prefix
-    readers for every resolved component, then compose their contexts into one
-    persistent shared-account Nautilus runtime. Retain native invocation/account
-    outputs and runtime checkpoints before Redis acknowledgement; restore the
-    BacktestEngine/trader deterministically after process loss, preserving
-    correction events on the counterfactual path. Consume provider-owned source
-    contracts only after staging; stable release labeling is not a gate.
+    Implement an owner-authenticated canonical processed-prefix reader against
+    the exact pre-event checkpoint and source-verified event payload port, then
+    compose it with bounded frozen warm-up windows for each resolved component.
+    Preserve provider-owned canonical event identity and ordering; do not
+    synthesize them from snapshot row sequences. Compose all component contexts
+    into one persistent shared-account Nautilus runtime. Retain native
+    invocation/account outputs and runtime checkpoints before Redis
+    acknowledgement; restore the BacktestEngine/trader deterministically after
+    process loss, preserving correction events on the counterfactual path.
+    Consume provider-owned source contracts only after staging; stable release
+    labeling is not a gate.
