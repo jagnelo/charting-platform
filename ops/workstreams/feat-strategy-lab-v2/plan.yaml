@@ -856,6 +856,23 @@ progress:
     - strategy-lab-v2-nautilus-forward-runtime-operation-handler-v1
   total: 18
   current_phase: forward-runtime-durable-settlement
+  active_changeset:
+    id: strategy-lab-v2-nautilus-forward-checkpoint-scoped-process-v1
+    scope: >-
+      Bind each isolated native forward process to one exact durable admission
+      checkpoint; replace the OS process on checkpoint advance or recovery so
+      local replay state cannot grow across settled events.
+    owned_paths:
+      - backend/app/strategy_lab_v2/nautilus_forward_native_runtime.py
+      - backend/app/strategy_lab_v2/nautilus_forward_process.py
+      - backend/app/strategy_lab_v2/nautilus_forward_runtime_server.py
+      - backend/app/strategy_lab_v2/nautilus_forward_session.py
+      - backend/app/strategy_lab_v2/nautilus_forward_wire.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_session.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_wire.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_runtime_cli.py
+    status: in_progress
   current_blocker: >-
     No external dependency blocks package-owned implementation. Exact-pinned
     Nautilus RC5 remains acceptable for locally controlled testing; stable
@@ -863,9 +880,13 @@ progress:
     exact-source RC5 image now proves an independently constructed runtime can
     rebuild a non-empty authenticated processed prefix and deterministically
     execute/replay the next event. Both reconstructions run within one probe
-    process, so OS-process termination/relaunch is not yet proven. Each factory
-    invocation creates an independent native engine state. This also does not
-    prove bounded process-local replay memory under long-lived load. The
+    process, so OS-process termination/relaunch is not yet proven. The host
+    runtime now starts each isolated process from one exact requested admission
+    checkpoint, verifies that checkpoint in the open request and response, and
+    replaces the process on checkpoint advance or recovery. The native session
+    rejects later checkpoints instead of retaining an unbounded local suffix.
+    Focused tests and the full Strategy Lab package suite pass 1,498 tests;
+    exact-image abrupt-process replay remains unverified. The
     forward account handler now verifies returned durable state cursor and
     append-only event content before COMPLETE; native deliveries also require
     the exact runtime receipt in that stored event record. The PostgreSQL
@@ -879,10 +900,10 @@ progress:
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Bound process-local replay state from the durable host checkpoint, then
-    prove duplicate/crash replay against the durable account/admission ledger
-    across actual worker-process termination and restart, without rewriting
-    prior decisions. Exercise crash windows before account commit, after commit
-    but before Redis ACK, and after ACK. Corrections remain counterfactual.
+    Exercise checkpoint-scoped restarts in the exact RC5 runtime image using a
+    host plan factory that resolves each requested checkpoint from the durable
+    admission/event ledger. Prove duplicate/crash replay across actual process
+    termination, including failures before account commit, after commit but
+    before Redis ACK, and after ACK. Corrections remain counterfactual.
     Preserve provider-owned event identity and consume shared contracts only
     after their source branches reach staging.

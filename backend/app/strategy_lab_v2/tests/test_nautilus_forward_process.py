@@ -86,10 +86,10 @@ def _fake_runtime_binary(tmp_path: Path) -> Path:
         f"sys.path.insert(0, {str(backend_path)!r})\n"
         "from app.strategy_lab_v2.nautilus_runtime_ipc import serve_nautilus_runtime_ipc\n"
         "class Handler:\n"
-        "    def open(self, payload): return {'schema': 'strategy-lab.nautilus-forward-dto.v1', 'instance_id': payload['instance_id'], 'runtime_session_fingerprint': 'sha256:' + '0' * 64}\n"
+        "    def open(self, payload): return {'schema': 'strategy-lab.nautilus-forward-dto.v2', 'instance_id': payload['instance_id'], 'runtime_session_fingerprint': 'sha256:' + '0' * 64, 'base_checkpoint_fingerprint': payload['checkpoint_fingerprint']}\n"
         "    def execute(self, payload): return {'executed': True}\n"
-        "    def restore(self, payload): return {'schema': 'strategy-lab.nautilus-forward-dto.v1', 'instance_id': payload['instance_id'], 'checkpoint_fingerprint': payload['checkpoint_fingerprint']}\n"
-        "    def close(self, payload): return {'schema': 'strategy-lab.nautilus-forward-dto.v1', 'instance_id': payload['instance_id'], 'closed': True}\n"
+        "    def restore(self, payload): return {'schema': 'strategy-lab.nautilus-forward-dto.v2', 'instance_id': payload['instance_id'], 'checkpoint_fingerprint': payload['checkpoint_fingerprint']}\n"
+        "    def close(self, payload): return {'schema': 'strategy-lab.nautilus-forward-dto.v2', 'instance_id': payload['instance_id'], 'closed': True}\n"
         "raise SystemExit(serve_nautilus_runtime_ipc(sys.stdin.buffer, sys.stdout.buffer, Handler()))\n",
         encoding="utf-8",
     )
@@ -100,14 +100,19 @@ def _fake_runtime_binary(tmp_path: Path) -> Path:
 def test_forward_process_factory_launches_persistent_hardened_ipc(tmp_path: Path) -> None:
     plan = _plan(tmp_path)
     docker_stub = _fake_runtime_binary(tmp_path)
+    checkpoint_fingerprint = content_digest("checkpoint")
     factory = HardenedNautilusForwardSessionProcessFactory(
-        lambda _instance_id: plan,
+        lambda _instance_id, _checkpoint_fingerprint: plan,
         docker_binary=str(docker_stub),
         response_timeout_seconds=2.0,
     )
 
     async def exercise() -> None:
-        process = await factory.start(instance_id="forward-1")
+        process = await factory.start(
+            instance_id="forward-1",
+            checkpoint_fingerprint=checkpoint_fingerprint,
+        )
+        assert process.base_checkpoint_fingerprint == checkpoint_fingerprint
         await process.restore(
             instance_id="forward-1",
             checkpoint_fingerprint=content_digest("checkpoint"),

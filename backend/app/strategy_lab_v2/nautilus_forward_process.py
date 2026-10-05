@@ -44,15 +44,27 @@ class _FileDescriptorReader(Protocol):
 class NautilusForwardRuntimeWireCodec(Protocol):
     """Explicit DTO codec between host-owned contracts and bounded IPC JSON."""
 
-    def open_payload(self, *, instance_id: str) -> Mapping[str, object]: ...
-
-    def decode_open_payload(self, payload: Mapping[str, object]) -> str: ...
-
-    def open_result_payload(
-        self, *, instance_id: str, runtime_session_fingerprint: str
+    def open_payload(
+        self, *, instance_id: str, checkpoint_fingerprint: str
     ) -> Mapping[str, object]: ...
 
-    def validate_open_result(self, payload: Mapping[str, object], *, instance_id: str) -> str: ...
+    def decode_open_payload(self, payload: Mapping[str, object]) -> tuple[str, str]: ...
+
+    def open_result_payload(
+        self,
+        *,
+        instance_id: str,
+        runtime_session_fingerprint: str,
+        base_checkpoint_fingerprint: str,
+    ) -> Mapping[str, object]: ...
+
+    def validate_open_result(
+        self,
+        payload: Mapping[str, object],
+        *,
+        instance_id: str,
+        expected_base_checkpoint_fingerprint: str,
+    ) -> str: ...
 
     def execute_payload(
         self,
@@ -275,8 +287,11 @@ class NautilusForwardSessionProcess:
         self,
         transport: NautilusRuntimeIpcSubprocess,
         codec: NautilusForwardRuntimeWireCodec,
+        *,
+        base_checkpoint_fingerprint: str,
     ) -> None:
         self.instance_id = transport.instance_id
+        self.base_checkpoint_fingerprint = base_checkpoint_fingerprint
         self._transport = transport
         self._codec = codec
 
@@ -346,7 +361,7 @@ class HardenedNautilusForwardSessionProcessFactory:
 
     def __init__(
         self,
-        plan_factory: Callable[[str], SandboxCommandPlan],
+        plan_factory: Callable[[str, str], SandboxCommandPlan],
         codec: NautilusForwardRuntimeWireCodec | None = None,
         *,
         docker_binary: str = "docker",
@@ -365,13 +380,18 @@ class HardenedNautilusForwardSessionProcessFactory:
         self._docker_binary = docker_binary
         self._response_timeout_seconds = response_timeout_seconds
 
-    async def start(self, *, instance_id: str) -> NautilusForwardSessionProcess:
+    async def start(
+        self, *, instance_id: str, checkpoint_fingerprint: str
+    ) -> NautilusForwardSessionProcess:
         if not isinstance(instance_id, str) or not instance_id.strip():
             raise ValueError("instance_id must not be empty")
-        return await asyncio.to_thread(self._start_sync, instance_id)
+        require_sha256_digest(checkpoint_fingerprint, field_name="checkpoint_fingerprint")
+        return await asyncio.to_thread(self._start_sync, instance_id, checkpoint_fingerprint)
 
-    def _start_sync(self, instance_id: str) -> NautilusForwardSessionProcess:
-        plan = self._plan_factory(instance_id)
+    def _start_sync(
+        self, instance_id: str, checkpoint_fingerprint: str
+    ) -> NautilusForwardSessionProcess:
+        plan = self._plan_factory(instance_id, checkpoint_fingerprint)
         argv = _forward_session_argv(plan, instance_id, self._docker_binary)
         _prepare_writable_output_mounts(
             plan,
@@ -404,20 +424,37 @@ class HardenedNautilusForwardSessionProcessFactory:
             stderr_limit_bytes=plan.output_limit_bytes,
         )
         try:
-            open_payload = self._codec.open_payload(instance_id=instance_id)
+            open_payload = self._codec.open_payload(
+                instance_id=instance_id,
+                checkpoint_fingerprint=checkpoint_fingerprint,
+            )
             open_response = transport.request(
                 NautilusRuntimeIpcOperation.OPEN,
                 open_payload,
-                request_id=content_digest({"operation": "open", "instance_id": instance_id}),
+                request_id=content_digest(
+                    {
+                        "operation": "open",
+                        "instance_id": instance_id,
+                        "checkpoint_fingerprint": checkpoint_fingerprint,
+                    }
+                ),
             )
-            self._codec.validate_open_result(open_response, instance_id=instance_id)
+            self._codec.validate_open_result(
+                open_response,
+                instance_id=instance_id,
+                expected_base_checkpoint_fingerprint=checkpoint_fingerprint,
+            )
         except Exception:
             try:
                 transport._terminate()
             finally:
                 transport._close_pipes()
             raise
-        return NautilusForwardSessionProcess(transport, self._codec)
+        return NautilusForwardSessionProcess(
+            transport,
+            self._codec,
+            base_checkpoint_fingerprint=checkpoint_fingerprint,
+        )
 
 
 def _forward_session_argv(

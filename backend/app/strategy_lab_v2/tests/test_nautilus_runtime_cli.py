@@ -777,6 +777,7 @@ def test_forward_runtime_verifies_mounts_before_building_and_serving_session(
     native_bytes = b"verified-native-history"
     builder_calls = []
     serve_calls = []
+    checkpoint_fingerprint = "sha256:" + "e" * 64
 
     monkeypatch.setattr(
         nautilus_runtime_cli,
@@ -807,6 +808,7 @@ def test_forward_runtime_verifies_mounts_before_building_and_serving_session(
     class FakeSession:
         instance_id = "instance-1"
         runtime_session_fingerprint = "sha256:" + "d" * 64
+        base_checkpoint_fingerprint = checkpoint_fingerprint
 
         def close(self) -> None:
             pass
@@ -823,7 +825,14 @@ def test_forward_runtime_verifies_mounts_before_building_and_serving_session(
 
     def serve(_input, _output, handler):
         codec = NautilusForwardJsonWireCodec()
-        serve_calls.append(handler.open(codec.open_payload(instance_id="instance-1")))
+        serve_calls.append(
+            handler.open(
+                codec.open_payload(
+                    instance_id="instance-1",
+                    checkpoint_fingerprint=checkpoint_fingerprint,
+                )
+            )
+        )
         serve_calls.append(handler.close({}))
         return 0
 

@@ -175,6 +175,12 @@ class NautilusBacktestForwardSession:
         self._checkpoint_offsets = {bootstrap.processed_checkpoint_fingerprint: 0}
         self._closed = False
 
+    @property
+    def base_checkpoint_fingerprint(self) -> str:
+        """Durable admission checkpoint authenticated by this process bootstrap."""
+
+        return self._bootstrap.processed_checkpoint_fingerprint
+
     def execute(
         self,
         delivery: NautilusForwardDeliveryInput,
@@ -197,14 +203,9 @@ class NautilusBacktestForwardSession:
         checkpoint = delivery.delivery_binding.pre_event_checkpoint_fingerprint
         offset = self._checkpoint_offsets.get(checkpoint)
         if offset is None:
-            if not self._history:
-                raise NautilusRuntimeDataError(
-                    "forward delivery checkpoint is not in the authenticated replay lineage"
-                )
-            # The host advances the account checkpoint only after the previous
-            # result has been durably settled and before admitting the next event.
-            offset = len(self._history)
-            self._checkpoint_offsets[checkpoint] = offset
+            raise NautilusRuntimeDataError(
+                "forward delivery requires a process bootstrapped at its durable checkpoint"
+            )
         if offset != len(self._history):
             raise NautilusRuntimeDataError(
                 "forward session must restore its pre-event checkpoint before retry"

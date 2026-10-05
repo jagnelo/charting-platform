@@ -23,6 +23,7 @@ class NautilusNativeForwardSession(Protocol):
 
     instance_id: str
     runtime_session_fingerprint: str
+    base_checkpoint_fingerprint: str
 
     def execute(
         self,
@@ -41,10 +42,14 @@ NativeForwardSessionFactory = Callable[[str], NautilusNativeForwardSession]
 class NautilusForwardRuntimeWireCodec(Protocol):
     """DTO operations needed inside the isolated process, independent of Docker host code."""
 
-    def decode_open_payload(self, payload: Mapping[str, object]) -> str: ...
+    def decode_open_payload(self, payload: Mapping[str, object]) -> tuple[str, str]: ...
 
     def open_result_payload(
-        self, *, instance_id: str, runtime_session_fingerprint: str
+        self,
+        *,
+        instance_id: str,
+        runtime_session_fingerprint: str,
+        base_checkpoint_fingerprint: str,
     ) -> Mapping[str, object]: ...
 
     def decode_execute_payload(
@@ -99,13 +104,16 @@ class NautilusForwardRuntimeOperationHandler:
     def open(self, payload: Mapping[str, object]) -> Mapping[str, object]:
         if self._opened or self._closed:
             raise ValueError("forward runtime lifecycle cannot be reopened")
-        requested_instance_id = self._codec.decode_open_payload(payload)
+        requested_instance_id, requested_checkpoint = self._codec.decode_open_payload(payload)
         if requested_instance_id != self._instance_id:
             raise ValueError("forward runtime open request names another instance")
+        require_sha256_digest(requested_checkpoint, field_name="requested_checkpoint")
         session = self._session_factory(self._instance_id)
         try:
             if session.instance_id != self._instance_id:
                 raise ValueError("native forward session belongs to another instance")
+            if session.base_checkpoint_fingerprint != requested_checkpoint:
+                raise ValueError("native forward session bootstrapped another durable checkpoint")
             require_sha256_digest(
                 session.runtime_session_fingerprint,
                 field_name="runtime_session_fingerprint",
@@ -113,6 +121,7 @@ class NautilusForwardRuntimeOperationHandler:
             response = self._codec.open_result_payload(
                 instance_id=self._instance_id,
                 runtime_session_fingerprint=session.runtime_session_fingerprint,
+                base_checkpoint_fingerprint=session.base_checkpoint_fingerprint,
             )
         except BaseException:
             try:

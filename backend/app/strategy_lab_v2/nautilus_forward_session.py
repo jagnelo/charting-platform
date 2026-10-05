@@ -77,6 +77,7 @@ class NautilusForwardSessionProcess(Protocol):
     """One isolated native process owning one persistent Nautilus node/account."""
 
     instance_id: str
+    base_checkpoint_fingerprint: str
 
     def execute(
         self,
@@ -95,7 +96,7 @@ class NautilusForwardSessionProcessFactory(Protocol):
     """Launch one pinned, network-disabled process for a forward instance."""
 
     def start(
-        self, *, instance_id: str
+        self, *, instance_id: str, checkpoint_fingerprint: str
     ) -> NautilusForwardSessionProcess | Awaitable[NautilusForwardSessionProcess]: ...
 
 
@@ -116,7 +117,10 @@ class PersistentNautilusForwardSessionRuntime:
     runtime pin. This coordinator owns its lifecycle: components of one
     portfolio share the same process and account, only one event can enter the
     engine at a time, duplicate delivery of the latest input is idempotent, and
-    recovery restores the requested durable pre-event checkpoint before retry.
+    each process is bootstrapped from one exact durable pre-event checkpoint.
+    Advancing to another checkpoint or recovering terminates the old process
+    and starts a new one from host-resolved durable history, bounding transient
+    replay state to one event per process.
     """
 
     def __init__(self, process_factory: NautilusForwardSessionProcessFactory) -> None:
@@ -133,10 +137,13 @@ class PersistentNautilusForwardSessionRuntime:
     ) -> NautilusForwardExecutionResult:
         _validate_preparation_binding(delivery, preparation)
         instance_id = delivery.delivery_binding.instance_id
-        session = await self._session_for(instance_id)
+        checkpoint_fingerprint = delivery.delivery_binding.pre_event_checkpoint_fingerprint
+        session, _created = await self._session_for(instance_id, checkpoint_fingerprint)
         async with session.lock:
             if session.closing:
                 raise RuntimeError("forward native session is closing")
+            if session.process.base_checkpoint_fingerprint != checkpoint_fingerprint:
+                await self._replace_process(instance_id, session, checkpoint_fingerprint)
             delivery_fingerprint = delivery.delivery_binding.fingerprint
             preparation_fingerprint = preparation.fingerprint
             if session.last_delivery_fingerprint == delivery_fingerprint:
@@ -164,16 +171,12 @@ class PersistentNautilusForwardSessionRuntime:
         if not isinstance(instance_id, str) or not instance_id.strip():
             raise ValueError("instance_id must not be empty")
         require_sha256_digest(checkpoint_fingerprint, field_name="checkpoint_fingerprint")
-        session = await self._session_for(instance_id)
+        session, created = await self._session_for(instance_id, checkpoint_fingerprint)
         async with session.lock:
             if session.closing:
                 raise RuntimeError("forward native session is closing")
-            restored = session.process.restore(
-                instance_id=instance_id,
-                checkpoint_fingerprint=checkpoint_fingerprint,
-            )
-            if inspect.isawaitable(restored):
-                await restored
+            if not created:
+                await self._replace_process(instance_id, session, checkpoint_fingerprint)
             session.last_delivery_fingerprint = None
             session.last_preparation_fingerprint = None
             session.last_execution = None
@@ -200,42 +203,79 @@ class PersistentNautilusForwardSessionRuntime:
         for instance_id in instance_ids:
             await self.close(instance_id=instance_id)
 
-    async def _session_for(self, instance_id: str) -> _ManagedNautilusForwardSession:
+    async def _session_for(
+        self, instance_id: str, checkpoint_fingerprint: str
+    ) -> tuple[_ManagedNautilusForwardSession, bool]:
         async with self._sessions_lock:
             current = self._sessions.get(instance_id)
             if current is not None:
                 if current.closing:
                     raise RuntimeError("forward native session is closing")
-                return current
-            process_resolution = self._process_factory.start(instance_id=instance_id)
-            process = (
-                await process_resolution
-                if inspect.isawaitable(process_resolution)
-                else process_resolution
-            )
-            if not isinstance(getattr(process, "instance_id", None), str) or (
-                process.instance_id != instance_id
-            ):
-                close = getattr(process, "close", None)
-                if callable(close):
-                    result = close()
-                    if inspect.isawaitable(result):
-                        await result
-                raise ValueError("process factory returned a session for another instance")
-            if (
-                not callable(getattr(process, "execute", None))
-                or not callable(getattr(process, "restore", None))
-                or not callable(getattr(process, "close", None))
-            ):
-                close = getattr(process, "close", None)
-                if callable(close):
-                    result = close()
-                    if inspect.isawaitable(result):
-                        await result
-                raise TypeError("isolated Nautilus process does not implement the session contract")
+                return current, False
+            process = await self._start_process(instance_id, checkpoint_fingerprint)
             managed = _ManagedNautilusForwardSession(process)
             self._sessions[instance_id] = managed
-            return managed
+            return managed, True
+
+    async def _start_process(
+        self, instance_id: str, checkpoint_fingerprint: str
+    ) -> NautilusForwardSessionProcess:
+        process_resolution = self._process_factory.start(
+            instance_id=instance_id,
+            checkpoint_fingerprint=checkpoint_fingerprint,
+        )
+        process = (
+            await process_resolution
+            if inspect.isawaitable(process_resolution)
+            else process_resolution
+        )
+        if not isinstance(getattr(process, "instance_id", None), str) or (
+            process.instance_id != instance_id
+        ):
+            await _close_forward_process(process)
+            raise ValueError("process factory returned a session for another instance")
+        if (
+            not callable(getattr(process, "execute", None))
+            or not callable(getattr(process, "restore", None))
+            or not callable(getattr(process, "close", None))
+        ):
+            await _close_forward_process(process)
+            raise TypeError("isolated Nautilus process does not implement the session contract")
+        if getattr(process, "base_checkpoint_fingerprint", None) != checkpoint_fingerprint:
+            await _close_forward_process(process)
+            raise ValueError("process factory did not bootstrap the requested durable checkpoint")
+        return process
+
+    async def _replace_process(
+        self,
+        instance_id: str,
+        session: _ManagedNautilusForwardSession,
+        checkpoint_fingerprint: str,
+    ) -> None:
+        previous = session.process
+        try:
+            closed = previous.close()
+            if inspect.isawaitable(closed):
+                await closed
+        except BaseException:
+            session.closing = True
+            raise
+        session.last_delivery_fingerprint = None
+        session.last_preparation_fingerprint = None
+        session.last_execution = None
+        try:
+            session.process = await self._start_process(instance_id, checkpoint_fingerprint)
+        except BaseException:
+            session.closing = True
+            raise
+
+
+async def _close_forward_process(process: object) -> None:
+    close = getattr(process, "close", None)
+    if callable(close):
+        result = close()
+        if inspect.isawaitable(result):
+            await result
 
 
 @dataclass(frozen=True, slots=True)

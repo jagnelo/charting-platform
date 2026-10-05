@@ -33,7 +33,10 @@ from app.strategy_lab_v2.nautilus_event_adapter import (
 from app.strategy_lab_v2.nautilus_forward_delivery import (
     NautilusForwardDeliveryInput,
 )
-from app.strategy_lab_v2.nautilus_forward_native_runtime import NautilusBacktestForwardSession
+from app.strategy_lab_v2.nautilus_forward_native_runtime import (
+    NautilusBacktestForwardSession,
+    NautilusRuntimeDataError,
+)
 from app.strategy_lab_v2.nautilus_forward_runtime_server import (
     NautilusForwardRuntimeOperationHandler,
 )
@@ -52,6 +55,7 @@ from app.strategy_lab_v2.sdk import (
 
 NOW = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
 INSTANCE_ID = "forward-1"
+CHECKPOINT_FINGERPRINT = content_digest("checkpoint")
 
 
 def _delivery_and_preparation() -> (
@@ -205,13 +209,23 @@ def test_forward_wire_checks_open_restore_and_rejects_unknown_fields() -> None:
     codec = NautilusForwardJsonWireCodec()
     checkpoint = content_digest("checkpoint")
 
-    assert codec.decode_open_payload(codec.open_payload(instance_id=INSTANCE_ID)) == INSTANCE_ID
+    assert codec.decode_open_payload(
+        codec.open_payload(
+            instance_id=INSTANCE_ID,
+            checkpoint_fingerprint=checkpoint,
+        )
+    ) == (INSTANCE_ID, checkpoint)
     assert codec.decode_restore_payload(
         codec.restore_payload(instance_id=INSTANCE_ID, checkpoint_fingerprint=checkpoint)
     ) == (INSTANCE_ID, checkpoint)
     with pytest.raises(ValueError, match="fields are invalid"):
         codec.decode_open_payload(
-            {"schema": NAUTILUS_FORWARD_WIRE_SCHEMA, "instance_id": INSTANCE_ID, "extra": True}
+            {
+                "schema": NAUTILUS_FORWARD_WIRE_SCHEMA,
+                "instance_id": INSTANCE_ID,
+                "checkpoint_fingerprint": checkpoint,
+                "extra": True,
+            }
         )
 
 
@@ -294,6 +308,22 @@ def test_native_forward_session_retries_failed_execution_and_replays_checkpoint(
     result = session.execute(delivery, preparation)
     assert session.execute(delivery, preparation) is result
     assert execution_count == 2
+    later_checkpoint = content_digest("later-durable-checkpoint")
+    later_binding = replace(
+        delivery.delivery_binding,
+        pre_event_checkpoint_fingerprint=later_checkpoint,
+    )
+    later_tape = materialize_nautilus_forward_tape(
+        INSTANCE_ID,
+        (canonical,),
+        (delivery.verified_market_payload.market_event,),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+        delivery_bindings=(later_binding,),
+    )
+    later_delivery = replace(delivery, delivery_binding=later_binding, tape=later_tape)
+    with pytest.raises(NautilusRuntimeDataError, match="bootstrapped at its durable checkpoint"):
+        session.execute(later_delivery, preparation)
+    assert len(session._history) == 1
     assert (
         session.restore(
             checkpoint_fingerprint=delivery.delivery_binding.pre_event_checkpoint_fingerprint
@@ -313,6 +343,7 @@ class _FakeNativeForwardSession:
         result_runtime_fingerprint: str | None = None,
     ) -> None:
         self.instance_id = instance_id
+        self.base_checkpoint_fingerprint = CHECKPOINT_FINGERPRINT
         self.runtime_session_fingerprint = runtime_session_fingerprint or content_digest(
             "runtime-session"
         )
@@ -363,10 +394,17 @@ def test_forward_runtime_handler_binds_open_execute_restore_and_close() -> None:
         codec=codec,
     )
 
-    opened = handler.open(codec.open_payload(instance_id=INSTANCE_ID))
-    assert codec.validate_open_result(opened, instance_id=INSTANCE_ID) == (
-        native_session.runtime_session_fingerprint
+    opened = handler.open(
+        codec.open_payload(
+            instance_id=INSTANCE_ID,
+            checkpoint_fingerprint=CHECKPOINT_FINGERPRINT,
+        )
     )
+    assert codec.validate_open_result(
+        opened,
+        instance_id=INSTANCE_ID,
+        expected_base_checkpoint_fingerprint=CHECKPOINT_FINGERPRINT,
+    ) == (native_session.runtime_session_fingerprint)
 
     execution = codec.execution_result(
         handler.execute(codec.execute_payload(delivery, preparation))
@@ -402,9 +440,34 @@ def test_forward_runtime_handler_rejects_wrong_instance_before_starting_engine()
     )
 
     with pytest.raises(ValueError, match="another instance"):
-        handler.open(codec.open_payload(instance_id="another-forward"))
+        handler.open(
+            codec.open_payload(
+                instance_id="another-forward",
+                checkpoint_fingerprint=CHECKPOINT_FINGERPRINT,
+            )
+        )
 
     assert factory_calls == []
+
+
+def test_forward_runtime_open_rejects_bootstrap_for_another_durable_checkpoint() -> None:
+    codec = NautilusForwardJsonWireCodec()
+    native_session = _FakeNativeForwardSession()
+    handler = NautilusForwardRuntimeOperationHandler(
+        instance_id=INSTANCE_ID,
+        session_factory=lambda _instance_id: native_session,
+        codec=codec,
+    )
+
+    with pytest.raises(ValueError, match="another durable checkpoint"):
+        handler.open(
+            codec.open_payload(
+                instance_id=INSTANCE_ID,
+                checkpoint_fingerprint=content_digest("different-checkpoint"),
+            )
+        )
+
+    assert native_session.closed == 1
 
 
 def test_forward_runtime_handler_closes_invalid_engine_and_cannot_reopen() -> None:
@@ -417,12 +480,23 @@ def test_forward_runtime_handler_closes_invalid_engine_and_cannot_reopen() -> No
     )
 
     with pytest.raises(ValueError, match="sha256 content digest"):
-        handler.open(codec.open_payload(instance_id=INSTANCE_ID))
+        handler.open(
+            codec.open_payload(
+                instance_id=INSTANCE_ID,
+                checkpoint_fingerprint=CHECKPOINT_FINGERPRINT,
+            )
+        )
 
     assert invalid_session.closed == 1
 
     class _BrokenOpenResponseCodec(NautilusForwardJsonWireCodec):
-        def open_result_payload(self, *, instance_id: str, runtime_session_fingerprint: str):
+        def open_result_payload(
+            self,
+            *,
+            instance_id: str,
+            runtime_session_fingerprint: str,
+            base_checkpoint_fingerprint: str,
+        ):
             raise ValueError("open response could not be encoded")
 
     response_session = _FakeNativeForwardSession()
@@ -432,7 +506,12 @@ def test_forward_runtime_handler_closes_invalid_engine_and_cannot_reopen() -> No
         codec=_BrokenOpenResponseCodec(),
     )
     with pytest.raises(ValueError, match="could not be encoded"):
-        response_handler.open(codec.open_payload(instance_id=INSTANCE_ID))
+        response_handler.open(
+            codec.open_payload(
+                instance_id=INSTANCE_ID,
+                checkpoint_fingerprint=CHECKPOINT_FINGERPRINT,
+            )
+        )
     assert response_session.closed == 1
 
     valid_session = _FakeNativeForwardSession()
@@ -441,11 +520,21 @@ def test_forward_runtime_handler_closes_invalid_engine_and_cannot_reopen() -> No
         session_factory=lambda _instance_id: valid_session,
         codec=codec,
     )
-    close_handler.open(codec.open_payload(instance_id=INSTANCE_ID))
+    close_handler.open(
+        codec.open_payload(
+            instance_id=INSTANCE_ID,
+            checkpoint_fingerprint=CHECKPOINT_FINGERPRINT,
+        )
+    )
     codec.validate_close_result(close_handler.close({}), instance_id=INSTANCE_ID)
     assert valid_session.closed == 1
     with pytest.raises(ValueError, match="cannot be reopened"):
-        close_handler.open(codec.open_payload(instance_id=INSTANCE_ID))
+        close_handler.open(
+            codec.open_payload(
+                instance_id=INSTANCE_ID,
+                checkpoint_fingerprint=CHECKPOINT_FINGERPRINT,
+            )
+        )
 
 
 def test_forward_runtime_handler_rejects_unbound_preparation_before_native_execution() -> None:
@@ -465,7 +554,12 @@ def test_forward_runtime_handler_rejects_unbound_preparation_before_native_execu
         session_factory=lambda _instance_id: native_session,
         codec=codec,
     )
-    handler.open(codec.open_payload(instance_id=INSTANCE_ID))
+    handler.open(
+        codec.open_payload(
+            instance_id=INSTANCE_ID,
+            checkpoint_fingerprint=CHECKPOINT_FINGERPRINT,
+        )
+    )
 
     with pytest.raises(ValueError, match="not bound to this instance and delivery"):
         handler.execute(codec.execute_payload(delivery, preparation))
@@ -484,7 +578,12 @@ def test_forward_runtime_handler_rejects_result_from_another_native_session() ->
         session_factory=lambda _instance_id: native_session,
         codec=codec,
     )
-    handler.open(codec.open_payload(instance_id=INSTANCE_ID))
+    handler.open(
+        codec.open_payload(
+            instance_id=INSTANCE_ID,
+            checkpoint_fingerprint=CHECKPOINT_FINGERPRINT,
+        )
+    )
 
     with pytest.raises(ValueError, match="authenticated execution input"):
         handler.execute(codec.execute_payload(delivery, preparation))

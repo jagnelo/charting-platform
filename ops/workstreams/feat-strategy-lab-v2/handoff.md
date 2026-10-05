@@ -12101,3 +12101,34 @@ replay from durable state, a non-empty processed-prefix restore, or actual
 process-loss recovery. Those remain the immediate package-owned tasks. Full
 Compose/browser acceptance and broader branch ACs also remain open; stable
 Nautilus release labeling is not a blocker.
+
+## 2026-10-05 - Checkpoint-scoped forward process lifecycle
+
+Active changeset context: `strategy-lab-v2-nautilus-forward-checkpoint-scoped-process-v1`.
+Owned files are `backend/app/strategy_lab_v2/nautilus_forward_native_runtime.py`,
+`nautilus_forward_process.py`, `nautilus_forward_runtime_server.py`,
+`nautilus_forward_session.py`, `nautilus_forward_wire.py`, and the focused
+tests `test_nautilus_forward_process.py`, `test_nautilus_forward_session.py`,
+`test_nautilus_forward_wire.py`, and `test_nautilus_runtime_cli.py` in the same
+package test directory.
+
+The host now requests a process bootstrap at the exact delivery pre-event
+checkpoint and verifies the opened runtime reports that same checkpoint.
+Changing checkpoints or restoring after failure closes the old OS process and
+starts a fresh process from host-resolved durable history. The DTO wire schema
+is bumped to v2 for the explicit checkpoint field. The native session accepts
+only its bootstrapped checkpoint, so its transient delivery replay list cannot
+grow across accepted checkpoints; untrusted or stale bootstrap state fails
+closed.
+
+Focused recovery/wire/CLI/process tests passed 50 cases; the complete Strategy
+Lab package passed all 1,498 tests. Ruff checks/format, focused MyPy, and
+whitespace checks passed. This is a bounded per-process lifecycle contract, not
+yet proof of the exact RC5 image using a real host checkpoint resolver or
+crash-window replay. Next: commit/push this context, then run an image-backed
+process-restart fixture against the durable admission/event ledger and exercise
+pre-commit, post-commit/pre-ACK, and post-ACK failure windows.
+
+No stable Nautilus 2.x release is required. RC5 remains the already-qualified
+isolated pin; RC6 requalification is optional and must not interrupt package
+implementation.

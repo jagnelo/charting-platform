@@ -251,9 +251,10 @@ class Runtime:
 
 
 class PersistentProcess(Runtime):
-    def __init__(self, instance_id: str, order: list[str]) -> None:
+    def __init__(self, instance_id: str, checkpoint_fingerprint: str, order: list[str]) -> None:
         super().__init__(order)
         self.instance_id = instance_id
+        self.base_checkpoint_fingerprint = checkpoint_fingerprint
         self.close_calls = 0
 
     async def close(self) -> None:
@@ -264,15 +265,15 @@ class PersistentProcess(Runtime):
 class PersistentProcessFactory:
     def __init__(self, order: list[str]) -> None:
         self.order = order
-        self.processes: dict[str, PersistentProcess] = {}
-        self.start_calls: list[str] = []
+        self.processes: list[PersistentProcess] = []
+        self.start_calls: list[tuple[str, str]] = []
         self.fail_execution = False
 
-    async def start(self, *, instance_id: str) -> PersistentProcess:
-        self.start_calls.append(instance_id)
-        process = PersistentProcess(instance_id, self.order)
+    async def start(self, *, instance_id: str, checkpoint_fingerprint: str) -> PersistentProcess:
+        self.start_calls.append((instance_id, checkpoint_fingerprint))
+        process = PersistentProcess(instance_id, checkpoint_fingerprint, self.order)
         process.fail_execution = self.fail_execution
-        self.processes[instance_id] = process
+        self.processes.append(process)
         return process
 
 
@@ -427,14 +428,19 @@ async def test_persistent_native_runtime_reuses_one_process_and_deduplicates_lat
     await runtime.execute(next_delivery, next_preparation)
 
     assert first == replay
-    assert factory.start_calls == [INSTANCE_ID]
-    assert len(factory.processes[INSTANCE_ID].preparations) == 2
-    assert order == ["execute", "execute"]
+    assert factory.start_calls == [
+        (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint),
+        (INSTANCE_ID, next_checkpoint),
+    ]
+    assert len(factory.processes[0].preparations) == 1
+    assert len(factory.processes[1].preparations) == 1
+    assert factory.processes[0].close_calls == 1
+    assert order == ["execute", "close", "execute"]
 
     await runtime.close(instance_id=INSTANCE_ID)
 
-    assert factory.processes[INSTANCE_ID].close_calls == 1
-    assert order == ["execute", "execute", "close"]
+    assert factory.processes[1].close_calls == 1
+    assert order == ["execute", "close", "execute", "close"]
 
 
 @pytest.mark.asyncio
@@ -458,13 +464,15 @@ async def test_persistent_native_runtime_restore_clears_only_volatile_idempotenc
     )
     replayed = await runtime.execute(delivery, preparation)
 
-    process = factory.processes[INSTANCE_ID]
+    process = factory.processes[-1]
     assert replayed == first
-    assert process.restore_calls == [
-        (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint)
+    assert factory.start_calls == [
+        (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint),
+        (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint),
     ]
-    assert len(process.preparations) == 2
-    assert order == ["execute", "restore", "execute"]
+    assert factory.processes[0].close_calls == 1
+    assert len(process.preparations) == 1
+    assert order == ["execute", "close", "execute"]
     await runtime.close_all()
 
 
@@ -490,8 +498,10 @@ async def test_portfolio_components_share_one_native_event_and_commit_together()
     assert result.decision is WorkerHandleDecision.COMPLETE
     assert order == ["execute", "persist"]
     assert len(store.events) == 1
-    assert process_factory.start_calls == [INSTANCE_ID]
-    process = process_factory.processes[INSTANCE_ID]
+    assert process_factory.start_calls == [
+        (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint)
+    ]
+    process = process_factory.processes[0]
     assert len(process.preparations) == 1
     preparation = process.preparations[0]
     assert isinstance(preparation, ForwardPortfolioContextPreparation)
@@ -548,10 +558,12 @@ async def test_portfolio_runtime_failure_restores_once_and_discards_every_compon
     result = await _portfolio_handler(canonical, windows, runtime, store)(entry, work_item)
 
     assert result.decision is WorkerHandleDecision.RETRY
-    assert order == ["execute", "restore"]
-    process = process_factory.processes[INSTANCE_ID]
-    assert process.restore_calls == [
-        (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint)
+    assert order == ["execute", "close"]
+    assert len(process_factory.processes) == 2
+    assert process_factory.processes[0].close_calls == 1
+    assert process_factory.start_calls == [
+        (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint),
+        (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint),
     ]
     assert all(window.last_event_key is None for window in windows.values())
     assert store.events == []

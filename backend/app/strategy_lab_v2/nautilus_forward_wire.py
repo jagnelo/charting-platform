@@ -44,7 +44,7 @@ from app.strategy_lab_v2.sdk import (
     TimeInForce,
 )
 
-NAUTILUS_FORWARD_WIRE_SCHEMA = "strategy-lab.nautilus-forward-dto.v1"
+NAUTILUS_FORWARD_WIRE_SCHEMA = "strategy-lab.nautilus-forward-dto.v2"
 _TAG = "$type"
 _DATACLASSES = (
     CanonicalForwardEvent,
@@ -76,35 +76,69 @@ _NAMES = {value: key for key, value in _TYPES.items()}
 class NautilusForwardJsonWireCodec:
     """Encode/decode a closed set of public DTOs without dynamic imports or pickle."""
 
-    def open_payload(self, *, instance_id: str) -> Mapping[str, object]:
+    def open_payload(
+        self, *, instance_id: str, checkpoint_fingerprint: str
+    ) -> Mapping[str, object]:
         _nonempty(instance_id, "instance_id")
-        return {"schema": NAUTILUS_FORWARD_WIRE_SCHEMA, "instance_id": instance_id}
+        require_sha256_digest(checkpoint_fingerprint, field_name="checkpoint_fingerprint")
+        return {
+            "schema": NAUTILUS_FORWARD_WIRE_SCHEMA,
+            "instance_id": instance_id,
+            "checkpoint_fingerprint": checkpoint_fingerprint,
+        }
 
-    def decode_open_payload(self, payload: Mapping[str, object]) -> str:
-        value = _strict_fields(payload, {"schema", "instance_id"}, "open payload")
+    def decode_open_payload(self, payload: Mapping[str, object]) -> tuple[str, str]:
+        value = _strict_fields(
+            payload,
+            {"schema", "instance_id", "checkpoint_fingerprint"},
+            "open payload",
+        )
         _check_schema(value)
-        return _nonempty(value["instance_id"], "instance_id")
+        checkpoint = _digest(value["checkpoint_fingerprint"], "checkpoint_fingerprint")
+        return _nonempty(value["instance_id"], "instance_id"), checkpoint
 
     def open_result_payload(
-        self, *, instance_id: str, runtime_session_fingerprint: str
+        self,
+        *,
+        instance_id: str,
+        runtime_session_fingerprint: str,
+        base_checkpoint_fingerprint: str,
     ) -> Mapping[str, object]:
         _nonempty(instance_id, "instance_id")
         require_sha256_digest(runtime_session_fingerprint, field_name="runtime_session_fingerprint")
+        require_sha256_digest(
+            base_checkpoint_fingerprint,
+            field_name="base_checkpoint_fingerprint",
+        )
         return {
             "schema": NAUTILUS_FORWARD_WIRE_SCHEMA,
             "instance_id": instance_id,
             "runtime_session_fingerprint": runtime_session_fingerprint,
+            "base_checkpoint_fingerprint": base_checkpoint_fingerprint,
         }
 
-    def validate_open_result(self, payload: Mapping[str, object], *, instance_id: str) -> str:
+    def validate_open_result(
+        self,
+        payload: Mapping[str, object],
+        *,
+        instance_id: str,
+        expected_base_checkpoint_fingerprint: str,
+    ) -> str:
         value = _strict_fields(
             payload,
-            {"schema", "instance_id", "runtime_session_fingerprint"},
+            {
+                "schema",
+                "instance_id",
+                "runtime_session_fingerprint",
+                "base_checkpoint_fingerprint",
+            },
             "open response",
         )
         _check_schema(value)
         if value["instance_id"] != instance_id:
             raise ValueError("forward runtime opened a different instance")
+        if value["base_checkpoint_fingerprint"] != expected_base_checkpoint_fingerprint:
+            raise ValueError("forward runtime opened a different durable checkpoint")
         return _digest(value["runtime_session_fingerprint"], "runtime_session_fingerprint")
 
     def execute_payload(
