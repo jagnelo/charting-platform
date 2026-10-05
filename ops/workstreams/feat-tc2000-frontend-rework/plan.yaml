@@ -32,6 +32,24 @@ current_blocker: >-
   Buildx is unavailable (`docker buildx` is not a recognized CLI command).
   Provider-platform and ETF remain outside staging, so R2/R3 consumption and
   shared-path reconciliation wait for coordinator promotion.
+active_changeset_context:
+  name: Independent structured Study threshold drafts
+  status: implementation_committed_and_synchronized
+  commit_sha: d413d845939e68e9738b621329fa8d63a419ddf8
+  remote_sha: d413d845939e68e9738b621329fa8d63a419ddf8
+  intent: >-
+    Keep operator/value edits and promotion lineage isolated per run artifact in
+    Study Lab and Research Results; preserve each artifact's own scan/cache key.
+  owned_paths:
+    - frontend/src/components/workstation/StudyLabTool.vue
+    - frontend/src/components/workstation/ResearchResultsTool.vue
+    - frontend/tests/unit/components/test_study_lab_tool.test.ts
+    - frontend/tests/unit/components/test_research_results_tool.test.ts
+    - frontend/tests/e2e/flows.spec.ts
+  next_action: >-
+    Commit and push this separate workstream/session checkpoint, then resume
+    the next bounded TC-owned R1/R5/R6 slice while keeping full integration,
+    visual parity, and upstream staging acceptance gates open.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."

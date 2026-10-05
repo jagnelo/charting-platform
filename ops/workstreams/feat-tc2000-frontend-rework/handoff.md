@@ -1,5 +1,32 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Independent structured Study threshold drafts
+
+Completed changeset: per-run/per-artifact threshold drafts for scalar, series, and
+range-center outputs in Study Lab and Research Results. Threshold operator,
+value, immutable promotion lineage, stable asset key, and scan cache identity
+now come from that artifact's own draft. Owned implementation/test paths are
+recorded in `plan.yaml`; this does not change provider/ETF ownership or visual
+acceptance policy.
+
+Focused component tests passed `102/102`; Vue type-check passed. The assigned
+frontend Docker image built successfully, then only the assigned frontend
+service was force-recreated; all other services and four named volumes were
+preserved. Pinned Playwright 1.62.1 browser replays passed `1/1` each for the
+two-output Research Results independent-threshold flow and direct Study Lab
+series promotion. The browser runner used only the assigned frontend network
+namespace. The implementation commit is `d413d845939e68e9738b621329fa8d63a419ddf8`;
+direct `ls-remote` verification returned the same exact branch tip. The separate
+workstream/session checkpoint is being closed next. This bounded R5 slice does
+not close the broader TC2000 goal.
+
+The separate operational checkpoint owns
+`ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`,
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`, and
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`; its enclosing
+commit SHA will be verified externally after push.
+
 ## 2026-10-05 — Correct the compound breadth NOT browser regression selector
 
 The regression is in `F8s-breadth-family-ratio`: it creates a multi-child OR
