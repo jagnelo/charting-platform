@@ -11744,3 +11744,23 @@ Next: make the fixed CLI consume the bootstrap, context, and native-history
 mounts, instantiate the verified per-instance session, and serve the existing
 bounded IPC protocol over stdio. Then exercise native warm-up/event replay and
 durable checkpoints through the host process/runtime path.
+
+## 2026-10-05 - Exact runtime-version forward startup binding
+
+Implementation `f1c043d7407a60d7f7379fecbae5d1a67b595eb2` makes the forward
+startup verifier compare the installed Nautilus distribution version with the
+exact expected version supplied by the sandbox plan before native session
+construction. Regression coverage proves that a plan pinned to RC5 rejects a
+runtime reporting RC6, even when the bootstrap and all artifact bindings match.
+
+Validation: 8 focused forward-bootstrap tests passed; Ruff check/format,
+focused MyPy for `nautilus_runtime_cli.py`, and `git diff --check` passed. The
+source checkpoint is pushed to `origin/feat/strategy-lab-v2`. The verifier is
+still not invoked by `main`: `--serve-forward`, the persistent shared-account
+native session, durable output/checkpoint-before-ACK, and process-loss replay
+remain open.
+
+Next: wire `main` to the authenticated bootstrap/context/history verifier and
+the bounded stdio IPC server, backed by one persistent native session built
+from the frozen warm-up and processed prefix. Preserve exact version/build
+bindings throughout replay and settlement.
