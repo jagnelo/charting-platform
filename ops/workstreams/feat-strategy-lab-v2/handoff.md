@@ -11475,12 +11475,21 @@ delivery/preparation inputs to the frames without copying unbounded history,
 then persist native output and exact checkpoint receipts before Redis ACK and
 prove deterministic restore/replay after process loss. The exact-pinned RC5
 build remains five-check qualified; stable labeling is not a gate, and RC6
-requalification is optional unless the runtime pin changes. Current live
-environment checks found no Docker Buildx plugin and denied access to
-`/var/run/docker.sock`; these block final Compose/browser acceptance only, not
-package-owned implementation. Provider/ETF/TC2000 reconciliation remains
-conditional on those approved workstreams reaching staging.
+requalification is optional unless the runtime pin changes. Docker Buildx is
+not installed, so the final Compose/browser build-validation profile remains
+open. The ordinary sandboxed Docker CLI call could not access
+`/var/run/docker.sock`, but the canonical session checkpoint and a scoped
+read-only Docker probe both reached the daemon; the checkpoint found no
+worktree-owned resources. Provider/ETF/TC2000 reconciliation remains conditional
+on those approved workstreams reaching staging.
 
 Next: connect this frame codec to the bounded host-side persistent process
 client and matching RC5 runtime server, then bind it to durable event receipts
 before Redis acknowledgement.
+
+Current durable record paths for this slice are this handoff
+(`ops/workstreams/feat-strategy-lab-v2/handoff.md`), its append-only validation
+ledger (`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`), and the
+session checkpoint (`ops/workstreams/feat-strategy-lab-v2/session.json`).
+The checkpoint helper's known leading-character truncation was corrected in
+`session.json`; its dirty-path entry now names the exact handoff path.

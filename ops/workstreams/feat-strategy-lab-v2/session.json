@@ -87,13 +87,30 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ackend/app/strategy_lab_v2/nautilus_runtime_protocol.py",
-    "backend/app/strategy_lab_v2/nautilus_runtime_ipc.py",
-    "backend/app/strategy_lab_v2/tests/test_nautilus_runtime_ipc.py"
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-strategy-lab-v2-7794d9e5",
+      "charting-stack-feat-strategy-lab-v2-7794d9e5"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "docker_ready": {
     "ready": true,
@@ -109,9 +126,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "13c7c00dd82e4012ff3904d6b675b982130c0b66",
+  "head": "54dc7aeff87aac530aca03e19b8d47048316e184",
   "implementation_sha": "204efd3451463b09df6fee280e190149197f6acc",
-  "last_checkpoint": "2026-10-05T14:29:01.861100+00:00",
+  "last_checkpoint": "2026-10-05T14:42:16.247607+00:00",
   "last_human_progress_update": "2026-10-05T14:38:18.058955+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
@@ -137,7 +154,7 @@
     "total": 18,
     "updated_at": "2026-10-05T14:38:18.058927+00:00"
   },
-  "remote": "13c7c00dd82e4012ff3904d6b675b982130c0b66",
+  "remote": "54dc7aeff87aac530aca03e19b8d47048316e184",
   "remote_sha": "204efd3451463b09df6fee280e190149197f6acc",
   "remote_synchronized": true,
   "retained_docker_resources": [],
