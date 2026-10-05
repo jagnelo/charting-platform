@@ -129,7 +129,7 @@
   "head": "54dc7aeff87aac530aca03e19b8d47048316e184",
   "implementation_sha": "204efd3451463b09df6fee280e190149197f6acc",
   "last_checkpoint": "2026-10-05T14:42:16.247607+00:00",
-  "last_human_progress_update": "2026-10-05T14:38:18.058955+00:00",
+  "last_human_progress_update": "2026-10-05T14:52:51.883466+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -149,10 +149,10 @@
   "progress": {
     "completed": [],
     "current_blocker": "none",
-    "current_phase": "bounded-forward-runtime-ipc",
-    "next_action": "Connect bounded NDJSON frames to the host persistent Nautilus process client and exact-pinned RC5 runtime server; persist execution outputs and exact checkpoints before Redis ACK, then prove restart replay.",
+    "current_phase": "forward-ipc-client-server",
+    "next_action": "Implement the hardened per-instance Docker process factory and an RC5 runtime CLI handler backed by one persistent BacktestEngine/strategy bridge; prove streamed event execution, durable output/checkpoint-before-ACK, and restart replay.",
     "total": 18,
-    "updated_at": "2026-10-05T14:38:18.058927+00:00"
+    "updated_at": "2026-10-05T14:52:51.883444+00:00"
   },
   "remote": "54dc7aeff87aac530aca03e19b8d47048316e184",
   "remote_sha": "204efd3451463b09df6fee280e190149197f6acc",

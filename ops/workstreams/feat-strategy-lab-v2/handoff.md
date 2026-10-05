@@ -11493,3 +11493,27 @@ ledger (`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`), and the
 session checkpoint (`ops/workstreams/feat-strategy-lab-v2/session.json`).
 The checkpoint helper's known leading-character truncation was corrected in
 `session.json`; its dirty-path entry now names the exact handoff path.
+
+## 2026-10-05 - Forward runtime IPC client and server lifecycle
+
+Extended the bounded framing layer with a serialized request/reply client and
+an isolated-side lifecycle loop. The loop enforces one open, rejects invalid
+operation order, caches the latest identical request/reply for response-loss
+retry, and requires checkpoint restore after an execution exception. Error
+responses expose only bounded lowercase error codes. The client checks request
+correlation and status before returning any result payload.
+
+Validation on the current implementation tree: all eight focused IPC tests;
+full Strategy Lab package 1,466 passed; schema migration 6 passed; package Ruff,
+changed-file Ruff format, focused MyPy, and `git diff --check` passed.
+
+The IPC client/server are still transport infrastructure, not a functioning
+Nautilus process integration. Code-owned next work is the hardened per-instance
+Docker process factory plus an RC5 CLI handler using one persistent
+BacktestEngine/strategy bridge; then persist output and exact checkpoint
+receipts before Redis ACK and prove deterministic process-loss replay. No stable
+release dependency or external service is needed to continue that work.
+
+Next: implement the concrete process factory and runtime handler, then wire
+authenticated context/event payload references through this protocol without
+embedding unbounded history.

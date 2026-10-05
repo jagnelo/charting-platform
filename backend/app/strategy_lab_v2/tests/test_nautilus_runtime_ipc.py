@@ -6,12 +6,15 @@ import json
 import pytest
 
 from app.strategy_lab_v2.nautilus_runtime_ipc import (
+    NautilusRuntimeIpcClient,
+    NautilusRuntimeIpcError,
     NautilusRuntimeIpcOperation,
     NautilusRuntimeIpcStatus,
     create_nautilus_runtime_ipc_frame,
     decode_nautilus_runtime_ipc_frame,
     encode_nautilus_runtime_ipc_frame,
     read_nautilus_runtime_ipc_frame,
+    serve_nautilus_runtime_ipc,
 )
 
 
@@ -78,3 +81,156 @@ def test_runtime_ipc_stream_reads_exactly_one_frame_and_detects_truncation() -> 
     assert read_nautilus_runtime_ipc_frame(stream) is None
     with pytest.raises(ValueError, match="unterminated"):
         read_nautilus_runtime_ipc_frame(io.BytesIO(encoded[:-1]))
+
+
+class _Handler:
+    def __init__(self, *, fail_first_execute: bool = False) -> None:
+        self.calls: list[tuple[str, dict[str, object]]] = []
+        self.fail_first_execute = fail_first_execute
+
+    def open(self, payload):
+        self.calls.append(("open", dict(payload)))
+        return {"ready": True}
+
+    def execute(self, payload):
+        self.calls.append(("execute", dict(payload)))
+        if self.fail_first_execute:
+            self.fail_first_execute = False
+            raise RuntimeError("private details are not sent over IPC")
+        return {"accepted": payload.get("event_id")}
+
+    def restore(self, payload):
+        self.calls.append(("restore", dict(payload)))
+        return {"restored": payload.get("checkpoint_fingerprint")}
+
+    def close(self, payload):
+        self.calls.append(("close", dict(payload)))
+        return {"closed": True}
+
+
+def _request(request_id: str, operation: NautilusRuntimeIpcOperation, payload=None):
+    return create_nautilus_runtime_ipc_frame(
+        request_id=request_id,
+        operation=operation,
+        status=NautilusRuntimeIpcStatus.REQUEST,
+        payload={} if payload is None else payload,
+    )
+
+
+def _serve(requests: list):
+    input_stream = io.BytesIO(
+        b"".join(encode_nautilus_runtime_ipc_frame(item) for item in requests)
+    )
+    output_stream = io.BytesIO()
+    handler = _Handler()
+    result = serve_nautilus_runtime_ipc(input_stream, output_stream, handler)
+    output_stream.seek(0)
+    responses = []
+    while response := read_nautilus_runtime_ipc_frame(output_stream):
+        responses.append(response)
+    return result, handler, responses
+
+
+def test_runtime_ipc_server_persists_handler_and_caches_latest_request() -> None:
+    execute = _request("execute-1", NautilusRuntimeIpcOperation.EXECUTE, {"event_id": "e-1"})
+    result, handler, responses = _serve(
+        [
+            _request("open-1", NautilusRuntimeIpcOperation.OPEN, {"instance_id": "i-1"}),
+            execute,
+            execute,
+            _request("close-1", NautilusRuntimeIpcOperation.CLOSE),
+        ]
+    )
+
+    assert result == 0
+    assert [call[0] for call in handler.calls] == ["open", "execute", "close"]
+    assert len(responses) == 4
+    assert responses[1].status is NautilusRuntimeIpcStatus.SUCCESS
+    assert responses[1] == responses[2]
+
+
+def test_runtime_ipc_server_requires_restore_after_uncertain_execution() -> None:
+    requests = [
+        _request("open", NautilusRuntimeIpcOperation.OPEN),
+        _request("execute-fails", NautilusRuntimeIpcOperation.EXECUTE, {"event_id": "e-1"}),
+        _request("blocked", NautilusRuntimeIpcOperation.EXECUTE, {"event_id": "e-2"}),
+        _request(
+            "restore",
+            NautilusRuntimeIpcOperation.RESTORE,
+            {"checkpoint_fingerprint": "sha256:" + "c" * 64},
+        ),
+        _request("execute-retried", NautilusRuntimeIpcOperation.EXECUTE, {"event_id": "e-1"}),
+        _request("close", NautilusRuntimeIpcOperation.CLOSE),
+    ]
+    input_stream = io.BytesIO(
+        b"".join(encode_nautilus_runtime_ipc_frame(item) for item in requests)
+    )
+    output_stream = io.BytesIO()
+    handler = _Handler(fail_first_execute=True)
+
+    assert serve_nautilus_runtime_ipc(input_stream, output_stream, handler) == 0
+    output_stream.seek(0)
+    responses = []
+    while response := read_nautilus_runtime_ipc_frame(output_stream):
+        responses.append(response)
+
+    assert [response.status for response in responses] == [
+        NautilusRuntimeIpcStatus.SUCCESS,
+        NautilusRuntimeIpcStatus.ERROR,
+        NautilusRuntimeIpcStatus.ERROR,
+        NautilusRuntimeIpcStatus.SUCCESS,
+        NautilusRuntimeIpcStatus.SUCCESS,
+        NautilusRuntimeIpcStatus.SUCCESS,
+    ]
+    assert responses[1].payload == {"error_code": "operation_failed"}
+    assert responses[2].payload == {"error_code": "restore_required"}
+    assert [call[0] for call in handler.calls] == ["open", "execute", "restore", "execute", "close"]
+
+
+def test_runtime_ipc_client_correlates_request_and_returns_response_payload() -> None:
+    response = create_nautilus_runtime_ipc_frame(
+        request_id="request-1",
+        operation=NautilusRuntimeIpcOperation.EXECUTE,
+        status=NautilusRuntimeIpcStatus.SUCCESS,
+        payload={"result_fingerprint": "sha256:" + "d" * 64},
+    )
+    response_stream = io.BytesIO(encode_nautilus_runtime_ipc_frame(response))
+    request_stream = io.BytesIO()
+    client = NautilusRuntimeIpcClient(response_stream, request_stream)
+
+    payload = client.request(
+        NautilusRuntimeIpcOperation.EXECUTE,
+        {"event_id": "e-1"},
+        request_id="request-1",
+    )
+
+    assert payload == {"result_fingerprint": "sha256:" + "d" * 64}
+    request_stream.seek(0)
+    sent = read_nautilus_runtime_ipc_frame(request_stream)
+    assert sent is not None
+    assert sent.request_id == "request-1"
+    assert sent.status is NautilusRuntimeIpcStatus.REQUEST
+
+
+def test_runtime_ipc_client_raises_only_the_sanitized_remote_error_code() -> None:
+    response = create_nautilus_runtime_ipc_frame(
+        request_id="request-2",
+        operation=NautilusRuntimeIpcOperation.RESTORE,
+        status=NautilusRuntimeIpcStatus.ERROR,
+        payload={"error_code": "checkpoint_unavailable"},
+    )
+    client = NautilusRuntimeIpcClient(
+        io.BytesIO(encode_nautilus_runtime_ipc_frame(response)),
+        io.BytesIO(),
+    )
+
+    with pytest.raises(NautilusRuntimeIpcError) as captured:
+        client.request(
+            NautilusRuntimeIpcOperation.RESTORE,
+            {"checkpoint_fingerprint": "sha256:" + "e" * 64},
+            request_id="request-2",
+        )
+    assert captured.value.error_code == "checkpoint_unavailable"
+    assert "checkpoint_unavailable" in str(captured.value)
+    with pytest.raises(ValueError, match="bounded lowercase"):
+        NautilusRuntimeIpcError("private\nserver details")
