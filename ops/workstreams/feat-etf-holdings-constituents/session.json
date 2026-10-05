@@ -57,23 +57,44 @@
       "text": "A 30-day production shadow gate is documented as a post-integration/deployment acceptance step, targeting at least 95% eligible Tier 0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations."
     }
   ],
-  "active_session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",
+  "active_session_id": "0bd23cfe-9271-4e5e-8621-db8985e62c75",
   "branch": "feat/etf-holdings-constituents",
   "claim": {
     "branch": "feat/etf-holdings-constituents",
-    "displaced_session_id": "2fcd05d8-12db-42ac-8cb6-83d9db9efafa",
+    "displaced_session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",
     "host": "m920q",
-    "session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",
+    "session_id": "0bd23cfe-9271-4e5e-8621-db8985e62c75",
     "started_at": "2026-09-24T22:32:53.705278+00:00",
-    "taken_over_at": "2026-10-05T13:42:28.184977+00:00",
-    "takeover_request": "Human authorization: resume the existing ETF holdings goal in this assigned worktree and continue autonomously.",
+    "taken_over_at": "2026-10-05T18:52:24.190894+00:00",
+    "takeover_request": "Human authorization: resume the existing saved ETF holdings goal and continue autonomously in its assigned worktree.",
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+  ],
   "docker": {
-    "available": false,
-    "reason": "The default sandbox denies the Docker socket. A narrow read-only inventory succeeded and found six services owned by the unrelated feat-tc2000-frontend-rework worktree plus stremio-server still running; the full local gate is deferred until they exit and host capacity is safe."
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-etf-holdings-constituents-fdc36fa2",
+      "charting-stack-feat-etf-holdings-constituents-fdc36fa2"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "docker_ready": {
     "ready": true,
@@ -82,19 +103,19 @@
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/etf-holdings-constituents: Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support.. Acceptance criteria: AC1: Durable ETF workstream state is current and internally consistent: the plan, handoff, provider-universe document, registry counts, audit counts, and next action agree at every checkpoint.; AC2: A complete provider-audit ledger accounts for every current fallback-only adapter key exactly once, uses the approved deterministic ranking, and records issuer-specific dated source evidence, disposition, and next action.; AC3: Every provider counted as native has a concrete provider-owned holdings route, provider-specific fetch entry point, strict parsing/mapping, truthful provenance and freshness, deterministic tests, and concrete opt-in live coverage.; AC4: Every provider remaining fallback-only has a current issuer-specific audit disposition; no fallback is silently promoted through SEC data and no generic unattempted discovery note is accepted as final evidence.; AC5: All 140 providers in the starting fallback population have been processed to either a verified native promotion or a defensible dated terminal/blocked disposition, with no missing, duplicate, or stale ledger entries.; AC6: ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, native/fallback counts, native adapter ownership, deterministic tests, live-provider coverage, documentation, and the provider-audit ledger satisfy exhaustive matrix invariants.; AC7: Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation.; AC8: The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation.; AC9: Every tracked ETF symbol exposes an additive capability outcome; only complete, fresh, identity-verified current or successor-native data is marked usable_for_current_analysis, while SEC, stale, partial, failed, unreviewed, and unknown routes are explicit.; AC10: ETF holdings consumes the shared provider-platform entitlement, quota, health, availability, and aggregate 20 EUR/USD-equivalent monthly budget contracts; no duplicate generic provider runtime or unapproved paid activation exists.; AC11: The 74 current fallback identities are reassessed at symbol level in relevance order, with Tier 0 US ETFs receiving a completed free/zero-cost/cheap-source investigation and an explicit current, degraded, stale, unavailable, successor, or not-applicable outcome.; AC12: Bounded opt-in ETF canaries persist source, transport, schema, completeness, freshness, latency, failure-streak, circuit, and recovery evidence; route drift and stale data cannot silently serve as current holdings.; AC13: ETF API and UI surfaces distinguish current, degraded, stale, unavailable, not-applicable, and unknown holdings; historical snapshots remain inspectable with provenance and current-analysis flows reject non-current data unless a user explicitly selects historical evidence.; AC14: A 30-day production shadow gate is documented as a post-integration/deployment acceptance step, targeting at least 95% eligible Tier 0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-10-05T08:31:11.200505+00:00",
+  "goal_recorded_at": "2026-10-05T19:05:26.032429+00:00",
   "goal_request": {
     "objective": "Advance feat/etf-holdings-constituents: Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support.. Acceptance criteria: AC1: Durable ETF workstream state is current and internally consistent: the plan, handoff, provider-universe document, registry counts, audit counts, and next action agree at every checkpoint.; AC2: A complete provider-audit ledger accounts for every current fallback-only adapter key exactly once, uses the approved deterministic ranking, and records issuer-specific dated source evidence, disposition, and next action.; AC3: Every provider counted as native has a concrete provider-owned holdings route, provider-specific fetch entry point, strict parsing/mapping, truthful provenance and freshness, deterministic tests, and concrete opt-in live coverage.; AC4: Every provider remaining fallback-only has a current issuer-specific audit disposition; no fallback is silently promoted through SEC data and no generic unattempted discovery note is accepted as final evidence.; AC5: All 140 providers in the starting fallback population have been processed to either a verified native promotion or a defensible dated terminal/blocked disposition, with no missing, duplicate, or stale ledger entries.; AC6: ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, native/fallback counts, native adapter ownership, deterministic tests, live-provider coverage, documentation, and the provider-audit ledger satisfy exhaustive matrix invariants.; AC7: Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation.; AC8: The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation.; AC9: Every tracked ETF symbol exposes an additive capability outcome; only complete, fresh, identity-verified current or successor-native data is marked usable_for_current_analysis, while SEC, stale, partial, failed, unreviewed, and unknown routes are explicit.; AC10: ETF holdings consumes the shared provider-platform entitlement, quota, health, availability, and aggregate 20 EUR/USD-equivalent monthly budget contracts; no duplicate generic provider runtime or unapproved paid activation exists.; AC11: The 75 current fallback identities are reassessed at symbol level in relevance order, with Tier 0 US ETFs receiving a completed free/zero-cost/cheap-source investigation and an explicit current, degraded, stale, unavailable, successor, or not-applicable outcome.; AC12: Bounded opt-in ETF canaries persist source, transport, schema, completeness, freshness, latency, failure-streak, circuit, and recovery evidence; route drift and stale data cannot silently serve as current holdings.; AC13: ETF API and UI surfaces distinguish current, degraded, stale, unavailable, not-applicable, and unknown holdings; historical snapshots remain inspectable with provenance and current-analysis flows reject non-current data unless a user explicitly selects historical evidence.; AC14: A 30-day production shadow gate is documented as a post-integration/deployment acceptance step, targeting at least 95% eligible Tier 0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
-  "goal_state": "resumed_after_takeover",
+  "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc",
-  "implementation_sha": "b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc",
-  "last_checkpoint": "2026-10-05T18:28:01+00:00",
-  "last_human_progress_update": "2026-10-05T16:45:07+00:00",
+  "head": "4e5f24135869c361645683ac93690761e1efdaaf",
+  "implementation_sha": "4e5f24135869c361645683ac93690761e1efdaaf",
+  "last_checkpoint": "2026-10-05T19:31:43.998544+00:00",
+  "last_human_progress_update": "2026-10-05T19:28:24.763198+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "run the assigned local full-stack/browser gate only after read-only Docker and host-capacity checks confirm the unrelated feat-tc2000-frontend-rework services and Stremio have exited and resources are safe; do not mutate those services or the unrelated remote alias ref",
+  "next_action": "Close and publish the exact-SHA 37359921407 checkpoint with corrected session paths. Then label only ERShares/XOVR and LSV/LSVD custom timeout skips, run deterministic/live-contract and Ruff checks, push to the authorized feature ref, and inspect exact-SHA CI. Recheck host capacity; run full_stack_browser only when unrelated containers have exited and resources are safe.",
   "plan_hash": "60a8039ed1eba544637c0203b6b6087dc5d86a02c659b30329c45667c3bd37f4",
   "planning_required": false,
   "planning_state": "ready",
@@ -103,7 +124,8 @@
     "5b434602-fc78-40c5-8f0a-0960badecb67",
     "e83b4e4f-2c58-4ace-949e-cbd7155927e5",
     "70226446-14cf-41f6-828c-abe83c833146",
-    "2fcd05d8-12db-42ac-8cb6-83d9db9efafa"
+    "2fcd05d8-12db-42ac-8cb6-83d9db9efafa",
+    "2adafcab-638d-45ad-ab31-e3c6c7ef135a"
   ],
   "progress": {
     "completed": [
@@ -118,17 +140,17 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for; provider totals are 496 registered / 422 native / 74 fallback. Exact-SHA run 37348758844 on 434b1d3856c4430d50253071da4b07892a7447d4 failed only the live Vident mm_vam-VUSE case (523 passed/19 explicit skips/1 failure) because a successful page response lacked the verified holdings table; this was not skipped or classified as an external outage. Commit b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc adds one alternate requests retry for 2xx unverified page shells and preserves all strict product, table, date, and completeness checks. Exact-SHA run 37351561573 on b70b729 completed successfully: backend 1,520 unit/379 integration, frontend unit, branch checks, 609 deterministic adapters, default live 7 passed/536 skipped, opt-in live 525 passed/18 provider-specific skips, and hosted Playwright 151 passed/109 skipped; VUSE and HECA passed. The protected integration gate was skipped by feature-branch design. A local opt-in VUSE probe skipped on DNS and is not route evidence. AC7/AC8 remain open because the required local Docker full-integration gate is deferred: the 18:16 UTC read-only inventory showed six services from feat-tc2000-frontend-rework plus stremio-server active, about 3 GiB available RAM and 10 GiB swap used. Do not stop or mutate those resources. The mistaken separate remote alias ref feat-etf-holdings-constituents remains untouched at the older 2ba6aa6 commit. AC10 awaits provider-platform staging and human notice; AC14 is post-integration/deployment observation.",
-    "current_phase": "vident_route_retry_exact_sha_green_docker_gate_deferred",
-    "next_action": "Run the assigned local full-stack/browser gate only after read-only Docker and host-capacity checks confirm the unrelated feat-tc2000-frontend-rework services and Stremio have exited and resources are safe; do not mutate those services or the unrelated remote alias ref.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for; provider totals are 496 registered / 422 native / 74 fallback. Exact-SHA run 37359921407 passed all applicable hosted checks for 4e5f24135869c361645683ac93690761e1efdaaf: Backend, Frontend Unit, Branch-declared Tests (513 live passes / 31 classified skips), and Playwright (151 passed / 109 skipped); protected integration skipped by feature-branch design. Remaining independent work: contextualize two custom ConnectTimeout skips (ERShares/XOVR, LSV/LSVD). Local full_stack_browser remains unsafe while six unrelated TC2000 services and Stremio are running, with 3.1 GiB available RAM and 11 GiB swap used. AC10 waits for the provider-platform branch to reach staging; AC14 is post-integration observation. Goal remains active.",
+    "current_phase": "exact_sha_green_skip_label_followup",
+    "next_action": "After publishing this branch-owned record for run 37359921407, add adapter/symbol context to only the ERShares/XOVR and LSV/LSVD custom timeout skips, rerun live contracts and Ruff, publish that source commit, and inspect its exact-SHA CI. Recheck host inventory; run full_stack_browser only after unrelated services exit and resources are safe.",
     "total": 14,
-    "updated_at": "2026-10-05T18:28:01+00:00"
+    "updated_at": "2026-10-05T19:28:24.763178+00:00"
   },
-  "remote": "b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc",
-  "remote_sha": "b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc",
+  "remote": "4e5f24135869c361645683ac93690761e1efdaaf",
+  "remote_sha": "4e5f24135869c361645683ac93690761e1efdaaf",
   "remote_synchronized": true,
   "schema": 2,
-  "session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",
+  "session_id": "0bd23cfe-9271-4e5e-8621-db8985e62c75",
   "state": "checkpointed",
   "takeover_history": [
     {
@@ -154,6 +176,12 @@
       "displaced_session_id": "2fcd05d8-12db-42ac-8cb6-83d9db9efafa",
       "new_session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",
       "reason": "Human authorization: resume the existing ETF holdings goal in this assigned worktree and continue autonomously."
+    },
+    {
+      "at": "2026-10-05T18:52:24.190894+00:00",
+      "displaced_session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",
+      "new_session_id": "0bd23cfe-9271-4e5e-8621-db8985e62c75",
+      "reason": "Human authorization: resume the existing saved ETF holdings goal and continue autonomously in its assigned worktree."
     }
   ],
   "validation_tier": "full_integration",

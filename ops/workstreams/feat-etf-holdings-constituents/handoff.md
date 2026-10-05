@@ -9101,3 +9101,80 @@ The earlier push typo remains disclosed: the separate remote ref
 `feat-etf-holdings-constituents` (without the slash) still points at the older
 `2ba6aa6` source commit. It remains untouched because it is outside the
 authorized branch.
+
+### Resumed session and live-skip attribution checkpoint — 2026-10-05
+
+The existing ETF goal was resumed in this exact worktree after taking over the
+stale writer claim with the human's explicit instruction to resume and continue
+autonomously. The current session ID is recorded in `session.json`; no other
+worktree, branch, staging ref, container, or remote ref was changed. The
+incorrectly named remote alias above remains untouched.
+
+The first repository checkpoint attempt exposed a workstream-state mismatch:
+the takeover helper had set `goal_state` to `resumed_after_takeover`, while the
+checkpoint contract accepts only `active` or `unavailable`. The saved Codex
+goal was confirmed active, so the branch session was synchronized to `active`
+with the repository helper and `make agent-session-checkpoint` then passed.
+The Docker daemon is reachable and this ETF worktree owns zero containers; the
+full browser gate remains separately deferred for shared host capacity.
+
+The session-progress helper also needs write access to the shared `.ai` claim
+registry, which the default sandbox mounts read-only. Its first attempt failed
+before changing state; the same repository helper then completed with the
+required narrow runtime access. This is an environment permission boundary, not
+a goal blocker or a reason to stop independent branch work.
+
+The documentation checkpoint commit `3c07232e601133963e5bfbb816cab18f83988732`
+completed exact-SHA CI run `37356419510` successfully for every applicable
+feature-branch job: Backend Tests, Frontend Unit Tests, Branch-declared Tests,
+and hosted Playwright. The protected Exhaustive Integration Gate was skipped by
+feature-branch design. The opt-in live matrix reported 525 passes and 18 skips;
+VUSE was not skipped. Seventeen of the 18 skipped cases had provider/access/transport
+details. One entry was only `Skipped`: the test's external-failure handler had
+received an exception with no diagnostic message, so pytest supplied its
+generic skip label. This was an attribution gap, not a newly observed parser,
+identity, or schema failure, and the run itself passed.
+
+The follow-up test-only source commit
+`4e5f24135869c361645683ac93690761e1efdaaf` changes only live-test reporting: a
+classified route skip now includes adapter key, symbol, exception class, HTTP
+status when available, and the exception message (or an explicit no-message
+label). A no-network regression test covers the empty-message case; skip
+classification and acceptance criteria are unchanged. Local checks passed:
+609/609 deterministic ETF adapter tests; 8 always-on live-module contracts with
+536 opt-in network tests skipped by default; Ruff; format check; and
+`git diff --check`. The commit is pushed only to
+`feat/etf-holdings-constituents`. Exact-SHA run `37359921407` completed
+successfully for every applicable job: Backend Tests (1,520 unit and 379
+integration tests), Frontend Unit Tests, Branch-declared Tests, and hosted
+Playwright (151 passed / 109 skipped). The protected Exhaustive Integration
+Gate was skipped by feature-branch design. The opt-in provider matrix reported
+513 passed / 31 skipped; VUSE was not skipped. The previous bare `Skipped`
+label is gone, and the generic-route diagnostics now include provider/symbol,
+exception class, HTTP status where available, and details or an explicit
+no-message marker. The matrix still has two custom direct-probe skips whose
+reason is only `ConnectTimeout`: ERShares/XOVR and LSV/LSVD. Their source tests
+already know the provider and symbol; a narrow follow-up will add those fields
+to the skip reason without changing classification. The run has no live
+provider assertion failures.
+
+The latest read-only host inventory at 19:26 UTC shows six active containers
+owned by `feat-tc2000-frontend-rework` and `stremio-server`; the prior
+unlabelled container is no longer present. About 3.1 GiB RAM is available,
+11 GiB swap is in use, and host load is 1.34/2.46/2.95. The local Docker-backed
+full-stack/browser gate remains deferred while those unrelated services are
+active and memory headroom is limited. Do not stop, restart, or alter them.
+Recheck inventory and run the gate only after those services have exited and
+host capacity is safe.
+
+AC7 has green exact-SHA hosted checks and remains open for the resource-safe
+local full-stack/browser gate or its narrowly documented external-capacity
+disposition. AC8 remains open until the next source and record checkpoints are
+clean, synchronized, and ready for review. AC10 remains dependent on the shared
+provider-platform work reaching staging and the human's notice; this ETF
+session will not touch that branch or integrate. AC14 is the documented
+post-integration/deployment 30-day observation and cannot run in this
+pre-integration worktree. The saved goal remains active, not blocked or
+complete. This operational record is ready to publish; next, handle the two
+custom timeout skip labels as a separate test-only changeset, then continue
+checking whether the assigned local full-stack gate can safely run.
