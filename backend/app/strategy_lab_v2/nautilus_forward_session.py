@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Awaitable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Any, Protocol
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -31,7 +32,7 @@ from app.strategy_lab_v2.nautilus_forward_delivery import (
     NautilusForwardDeliveryInput,
 )
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
-from app.strategy_lab_v2.sdk import StrategySdkManifest
+from app.strategy_lab_v2.sdk import PositionSnapshot, StrategySdkManifest
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
 
 
@@ -98,6 +99,7 @@ class ResolvedForwardContextWindow:
     window: ForwardStrategyContextWindow
     pre_event_checkpoint_fingerprint: str
     warmup_receipt_fingerprint: str
+    positions: Mapping[str, PositionSnapshot] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not isinstance(self.window, ForwardStrategyContextWindow):
@@ -110,6 +112,16 @@ class ResolvedForwardContextWindow:
             self.warmup_receipt_fingerprint,
             field_name="warmup_receipt_fingerprint",
         )
+        if not isinstance(self.positions, Mapping):
+            raise TypeError("positions must be a mapping")
+        positions = dict(self.positions)
+        if any(not isinstance(position, PositionSnapshot) for position in positions.values()):
+            raise TypeError("positions must contain PositionSnapshot values")
+        if any(
+            instrument_id != position.instrument_id for instrument_id, position in positions.items()
+        ):
+            raise ValueError("position keys must match their instrument ids")
+        object.__setattr__(self, "positions", MappingProxyType(dict(sorted(positions.items()))))
 
     @classmethod
     def replay_verified_history(
@@ -119,6 +131,7 @@ class ResolvedForwardContextWindow:
         *,
         parameters: Mapping[str, Any],
         random_seed: int,
+        positions: Mapping[str, PositionSnapshot] | None = None,
     ) -> ResolvedForwardContextWindow:
         """Resolve one window from an authenticated durable event prefix."""
 
@@ -136,6 +149,7 @@ class ResolvedForwardContextWindow:
             window,
             history.pre_event_checkpoint_fingerprint,
             history.warmup_receipt_fingerprint,
+            {} if positions is None else positions,
         )
 
 
@@ -230,7 +244,7 @@ class NautilusForwardSessionEventHandler:
             )
         window = resolved_window.window
         try:
-            preparation = window.prepare_delivery(delivery)
+            preparation = window.prepare_delivery(delivery, positions=resolved_window.positions)
         except (TypeError, ValueError) as error:
             return _reject(
                 entry, f"forward strategy context rejected input: {type(error).__name__}"

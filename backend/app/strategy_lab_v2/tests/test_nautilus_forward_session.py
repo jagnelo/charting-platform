@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -38,7 +39,12 @@ from app.strategy_lab_v2.postgres_forward_account import (
 )
 from app.strategy_lab_v2.postgres_forward_dispatch import ForwardEventDispatchRecord
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
-from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
+from app.strategy_lab_v2.sdk import (
+    MarketEvent,
+    PositionSnapshot,
+    StrategyDataDependency,
+    StrategySdkManifest,
+)
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision
 
 NOW = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
@@ -165,10 +171,12 @@ class Runtime:
         self.order = order
         self.mismatch_context = mismatch_context
         self.restore_calls: list[tuple[str, str]] = []
+        self.preparations: list[Any] = []
         self.fail_execution = False
 
     def execute(self, delivery, preparation) -> NautilusForwardExecutionResult:
         self.order.append("execute")
+        self.preparations.append(preparation)
         if self.fail_execution:
             raise RuntimeError("simulated native runtime failure")
         canonical = delivery.tape.envelopes[0].canonical_event
@@ -208,6 +216,8 @@ def _handler(
     window: ForwardStrategyContextWindow,
     runtime: Runtime,
     store: AccountStore,
+    *,
+    positions: dict[str, PositionSnapshot] | None = None,
 ) -> NautilusForwardSessionEventHandler:
     delivery_factory = create_nautilus_forward_delivery_callback_factory(
         PayloadResolver(_payload(canonical)),
@@ -219,6 +229,7 @@ def _handler(
             window,
             delivery.delivery_binding.pre_event_checkpoint_fingerprint,
             delivery.delivery_binding.warmup_receipt_fingerprint,
+            {} if positions is None else positions,
         ),
         runtime,
         store,
@@ -251,6 +262,40 @@ async def test_forward_session_persists_native_effects_before_context_commit_and
     assert len(store.events) == 1
     assert window.last_event_key == (canonical.event_time, canonical.sequence)
     assert runtime.restore_calls == []
+
+
+@pytest.mark.asyncio
+async def test_forward_session_passes_persisted_positions_into_the_staged_sdk_context() -> None:
+    canonical = _canonical()
+    entry, work_item = _dispatch(canonical)
+    order: list[str] = []
+    runtime = Runtime(order)
+    positions = {"US.AAPL": PositionSnapshot("US.AAPL", Decimal("3"), Decimal("99"), None)}
+    store = AccountStore(
+        ForwardAccountStateResolution(
+            ForwardAccountStateDecision.APPLIED,
+            initial_forward_account_state(INSTANCE_ID, base_currency="USD"),
+            content_digest(canonical),
+        ),
+        order,
+    )
+
+    result = await _handler(
+        canonical,
+        _window(),
+        runtime,
+        store,
+        positions=positions,
+    )(entry, work_item)
+
+    assert result.decision is WorkerHandleDecision.COMPLETE
+    context_positions = runtime.preparations[0].context.positions
+    assert context_positions == positions
+    assert context_positions is not positions
+    with pytest.raises(TypeError):
+        context_positions["US.AAPL"] = PositionSnapshot(
+            "US.AAPL", Decimal("4"), Decimal("99"), None
+        )
 
 
 @pytest.mark.asyncio
