@@ -70,12 +70,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -111,9 +106,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "16f181c798bc067b0e623e6445c03319d6664ad9",
+  "head": "aa34e6da754a0746540d09248e07814bbe61edb6",
   "implementation_sha": "f04b0a39a60fadd6d8d21cf2bca360d8d746c88c",
-  "last_checkpoint": "2026-10-05T06:39:17.724970+00:00",
+  "last_checkpoint": "2026-10-05T08:01:28.900401+00:00",
   "last_human_progress_update": "2026-10-05T07:49:05.243399+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "The four exact browser failures already passed on a fresh ETF-only stack (4/4), and the full-suite-only Market Map case passed twice in isolation (2/2). Do not repeat targeted tests or change generic UI/tests without new causal evidence. When the separate Docker/browser stack and unowned container exit and memory headroom is safe, rerun the official full integration gate. Refresh exact-SHA CI evidence through an available supported run/status source when the current branch checkpoint is published. Do not stop or alter another worktree, merge, promote, or deploy. AC10 awaits feat/market-data-provider-platform reaching staging; AC14 is a later post-integration/deployment observation.",
@@ -144,7 +139,7 @@
     "total": 14,
     "updated_at": "2026-10-05T07:49:05.243379+00:00"
   },
-  "remote": "16f181c798bc067b0e623e6445c03319d6664ad9",
+  "remote": "aa34e6da754a0746540d09248e07814bbe61edb6",
   "remote_sha": "7c14feb2780a0c4e3283ef76fdf81bb95e16eece",
   "remote_synchronized": true,
   "schema": 2,
