@@ -11374,3 +11374,36 @@ Next implementation context: build an authenticated portfolio-wide context
 resolver and native persistent-session boundary that keeps one Nautilus node
 and shared account for every strategy component, then implement durable native
 state/output restoration and crash replay before acknowledging dispatch.
+
+## 2026-10-05 - Shared portfolio forward context preparation
+
+Commit `c66dbb118bc392dc5c65da32e0731def13145146` is pushed to
+`origin/feat/strategy-lab-v2`. It adds an
+immutable aggregate context preparation and an authenticated portfolio resolver
+that resolves every component against the same pre-event checkpoint, warm-up
+receipt, and persisted shared-account positions. The session handler stages only
+the component contexts that declare the incoming dependency, submits the event
+to the native runtime once for the portfolio, persists one account event, then
+commits all staged component windows. Runtime and settlement failures restore
+the shared checkpoint and discard every staged component context.
+
+Validation on the exact implementation commit: 20 focused forward
+session/resolver/history tests; full Strategy Lab plus schema-migration suite
+1,463 passed; package Ruff, changed-file format, focused MyPy for both changed
+production modules, and `git diff --check` passed.
+
+This is the portfolio-wide context and coordinator boundary, not the concrete
+persistent Nautilus process or its durable history/output adapters. Still
+code-owned: wire the authenticated snapshot and canonical processed-prefix
+readers for all components into one actual persistent Nautilus session, persist
+native outputs and checkpoint receipts before Redis ACK, and restore/replay
+deterministically after process loss. RC5 remains the exact-pinned, five-check
+qualified build; upstream RC6 is newer but does not need qualification unless
+the runtime pin is changed. Stable 2.x is not a gate. Docker Buildx/socket
+availability gates only final full-stack acceptance, while provider/ETF/TC2000
+staging contracts gate their later shared-path reconciliation rather than this
+package-owned work.
+
+Next: implement the isolated shared-account persistent Nautilus session and
+durable checkpoint/output protocol, using the now-composed component contexts
+and the exact canonical event prefix without acknowledgement-before-persist.
