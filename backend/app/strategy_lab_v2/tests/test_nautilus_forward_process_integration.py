@@ -1,0 +1,335 @@
+"""Opt-in exact-image exercise of forward-process death and durable replay.
+
+Set ``STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_DIGEST`` to an exact-source qualified
+RC5 image ID and run this module with Docker API access to execute the test.
+The default package suite skips it rather than substituting a fake process.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+import sqlite3
+import subprocess
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from app.strategy_lab_v2.artifacts import artifact_content_digest
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.nautilus_forward_bootstrap import NautilusForwardRuntimeBootstrap
+from app.strategy_lab_v2.nautilus_forward_process import (
+    HardenedNautilusForwardSessionProcessFactory,
+    NautilusForwardSessionProcess,
+)
+from app.strategy_lab_v2.nautilus_forward_wire import NautilusForwardJsonWireCodec
+from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolationRequest
+from app.strategy_lab_v2.runtime_execution import StrategyRuntimeRequest
+from app.strategy_lab_v2.sandbox import build_nautilus_forward_runtime_sandbox_command
+
+_IMAGE_DIGEST = os.environ.get("STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_DIGEST")
+pytestmark = pytest.mark.skipif(
+    not _IMAGE_DIGEST,
+    reason="requires an exact-source RC5 image and explicit Docker integration opt-in",
+)
+
+
+class _DurableReplayLedger:
+    """Small SQLite crash-window ledger for the exact-process integration probe."""
+
+    def __init__(self, path: Path) -> None:
+        self._path = path
+        with sqlite3.connect(path) as connection:
+            connection.execute(
+                """CREATE TABLE IF NOT EXISTS settlements (
+                       instance_id TEXT NOT NULL,
+                       event_id TEXT NOT NULL,
+                       event_fingerprint TEXT NOT NULL,
+                       result_fingerprint TEXT NOT NULL,
+                       next_checkpoint TEXT NOT NULL,
+                       acked INTEGER NOT NULL DEFAULT 0,
+                       PRIMARY KEY (instance_id, event_id)
+                   )"""
+            )
+
+    def settle_once(
+        self,
+        *,
+        instance_id: str,
+        event_id: str,
+        event_fingerprint: str,
+        result_fingerprint: str,
+        next_checkpoint: str,
+    ) -> str:
+        with sqlite3.connect(self._path) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                """SELECT event_fingerprint, result_fingerprint
+                   FROM settlements WHERE instance_id = ? AND event_id = ?""",
+                (instance_id, event_id),
+            ).fetchone()
+            if existing is None:
+                connection.execute(
+                    """INSERT INTO settlements
+                       (instance_id, event_id, event_fingerprint, result_fingerprint,
+                        next_checkpoint, acked)
+                       VALUES (?, ?, ?, ?, ?, 0)""",
+                    (
+                        instance_id,
+                        event_id,
+                        event_fingerprint,
+                        result_fingerprint,
+                        next_checkpoint,
+                    ),
+                )
+                return result_fingerprint
+            if existing[0] != event_fingerprint:
+                raise ValueError("durable event identity conflicts with the prior settlement")
+            if existing[1] != result_fingerprint:
+                raise ValueError("durable replay produced different native account effects")
+            return str(existing[1])
+
+    def acknowledge_once(self, *, instance_id: str, event_id: str) -> bool:
+        with sqlite3.connect(self._path) as connection:
+            cursor = connection.execute(
+                """UPDATE settlements SET acked = 1
+                   WHERE instance_id = ? AND event_id = ? AND acked = 0""",
+                (instance_id, event_id),
+            )
+            if cursor.rowcount == 1:
+                return True
+            existing = connection.execute(
+                """SELECT acked FROM settlements WHERE instance_id = ? AND event_id = ?""",
+                (instance_id, event_id),
+            ).fetchone()
+            if existing is None:
+                raise ValueError("cannot acknowledge a forward event without durable settlement")
+            return False
+
+    def receipt(self, *, instance_id: str, event_id: str) -> tuple[str, bool] | None:
+        with sqlite3.connect(self._path) as connection:
+            row = connection.execute(
+                """SELECT result_fingerprint, acked FROM settlements
+                   WHERE instance_id = ? AND event_id = ?""",
+                (instance_id, event_id),
+            ).fetchone()
+        return None if row is None else (str(row[0]), bool(row[1]))
+
+
+def _load_manifest(directory: Path) -> dict[str, Any]:
+    value = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError("forward process fixture manifest must be an object")
+    return value
+
+
+def _plan_factory(database: Path, image_digest: str):
+    require_sha256_digest(image_digest, field_name="image_digest")
+    output_directory = database.parent / "private-output"
+    output_directory.mkdir(mode=0o700, exist_ok=True)
+
+    def resolve(instance_id: str, checkpoint_fingerprint: str):
+        with sqlite3.connect(database) as connection:
+            row = connection.execute(
+                """SELECT fixture_directory FROM checkpoints
+                   WHERE instance_id = ? AND checkpoint_fingerprint = ?""",
+                (instance_id, checkpoint_fingerprint),
+            ).fetchone()
+        if row is None:
+            raise ValueError("durable plan catalog has no requested forward checkpoint")
+        directory = Path(str(row[0]))
+        manifest = _load_manifest(directory)
+        encoded_bootstrap = (directory / "bootstrap.json").read_bytes()
+        bootstrap = NautilusForwardRuntimeBootstrap.from_json_bytes(
+            encoded_bootstrap,
+            expected_fingerprint=str(manifest["bootstrap_fingerprint"]),
+        )
+        if (
+            manifest.get("instance_id") != instance_id
+            or manifest.get("checkpoint_fingerprint") != checkpoint_fingerprint
+            or bootstrap.instance_id != instance_id
+            or bootstrap.processed_checkpoint_fingerprint != checkpoint_fingerprint
+        ):
+            raise ValueError("durable plan catalog returned a different forward checkpoint")
+
+        component = bootstrap.components[0]
+        bundle = json.loads((directory / "bundle.json").read_bytes())
+        engine_input = bundle.get("engine_input")
+        if not isinstance(engine_input, dict) or not isinstance(
+            engine_input.get("attempt_id"), str
+        ):
+            raise ValueError("durable runtime bundle has no bound execution attempt")
+        attempt_id = engine_input["attempt_id"]
+        profile = RuntimeIsolationProfile(
+            runtime_image_digest=image_digest,
+            runtime_abi="python-3.12.4-manylinux_2_34_x86_64",
+            network_disabled=True,
+            allowed_dependency_digests=frozenset({component.dependency_lock_digest}),
+        )
+        request = StrategyRuntimeRequest(
+            request_id=content_digest(
+                {"instance_id": instance_id, "checkpoint": checkpoint_fingerprint}
+            ),
+            attempt_id=attempt_id,
+            package_fingerprint=component.package_fingerprint,
+            source_digest=component.source_digest,
+            input_bundle_digest=bootstrap.runtime_input_bundle_digest,
+            runtime_profile_fingerprint=profile.fingerprint,
+            entrypoint="strategy.main:Strategy",
+            isolation_request=RuntimeIsolationRequest(
+                attempt_id,
+                (component.dependency_lock_digest,),
+            ),
+            submitted_at=datetime(2024, 1, 2, tzinfo=UTC),
+        )
+        context_path = directory / "contexts.ndjson"
+        native_path = directory / "native-events.parquet"
+        bundle_path = directory / "bundle.json"
+        output_path = output_directory / f"{checkpoint_fingerprint.removeprefix('sha256:')}.json"
+        output_path.write_bytes(b"")
+        return build_nautilus_forward_runtime_sandbox_command(
+            request,
+            profile,
+            image_name="strategy-lab-v2/nautilus-rc5",
+            input_bundle_path=bundle_path,
+            forward_bootstrap_path=directory / "bootstrap.json",
+            bootstrap_fingerprint=bootstrap.fingerprint,
+            context_stream_path=context_path,
+            context_stream_digest=artifact_content_digest(context_path.read_bytes()),
+            native_event_stream_path=native_path,
+            native_event_stream_digest=artifact_content_digest(native_path.read_bytes()),
+            output_path=output_path,
+            instance_id=instance_id,
+            expected_version="2.0.0rc5",
+            snapshot_fingerprint=bootstrap.snapshot_fingerprint,
+        )
+
+    return resolve
+
+
+def _kill_process(process: NautilusForwardSessionProcess) -> None:
+    child = process._transport._process
+    if child.poll() is None:
+        child.kill()
+        child.wait(timeout=10)
+    asyncio.run(process.close())
+
+
+def _fixture_payload(directory: Path):
+    value = json.loads((directory / "execute.json").read_text(encoding="utf-8"))
+    return NautilusForwardJsonWireCodec().decode_execute_payload(value)
+
+
+def test_exact_rc5_forward_process_restarts_across_settlement_and_ack_windows(
+    tmp_path: Path,
+) -> None:
+    image_digest = str(_IMAGE_DIGEST)
+    require_sha256_digest(image_digest, field_name="image_digest")
+    tmp_path.chmod(0o755)
+    exports = tmp_path / "exports"
+    exports.mkdir(mode=0o755)
+    command = (
+        "docker",
+        "run",
+        "--rm",
+        "--network=none",
+        "--read-only",
+        f"--user={os.getuid()}:{os.getgid()}",
+        f"--mount=type=bind,src={exports},dst=/outputs",
+        "strategy-lab-v2/nautilus-rc5@" + image_digest,
+        "python",
+        "-m",
+        "app.strategy_lab_v2.nautilus_rc_fixture_probe",
+        "--emit-forward-process-fixture",
+        "/outputs",
+    )
+    generated = subprocess.run(command, check=True, capture_output=True, text=True, timeout=180)
+    receipt = json.loads(generated.stdout)
+    assert receipt["passed"] is True
+    before = exports / "before"
+    after = exports / "after"
+    before_manifest = _load_manifest(before)
+    after_manifest = _load_manifest(after)
+    instance_id = str(before_manifest["instance_id"])
+    before_checkpoint = str(before_manifest["checkpoint_fingerprint"])
+    after_checkpoint = str(after_manifest["checkpoint_fingerprint"])
+    assert before_checkpoint != after_checkpoint
+
+    ledger_path = tmp_path / "forward-recovery.sqlite3"
+    _DurableReplayLedger(ledger_path)
+    with sqlite3.connect(ledger_path) as connection:
+        connection.execute(
+            """CREATE TABLE checkpoints (
+                   instance_id TEXT NOT NULL,
+                   checkpoint_fingerprint TEXT NOT NULL,
+                   fixture_directory TEXT NOT NULL,
+                   PRIMARY KEY (instance_id, checkpoint_fingerprint)
+               )"""
+        )
+        connection.executemany(
+            "INSERT INTO checkpoints VALUES (?, ?, ?)",
+            (
+                (instance_id, before_checkpoint, str(before)),
+                (instance_id, after_checkpoint, str(after)),
+            ),
+        )
+
+    factory = HardenedNautilusForwardSessionProcessFactory(
+        _plan_factory(ledger_path, image_digest),
+        response_timeout_seconds=90,
+    )
+    before_delivery, before_preparation = _fixture_payload(before)
+    first = asyncio.run(
+        factory.start(instance_id=instance_id, checkpoint_fingerprint=before_checkpoint)
+    )
+    first_result = asyncio.run(first.execute(before_delivery, before_preparation))
+    _kill_process(first)  # crash before durable account settlement
+
+    replay = asyncio.run(
+        factory.start(instance_id=instance_id, checkpoint_fingerprint=before_checkpoint)
+    )
+    replay_result = asyncio.run(replay.execute(before_delivery, before_preparation))
+    assert replay_result.fingerprint == first_result.fingerprint
+    _kill_process(replay)
+
+    canonical_event = before_delivery.tape.envelopes[0].canonical_event
+    ledger = _DurableReplayLedger(ledger_path)
+    settled_receipt = ledger.settle_once(
+        instance_id=instance_id,
+        event_id=canonical_event.event_id,
+        event_fingerprint=content_digest(canonical_event),
+        result_fingerprint=replay_result.fingerprint,
+        next_checkpoint=after_checkpoint,
+    )
+    assert settled_receipt == replay_result.fingerprint
+    _kill_process(replay)  # crash after durable settlement but before Redis ACK
+
+    # A committed-before-ACK redelivery reads the exact stored receipt and ACKs
+    # without invoking Nautilus again; the process is already gone.
+    committed_before_ack = ledger.receipt(
+        instance_id=instance_id, event_id=canonical_event.event_id
+    )
+    assert committed_before_ack == (replay_result.fingerprint, False)
+    assert ledger.acknowledge_once(instance_id=instance_id, event_id=canonical_event.event_id)
+    assert not ledger.acknowledge_once(instance_id=instance_id, event_id=canonical_event.event_id)
+    assert ledger.receipt(instance_id=instance_id, event_id=canonical_event.event_id) == (
+        replay_result.fingerprint,
+        True,
+    )
+
+    after_delivery, after_preparation = _fixture_payload(after)
+    continuation = asyncio.run(
+        factory.start(instance_id=instance_id, checkpoint_fingerprint=after_checkpoint)
+    )
+    after_result = asyncio.run(continuation.execute(after_delivery, after_preparation))
+    _kill_process(continuation)
+    repeated = asyncio.run(
+        factory.start(instance_id=instance_id, checkpoint_fingerprint=after_checkpoint)
+    )
+    repeated_result = asyncio.run(repeated.execute(after_delivery, after_preparation))
+    _kill_process(repeated)
+    assert repeated_result.fingerprint == after_result.fingerprint
+    assert after_delivery.delivery_binding.pre_event_checkpoint_fingerprint == after_checkpoint

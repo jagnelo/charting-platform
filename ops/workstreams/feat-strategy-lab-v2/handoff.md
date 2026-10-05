@@ -12180,6 +12180,41 @@ The checkpoint-bootstrap guard is closed at implementation SHA
 `df852f75df135a3fc58dd59af087861cc3dcbcf4`; separate operational records were
 committed and synchronized before selecting the next changeset.
 
+## 2026-10-05 - Exact-RC5 process-loss and replay integration
+
+The active recovery slice now exports authenticated `bundle.json`, bootstrap,
+context, native-event, execute, and manifest artifacts from the RC5 fixture.
+The bundle uses the runtime's component-stream schema v4, its bootstrap digest
+binds the serialized bundle bytes, and the host test resolves the engine
+attempt ID from that immutable bundle. These bindings were checked by running
+the hardened process factory against the exact-source isolated image; the
+runtime's earlier startup rejection was traced to the missing bundle schema,
+then to the fixture's mismatched attempt ID.
+
+Exact-source image qualification passed with source digest
+`sha256:7ecfee1da2adb41ebd7ffbf35ad997a37744b731f12fef99fdf198e4518dede3`,
+image digest
+`sha256:bd729a50db5f72e3c401db7b03edd6eeca36879bb0fab81ef7c1f59b945ec97b`,
+artifact digest
+`sha256:0a2cc7d2524d3059241beee77e519db2343111057d72960cfaa6565bfa081cf6`,
+and conformance fingerprint
+`sha256:aa63890429558763f0ae1fa118e34f0173726945f3fb0998dae4e2108f24af66`.
+The opt-in exact-image recovery test passed. It killed/relaunched isolated
+processes, proved identical native effects on pre-settlement replay, verified
+committed-before-ACK redelivery reads the durable receipt without a second
+engine execution, and resumed from the acknowledged next checkpoint. The
+test-only durable catalog and settlement ledger are SQLite, so this does not
+yet prove their composition with production PostgreSQL state and the Redis
+worker ACK path. The full Strategy Lab package passed 1,501 tests with the
+opt-in Docker test skipped; Ruff, format, focused MyPy, and whitespace checks
+passed. Worktree-scoped Docker cleanup reported no temporary containers or
+retained resources.
+
+Next: replace the test-only SQLite resolver/ledger with the actual persisted
+forward admission/account checkpoint and worker ACK contracts, then repeat the
+exact-image restart proof across the production persistence/Redis boundary.
+No Nautilus stable-release event blocks this work.
+
 ## 2026-10-05 - Exact-RC5 forward process-loss recovery
 
 Active changeset context: `strategy-lab-v2-nautilus-forward-process-loss-recovery-v1`.

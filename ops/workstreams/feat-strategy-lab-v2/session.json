@@ -128,7 +128,7 @@
   "head": "2363c1f0e2ce53b18c8bea99e0dd2202b956f785",
   "implementation_sha": "29427bfc350c954f0aea79e201b4a16874fae3a3",
   "last_checkpoint": "2026-10-05T21:23:12.143727+00:00",
-  "last_human_progress_update": "2026-10-05T21:26:30.054888+00:00",
+  "last_human_progress_update": "2026-10-05T21:51:58.342032+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Implement checkpoint-keyed host plan resolution and a typed exact-image fixture export; then kill/relaunch the exact RC5 process and prove duplicate settlement across pre-commit, committed-before-ACK, and post-ACK windows.",
   "parent_branch": "staging",
@@ -152,11 +152,11 @@
     "completed": [
       "AC-NAUTILUS"
     ],
-    "current_blocker": "none",
+    "current_blocker": "No external release or upstream dependency blocks owned implementation; production Postgres/Redis recovery composition remains unverified.",
     "current_phase": "forward-runtime-recovery",
-    "next_action": "Implement checkpoint-keyed host plan resolution and a typed exact-image fixture export; then kill/relaunch the exact RC5 process and prove duplicate settlement across pre-commit, committed-before-ACK, and post-ACK windows.",
+    "next_action": "Replace test-only SQLite checkpoint and settlement harness with production persisted forward admission/account history and worker ACK contracts; rerun exact-image process recovery across that boundary.",
     "total": 18,
-    "updated_at": "2026-10-05T21:26:30.054855+00:00"
+    "updated_at": "2026-10-05T21:51:58.341999+00:00"
   },
   "remote": "2363c1f0e2ce53b18c8bea99e0dd2202b956f785",
   "remote_sha": "29427bfc350c954f0aea79e201b4a16874fae3a3",

@@ -13,11 +13,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from collections.abc import Mapping
 from contextlib import nullcontext
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
+from pathlib import Path
 from typing import Any
 
 from nautilus_trader.backtest import (  # type: ignore[attr-defined]
@@ -71,6 +73,7 @@ from app.strategy_lab_v2.nautilus_forward_input import NautilusForwardDeliveryIn
 from app.strategy_lab_v2.nautilus_forward_native_runtime import (
     build_native_forward_session_factory,
 )
+from app.strategy_lab_v2.nautilus_forward_wire import NautilusForwardJsonWireCodec
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     serialize_nautilus_native_event_stream,
 )
@@ -93,6 +96,7 @@ from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_COMPONENT_CONTEXT_STREAM_SCHEMA,
     NAUTILUS_NATIVE_EVENT_STREAM_MEDIA_TYPE,
     NAUTILUS_NATIVE_EVENT_STREAM_SCHEMA,
+    NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4,
 )
 from app.strategy_lab_v2.sdk import MarketEvent
 from strategy_runtime import (
@@ -273,7 +277,7 @@ def run_forward_streaming_fixture() -> dict[str, Any]:
     return {"first": first, "second": second, "equal": first == second}
 
 
-def run_native_forward_session_fixture() -> dict[str, Any]:
+def run_native_forward_session_fixture(*, output_directory: Path | None = None) -> dict[str, Any]:
     """Exercise the concrete session against RC5 with warm-up and live input."""
 
     instance_id = "forward-native-session-fixture"
@@ -364,11 +368,25 @@ def run_native_forward_session_fixture() -> dict[str, Any]:
     }
     engine_fingerprint = content_digest(engine_input)
     bundle = {
+        "schema": NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4,
         "engine_input": engine_input,
         "strategy_context_stream": context_reference,
         "native_event_stream": native_reference,
     }
-    parameters = engine_input["parameters"]
+    parameters = engine_input.get("parameters")
+    if not isinstance(parameters, Mapping):
+        raise ValueError("forward fixture runtime input has no parameter mapping")
+    random_seed = engine_input.get("random_seed")
+    if not isinstance(random_seed, int) or isinstance(random_seed, bool):
+        raise ValueError("forward fixture runtime input has no integer random seed")
+    portfolio_input = engine_input.get("portfolio")
+    if not isinstance(portfolio_input, Mapping) or not isinstance(
+        portfolio_input.get("fingerprint"), str
+    ):
+        raise ValueError("forward fixture runtime input has no bound portfolio")
+    snapshot_fingerprint = engine_input.get("data_snapshot_fingerprint")
+    if not isinstance(snapshot_fingerprint, str):
+        raise ValueError("forward fixture runtime input has no snapshot fingerprint")
     component = NautilusForwardBootstrapComponent(
         component_id="component-1",
         execution_binding_fingerprint=content_digest("execution-binding"),
@@ -380,13 +398,13 @@ def run_native_forward_session_fixture() -> dict[str, Any]:
         manifest_fingerprint=manifest.fingerprint,
         source_digest=content_digest(source),
         parameters_digest=content_digest(parameters),
-        random_seed=engine_input["random_seed"],
+        random_seed=random_seed,
     )
     bootstrap = NautilusForwardRuntimeBootstrap(
         instance_id=instance_id,
         execution_plan_fingerprint=content_digest("execution-plan"),
-        portfolio_fingerprint=engine_input["portfolio"]["fingerprint"],
-        snapshot_fingerprint=engine_input["data_snapshot_fingerprint"],
+        portfolio_fingerprint=portfolio_input["fingerprint"],
+        snapshot_fingerprint=snapshot_fingerprint,
         warmup_receipt_fingerprint=content_digest("warmup-receipt"),
         warmup_result_fingerprint=content_digest("warmup-result"),
         warmup_tape_fingerprint=tape_fingerprint,
@@ -399,13 +417,7 @@ def run_native_forward_session_fixture() -> dict[str, Any]:
         processed_prefix_fingerprint=content_digest("empty-processed-prefix"),
         before_event_fingerprint=content_digest("before-live-event"),
         engine_input_fingerprint=engine_fingerprint,
-        runtime_input_bundle_digest=content_digest(
-            {
-                "engine": engine_fingerprint,
-                "context": context_digest,
-                "native": native_summary.content_digest,
-            }
-        ),
+        runtime_input_bundle_digest=content_digest(bundle),
         native_event_stream_digest=native_summary.content_digest,
         native_event_stream_adapter_version=adapter_version,
         components=(component,),
@@ -552,6 +564,20 @@ def run_native_forward_session_fixture() -> dict[str, Any]:
             next_canonical.source_digest,
         )
         next_preparation = host_window.prepare_delivery(next_delivery)
+        if output_directory is not None:
+            _export_forward_process_fixture(
+                output_directory,
+                instance_id=instance_id,
+                bundle=bundle,
+                context_bytes=context_bytes,
+                native_bytes=native_bytes,
+                bootstrap=bootstrap,
+                delivery=delivery,
+                preparation=preparation,
+                next_bootstrap=next_bootstrap,
+                next_delivery=next_delivery,
+                next_preparation=next_preparation,
+            )
         restored_session = next_factory(instance_id)
         try:
             after_process_loss = restored_session.execute(next_delivery, next_preparation)
@@ -594,6 +620,63 @@ def run_native_forward_session_fixture() -> dict[str, Any]:
         session.close()
 
 
+def _export_forward_process_fixture(
+    output_directory: Path,
+    *,
+    instance_id: str,
+    bundle: dict[str, Any],
+    context_bytes: bytes,
+    native_bytes: bytes,
+    bootstrap: NautilusForwardRuntimeBootstrap,
+    delivery: NautilusForwardDeliveryInput,
+    preparation: Any,
+    next_bootstrap: NautilusForwardRuntimeBootstrap,
+    next_delivery: NautilusForwardDeliveryInput,
+    next_preparation: Any,
+) -> None:
+    """Export authenticated image-local inputs for a host process-restart test."""
+
+    root = output_directory.absolute()
+    root.mkdir(parents=True, exist_ok=True)
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("forward process fixture output must be a real directory")
+    codec = NautilusForwardJsonWireCodec()
+    for label, current_bootstrap, current_delivery, current_preparation in (
+        ("before", bootstrap, delivery, preparation),
+        ("after", next_bootstrap, next_delivery, next_preparation),
+    ):
+        directory = root / label
+        directory.mkdir(mode=0o755)
+        (directory / "bundle.json").write_text(
+            json.dumps(bundle, allow_nan=False, separators=(",", ":"), sort_keys=True),
+            encoding="utf-8",
+        )
+        (directory / "bootstrap.json").write_bytes(current_bootstrap.to_json_bytes())
+        (directory / "contexts.ndjson").write_bytes(context_bytes)
+        (directory / "native-events.parquet").write_bytes(native_bytes)
+        execute_payload = codec.execute_payload(current_delivery, current_preparation)
+        (directory / "execute.json").write_text(
+            json.dumps(execute_payload, allow_nan=False, separators=(",", ":"), sort_keys=True),
+            encoding="utf-8",
+        )
+        (directory / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "bootstrap_fingerprint": current_bootstrap.fingerprint,
+                    "checkpoint_fingerprint": current_bootstrap.processed_checkpoint_fingerprint,
+                    "instance_id": instance_id,
+                    "runtime_input_bundle_digest": current_bootstrap.runtime_input_bundle_digest,
+                    "snapshot_fingerprint": current_bootstrap.snapshot_fingerprint,
+                    "version": "2.0.0rc5",
+                },
+                allow_nan=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+
+
 class _ForwardTapeParityConfig(StrategyConfig):
     def __new__(cls, instrument_id, bar_type, expected_by_key):
         config = StrategyConfig.__new__(cls, StrategyId("S-FORWARD-PARITY"))
@@ -605,7 +688,7 @@ class _ForwardTapeParityConfig(StrategyConfig):
 
 class _ForwardTapeParityStrategy(Strategy):
     def on_start(self) -> None:
-        self._observed = []
+        self._observed: list[dict[str, Any]] = []
         self._unexpected = 0
         instrument_id = self.config.instrument_id
         self.subscribe_quotes(instrument_id)
@@ -856,8 +939,15 @@ def run_fixture_suite() -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.parse_args()
-    print(json.dumps(run_fixture_suite(), sort_keys=True, separators=(",", ":")))
+    parser.add_argument("--emit-forward-process-fixture", type=Path)
+    args = parser.parse_args()
+    if args.emit_forward_process_fixture is not None:
+        result = run_native_forward_session_fixture(
+            output_directory=args.emit_forward_process_fixture
+        )
+    else:
+        result = run_fixture_suite()
+    print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0
 
 

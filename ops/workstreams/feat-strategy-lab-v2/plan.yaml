@@ -879,29 +879,33 @@ progress:
     release labeling is not a gate and RC6 requalification is optional. The
     exact-source RC5 image now proves an independently constructed runtime can
     rebuild a non-empty authenticated processed prefix and deterministically
-    execute/replay the next event. Both reconstructions run within one probe
-    process, so OS-process termination/relaunch is not yet proven. The host
-    runtime now starts each isolated process from one exact requested admission
-    checkpoint, verifies that checkpoint in the open request and response, and
-    replaces the process on checkpoint advance or recovery. The native session
-    rejects later checkpoints instead of retaining an unbounded local suffix.
-    Focused tests and the full Strategy Lab package suite pass 1,498 tests;
-    exact-image abrupt-process replay remains unverified. The
-    forward account handler now verifies returned durable state cursor and
-    append-only event content before COMPLETE; native deliveries also require
-    the exact runtime receipt in that stored event record. The PostgreSQL
-    adapter applies account state and execution receipt in one transaction,
-    and Redis ACK follows only handler COMPLETE. Focused account/session/
-    PostgreSQL/recovery validation passes 45 tests.
-    Preserve canonical platform event identity and ordering; never derive it
-    from dependency-local frozen series rows. Full Compose/browser acceptance
+    execute/replay the next event. The opt-in exact-image integration now also
+    proves isolated-process kill/relaunch with deterministic native account
+    effects across pre-settlement replay, durable settlement before ACK, and
+    restart from the acknowledged next checkpoint. This test currently uses a
+    SQLite checkpoint/settlement harness; wiring its checkpoint resolver and
+    ACK windows through production PostgreSQL/account-history and Redis worker
+    adapters remains open. The host runtime starts each isolated process from
+    one exact requested admission checkpoint, verifies it in the open request
+    and response, and replaces the process on checkpoint advance or recovery.
+    The native session rejects later checkpoints instead of retaining an
+    unbounded local suffix. Full Strategy Lab package validation passes 1,501
+    tests with the Docker integration skipped by default; the exact-image test
+    passes separately. The forward account handler verifies durable cursor,
+    append-only event content, and exact runtime receipt before COMPLETE; the
+    PostgreSQL adapter applies account state and receipt transactionally, and
+    Redis ACK follows only COMPLETE. Focused account/session/PostgreSQL tests
+    pass. Preserve canonical platform event identity and ordering; never derive
+    it from dependency-local frozen series rows.
+    Full Compose/browser acceptance
     remains a final environment gate; provider, ETF, and TC2000 shared-path
     consumption waits only for those branches to reach staging. Options
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Build the host-side durable checkpoint plan resolver and serializable
-    forward-process fixture inputs, then exercise the exact-source RC5 worker
-    through abrupt process kill/relaunch and verify all settlement/ACK crash
-    windows. Persist exact image and receipt provenance; stable release
-    labeling remains unnecessary.
+    Replace the test-only SQLite checkpoint/settlement path with production
+    checkpoint resolution from the persisted forward admission/account history
+    and its actual worker ACK contract. Keep the exact-source RC5 subprocess
+    integration as the native execution boundary, persist image/receipt
+    provenance, and prove the combined PostgreSQL settlement plus Redis replay
+    path. Stable release labeling remains unnecessary.
