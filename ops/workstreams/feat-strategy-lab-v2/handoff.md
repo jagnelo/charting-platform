@@ -10998,3 +10998,45 @@ focused tests. Operational checkpoint paths:
 `ops/workstreams/feat-strategy-lab-v2/handoff.md`,
 `ops/workstreams/feat-strategy-lab-v2/session.json`, and
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+## 2026-10-05 - Durable forward execution receipt
+
+Implementation commit `35b8ef9144f568526f666d72deb921385d976258` is published
+to `origin/feat/strategy-lab-v2`. The forward runtime now constructs an
+immutable receipt binding the accepted canonical event, delivery binding,
+prepared strategy context, pre-event checkpoint, runtime session, and native
+output. The account transition stores that typed receipt alongside account
+effects in the existing PostgreSQL state transaction. Replays must match the
+same receipt, and the worker refuses successful settlement/acknowledgement
+unless persistence confirms its exact fingerprint. Existing receipt-free
+account events remain compatible; no schema migration was needed.
+
+This closes the missing receipt-binding step, not the persistent runtime: it
+does not yet retain the full native output/checkpoint payload or restore a
+concrete Nautilus process after restart. Checkpoint-specific accepted-event
+history/account resolution and deterministic crash replay remain required.
+
+Validation on this implementation: 27 focused account/worker/session/result
+tests passed; the complete Strategy Lab plus schema-migration suite passed
+1,423 tests with one environment-restricted socket case deselected. Ruff check,
+changed-file formatting, focused MyPy for four production modules, and
+`git diff --check` passed. The exact implementation commit is pushed and
+`HEAD` matched `origin/feat/strategy-lab-v2`.
+
+Next: implement the concrete isolated persistent Nautilus worker session and
+its checkpoint-bound event/account resolver, persist enough runtime output and
+checkpoint state to restore after process loss, and exercise crash windows
+before/after database commit and before dispatch acknowledgement. Nautilus
+`2.0.0rc5` already passed all five scope checks including forward event-tape
+parity; no stable 2.x release is required. Docker Buildx is still needed only
+for the final `full_stack_browser` acceptance profile. Provider/ETF/TC2000
+shared-path work remains gated on those branches reaching staging.
+
+Changed paths:
+`backend/app/strategy_lab_v2/forward_account.py`,
+`backend/app/strategy_lab_v2/forward_account_worker.py`,
+`backend/app/strategy_lab_v2/nautilus_forward_session.py`,
+`backend/app/strategy_lab_v2/postgres_forward_account.py`, and focused tests.
+Operational checkpoint paths: `ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
