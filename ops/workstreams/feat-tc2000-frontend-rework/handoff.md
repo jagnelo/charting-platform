@@ -1,5 +1,46 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Preserve linked-timeframe intent during workspace hydration
+
+Product commit `1d52ab41372b6cbf12efdf8d533e00e858b4966f` closes a workstation
+race: when a user chooses a linked timeframe while the default workspace is
+still loading, the newest explicit choice is published immediately and replayed
+after hydration, so persisted workspace settings cannot silently replace the
+user's current action. This is TC-owned frontend interaction/state behavior;
+it does not duplicate provider or ETF data ownership.
+
+Verification at this product commit: focused workstation tests passed 35/35;
+the full serial frontend suite passed 129 files / 1,204 tests; Vue type-check
+and Vite production build passed. The fresh seeded authenticated Chromium run
+passed 172 cases, skipped five documented cases, and had zero failures. Three
+focused E2E replays (delayed Add Tool, cross-window linked state, and narrow
+Rotation) passed 3/3. Backend combined coverage passed 1,621 unit and 409
+integration tests at 82.26%; Ruff, Compose contracts, scope guard, and
+workstream checks passed.
+
+The unchanged four-project visual matrix passed 94/104. Its ten
+screenshot-only differences are workspace-floating at all four viewports,
+Study structured-result at all four, and Study sandbox-error at 1080p/100 and
+1080p/125. State assertions passed before comparison. Do not alter baselines,
+masks, thresholds, skips, or acceptance policy. Artifacts are under
+`/tmp/tc2000-functional-final-hydration.dqcQ36`,
+`/tmp/tc2000-visual-final-hydration.oNjrBN`, and
+`/tmp/tc2000-final-focused.7EKFG9`.
+
+The general integration helper remains blocked by the host's missing Docker
+Buildx plugin; ordinary worktree-scoped Compose builds and tests succeeded.
+The assigned six-service stack, four test volumes, and generated worktree
+images were removed, and the final read-only Docker resource audit found no
+resources attributable to this worktree. Current direct refs at the time of
+the checkpoint were staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`,
+provider-platform `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`26d9f84b5ac35ed0fe0b31d196caae1a6ee05139`. Neither upstream tip is an ancestor
+of staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; defer consumer
+integration and semantic overlap reconciliation until the coordinator
+promotes them. Product commit `1d52ab41372b6cbf12efdf8d533e00e858b4966f` was
+pushed to `origin/feat/tc2000-frontend-rework` before this workstream
+checkpoint.
+
 ## 2026-10-05 — Secure localhost path for the full bridge run
 
 The ten host-network full-run failures passed focused replay through the

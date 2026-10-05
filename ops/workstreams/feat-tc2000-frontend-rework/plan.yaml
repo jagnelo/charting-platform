@@ -20,32 +20,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Independent TC implementation is unblocked; current exact-tip browser
-  acceptance remains open. At product source
-  `7f586db35c0ce9425cda07bcd67832517612ada2`, the third fresh-volume full run
-  passed 160/175, skipped five documented cases, and failed ten cases. Nine
-  reported browser/network diagnostics included `ERR_NETWORK_CHANGED`; the
-  remaining failure was Python Library dock content missing after this burst.
-  All ten exact failures passed unchanged focused replay (10/10 in 1.8 minutes)
-  when Chromium connected directly to the assigned Compose bridge via
-  `http://frontend`, but that origin is not a secure context: the initial full
-  bridge attempt failed F9c with `crypto.randomUUID is not a function` and was
-  stopped as invalid test setup. A follow-up smoke sharing only the assigned
-  frontend container's network namespace and using trusted `http://localhost`
-  passed F9c 1/1 in 16.6 seconds. Run the full clean-volume suite using that
-  exact route before attributing the host-port failures conclusively. Artifacts:
-  host-network full `/tmp/tc2000-functional-final-rerun-uEfRP9`, insecure bridge
-  attempt `/tmp/tc2000-functional-compose-bridge-E92SP2`, focused bridge
-  `/tmp/tc2000-bridge-focused-w4uSsV`, secure localhost smoke
-  `/tmp/tc2000-shared-netns-smoke-83woqs`. Earlier fresh-volume host-network
-  full runs passed 169/175 and 167/175 with one and three failures; focused
-  replays also passed. The unchanged visual matrix remains 94/104 with ten
-  protected screenshot comparisons after successful state assertions; no
-  visual oracle or policy changed. Last refreshed direct refs: staging
-  `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
-  `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
-  `16f181c798bc067b0e623e6445c03319d6664ad9`; provider and ETF remain outside
-  staging, so defer R2/R3 and shared-path reconciliation until both arrive.
+  The latest committed TC product change passes the complete serial frontend
+  unit suite, production type-check/build, and the fresh seeded authenticated
+  Chromium suite (172 passed, five documented skips, zero failures). The
+  protected four-project visual matrix remains 94/104: ten screenshot-only
+  differences in workspace-floating, Study structured-result, and the two
+  1080p Study sandbox-error cases. The full integration helper still cannot
+  complete on this host because Docker Buildx is unavailable; ordinary scoped
+  Compose builds and exact-stack browser tests succeeded. Do not alter visual
+  baselines, masks, thresholds, skips, or acceptance policy to clear those
+  comparisons. Provider-platform and ETF branches are still not in staging, so
+  R2/R3 consumer reconciliation remains externally gated until coordinator
+  promotion.
   `make validate-integration` still encounters the host's missing Docker
   Buildx helper; ordinary serial Compose successfully builds the assigned
   stack. Exact full-integration acceptance and ten visual gaps remain open.
@@ -288,32 +274,20 @@ progress:
   total: 9
   current_phase: R1_R6_KEYBOARD_ACCESSIBILITY_AND_EXACT_TIP_REPLAY
   next_action: >-
-    Tear down only the exact assigned TC stack and its generated test volumes,
-    recreate the seeded stack with the existing exact-tip images, and run the
-    unchanged full serial authenticated Chromium suite over the assigned
-    assigned frontend container's network namespace
-    (`--network container:charting-stack-feat-tc2000-frontend-rework-f63d60ae-frontend-1`,
-    `STACK_URL=http://localhost`) at product source
-    7f586db35c0ce9425cda07bcd67832517612ada2. Preserve the full-run output
-    separately; then tear down and audit only assigned resources.
+    Continue TC-owned frontend delivery and inspect the ten protected visual
+    differences for actionable product defects without changing the oracle or
+    its policy. Refresh upstream refs periodically; defer R2/R3 consumer and
+    shared-path semantic reconciliation until provider-platform and ETF
+    changes are promoted to staging. Re-run the exact full integration gate
+    when the host Buildx dependency is available, then checkpoint exact-tip
+    evidence and stop at ready_for_human_review.
   current_blocker: >-
-    Full exact-tip functional acceptance remains open after three host-network
-    full runs. The third fresh-volume run passed 160/175, skipped five
-    documented cases, and failed ten, mostly with ERR_NETWORK_CHANGED; all ten
-    passed unchanged focused replay over the assigned Compose bridge. That
-    direct service hostname was insecure for browser crypto, and an initial
-    bridge full attempt was stopped after F9c reported
-    `crypto.randomUUID is not a function`; do not count it as a suite result.
-    The exact same F9c flow passed 1/1 when the runner shared only the assigned
-    frontend container's network namespace and used `http://localhost`. Run the
-    full suite on this verified secure route. All earlier full/replay artifacts
-    are retained and described in the handoff. The unchanged visual matrix
-    remains 94/104 with ten screenshot-only differences and no oracle/policy
-    changes. Staging is 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider
-    88132e9145a08d1c935a0111b3dba0fbd88bdff1, ETF
-    16f181c798bc067b0e623e6445c03319d6664ad9; neither upstream dependency is
-    in staging. Ordinary Compose builds and runs the assigned browser stack;
-    the standard integration helper lacks host Buildx.
+    No functional failures remain in the latest exact-tip authenticated
+    Chromium run. Remaining release gates are the ten protected visual
+    screenshot differences, the host Docker Buildx prerequisite for the generic
+    full integration helper, and upstream provider-platform/ETF promotion into
+    staging before consumer reconciliation. Preserve visual acceptance policy
+    and branch ownership boundaries.
 historical_implementation_records:
   - "Exact product-tip pinned validation at be55d1af completed the 174-case functional suite with 172 passed, 2 documented skips, and zero failures. The four-project visual matrix completed all 104 cases: 93 passed, ten protected screenshot differences remain (workspace-floating all four viewports; Study structured-result all four; Study sandbox-error at the two 1080p scales), and one column-editor diagnostic failure from ERR_NETWORK_CHANGED passed unchanged replay 4/4. A separate four-project pinned shell smoke passed 4/4; host-only shell rendering failed glyph pixels with host Arial resolving to Nimbus Sans versus pinned Noble resolving Liberation Sans, consistent with environment/font rendering rather than geometry. Full matrix artifacts: /tmp/tc2000-pinned-visual-full-3t8qbk; functional artifacts: /tmp/tc2000-pinned-functional-full-9Iq2rG. Scoped Docker cleanup left zero resources. No visual acceptance policy changed."
   - "Product commit be55d1af2de8037671d65e33d5b1d5120e11f38c adds keyboard invocation for the TC-owned Virtual Watchlist Boolean header pin menu using Shift+F10 and the Context Menu key, while preserving right-click and Ctrl/Meta-click behavior and anchoring the menu at the header for keyboard use. Focused VirtualWatchlistTool coverage passed 80/80; full serial frontend Vitest passed 129 files / 1,202 tests; the Docker production build (including vue-tsc and Vite build) passed; and authenticated F8u-boolean passed 1/1. The exact-tip 174-case functional run passed 171, skipped 2 documented cases, and failed one F8s-family-matrix diagnostic because unrelated local API requests reported ERR_NETWORK_CHANGED after assertions; unchanged focused replay passed 1/1. The completed prior-tip 104-case visual matrix was 93/104 with ten protected screenshot differences; a post-change full visual attempt was stopped after broad deltas, and a fresh seeded-database shell smoke differed at all four viewports by 42,759 / 44,586 / 50,854 / 53,003 pixels. No screenshot oracle, mask, threshold, skip, or acceptance policy changed. The exact branch commit is pushed and direct GitHub refs verified; staging remains 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider is 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF is 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5. Both dependencies remain outside staging."
@@ -622,3 +596,4 @@ remaining_gaps:
   - "The QQQE N-PORT Dreyfus DGCXX row is SEC-classified as a registered-fund short-term investment vehicle; its parser finding is recorded for ETF-owner handoff, but no parser fix is retained or accepted."
   - "At pushed TC branch tip 9b04cee36d32d5064fc4edb3c512d98b88c38040 (product source 3958886632af62e0207fb02ed6961b16fd1a600c), pinned Chromium functional E2E ran 178 cases (167 passed, 6 documented skips, 5 failed); a six-case focused serial replay passed all five failed flows. The complete pinned four-viewport visual matrix ran 104 cases (93 passed); the ten known workspace-floating, Study structured-result, and 1080p Study sandbox-error screenshot differences remain. One transient visual fixture startup failure passed its focused replay. The authenticated Add Tool capability-boundary flow passed 1/1 after the matrix. No screenshot policy changed."
   - "The Chart Plot Library's exact open/search styling still lacks an authoritative V25 capture. The authenticated current-app screenshot and F9e search test are implementation evidence only; do not treat them as a visual baseline or change the existing 104-case board policy."
+  - "At product commit 1d52ab41372b6cbf12efdf8d533e00e858b4966f, WorkstationView retains the latest explicit linked-timeframe choice while default workspace hydration is pending, publishes it immediately, and replays it after hydration so persisted settings cannot overwrite user intent. Focused workstation tests passed 35/35; the full serial frontend suite passed 129 files / 1,204 tests; Vue type-check and Vite production build passed. Fresh seeded authenticated Chromium passed 172 cases, skipped five documented cases, and had zero failures. The four-project visual matrix passed 94/104, with ten screenshot-only differences: workspace-floating at all four viewports; Study structured-result at all four; Study sandbox-error at 1080p/100 and 1080p/125. Focused E2E replays for delayed Add Tool, cross-window linked state, and narrow Rotation passed 3/3. Artifacts: functional `/tmp/tc2000-functional-final-hydration.dqcQ36`, visual `/tmp/tc2000-visual-final-hydration.oNjrBN`, focused `/tmp/tc2000-final-focused.7EKFG9`. No visual baseline, mask, threshold, skip, or acceptance policy changed. Backend combined coverage passed 1,621 unit and 409 integration tests at 82.26%; Ruff, production build, Compose contracts, workstream validation, and scope guard passed. The generic integration helper remains unavailable because the host lacks Docker Buildx. Latest direct refs: staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings `26d9f84b5ac35ed0fe0b31d196caae1a6ee05139`; neither upstream tip is an ancestor of staging, so defer R2/R3 consumption and shared-path reconciliation."
