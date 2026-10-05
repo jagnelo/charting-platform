@@ -31,7 +31,7 @@ from app.strategy_lab_v2.api_router import (
     create_strategy_lab_router,
 )
 from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary
 from app.strategy_lab_v2.commands import ExecutionCommand, ExecutionCommandResolution
 from app.strategy_lab_v2.contracts import (
@@ -1189,6 +1189,24 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise ValueError("instance_id must not be empty")
         return await self._persistence.forward_state.load_state(
             principal=_principal_identity(principal), instance_id=instance_id
+        )
+
+    async def load_forward_state_at_checkpoint(
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+    ) -> ForwardLiveAdmissionState | None:
+        """Read owner-authenticated admission evidence at an exact old checkpoint."""
+
+        if not isinstance(instance_id, str) or not instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        require_sha256_digest(checkpoint_fingerprint, field_name="checkpoint_fingerprint")
+        return await self._persistence.forward_state.load_state_at_checkpoint(
+            principal=_principal_identity(principal),
+            instance_id=instance_id,
+            checkpoint_fingerprint=checkpoint_fingerprint,
         )
 
     async def load_forward_replays(

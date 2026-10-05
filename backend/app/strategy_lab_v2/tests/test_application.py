@@ -443,6 +443,10 @@ async def test_application_search_and_forward_reads_are_owner_scoped() -> None:
             observed["state"] = kwargs
             return forward_state
 
+        async def load_state_at_checkpoint(self, **kwargs: Any) -> Any:
+            observed["checkpoint_state"] = kwargs
+            return forward_state
+
     adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
     adapter._persistence = SimpleNamespace(search_state=SearchStore(), forward_state=ForwardStore())
 
@@ -458,11 +462,23 @@ async def test_application_search_and_forward_reads_are_owner_scoped() -> None:
         await adapter.load_forward_state(principal=_User(42), instance_id=instance.instance_id)
         == forward_state
     )
+    checkpoint_fingerprint = content_digest("forward-checkpoint")
+    assert (
+        await adapter.load_forward_state_at_checkpoint(
+            principal=_User(42),
+            instance_id=instance.instance_id,
+            checkpoint_fingerprint=checkpoint_fingerprint,
+        )
+        == forward_state
+    )
 
     assert observed["search"]["principal"].id == "42"
     assert observed["search"]["experiment_fingerprint"] == experiment
     assert observed["instance"]["principal"].id == "42"
     assert observed["state"]["principal"].id == "42"
+    assert observed["checkpoint_state"]["principal"].id == "42"
+    assert observed["checkpoint_state"]["instance_id"] == instance.instance_id
+    assert observed["checkpoint_state"]["checkpoint_fingerprint"] == checkpoint_fingerprint
 
 
 def test_application_adapter_composes_all_durable_api_adapters() -> None:
