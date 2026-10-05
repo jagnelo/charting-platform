@@ -104,6 +104,10 @@ def test_verified_equity_observations_preserve_canonical_event_times(tmp_path) -
         Decimal("1000"),
         Decimal("999.5"),
     )
+    assert tuple(item.account_cash_balance for item in observations) == (
+        Decimal("1000.00"),
+        Decimal("1000.00"),
+    )
 
 
 def test_native_equity_trace_rejects_omitted_scoring_marks(tmp_path) -> None:

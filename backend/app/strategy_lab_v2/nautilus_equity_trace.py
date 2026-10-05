@@ -241,11 +241,12 @@ class NautilusAccountEquityTraceReference:
 
 @dataclass(frozen=True, slots=True)
 class NautilusAccountEquityObservation:
-    """One verified native equity mark and its canonical event timestamp."""
+    """One verified native cash/equity mark and its canonical event timestamp."""
 
     event_time_ns: int
     account_equity: Decimal
     event_index: int
+    account_cash_balance: Decimal
 
     def __post_init__(self) -> None:
         if (
@@ -261,6 +262,7 @@ class NautilusAccountEquityObservation:
         ):
             raise ValueError("event_index must be a non-negative integer")
         _decimal(self.account_equity, "account_equity", non_negative=True)
+        _decimal(self.account_cash_balance, "account_cash_balance", non_negative=False)
 
 
 class NautilusAccountEquityTraceWriter:
@@ -672,7 +674,12 @@ def iter_verified_nautilus_account_equity_observations(
                     previous_time = event_time_ns
                     previous_sequence = source_sequence
                     observed_count += 1
-                    yield NautilusAccountEquityObservation(event_time_ns, equity, event_index)
+                    yield NautilusAccountEquityObservation(
+                        event_time_ns,
+                        equity,
+                        event_index,
+                        cash,
+                    )
             if expected_iterator is not None:
                 for expected in expected_iterator:
                     event = expected.get("event", expected)

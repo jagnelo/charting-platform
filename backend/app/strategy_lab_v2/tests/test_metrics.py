@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from decimal import ROUND_DOWN, Decimal, localcontext
 
 import pytest
@@ -14,10 +15,12 @@ from app.strategy_lab_v2.contracts import (
 )
 from app.strategy_lab_v2.metrics import (
     METRIC_DEFINITION_VERSION,
+    calculate_account_cash_balance_metrics,
     calculate_event_aligned_equity_metrics,
     calculate_performance_metrics,
     calculate_trade_metrics,
 )
+from app.strategy_lab_v2.observations import AccountCashBalanceObservation, ObservationPoint
 
 
 def _by_name(values: tuple[object, ...]) -> dict[str, object]:
@@ -28,6 +31,84 @@ def _metric_dividend(numerator: int, denominator: int) -> Decimal:
     with localcontext() as decimal_context:
         decimal_context.prec = 34
         return Decimal(numerator) / Decimal(denominator)
+
+
+def _account_cash_mark(
+    event_second: int,
+    event_sequence: int,
+    equity: str,
+    cash: str,
+) -> AccountCashBalanceObservation:
+    return AccountCashBalanceObservation(
+        portfolio_fingerprint=content_digest("cash-metric-portfolio"),
+        run_attempt_id="cash-metric-attempt",
+        point=ObservationPoint(
+            datetime(2026, 10, 1, tzinfo=UTC).replace(second=event_second),
+            event_sequence,
+        ),
+        account_equity=Decimal(equity),
+        account_cash_balance=Decimal(cash),
+        base_currency="USD",
+        valuation_evidence_digest=content_digest("verified-cash-trace"),
+    )
+
+
+def test_account_cash_balance_metrics_are_equal_event_sampled_and_provenance_bound() -> None:
+    marks = (
+        _account_cash_mark(1, 0, "1000", "800"),
+        _account_cash_mark(3, 1, "1000", "-200"),
+        _account_cash_mark(8, 2, "500", "250"),
+    )
+    metrics = _by_name(calculate_account_cash_balance_metrics(marks))
+
+    assert metrics["average_account_cash_to_equity"].value == _metric_dividend(11, 30)  # type: ignore[attr-defined]
+    assert metrics["minimum_account_cash_to_equity"].value == Decimal("-0.2")  # type: ignore[attr-defined]
+    assert metrics["maximum_account_cash_to_equity"].value == Decimal("0.8")  # type: ignore[attr-defined]
+    assert metrics["average_account_cash_to_equity"].sample_size == 3  # type: ignore[attr-defined]
+    assert metrics["average_account_cash_to_equity"].basis is MetricBasis.NET  # type: ignore[attr-defined]
+    assert metrics["average_account_cash_to_equity"].evidence_references[
+        0
+    ].digest == content_digest(marks)  # type: ignore[attr-defined]
+    assert (
+        metrics["average_account_cash_to_equity"].calculation_definition.parameters[
+            "sample_weighting"
+        ]
+        == "equal_verified_oos_event_marks"
+    )  # type: ignore[attr-defined]
+    assert all(item.definition_version == METRIC_DEFINITION_VERSION for item in metrics.values())  # type: ignore[attr-defined]
+
+
+def test_account_cash_balance_metrics_withhold_the_family_when_equity_is_zero() -> None:
+    metrics = calculate_account_cash_balance_metrics(
+        (
+            _account_cash_mark(1, 0, "1000", "500"),
+            _account_cash_mark(2, 1, "0", "500"),
+        )
+    )
+
+    assert len(metrics) == 3
+    assert all(item.value is None for item in metrics)
+    assert all(item.sample_size == 2 for item in metrics)
+    assert all("equity is zero" in (item.null_reason or "") for item in metrics)
+
+
+def test_account_cash_balance_metrics_reject_mixed_evidence_and_unordered_marks() -> None:
+    first = _account_cash_mark(2, 0, "1000", "500")
+    earlier = _account_cash_mark(1, 1, "1000", "500")
+    with pytest.raises(ValueError, match="strictly ordered"):
+        calculate_account_cash_balance_metrics((first, earlier))
+
+    different_evidence = AccountCashBalanceObservation(
+        portfolio_fingerprint=first.portfolio_fingerprint,
+        run_attempt_id=first.run_attempt_id,
+        point=ObservationPoint(datetime(2026, 10, 1, 3, tzinfo=UTC), 1),
+        account_equity=Decimal("1000"),
+        account_cash_balance=Decimal("500"),
+        base_currency="USD",
+        valuation_evidence_digest=content_digest("different-trace"),
+    )
+    with pytest.raises(ValueError, match="same valuation evidence"):
+        calculate_account_cash_balance_metrics((first, different_evidence))
 
 
 def test_performance_metrics_report_currency_drawdown_recovery_and_empirical_tail() -> None:

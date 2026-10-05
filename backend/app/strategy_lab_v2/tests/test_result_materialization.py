@@ -9,6 +9,7 @@ import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import AttemptState
+from app.strategy_lab_v2.metrics import METRIC_DEFINITION_VERSION
 from app.strategy_lab_v2.nautilus_equity_trace import (
     NautilusAccountEquityTraceWriter,
 )
@@ -338,6 +339,16 @@ def test_nautilus_oos_result_materialization_binds_metrics_and_native_artifacts(
     assert metrics["oos_fill_count"].value == Decimal(1)
     assert metrics["oos_reported_commission:USD"].value == Decimal("2.00")
     assert metrics["maximum_drawdown_duration_seconds"].value == Decimal("0.000000049")
+    cash_ratio = metrics["average_account_cash_to_equity"]
+    assert cash_ratio.value is not None
+    assert cash_ratio.sample_size == trace_reference.observation_count
+    assert cash_ratio.unit == "ratio"
+    assert cash_ratio.definition_version == METRIC_DEFINITION_VERSION
+    assert any(
+        reference.role == "native_account_cash_trace"
+        and reference.digest == trace_reference.artifact.content_digest
+        for reference in cash_ratio.evidence_references
+    )
 
     replay = materialize_nautilus_oos_run_result(
         *arguments,

@@ -25,6 +25,7 @@ from app.strategy_lab_v2.contracts import (
 from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_decimal_math
 from app.strategy_lab_v2.metrics import (
     METRIC_DEFINITION_VERSION,
+    calculate_account_cash_balance_metrics,
     calculate_event_aligned_equity_metrics,
     calculate_performance_metrics,
     calculate_session_return_distribution_metrics,
@@ -34,7 +35,10 @@ from app.strategy_lab_v2.nautilus_native_reports import (
     NautilusNativeReportsReference,
     iter_nautilus_native_report_records,
 )
-from app.strategy_lab_v2.observations import AccountEquityIntervalObservation
+from app.strategy_lab_v2.observations import (
+    AccountCashBalanceObservation,
+    AccountEquityIntervalObservation,
+)
 from app.strategy_lab_v2.rebalance import SessionCalendarSnapshot
 
 _NATIVE_REPORT_TIME_FIELDS = {
@@ -363,6 +367,7 @@ def build_nautilus_oos_metric_set(
     native_reports_path: str | Path,
     *,
     event_time_ns: Iterable[int] | None = None,
+    account_cash_observations: Iterable[AccountCashBalanceObservation] | None = None,
     created_at: datetime,
     portfolio: PortfolioComposition | None = None,
     session_equity_intervals: Sequence[AccountEquityIntervalObservation] | None = None,
@@ -422,6 +427,21 @@ def build_nautilus_oos_metric_set(
         suppress_event_sampled_risk=suppress_event_sampled_risk,
     )
     native_values = _native_oos_report_metrics(native_reports_reference, native_reports_path)
+    cash_observations = (
+        None if account_cash_observations is None else tuple(account_cash_observations)
+    )
+    cash_values: tuple[MetricValue, ...] = ()
+    if cash_observations is not None:
+        if any(not isinstance(item, AccountCashBalanceObservation) for item in cash_observations):
+            raise TypeError(
+                "account_cash_observations must contain AccountCashBalanceObservation values"
+            )
+        if any(
+            item.valuation_evidence_digest != equity_reference.artifact.content_digest
+            for item in cash_observations
+        ):
+            raise ValueError("account cash observations must reference the verified equity trace")
+        cash_values = calculate_account_cash_balance_metrics(cash_observations)
     component_values: tuple[MetricValue, ...] = ()
     if portfolio is not None:
         from app.strategy_lab_v2.nautilus_component_pnl import (
@@ -440,6 +460,9 @@ def build_nautilus_oos_metric_set(
     identity = content_digest(
         {
             "attempt_id": equity_reference.attempt_id,
+            "account_cash_observation_digest": (
+                None if cash_observations is None else content_digest(cash_observations)
+            ),
             "definition_version": METRIC_DEFINITION_VERSION,
             "equity_trace_digest": equity_reference.artifact.content_digest,
             "native_reports_digest": native_reports_reference.artifact.content_digest,
@@ -453,7 +476,7 @@ def build_nautilus_oos_metric_set(
         trial_id=equity_reference.trial_id,
         attempt_id=equity_reference.attempt_id,
         definition_version=METRIC_DEFINITION_VERSION,
-        values=(*equity_values, *native_values, *component_values),
+        values=(*equity_values, *native_values, *cash_values, *component_values),
         created_at=created_at,
     )
 

@@ -253,7 +253,9 @@ class FinancingCostObservation:
             raise ValueError("financing_event_id must not be empty")
         if not isinstance(self.base_cash_effect, Decimal) or not self.base_cash_effect.is_finite():
             raise ValueError("base_cash_effect must be a finite Decimal")
-        object.__setattr__(self, "base_currency", _currency_code(self.base_currency, "base_currency"))
+        object.__setattr__(
+            self, "base_currency", _currency_code(self.base_currency, "base_currency")
+        )
         require_sha256_digest(self.financing_model_digest, field_name="financing_model_digest")
         require_sha256_digest(self.engine_evidence_digest, field_name="engine_evidence_digest")
 
@@ -281,7 +283,9 @@ class FinancingCostReport:
             raise TypeError("end_point must be an ObservationPoint")
         if self.end_point <= self.start_point:
             raise ValueError("financing report end_point must be after start_point")
-        object.__setattr__(self, "base_currency", _currency_code(self.base_currency, "base_currency"))
+        object.__setattr__(
+            self, "base_currency", _currency_code(self.base_currency, "base_currency")
+        )
         if not isinstance(self.report_status, CostReportStatus):
             raise TypeError("report_status must be a CostReportStatus")
         require_sha256_digest(self.engine_evidence_digest, field_name="engine_evidence_digest")
@@ -294,14 +298,18 @@ class FinancingCostReport:
             raise ValueError("financing observations must use the report's run attempt")
         if any(item.base_currency != self.base_currency for item in observations):
             raise ValueError("financing observations must use the report's base currency")
-        if any(item.point < self.start_point or item.point > self.end_point for item in observations):
+        if any(
+            item.point < self.start_point or item.point > self.end_point for item in observations
+        ):
             raise ValueError("financing observations must fall within the report interval")
         event_ids = [item.financing_event_id for item in observations]
         if len(event_ids) != len(set(event_ids)):
             raise ValueError("financing event ids must be unique within a report")
         if self.report_status is CostReportStatus.UNAVAILABLE and observations:
             raise ValueError("unavailable financing reports must not include observations")
-        object.__setattr__(self, "observations", tuple(sorted(observations, key=lambda item: item.point)))
+        object.__setattr__(
+            self, "observations", tuple(sorted(observations, key=lambda item: item.point))
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -348,8 +356,48 @@ class AccountCapitalMarginObservation:
             raise ValueError("margin requirements must be non-negative")
         if self.initial_margin_capacity <= 0 or self.maintenance_margin_capacity <= 0:
             raise ValueError("margin capacities must be positive")
-        object.__setattr__(self, "base_currency", _currency_code(self.base_currency, "base_currency"))
-        require_sha256_digest(self.valuation_evidence_digest, field_name="valuation_evidence_digest")
+        object.__setattr__(
+            self, "base_currency", _currency_code(self.base_currency, "base_currency")
+        )
+        require_sha256_digest(
+            self.valuation_evidence_digest, field_name="valuation_evidence_digest"
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class AccountCashBalanceObservation:
+    """One native account cash/equity valuation at a verified engine event."""
+
+    portfolio_fingerprint: str
+    run_attempt_id: str
+    point: ObservationPoint
+    account_equity: Decimal
+    account_cash_balance: Decimal
+    base_currency: str
+    valuation_evidence_digest: str
+
+    @deterministic_decimal_math
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
+        if not isinstance(self.run_attempt_id, str) or not self.run_attempt_id.strip():
+            raise ValueError("run_attempt_id must not be empty")
+        if not isinstance(self.point, ObservationPoint):
+            raise TypeError("point must be an ObservationPoint")
+        if not isinstance(self.account_equity, Decimal) or not self.account_equity.is_finite():
+            raise ValueError("account_equity must be a finite Decimal")
+        if self.account_equity < 0:
+            raise ValueError("account_equity must be non-negative")
+        if (
+            not isinstance(self.account_cash_balance, Decimal)
+            or not self.account_cash_balance.is_finite()
+        ):
+            raise ValueError("account_cash_balance must be a finite Decimal")
+        object.__setattr__(
+            self, "base_currency", _currency_code(self.base_currency, "base_currency")
+        )
+        require_sha256_digest(
+            self.valuation_evidence_digest, field_name="valuation_evidence_digest"
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -383,7 +431,9 @@ class StressScenarioObservation:
             raise ValueError("stressed_equity must be non-negative")
         if self.stressed_equity - self.initial_equity != self.stressed_pnl:
             raise ValueError("stressed_pnl must equal stressed_equity minus initial_equity")
-        object.__setattr__(self, "base_currency", _currency_code(self.base_currency, "base_currency"))
+        object.__setattr__(
+            self, "base_currency", _currency_code(self.base_currency, "base_currency")
+        )
         require_sha256_digest(self.shock_definition_digest, field_name="shock_definition_digest")
         require_sha256_digest(self.engine_evidence_digest, field_name="engine_evidence_digest")
 
@@ -441,9 +491,7 @@ class AccountEquityIntervalObservation:
             or not self.external_cash_flow.is_finite()
         ):
             raise ValueError("external_cash_flow must be a finite Decimal or None")
-        if not isinstance(
-            self.external_cash_flow_report_status, ExternalCashFlowReportStatus
-        ):
+        if not isinstance(self.external_cash_flow_report_status, ExternalCashFlowReportStatus):
             raise TypeError(
                 "external_cash_flow_report_status must be an ExternalCashFlowReportStatus"
             )
@@ -473,12 +521,15 @@ class AccountEquityIntervalObservation:
             self.external_cash_flow_report_status is ExternalCashFlowReportStatus.PARTIAL
             and self.external_cash_flow_occurred is False
         ):
-            raise ValueError("partial external cash-flow reports cannot prove that no flows occurred")
-        if (
-            self.external_cash_flow_report_status is ExternalCashFlowReportStatus.UNAVAILABLE
-            and (self.external_cash_flow is not None or self.external_cash_flow_occurred is not None)
+            raise ValueError(
+                "partial external cash-flow reports cannot prove that no flows occurred"
+            )
+        if self.external_cash_flow_report_status is ExternalCashFlowReportStatus.UNAVAILABLE and (
+            self.external_cash_flow is not None or self.external_cash_flow_occurred is not None
         ):
-            raise ValueError("unavailable external cash-flow reports must not include flow evidence")
+            raise ValueError(
+                "unavailable external cash-flow reports must not include flow evidence"
+            )
         if self.starting_equity <= 0 or self.ending_equity < 0:
             raise ValueError("starting_equity must be positive and ending_equity non-negative")
         object.__setattr__(
@@ -538,12 +589,12 @@ class PortfolioPnlObservation:
             value = getattr(self, name)
             if not isinstance(value, Decimal) or not value.is_finite():
                 raise ValueError(f"{name} must be a finite Decimal")
-        object.__setattr__(self, "base_currency", _currency_code(self.base_currency, "base_currency"))
+        object.__setattr__(
+            self, "base_currency", _currency_code(self.base_currency, "base_currency")
+        )
         component_ids = tuple(self.component_ids)
         if not component_ids or any(
-            not isinstance(value, str)
-            or not value.strip()
-            or value == UNALLOCATED_COMPONENT_ID
+            not isinstance(value, str) or not value.strip() or value == UNALLOCATED_COMPONENT_ID
             for value in component_ids
         ):
             raise ValueError("component_ids must list declared portfolio components")
@@ -579,7 +630,9 @@ class ComponentPnlObservation:
         if not isinstance(self.point, ObservationPoint):
             raise TypeError("point must be an ObservationPoint")
         if not isinstance(self.component_id, str) or not self.component_id.strip():
-            raise ValueError("component_id must not be empty; use the unallocated sentinel explicitly")
+            raise ValueError(
+                "component_id must not be empty; use the unallocated sentinel explicitly"
+            )
         for name in ("gross_pnl", "cost_deductions", "rebates", "net_pnl"):
             value = getattr(self, name)
             if not isinstance(value, Decimal) or not value.is_finite():
@@ -588,7 +641,9 @@ class ComponentPnlObservation:
             raise ValueError("cost deductions and rebates must be non-negative")
         if self.net_pnl != self.gross_pnl - self.cost_deductions + self.rebates:
             raise ValueError("net_pnl must equal gross_pnl less costs plus rebates")
-        object.__setattr__(self, "base_currency", _currency_code(self.base_currency, "base_currency"))
+        object.__setattr__(
+            self, "base_currency", _currency_code(self.base_currency, "base_currency")
+        )
         require_sha256_digest(self.result_bundle_digest, field_name="result_bundle_digest")
         require_sha256_digest(
             self.attribution_method_digest,

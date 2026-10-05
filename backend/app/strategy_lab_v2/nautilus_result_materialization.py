@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from itertools import tee
 from pathlib import Path
 from typing import Any
@@ -30,6 +30,7 @@ from app.strategy_lab_v2.nautilus_session_equity import (
     NautilusSessionEquityIntervalsArtifact,
     build_nautilus_session_equity_intervals_artifact,
 )
+from app.strategy_lab_v2.observations import AccountCashBalanceObservation, ObservationPoint
 from app.strategy_lab_v2.rebalance import SessionCalendarSnapshot
 from app.strategy_lab_v2.result_materialization import (
     EngineResultEvidence,
@@ -61,6 +62,17 @@ class NautilusOosResultMaterialization:
     @property
     def candidate_fingerprint(self) -> str:
         return self.resolution.candidate_fingerprint
+
+
+def _event_time_from_unix_nanoseconds(value: int) -> datetime:
+    """Convert canonical event nanoseconds without float timestamp rounding."""
+
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise ValueError("event time must be non-negative integer nanoseconds")
+    return datetime(1970, 1, 1, tzinfo=UTC) + timedelta(
+        seconds=value // 1_000_000_000,
+        microseconds=(value % 1_000_000_000) // 1_000,
+    )
 
 
 def materialize_nautilus_oos_run_result(
@@ -123,12 +135,32 @@ def materialize_nautilus_oos_run_result(
         equity_trace_path,
         expected_events=equity_expected_events,
     )
-    equity_observations, event_time_observations, session_observations = tee(
+    (
+        equity_observations,
+        event_time_observations,
+        session_observations,
+        cash_observations_source,
+    ) = tee(
         verified_observations,
-        3,
+        4,
     )
     equity_marks = (item.account_equity for item in equity_observations)
     event_time_ns = (item.event_time_ns for item in event_time_observations)
+    account_cash_observations = (
+        AccountCashBalanceObservation(
+            portfolio_fingerprint=equity_reference.portfolio_fingerprint,
+            run_attempt_id=equity_reference.attempt_id,
+            point=ObservationPoint(
+                _event_time_from_unix_nanoseconds(item.event_time_ns),
+                item.event_index,
+            ),
+            account_equity=item.account_equity,
+            account_cash_balance=item.account_cash_balance,
+            base_currency=equity_reference.base_currency,
+            valuation_evidence_digest=equity_reference.artifact.content_digest,
+        )
+        for item in cash_observations_source
+    )
     session_intervals_artifact: NautilusSessionEquityIntervalsArtifact | None = None
     close_observations = tuple(session_close_observations or ())
     if session_calendar is not None and not isinstance(session_calendar, SessionCalendarSnapshot):
@@ -182,6 +214,7 @@ def materialize_nautilus_oos_run_result(
         native_reports_reference,
         native_reports_path,
         event_time_ns=event_time_ns,
+        account_cash_observations=account_cash_observations,
         created_at=created_at,
         portfolio=portfolio,
         session_equity_intervals=(

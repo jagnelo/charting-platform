@@ -24,6 +24,7 @@ from app.strategy_lab_v2.contracts import (
 from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_decimal_math
 from app.strategy_lab_v2.observations import (
     AccountCapitalMarginObservation,
+    AccountCashBalanceObservation,
     AccountEquityIntervalObservation,
     ComponentPnlObservation,
     CostReportStatus,
@@ -52,7 +53,7 @@ from app.strategy_lab_v2.rebalance import (
     require_complete_calendar_period_coverage,
 )
 
-METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v15"
+METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v16"
 DEFAULT_SESSION_RETURN_QUANTILE_PROBABILITIES = (
     Decimal("0.05"),
     Decimal("0.25"),
@@ -1471,6 +1472,99 @@ def calculate_exposure_utilization_metrics(
             "risk_model": CASH_EQUITY_NOTIONAL_RISK_MODEL,
             "valuation_basis": "signed_base_notional_over_contemporaneous_account_equity",
         },
+    )
+
+
+@deterministic_decimal_math
+def calculate_account_cash_balance_metrics(
+    observations: Sequence[AccountCashBalanceObservation],
+) -> tuple[MetricValue, ...]:
+    """Summarize native account cash as an equal-event share of equity.
+
+    The trace adapter supplies both values from the same verified account mark.
+    A zero-equity event makes every ratio undefined, so the complete family is
+    withheld instead of silently dropping that sample. This does not infer
+    margin, buying power, or liquidity from cash or position notional.
+    """
+
+    marks = tuple(observations)
+    if not marks:
+        raise ValueError("at least one account cash-balance observation is required")
+    if any(not isinstance(item, AccountCashBalanceObservation) for item in marks):
+        raise TypeError("observations must contain AccountCashBalanceObservation values")
+    portfolio_fingerprint = marks[0].portfolio_fingerprint
+    run_attempt_id = marks[0].run_attempt_id
+    base_currency = marks[0].base_currency
+    evidence_digest = marks[0].valuation_evidence_digest
+    points = tuple(item.point for item in marks)
+    if any(item.portfolio_fingerprint != portfolio_fingerprint for item in marks):
+        raise ValueError("all account cash observations must use the same portfolio version")
+    if any(item.run_attempt_id != run_attempt_id for item in marks):
+        raise ValueError("all account cash observations must belong to the same run attempt")
+    if any(item.base_currency != base_currency for item in marks):
+        raise ValueError("all account cash observations must use the same base currency")
+    if any(item.valuation_evidence_digest != evidence_digest for item in marks):
+        raise ValueError("all account cash observations must use the same valuation evidence")
+    if any(current <= previous for previous, current in zip(points, points[1:])):
+        raise ValueError("account cash observations must be strictly ordered by event time")
+
+    observation_digest = content_digest(marks)
+    has_zero_equity = any(item.account_equity == 0 for item in marks)
+    ratios = (
+        ()
+        if has_zero_equity
+        else tuple(item.account_cash_balance / item.account_equity for item in marks)
+    )
+    sample_size = len(marks)
+    null_reason = (
+        "account equity is zero at one or more observed events; all cash/equity ratios withheld"
+        if has_zero_equity
+        else None
+    )
+    common_basis = (
+        "native account cash balance divided by contemporaneous native account equity; "
+        "equally weighted across verified OOS event marks"
+    )
+    parameters = {
+        "valuation_basis": "native_account_cash_balance_over_native_account_equity",
+        "sample_weighting": "equal_verified_oos_event_marks",
+        "zero_equity_policy": "withhold_all_cash_equity_ratios",
+        "notional_or_margin_inference": "forbidden",
+        "base_currency": base_currency,
+    }
+
+    def metric(name: str, value: Decimal | None, aggregation: str) -> MetricValue:
+        return _value(
+            name,
+            value,
+            unit="ratio",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=f"{aggregation} of {common_basis}; observations {observation_digest}",
+            null_reason=null_reason,
+            calculation_parameters=parameters,
+            evidence_references=(
+                MetricEvidenceReference("native_account_cash_observations", observation_digest),
+                MetricEvidenceReference("native_account_cash_trace", evidence_digest),
+            ),
+        )
+
+    return (
+        metric(
+            "average_account_cash_to_equity",
+            None if has_zero_equity else sum(ratios, Decimal(0)) / Decimal(sample_size),
+            "arithmetic mean",
+        ),
+        metric(
+            "minimum_account_cash_to_equity",
+            None if has_zero_equity else min(ratios),
+            "minimum observed ratio",
+        ),
+        metric(
+            "maximum_account_cash_to_equity",
+            None if has_zero_equity else max(ratios),
+            "maximum observed ratio",
+        ),
     )
 
 

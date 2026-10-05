@@ -91,6 +91,7 @@ def _session_fixture():
             _unix_ns(session.close_time),
             Decimal(value),
             index,
+            Decimal("500"),
         )
         for index, (session, value) in enumerate(
             zip(sessions, ("1000", "1020", "990", "1050"), strict=True)

@@ -380,7 +380,7 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and duplicate-trial results by default; an explicit exploratory opt-in can
   include non-authoritative engine output while retaining the exclusion label.
   It makes no profitability or statistical inference claim.
-- `metrics.py` v8 computes Decimal account P&L/return, drawdown duration, Ulcer,
+- `metrics.py` v16 computes Decimal account P&L/return, drawdown duration, Ulcer,
   annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
   historical VaR/expected shortfall, and trade outcome/streak summaries from
   authoritative engine equity and trade-P&L series. The equity input contains
@@ -391,8 +391,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   travel with each metric. Tail calculations use an explicitly versioned
   nearest-rank empirical convention. Exposure metrics are equally
   sample-weighted signed cash-equity notional relative to contemporaneous equity;
-  they are not time-weighted exposure or margin/capital requirements. Fill-cost
-  totals and basis points are null when any fill cost report is partial or
+  they are not time-weighted exposure or margin/capital requirements. Native
+  result summaries also include a separate event-sampled account cash/equity ratio
+  family, bound to the verified OOS trace. A zero-equity mark withholds all
+  ratios rather than dropping that event; cash ratios do not imply margin,
+  buying power, or liquidity. Fill-cost totals and basis points are null when
+  any fill cost report is partial or
   unavailable; category values are explicitly reported amounts, not asserted
   complete totals. Complete reports may explicitly state zero cost. Cost metrics
   use engine-reported signed cash effects, explicit base-currency conversions,
