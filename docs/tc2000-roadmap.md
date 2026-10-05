@@ -7,6 +7,16 @@ Last reconciled: 2026-10-05
 
 ## 2026-10-05 — Isolated dense-data and resilience evidence
 
+At pushed branch checkpoint `0811a098d5c75839a071c6d6d54d0ce5463b034f`
+(same product source `d413d845939e68e9738b621329fa8d63a419ddf8`), the complete
+`workstation_performance.spec.ts` file passed `4/4` in 38.2 seconds with
+`E2E_SEED_LARGE_UNIVERSE=true`, including the 10,000-row watchlist budget case.
+The initial default-profile `3/4` result and focused `1/1` fourth-case replay
+remain recorded raw outcomes; the later complete isolated run clears the
+current performance gate. Its four containers, four volumes, network, and two
+local images were removed after exact-project inspection. The assigned stack
+remained healthy with its four volumes intact.
+
 At pushed branch checkpoint `48a9323d4bbc2dd10ac42764e34ed3415ab4a106`
 (product source `d413d845939e68e9738b621329fa8d63a419ddf8`), the pinned
 Playwright workstation window-churn test passed `1/1` with
@@ -20,6 +30,13 @@ and the container restart count stayed at zero.
 These are additional R6 receipts, not closure of all resilience/security
 criteria. The exact-tip visual differences, complete integration helper, and
 staging-dependent R2/R3 work remain open.
+
+The latest direct remote refs were TC `0811a098d5c75839a071c6d6d54d0ce5463b034f`,
+staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc`. ETF advanced, but neither upstream
+branch is in staging; consumer integration and shared-path reconciliation
+remain deferred.
 
 ## 2026-10-05 — Exact-tip validation refresh after Study threshold isolation
 

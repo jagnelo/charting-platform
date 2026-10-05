@@ -9,12 +9,14 @@ seeded Playwright 1.62.1 `flows.spec.ts` rerun completed 177 cases: 175 passed,
 source had one 60-second F8m chart-panel link-menu timeout after 174 passes and
 2 skips; both its focused replay and the unchanged full rerun passed, with no
 product or test assertion changes. Keep the first outcome as raw history; the
-functional flow gate is currently green. The default workstation performance
-suite passed 3/4; its opt-in 10,000-row watchlist case was skipped there, then
-passed unchanged 1/1 in an isolated seeded Compose project with
-`E2E_SEED_LARGE_UNIVERSE=true`. Treat that as focused coverage, not a single
-4/4 suite run. The temporary project and its volumes/images were removed; the
-assigned stack remained healthy and intact.
+functional flow gate is currently green. The initial default workstation
+performance suite passed 3/4 with its opt-in 10,000-row case skipped; a
+focused isolated replay passed that case 1/1. At later branch checkpoint
+`0811a098d5c75839a071c6d6d54d0ce5463b034f`, the complete performance file then
+passed `4/4` in 38.2 seconds with `E2E_SEED_LARGE_UNIVERSE=true`. Its temporary
+project and data volumes were removed; the assigned stack remained healthy and
+intact. Preserve the earlier outcomes as raw history, but the complete
+performance-file gate is now green.
 
 At later branch checkpoint `48a9323d4bbc2dd10ac42764e34ed3415ab4a106`, the
 pinned `workstation_performance.spec.ts` 50-round pop-out/restore churn test

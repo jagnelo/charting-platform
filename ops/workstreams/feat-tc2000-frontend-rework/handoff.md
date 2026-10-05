@@ -1,5 +1,30 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Complete isolated workstation performance matrix
+
+At pushed branch checkpoint `0811a098d5c75839a071c6d6d54d0ce5463b034f`
+(product source `d413d845939e68e9738b621329fa8d63a419ddf8`), the complete
+pinned Playwright 1.62.1 `workstation_performance.spec.ts` file passed `4/4`
+in 38.2 seconds with `E2E_SEED_LARGE_UNIVERSE=true`. This included optional
+tool lazy loading, two-window initialization/recovery, bounded multi-window
+churn, and the 10,000-row watchlist with fewer than 100 rendered rows. The
+initial default-profile `3/4` run and focused opt-in `1/1` replay remain in the
+raw log; this later full-file run is the current performance receipt.
+
+The run used a temporary Compose project built with the ordinary Docker driver.
+It started only frontend, backend, Postgres, and Redis with dedicated ports and
+volumes. Exact-project inspection found four containers, four volumes, one
+network, and two generated images; scoped cleanup removed all of them. The
+assigned six-service stack and its four volumes remained healthy and intact.
+Artifacts: `/tmp/tc2000-performance-full.6PoNzL`.
+
+The latest direct remote refresh returned TC
+`0811a098d5c75839a071c6d6d54d0ce5463b034f`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc`. ETF advanced, but both upstream
+branches remain outside staging; TC integration/reconciliation stays deferred.
+
 ## 2026-10-05 — Sandboxing and 50-round pop-out endurance
 
 At pushed branch checkpoint `48a9323d4bbc2dd10ac42764e34ed3415ab4a106`
