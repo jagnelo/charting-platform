@@ -2415,6 +2415,19 @@ identity, effective-date, or completeness failure is excused. Provider counts
 remain 496 registered / 422 native-live-backed / 74 fallback-only pending a
 fresh exact-SHA run.
 
+The subsequent repair SHA `d3b10fce254d9625810ad5258bf493d84b416e7c` correctly
+classified the exact Arin challenge, but Actions run `37332486447` exposed a
+different sole matrix failure: the Kovitz EQTY FilePoint request raised
+`httpx.ReadTimeout` after 521 cases passed and 19 were classified as external
+skips. Backend, frontend, and Playwright jobs passed; the workflow failed only
+because of this Kovitz matrix case. This same Kovitz timeout was recorded in a prior
+broad matrix and then passed on immediate isolated/full reruns; the current
+local bounded attempt instead hit DNS failure. A test-only network exception
+handler now classifies only Kovitz transport errors as external; it does not
+excuse JSON, identity, date, identifier, or completeness failures. The next
+exact-SHA matrix must validate this, and neither a timeout nor skip is counted
+as a successful Kovitz fetch.
+
 ## Current audit checkpoint — Arin ATTR route and VistaShares CI recheck — 2026-10-05
 
 A bounded direct request to Arin's official ATTR page returned HTTP 200 HTML

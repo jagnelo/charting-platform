@@ -462,6 +462,7 @@ _NON_NETWORK_CONTRACT_TESTS = {
     "test_donoghue_forlines_access_variant_skip_is_scoped_to_dftt",
     "test_vistashares_access_challenge_skip_is_narrow",
     "test_arin_attr_access_challenge_skip_is_narrow",
+    "test_kovitz_transport_outage_skip_does_not_cover_content_errors",
 }
 
 
@@ -735,6 +736,13 @@ def test_arin_attr_access_challenge_skip_is_narrow():
     assert not _is_known_issuer_live_variant("arin", "ATTR", "no parseable holdings rows")
     assert not _is_known_issuer_live_variant("arin", "OTHER", access_challenge)
     assert not _is_known_issuer_live_variant("etf_architect", "QVAL", "no parseable holdings rows")
+
+
+def test_kovitz_transport_outage_skip_does_not_cover_content_errors():
+    assert _is_external_live_access_failure(httpx.ReadTimeout("read timed out"))
+    assert not _is_external_live_access_failure(
+        ValueError("Kovitz EQTY holdings JSON did not include complete positions.")
+    )
 
 
 def test_live_provider_matrix_covers_every_registered_issuer_adapter():
@@ -3410,7 +3418,12 @@ async def test_live_kovitz_filepoint_complete_holdings_json():
     adapter = get_holdings_adapter("kovitz")
     assert adapter is not None
 
-    result = await adapter.fetch_latest(symbol="EQTY")
+    try:
+        result = await adapter.fetch_latest(symbol="EQTY")
+    except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
+        if _is_external_live_access_failure(exc):
+            pytest.skip(f"Kovitz FilePoint EQTY transport was unavailable: {exc}")
+        raise
 
     _assert_live_holdings_result(result, adapter_key="kovitz", min_rows=20)
     assert result.legal_metadata["route_resolution"] == ("kovitz_filepoint_complete_holdings_json")
