@@ -1,5 +1,30 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Browser regression for compound breadth NOT preservation
+
+Added an authenticated assertion to `F8s-breadth` that builds a multi-child
+OR group, changes it to NOT, evaluates it, and verifies the posted tree still
+contains both original predicates under the original OR operator. The pinned
+Playwright 1.62.1 browser flow passed `1/1` against the rebuilt frontend in the
+assigned Compose stack using the frontend container's localhost network
+namespace. Frontend BreadthConditionTreeEditor and MarketMapTool suites passed
+`10/10` and `56/56`; the Docker production build/type-check passed.
+
+The host Chromium launch was denied by the host sandbox (`SIGTRAP`); this was
+not a product failure. The pinned browser-container replay passed. During
+frontend recreation, a direct Compose command omitted the generated
+worktree-specific environment and hit a network active-endpoint conflict; the
+original assigned frontend was restored, then recreated successfully using
+the exact generated runtime environment. The frontend and all existing
+services are healthy, and no database volume, other Compose project, or
+worktree was changed.
+
+These are focused exact-source results only. The full functional and visual
+matrices remain to be rerun at the current product tip; the ten known protected
+screenshot differences remain open. The generic integration receipt is still
+open because Buildx is unavailable, and provider/ETF consumption remains
+deferred until both upstream branches reach staging. Keep the goal active.
+
 ## 2026-10-05 — Preserve compound breadth conditions when selecting NOT
 
 Product commit `8d1d63b7945ad94226ac02e338aac8f4ef447f2a` fixes the advanced

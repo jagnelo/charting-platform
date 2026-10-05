@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-05
 
+## 2026-10-05 — Browser regression for compound breadth NOT preservation
+
+The advanced Market Map breadth editor's compound-condition preservation fix
+now has an authenticated browser assertion in `F8s-breadth`: it builds a
+two-predicate OR group, changes that group to NOT, evaluates the condition,
+and verifies the request still contains the complete OR subtree. This checks
+the real UI-to-request path for product commit
+`8d1d63b7945ad94226ac02e338aac8f4ef447f2a`, beyond the existing component and
+backend evaluator tests.
+
+The relevant frontend unit suites passed `66/66`; the pinned Playwright 1.62.1
+browser flow passed `1/1`; and the Docker production frontend build, including
+Vue type-check, passed. The full functional and visual matrices have not been
+rerun at this product tip. Keep the prior seeded functional result and ten
+protected visual differences as historical evidence, not exact-tip acceptance.
+No visual reference, mask, threshold, skip, or acceptance rule changed.
+
 ## 2026-10-05 — Preserve composite breadth predicates when switching to NOT
 
 Product commit `8d1d63b7945ad94226ac02e338aac8f4ef447f2a` fixes data loss in

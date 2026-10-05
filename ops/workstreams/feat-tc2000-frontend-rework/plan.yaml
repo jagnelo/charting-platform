@@ -20,21 +20,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  At product source 721b0efbea486361fa0632b2f874353ca7802127, the fresh-stack
-  serial functional suite passed 179/182 with three documented skips and zero
-  failures when E2E_SEED_MARKET_DATA=true, matching the repository integration
-  target. The prior 168/182 run used E2E_SEED_MARKET_DATA=false and is preserved
-  as a wrong-profile diagnostic only; all eight failures from that run passed
-  with the correct seed. The exact four-project visual matrix completed 94/104
-  with ten screenshot-only differences across workspace-floating, Study
-  structured-result, and two 1080p Study sandbox-error states. The local
-  screenshots are stale/inconsistent with their present seeded test states and
-  are not exact V25 authority; existing governance does not justify a source,
-  baseline, mask, threshold, or acceptance-policy change. The full
-  make validate-integration receipt remains open; the host's generic Buildx
-  plugin is unavailable, though scoped Compose and pinned browser validation
-  succeeded. Provider-platform and ETF remain outside staging, so R2/R3
-  consumption and shared-path reconciliation wait for coordinator promotion.
+  At product source 8d1d63b7945ad94226ac02e338aac8f4ef447f2a, the focused
+  BreadthConditionTreeEditor and MarketMapTool suites passed 10/10 and 56/56;
+  backend breadth tests previously passed 30/30; the Docker frontend
+  production build/type-check passed; and the pinned authenticated F8s-breadth
+  flow passed 1/1 with a two-child OR-to-NOT request-preservation assertion.
+  The full current-tip functional and four-project visual matrices remain
+  pending. At prior product source 721b0ef, the correctly seeded functional
+  suite passed 179/182 with three documented skips and zero failures; the
+  visual matrix passed 94/104 with ten protected screenshot-only differences.
+  Do not change visual references, masks, thresholds, skips, or acceptance
+  policy absent authoritative V25 evidence or a confirmed source defect. The
+  generic make validate-integration receipt remains open because host Docker
+  Buildx is unavailable, although scoped Compose/browser validation succeeds.
+  Provider-platform and ETF remain outside staging, so R2/R3 consumption and
+  shared-path reconciliation wait for coordinator promotion.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -272,30 +272,26 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_R4_ADVANCED_BREADTH_CONDITION_PRESERVATION
+  current_phase: R1_R4_BREADTH_COMPOUND_NOT_BROWSER_REGRESSION
   next_action: >-
-    Continue the next distinct TC-owned workstation, Study, or Strategy slice;
-    do not repeat the resolved compound-breadth editor fix. The correctly
-    seeded full browser run passed 179/182 with three documented skips and no
-    failures; keep earlier intermittent runs and the false-seed diagnostic as
-    separate evidence. Preserve all ten protected screenshot differences
-    without changing references, masks, thresholds, skips, or acceptance
-    policy. Keep the full make validate-integration receipt open while the
-    host's Buildx plugin is unavailable. Refresh dependency refs periodically;
-    defer R2/R3 consumption and shared-path reconciliation until both upstream
-    branches reach staging. Stop only at ready_for_human_review.
+    Continue a distinct TC-owned workstation, Study, or Strategy slice after
+    the compound-breadth preservation fix and its authenticated browser
+    regression. Do not duplicate the already implemented recursive Python
+    breadth-series contracts; reconcile their stale implementation-gap wording
+    as visual-only in the parity spec. Rerun the exact-tip full functional and
+    four-project visual gates before review, preserving the ten known screenshot
+    differences and all acceptance policy. Keep the generic integration receipt
+    open while host Docker Buildx is unavailable. Refresh dependency refs
+    periodically; defer R2/R3 consumption and shared-path reconciliation until
+    both upstream branches reach staging. Stop only at ready_for_human_review.
   current_blocker: >-
-    At product source 721b0ef, the fresh correctly seeded serial browser suite
-    passed 179/182 with three documented skips and zero failures. The earlier
-    168/182 result used E2E_SEED_MARKET_DATA=false and remains diagnostic only;
-    all eight cases passed under the required true-seed profile. The exact
-    four-project visual matrix is 94/104 with ten protected local-reference
-    differences after state assertions passed; do not change visual oracles or
-    policy absent valid V25 authority or a confirmed source defect. The generic
-    make validate-integration receipt remains open because host Docker Buildx
-    is unavailable, although scoped Compose/browser validation succeeded.
-    Provider and ETF branches remain outside staging, so R2/R3 consumption and
-    shared-path reconciliation are deferred.
+    Exact-tip full functional and visual matrices have not been rerun after
+    product source 8d1d63b. The focused browser regression passes; the ten
+    protected screenshot differences at the prior tip remain open without any
+    acceptance-oracle changes. The generic integration receipt remains open
+    because host Docker Buildx is unavailable. Provider and ETF branches remain
+    outside staging, so R2/R3 consumption and shared-path reconciliation are
+    deferred.
 historical_implementation_records:
   - "Product commit 8d1d63b7945ad94226ac02e338aac8f4ef447f2a fixes data loss in the advanced Market Map breadth editor: switching a multi-child all/any group to not now wraps the complete prior group as the sole NOT child. The regression failed against the prior editor; BreadthConditionTreeEditor and MarketMapTool suites passed 10/10 and 56/56, backend breadth service tests passed 30/30, frontend type-check/build and Ruff format check passed. No provider/ETF behavior, visual styling, or acceptance policy changed."
   - "Exact product-tip pinned validation at be55d1af completed the 174-case functional suite with 172 passed, 2 documented skips, and zero failures. The four-project visual matrix completed all 104 cases: 93 passed, ten protected screenshot differences remain (workspace-floating all four viewports; Study structured-result all four; Study sandbox-error at the two 1080p scales), and one column-editor diagnostic failure from ERR_NETWORK_CHANGED passed unchanged replay 4/4. A separate four-project pinned shell smoke passed 4/4; host-only shell rendering failed glyph pixels with host Arial resolving to Nimbus Sans versus pinned Noble resolving Liberation Sans, consistent with environment/font rendering rather than geometry. Full matrix artifacts: /tmp/tc2000-pinned-visual-full-3t8qbk; functional artifacts: /tmp/tc2000-pinned-functional-full-9Iq2rG. Scoped Docker cleanup left zero resources. No visual acceptance policy changed."

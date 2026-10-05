@@ -1,5 +1,16 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-10-05 — Recursive Python-series conditions are implemented; visual gap remains
+
+Python numeric-series leaves and Python-series-versus-series comparisons are
+implemented within recursive breadth condition trees. The editor exposes both
+leaf types; the API and isolated research runner preserve and evaluate their
+tree parameters; component, backend-runner, and authenticated browser tests
+cover the contracts. Their exact Version 25 geometry remains unrepresented by
+an authoritative reference capture, so retain a visual-only gap until the
+reference board covers those states. Do not label these behaviors as missing
+implementation or infer a screenshot pass.
+
 ## 2026-10-05 — Full four-project matrix at current product source
 
 At product source `721b0efbea486361fa0632b2f874353ca7802127`, the full serial
@@ -670,7 +681,8 @@ current/history output. Rebuilt Chromium interaction coverage passes. The refere
 has no authoritative exact Version 25 capture for this state, so screenshot parity remains an
 explicit board gap; the deterministic browser/component oracle is the interim acceptance track.
 Direct series-to-series/reference targets and Python-series leaves inside recursive visual trees
-remain unrepresented implementation/visual gaps until they are built and board-reviewed.
+are implemented and exercised through the isolated Python breadth and authenticated E2E contracts;
+their exact Version 25 visual composition remains unrepresented and stays a board-review gap.
 
 Status: `Controlling implementation plan`
 

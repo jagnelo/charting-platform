@@ -5494,6 +5494,36 @@ test.describe('TC2000 workstation', () => {
         ],
       },
     })
+    await nestedGroup.getByRole('button', { name: '+ Condition' }).click()
+    await conditionTree.getByRole('combobox', { name: 'Breadth condition type 1.2.2' }).selectOption('rsi')
+    await conditionTree.getByRole('spinbutton', { name: 'Breadth threshold 1.2.2' }).fill('60')
+    await conditionTree.getByRole('spinbutton', { name: 'Breadth threshold 1.2.2' }).press('Tab')
+    await conditionTree.getByRole('combobox', { name: 'Breadth group operator 1.2' }).selectOption('not')
+    const negatedTreeRequest = await evaluateCustomBreadth()
+    expect(negatedTreeRequest?.condition).toMatchObject({
+      kind: 'all',
+      params: {
+        conditions: [
+          expect.objectContaining({ kind: 'percentile', target_scope: 'cross_sectional' }),
+          {
+            kind: 'not',
+            params: {
+              conditions: [
+                {
+                  kind: 'any',
+                  params: {
+                    conditions: [
+                      expect.objectContaining({ kind: 'new_high_low' }),
+                      expect.objectContaining({ kind: 'rsi', params: expect.objectContaining({ threshold: 60 }) }),
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
