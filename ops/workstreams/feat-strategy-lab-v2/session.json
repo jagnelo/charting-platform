@@ -88,6 +88,7 @@
   },
   "dirty_paths": [
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
@@ -125,12 +126,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "84f54140980d1f44d8c1879341a4c55249596911",
-  "implementation_sha": "84f54140980d1f44d8c1879341a4c55249596911",
-  "last_checkpoint": "2026-10-05T10:05:06.883059+00:00",
+  "head": "9cb0957ea972d9c9b6c515f7c13b2d3410bcabc2",
+  "implementation_sha": "9cb0957ea972d9c9b6c515f7c13b2d3410bcabc2",
+  "last_checkpoint": "2026-10-05T10:37:48.980821+00:00",
   "last_human_progress_update": "2026-10-05T09:46:49.358693+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Integrate staged strategy contexts with one persistent isolated Nautilus session, then atomically persist native account/runtime receipts before Redis ACK and qualify exact-image forward event-tape parity.",
+  "next_action": "Implement the isolated persistent Nautilus session and checkpoint-bound resolver, persist native account/runtime output and checkpoint receipts before Redis ACK, and prove deterministic replay recovery.",
   "parent_branch": "staging",
   "plan_hash": "8a3eebadc82909c5652a8f1d964de7830dc37025e25bf159dbb2a1b4a823abb5",
   "planning_required": false,
@@ -147,14 +148,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "No external blocker to package work; concrete Nautilus session/recovery/parity remain code-owned. Docker Buildx limits only final Compose/browser acceptance.",
-    "current_phase": "native-forward-context-recovery",
-    "next_action": "Build a concrete isolated persistent Nautilus process that consumes authenticated forward deliveries and SDK contexts, persists native output/checkpoint receipts before ACK, recovers by durable replay, and then passes exact-image event-tape parity.",
+    "current_blocker": "No external blocker to package-owned implementation. Persistent isolated Nautilus session and durable native state/replay remain code-owned; Docker Buildx is unavailable for the final full_stack_browser profile only.",
+    "current_phase": "persistent-forward-session-runtime",
+    "next_action": "Implement one isolated Nautilus process consuming authenticated forward deliveries and checkpoint-resolved SDK/account contexts; atomically persist native output/checkpoint receipts before ACK and recover by deterministic durable replay. Exact RC5 five-check conformance including event-tape parity now passes.",
     "total": 18,
-    "updated_at": "2026-10-05T09:46:49.358673+00:00"
+    "updated_at": "2026-10-05T10:33:56+00:00"
   },
-  "remote": "84f54140980d1f44d8c1879341a4c55249596911",
-  "remote_sha": "84f54140980d1f44d8c1879341a4c55249596911",
+  "remote": "9cb0957ea972d9c9b6c515f7c13b2d3410bcabc2",
+  "remote_sha": "9cb0957ea972d9c9b6c515f7c13b2d3410bcabc2",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

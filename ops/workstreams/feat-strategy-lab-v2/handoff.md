@@ -10944,3 +10944,57 @@ then run exact-image forward event-tape parity. Stable Nautilus 2.x labeling is
 not a blocker. The default shell was denied Docker API access on this checkpoint,
 so no image-backed or full-stack acceptance claim is added; this is a validation
 constraint, not a blocker to package-owned development.
+
+## 2026-10-05 - Exact RC5 forward event-tape parity
+
+Implementation commit `9cb0957ea972d9c9b6c515f7c13b2d3410bcabc2` is pushed
+to `origin/feat/strategy-lab-v2`; `HEAD` and the remote ref match. The source
+and probe changes are closed as one implementation context.
+
+The exact-pinned Nautilus `2.0.0rc5` runtime image now passes the fifth
+conformance check. The probe starts from the backend's canonical forward tape,
+materializes quote, trade, and OHLCV native data, delivers all three through
+Nautilus `BacktestEngine` callbacks, and compares callback wire records against
+the tape. The saved receipt reports three observed events, zero unexpected
+callbacks, no mismatches, and identical expected/observed wire digests. All
+four local backtest checks also pass. The raw fixture receipt remains
+`authoritative: false`; only the exact-pin-bound complete conformance report is
+authoritative. This qualifies the runtime's five-check conformance, not the
+still-unimplemented persistent forward worker/recovery acceptance.
+
+Exact-image evidence: source digest
+`sha256:48090d00bf5ec045e0d252a8ed72d6bcc91bed0cda8681fec02f262bd0755ebe`,
+image digest
+`sha256:11c3e245dc1da6607493029586b045779f32dd096d6dd9188c15f61c6f70f83b`,
+artifact digest
+`sha256:3ad512668fcc49a9ee049ead3a3f1e45b4b0aefa4b2cd54fdb83514952657550`, and
+conformance fingerprint
+`sha256:4a8f6ecd27af1976408ff8d0fa1176336cf304af078c23cd32ef0c4095b233a9`.
+The artifact is retained in the local operator directory
+`/tmp/strategy-lab-v2-rc-parity-20261005`; it is not a repository product
+artifact.
+
+Validation: the Strategy Lab plus schema-migration suite passed `1,421` tests;
+the one local Unix-socket test denied by the default sandbox passed separately
+with scoped socket permission. Seventy focused runtime/conformance/event-tape
+tests passed; whole-package Ruff, changed-file formatting, focused MyPy for the
+event adapter/runtime/conformance resolver, and `git diff --check` passed.
+
+Next: implement and wire the isolated persistent Nautilus process, authenticate
+checkpoint-specific event/account/runtime state, and persist native output plus
+checkpoint receipts before Redis acknowledgement so crash recovery can replay
+without duplicate decisions. The final `full_stack_browser` profile also still
+requires Docker Buildx (`docker buildx` is currently unavailable); this does
+not block package-owned implementation. Provider/ETF/TC2000 shared-path
+reconciliation remains staged behind those branches reaching `staging`.
+
+Changed paths:
+`backend/app/strategy_lab_v2/nautilus_event_adapter.py`,
+`backend/app/strategy_lab_v2/nautilus_rc_fixture_probe.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime.py`,
+`backend/app/strategy_lab_v2/conformance_fixtures.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime_image/Dockerfile`, and their
+focused tests. Operational checkpoint paths:
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
