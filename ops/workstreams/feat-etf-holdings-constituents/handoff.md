@@ -9319,3 +9319,29 @@ platform reaching staging; this worker will not inspect or mutate that branch or
 integrate. AC14 remains the post-integration/deployment 30-day observation. The
 saved goal is active, not blocked or complete.
 *** End of File
+### Final receipt exact-SHA validation — 2026-10-05
+
+The receipt commit `fc4c25cface5945e88218dc841f02db2ada0fe55` completed
+exact-SHA run `37381884911`. Backend Tests, Frontend Unit Tests,
+Branch-declared Tests, and hosted Playwright all passed. The protected
+Exhaustive Integration Gate was skipped as expected on the feature branch. The
+live matrix reported 529 passed and 17 narrowly classified access skips; the
+Longview EBI case explicitly records its issuer-edge challenge. No live route
+pass is inferred from that skip. This run validates the current clean pushed
+receipt SHA.
+
+A fresh local resource check still does not justify the required local
+`full_stack_browser` gate: six containers belonging to
+`feat-tc2000-frontend-rework`, Stremio, and one newly observed unlabeled
+`musing_driscoll` container are running. Host headroom is approximately 2.2
+GiB available RAM, 10 GiB swap in use, with load 2.09/2.61/2.64. Do not stop,
+restart, or inspect beyond the ownership/read-only inventory boundary for those
+external containers. Retry the local gate only after the unrelated and
+unlabeled workloads exit and a fresh resource check is safe.
+
+The saved goal remains active with ten of fourteen criteria complete. AC7/AC8
+remain open for the local Docker/browser gate and final review checkpoint. AC10
+still awaits the separate provider-platform dependency reaching staging, and
+AC14 is the post-integration/deployment observation. No integration, promotion,
+deployment, or other-worktree change was performed.
+*** End of File
