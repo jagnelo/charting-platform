@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from collections.abc import Mapping
+from dataclasses import fields, is_dataclass, replace
 from datetime import timedelta
+from enum import Enum
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
 from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
+from app.strategy_lab_v2.api_resources import ApiResourceType
+from app.strategy_lab_v2.application import PostgresStrategyLabV2Adapter
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.conformance_fixtures import resolve_nautilus_rc_conformance
 from app.strategy_lab_v2.contracts import AttemptState, ProductClass
@@ -22,6 +27,11 @@ from app.strategy_lab_v2.local_conformance_source import (
 from app.strategy_lab_v2.nautilus_trial_materializer import (
     NautilusTrialMarketContext,
     NautilusTrialRuntimeInputMaterializer,
+)
+from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
+from app.strategy_lab_v2.resource_mutations import (
+    ResourceMutationDecision,
+    ResourceMutationRequest,
 )
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
 from app.strategy_lab_v2.search_dispatch_preparation import (
@@ -46,7 +56,12 @@ from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import (
     _add_second_strategy,
     _build_inputs,
 )
-from app.strategy_lab_v2.trial_hydration import HydratedNautilusTrial
+from app.strategy_lab_v2.tests.test_postgres_storage import FakeSession
+from app.strategy_lab_v2.trial_hydration import (
+    HydratedNautilusTrial,
+    NautilusTrialDomainHydrator,
+    TrialDomainHydrationError,
+)
 from app.strategy_lab_v2.workers import WorkerKind, WorkerPoolState, WorkerProfile
 
 PREPARED_AT = BASE + timedelta(seconds=4)
@@ -211,6 +226,22 @@ def _setup(tmp_path: Path, *, runtime_image_digest: str | None = None):
     return graph, artifact_store, package_resolver, materializer, context, worker_state_reader
 
 
+def _contract_attributes(value: Any) -> Any:
+    """Encode a typed fixture using the API's JSON-compatible domain shape."""
+
+    if is_dataclass(value) and not isinstance(value, type):
+        return {
+            field.name: _contract_attributes(getattr(value, field.name)) for field in fields(value)
+        }
+    if isinstance(value, Mapping):
+        return {key: _contract_attributes(item) for key, item in value.items()}
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, tuple | list | set | frozenset):
+        return [_contract_attributes(item) for item in value]
+    return value
+
+
 def test_authoritative_backtest_context_rejects_runtime_image_drift(tmp_path: Path) -> None:
     with pytest.raises(
         ValueError, match="runtime profile differs from the exact Nautilus release pin"
@@ -271,6 +302,171 @@ async def test_resolver_hydrates_materializes_authorizes_and_composes_search_evi
     assert evidence.trial_runtime_evidence.runtime_request.request_id == (
         observed["request"].runtime_request_id
     )
+
+
+@pytest.mark.asyncio
+async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_request(
+    tmp_path: Path,
+) -> None:
+    values, graph, store = _build_inputs(tmp_path)
+    graph = replace(
+        graph,
+        attempt=transition_attempt(
+            graph.attempt,
+            target=AttemptState.RUNNING,
+            now=BASE + timedelta(seconds=1),
+        ),
+    )
+    package_resolver = StrategyPackageArtifactResolver(store, runtime_abi=RUNTIME_ABI)
+    materializer = NautilusTrialRuntimeInputMaterializer(
+        artifact_store=store,
+        strategy_package_resolver=package_resolver,
+        series_decoder=JsonFrozenSeriesDecoder(),
+    )
+    runtime = _rc_runtime()
+    runtime_profile = RuntimeIsolationProfile(
+        runtime_image_digest=runtime.runtime_image_digest,
+        runtime_abi=RUNTIME_ABI,
+        allowed_dependency_digests=frozenset(
+            dependency.artifact_digest for dependency in graph.strategies[0].dependencies
+        ),
+    )
+    worker_pool = WorkerPoolState(
+        WorkerProfile(
+            "dispatch-preparation-worker",
+            WorkerKind.BACKTEST,
+            runtime_profile.fingerprint,
+        )
+    )
+    lease = ExecutionAttemptLease(
+        graph.attempt.attempt_id,
+        worker_pool.profile.worker_id,
+        "dispatch-preparation-lease",
+        BASE + timedelta(seconds=2),
+        BASE + timedelta(seconds=2),
+        BASE + timedelta(hours=1),
+    )
+    worker_state_reader = _WorkerStateReader(worker_pool, LeaseObservationState(lease))
+    conformance_resolution = resolve_nautilus_rc_conformance(
+        runtime,
+        _rc_probe(runtime),
+        _rc_receipt(runtime),
+        build_digest=content_digest("nautilus-v2-rc5-build"),
+        tested_at=BASE,
+    )
+    context = NautilusTrialPreparationContext.from_authoritative_backtest_conformance(
+        conformance_resolution=conformance_resolution,
+        product_classes=frozenset({ProductClass.EQUITY}),
+        execution_models=frozenset({"bar-close-v1"}),
+        account_models=frozenset({"cash-equity-v1"}),
+        market_context=NautilusTrialMarketContext(values["instruments"], values["venue"]),
+        runtime_profile=runtime_profile,
+        worker_profile=worker_pool.profile,
+        admission_ledger=ExecutionAdmissionLedger(),
+        reservation_id=content_digest("persisted-dispatch-reservation"),
+        lease_id=lease.lease_id,
+        image_name="nautilus-runtime",
+        output_path=tmp_path / "persisted-dispatch-result.json",
+        now=PREPARED_AT,
+    )
+
+    owner = SimpleNamespace(id="persisted-owner")
+    session = FakeSession()
+
+    def session_factory() -> FakeSession:
+        return session
+
+    persistence = PostgresStrategyLabV2Persistence.build(
+        session_factory,
+        clock=lambda: PREPARED_AT,
+    )
+    adapter = PostgresStrategyLabV2Adapter(
+        session_factory,
+        clock=lambda: PREPARED_AT,
+        persistence=persistence,
+    )
+    contracts = (
+        (ApiResourceType.STRATEGY, graph.strategies[0], "strategy-resource"),
+        (
+            ApiResourceType.PACKAGE,
+            graph.packages[graph.strategies[0].fingerprint],
+            "package-resource",
+        ),
+        (ApiResourceType.PORTFOLIO, graph.portfolio, "portfolio-resource"),
+        (ApiResourceType.SNAPSHOT, graph.snapshot, "snapshot-resource"),
+        (ApiResourceType.EXPERIMENT, graph.experiment, "experiment-resource"),
+        (ApiResourceType.TRIAL, graph.trial, graph.trial.trial_id),
+        (ApiResourceType.ATTEMPT, graph.attempt, graph.attempt.attempt_id),
+    )
+    for index, (resource_type, contract, resource_id) in enumerate(contracts):
+        attributes = _contract_attributes(contract)
+        if resource_type is ApiResourceType.ATTEMPT and attributes["updated_at"] is None:
+            attributes.pop("updated_at")
+        attributes["resource_id"] = resource_id
+        response = await adapter.create_resource(
+            principal=owner,
+            request_id=f"persisted-dispatch-{index}",
+            request=ResourceMutationRequest(
+                resource_type,
+                f"persisted-dispatch-key-{index}",
+                {"attributes": attributes},
+                BASE,
+            ),
+        )
+        assert response.resolution.decision is ResourceMutationDecision.ACCEPT
+
+    hydrator = NautilusTrialDomainHydrator(persistence.resources)
+    persisted_graph = await hydrator.hydrate_attempt(
+        principal=owner,
+        attempt_resource_id=graph.attempt.attempt_id,
+    )
+    assert persisted_graph == graph
+    with pytest.raises(TrialDomainHydrationError, match="missing or unavailable"):
+        await hydrator.hydrate_attempt(
+            principal=SimpleNamespace(id="another-owner"),
+            attempt_resource_id=graph.attempt.attempt_id,
+        )
+
+    resolver = NautilusTrialSearchDispatchEvidenceResolver(
+        domain_hydrator=hydrator,
+        runtime_materializer=materializer,
+        strategy_package_resolver=package_resolver,
+        artifact_store=store,
+        worker_state_reader=worker_state_reader,
+        context_resolver=lambda _request, _graph: context,
+    )
+    intent = SearchDispatchIntent(
+        "persisted-dispatch-intent",
+        graph.attempt.attempt_id,
+        "strategy-backtest",
+        PREPARED_AT,
+    )
+    evidence = await resolver(
+        principal=owner,
+        request_id="persisted-worker-request",
+        experiment_fingerprint=graph.experiment.fingerprint,
+        candidate_index=0,
+        attempt_id=graph.attempt.attempt_id,
+        dispatch_intent=intent,
+    )
+
+    worker_request = evidence.worker_request
+    binding = worker_request.runtime_input_artifact.trial_binding
+    assert binding is not None
+    assert binding.attempt_id == graph.attempt.attempt_id
+    assert binding.trial_fingerprint == graph.trial.trial_id
+    assert binding.experiment_fingerprint == graph.experiment.fingerprint
+    assert binding.portfolio_fingerprint == graph.portfolio.fingerprint
+    assert binding.snapshot_fingerprint == graph.snapshot.fingerprint
+    assert (
+        binding.strategy_package_fingerprint == worker_request.runtime_request.package_fingerprint
+    )
+    assert worker_request.authorization.trial_id == graph.trial.trial_id
+    assert worker_request.authorization.attempt_id == graph.attempt.attempt_id
+    assert worker_request.execution_plan.data_snapshot_fingerprint == graph.snapshot.fingerprint
+    assert worker_request.execution_plan.authoritative
+    assert worker_request.execution_plan.execution_scope.value == "backtest_authoritative"
+    assert worker_request.execution_plan.engine_version == "2.0.0rc5"
 
 
 @pytest.mark.asyncio
