@@ -295,7 +295,12 @@ function setGroupKind(kind: GroupKind) {
   const next = cloneNode(node.value)
   next.kind = kind
   const children = conditions.value.length ? conditions.value : [defaultLeaf()]
-  next.params.conditions = kind === 'not' ? [children[0]] : children
+  if (kind === 'not' && children.length > 1) {
+    const previousOperator = node.value.kind === 'any' ? 'any' : 'all'
+    next.params.conditions = [{ kind: previousOperator, params: { conditions: children } }]
+  } else {
+    next.params.conditions = children
+  }
   update(next)
 }
 function setLeafKind(kind: BreadthLeafKind) { update(defaultLeaf(kind)) }

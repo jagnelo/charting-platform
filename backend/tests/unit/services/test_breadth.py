@@ -398,6 +398,37 @@ def test_composite_conditions_and_comparison_fields_are_reusable():
     assert warning is None
 
 
+def test_not_group_preserves_the_semantics_of_its_compound_child():
+    condition = {
+        "kind": "not",
+        "params": {
+            "conditions": [
+                {
+                    "kind": "any",
+                    "params": {
+                        "conditions": [
+                            {
+                                "kind": "comparison",
+                                "params": {"field": "close", "operator": "gte", "threshold": 200},
+                            },
+                            {
+                                "kind": "comparison",
+                                "params": {"field": "return", "operator": "gte", "threshold": 0.01},
+                            },
+                        ]
+                    },
+                }
+            ]
+        },
+    }
+
+    value, metric, warning = evaluate_condition(_bars([100, 102]), condition)
+
+    assert value is False
+    assert metric is not None
+    assert warning is None
+
+
 def test_composite_condition_preserves_nested_exclusion_path():
     value, metric, warning = evaluate_condition(
         _bars([100]),

@@ -31,7 +31,7 @@ describe('BreadthConditionTreeEditor', () => {
     expect(empty.attributes('aria-atomic')).toBe('true')
   })
 
-  it('serializes arbitrary nested groups and keeps NOT to one child', async () => {
+  it('serializes arbitrary nested groups and keeps every predicate when changing to NOT', async () => {
     const wrapper = mount(BreadthConditionTreeEditor, {
       props: {
         modelValue: { kind: 'all', params: { conditions: [leaf()] } },
@@ -46,14 +46,25 @@ describe('BreadthConditionTreeEditor', () => {
     const withGroup = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { params: { conditions: Array<{ kind: string }> } }
     expect(withGroup.params.conditions.at(-1)?.kind).toBe('all')
 
+    const originalConditions = [
+      { kind: 'comparison', params: { field: 'return', operator: 'gte', threshold: 0.05 } },
+      { kind: 'rsi', params: { period: 14, operator: 'gte', threshold: 60 } },
+    ]
     const notWrapper = mount(BreadthConditionTreeEditor, {
       props: {
-        modelValue: { kind: 'not', params: { conditions: [leaf(), leaf()] } },
+        modelValue: { kind: 'any', params: { conditions: originalConditions } },
       },
     })
     await notWrapper.get('[aria-label="Breadth group operator 1"]').setValue('not')
-    const notPayload = notWrapper.emitted('update:modelValue')?.at(-1)?.[0] as { params: { conditions: unknown[] } }
-    expect(notPayload.params.conditions).toHaveLength(1)
+    const notPayload = notWrapper.emitted('update:modelValue')?.at(-1)?.[0] as {
+      kind: string
+      params: { conditions: Array<{ kind: string; params: { conditions?: unknown[] } }> }
+    }
+    expect(notPayload.kind).toBe('not')
+    expect(notPayload.params.conditions).toEqual([
+      { kind: 'any', params: { conditions: originalConditions } },
+    ])
+    expect(notPayload.params.conditions[0].params.conditions).toHaveLength(2)
   })
 
   it('edits leaf parameters without mutating the input object', async () => {
