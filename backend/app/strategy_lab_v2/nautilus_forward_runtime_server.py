@@ -11,7 +11,6 @@ from app.strategy_lab_v2.forward_context import (
     ForwardStrategyContextPreparation,
 )
 from app.strategy_lab_v2.nautilus_forward_delivery import NautilusForwardDeliveryInput
-from app.strategy_lab_v2.nautilus_forward_process import NautilusForwardRuntimeWireCodec
 from app.strategy_lab_v2.nautilus_forward_session import NautilusForwardExecutionResult
 
 ForwardPreparation = ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation
@@ -35,6 +34,37 @@ class NautilusNativeForwardSession(Protocol):
 
 
 NativeForwardSessionFactory = Callable[[str], NautilusNativeForwardSession]
+
+
+class NautilusForwardRuntimeWireCodec(Protocol):
+    """DTO operations needed inside the isolated process, independent of Docker host code."""
+
+    def decode_open_payload(self, payload: Mapping[str, object]) -> str: ...
+
+    def open_result_payload(
+        self, *, instance_id: str, runtime_session_fingerprint: str
+    ) -> Mapping[str, object]: ...
+
+    def decode_execute_payload(
+        self, payload: Mapping[str, object]
+    ) -> tuple[
+        NautilusForwardDeliveryInput,
+        ForwardPreparation,
+    ]: ...
+
+    def execution_result_payload(
+        self, result: NautilusForwardExecutionResult
+    ) -> Mapping[str, object]: ...
+
+    def decode_restore_payload(self, payload: Mapping[str, object]) -> tuple[str, str]: ...
+
+    def restore_result_payload(
+        self, *, instance_id: str, checkpoint_fingerprint: str
+    ) -> Mapping[str, object]: ...
+
+    def decode_close_payload(self, payload: Mapping[str, object]) -> str: ...
+
+    def close_result_payload(self, *, instance_id: str) -> Mapping[str, object]: ...
 
 
 class NautilusForwardRuntimeOperationHandler:
