@@ -9249,3 +9249,38 @@ cannot be met by a single test; this is not a test assertion failure.
 This corrected worktree state is not yet represented by the failed run's SHA.
 Publish a new receipt SHA and require exact-SHA Backend and Branch-declared
 success before closing AC7. Frontend success does not waive those failures.
+### Longview EBI issuer-edge challenge identified — 2026-10-05
+
+Exact-SHA run `37376626091` on `a8aca1e44d8e16fd7745ec0fc055b999ebd47221`
+passed Backend Tests, Frontend Unit Tests, and hosted Playwright. The protected
+Exhaustive Integration Gate was skipped as expected on the feature branch.
+Branch-declared Tests completed 526 passed, 18 classified access skips, and one
+failure: live Longview EBI received an HTTP-success response whose content did
+not contain the verified holdings table. This is distinct from the previously
+fixed workstream-narrative assertion.
+
+A bounded direct request to the same official issuer URL returned a Cloudflare
+`Attention Required!` challenge page. The official first-party rendered fund
+data page currently exposes an EBI holdings table and dated rows. Taken
+together, this evidence is consistent with the CI transport receiving an
+issuer-edge challenge body rather than a genuine source-schema removal; it does
+not demonstrate that this environment can ingest the live rows. The route must
+remain fail-closed.
+
+The Longview adapter now detects the common issuer challenge marker and raises
+an explicit `Longview EBI fund-data page returned an issuer access challenge.`
+error before attempting to parse it as an empty table. The opt-in live-test
+access allowlist accepts only this exact Longview-specific challenge message;
+ordinary missing/malformed Longview tables still fail. Deterministic challenge
+handling and narrow skip tests were added. Verification passed: all 610 tests
+in the ETF adapter unit file, the focused Longview/access-contract selection
+(4/4), Ruff check/format, and a bounded opt-in Longview EBI probe which now
+reports the explicit access-challenge skip. That skip is not a live route pass.
+
+The local full-stack gate remains unsafe at the latest resource recheck:
+six containers labeled for `feat-tc2000-frontend-rework` and Stremio remain
+active; about 3.6 GiB RAM is available, 10 GiB swap is used, and host load is
+2.28/2.88/3.32. No external resources changed. Next, publish the narrow fix and
+run exact-SHA CI again; then retry the Docker/browser gate only after those
+other-worktree containers exit and resource preflight confirms adequate headroom.
+*** End of File

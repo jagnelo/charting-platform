@@ -55324,6 +55324,8 @@ class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError("Longview EBI holdings must use the official fund-data page.")
         response = await self._get_longview_fund_data_page()
         response.raise_for_status()
+        if _looks_like_issuer_access_challenge(response.text):
+            raise ValueError("Longview EBI fund-data page returned an issuer access challenge.")
         rows, composition_date = self._parse_longview_page(response.text)
         if not rows:
             raise ValueError(

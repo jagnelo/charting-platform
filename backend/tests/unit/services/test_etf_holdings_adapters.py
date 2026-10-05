@@ -14777,6 +14777,30 @@ async def test_focus_financial_longview_parses_revised_table_headers(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_focus_financial_longview_reports_cloudflare_access_challenge(monkeypatch):
+    adapter = get_holdings_adapter("focus_financial")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><head><title>Attention Required! | Cloudflare</title></head>"
+                "<body><div id='cf-challenge-running'>Just a moment...</div></body></html>"
+            ),
+            content_type="text/html",
+            url="https://longviewresearchpartners.com/ebi/fund-data/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(
+        ValueError, match="Longview EBI fund-data page returned an issuer access challenge"
+    ):
+        await adapter.fetch_latest(symbol="EBI")
+
+
+@pytest.mark.asyncio
 async def test_focus_financial_longview_retries_requests_timeout(monkeypatch):
     adapter = get_holdings_adapter("focus_financial")
     assert adapter is not None

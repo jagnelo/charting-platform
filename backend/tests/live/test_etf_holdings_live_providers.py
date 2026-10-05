@@ -465,6 +465,7 @@ _NON_NETWORK_CONTRACT_TESTS = {
     "test_kovitz_transport_outage_skip_does_not_cover_content_errors",
     "test_redwood_empty_payload_skip_is_provider_specific",
     "test_live_route_skip_reason_identifies_empty_exception",
+    "test_longview_access_challenge_skip_is_narrow",
 }
 
 
@@ -545,6 +546,11 @@ def _is_external_live_access_failure(exc: Exception) -> bool:
             # instead of rows from the declared export endpoint.
             "donoghue forlines holdings csv did not expose rows",
             "vistashares official product page returned an issuer access challenge",
+            # Longview can return a successful HTTP response containing a
+            # Cloudflare challenge rather than the issuer's holdings table.
+            # Keep this exact route failure external; an ordinary missing or
+            # malformed table still fails the strict live contract.
+            "longview ebi fund-data page returned an issuer access challenge",
         )
     )
 
@@ -600,6 +606,15 @@ def test_vistashares_access_challenge_skip_is_narrow():
     )
     assert not _is_external_live_access_failure(
         ValueError("VistaShares product page did not declare the RTOO holdings form.")
+    )
+
+
+def test_longview_access_challenge_skip_is_narrow():
+    assert _is_external_live_access_failure(
+        ValueError("Longview EBI fund-data page returned an issuer access challenge.")
+    )
+    assert not _is_external_live_access_failure(
+        ValueError("Longview EBI fund-data page did not expose the verified holdings table.")
     )
 
 
