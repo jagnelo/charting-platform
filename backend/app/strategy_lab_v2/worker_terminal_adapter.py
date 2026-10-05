@@ -284,7 +284,13 @@ class PostgresWorkerTerminalAdapter:
                 entry_fingerprint, f"settlement receipt persistence failed: {type(error).__name__}"
             )
 
-        state_resolution = await self._persist_public_state(evidence, terminal)
+        try:
+            state_resolution = await self._persist_public_state(evidence, terminal)
+        except Exception as error:  # pragma: no cover - persistence boundary
+            return _retry(
+                entry_fingerprint,
+                f"public terminal state persistence failed: {type(error).__name__}",
+            )
         if state_resolution is None:
             return _retry(entry_fingerprint, "public terminal state persistence failed")
         persisted_outcome, persisted_progress = state_resolution

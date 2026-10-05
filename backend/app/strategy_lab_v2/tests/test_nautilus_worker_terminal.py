@@ -39,6 +39,7 @@ from app.strategy_lab_v2.engine_execution import (
 from app.strategy_lab_v2.execution import ExecutionAuthorization
 from app.strategy_lab_v2.execution_orchestration import plan_execution_orchestration
 from app.strategy_lab_v2.lease_observations import (
+    LeaseObservation,
     LeaseObservationDecision,
     LeaseObservationState,
     apply_lease_observation,
@@ -77,6 +78,7 @@ from app.strategy_lab_v2.outcomes import (
     OutcomeUpdate,
     apply_outcome_update,
 )
+from app.strategy_lab_v2.postgres_artifact_commit import PostgresArtifactCommitAdapter
 from app.strategy_lab_v2.postgres_commands import ExecutionCommandContext
 from app.strategy_lab_v2.postgres_execution_state import (
     PostgresExecutionStateAdapter,
@@ -1383,22 +1385,150 @@ async def test_successful_worker_result_identity_is_stable_across_terminal_redel
 
 @pytest.mark.asyncio
 async def test_rc5_terminal_writer_composes_postgres_adapters_and_replays_durably(tmp_path):
-    context, lookup, resolver, _publisher = _successful_context_and_lookup(tmp_path, stable=False)
+    context, lookup, _resolver, _publisher, graph = _successful_context_and_lookup(
+        tmp_path,
+        stable=False,
+        with_graph=True,
+    )
     owner_id = lookup.owner_id
     attempt_id = context.request.admission.attempt_id
+    completion_session = ResultCompletionFakeSession()
+    artifact_commits = PostgresArtifactCommitAdapter(lambda: completion_session)
+    artifact_publisher = LocalArtifactPublicationService(
+        LocalArtifactStore(tmp_path / "postgres-backed-artifacts"),
+        artifact_commits,
+    )
+    domain_reader = MemoryDomainReader(
+        {
+            "attempt": graph.attempt,
+            "trial": graph.trial,
+            "experiment": graph.experiment,
+            "portfolio": graph.portfolio,
+            "snapshot": graph.snapshot,
+            "strategies": graph.strategies,
+            "packages": graph.packages,
+        },
+        owner=owner_id,
+    )
+    resolver = create_nautilus_oos_worker_terminal_evidence_resolver(
+        lambda **_kwargs: lookup,
+        artifact_publisher,
+        NautilusTrialDomainHydrator(domain_reader),
+    )
 
     runtime_session = RuntimeExecutionFakeSession()
-    runtime = PostgresRuntimeExecutionAdapter(lambda: runtime_session)
+    execution_session = ExecutionStateFakeSession()
+    worker_session = WorkerStateFakeSession()
+    settlement_session = WorkerSettlementFakeSession()
+    completion_session = ResultCompletionFakeSession()
+    materialization_session = ResultMaterializationFakeSession()
+    metrics_session = MetricsFakeSession()
+    publication_session = ResultPublicationFakeSession()
+    summary_session = ExecutionSummaryFakeSession()
+    initial_execution = lookup.inputs.execution
+    assert initial_execution is not None
+    capacity_release_attempts: list[str] = []
+
+    class FailOnceBeforePublicStatePersistence:
+        def __init__(self, execution_state: PostgresExecutionStateAdapter) -> None:
+            self.execution_state = execution_state
+            self.fail_transition = True
+
+        async def transition(self, **kwargs: Any) -> StateMutationResolution:
+            if self.fail_transition:
+                self.fail_transition = False
+                raise RuntimeError("simulated crash before public state persistence")
+            return await self.execution_state.transition(**kwargs)
+
+    class CrashOnceBeforeCapacityRelease(PostgresWorkerStateAdapter):
+        def __init__(self, *, fail_release: bool) -> None:
+            super().__init__(lambda: worker_session)
+            self.fail_release = fail_release
+            self.release_attempts = 0
+
+        async def release_capacity(
+            self,
+            *,
+            profile: WorkerProfile,
+            reservation_id: str,
+            lease_id: str,
+            observation: LeaseObservation,
+        ) -> WorkerCapacityResolution:
+            self.release_attempts += 1
+            if self.fail_release:
+                capacity_release_attempts.append("interrupted")
+                self.fail_release = False
+                raise RuntimeError("simulated crash before capacity release")
+            capacity_release_attempts.append("delegated")
+            return await super().release_capacity(
+                profile=profile,
+                reservation_id=reservation_id,
+                lease_id=lease_id,
+                observation=observation,
+            )
+
+    def build_terminal_stack(
+        *, fail_public_state: bool = False, fail_capacity_release: bool = False
+    ) -> SimpleNamespace:
+        runtime_adapter = PostgresRuntimeExecutionAdapter(lambda: runtime_session)
+        execution_adapter = PostgresExecutionStateAdapter(lambda: execution_session)
+        execution_writer = (
+            FailOnceBeforePublicStatePersistence(execution_adapter)
+            if fail_public_state
+            else execution_adapter
+        )
+        worker_adapter = CrashOnceBeforeCapacityRelease(fail_release=fail_capacity_release)
+        settlement_adapter = PostgresWorkerSettlementAdapter(lambda: settlement_session)
+        completion_adapter = PostgresResultCompletionAdapter(lambda: completion_session)
+        materialization_adapter = PostgresResultMaterializationAdapter(
+            lambda: materialization_session
+        )
+        metrics_adapter = PostgresMetricsAdapter(lambda: metrics_session)
+        publication_adapter = PostgresResultPublicationAdapter(lambda: publication_session)
+        summary_adapter = PostgresExecutionSummaryAdapter(lambda: summary_session)
+        terminal_adapter = PostgresWorkerTerminalAdapter(
+            resolver,
+            runtime_execution=runtime_adapter,
+            execution_state=cast(Any, execution_writer),
+            execution_summaries=summary_adapter,
+            result_publication=publication_adapter,
+            result_completion=completion_adapter,
+            result_materialization=materialization_adapter,
+            metrics=metrics_adapter,
+            worker_state=worker_adapter,
+            settlements=settlement_adapter,
+        )
+        return SimpleNamespace(
+            runtime=runtime_adapter,
+            execution_state=execution_adapter,
+            execution_state_writer=execution_writer,
+            worker_state=worker_adapter,
+            settlement=settlement_adapter,
+            completion=completion_adapter,
+            materialization=materialization_adapter,
+            metrics=metrics_adapter,
+            publication=publication_adapter,
+            summaries=summary_adapter,
+            terminal_writer=terminal_adapter,
+        )
+
+    stack = build_terminal_stack(fail_public_state=True, fail_capacity_release=True)
+    runtime = stack.runtime
+    execution_state = stack.execution_state
+    worker_state = stack.worker_state
+    settlement = stack.settlement
+    completion = stack.completion
+    materialization = stack.materialization
+    metrics = stack.metrics
+    publication = stack.publication
+    summaries = stack.summaries
+    terminal_writer = stack.terminal_writer
+
     initialized_runtime = await runtime.initialize(
         principal=owner_id,
         state=context.request.runtime_state,
     )
     assert initialized_runtime.decision is RuntimeStateDecision.REGISTERED
-
-    execution_session = ExecutionStateFakeSession()
-    execution_state = PostgresExecutionStateAdapter(lambda: execution_session)
-    initial_execution = lookup.inputs.execution
-    assert initial_execution is not None
     initialized_execution = await execution_state.initialize(
         principal=owner_id,
         outcome=replace(initial_execution.outcome, sequence=0),
@@ -1430,9 +1560,6 @@ async def test_rc5_terminal_writer_composes_postgres_adapters_and_replays_durabl
     assert persisted_running.decision is StateMutationDecision.APPLIED
     assert persisted_running.outcome == initial_execution.outcome
     assert persisted_running.progress == initial_execution.progress
-
-    worker_session = WorkerStateFakeSession()
-    worker_state = PostgresWorkerStateAdapter(lambda: worker_session)
     profile = context.request.worker_pool.profile
     assert (await worker_state.ensure_profile(profile)).pool.profile == profile
     reservation = next(
@@ -1449,37 +1576,122 @@ async def test_rc5_terminal_writer_composes_postgres_adapters_and_replays_durabl
     assert reserved.reservation == reservation
     await worker_state.persist_lease(context.request.lease_state.lease)
 
-    settlement_session = WorkerSettlementFakeSession()
-    settlement = PostgresWorkerSettlementAdapter(lambda: settlement_session)
-    completion_session = ResultCompletionFakeSession()
-    completion = PostgresResultCompletionAdapter(lambda: completion_session)
-    materialization_session = ResultMaterializationFakeSession()
-    materialization = PostgresResultMaterializationAdapter(lambda: materialization_session)
-    metrics_session = MetricsFakeSession()
-    metrics = PostgresMetricsAdapter(lambda: metrics_session)
-    publication_session = ResultPublicationFakeSession()
-    publication = PostgresResultPublicationAdapter(lambda: publication_session)
-    summary_session = ExecutionSummaryFakeSession()
-    summaries = PostgresExecutionSummaryAdapter(lambda: summary_session)
-    terminal_writer = PostgresWorkerTerminalAdapter(
-        resolver,
-        runtime_execution=runtime,
-        execution_state=execution_state,
-        execution_summaries=summaries,
-        result_publication=publication,
-        result_completion=completion,
-        result_materialization=materialization,
-        metrics=metrics,
-        worker_state=worker_state,
-        settlements=settlement,
+    interrupted_state = await terminal_writer.write(context)
+    assert interrupted_state.decision is WorkerHandleDecision.RETRY
+    assert interrupted_state.rejection_reason == (
+        "public terminal state persistence failed: RuntimeError"
     )
+    persisted_settlement = await settlement.load_ledger(principal=owner_id)
+    assert len(persisted_settlement.records) == 1
+    pre_state_runtime = await runtime.load(principal=owner_id, attempt_id=attempt_id)
+    assert pre_state_runtime is not None
+    assert pre_state_runtime.phase.value == "succeeded"
+    pre_state_execution = await execution_state.read_context(
+        principal=owner_id,
+        attempt_id=attempt_id,
+    )
+    assert pre_state_execution == initial_execution
+    assert (
+        await materialization.load_manifest(
+            principal=owner_id,
+            attempt_id=attempt_id,
+        )
+        is None
+    )
+    assert await metrics.load_all_metric_sets(principal=owner_id) == ()
+    assert len((await completion.load_completion_ledger(principal=owner_id)).records) == 0
+    assert len((await artifact_commits.load_ledger()).records) > 0
+    assert (
+        await summaries.load(
+            principal=owner_id,
+            submission_id=lookup.binding.receipt.submission_id,
+            attempt_id=attempt_id,
+        )
+        is None
+    )
+    active_pool = await worker_state.load_pool(profile)
+    assert len(active_pool.active_reservations) == 1
+    active_lease = await worker_state.load_lease(context.request.lease_state.lease.lease_id)
+    assert active_lease is not None and active_lease.lease.released_at is None
 
-    first = await terminal_writer.write(context)
+    # Recreate every PostgreSQL adapter around the same durable SQL-session
+    # state, as a restarted worker process would.
+    stack = build_terminal_stack(fail_capacity_release=True)
+    runtime = stack.runtime
+    execution_state = stack.execution_state
+    worker_state = stack.worker_state
+    settlement = stack.settlement
+    completion = stack.completion
+    materialization = stack.materialization
+    metrics = stack.metrics
+    publication = stack.publication
+    summaries = stack.summaries
+    terminal_writer = stack.terminal_writer
+
+    interrupted_capacity = await terminal_writer.write(context)
+    assert interrupted_capacity.decision is WorkerHandleDecision.RETRY
+    assert interrupted_capacity.rejection_reason == (
+        "terminal settlement persistence failed: RuntimeError"
+    )
+    interrupted_execution = await execution_state.read_context(
+        principal=owner_id,
+        attempt_id=attempt_id,
+    )
+    assert interrupted_execution is not None
+    assert interrupted_execution.outcome.status is OutcomeStatus.SUCCEEDED
+    interrupted_manifest = await materialization.load_manifest(
+        principal=owner_id,
+        attempt_id=attempt_id,
+    )
+    assert interrupted_manifest is not None
+    assert await metrics.load_all_metric_sets(principal=owner_id) == (
+        interrupted_manifest.metric_set,
+    )
+    assert len((await completion.load_completion_ledger(principal=owner_id)).records) == 1
+    interrupted_summary = await summaries.load(
+        principal=owner_id,
+        submission_id=lookup.binding.receipt.submission_id,
+        attempt_id=attempt_id,
+    )
+    assert interrupted_summary is not None
+    assert interrupted_summary.status == "succeeded"
+    active_pool = await worker_state.load_pool(profile)
+    assert len(active_pool.active_reservations) == 1
+    active_lease = await worker_state.load_lease(context.request.lease_state.lease.lease_id)
+    assert active_lease is not None and active_lease.lease.released_at is None
+
+    stack = build_terminal_stack()
+    runtime = stack.runtime
+    execution_state = stack.execution_state
+    worker_state = stack.worker_state
+    settlement = stack.settlement
+    completion = stack.completion
+    materialization = stack.materialization
+    metrics = stack.metrics
+    publication = stack.publication
+    summaries = stack.summaries
+    terminal_writer = stack.terminal_writer
+    recovered = await terminal_writer.write(context)
+
+    # Restart again after commit but before transport acknowledgement; receipt
+    # and all projections must replay from persisted rows without duplication.
+    stack = build_terminal_stack()
+    runtime = stack.runtime
+    execution_state = stack.execution_state
+    worker_state = stack.worker_state
+    settlement = stack.settlement
+    completion = stack.completion
+    materialization = stack.materialization
+    metrics = stack.metrics
+    publication = stack.publication
+    summaries = stack.summaries
+    terminal_writer = stack.terminal_writer
     redelivered = await terminal_writer.write(context)
 
-    assert first.decision is WorkerHandleDecision.COMPLETE
+    assert recovered.decision is WorkerHandleDecision.COMPLETE
     assert redelivered.decision is WorkerHandleDecision.COMPLETE
-    assert redelivered.receipt_digest == first.receipt_digest
+    assert redelivered.receipt_digest == recovered.receipt_digest
+    assert capacity_release_attempts == ["interrupted", "delegated", "delegated"]
     persisted_runtime = await runtime.load(principal=owner_id, attempt_id=attempt_id)
     assert persisted_runtime is not None
     assert persisted_runtime.phase.value == "succeeded"
