@@ -2,19 +2,175 @@
 
 from __future__ import annotations
 
+import inspect
+from collections.abc import Awaitable, Mapping
 from dataclasses import dataclass
+from typing import Protocol
 
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.forward_corrections import CounterfactualReplayPlan
 from app.strategy_lab_v2.forward_worker_handoff import ForwardEventWorkItem
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusForwardDeliveryBinding,
     NautilusForwardEventEnvelope,
+    NautilusForwardEventTape,
+    materialize_nautilus_event,
     materialize_nautilus_forward_event,
+    materialize_nautilus_forward_tape,
 )
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.sdk import MarketEvent
+
+
+@dataclass(frozen=True, slots=True)
+class VerifiedForwardMarketPayload:
+    """Host-resolved canonical and SDK events read from one verified source."""
+
+    canonical_event: CanonicalForwardEvent
+    market_event: MarketEvent
+    verified_source_digest: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.canonical_event, CanonicalForwardEvent):
+            raise TypeError("canonical_event must be a CanonicalForwardEvent")
+        if not isinstance(self.market_event, MarketEvent):
+            raise TypeError("market_event must be a MarketEvent")
+        require_sha256_digest(self.verified_source_digest, field_name="verified_source_digest")
+        if self.verified_source_digest != self.canonical_event.source_digest:
+            raise ValueError("verified source digest does not match canonical event provenance")
+        if self.market_event.event_id != self.canonical_event.event_id:
+            raise ValueError("market event id does not match canonical event")
+        if self.market_event.sequence != self.canonical_event.sequence:
+            raise ValueError("market event sequence does not match canonical event")
+        if self.market_event.event_time != self.canonical_event.event_time:
+            raise ValueError("market event time does not match canonical event")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+ForwardMarketPayloadResolution = (
+    VerifiedForwardMarketPayload | Awaitable[VerifiedForwardMarketPayload]
+)
+
+
+class VerifiedForwardMarketPayloadResolver(Protocol):
+    """Resolve canonical content only after verifying its local source bytes."""
+
+    def __call__(
+        self, *, instance_id: str, event_fingerprint: str
+    ) -> ForwardMarketPayloadResolution: ...
+
+
+@dataclass(frozen=True, slots=True)
+class NautilusForwardDeliveryInput:
+    """One authenticated accepted delivery prepared for a persistent engine."""
+
+    delivery_binding: NautilusForwardDeliveryBinding
+    tape: NautilusForwardEventTape
+    market_event: MarketEvent
+    verified_source_digest: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.delivery_binding, NautilusForwardDeliveryBinding):
+            raise TypeError("delivery_binding must be a NautilusForwardDeliveryBinding")
+        if not isinstance(self.tape, NautilusForwardEventTape):
+            raise TypeError("tape must be a NautilusForwardEventTape")
+        if not isinstance(self.market_event, MarketEvent):
+            raise TypeError("market_event must be a MarketEvent")
+        require_sha256_digest(self.verified_source_digest, field_name="verified_source_digest")
+        if self.delivery_binding.admission_decision != "enqueue":
+            raise ValueError("live Nautilus delivery requires an accepted enqueue decision")
+        if self.tape.instance_id != self.delivery_binding.instance_id:
+            raise ValueError("forward tape instance does not match its delivery binding")
+        if len(self.tape.envelopes) != 1 or self.tape.delivery_bindings != (self.delivery_binding,):
+            raise ValueError("one-event delivery input must contain its exact persisted binding")
+        envelope = self.tape.envelopes[0]
+        if content_digest(envelope.canonical_event) != self.delivery_binding.event_fingerprint:
+            raise ValueError("forward tape event does not match its delivery binding")
+        if envelope.canonical_event.source_digest != self.verified_source_digest:
+            raise ValueError("forward tape source digest does not match verified payload")
+        if envelope.record != materialize_nautilus_event(
+            self.market_event, event_type=envelope.record.event_type
+        ):
+            raise ValueError("forward tape record differs from its resolved market event")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+class NautilusForwardDeliveryCallbackFactory:
+    """Authenticate one Redis delivery and build its exact one-event native input."""
+
+    def __init__(
+        self,
+        payload_resolver: VerifiedForwardMarketPayloadResolver,
+        *,
+        event_type_by_dependency: Mapping[str, str],
+    ) -> None:
+        if not callable(payload_resolver):
+            raise TypeError("payload_resolver must be callable")
+        if not isinstance(event_type_by_dependency, Mapping) or not event_type_by_dependency:
+            raise TypeError("event_type_by_dependency must be a non-empty mapping")
+        event_types: dict[str, str] = {}
+        for dependency_id, event_type in event_type_by_dependency.items():
+            if not isinstance(dependency_id, str) or not dependency_id.strip():
+                raise ValueError("event type dependency ids must be non-empty strings")
+            if not isinstance(event_type, str) or not event_type.strip():
+                raise ValueError("event types must be non-empty strings")
+            event_types[dependency_id] = event_type
+        self._payload_resolver = payload_resolver
+        self._event_type_by_dependency = event_types
+
+    async def __call__(
+        self,
+        entry: RedisStreamEntry,
+        work_item: ForwardEventWorkItem,
+    ) -> NautilusForwardDeliveryInput:
+        binding = materialize_nautilus_forward_delivery_binding(entry, work_item)
+        if binding.admission_decision != "enqueue":
+            raise ValueError("only accepted non-correction dispatches enter the live callback")
+        resolved = self._payload_resolver(
+            instance_id=binding.instance_id,
+            event_fingerprint=binding.event_fingerprint,
+        )
+        payload = await resolved if inspect.isawaitable(resolved) else resolved
+        if not isinstance(payload, VerifiedForwardMarketPayload):
+            raise TypeError("forward market payload resolver returned an invalid payload")
+        if content_digest(payload.canonical_event) != binding.event_fingerprint:
+            raise ValueError("resolved canonical event does not match the accepted dispatch")
+        event_type = self._event_type_by_dependency.get(payload.market_event.dependency_id)
+        if event_type is None:
+            raise ValueError("resolved event dependency has no declared Nautilus event type")
+        tape = materialize_nautilus_forward_tape(
+            binding.instance_id,
+            (payload.canonical_event,),
+            (payload.market_event,),
+            event_type_by_dependency={payload.market_event.dependency_id: event_type},
+            delivery_bindings=(binding,),
+        )
+        return NautilusForwardDeliveryInput(
+            binding,
+            tape,
+            payload.market_event,
+            payload.verified_source_digest,
+        )
+
+
+def create_nautilus_forward_delivery_callback_factory(
+    payload_resolver: VerifiedForwardMarketPayloadResolver,
+    *,
+    event_type_by_dependency: Mapping[str, str],
+) -> NautilusForwardDeliveryCallbackFactory:
+    """Compose the host-owned event resolver with authenticated delivery checks."""
+
+    return NautilusForwardDeliveryCallbackFactory(
+        payload_resolver,
+        event_type_by_dependency=event_type_by_dependency,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -147,7 +303,12 @@ def materialize_nautilus_forward_correction_replay(
 
 
 __all__ = [
+    "NautilusForwardDeliveryCallbackFactory",
+    "NautilusForwardDeliveryInput",
     "NautilusForwardCorrectionReplayInput",
+    "VerifiedForwardMarketPayload",
+    "VerifiedForwardMarketPayloadResolver",
+    "create_nautilus_forward_delivery_callback_factory",
     "materialize_nautilus_forward_correction_replay",
     "materialize_nautilus_forward_delivery_binding",
 ]

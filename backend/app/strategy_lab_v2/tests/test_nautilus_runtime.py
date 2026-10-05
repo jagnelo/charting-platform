@@ -64,6 +64,20 @@ def _native_fill_report(instrument_count: int = 1) -> dict[str, Any]:
     }
 
 
+def _forward_streaming_session() -> dict[str, Any]:
+    run = {
+        "account_total": "100000.00",
+        "authoritative": False,
+        "batch_count": 2,
+        "batch_event_counts": [1, 1],
+        "fill_count": 1,
+        "order_count": 1,
+        "position_count": 1,
+        "strategy_submitted_instrument_count": 1,
+    }
+    return {"equal": True, "first": run, "second": dict(run)}
+
+
 def _fixture_payload() -> dict[str, Any]:
     native_order_run = _native_fill_report()
     native_order_run["target_allocation_probe"] = {
@@ -133,6 +147,7 @@ def _fixture_payload() -> dict[str, Any]:
         "deterministic_replay": {"equal": True},
         "engine_lifecycle": "passed",
         "forward_event_tape_parity": "deferred_authoritative_fixture",
+        "forward_streaming_session": _forward_streaming_session(),
         "multi_instrument_accounting": _native_fill_report(2),
         "native_order_fill_cost": native_order_run,
         "portfolio_rebalance_schedule": {
@@ -310,6 +325,16 @@ def test_real_rc_fixture_receipt_preserves_deferred_forward_parity() -> None:
     assert receipt.compatible
     assert receipt.authoritative is False
     assert receipt.deferred_checks == frozenset({ConformanceCheck.FORWARD_EVENT_TAPE_PARITY})
+
+
+def test_real_rc_fixture_receipt_requires_deterministic_streaming_state() -> None:
+    runtime = _runtime()
+    payload = _fixture_payload()
+    payload["forward_streaming_session"]["first"]["strategy_submitted_instrument_count"] = 2
+    payload["forward_streaming_session"]["second"]["strategy_submitted_instrument_count"] = 2
+
+    with pytest.raises(ValueError, match="did not preserve native state"):
+        NautilusRcFixtureReceipt.from_mapping(payload, runtime)
 
 
 @pytest.mark.parametrize(

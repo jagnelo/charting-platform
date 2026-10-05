@@ -330,6 +330,40 @@ def _require_native_signed_fee_reconciliation(value: Any) -> None:
         raise ValueError("native signed fee effects do not reconcile to gross/net account P&L")
 
 
+def _require_forward_streaming_session(value: Any) -> None:
+    if not isinstance(value, Mapping) or set(value) != {"equal", "first", "second"}:
+        raise ValueError("forward streaming session evidence fields are invalid")
+    first = value["first"]
+    second = value["second"]
+    if value["equal"] is not True or first != second:
+        raise ValueError("forward streaming session replay was not deterministic")
+    expected_fields = {
+        "account_total",
+        "authoritative",
+        "batch_count",
+        "batch_event_counts",
+        "fill_count",
+        "order_count",
+        "position_count",
+        "strategy_submitted_instrument_count",
+    }
+    for run in (first, second):
+        if not isinstance(run, Mapping) or set(run) != expected_fields:
+            raise ValueError("forward streaming run fields are invalid")
+        account_total = _decimal(run["account_total"], "forward stream account total")
+        if (
+            run["authoritative"] is not False
+            or run["batch_count"] != 2
+            or run["batch_event_counts"] != [1, 1]
+            or run["fill_count"] != 1
+            or run["order_count"] != 1
+            or run["position_count"] != 1
+            or run["strategy_submitted_instrument_count"] != 1
+            or account_total <= 0
+        ):
+            raise ValueError("forward streaming batches did not preserve native state")
+
+
 def _require_rebalance_schedule_probe(value: Any) -> None:
     cases = {
         "session_open",
@@ -631,6 +665,7 @@ class NautilusRcFixtureReceipt:
             "deterministic_replay",
             "engine_lifecycle",
             "forward_event_tape_parity",
+            "forward_streaming_session",
             "multi_instrument_accounting",
             "native_component_pnl_attribution",
             "native_order_fill_cost",
@@ -656,6 +691,7 @@ class NautilusRcFixtureReceipt:
         _require_raw_order_risk_probe(native.get("raw_order_risk_probe"))
         _require_native_component_pnl_probe(payload["native_component_pnl_attribution"])
         _require_native_signed_fee_reconciliation(payload["native_signed_fee_reconciliation"])
+        _require_forward_streaming_session(payload["forward_streaming_session"])
         _require_rebalance_schedule_probe(payload["portfolio_rebalance_schedule"])
         if multi["instrument_count"] < 2 or native["instrument_count"] != 1:
             raise ValueError("single- and multi-instrument fixtures must be distinct")

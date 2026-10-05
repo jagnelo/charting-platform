@@ -10723,3 +10723,81 @@ before acknowledging Redis. Provider-owned event-source contracts remain
 staging-gated; no other worktree was changed. Stable release labeling remains
 unnecessary after exact scope-specific conformance. Preserve this feature
 worktree boundary and stop at `ready_for_human_review`.
+
+## 2026-10-05 - Exact-RC5 persistent streaming-session probe
+
+The isolated Nautilus RC5 fixture now exercises one `BacktestEngine` and one
+strategy across two separately supplied one-event batches. It verifies that
+the strategy's one-time order decision, native fill/order/position, and account
+balance persist across batches, then repeats the run and compares the complete
+receipt for deterministic replay. The fixture receipt parser now requires this
+session evidence, and runtime/conformance/execution tests reject malformed or
+non-deterministic session evidence.
+
+The exact-source RC5 runtime evidence build passed. Source digest
+`sha256:9ba80f59e1f97068b36ce1a221d7c81ad69ab46da6d4c9c20ffeea172e842a0d`,
+runtime image digest
+`sha256:66ef26b286726e1678c93ad9dd05b1bb73cf586bf5fa98c95ef3b8a2d083a793`,
+artifact digest
+`sha256:a91516431474174e8e463db08bd70a9569935edd0a9d4b22d8f1d75e3e9cecfa`,
+and four-check backtest conformance fingerprint
+`sha256:d60605714317efec12ea3f80e07cdd1dcf1660fa6b13424be26aa3b8f598d537`.
+The streaming session is deterministic and reports two batches, one fill,
+order, and position, and a final account balance of `98897.79 USD`. This is
+engine substrate evidence only: the fixture remains non-authoritative and
+forward event-tape parity remains deferred.
+
+Validation on the current worktree: the focused conformance/execution/runtime
+set passed 66 tests; the complete Strategy Lab plus schema-migration suite
+passed 1,395 tests, with its existing Unix-domain-socket test passing
+separately under narrowly scoped local-socket permission (1,396 total); Ruff
+check/format, targeted MyPy for `nautilus_runtime.py`, and `git diff --check`
+passed. The remaining code-owned task is still the concrete forward callback
+factory and long-lived runtime that consumes persisted accepted deliveries and
+persists outputs before Redis acknowledgement. Stable Nautilus 2.x remains no
+gate; the exact RC5 build qualifies only for the conformance scopes actually
+verified, with no broker or real-capital use.
+
+Changed code paths for this checkpoint:
+`backend/app/strategy_lab_v2/nautilus_rc_fixture_probe.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime.py`,
+`backend/app/strategy_lab_v2/tests/test_conformance_fixtures.py`,
+`backend/app/strategy_lab_v2/tests/test_engine_execution.py`, and
+`backend/app/strategy_lab_v2/tests/test_nautilus_runtime.py`. The next step is
+to carry this verified streaming behavior into the authenticated forward-
+delivery callback and isolated runtime path.
+
+## 2026-10-05 - Authenticated Nautilus forward-delivery input factory
+
+Added a host-owned callback factory that revalidates Redis entry identity
+against the durable forward dispatch, resolves one source-verified canonical
+event/SDK `MarketEvent` pair, and materializes an exact one-event Nautilus tape
+carrying the persisted checkpoint, warm-up, admission, and dispatch identities.
+The returned immutable input also retains the SDK event needed to build the
+strategy callback context. Buffered and correction dispatches are rejected
+before source resolution; corrections remain on their separately typed replay
+path. The event-source resolver is an explicit local adapter seam, not a second
+provider integration or a Nautilus import in the general worker.
+
+The focused forward-delivery, Nautilus event-adapter, and PostgreSQL dispatch
+suite passed 28 tests. The complete Strategy Lab and schema-migration suite
+passed 1,400 tests; its one temporary Unix-domain-socket test passed separately
+with scoped socket permission (1,401 total). Ruff, formatting, targeted MyPy
+for `nautilus_forward_delivery.py` and `nautilus_runtime.py`, `git diff
+--check`, and the branch workstream validator passed. This establishes a typed
+dispatch-to-input boundary, not the persistent engine session, durable
+account/runtime commit protocol, or fifth forward parity check. No stable
+release label is required; the exact RC5 build remains limited to verified
+offline scopes.
+
+Changed paths in the current implementation slice:
+`backend/app/strategy_lab_v2/nautilus_forward_delivery.py`,
+`backend/app/strategy_lab_v2/tests/test_nautilus_forward_delivery.py`,
+`backend/app/strategy_lab_v2/nautilus_rc_fixture_probe.py`,
+`backend/app/strategy_lab_v2/nautilus_runtime.py`,
+`backend/app/strategy_lab_v2/tests/test_conformance_fixtures.py`,
+`backend/app/strategy_lab_v2/tests/test_engine_execution.py`, and
+`backend/app/strategy_lab_v2/tests/test_nautilus_runtime.py`. Next, connect
+these authenticated inputs to the long-lived engine/trader, strategy callback
+context, persistence, and acknowledgement/recovery boundary; then qualify
+forward event-tape parity on the exact runtime image.

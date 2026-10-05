@@ -125,7 +125,7 @@
   "head": "e2a7a139635c6cca271d2dbc2c2e81dec188a968",
   "implementation_sha": "e2a7a139635c6cca271d2dbc2c2e81dec188a968",
   "last_checkpoint": "2026-10-05T08:14:10+00:00",
-  "last_human_progress_update": "2026-10-05T08:14:10+00:00",
+  "last_human_progress_update": "2026-10-05T08:50:18.019725+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Wire a concrete local forward callback factory that consumes only accepted, content-verified dispatches and rehydrates their canonical market payloads, then invokes the isolated Nautilus runtime using the pinned strategy/data identities. Persist invocation/account outputs before Redis acknowledgement. Keep corrections on the separate counterfactual path and preserve one Nautilus node per process. Consume provider-owned source contracts only after staging; no stable release label is required after scope-specific conformance.",
   "parent_branch": "staging",
@@ -144,11 +144,11 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "No external dependency blocks package-owned implementation. Durable dispatch checkpoint, warm-up, admission, Redis-entry, and correction-replay identities are now bound to native forward input. The concrete local callback factory and isolated long-lived Nautilus forward runtime remain code-owned work. Docker Buildx limits final Compose/browser acceptance only; shared provider, ETF, and TC2000 integration is staging-gated; options remain fail-closed pending canonical Greeks/delta and settlement evidence.",
-    "current_phase": "native-forward-delivery-context",
-    "next_action": "Wire a concrete local forward callback factory that consumes only accepted, content-verified dispatches and rehydrates their canonical market payloads, then invokes the isolated Nautilus runtime using the pinned strategy/data identities. Persist invocation/account outputs before Redis acknowledgement. Keep corrections on the separate counterfactual path and preserve one Nautilus node per process. Consume provider-owned source contracts only after staging; no stable release label is required after scope-specific conformance.",
+    "current_blocker": "No external dependency blocks this package-owned work. The native session and forward parity are code-owned; Docker Buildx limits only final Compose/browser acceptance, while provider ETF and TC2000 gates apply only to shared-path integration.",
+    "current_phase": "native-forward-delivery-input",
+    "next_action": "Implement the persistent isolated Nautilus session for authenticated one-event inputs, bind callback outputs to checkpoints, persist account and runtime receipts before Redis acknowledgement, and qualify forward event-tape parity",
     "total": 18,
-    "updated_at": "2026-10-05T08:14:10+00:00"
+    "updated_at": "2026-10-05T08:50:18.019704+00:00"
   },
   "remote": "e2a7a139635c6cca271d2dbc2c2e81dec188a968",
   "remote_sha": "e2a7a139635c6cca271d2dbc2c2e81dec188a968",

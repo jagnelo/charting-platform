@@ -167,6 +167,61 @@ def _run(instruments: tuple[Any, ...]) -> dict[str, Any]:
         engine.dispose()
 
 
+def _run_forward_streaming(instrument: Any) -> dict[str, Any]:
+    """Exercise one persistent engine/strategy across newly supplied batches."""
+
+    engine = BacktestEngine(
+        BacktestEngineConfig(logging=LoggerConfig(bypass_logging=True), bypass_logging=True)
+    )
+    usd = Currency.from_str("USD")
+    strategy = _BuyOnceStrategy(_FixtureConfig((instrument.id,)))
+    try:
+        engine.add_venue(
+            Venue("SIM"),
+            OmsType.NETTING,
+            AccountType.CASH,
+            [Money(100000, usd)],
+            fill_model=OneTickSlippageFillModel(),
+            fee_model=FixedFeeModel(Money(2, usd)),
+        )
+        engine.add_instrument(instrument)
+        engine.add_strategy(strategy)
+        quotes = _quotes(instrument.id)
+        batch_event_counts: list[int] = []
+        for quote in quotes:
+            engine.add_data([quote], sort=True)
+            engine.run(streaming=True)
+            engine.clear_data()
+            batch_event_counts.append(1)
+        engine.end()
+
+        result = engine.get_result()
+        fills = engine.generate_fills_report().to_dict(orient="records")
+        orders = engine.generate_orders_report().to_dict(orient="records")
+        positions = engine.generate_positions_report().to_dict(orient="records")
+        return {
+            "batch_count": len(batch_event_counts),
+            "batch_event_counts": batch_event_counts,
+            "fill_count": len(fills),
+            "order_count": len(orders),
+            "position_count": len(positions),
+            "strategy_submitted_instrument_count": len(strategy._submitted),
+            "account_total": str(result.summary["account.SIM.balance.USD.total"]),
+            "authoritative": False,
+        }
+    finally:
+        engine.dispose()
+
+
+def run_forward_streaming_fixture() -> dict[str, Any]:
+    """Prove streamed batches retain native engine, account, and strategy state."""
+
+    instrument = TestInstrumentProvider.audusd_sim()
+    first = _run_forward_streaming(instrument)
+    second = _run_forward_streaming(instrument)
+    return {"first": first, "second": second, "equal": first == second}
+
+
 def run_fixture_suite() -> dict[str, Any]:
     """Run real deterministic engine paths and return JSON-safe evidence."""
 
@@ -180,6 +235,7 @@ def run_fixture_suite() -> dict[str, Any]:
     component_pnl_result = run_native_component_cycle_pnl_probe()
     signed_fee_result = run_native_signed_fee_reconciliation_probe()
     rebalance_schedule_result = run_rebalance_schedule_probe()
+    forward_streaming_result = run_forward_streaming_fixture()
     native_order_fill_cost = {
         **first,
         "raw_order_risk_probe": raw_order_result,
@@ -198,6 +254,7 @@ def run_fixture_suite() -> dict[str, Any]:
             "equal": first == second,
         },
         "forward_event_tape_parity": "deferred_authoritative_fixture",
+        "forward_streaming_session": forward_streaming_result,
         "authoritative": False,
     }
 
@@ -213,4 +270,4 @@ if __name__ == "__main__":  # pragma: no cover - image entrypoint
     raise SystemExit(main())
 
 
-__all__ = ["main", "run_fixture_suite"]
+__all__ = ["main", "run_fixture_suite", "run_forward_streaming_fixture"]

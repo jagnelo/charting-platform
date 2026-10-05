@@ -840,7 +840,7 @@ progress:
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
     - strategy-lab-v2-forward-lifecycle-idempotency-v1
   total: 18
-  current_phase: native-forward-delivery-context
+  current_phase: native-forward-delivery-input
   current_blocker: >-
     No external dependency blocks package-owned implementation. The exact RC5
     source/image built from this worktree passed the four backtest conformance
@@ -849,17 +849,21 @@ progress:
     Forward-shadow authority still requires event-tape parity. Forward dispatches
     now persist admission checkpoint, warm-up receipt, and disposition identity;
     the v2 native tape requires accepted Redis/dispatch bindings and isolates
-    correction replay inputs. A production native callback factory and runtime
-    are still not wired. Full Compose/browser acceptance remains environment-limited by unavailable
-    Docker Buildx. Shared provider, ETF, and TC2000 contracts gate only their
-    eventual shared-path integration; options admission remains fail-closed
-    pending canonical Greeks/delta and settlement evidence.
+    correction replay inputs. A host callback factory now authenticates one
+    accepted Redis/PostgreSQL dispatch and its verified market payload into a
+    single-event Nautilus input; correction and buffered events remain excluded.
+    The stateful exact-pinned Nautilus session, SDK context assembly, and
+    durable output-before-ack path remain code-owned work. Full Compose/browser
+    acceptance remains environment-limited by unavailable Docker Buildx. Shared
+    provider, ETF, and TC2000 contracts gate only their eventual shared-path
+    integration; options admission remains fail-closed pending canonical
+    Greeks/delta and settlement evidence.
   next_action: >-
-    Wire a concrete local forward callback factory that consumes only accepted,
-    content-verified dispatches and rehydrates their canonical market payloads,
-    then invokes the isolated Nautilus runtime using the pinned strategy/data
-    identities. Persist invocation/account outputs before Redis acknowledgement.
-    Keep corrections on the separate counterfactual path and preserve one
-    Nautilus node per process. Consume provider-owned source contracts only
-    after staging; no stable release label is required after scope-specific
-    conformance.
+    Implement the long-lived isolated Nautilus session that consumes sequential
+    authenticated one-event inputs on one BacktestEngine/trader instance,
+    constructs strategy contexts from declared frozen dependencies, and binds
+    native invocation/account outputs to the pre-event checkpoint and accepted
+    delivery before Redis acknowledgement. Preserve replay/recovery semantics,
+    keep corrections on the counterfactual path, and qualify event-tape parity
+    against the exact runtime image. Consume provider-owned source contracts
+    only after staging; stable release labeling is not a gate.
