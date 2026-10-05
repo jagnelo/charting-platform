@@ -10486,3 +10486,32 @@ and live multi-replica/full-stack acceptance.
 Next action: continue the branch-owned domain mutation and versioned metric gaps,
 then close forward event-tape parity. Keep the final Compose/browser profile
 visible as an acceptance gate, not as a reason to pause package implementation.
+
+## 2026-10-05 - Typed metric and forward resources on PostgreSQL
+
+Commit `5ad6de181472b0b57b1e7c56c767727f7ae3bea0` extends the real PostgreSQL
+search-dispatch/RPC integration beyond the core strategy graph. The production
+resource adapter now creates a typed `MetricSet` tied to the persisted trial and
+attempt, and a typed `ForwardInstance` tied to the persisted portfolio and
+warm-up snapshot. The test rehydrates both contracts from the owner-scoped
+PostgreSQL resource reader, verifies exact idempotent replay returns the original
+receipt, and confirms a different owner cannot read either record.
+
+Validation at this source commit: all four Strategy Lab integration tests passed
+against disposable local PostgreSQL/Redis services after the extension; Ruff,
+formatting, and `git diff --check` passed. Scoped resource cleanup left no
+containers, volumes, or Testcontainers sessions and removed no images. This
+adds durable typed resource proof only; it does not claim forward event replay,
+event-tape parity, live scaled Compose, or browser acceptance.
+
+Stable Nautilus 2.x remains unnecessary for the backtest scope. The exact RC5
+pin qualifies after four checks; forward shadow separately requires event-tape
+parity, and prereleases cannot connect to brokers or control real capital. No
+external dependency blocks further package work. Docker Buildx still limits the
+final Compose/browser validation profile, but focused PostgreSQL/Redis tests run
+with scoped Docker access.
+
+Next: continue the AC-DOMAIN/AC-API lifecycle audit and any remaining versioned
+metric gaps, then implement forward-shadow event-tape parity. Keep full
+Compose/browser runtime acceptance open without making it a package-development
+gate.

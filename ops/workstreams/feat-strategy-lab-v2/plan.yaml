@@ -837,7 +837,7 @@ progress:
     - nautilus-oos-session-close-intervals-v1
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
   total: 18
-  current_phase: strategy-lab-v2-worker-fleet-local-integration-v1
+  current_phase: strategy-lab-v2-domain-resource-postgres-integration-v1
   current_blocker: >-
     No external Nautilus release or upstream event blocks package-owned
     implementation. Exact-pinned Nautilus 2.0.0rc5 has the four backtest checks;
@@ -848,31 +848,34 @@ progress:
     dispatch slice passes 40 tests; the full Strategy Lab and schema-migration
     suite passes 1,379, with its single Unix-socket RPC test passing separately
     under scoped local access. Ruff, format, focused MyPy, and diff checks pass.
-    Scoped local PostgreSQL/Redis integration now passes 4/4: two concurrent
+    Scoped local PostgreSQL/Redis integration passes 4/4: two concurrent
     reservations on one serial PostgreSQL worker profile produce exactly one
-    winner; PostgreSQL recovery and the persisted search-dispatch/RPC path pass;
-    a second real Redis consumer reclaims an abandoned message and acknowledges
-    only after completion. Ruff, formatting, and diff checks pass, and scoped
-    cleanup leaves no worktree containers or test sessions. This is service-level
-    integration evidence, not proof of live Compose replica/browser acceptance.
-    No external dependency blocks package-owned implementation. Full
-    Compose/browser validation remains environment-limited by the absent Docker
-    Buildx plugin; scoped socket access is available for focused local tests.
-    Stable Nautilus labeling is not a gate. Remaining product work includes
-    broader domain-backed mutations, metrics, and forward-shadow event-tape
-    parity. Provider, ETF, and TC2000 contracts are staging-gated only if an
-    owned change overlaps their paths. Options order admission remains fail-closed
-    pending canonical event-time Greeks/delta and settlement evidence.
+    winner; PostgreSQL recovery and persisted search-dispatch/RPC pass; a second
+    real Redis consumer reclaims an abandoned message and acknowledges only
+    after completion. The PostgreSQL RPC path also creates, exactly replays,
+    owner-isolates, and rehydrates typed MetricSet and ForwardInstance records.
+    Ruff, formatting, diff checks, and scoped resource cleanup pass. This is
+    focused service-level evidence, not proof of live Compose replica/browser
+    acceptance or forward event processing. No external dependency blocks
+    package-owned implementation. Full Compose/browser validation remains
+    environment-limited by absent Docker Buildx; scoped socket access is
+    available for focused local tests. Stable Nautilus labeling is not a gate.
+    Remaining product work includes broader domain/API lifecycle coverage,
+    metrics, and forward-shadow event-tape parity. Provider, ETF, and TC2000
+    contracts are staging-gated only if an owned change overlaps their paths.
+    Options order admission remains fail-closed pending canonical event-time
+    Greeks/delta and settlement evidence.
   next_action: >-
-    Continue with domain-backed mutation completeness and remaining versioned
-    metrics, then implement and validate forward-shadow event-tape parity. The
-    PostgreSQL capacity-arbiter race, real Redis abandoned-entry reclaim, and
-    focused PostgreSQL recovery/RPC integration now pass, while actual scaled
-    Compose/browser runtime acceptance remains open. Exact-pinned RC5 remains
-    eligible for authoritative local backtests after four checks; stable
-    labeling is not a gate. Forward shadow needs all five checks; prereleases
-    cannot connect to brokers or control real capital. Keep options fail-closed
-    pending canonical event-time Greeks/delta and settlement evidence. Consume
-    shared provider/ETF/TC2000 contracts only after their approved work reaches
-    staging. Docker Buildx is absent and limits the final Compose/browser profile,
-    not package-owned implementation.
+    Continue the AC-DOMAIN/AC-API lifecycle audit and close remaining result
+    metric gaps, then implement and validate forward-shadow event-tape parity.
+    The PostgreSQL capacity-arbiter race, typed MetricSet/ForwardInstance
+    persistence/replay, real Redis abandoned-entry reclaim, and focused
+    PostgreSQL recovery/RPC integration pass; actual scaled Compose/browser
+    runtime acceptance remains open. Exact-pinned RC5 remains eligible for
+    authoritative local backtests after four checks; stable labeling is not a
+    gate. Forward shadow needs all five checks; prereleases cannot connect to
+    brokers or control real capital. Keep options fail-closed pending canonical
+    event-time Greeks/delta and settlement evidence. Consume shared provider,
+    ETF, and TC2000 contracts only after their approved work reaches staging.
+    Docker Buildx is absent and limits the final Compose/browser profile, not
+    package-owned implementation.
