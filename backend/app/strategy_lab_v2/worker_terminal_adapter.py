@@ -374,6 +374,11 @@ class PostgresWorkerTerminalAdapter:
                 entry_fingerprint,
                 capacity.rejection_reason or "worker capacity release was rejected",
             )
+        # PostgreSQL's summary adapter returns a registration/replay envelope,
+        # while simpler host adapters may return the immutable summary itself.
+        # The storage decision is operational metadata and must not change the
+        # worker acknowledgement receipt when the same terminal entry replays.
+        summary_record = getattr(summary, "summary", summary)
         receipt_digest = _digest(
             entry_fingerprint,
             terminal.outcome,
@@ -381,7 +386,7 @@ class PostgresWorkerTerminalAdapter:
             runtime.state,
             settlement.record,
             settlement.observation,
-            summary,
+            summary_record,
             capacity.pool,
             capacity.lease_state,
             completion.record if completion is not None else None,

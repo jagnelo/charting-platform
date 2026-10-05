@@ -71,13 +71,27 @@ from app.strategy_lab_v2.nautilus_trial_materializer import (
 from app.strategy_lab_v2.nautilus_worker_terminal import (
     create_nautilus_oos_worker_terminal_evidence_resolver,
 )
-from app.strategy_lab_v2.outcomes import ExecutionOutcome, OutcomeStatus, apply_outcome_update
+from app.strategy_lab_v2.outcomes import (
+    ExecutionOutcome,
+    OutcomeStatus,
+    OutcomeUpdate,
+    apply_outcome_update,
+)
 from app.strategy_lab_v2.postgres_commands import ExecutionCommandContext
 from app.strategy_lab_v2.postgres_execution_state import (
+    PostgresExecutionStateAdapter,
     StateMutationDecision,
     StateMutationResolution,
 )
+from app.strategy_lab_v2.postgres_execution_summary import PostgresExecutionSummaryAdapter
+from app.strategy_lab_v2.postgres_metrics import PostgresMetricsAdapter
+from app.strategy_lab_v2.postgres_result_completion import PostgresResultCompletionAdapter
+from app.strategy_lab_v2.postgres_result_materialization import (
+    PostgresResultMaterializationAdapter,
+)
+from app.strategy_lab_v2.postgres_result_publication import PostgresResultPublicationAdapter
 from app.strategy_lab_v2.postgres_runtime_execution import (
+    PostgresRuntimeExecutionAdapter,
     RuntimeStateDecision,
     RuntimeStateResolution,
 )
@@ -86,11 +100,17 @@ from app.strategy_lab_v2.postgres_search_dispatch import (
     SearchDispatchRecord,
 )
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
+from app.strategy_lab_v2.postgres_worker_settlement import PostgresWorkerSettlementAdapter
 from app.strategy_lab_v2.postgres_worker_state import (
+    PostgresWorkerStateAdapter,
     WorkerCapacityDecision,
     WorkerCapacityResolution,
 )
-from app.strategy_lab_v2.progress import ExecutionProgressState, ProgressPhase
+from app.strategy_lab_v2.progress import (
+    ExecutionProgressState,
+    ExecutionProgressUpdate,
+    ProgressPhase,
+)
 from app.strategy_lab_v2.progress_checkpoint import (
     ProgressCheckpoint,
     ProgressCheckpointDecision,
@@ -129,6 +149,31 @@ from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import (
 from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import (
     _add_second_strategy,
     _build_inputs,
+)
+from app.strategy_lab_v2.tests.test_postgres_execution_state import (
+    FakeSession as ExecutionStateFakeSession,
+)
+from app.strategy_lab_v2.tests.test_postgres_execution_summary import (
+    FakeSession as ExecutionSummaryFakeSession,
+)
+from app.strategy_lab_v2.tests.test_postgres_metrics import FakeSession as MetricsFakeSession
+from app.strategy_lab_v2.tests.test_postgres_result_completion import (
+    FakeSession as ResultCompletionFakeSession,
+)
+from app.strategy_lab_v2.tests.test_postgres_result_materialization import (
+    FakeSession as ResultMaterializationFakeSession,
+)
+from app.strategy_lab_v2.tests.test_postgres_result_publication import (
+    FakeSession as ResultPublicationFakeSession,
+)
+from app.strategy_lab_v2.tests.test_postgres_runtime_execution import (
+    FakeSession as RuntimeExecutionFakeSession,
+)
+from app.strategy_lab_v2.tests.test_postgres_worker_settlement import (
+    FakeSession as WorkerSettlementFakeSession,
+)
+from app.strategy_lab_v2.tests.test_postgres_worker_state import (
+    FakeSession as WorkerStateFakeSession,
 )
 from app.strategy_lab_v2.tests.test_trial_hydration import MemoryDomainReader
 from app.strategy_lab_v2.tests.test_worker_consumer import FakeRedis, _raw_entry, _stream_response
@@ -1334,6 +1379,144 @@ async def test_successful_worker_result_identity_is_stable_across_terminal_redel
     assert first.result is not None and redelivered.result is not None
     assert redelivered.result.fingerprint == first.result.fingerprint
     assert redelivered.result.created_at == first.result.created_at == NOW
+
+
+@pytest.mark.asyncio
+async def test_rc5_terminal_writer_composes_postgres_adapters_and_replays_durably(tmp_path):
+    context, lookup, resolver, _publisher = _successful_context_and_lookup(tmp_path, stable=False)
+    owner_id = lookup.owner_id
+    attempt_id = context.request.admission.attempt_id
+
+    runtime_session = RuntimeExecutionFakeSession()
+    runtime = PostgresRuntimeExecutionAdapter(lambda: runtime_session)
+    initialized_runtime = await runtime.initialize(
+        principal=owner_id,
+        state=context.request.runtime_state,
+    )
+    assert initialized_runtime.decision is RuntimeStateDecision.REGISTERED
+
+    execution_session = ExecutionStateFakeSession()
+    execution_state = PostgresExecutionStateAdapter(lambda: execution_session)
+    initial_execution = lookup.inputs.execution
+    assert initial_execution is not None
+    initialized_execution = await execution_state.initialize(
+        principal=owner_id,
+        outcome=replace(initial_execution.outcome, sequence=0),
+        progress=replace(
+            initial_execution.progress,
+            sequence=0,
+            phase=ProgressPhase.QUEUED,
+        ),
+    )
+    assert initialized_execution.decision is StateMutationDecision.APPLIED
+    persisted_running = await execution_state.transition(
+        principal=owner_id,
+        outcome_update=OutcomeUpdate(
+            initial_execution.outcome.submission_id,
+            attempt_id,
+            initial_execution.outcome.sequence,
+            initial_execution.outcome.status,
+            initial_execution.outcome.updated_at,
+        ),
+        progress_update=ExecutionProgressUpdate(
+            attempt_id,
+            initial_execution.progress.sequence,
+            initial_execution.progress.phase,
+            initial_execution.progress.completed_units,
+            initial_execution.progress.total_units,
+            initial_execution.progress.updated_at,
+        ),
+    )
+    assert persisted_running.decision is StateMutationDecision.APPLIED
+    assert persisted_running.outcome == initial_execution.outcome
+    assert persisted_running.progress == initial_execution.progress
+
+    worker_session = WorkerStateFakeSession()
+    worker_state = PostgresWorkerStateAdapter(lambda: worker_session)
+    profile = context.request.worker_pool.profile
+    assert (await worker_state.ensure_profile(profile)).pool.profile == profile
+    reservation = next(
+        item
+        for item in context.request.worker_pool.reservations
+        if item.reservation_id == context.request.admission.reservation_id
+    )
+    reserved = await worker_state.reserve(
+        profile=profile,
+        attempt_id=attempt_id,
+        reservation_id=reservation.reservation_id,
+        acquired_at=reservation.acquired_at,
+    )
+    assert reserved.reservation == reservation
+    await worker_state.persist_lease(context.request.lease_state.lease)
+
+    settlement_session = WorkerSettlementFakeSession()
+    settlement = PostgresWorkerSettlementAdapter(lambda: settlement_session)
+    completion_session = ResultCompletionFakeSession()
+    completion = PostgresResultCompletionAdapter(lambda: completion_session)
+    materialization_session = ResultMaterializationFakeSession()
+    materialization = PostgresResultMaterializationAdapter(lambda: materialization_session)
+    metrics_session = MetricsFakeSession()
+    metrics = PostgresMetricsAdapter(lambda: metrics_session)
+    publication_session = ResultPublicationFakeSession()
+    publication = PostgresResultPublicationAdapter(lambda: publication_session)
+    summary_session = ExecutionSummaryFakeSession()
+    summaries = PostgresExecutionSummaryAdapter(lambda: summary_session)
+    terminal_writer = PostgresWorkerTerminalAdapter(
+        resolver,
+        runtime_execution=runtime,
+        execution_state=execution_state,
+        execution_summaries=summaries,
+        result_publication=publication,
+        result_completion=completion,
+        result_materialization=materialization,
+        metrics=metrics,
+        worker_state=worker_state,
+        settlements=settlement,
+    )
+
+    first = await terminal_writer.write(context)
+    redelivered = await terminal_writer.write(context)
+
+    assert first.decision is WorkerHandleDecision.COMPLETE
+    assert redelivered.decision is WorkerHandleDecision.COMPLETE
+    assert redelivered.receipt_digest == first.receipt_digest
+    persisted_runtime = await runtime.load(principal=owner_id, attempt_id=attempt_id)
+    assert persisted_runtime is not None
+    assert persisted_runtime.phase.value == "succeeded"
+    persisted_execution = await execution_state.read_context(
+        principal=owner_id,
+        attempt_id=attempt_id,
+    )
+    assert persisted_execution is not None
+    assert persisted_execution.outcome.status is OutcomeStatus.SUCCEEDED
+    assert persisted_execution.progress.phase is ProgressPhase.SUCCEEDED
+    manifest = await materialization.load_manifest(principal=owner_id, attempt_id=attempt_id)
+    assert manifest is not None
+    persisted_metrics = await metrics.load_all_metric_sets(principal=owner_id)
+    assert persisted_metrics == (manifest.metric_set,)
+    persisted_publications = await publication.load_for_attempt(
+        principal=owner_id,
+        attempt_id=attempt_id,
+    )
+    assert len(persisted_publications) == 1
+    assert persisted_publications[0].accepted
+    summary = await summaries.load(
+        principal=owner_id,
+        submission_id=lookup.binding.receipt.submission_id,
+        attempt_id=attempt_id,
+    )
+    assert summary is not None
+    assert summary.status == "succeeded"
+    completions = await completion.load_completion_ledger(principal=owner_id)
+    assert len(completions.records) == 1
+    assert len((await completion.load_artifact_commit_ledger()).records) == len(
+        manifest.output_artifacts
+    )
+    assert len((await settlement.load_ledger(principal=owner_id)).records) == 1
+    released_pool = await worker_state.load_pool(profile)
+    assert not released_pool.active_reservations
+    released_lease = await worker_state.load_lease(context.request.lease_state.lease.lease_id)
+    assert released_lease is not None and released_lease.lease.released_at is not None
 
 
 @pytest.mark.asyncio
