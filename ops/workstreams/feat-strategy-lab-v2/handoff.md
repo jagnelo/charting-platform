@@ -11213,3 +11213,39 @@ Workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
 `ops/workstreams/feat-strategy-lab-v2/handoff.md`,
 `ops/workstreams/feat-strategy-lab-v2/session.json`, and
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+## 2026-10-05 - Bind verified forward plans to SDK context recipes
+
+Added `ResolvedForwardExecutionPlanRecipeResolver`, an immutable component
+adapter between the previously authenticated portfolio-wide plan and the
+existing forward SDK context resolver. Construct it from one exact resolved
+plan per instance session, once for each component. Event handling then obtains
+that component's exact verified SDK manifest, frozen parameters, and random
+seed without repeating owner-scoped database or package-artifact reads per
+market event. Calls fail closed for a different principal, instance revision,
+or component absent from the resolved plan.
+
+The regression now resolves a two-component portfolio whose components use the
+same strategy/package but distinct parameters and seeds, and verifies both
+recipes remain component-specific. Focused forward-plan/session/context tests
+pass (16/16); Ruff, formatting on both changed files, focused MyPy, and
+`git diff --check` pass. Commit `f80b9526a13d311bb2579957176ee112fd7fee3e`
+is pushed.
+
+This binds per-component context inputs but does not yet combine those
+components into one shared-account Nautilus runtime. The concrete persistent
+isolated runtime, frozen warm-up/canonical event history readers, durable native
+output/checkpoint restoration, and deterministic crash replay remain open.
+
+Changed paths: `backend/app/strategy_lab_v2/nautilus_forward_session.py` and
+`backend/app/strategy_lab_v2/tests/test_forward_execution_plan.py`.
+Next implementation context: build owner-scoped frozen snapshot and bounded
+canonical-prefix history readers for every component, then compose the
+portfolio-wide contexts with one persistent Nautilus session.
+
+Session progress and the required session checkpoint have since been refreshed
+at the pushed tip `f80b9526a13d311bb2579957176ee112fd7fee3e`; Docker readiness
+was available and the worktree owned no containers or volumes. The checkpoint
+helper's dirty-path summary omitted the first character of its first porcelain
+path; the branch-owned `session.json` entry was corrected to the exact path.
+The shared workflow helper was left unchanged to preserve feature-branch scope.
