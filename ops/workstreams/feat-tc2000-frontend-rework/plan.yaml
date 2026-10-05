@@ -34,7 +34,7 @@ current_blocker: >-
   still encounters the host's missing Docker Buildx helper. Current direct refs
   are staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
   `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
-  `8ab95904fbcf565901067e9af229f7b2b6f331b7`; provider and ETF remain outside
+  `5a189326f45e58a1aba00dd490c2ad2f46151d24`; provider and ETF remain outside
   staging. Defer R2/R3 integration and shared-path reconciliation until both
   dependencies reach staging. Continue bounded TC-owned UI/Study/Strategy work;
   exact full-integration acceptance and the visual gaps remain open.
@@ -299,7 +299,7 @@ progress:
     mask, threshold, skip, or acceptance rule changed. `make validate-integration`
     still encounters the host's missing Docker Buildx helper. Current provider
     tip 88132e9145a08d1c935a0111b3dba0fbd88bdff1 and ETF tip
-    8ab95904fbcf565901067e9af229f7b2b6f331b7 remain outside staging
+    5a189326f45e58a1aba00dd490c2ad2f46151d24 remains outside staging
     8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, so R2/R3 and shared-path
     reconciliation remain deferred. No authorization gate blocks independent
     TC work.

@@ -42,6 +42,13 @@ then passed the workstream validator (30 records), TC scope validation (129
 paths), and all six scope self-tests. Session JSON, the plan hash, and
 `git diff --check` also passed. No runtime registry state was modified.
 
+After the evidence commit push, a second read-only remote check confirmed TC
+`f6791fc6d24d418b1ac7108767d32896e2d987da` and refreshed the parallel refs:
+staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`5a189326f45e58a1aba00dd490c2ad2f46151d24`. The provider and ETF tips still
+have not reached staging.
+
 ## 2026-10-05 — Pinned exact-tip functional and visual reconciliation
 
 The evidence checkpoint is commit `68b1900526e7f11cf702947465f2f87d99e15a5b`
