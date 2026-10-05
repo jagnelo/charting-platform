@@ -10527,6 +10527,16 @@ paginated collection reads, and absence for a foreign owner. The create/read
 path is now proven end to end rather than only with the in-memory API adapter
 and separate persistence tests.
 
+The implementation changeset is commit
+`131bf0ce65ba50f412915fb7a53b76fc42d6836d`, pushed to
+`origin/feat/strategy-lab-v2`. This operational checkpoint owns the exact
+validation record and session progress; its enclosing checkpoint commit is
+verified externally after push. Files in this context are
+`backend/tests/integration/strategy_lab_v2/test_resource_api_postgres.py` and
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
 Validation: the complete Strategy Lab PostgreSQL/Redis integration directory
 passed `5/5`, including the new API round-trip test. Ruff check/format and
 `git diff --check` passed. Scoped cleanup found no remaining worktree

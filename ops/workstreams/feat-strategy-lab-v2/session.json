@@ -87,7 +87,9 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ps/workstreams/feat-strategy-lab-v2/session.json"
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -124,12 +126,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9ca4c89beb62af4fbd4044f0ee4d32ea49386588",
-  "implementation_sha": "9ca4c89beb62af4fbd4044f0ee4d32ea49386588",
-  "last_checkpoint": "2026-10-05T05:29:06.896700+00:00",
-  "last_human_progress_update": "2026-10-05T05:27:02.778075+00:00",
+  "head": "131bf0ce65ba50f412915fb7a53b76fc42d6836d",
+  "implementation_sha": "131bf0ce65ba50f412915fb7a53b76fc42d6836d",
+  "last_checkpoint": "2026-10-05T05:43:21.018818+00:00",
+  "last_human_progress_update": "2026-10-05T05:40:28.824170+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "Audit remaining domain/API lifecycle and versioned result-metric gaps, then complete forward-shadow event-tape parity and full exact-tip acceptance.",
   "parent_branch": "staging",
   "plan_hash": "2bd08f8925d7022ce3aba09187fbfea224223598b766f49580bfff5cac14c98d",
   "planning_required": false,
@@ -146,14 +148,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "No external dependency blocks package-owned implementation. Exact-pinned RC5 qualifies for authoritative local backtests after four checks; stable v2 is not a gate. PostgreSQL/Redis worker integration passes 4/4, including serial capacity races, recovery, dispatch/RPC, and Redis consumer reclaim; typed metric and forward resource create/replay/rehydration are also covered. Remaining feature criteria include broader domain/API lifecycle coverage, result metrics, and forward event-tape parity. Full Compose/browser acceptance remains limited by absent Docker Buildx; scoped Docker access runs focused tests.",
-    "current_phase": "strategy-lab-v2-domain-resource-postgres-integration-v1",
-    "next_action": "Continue the AC-DOMAIN/AC-API lifecycle audit and close remaining versioned metric gaps, then implement forward-shadow event-tape parity. Keep full Compose/browser acceptance visible and do not wait for stable Nautilus.",
+    "current_blocker": "No external dependency blocks package-owned implementation. Docker Buildx limits only final Compose/browser acceptance; shared-path integration remains sequenced behind provider, ETF, and TC2000 staging.",
+    "current_phase": "strategy-lab-v2-postgres-backed-resource-api-integration-v1",
+    "next_action": "Audit remaining domain/API lifecycle and versioned result-metric gaps, then complete forward-shadow event-tape parity and full exact-tip acceptance.",
     "total": 18,
-    "updated_at": "2026-10-05T05:27:02.778054+00:00"
+    "updated_at": "2026-10-05T05:40:28.824149+00:00"
   },
-  "remote": "9ca4c89beb62af4fbd4044f0ee4d32ea49386588",
-  "remote_sha": "9ca4c89beb62af4fbd4044f0ee4d32ea49386588",
+  "remote": "131bf0ce65ba50f412915fb7a53b76fc42d6836d",
+  "remote_sha": "131bf0ce65ba50f412915fb7a53b76fc42d6836d",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
