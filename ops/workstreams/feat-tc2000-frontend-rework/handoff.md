@@ -1,5 +1,18 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Authenticated capability guard checkpoint pushed
+
+The browser guard and current exact-tip evidence checkpoint is commit
+`cd988ec1019998723b3174d87084168fbdee0bad`
+(`test(tc2000): guard authenticated tool capability boundary`), pushed to
+`origin/feat/tc2000-frontend-rework`. Direct GitHub lookup confirmed the TC ref
+at that SHA. At verification, staging was
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform was
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings was
+`529fc81f60fcbf5f14a7afc7e9aa62461a48e855`; both upstream tips remained outside
+staging. This checkpoint changes no product source, does not touch another
+branch/worktree, and does not alter screenshot policy.
+
 ## 2026-10-05 — Exact-tip browser results and authenticated capability guard
 
 This section supersedes the pending full-browser rerun noted below. At pushed
