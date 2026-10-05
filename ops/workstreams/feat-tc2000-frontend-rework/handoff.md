@@ -17513,12 +17513,24 @@ assigned Compose project. The browser closed successfully; post-teardown
 checks found no assigned containers, volumes, network, or generated image
 tags. No provider/ETF worktree or branch was touched.
 
-Next: inspect the pinned F8r-python-library-narrow setup and mount lifecycle
-against the full-run artifact, then run an unchanged focused reproduction on
-the assigned stack. Only make a TC-owned source change if that produces a
-deterministic product defect; otherwise preserve the open full-suite gate and
-continue a separately justified TC-owned UI slice. Provider/ETF integration
-remains deferred until both dependencies reach staging.
+The unchanged exact `F8r-python-library-narrow` Playwright test then passed
+`5/5` in the pinned `mcr.microsoft.com/playwright:v1.62.1-noble` image. On a
+fresh database, the full ordered `F8r` block (core headers, all narrow-dock
+tools, chart toolbar, and layout picker) passed `10/10`; Python Library passed
+after the preceding seven F8r cases. Both pinned replays used the assigned
+frontend container's network namespace and `STACK_URL=http://localhost`.
+Artifacts are under `/tmp/tc2000-f8r-python-library-repeat.gpLm5q` and
+`/tmp/tc2000-f8r-ordered.BaK1xE`. Together with the manual `2/2` smoke, these
+checks show the narrow failure does not reproduce in isolation or in its
+contiguous F8r context. A broader full-suite state/timing interaction remains
+possible; no product cause is established, and these focused passes do not
+clear the full-suite gate.
+
+Next: reset only the assigned project volumes and run the unchanged complete
+`182`-case serial functional suite in the pinned browser image through the same
+localhost network-namespace path. Preserve every failure and the protected
+visual comparisons. Provider/ETF integration remains deferred until both
+dependencies reach staging.
 
 Diagnostic checkpoint commit `7f2d5b89bb9a0b5ef85fa3b68e49f1cf6783457b`
 was pushed to `origin/feat/tc2000-frontend-rework`; direct remote lookup
