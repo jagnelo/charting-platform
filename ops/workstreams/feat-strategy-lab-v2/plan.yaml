@@ -852,8 +852,9 @@ progress:
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
     - strategy-lab-v2-forward-lifecycle-idempotency-v1
     - strategy-lab-v2-nautilus-forward-runtime-dto-codec-v1
+    - strategy-lab-v2-nautilus-forward-runtime-operation-handler-v1
   total: 18
-  current_phase: forward-runtime-serve-cli
+  current_phase: forward-runtime-session-bootstrap
   current_blocker: >-
     No external dependency blocks package-owned implementation. The exact RC5
     source/image built from this worktree passed all five scope checks, including
@@ -863,10 +864,11 @@ progress:
     checks and is not needed to continue. Immutable per-component forward plans
     pin strategy/package fingerprints, parameters, and seeds, and activation
     requires a valid owner-scoped plan. The typed bounded host/runtime DTO codec
-    and isolated-process supervisor now exist. The production source-verified
-    processed-prefix adapter, CLI `--serve-forward` engine handler, native
-    output/checkpoint persistence before ACK, and deterministic process-loss
-    replay remain code-owned. Preserve canonical platform event identity and
+    isolated-process supervisor, and strict operation handler now exist. The
+    fixed CLI `--serve-forward` mode and concrete persistent shared-account
+    BacktestEngine session are still unimplemented. Native output/checkpoint
+    persistence before ACK and deterministic process-loss replay remain
+    code-owned. Preserve canonical platform event identity and
     ordering; never derive them from dependency-local frozen series rows. Full
     Compose/browser acceptance remains environment-limited by unavailable
     Docker Buildx and default Docker API socket access. Shared provider, ETF, and
@@ -874,12 +876,14 @@ progress:
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Implement the RC5 CLI --serve-forward mode and its concrete runtime handler
-    over the typed bounded DTO codec. Bootstrap one persistent shared-account
-    BacktestEngine from immutable warm-up and exact checkpoint-bound processed
-    history; accept only source-verified canonical deliveries, run all portfolio
-    components together, and persist native output plus an exact replay
-    checkpoint before Redis acknowledgement. Recover deterministically after
-    process loss without rewriting prior decisions; corrections remain on the
-    counterfactual path. Preserve provider-owned event identity and consume its
-    source contracts only after staging. Stable release labeling is not a gate.
+    Define and validate the immutable forward runtime bootstrap bundle from the
+    owner-scoped execution plan, warm-up receipt, frozen snapshot, and exact
+    source-verified processed prefix. Wire that bundle into the fixed RC5 CLI
+    --serve-forward mode and construct one persistent shared-account
+    BacktestEngine/strategy bridge. Then process only source-verified canonical
+    deliveries and persist native output plus an exact replay checkpoint before
+    Redis acknowledgement. Recover deterministically after process loss without
+    rewriting prior decisions; corrections remain on the counterfactual path.
+    Preserve provider-owned event identity and consume shared contracts only
+    after their source branches reach staging. Stable release labeling is not a
+    gate.

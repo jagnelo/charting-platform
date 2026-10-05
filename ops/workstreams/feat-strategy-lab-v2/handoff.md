@@ -11560,6 +11560,10 @@ implementation.
 
 Implementation commit `c41ab1b273ae0d3eeccfb5a965eae4272e8845b0` is pushed to
 `origin/feat/strategy-lab-v2`; the local and remote refs matched at verification.
+The enclosing workstream checkpoint commit `fab13400da0669e25cc4c335cf552f29f1ab3393`
+was independently verified by comparing `git rev-parse HEAD` with
+`git rev-parse origin/feat/strategy-lab-v2`; this record keeps the preceding
+implementation SHA rather than creating a self-referential checkpoint hash.
 
 Validation: full Strategy Lab package `1,473 passed`; 11 migration/startup
 tests passed; package Ruff, changed-file formatter, focused MyPy for the wire
@@ -11575,3 +11579,47 @@ Next: implement the RC5 CLI `--serve-forward` handler over this concrete codec,
 bootstrapping one persistent Nautilus engine from authenticated frozen warm-up
 and the exact processed prefix. Keep portfolio components on one shared
 account, and persist native outputs/checkpoints before acknowledgement.
+
+## 2026-10-05 - Typed isolated forward operation handler
+
+Added `NautilusForwardRuntimeOperationHandler` as a strict isolated-side
+lifecycle boundary around exactly one supplied native session. It validates
+instance identity, preparation-to-delivery binding, result provenance against
+the canonical event and exact runtime session, exact-checkpoint restore, and
+typed close acknowledgements. Invalid startup closes the provisional session;
+the handler cannot be reopened after close. The host process adapter now
+validates open/restore/close acknowledgements, and repeated close is idempotent
+while an already-dead child remains safely cleanable.
+
+Implementation commit `4024d1ca6b3bcb0fe7d49b0bb2d0732a7281f445` is pushed to
+`origin/feat/strategy-lab-v2`; local and remote refs matched at verification.
+Validation at that exact source: the complete Strategy Lab package passed
+`1,478` tests; focused forward handler/codec/process/IPC tests passed `19`;
+Ruff and changed-file formatting passed; focused MyPy passed for the runtime
+codec, process adapter, and operation handler; `git diff --check` passed.
+
+This is still an IPC boundary, not a runnable forward Nautilus session. The
+fixed runtime CLI does not yet accept `--serve-forward`; there is no concrete
+persistent `BacktestEngine`/strategy session factory or exact warm-up/prefix
+bootstrap in the runtime bundle, and output/checkpoint-before-ACK plus
+process-loss replay remain open. The committed process test uses a local IPC
+stand-in, not the RC5 image. Exact-pinned RC5 remains qualified and stable 2.x
+is not a gate. Docker Buildx/socket limitations affect only final
+Compose/browser acceptance; they do not block continued package-owned code.
+
+The enclosing operational checkpoint commit is verified externally by
+comparing `HEAD` with `origin/feat/strategy-lab-v2`; this handoff keeps the
+preceding implementation SHA to avoid a self-referential hash.
+
+## Current changeset context - forward-runtime-session-bootstrap-v1
+
+Owned paths: `backend/app/strategy_lab_v2/nautilus_runtime_cli.py`, a concrete
+runtime-local Nautilus forward-session module, and focused bundle/CLI/session
+tests (plus narrowly required runtime-owned helpers). Define the immutable
+startup bundle from authenticated owner-scoped plan, frozen snapshot, warm-up
+receipt, and exact source-verified processed prefix. Make the fixed
+`--serve-forward` command instantiate one persistent shared-account
+`BacktestEngine`/strategy bridge; do not fabricate account state or accept
+unverified event order. Then persist native outputs and exact replay checkpoints
+before Redis ACK and prove process-loss recovery. Stable release labeling is not
+a prerequisite; keep RC5 pinned to its already-qualified image and checks.
