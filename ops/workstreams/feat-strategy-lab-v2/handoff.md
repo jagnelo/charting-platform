@@ -25,9 +25,11 @@ release dependency from authoritative local backtests. An exact-pinned stable
 or release-candidate v2 build can publish a local backtest when all four
 backtest checks pass and the output binds its release channel, exact source,
 wheel and image digests, conformance evidence, execution scope, and plan. RC
-authority is limited to local backtests; full/forward scope still requires
-stable v2 plus event-tape parity, and prereleases cannot connect to brokers or
-control real capital.
+authority is limited to local backtests until the full five-check gate passes;
+then either an exact-pinned stable or release-candidate v2 build may qualify
+for broker-free full/forward shadow after event-tape parity. Stable release
+labeling is not a gate, and prereleases cannot connect to brokers or control
+real capital.
 
 The gate is enforced end to end across conformance capability binding, worker
 request/search-preparation construction, engine execution planning, result
@@ -10647,12 +10649,36 @@ final Compose/browser acceptance. Shared provider, ETF, and TC2000 contracts
 remain staging-gated at shared paths; options admission remains fail-closed
 pending canonical Greeks/delta and settlement evidence.
 
-## Next context - forward event-tape parity audit
+## 2026-10-05 - Sequence-preserving forward parity
 
-Audit the forward-shadow event-tape parity contract against the native runtime
-adapter, canonical Redis stream, persisted warm-up cursor, and correction/replay
-records. Record the exact missing parity invariant before implementing the next
-branch-owned slice. Preserve this feature worktree boundary and stop at
+The forward callback parity verifier now uses definition v2 and compares the
+callback's records in their received order against the sequence-ordered tape.
+The former verifier sorted observed records before comparison, allowing a
+reordered callback to pass when it returned the same event set. Regression
+coverage now proves exact order passes and reordered records fail with
+field-level mismatch evidence. The historical frozen-tape verifier retains its
+separate deterministic canonicalization behavior.
+
+The audit confirms that this is only the parity verifier seam: the forward tape
+and receipt are not yet produced by a real native callback consuming durable
+forward work. The tape currently binds an instance and event envelopes, but not
+the persisted warm-up receipt/checkpoint or Redis dispatch identity. The runtime
+does not yet join those identities to native event delivery, and the correction
+replay path is not yet represented as a separately verified native input. These
+are branch-owned parity integration gaps, not external dependencies. Provider
+event-source contracts remain staging-gated and are not duplicated here.
+
+Validation: the Nautilus event adapter and conformance-fixture suites passed
+45 tests; the full Strategy Lab package plus schema-migration regression passed
+1,392 tests. Ruff check/format and `git diff --check` passed. RC5 local
+backtest qualification is unchanged; the new v2 receipt does not claim forward
+conformance or authorize a shadow run.
+
+Next: connect forward parity evidence to the actual native callback boundary,
+binding each batch to the persisted warm-up receipt/checkpoint and accepted
+dispatch identity. Keep corrections on an explicitly identified
+counterfactual-replay path, then qualify all five forward checks against the
+exact runtime artifact. Preserve this feature worktree boundary and stop at
 `ready_for_human_review`; do not integrate, promote, deploy, activate a live
 shadow, or modify another worktree.
 

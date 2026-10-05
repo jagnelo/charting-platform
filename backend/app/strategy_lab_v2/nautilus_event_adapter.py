@@ -27,7 +27,7 @@ from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
 NAUTILUS_EVENT_ADAPTER_VERSION = "strategy-lab.nautilus-event-adapter.v1"
 NAUTILUS_EVENT_PARITY_VERSION = "strategy-lab.nautilus-event-parity.v1"
 NAUTILUS_FORWARD_TAPE_VERSION = "strategy-lab.nautilus-forward-tape.v1"
-NAUTILUS_FORWARD_PARITY_VERSION = "strategy-lab.nautilus-forward-parity.v1"
+NAUTILUS_FORWARD_PARITY_VERSION = "strategy-lab.nautilus-forward-parity.v2"
 
 _WIRE_FIELDS = frozenset(
     {
@@ -388,9 +388,7 @@ def materialize_nautilus_forward_tape(
 
     if not isinstance(instance_id, str) or not instance_id.strip():
         raise ValueError("instance_id must not be empty")
-    if not isinstance(canonical_events, Sequence) or isinstance(
-        canonical_events, str | bytes
-    ):
+    if not isinstance(canonical_events, Sequence) or isinstance(canonical_events, str | bytes):
         raise TypeError("canonical_events must be a sequence")
     if not isinstance(market_events, Sequence) or isinstance(market_events, str | bytes):
         raise TypeError("market_events must be a sequence")
@@ -608,10 +606,12 @@ def verify_nautilus_forward_event_tape_parity(
     """Compare a host/Rust forward callback output with its bound event tape.
 
     The callback output uses the same strict wire schema as the historical
-    event-tape verifier. Forward canonical identity is represented by the
-    envelope that was handed to the callback, so matching event identity,
-    sequence, timestamp, dependency, and values proves that the callback did
-    not substitute or reorder the admitted forward batch.
+    event-tape verifier. Unlike historical fixture comparison, forward output
+    order is significant: the canonical envelope order is sequence-ordered and
+    must be preserved by the callback. Forward canonical identity is
+    represented by the envelope that was handed to the callback, so matching
+    event identity, sequence, timestamp, dependency, values, and position
+    proves that the callback did not substitute or reorder the admitted batch.
     """
 
     if not isinstance(tape, NautilusForwardEventTape):
@@ -622,7 +622,9 @@ def verify_nautilus_forward_event_tape_parity(
     observed_ids = [item.event_id for item in observed]
     if len(observed_ids) != len(set(observed_ids)):
         raise ValueError("observed Nautilus forward event ids must be unique")
-    ordered_observed = tuple(sorted(observed, key=_event_order))
+    # Do not sort callback output here: sorting would turn a transport-order
+    # defect into an apparent pass for the same set of event records.
+    ordered_observed = observed
     expected_records = tuple(item.record for item in tape.envelopes)
     expected_payloads = tuple(_wire_payload(item) for item in expected_records)
     observed_payloads = tuple(_wire_payload(item) for item in ordered_observed)

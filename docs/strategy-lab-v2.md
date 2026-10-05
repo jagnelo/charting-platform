@@ -618,9 +618,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `verify_nautilus_event_tape_parity(...)` provides the strict observed-wire
   schema and non-authoritative pass/fail receipt for that future adapter, with
   canonical ordering and field-level mismatch evidence.
-  `verify_nautilus_forward_event_tape_parity(...)` applies the same strict
-  wire comparison to an admitted forward batch and retains the instance/tape
-  identity in a separate non-authoritative forward-parity receipt.
+  `verify_nautilus_forward_event_tape_parity(...)` applies a strict,
+  order-preserving wire comparison to an admitted forward batch. Forward
+  parity definition v2 rejects callback reordering rather than sorting the
+  observed batch, and retains instance/tape identity in a separate
+  non-authoritative forward-parity receipt.
 - `resolve_nautilus_forward_parity(...)` composes that strict verifier with
   the `FORWARD_EVENT_TAPE_PARITY` conformance projection, returning one typed
   resolution that binds the tape, receipt, and observation for the eventual

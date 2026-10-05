@@ -324,7 +324,7 @@ def test_forward_event_tape_rejects_dependency_mapping_drift() -> None:
         )
 
 
-def test_forward_event_tape_parity_accepts_permuted_equivalent_wire_records() -> None:
+def test_forward_event_tape_parity_rejects_reordered_wire_records() -> None:
     tape = _forward_tape_for_parity()
     observed = tuple(_wire_payload(item.record) for item in reversed(tape.envelopes))
 
@@ -334,9 +334,21 @@ def test_forward_event_tape_parity_accepts_permuted_equivalent_wire_records() ->
     assert receipt.instance_id == "forward-instance-1"
     assert receipt.forward_tape_fingerprint == tape.fingerprint
     assert receipt.parity_version == NAUTILUS_FORWARD_PARITY_VERSION
+    assert receipt.passed is False
+    assert receipt.compatible is False
+    assert receipt.authoritative is False
+    assert "event[0].event_id" in receipt.mismatches
+    assert receipt.expected_wire_digest != receipt.observed_wire_digest
+
+
+def test_forward_event_tape_parity_accepts_exact_sequence_order() -> None:
+    tape = _forward_tape_for_parity()
+    observed = tuple(_wire_payload(item.record) for item in tape.envelopes)
+
+    receipt = verify_nautilus_forward_event_tape_parity(tape, observed)
+
     assert receipt.passed is True
     assert receipt.compatible is True
-    assert receipt.authoritative is False
     assert receipt.mismatches == ()
 
 
