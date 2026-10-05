@@ -7,8 +7,10 @@ from typing import BinaryIO
 
 import pytest
 
+from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.artifact_store import ArtifactStoreCorruptionError, LocalArtifactStore
 from app.strategy_lab_v2.artifacts import artifact_content_digest
+from app.strategy_lab_v2.authenticated_event_tape import AuthenticatedFrozenEventTapeResolver
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capabilities import (
     CapabilityCell,
@@ -355,3 +357,89 @@ def test_corrupt_snapshot_artifact_fails_content_address_verification(tmp_path) 
 
     with pytest.raises(ArtifactStoreCorruptionError, match="wrong digest"):
         FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder()).resolve(snapshot, manifest)
+
+
+@pytest.mark.anyio
+async def test_authenticated_tape_resolver_loads_owner_snapshot_and_verifies_artifacts(
+    tmp_path,
+) -> None:
+    snapshot, manifest, series, payload = _inputs()
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+    offload_calls = []
+
+    async def inline_offloader(function, *args):
+        offload_calls.append(function)
+        return function(*args)
+
+    class Reader:
+        async def get_domain_contracts_by_fingerprint(
+            self, *, principal, resource_type, fingerprints
+        ):
+            assert principal == "owner-1"
+            assert resource_type is ApiResourceType.SNAPSHOT
+            assert fingerprints == (snapshot.fingerprint,)
+            return {snapshot.fingerprint: snapshot}
+
+    resolver = AuthenticatedFrozenEventTapeResolver(
+        Reader(),
+        FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder()),
+        principal="owner-1",
+        offloader=inline_offloader,
+    )
+
+    result = await resolver.resolve(snapshot.fingerprint, manifest)
+
+    assert result.snapshot_fingerprint == snapshot.fingerprint
+    assert result.manifest_fingerprint == manifest.fingerprint
+    assert result.event_count == 2
+    assert result.source_artifact_digests == (series.content_digest,)
+    assert len(offload_calls) == 1
+
+
+@pytest.mark.anyio
+async def test_authenticated_tape_resolver_fails_closed_when_owner_snapshot_is_missing(
+    tmp_path,
+) -> None:
+    snapshot, manifest, _series, _payload = _inputs()
+    store = LocalArtifactStore(tmp_path / "artifacts")
+
+    class Reader:
+        async def get_domain_contracts_by_fingerprint(
+            self, *, principal, resource_type, fingerprints
+        ):
+            assert principal == "other-owner"
+            assert resource_type is ApiResourceType.SNAPSHOT
+            return {}
+
+    resolver = AuthenticatedFrozenEventTapeResolver(
+        Reader(),
+        FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder()),
+        principal="other-owner",
+    )
+
+    with pytest.raises(ValueError, match="owner-scoped frozen snapshot is unavailable"):
+        await resolver.resolve(snapshot.fingerprint, manifest)
+
+
+@pytest.mark.anyio
+async def test_authenticated_tape_resolver_rejects_fingerprint_aliases(tmp_path) -> None:
+    snapshot, manifest, _series, _payload = _inputs()
+    requested_fingerprint = content_digest("different-snapshot")
+
+    class Reader:
+        async def get_domain_contracts_by_fingerprint(
+            self, *, principal, resource_type, fingerprints
+        ):
+            return {requested_fingerprint: snapshot}
+
+    resolver = AuthenticatedFrozenEventTapeResolver(
+        Reader(),
+        FrozenEventTapeArtifactResolver(
+            LocalArtifactStore(tmp_path / "artifacts"), JsonSeriesDecoder()
+        ),
+        principal="owner-1",
+    )
+
+    with pytest.raises(ValueError, match="fingerprint does not match its key"):
+        await resolver.resolve(requested_fingerprint, manifest)
