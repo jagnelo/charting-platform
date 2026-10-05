@@ -10834,3 +10834,40 @@ Changed paths:
 `backend/app/strategy_lab_v2/tests/test_forward_context.py`,
 `backend/app/strategy_lab_v2/nautilus_forward_delivery.py`, and
 `backend/app/strategy_lab_v2/tests/test_nautilus_forward_delivery.py`.
+
+## 2026-10-05 - Authenticated forward-session settlement coordinator
+
+Added the host-owned `NautilusForwardSessionEventHandler` contract and its
+settlement ordering. Only accepted non-correction dispatches are eligible;
+buffered inputs retry and correction inputs remain on the counterfactual path.
+The handler obtains an authenticated delivery, requires the context-window
+resolution to match its pre-event account checkpoint and warm-up receipt,
+stages the bounded SDK context, and validates the native result against the
+delivery, context, checkpoint, canonical event, and forward instance. Account
+effects are durably applied before context commit and before the consumer may
+return `COMPLETE` for Redis acknowledgement. Runtime or settlement failures
+restore the exact pre-event native checkpoint and discard uncommitted context.
+
+The executor remains an injected protocol, not a concrete long-lived isolated
+Nautilus process. The native output and account effects still need an explicit
+durable cross-process receipt/checkpoint and replay protocol; this coordinator
+does not claim those or forward parity are complete. The branch is still
+qualified only for the recorded RC5 four-check local-backtest scope; the fifth
+exact-image event-tape parity check remains open.
+
+Validation on commit `53829858fcdf17f706aef91fdf5f0827b6f769e1`: 18 focused
+forward context/delivery/session tests and the full Strategy Lab plus migration
+suite passed (`1,414` tests). Ruff check/format, focused MyPy for the three
+changed production modules, and `git diff --check` passed. The implementation
+commit is published to `origin/feat/strategy-lab-v2`.
+
+Next: implement the concrete isolated persistent Nautilus session and durable
+output/checkpoint recovery across process restart, wire it through the forward
+worker callback composition, and then qualify event-tape parity on the exact
+runtime image. Stable 2.x labeling is not a blocker; release candidates remain
+for local broker-free testing only.
+
+Changed paths:
+`backend/app/strategy_lab_v2/forward_context.py`,
+`backend/app/strategy_lab_v2/nautilus_forward_session.py`, and
+`backend/app/strategy_lab_v2/tests/test_nautilus_forward_session.py`.
