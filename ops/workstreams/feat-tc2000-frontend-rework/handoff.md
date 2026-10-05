@@ -1,5 +1,47 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Keyboard activation of the Boolean pin menu
+
+Product/test commit `8448c45286b2202800e6079bc30a1a02e5999936`
+(`test(tc2000): verify keyboard Boolean pin activation`) changes only
+`frontend/tests/e2e/flows.spec.ts`. The authenticated F8u-boolean flow now
+opens the Boolean header menu with the keyboard, verifies focus on its action,
+uses ArrowDown and Enter instead of a pointer click, and confirms activation
+closes the menu and restores focus to the header while preserving the pinned
+state assertions. No product source, visual oracle, or acceptance policy
+changed.
+
+The focused pinned Playwright 1.62.1 Noble Chromium run passed `1/1` at this
+commit. The CLI wrapper timed out while resolving its package; the repository's
+existing `@playwright/test` runner was used in the cached pinned browser image.
+This focused result does not replace the last full functional result
+(`172/174` passed with two documented skips and zero failures at product source
+`be55d1af2de8037671d65e33d5b1d5120e11f38c`) or the full visual matrix (`93/104`
+with ten protected screenshot differences and one transient network diagnostic).
+No full suite was rerun for this test-only change.
+
+All four assigned images built successfully with ordinary Compose; the exact
+six-service TC stack reached healthy status. `make test-stack-down` removed its
+six containers, four test volumes, network, and four generated images. The
+follow-up resource audit reported zero assigned containers, volumes, images,
+test sessions, known bytes, or unknown components. Focused test output is at
+`/tmp/tc2000-f8u-keyboard-enter.gohi7M`. The product/test commit was pushed;
+local, tracking, and direct GitHub refs matched TC `8448c45286b2202800e6079bc30a1a02e5999936`.
+Current direct refs are staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`,
+provider platform `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`8ab95904fbcf565901067e9af229f7b2b6f331b7`; provider and ETF remain outside
+staging. `make validate-integration` still encounters the host's missing
+Docker Buildx helper. Continue independent TC-owned frontend/Study/Strategy
+work; preserve the existing visual gaps and defer upstream consumer integration
+until the dependency work reaches staging. No other branch or worktree changed.
+
+The `make branch-validate` wrapper could not complete its runtime setup because
+the execution mount is read-only at `.ai/runtime/allocations.lock`; its
+underlying validator still reported 30 records valid. Direct UV invocations
+then passed the workstream validator (30 records), TC scope validation (129
+paths), and all six scope self-tests. Session JSON, the plan hash, and
+`git diff --check` also passed. No runtime registry state was modified.
+
 ## 2026-10-05 — Pinned exact-tip functional and visual reconciliation
 
 The evidence checkpoint is commit `68b1900526e7f11cf702947465f2f87d99e15a5b`

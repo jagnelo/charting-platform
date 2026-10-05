@@ -20,26 +20,24 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No human or TC-ownership gate blocks independent work. At pushed branch tip
-  `9b04cee36d32d5064fc4edb3c512d98b88c38040` (product source
-  `3958886632af62e0207fb02ed6961b16fd1a600c`), the pinned serial functional
-  browser project ran 178 cases: 167 passed, 6 documented skips, and 5 failed.
-  Four unrelated flows reported local `ERR_NETWORK_CHANGED` bursts; one Market
-  Map Python-output flow did not open its tool. Six focused serial replays
-  covering the five failures passed 6/6, with the assigned six-service Compose
-  stack healthy and zero restarts. The corrected 104-case four-viewport visual
-  matrix passed 93; ten known screenshot comparisons remain, and one transient
-  blank-page startup case passed its focused replay. No visual oracle or policy
-  changed. The authenticated Add Tool capability-boundary test was then added
-  and passed 1/1; it is not counted in the full run. `make validate-integration`
-  still stops at its Docker Buildx `--name` helper mismatch, while ordinary
-  Compose works. Live refs are staging
-  `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+  No human or TC-ownership gate blocks independent work. At pushed TC tip
+  `8448c45286b2202800e6079bc30a1a02e5999936` (test-only change), the focused
+  pinned authenticated F8u-boolean browser flow passed 1/1 after keyboard
+  activation was added for the Boolean pin menu. The prior full pinned
+  functional result remains 172 passed, 2 documented skips, and zero failures
+  at product source `be55d1af2de8037671d65e33d5b1d5120e11f38c`; the full visual
+  matrix remains 93/104 with ten protected screenshot differences and one
+  transient network diagnostic. These full-suite results were not rerun for the
+  test-only change. No visual oracle or policy changed. Ordinary Compose built
+  all four images and the exact six-service stack became healthy; cleanup and
+  resource audit left zero assigned resources. `make validate-integration`
+  still encounters the host's missing Docker Buildx helper. Current direct refs
+  are staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
   `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
-  `529fc81f60fcbf5f14a7afc7e9aa62461a48e855`; neither dependency tip is in
-  staging. R2/R3 integration and shared-path reconciliation remain deferred.
-  Continue the next bounded TC-owned UI/Study/Strategy gap; keep visual review
-  and exact full-integration acceptance open.
+  `8ab95904fbcf565901067e9af229f7b2b6f331b7`; provider and ETF remain outside
+  staging. Defer R2/R3 integration and shared-path reconciliation until both
+  dependencies reach staging. Continue bounded TC-owned UI/Study/Strategy work;
+  exact full-integration acceptance and the visual gaps remain open.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -281,32 +279,30 @@ progress:
   next_action: >-
     Continue the next bounded TC-owned workstation UI, Study, or Strategy gap
     after checking the candidate against the frontend-led ownership boundary.
-    At product tip be55d1af, the complete pinned functional suite passed 172,
-    skipped 2 documented cases, and had zero failures. The full visual matrix
-    completed 93/104: ten protected screenshot differences remain and one
-    network-diagnostic failure passed unchanged focused replay. The shell-only
-    host mismatch is font-rendering diagnostic evidence, not pinned acceptance.
-    Preserve the full-matrix result and ten visual gaps; continue independent
-    TC work. Defer provider/ETF consumption until both dependency tips reach
+    The pushed test-only tip 8448c452 verifies keyboard focus and Enter-based
+    activation in the authenticated F8u-boolean flow (pinned run 1/1). The last
+    complete functional result is 172 passed, 2 documented skips, zero failures
+    at product source be55d1af; the full visual matrix remains 93/104 with ten
+    protected screenshot differences and one network diagnostic. These full
+    results were not rerun for the test-only change. Preserve the full-matrix
+    result and all visual gaps; continue independent TC work. Defer provider/ETF
+    consumption and shared-path reconciliation until both dependency tips reach
     staging; do not mutate another worktree.
   current_blocker: >-
-    At product tip be55d1af, the pinned authenticated functional suite passed
-    172/174 with two documented skips and zero failures. The full pinned visual
-    matrix completed 93/104: ten known screenshot-only differences remain
-    (workspace-floating in all four viewports, Study structured-result in all
-    four, and Study sandbox-error at both 1080p scales); its eleventh failure
-    was a local ERR_NETWORK_CHANGED diagnostic and the unchanged focused replay
-    passed 4/4. A pinned four-project shell smoke passed 4/4. The separate host
-    shell smoke differed on glyph pixels; host Arial resolves to Nimbus Sans
-    while the pinned Noble container resolves to Liberation Sans, consistent
-    with an environment/font-rendering diagnostic rather than product geometry.
-    No screenshot oracle, mask, threshold, skip, or acceptance rule changed.
-    `make validate-integration` still stops at the host's missing Docker Buildx
-    helper. Provider tip 88132e9145a08d1c935a0111b3dba0fbd88bdff1 and ETF tip
-    08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5 remain outside staging
+    Independent TC work is unblocked. The focused pinned F8u-boolean flow passed
+    1/1 at test-only tip 8448c452. The last complete functional result at
+    product source be55d1af remains 172/174 with two documented skips and zero
+    failures. The full visual matrix remains 93/104 with ten known screenshot
+    differences (workspace-floating in all four viewports, Study structured-
+    result in all four, and Study sandbox-error at both 1080p scales); one
+    additional network diagnostic passed focused replay. No screenshot oracle,
+    mask, threshold, skip, or acceptance rule changed. `make validate-integration`
+    still encounters the host's missing Docker Buildx helper. Current provider
+    tip 88132e9145a08d1c935a0111b3dba0fbd88bdff1 and ETF tip
+    8ab95904fbcf565901067e9af229f7b2b6f331b7 remain outside staging
     8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, so R2/R3 and shared-path
-    reconciliation remain deferred. No human permission gate blocks
-    independent TC work.
+    reconciliation remain deferred. No authorization gate blocks independent
+    TC work.
 historical_implementation_records:
   - "Exact product-tip pinned validation at be55d1af completed the 174-case functional suite with 172 passed, 2 documented skips, and zero failures. The four-project visual matrix completed all 104 cases: 93 passed, ten protected screenshot differences remain (workspace-floating all four viewports; Study structured-result all four; Study sandbox-error at the two 1080p scales), and one column-editor diagnostic failure from ERR_NETWORK_CHANGED passed unchanged replay 4/4. A separate four-project pinned shell smoke passed 4/4; host-only shell rendering failed glyph pixels with host Arial resolving to Nimbus Sans versus pinned Noble resolving Liberation Sans, consistent with environment/font rendering rather than geometry. Full matrix artifacts: /tmp/tc2000-pinned-visual-full-3t8qbk; functional artifacts: /tmp/tc2000-pinned-functional-full-9Iq2rG. Scoped Docker cleanup left zero resources. No visual acceptance policy changed."
   - "Product commit be55d1af2de8037671d65e33d5b1d5120e11f38c adds keyboard invocation for the TC-owned Virtual Watchlist Boolean header pin menu using Shift+F10 and the Context Menu key, while preserving right-click and Ctrl/Meta-click behavior and anchoring the menu at the header for keyboard use. Focused VirtualWatchlistTool coverage passed 80/80; full serial frontend Vitest passed 129 files / 1,202 tests; the Docker production build (including vue-tsc and Vite build) passed; and authenticated F8u-boolean passed 1/1. The exact-tip 174-case functional run passed 171, skipped 2 documented cases, and failed one F8s-family-matrix diagnostic because unrelated local API requests reported ERR_NETWORK_CHANGED after assertions; unchanged focused replay passed 1/1. The completed prior-tip 104-case visual matrix was 93/104 with ten protected screenshot differences; a post-change full visual attempt was stopped after broad deltas, and a fresh seeded-database shell smoke differed at all four viewports by 42,759 / 44,586 / 50,854 / 53,003 pixels. No screenshot oracle, mask, threshold, skip, or acceptance policy changed. The exact branch commit is pushed and direct GitHub refs verified; staging remains 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider is 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF is 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5. Both dependencies remain outside staging."
