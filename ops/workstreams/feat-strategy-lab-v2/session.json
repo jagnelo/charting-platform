@@ -127,9 +127,9 @@
   "head": "2ad96ae566eb694ead863d968baa126a2f47ab34",
   "implementation_sha": "2ad96ae566eb694ead863d968baa126a2f47ab34",
   "last_checkpoint": "2026-10-05T20:05:10.619607+00:00",
-  "last_human_progress_update": "2026-10-05T20:00:41.387236+00:00",
+  "last_human_progress_update": "2026-10-05T20:28:17.351767+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Bind native result persistence and exact checkpoint transitions before Redis ACK; bound durable replay state and prove non-empty-prefix process-loss recovery. Extend the exact RC5 fixture to exercise both.",
+  "next_action": "Bind native result persistence and the resulting exact checkpoint transition to the host settlement path before Redis ACK. Then bound process-local replay state and prove duplicate/crash replay against durable account/admission state.",
   "parent_branch": "staging",
   "plan_hash": "2dac8428297f8273eca0c08b09a835a64f3e6494e618e7bf848fc92fab632bc9",
   "planning_required": false,
@@ -151,9 +151,9 @@
     "completed": [],
     "current_blocker": "none",
     "current_phase": "forward-runtime-durable-settlement",
-    "next_action": "Bind native result persistence and exact checkpoint transitions before Redis ACK; bound durable replay state and prove non-empty-prefix process-loss recovery. Extend the exact RC5 fixture to exercise both.",
+    "next_action": "Bind native result persistence and the resulting exact checkpoint transition to the host settlement path before Redis ACK. Then bound process-local replay state and prove duplicate/crash replay against durable account/admission state.",
     "total": 18,
-    "updated_at": "2026-10-05T20:00:41.387217+00:00"
+    "updated_at": "2026-10-05T20:28:17.351748+00:00"
   },
   "remote": "2ad96ae566eb694ead863d968baa126a2f47ab34",
   "remote_sha": "2ad96ae566eb694ead863d968baa126a2f47ab34",
