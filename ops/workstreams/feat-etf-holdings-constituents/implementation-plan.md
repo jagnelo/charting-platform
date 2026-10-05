@@ -3680,3 +3680,37 @@ unavailable and the Aegon provider remains issuer-access-blocked. No SEC,
 third-party, or paid data was promoted. The runtime map, symbol audit ledger,
 provider attempt history, docs, and regression test now share the 2026-10-05
 evidence and unchanged outcomes.
+
+## GAUD/GAID liquidation reconciliation — 2026-10-05
+
+The current official SEC semiannual report states that GAUD and GAID had zero
+portfolio holdings pending liquidation distribution and both liquidated on
+`2026-06-30`; Guinness Atkinson's current website also lists them among ETFs
+approved for liquidation. The explicit Tier-1 symbol audits therefore move
+from unavailable/issuer-route-blocked to not-applicable/inactive-or-successor.
+Historical Q1 holdings files and SEC liquidation schedules remain non-current
+evidence and are not promoted. The Guinness recognition-only provider remains
+fallback-only, provider-count totals do not change, and the runtime status
+distribution is now 7 access-blocked / 54 discovery / 3 non-executable / 8
+non-publisher / 3 inactive (75 total). A parameterized regression covers both
+tickers; the provider ledger, runtime, docs, and source attempt history retain
+the same dated evidence and terminal disposition.
+
+Evidence refs: `web:guinness-atkinson-gaud-gaid-liquidation-sec-2026-10-05` and
+`web:guinness-atkinson-our-funds-liquidation-notice-2026-10-05`.
+
+## Manulife UDIV/UDEF/GEDG free-first source recheck — 2026-10-05
+
+The current official Manulife catalogue confirms that UDIV, UDEF, and GEDG are
+current ETF products. The reviewed UDIV unhedged-units and UDEF USD-units
+factsheets both disclose `2026-07-31` holdings dates and report 111 and 173
+positions respectively, but list only ten named holdings; these cannot satisfy
+complete-constituent support. The last application-equivalent catalogue request
+remains HTTP 403 and no complete executable GEDG artifact was found. The three
+symbols stay unavailable with no provider or native-count change. The runtime
+map, explicit Tier-1 symbol records, provider attempt history, documentation,
+and parameterized regression now share the dated evidence and unchanged
+outcomes; no SEC, third-party, or paid source was promoted.
+
+Evidence refs: `web:manulife-current-etf-catalogue-2026-10-05` and
+`web:manulife-udiv-udef-latest-product-factsheet-top-ten-2026-10-05`.

@@ -658,6 +658,30 @@ def test_ranked_fallback_terminal_symbol_is_not_applicable():
     assert result.evidence_state == "inactive_or_successor_disposition"
 
 
+@pytest.mark.parametrize("symbol", ["UDIV", "UDEF", "GEDG"])
+def test_manulife_symbols_remain_unavailable_without_complete_current_artifact(symbol):
+    result = symbol_audit_for_profile(profile_with_symbol(symbol, "manulife"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.investigated_at == date(2026, 10, 5)
+    assert "web:manulife-current-etf-catalogue-2026-10-05" in result.evidence_refs
+    assert "top-ten" in result.next_action
+
+
+@pytest.mark.parametrize("symbol", ["GAUD", "GAID"])
+def test_guinness_atkinson_liquidated_etfs_are_not_applicable(symbol):
+    result = symbol_audit_for_profile(profile_with_symbol(symbol, "guinness_atkinson"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
+    assert result.investigated_at == date(2026, 10, 5)
+    assert "web:guinness-atkinson-gaud-gaid-liquidation-sec-2026-10-05" in result.evidence_refs
+    assert "liquidation" in result.next_action
+
+
 @pytest.mark.parametrize("adapter_key", ["sammons_enterprises", "beacon_capital"])
 def test_beacon_btr_liquidation_is_not_applicable_across_provider_aliases(adapter_key):
     result = symbol_audit_for_profile(profile_with_symbol("BTR", adapter_key))

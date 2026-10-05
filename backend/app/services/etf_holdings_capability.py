@@ -891,19 +891,25 @@ _register_non_tier_0_audits(
 )
 _register_non_tier_0_audits(
     ("GAUD", "GAID"),
-    outcome=UNAVAILABLE,
-    evidence_state="issuer_route_access_blocked",
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
     provider_identity="guinness_atkinson",
-    investigated_at=date(2026, 10, 1),
+    investigated_at=date(2026, 10, 5),
     evidence_refs=(
         "web:guinness-atkinson-fund-resources-2026-09-03",
         "live:guinness-atkinson-fund-resources-2026-09-07-blocked",
         "web:guinness-atkinson-fund-resources-2026-10-01",
         "live:guinness-atkinson-fund-resources-2026-10-01-blocked",
+        "web:guinness-atkinson-gaud-gaid-liquidation-sec-2026-10-05",
+        "web:guinness-atkinson-our-funds-liquidation-notice-2026-10-05",
     ),
     next_action=(
-        "Re-test the official Fund Resources and symbol-scoped ETF routes; promote only "
-        "after complete rows, mapping, parser fixtures, and bounded live evidence are available."
+        "Keep GAUD and GAID not applicable: Guinness Atkinson's June 30, 2026 semiannual "
+        "report says both ETFs held zero portfolio investments pending distribution in "
+        "connection with liquidation, and its current site lists both among ETFs approved "
+        "for liquidation. Reopen only if a current successor U.S.-listed ETF publishes a "
+        "complete executable holdings artifact; do not promote historical Q1 files or SEC "
+        "liquidation records as current holdings."
     ),
 )
 _register_non_tier_0_audits(
@@ -911,16 +917,22 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="manulife",
-    investigated_at=date(2026, 10, 1),
+    investigated_at=date(2026, 10, 5),
     evidence_refs=(
         "web:manulife-canadian-etf-catalogue-2026-09-03",
         "live:manulife-etf-catalogue-2026-09-07-blocked",
         "web:manulife-current-etf-catalogue-2026-10-01",
         "live:manulife-current-etf-catalogue-2026-10-01-403",
+        "web:manulife-current-etf-catalogue-2026-10-05",
+        "web:manulife-udiv-udef-latest-product-factsheet-top-ten-2026-10-05",
     ),
     next_action=(
-        "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete "
-        "U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
+        "Keep UDIV/UDEF/GEDG unavailable. The current official catalogue confirms the "
+        "products, but the reviewed UDIV/UDEF factsheets disclose only top-ten rows and "
+        "GEDG has no complete executable artifact in the reviewed materials; the last "
+        "application-equivalent catalogue request returned HTTP 403. Re-test symbol-scoped "
+        "first-party routes; promote only after a complete current holdings artifact, "
+        "strict symbol mapping, parser fixture, and bounded live evidence are proven."
     ),
 )
 _register_non_tier_0_audits(

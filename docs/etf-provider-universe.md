@@ -2360,6 +2360,44 @@ fallback-only providers; runtime fallback statuses are 8 issuer-access-blocked,
 56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.
 
+## Manulife UDIV/UDEF/GEDG free-source recheck — 2026-10-05
+
+The current first-party Manulife ETF catalogue lists UDIV (including unit
+classes), UDEF, and GEDG as ETF products. The reviewed UDIV unhedged-units and
+UDEF USD-units factsheets each report holdings dated `2026-07-31` and 111/173
+positions, respectively, but publish only ten named holdings rows. The
+application-equivalent catalogue route's most recent live result remains HTTP
+403, and no complete current GEDG artifact was found in the reviewed sources.
+All three therefore remain unavailable; top-ten disclosures, indexed catalogue
+content, and stale factsheets are not full constituent support. No native
+promotion, SEC reconstruction, or paid source was enabled.
+
+Evidence refs: `web:manulife-current-etf-catalogue-2026-10-05` and
+`web:manulife-udiv-udef-latest-product-factsheet-top-ten-2026-10-05`.
+
+## GAUD/GAID liquidation recheck — 2026-10-05
+
+The issuer's June 30, 2026 semiannual report states that GAUD and GAID each
+held zero portfolio investments pending distribution in connection with
+liquidation and that both funds liquidated on June 30. Guinness Atkinson's
+current site separately lists both among ETFs approved for liquidation. Both
+symbols therefore change from unavailable/route-blocked to
+`not_applicable`/`inactive_or_successor_disposition`; the latest official Q1
+holdings downloads and SEC liquidation disclosures are not current holdings.
+The recognition-only provider key remains fallback-only, with no native route
+or provider-count change. The runtime status split is now 7 issuer-access-
+blocked, 54 needs-first-party-route-discovery, 3 non-executable-public-source,
+8 non-portfolio-publisher, and 3 inactive-or-successor-disposition (75 total).
+
+- `issuer_access_blocked`: `7`
+- `needs_first_party_route_discovery`: `54`
+- `non_executable_public_source`: `3`
+- `provider_not_a_portfolio_publisher`: `8`
+- `inactive_or_successor_disposition`: `3`
+
+Evidence refs: `web:guinness-atkinson-gaud-gaid-liquidation-sec-2026-10-05` and
+`web:guinness-atkinson-our-funds-liquidation-notice-2026-10-05`.
+
 ## TALV/TABD current-source recheck — 2026-10-05
 
 The current Transamerica Fund Center page resolves to an Incapsula challenge in

@@ -355,43 +355,43 @@ symbol_audit_ledger:
     - symbol: GAUD
       tier: 1
       provider_identity: guinness_atkinson
-      current_outcome: unavailable
-      evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-10-01
-      evidence_refs: [web:guinness-atkinson-fund-resources-2026-09-03, live:guinness-atkinson-fund-resources-2026-09-07-blocked, web:guinness-atkinson-fund-resources-2026-10-01, live:guinness-atkinson-fund-resources-2026-10-01-blocked]
-      next_action: "Re-test the official Fund Resources and symbol-scoped ETF routes; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-10-05
+      evidence_refs: [web:guinness-atkinson-fund-resources-2026-09-03, live:guinness-atkinson-fund-resources-2026-09-07-blocked, web:guinness-atkinson-fund-resources-2026-10-01, live:guinness-atkinson-fund-resources-2026-10-01-blocked, web:guinness-atkinson-gaud-gaid-liquidation-sec-2026-10-05, web:guinness-atkinson-our-funds-liquidation-notice-2026-10-05]
+      next_action: "Keep GAUD and GAID not applicable: Guinness Atkinson's June 30, 2026 semiannual report says both ETFs held zero portfolio investments pending distribution in connection with liquidation, and its current site lists both among ETFs approved for liquidation. Reopen only if a current successor U.S.-listed ETF publishes a complete executable holdings artifact; do not promote historical Q1 files or SEC liquidation records as current holdings."
     - symbol: GAID
       tier: 1
       provider_identity: guinness_atkinson
-      current_outcome: unavailable
-      evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-10-01
-      evidence_refs: [web:guinness-atkinson-fund-resources-2026-09-03, live:guinness-atkinson-fund-resources-2026-09-07-blocked, web:guinness-atkinson-fund-resources-2026-10-01, live:guinness-atkinson-fund-resources-2026-10-01-blocked]
-      next_action: "Re-test the official Fund Resources and symbol-scoped ETF routes; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-10-05
+      evidence_refs: [web:guinness-atkinson-fund-resources-2026-09-03, live:guinness-atkinson-fund-resources-2026-09-07-blocked, web:guinness-atkinson-fund-resources-2026-10-01, live:guinness-atkinson-fund-resources-2026-10-01-blocked, web:guinness-atkinson-gaud-gaid-liquidation-sec-2026-10-05, web:guinness-atkinson-our-funds-liquidation-notice-2026-10-05]
+      next_action: "Keep GAUD and GAID not applicable: Guinness Atkinson's June 30, 2026 semiannual report says both ETFs held zero portfolio investments pending distribution in connection with liquidation, and its current site lists both among ETFs approved for liquidation. Reopen only if a current successor U.S.-listed ETF publishes a complete executable holdings artifact; do not promote historical Q1 files or SEC liquidation records as current holdings."
     - symbol: UDIV
       tier: 1
       provider_identity: manulife
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-10-01
-      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked, web:manulife-current-etf-catalogue-2026-10-01, live:manulife-current-etf-catalogue-2026-10-01-403]
-      next_action: "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
+      investigated_at: 2026-10-05
+      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked, web:manulife-current-etf-catalogue-2026-10-01, live:manulife-current-etf-catalogue-2026-10-01-403, web:manulife-current-etf-catalogue-2026-10-05, web:manulife-udiv-udef-latest-product-factsheet-top-ten-2026-10-05]
+      next_action: "Keep UDIV/UDEF/GEDG unavailable. The current official catalogue confirms the products, but the reviewed UDIV/UDEF factsheets disclose only top-ten rows and GEDG has no complete executable artifact in the reviewed materials; the last application-equivalent catalogue request returned HTTP 403. Re-test symbol-scoped first-party routes; promote only after a complete current holdings artifact, strict symbol mapping, parser fixture, and bounded live evidence are proven."
     - symbol: UDEF
       tier: 1
       provider_identity: manulife
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-10-01
-      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked, web:manulife-current-etf-catalogue-2026-10-01, live:manulife-current-etf-catalogue-2026-10-01-403]
-      next_action: "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
+      investigated_at: 2026-10-05
+      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked, web:manulife-current-etf-catalogue-2026-10-01, live:manulife-current-etf-catalogue-2026-10-01-403, web:manulife-current-etf-catalogue-2026-10-05, web:manulife-udiv-udef-latest-product-factsheet-top-ten-2026-10-05]
+      next_action: "Keep UDIV/UDEF/GEDG unavailable. The current official catalogue confirms the products, but the reviewed UDIV/UDEF factsheets disclose only top-ten rows and GEDG has no complete executable artifact in the reviewed materials; the last application-equivalent catalogue request returned HTTP 403. Re-test symbol-scoped first-party routes; promote only after a complete current holdings artifact, strict symbol mapping, parser fixture, and bounded live evidence are proven."
     - symbol: GEDG
       tier: 1
       provider_identity: manulife
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-10-01
-      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked, web:manulife-current-etf-catalogue-2026-10-01, live:manulife-current-etf-catalogue-2026-10-01-403]
-      next_action: "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
+      investigated_at: 2026-10-05
+      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked, web:manulife-current-etf-catalogue-2026-10-01, live:manulife-current-etf-catalogue-2026-10-01-403, web:manulife-current-etf-catalogue-2026-10-05, web:manulife-udiv-udef-latest-product-factsheet-top-ten-2026-10-05]
+      next_action: "Keep UDIV/UDEF/GEDG unavailable. The current official catalogue confirms the products, but the reviewed UDIV/UDEF factsheets disclose only top-ten rows and GEDG has no complete executable artifact in the reviewed materials; the last application-equivalent catalogue request returned HTTP 403. Re-test symbol-scoped first-party routes; promote only after a complete current holdings artifact, strict symbol mapping, parser fixture, and bounded live evidence are proven."
     - symbol: QVOY
       tier: 1
       provider_identity: q3
@@ -1669,9 +1669,9 @@ providers:
     display_name: guinness_atkinson
     queue_rank: 3
     starting_status: issuer_access_blocked
-    current_status: issuer_access_blocked
-    disposition: issuer_access_blocked
-    last_checked: 2026-10-01
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-10-05
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [GAUD, GAID]
     estimated_us_etf_count: null
@@ -1690,6 +1690,8 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.guinness_atkinson"
       - "runtime:ISSUER_ADAPTER_CONFIGS.guinness_atkinson"
+      - "web:guinness-atkinson-gaud-gaid-liquidation-sec-2026-10-05"
+      - "web:guinness-atkinson-our-funds-liquidation-notice-2026-10-05"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -1715,8 +1717,12 @@ providers:
         source: "https://www.gafunds.com/fund-resources/"
         result: "The current bounded request returned HTTP 403 Cloudflare challenge content; no complete executable holdings artifact was retrieved."
         evidence_ref: "live:guinness-atkinson-fund-resources-2026-10-01-blocked"
-    disposition_reason: "guinness_atkinson: Official Fund Resources material identifies GAUD/GAID ETF products, but backend-equivalent access is Cloudflare-blocked and no stable complete holdings artifact is executable."
-    next_action: "guinness_atkinson: Re-test the official Fund Resources and symbol-scoped ETF routes; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
+      - date: 2026-10-05
+        source: "https://www.sec.gov/Archives/edgar/data/919160/000139834426016758/fp0099573-1_ncsrsixbrl.htm; https://www.gafunds.com/"
+        result: "The issuer's June 30, 2026 semiannual report states that both GAUD and GAID held zero portfolio investments pending distribution in connection with liquidation and says each fund liquidated June 30, 2026. Guinness Atkinson's current site also lists both ETFs among those approved for liquidation. Both symbols are not applicable to current holdings support; historical Q1 files and the SEC liquidation record are not current constituents."
+        evidence_ref: "web:guinness-atkinson-gaud-gaid-liquidation-sec-2026-10-05; web:guinness-atkinson-our-funds-liquidation-notice-2026-10-05"
+    disposition_reason: "guinness_atkinson: GAUD and GAID were liquidated on 2026-06-30; their official semiannual reports show zero portfolio investments pending liquidation distribution, and the issuer's current site lists both among ETFs approved for liquidation. The route remains fallback-only and the historical symbols are not applicable to current analysis."
+    next_action: "guinness_atkinson: Keep GAUD/GAID not applicable; reopen only if a legitimate current U.S.-listed successor fund is sponsored and publishes a complete executable first-party holdings artifact. Do not promote historical Q1 files or SEC liquidation records as current holdings."
     implementation_sha: null
     validation_refs: []
   - adapter_key: manulife
@@ -1725,7 +1731,7 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-10-01
+    last_checked: 2026-10-05
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [UDIV, UDEF, GEDG]
     estimated_us_etf_count: null
@@ -1744,6 +1750,8 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.manulife"
       - "runtime:ISSUER_ADAPTER_CONFIGS.manulife"
+      - "web:manulife-current-etf-catalogue-2026-10-05"
+      - "web:manulife-udiv-udef-latest-product-factsheet-top-ten-2026-10-05"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -1769,8 +1777,12 @@ providers:
         source: "https://www.manulifeim.com/retail/ca/en/landing-page/etfs"
         result: "The bounded application-equivalent request returned HTTP 403 Forbidden; no complete executable holdings artifact was retrieved."
         evidence_ref: "live:manulife-current-etf-catalogue-2026-10-01-403"
-    disposition_reason: "manulife: Official material is a Canadian ETF catalogue and bounded access is Akamai-blocked; no complete executable U.S. holdings publisher route is proven for native promotion."
-    next_action: "manulife: Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
+      - date: 2026-10-05
+        source: "https://www.manulifeim.com/retail/ca/en/landing-page/etfs; https://funds.manulife.ca/en-US/etfs/UDIV.B/pdf; https://funds.manulife.ca/en-US/etfs/UDEF.U/pdf"
+        result: "The current official catalogue lists UDIV, UDEF, and GEDG. The reviewed UDIV unhedged-units and UDEF USD-units factsheets each show 111 and 173 positions respectively, with holdings dated 2026-07-31, but expose only ten named holdings rows; GEDG has no complete executable artifact in the reviewed materials. The application-equivalent catalogue route remains blocked on its last live request, so none of the three symbols is promoted."
+        evidence_ref: "web:manulife-current-etf-catalogue-2026-10-05; web:manulife-udiv-udef-latest-product-factsheet-top-ten-2026-10-05"
+    disposition_reason: "manulife: The current official catalogue confirms UDIV, UDEF, and GEDG products; UDIV/UDEF factsheets expose only top-ten rows despite disclosing larger position counts, and no complete current GEDG artifact is proven. The last application-equivalent route returned HTTP 403; no complete executable source is available for native promotion."
+    next_action: "manulife: Keep UDIV/UDEF/GEDG unavailable. Re-test symbol-scoped first-party routes after access is restored; promote only after complete current holdings, strict identity mapping, parser fixtures, and bounded live proof are established."
     implementation_sha: null
     validation_refs: []
   - adapter_key: q3

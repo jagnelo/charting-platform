@@ -71277,7 +71277,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "aegon",
         "anfield",
         "arin",
-        "guinness_atkinson",
         "manulife",
         "ridgeline",
         "westwood",
@@ -71301,6 +71300,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
     "inactive_or_successor_disposition": (
         "alphaclone",
         "alphamark_advisors",
+        "guinness_atkinson",
     ),
     "needs_first_party_route_discovery": (
         "advisors_asset_management",
