@@ -20,23 +20,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  At product source 8d1d63b7945ad94226ac02e338aac8f4ef447f2a, focused frontend
-  suites passed 10/10 and 56/56, backend breadth tests passed 30/30, and the
-  Docker production build/type-check passed. The first full 182-case browser
-  run had 178 passes, 3 documented skips, and one test-only selector timeout:
-  `.last()` selected a leaf instead of the nested breadth group. The earlier
-  focused `F8s-breadth` command selected a separate short loading-state flow and
-  did not exercise the new assertion. The corrected `F8s-breadth-family-ratio`
-  flow passed 1/1 after targeting the group with `.nth(1)`; the exact-tip full
-  functional rerun and four-project visual matrix remain pending. The prior
-  product source 721b0ef functional result was 179/182 with three documented
-  skips and zero failures; its visual matrix was 94/104 with ten protected
-  screenshot-only differences. Preserve all visual references, masks,
-  thresholds, skips, and acceptance policy. The generic make validate-integration
-  receipt remains open because host Docker Buildx is unavailable, although
-  scoped Compose/browser validation succeeds. Provider-platform and ETF remain
-  outside staging, so R2/R3 consumption and shared-path reconciliation wait for
-  coordinator promotion.
+  At branch checkpoint 14031175efa97b639d7fd6d6829b5998f9f2b673 (product
+  source 8d1d63b7945ad94226ac02e338aac8f4ef447f2a), the corrected seeded
+  functional suite passed 179/182 with three documented skips and zero
+  failures. The exact-tip four-project visual matrix passed 94/104; its ten
+  screenshot-only differences are the known protected states, with all state
+  assertions passing. The earlier selector timeout was test-only and the
+  actual compound breadth regression now passes in the full suite. Preserve
+  all visual references, masks, thresholds, skips, and acceptance policy. The
+  generic make validate-integration receipt remains open because Docker
+  Buildx is unavailable (`docker buildx` is not a recognized CLI command).
+  Provider-platform and ETF remain outside staging, so R2/R3 consumption and
+  shared-path reconciliation wait for coordinator promotion.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -274,29 +269,26 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_R4_BREADTH_NOT_BROWSER_REGRESSION_SELECTOR_CORRECTION
+  current_phase: R1_R4_EXACT_TIP_FUNCTIONAL_VISUAL_MATRIX_COMPLETE
   next_action: >-
-    Rerun the complete seeded functional suite after the test-only selector
-    correction, then run the exact-tip four-project visual matrix and preserve
-    its references, masks, thresholds, skips, and acceptance policy. Correct
-    the validation receipt to supersede the earlier mistaken short-flow claim.
-    Continue a distinct TC-owned workstation, Study, or Strategy slice after
-    these gates. Do not duplicate the already implemented recursive Python
-    breadth-series contracts; their stale implementation-gap wording is now
-    reconciled as visual-only in the parity spec. Keep the generic integration
-    receipt open while host Docker Buildx is unavailable. Refresh dependency
-    refs periodically; defer R2/R3 consumption and shared-path reconciliation
-    until both upstream branches reach staging. Stop only at
-    ready_for_human_review.
+    Continue with a distinct TC-owned workstation, Study, Strategy, or visual
+    parity defect slice; do not duplicate provider/ETF ownership or the already
+    implemented recursive Python breadth-series contracts. Keep all ten
+    protected screenshot differences and acceptance rules unchanged absent
+    authoritative V25 evidence or a confirmed source defect. Continue
+    independent TC-owned work while investigating a safe isolated route to the
+    full gate; its normal stack-up failure trap would tear down the active
+    assigned volumes. Refresh dependency refs periodically; defer R2/R3
+    consumption and shared-path reconciliation until both upstream branches
+    reach staging. Stop only at ready_for_human_review.
   current_blocker: >-
-    The first 182-case run after product source 8d1d63b had 178 passes, 3
-    documented skips, and one test-only selector timeout. A corrected run of
-    the actual F8s-breadth-family-ratio flow passed 1/1; the full seeded
-    functional rerun and four-project visual matrix remain pending. The ten
-    protected prior screenshot differences remain open without acceptance
-    oracle changes. The generic integration receipt remains open because host
-    Docker Buildx is unavailable. Provider and ETF branches remain outside
-    staging, so R2/R3 consumption and shared-path reconciliation are deferred.
+    Exact-tip functional validation is green at 179/182 with three documented
+    skips. The visual matrix is 94/104 with the ten established protected
+    screenshot differences open. The generic integration receipt remains open
+    because host Docker Buildx is unavailable; the normal full-gate stack-up
+    failure trap tears down the assigned test volumes, so a safe isolated
+    invocation is needed. Provider and ETF branches remain outside staging, so
+    R2/R3 consumption and shared-path reconciliation are deferred.
 historical_implementation_records:
   - "Product commit 8d1d63b7945ad94226ac02e338aac8f4ef447f2a fixes data loss in the advanced Market Map breadth editor: switching a multi-child all/any group to not now wraps the complete prior group as the sole NOT child. The regression failed against the prior editor; BreadthConditionTreeEditor and MarketMapTool suites passed 10/10 and 56/56, backend breadth service tests passed 30/30, frontend type-check/build and Ruff format check passed. No provider/ETF behavior, visual styling, or acceptance policy changed."
   - "Exact product-tip pinned validation at be55d1af completed the 174-case functional suite with 172 passed, 2 documented skips, and zero failures. The four-project visual matrix completed all 104 cases: 93 passed, ten protected screenshot differences remain (workspace-floating all four viewports; Study structured-result all four; Study sandbox-error at the two 1080p scales), and one column-editor diagnostic failure from ERR_NETWORK_CHANGED passed unchanged replay 4/4. A separate four-project pinned shell smoke passed 4/4; host-only shell rendering failed glyph pixels with host Arial resolving to Nimbus Sans versus pinned Noble resolving Liberation Sans, consistent with environment/font rendering rather than geometry. Full matrix artifacts: /tmp/tc2000-pinned-visual-full-3t8qbk; functional artifacts: /tmp/tc2000-pinned-functional-full-9Iq2rG. Scoped Docker cleanup left zero resources. No visual acceptance policy changed."

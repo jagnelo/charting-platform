@@ -16,14 +16,23 @@ checkpoint `b6873018` exposed a test-only timeout: `.last()` selected the leaf
 inside the nested group, which has no “+ Condition” button. The test now selects
 the nested group itself and asserts its operator before adding the predicate.
 The corrected actual `F8s-breadth-family-ratio` flow passed `1/1` in the pinned
-Playwright 1.62.1 container; a full functional rerun is pending.
+Playwright 1.62.1 container. The corrected full seeded functional run then
+passed `179/182`, with three documented skips and zero failures. The exact-tip
+four-project visual run passed `94/104`; its ten screenshot-only differences
+are the same protected states recorded in the visual-parity specification.
+Artifacts are retained under `/tmp/tc2000-functional-corrected-14031175` and
+`/tmp/tc2000-visual-current-14031175`.
 
 The focused frontend suites passed `66/66`, and the Docker production
 frontend build/type-check passed. The failed full run had 178 passes, 3
 documented skips, and only that locator timeout; no product assertion failed.
-The current-tip visual matrix is also pending. Preserve the ten prior
-protected screenshot differences and do not change references, masks,
-thresholds, skips, or acceptance policy.
+The corrected rerun at branch tip `14031175efa97b639d7fd6d6829b5998f9f2b673`
+completed all 182 functional cases with 179 passes, 3 skips, and zero failures,
+including the compound breadth assertion. The same tip's visual matrix
+completed all 104 cases with 94 passes and ten protected screenshot-only
+differences: workspace-floating at all four viewports, Study structured-result
+at all four, and Study sandbox-error at both 1080p scales. Keep all references,
+masks, thresholds, skips, and acceptance rules unchanged.
 
 ## 2026-10-05 — Preserve composite breadth predicates when switching to NOT
 

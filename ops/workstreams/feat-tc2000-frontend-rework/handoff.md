@@ -12,7 +12,9 @@ checkpoint `b6873018` completed with 178 passes, 3 documented skips, and one
 leaf instead of the OR group; the failed page confirms this was not a product
 assertion failure. The corrected selector targets the nested group and verifies
 its operator; the actual pinned Playwright `F8s-breadth-family-ratio` flow then
-passed `1/1` in 15 seconds. A corrected full-suite rerun remains pending.
+passed `1/1` in 15 seconds. The corrected full suite at branch checkpoint
+`14031175efa97b639d7fd6d6829b5998f9f2b673` passed `179/182`, with 3
+documented skips and zero failures.
 
 Frontend BreadthConditionTreeEditor and MarketMapTool suites passed `10/10`
 and `56/56`; the Docker production build/type-check passed. The pinned
@@ -28,11 +30,17 @@ the exact generated runtime environment. The frontend and all existing
 services are healthy, and no database volume, other Compose project, or
 worktree was changed.
 
-The full exact-tip functional rerun and current-tip visual matrix remain open;
-the ten known protected screenshot differences remain open. The generic
-integration receipt is still open because Buildx is unavailable, and provider/
-ETF consumption remains deferred until both upstream branches reach staging.
-Keep the goal active.
+The exact-tip four-project visual matrix completed `94/104`; its ten screenshot
+differences are the known protected states: workspace-floating at all four
+viewports, Study structured-result at all four, and Study sandbox-error at the
+two 1080p scales. No reference, mask, threshold, skip, or acceptance policy
+changed. Full functional artifacts are under
+`/tmp/tc2000-functional-corrected-14031175`; visual artifacts are under
+`/tmp/tc2000-visual-current-14031175`.
+
+The generic integration receipt remains open pending a fresh Buildx check, and
+provider/ETF consumption remains deferred until both upstream branches reach
+staging. Keep the goal active and continue independent TC-owned work.
 
 ## 2026-10-05 — Preserve compound breadth conditions when selecting NOT
 
