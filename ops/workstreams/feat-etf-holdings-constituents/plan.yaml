@@ -454,15 +454,20 @@ current_blocker: >-
   SEC identifiers now invoke only the explicit SEC fallback instead of being
   advertised as ready and then rejected. The canonical deterministic ETF
   adapter/capability/refresh/task suite passes 732 tests; Ruff check and format
-  check pass. The default live-contract module passes 4 contract checks and
-  skips 536 opt-in network cases as designed. The bounded local eight-case
-  Arin/VistaShares live run produced no result after more than five minutes and
-  was interrupted; it is inconclusive and is not a route pass. Docker readiness passed through the
-  approved elevated boundary, but another worktree's live Compose stack is
-  active, so the Docker-backed browser gate is deferred to avoid resource
-  interference. AC7 awaits publication and exact-SHA validation of these fixes,
-  the complete opt-in live matrix, and a safe full-stack gate. AC8 awaits a
-  clean synchronized branch for human review. AC10 awaits
+  check pass. The default live-contract module passes 5 contract checks and
+  skips 536 opt-in network cases as designed. The bounded local Arin live probe
+  skipped on temporary DNS failure; it is not a route pass. Docker readiness
+  passed through the approved elevated boundary, but another worktree's live
+  Compose stack is active, so the Docker-backed browser gate is deferred to
+  avoid resource interference. Implementation commit
+  `61265673611bc7afef4ca5af9d34ccae57bb2bfa` is pushed to this branch. Exact-SHA
+  run `37328831048` completed: Backend Tests, Frontend Unit Tests, and hosted
+  Playwright passed; Branch-declared Tests failed only Arin ATTR after both HTTP
+  transports received ETF Architect's access challenge (523 passed, 16
+  classified skips, 1 failed). The protected Exhaustive Integration Gate was
+  skipped by feature-branch design. AC7 awaits the exact-SHA rerun for the
+  narrowly scoped external-access classification and a safe full-stack gate.
+  AC8 awaits a clean synchronized branch for human review. AC10 awaits
   `feat/market-data-provider-platform` reaching staging, and AC14 remains the
   post-integration/deployment 30-day observation. The goal remains active, not
   blocked or complete.
@@ -932,19 +937,41 @@ current_blocker: >-
   staging, and AC14 remains a post-integration/deployment observation. The
   saved goal is active, not blocked or complete.
 
+  UPDATE 2026-10-05T15:20Z: Exact-SHA Actions run 37328831048 on
+  61265673611bc7afef4ca5af9d34ccae57bb2bfa completed Branch-declared Tests
+  with 523 passed, 16 classified skips, and one failure: the Arin ATTR live
+  route raised the exact ETF Architect issuer-access challenge after both
+  httpx and requests transports. Backend Tests, Frontend Unit Tests, and hosted
+  Playwright all completed successfully; the overall workflow failed only
+  because of the Arin matrix case, while the protected integration gate was
+  skipped by feature-branch design. The seven VistaShares routes did not fail
+  in this matrix.
+  A focused local application-style ATTR probe skipped on temporary DNS
+  resolution failure, not a successful fetch. The live-test classifier now
+  recognizes only this exact adapter/symbol/message variant, with a contract
+  asserting other Arin symbols and parser failures remain hard failures.
+  Focused classifier checks passed 2/2, one existing network contract was
+  skipped by default, and Ruff/format checks passed. This is an evidence-based
+  external-access classification, not an Arin route pass; full opt-in matrix
+  confirmation on the repair SHA is pending. The goal remains active. AC7/AC8
+  remain open for the repaired exact-SHA run and local full browser gate; the
+  latter remains deferred while another worktree's Compose stack is active
+  and available RAM is low. AC10 awaits provider-platform staging; AC14 remains
+  the later 30-day post-integration/deployment observation.
+
 next_action: >-
-  Complete the current changeset's default live contracts, JSON/YAML and
-  workstream validation, plan/session parity, Ruff format-check, and diff
-  review. Append an accurate validation receipt, commit and push only this ETF
-  worktree, then inspect exact-SHA Actions for all seven VistaShares routes and
-  the Arin ATTR route; investigate any failure from the hosted job evidence and
-  never relabel a live skip as a route pass. Run the complete opt-in issuer
-  matrix through branch CI. Resume the local Docker-backed browser gate only
-  after the other worktree's active Compose stack has ended and the isolated
-  resource preflight is safe; do not stop or mutate another worktree's
-  services. Continue independent fallback-source audits while CI and the local
-  gate are pending, maintaining free-first budget policy and explicit DNS,
-  401/403, incomplete-snapshot, challenge, and route-pass distinctions. Await
-  the user's notice before provider-platform integration. Do not integrate,
-  promote, deploy, or modify another worktree; AC14 remains the later 30-day
-  production observation.
+  Finish deterministic/default-live/workstream checks for the narrowly scoped
+  Arin ATTR external-access classifier, publish the fix and exact evidence to
+  this feature branch, and inspect the resulting push-triggered Actions run
+  through completion. Require the opt-in provider matrix to show the exact
+  Arin challenge as one explicit external skip and all other cases green; do
+  not treat that skip as a route pass. Record both failed-source-SHA and
+  repaired-SHA results in the provider audit, handoff, session, and append-only
+  validation receipt. Reattempt the Docker-backed browser gate only after the other
+  worktree's active Compose stack ends and read-only resource preflight shows a
+  safe isolated window; current inventory showed that stack active with 2.7
+  GiB available, so leave all its services untouched. Continue independent
+  free-first provider-source audits while pending. Await the user's notice
+  before provider-platform integration. Do not integrate, promote, deploy, or
+  modify another worktree; AC14 remains the later 30-day production
+  observation.

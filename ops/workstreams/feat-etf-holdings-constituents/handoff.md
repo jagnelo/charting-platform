@@ -224,14 +224,14 @@ symbols are now native-promoted and covered by deterministic plus opt-in live te
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 421 native/live-backed, 75
+- Current code-derived state: 496 registered, 422 native/live-backed, 74
   fallback-only.
-- Current fallback status split: 8 issuer-access-blocked, 54
+- Current fallback status split: 6 issuer-access-blocked, 54
   needs-first-party-route-discovery, 3 non-executable public source, 8
-  non-portfolio-publisher, and 2 inactive-or-successor-disposition. The ledger retains dated terminal dispositions for
+  non-portfolio-publisher, and 3 inactive-or-successor-disposition. The ledger retains dated terminal dispositions for
   every fallback key; all 140 historical records are represented exactly once.
 - `docs/etf-provider-universe.md` is reconciled from code to the current
-  496/421/75 snapshot; future updates must remain code-derived.
+  496/422/74 snapshot; future updates must remain code-derived.
 - The symbol capability boundary now maps provider identities already audited
   as `issuer_access_blocked` or `non_executable_public_source` to explicit
   `unavailable` outcomes; unresolved route discovery remains `unknown`.
@@ -259,8 +259,8 @@ symbols are now native-promoted and covered by deterministic plus opt-in live te
   host-wide prune. One ETF endpoint request in the functional run encountered
   `ERR_NETWORK_CHANGED`, but no ETF-specific assertion failure was identified.
 - Planning session: `e83b4e4f-2c58-4ace-949e-cbd7155927e5`.
-- The current code-derived provider state remains 496 registered / 421
-  native-live-backed / 75 fallback-only, and the latest branch-owned acceptance
+- The current code-derived provider state is now 496 registered / 422
+  native-live-backed / 74 fallback-only, and the latest branch-owned acceptance
   evidence is recorded in the appended 2026-10-02 validation receipt. The
   latest observed origin provider-platform ref is
   `88132e9145a08d1c935a0111b3dba0fbd88bdff1`; staging remains
@@ -8718,3 +8718,160 @@ Files included in this checkpoint: `backend/app/services/etf_holdings_adapters.p
 `ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml`,
 `ops/workstreams/feat-etf-holdings-constituents/session.json`, and
 `ops/workstreams/feat-etf-holdings-constituents/validation.jsonl`.
+
+## 2026-10-05 — VistaShares exact-CI recovery and Arin ATTR route
+
+The current exact-SHA Actions run `37320874525` on `79d83a28fd44ea24a2f745790d0e9e260d861042`
+completed Backend Tests and Frontend Unit Tests successfully. Branch-declared
+Tests failed only on the seven VistaShares products (487 passed, 44 classified
+skips): all seven page requests returned HTTP 200, but the returned HTML lacked
+the requested ticker before the adapter reached the CSV request. The workflow
+log did not retain the response bodies, so the exact cause is unresolved—not
+yet proven to be a Cloudflare challenge, and not safe to call a parser fix. The
+hosted Playwright job was still running at the last status check. The protected
+Exhaustive Integration Gate was skipped as designed on the feature branch.
+
+The VistaShares adapter now retries the exact same official product URL once
+with the standard `requests` transport when the `httpx` request fails or returns
+an HTML body that fails strict identity/form/count validation. It does not
+weaken the issuer identity, form binding, declared count, account match, date,
+or row-completeness checks. Only recognized WAF challenge markers may become a
+narrow external skip; unexplained identity or schema drift still fails. Focused
+local route/registry tests pass. The new exact-SHA run must show whether the
+same-route retry restores execution or whether these symbols must be marked
+unavailable pending issuer access.
+
+The official Arin ATTR page was fetched directly with HTTP 200. Its 26-row
+holdings table is effective `2026-10-05`; the production parser extracted all
+26 positions, with rounded weights totaling `100.01%`, and retained cash,
+equity, fund, and option classifications. A symbol-scoped Arin adapter now
+uses that official page and records ETF Architect as adviser/page publisher
+and Arin Risk Advisors as sub-adviser. The deterministic fixture and strict
+wrong-symbol/wrong-page cases pass. The local application-equivalent live test
+skipped on DNS failure, not a pass; the new exact-SHA CI must exercise it.
+
+The current code-derived split is 496 registered / 422 native-live-backed / 74
+fallback-only, with 15 Tier-0 and 156 Tier-1 symbol outcomes still accounted
+for. Focused tests passed 9 cases with 8 live cases skipped under the default
+network policy; the explicitly requested local Arin live case skipped because
+the host could not resolve its domain. Complete deterministic suites, Ruff,
+workstream parity/validation, a clean synchronized push, and new exact-SHA CI
+remain pending. The local Docker-backed full-stack gate also remains open;
+this session receives permission-denied from `/var/run/docker.sock`. No
+password was used, no Docker service/resource was changed, and no other branch
+or worktree was touched. AC10 still awaits the separate provider-platform
+branch reaching staging; AC14 remains post-integration observation.
+
+Next: finish deterministic/static/workstream checks, append the validation
+receipt, commit and push only this feature worktree, inspect exact-SHA CI for
+VistaShares and Arin, then pursue the local full-stack gate only through an
+approved socket-access path and its worktree-isolation preflight. Continue
+independent fallback audits while those gates run; do not integrate, promote,
+deploy, or change another worktree.
+
+## Follow-up blocker diagnosis and validation — 2026-10-05
+
+The previously pending Actions run `37320874525` has now completed. Backend
+Tests, Frontend Unit Tests, and hosted Playwright passed; Branch-declared Tests
+failed the seven VistaShares products because their HTTP 200 product-page
+bodies did not identify the requested tickers before the CSV request. The CI
+job did not retain those response bodies, so the specific cause remains
+unknown. The protected Exhaustive Integration Gate was skipped by design on
+this feature branch.
+
+Reviewing the current changes also found a probe/fetch inconsistency in the new
+Arin adapter: non-ATTR symbols with SEC identifiers were advertised as ready
+but then rejected instead of using the explicit SEC fallback. The adapter now
+executes that fallback with SEC provenance; deterministic coverage verifies
+the source URL and dispatch. The provider ledger now records ATTR as current,
+the promoted-provider invariant includes Arin, and the synchronized current
+split is 496 registered / 422 native / 74 fallback with fallback status counts
+of 6 blocked, 54 route-discovery, 3 non-executable, 8 non-publisher, and 3
+inactive/successor. All 777 deterministic ETF unit tests pass and Ruff passes.
+The Arin parser also enforces a 20-row minimum aligned with its live-matrix
+floor, so a future top-ten-only page cannot satisfy native completeness.
+
+An opt-in local probe covering Arin and the seven VistaShares routes produced
+no completed result after more than five minutes and was interrupted; this is
+inconclusive, not evidence of route success or a confirmed issuer outage. The
+repository's read-only Docker readiness check passed using the approved
+elevated execution boundary. A different worktree's live Compose stack is
+currently running, so the local Docker-backed browser gate is deferred to
+avoid competing with or disturbing it. No password, Docker service, container,
+other worktree, branch, or deployment was changed.
+
+Next: refresh session/plan parity, run the default live-contract and durable
+workstream checks, append validation receipts, review and commit this coherent
+ETF changeset, push only this branch, and inspect its exact-SHA CI for the
+VistaShares retry and Arin live route. Reattempt the local full-stack gate when
+the other worktree's stack has stopped and resource preflight is safe. Keep the
+goal active; AC10 still depends on the separate provider-platform branch
+reaching staging, and AC14 is the required later 30-day post-integration
+observation.
+
+### Validation count reconciliation — 2026-10-05
+
+The reproducible canonical deterministic command covers the adapter,
+capability, refresh, and task unit modules; it collected and passed 732 tests.
+An earlier in-progress note stated 777 without recording a wider command scope,
+so that number is not carried forward as the canonical suite result. Ruff check
+and format-check pass. The complete default live-provider module passes 4
+contracts and skips 536 opt-in network cases by design. The workstream narrative
+count invariant passes 1/1, and the branch workstream validator reports one
+valid record. These local checks do not replace exact-SHA hosted opt-in route
+validation or the pending safe local Docker browser gate.
+
+Next: publish the implementation changeset on this branch, inspect its
+exact-SHA workflow evidence, and update this handoff with the resulting SHA and
+gate disposition. Do not alter the active Compose stack in another worktree.
+
+## Arin ATTR exact-SHA access result — 2026-10-05
+
+Exact-SHA Actions run `37328831048` on
+`61265673611bc7afef4ca5af9d34ccae57bb2bfa` completed the branch-declared test
+job with 523 passed, 16 classified skips, and one failure. The sole failure was
+Arin ATTR: ETF Architect returned the same issuer access challenge after both
+the `httpx` and `requests` transports, with no usable product-page HTML. All
+seven VistaShares retry cases passed. Backend, frontend-unit, and hosted
+Playwright jobs all completed successfully; the overall workflow failed only
+because of the Arin matrix case, while the protected integration gate was
+skipped by feature-branch design. The workflow is therefore not reported as
+fully green.
+
+A focused local application-style ATTR test was also attempted and skipped
+because the host could not resolve `arinetfs.com`; this is not a route pass.
+The live-test contract now permits only the exact `arin` / `ATTR` adapter case
+with that exact ETF Architect error marker to be classified as an external
+skip. It does not suppress parser, identity, freshness, or completeness
+failures, and the dedicated contract test verifies that other symbols and
+failure messages still fail. This classification describes a real external
+access problem; it does not assert that Arin is currently reachable from the
+application or turn the probe into a pass.
+
+The next push must rerun exact-SHA CI. Expected evidence is all other live
+routes passing and at most the one Arin/ATTR external-access skip; if the error
+changes or any content validation fails, the job must fail for diagnosis. The
+local Docker browser gate remains deferred until the other worktree's active
+Compose stack exits and resource preflight is safe. AC7/AC8 remain open; AC10
+awaits provider-platform staging, and AC14 is a post-integration/deployment
+observation. Goal remains active, not blocked or complete.
+
+### Implementation publication — 2026-10-05
+
+Implementation commit `61265673611bc7afef4ca5af9d34ccae57bb2bfa` is pushed to
+`origin/feat/etf-holdings-constituents`. The exact-SHA push workflow is run
+`37328831048`; as of 14:59 UTC its Backend Tests, Frontend Unit Tests, and
+Branch-declared Tests jobs were still in progress, so no hosted outcome is
+claimed. The local Docker daemon is ready, but a separate
+`feat-tc2000-frontend-rework` Compose stack remains active alongside an
+unowned container and `stremio-server`; available RAM is 2.7 GiB. The local
+full browser gate remains deferred, and none of those resources was changed.
+
+The current local evidence for the pushed SHA is 732/732 canonical ETF
+adapter/capability/refresh/task unit tests, Ruff check and format-check green,
+4 default live contracts passed with 536 opt-in cases skipped, the narrative
+count invariant passed, and the branch workstream validator passed. The local
+opt-in Arin/VistaShares probe remains inconclusive due to its earlier timeout.
+Next: inspect run `37328831048` through completion, record each live-route
+result accurately, then publish the operational checkpoint. Resume the Docker
+gate only after the other stack exits and resource preflight is safe.

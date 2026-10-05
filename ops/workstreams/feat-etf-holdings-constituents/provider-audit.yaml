@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 422
 current_fallback_count: 74
-generated_at: 2026-10-05T14:53:02Z
+generated_at: 2026-10-05T15:20:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the exhaustive ledger for the 140-provider baseline fallback population. starting_status preserves its original queue classification; current_status, disposition, and attempt_history reflect later issuer-specific evidence. Every fallback-only disposition must retain dated external issuer evidence; native promotion additionally requires a complete executable provider-owned route, identity mapping, parser coverage, and bounded live proof. SEC or aggregator-derived data never silently establishes current native support."
@@ -2565,9 +2565,17 @@ providers:
         source: "https://arinetfs.com/"
         result: "A bounded direct GET returned HTTP 200 text/html. The production ETF Architect parser extracted all 26 ATTR holdings rows dated 2026-10-05, with rounded weights summing to 100.01%; equity, fund, option, and cash rows were retained/classified. The official page identifies ETF Architect as adviser/publisher and Arin Risk Advisors as sub-adviser. The opt-in application adapter test later skipped on local DNS failure, so hosted exact-SHA live confirmation remains pending."
         evidence_ref: "live:arin-attr-official-page-complete-26-rows-2026-10-05"
+      - date: 2026-10-05
+        source: "application-equivalent ATTR live probe on local host"
+        result: "The bounded adapter test skipped because the host could not resolve arinetfs.com (Temporary failure in name resolution); this did not verify application-route execution."
+        evidence_ref: "live:arin-attr-application-dns-failure-2026-10-05"
+      - date: 2026-10-05
+        source: "GitHub Actions run 37328831048 at implementation SHA 61265673611bc7afef4ca5af9d34ccae57bb2bfa"
+        result: "The opt-in adapter case failed with the exact ETF Architect access-challenge message after both httpx and requests transports returned no usable product-page HTML. This is an external access failure, not a successful route fetch; the live test contract now permits only this exact Arin/ATTR variant to be explicitly skipped."
+        evidence_ref: "live:arin-attr-hosted-exact-sha-challenge-2026-10-05"
     disposition_reason: "arin: The official ATTR page published through ETF Architect exposed a complete, identity-bound holdings table dated 2026-10-05 and was fetched directly as HTTP 200 HTML; the dedicated adapter strictly maps ATTR, requires at least 20 complete rows, validates the effective date, and preserves option/cash classifications. Arin Risk Advisors is explicitly recorded as sub-adviser, not the page publisher."
-    next_action: "arin: Retain native status only while the official ATTR page remains directly fetchable, identity-bound, complete, and dated; confirm the application-equivalent bounded live adapter case on exact-SHA CI and re-audit on transport/schema drift."
-    implementation_sha: null
+    next_action: "arin: Keep the external-access exception narrowly scoped to ATTR and the exact observed ETF Architect challenge; do not count a skip as route execution. Re-run the application-equivalent live case when the issuer edge is accessible, and remove/revise the exception if the error changes or identity, date, schema, or completeness validation fails."
+    implementation_sha: 61265673611bc7afef4ca5af9d34ccae57bb2bfa
     validation_refs:
       - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_arin_adapter_parses_identity_bound_effective_dated_holdings"
       - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[arin-ATTR-None-identifiers1-20]"
@@ -8323,7 +8331,7 @@ providers:
         evidence_ref: "ci:37320874525-vistashares-product-page-identity-failure; web:vistashares-official-product-pages-current-2026-10-05"
     disposition_reason: "vistashares: Prior exact live evidence (2026-09-25) validated all seven complete CSV routes, while the 2026-10-05 hosted probe returned non-identity HTTP 200 page bodies for all seven before CSV retrieval. Native code remains implemented but current operational reachability is under revalidation; browser-visible summaries are not treated as route passes."
     next_action: "vistashares: Confirm the bounded alternate-client retry on the exact official product URLs. Keep native only if the page identity/form/count and complete current account-matched dated CSV pass; treat a recognized WAF challenge as an external access disposition and fail on unexplained identity/schema drift."
-    implementation_sha: null
+    implementation_sha: 61265673611bc7afef4ca5af9d34ccae57bb2bfa
     validation_refs:
       - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_vistashares_adapter_parses_declared_complete_holdings_csv"
       - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"

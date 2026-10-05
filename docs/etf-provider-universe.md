@@ -2399,6 +2399,22 @@ fallback-only providers; runtime fallback statuses are 8 issuer-access-blocked,
 56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.
 
+## Arin ATTR exact-SHA access result — 2026-10-05
+
+The bounded direct-page observation on 2026-10-05 parsed 26 dated ATTR rows,
+but subsequent application-equivalent validation did not complete: the local
+host could not resolve `arinetfs.com`, and exact-SHA Actions run `37328831048`
+received ETF Architect's access challenge after both configured HTTP
+transports. That Actions matrix had 523 passes, 16 classified skips, and this
+single Arin failure; the seven VistaShares routes passed. Backend, frontend,
+and hosted Playwright jobs passed; the overall workflow failed only on the
+Arin matrix case and the protected integration gate was skipped by design. The test contract now
+recognizes only this exact `arin` / `ATTR` challenge as an external-access
+skip. It remains a documented skip—not a successful live route—and no parser,
+identity, effective-date, or completeness failure is excused. Provider counts
+remain 496 registered / 422 native-live-backed / 74 fallback-only pending a
+fresh exact-SHA run.
+
 ## Current audit checkpoint — Arin ATTR route and VistaShares CI recheck — 2026-10-05
 
 A bounded direct request to Arin's official ATTR page returned HTTP 200 HTML
@@ -2408,9 +2424,14 @@ fund, option, and cash positions were retained/classified. The dedicated Arin
 adapter is limited to ATTR, validates the fund identity and effective date,
 and records ETF Architect as page publisher with Arin Risk Advisors as
 sub-adviser. The app-level live probe skipped on local DNS failure, so that
-skip is not recorded as a route pass; hosted exact-SHA validation remains
-pending. The adapter also requires at least 20 complete rows, matching the
-bounded live-test floor and guarding against a future top-ten-only page variant.
+skip is not recorded as a route pass. Subsequent exact-SHA run `37328831048`
+completed with this Arin case as its only provider-matrix failure after both
+HTTP transports received the same issuer challenge; backend, frontend, and
+hosted Playwright passed. The protected integration gate was skipped by design.
+The adapter also requires at least 20 complete rows, matching the bounded
+live-test floor and guarding against a future top-ten-only page variant. A
+narrow exact-message skip contract has since been added for this Arin/ATTR
+challenge and remains pending exact-SHA revalidation; it is not a route pass.
 
 Exact-SHA run `37320874525` passed Backend Tests and Frontend Unit Tests but
 failed all seven VistaShares live product cases before fetching CSV because

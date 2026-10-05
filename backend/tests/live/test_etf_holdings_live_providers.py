@@ -461,6 +461,7 @@ _NON_NETWORK_CONTRACT_TESTS = {
     "test_live_backed_providers_each_have_a_concrete_live_route_test",
     "test_donoghue_forlines_access_variant_skip_is_scoped_to_dftt",
     "test_vistashares_access_challenge_skip_is_narrow",
+    "test_arin_attr_access_challenge_skip_is_narrow",
 }
 
 
@@ -659,6 +660,10 @@ _KNOWN_ISSUER_LIVE_VARIANT_MARKERS = {
         "QVAL",
     ): "etf architect issuer access challenge persisted after the httpx request was denied and requests returned no usable product-page html.",
     (
+        "arin",
+        "ATTR",
+    ): "etf architect issuer access challenge persisted after the httpx request was denied and requests returned no usable product-page html.",
+    (
         "mcelhenny_sheffield",
         "MSMR",
     ): "mcelhenny sheffield msmr holdings date is in the future.",
@@ -719,6 +724,17 @@ def test_etf_architect_qval_access_challenge_skip_is_narrow():
     assert _is_known_issuer_live_variant("etf_architect", "QVAL", access_challenge)
     assert not _is_known_issuer_live_variant("etf_architect", "QVAL", "no parseable holdings rows")
     assert not _is_known_issuer_live_variant("etf_architect", "OTHER", access_challenge)
+
+
+def test_arin_attr_access_challenge_skip_is_narrow():
+    access_challenge = (
+        "ETF Architect issuer access challenge persisted after the httpx request was denied "
+        "and requests returned no usable product-page HTML."
+    )
+    assert _is_known_issuer_live_variant("arin", "ATTR", access_challenge)
+    assert not _is_known_issuer_live_variant("arin", "ATTR", "no parseable holdings rows")
+    assert not _is_known_issuer_live_variant("arin", "OTHER", access_challenge)
+    assert not _is_known_issuer_live_variant("etf_architect", "QVAL", "no parseable holdings rows")
 
 
 def test_live_provider_matrix_covers_every_registered_issuer_adapter():

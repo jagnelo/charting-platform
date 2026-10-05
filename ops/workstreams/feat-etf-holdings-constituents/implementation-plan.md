@@ -3877,7 +3877,33 @@ inconclusive. Docker readiness passed via the approved elevated boundary, but
 the local browser gate is deferred while another worktree's Compose stack is
 active. No Docker resources or other worktree were changed.
 
+## Published implementation checkpoint — 2026-10-05
+
+Implementation SHA `61265673611bc7afef4ca5af9d34ccae57bb2bfa` is pushed to
+`origin/feat-etf-holdings-constituents`. Its exact-SHA push run
+`37328831048` completed: Backend Tests, Frontend Unit Tests, and hosted
+Playwright passed; Branch-declared Tests failed only the Arin ATTR access
+challenge, and the protected integration gate was skipped by feature-branch
+design. Local deterministic, default-live, Ruff, formatter,
+workstream-validator, and narrative-invariant outcomes are recorded in the
+handoff. The local full Docker gate is deferred while the other worktree's
+Compose stack remains active at 2.7 GiB available RAM; do not touch that stack.
+
 Next validation: refresh session and workstream plan-hash parity, run default
 live contracts and workstream invariants, commit and push this worktree-only
 changeset, inspect exact-SHA CI, then resume the Docker browser gate after the
 other stack exits. AC10 and AC14 remain as described in the acceptance plan.
+
+### 2026-10-05 follow-up: Arin ATTR hosted access challenge
+
+The exact-SHA provider matrix on implementation SHA
+`61265673611bc7afef4ca5af9d34ccae57bb2bfa` found one new external boundary:
+the ETF Architect page for Arin ATTR returned its challenge after both adapter
+transports. This follows earlier dated evidence that the public page itself
+contains a complete, identity-bound holdings table, but the application-style
+route has not yet passed end to end. The local opt-in probe was DNS-skipped.
+Accordingly, the live test records only the exact Arin/ATTR challenge as an
+external skip; this is not a live pass and does not assert current application
+reachability. Identity, date, row-count, and row-completeness failures remain
+hard failures. The rerun on the next exact SHA must confirm this precise
+classification and keep every unrelated case green.
