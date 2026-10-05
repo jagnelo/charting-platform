@@ -36,6 +36,13 @@ push are verified at the same SHA. Exact-tip browser/integration checks remain
 partially complete: functional and visual browser results are above, while the
 generic backend/migration gate and enabled 10k performance fixture remain open.
 
+The latest direct refs are TC workstream tip `39daeffcd660ec805ed2111ac8f363aa65b57458`,
+staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`4e5f24135869c361645683ac93690761e1efdaaf`. Provider-platform and ETF remain
+outside staging; their integration and shared-path reconciliation are still
+deferred.
+
 ## 2026-10-05 — Complete isolated workstation performance matrix
 
 At pushed branch checkpoint `0811a098d5c75839a071c6d6d54d0ce5463b034f`
