@@ -38,7 +38,7 @@ current_blocker: >-
   or policy changed. Last refreshed direct refs: staging
   `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
   `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
-  `37d32c633b4633bfaebb1259c44374fd107b79ae`; provider and ETF remain outside
+  `16f181c798bc067b0e623e6445c03319d6664ad9`; provider and ETF remain outside
   staging, so defer R2/R3 and shared-path reconciliation until both arrive.
   `make validate-integration` still encounters the host's missing Docker
   Buildx helper; ordinary serial Compose successfully builds the assigned
@@ -302,7 +302,7 @@ progress:
     remains 94/104 with ten screenshot-only differences and no oracle/policy
     changes. Staging is 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider
     88132e9145a08d1c935a0111b3dba0fbd88bdff1, ETF
-    37d32c633b4633bfaebb1259c44374fd107b79ae; neither upstream dependency is
+    16f181c798bc067b0e623e6445c03319d6664ad9; neither upstream dependency is
     in staging. The standard helper still lacks host Buildx; ordinary Compose
     builds and runs the assigned browser stack.
 historical_implementation_records:

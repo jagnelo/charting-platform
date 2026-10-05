@@ -1,5 +1,16 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Direct dependency ref refresh
+
+Read-only GitHub refs refreshed after the retry checkpoint: TC
+`7639200365fc7d93bfe5ee91f7cb6200ce393d8f`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`16f181c798bc067b0e623e6445c03319d6664ad9`. Staging did not advance, and
+neither upstream feature ref equals the staging ref; provider and ETF consumer
+integration/shared-path reconciliation remain deferred. No other worktree or
+branch was changed.
+
 ## 2026-10-05 — Clean-volume functional retry and focused replays
 
 At product source `7f586db35c0ce9425cda07bcd67832517612ada2`, a second full
