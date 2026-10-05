@@ -2,15 +2,14 @@
 
 ## 2026-10-05 — Exact branch-tip backend test refresh
 
-At branch checkpoint `8b9046b54c03e4c270d317989f95625b3adba363`, backend unit
-tests passed `1622/1622` and integration tests passed `409/409` without
-coverage instrumentation. Testcontainers cleanup left no labeled containers;
-the assigned six services and four labeled volumes remained intact. The
-coverage-instrumented current-tip unit retry ended at process code 152 without
-a pytest summary and is inconclusive. The prior complete combined coverage
-receipt is `82.26%` at `1d52ab41372b6cbf12efdf8d533e00e858b4966f`; backend
-application and migration code are unchanged since, and the sole later backend
-path change is a test that passed in the current unit run.
+At branch checkpoint `d6bd60d15f22b630b9f661fb566837d0c1110674`, the exact
+current backend unit and integration suites passed with coverage enabled using
+Python 3.12's `sys.monitoring` core: `1622/1622` unit tests, `409/409`
+integration tests, and `82.26%` combined app coverage (above the configured
+75% threshold). This resolves the current-tip coverage uncertainty. The
+earlier code-152 retry without a pytest summary remains raw diagnostic history.
+No Testcontainers-labeled containers remained after the run; all six assigned
+services and four labeled volumes remained intact.
 
 The complete unit suite was rechecked at documentation checkpoint
 `5812ba46af827eb5b9f6bdfa406d53f30e65190c` and again passed `1622/1622`.
@@ -19,10 +18,11 @@ Diagnostic coverage sharding isolated an order-sensitive ETF-owned test:
 because the expected `HOLDING-*` placeholder instead resolved as `TXN`. The
 complete suite passes; no ETF implementation or test was changed here.
 
-The generic integration gate remains open because Docker Buildx is unavailable
-and the standard cleanup path risks assigned volumes. Preserve all ten visual
-oracles. Provider/ETF integration remains deferred until both branches reach
-staging.
+The generic full-stack/browser gate remains open because Docker Buildx is
+unavailable and the standard cleanup path risks assigned volumes. Run remaining
+Compose/browser stages in an isolated project with exact-project cleanup.
+Preserve all ten visual oracles. Provider/ETF integration remains deferred
+until both branches reach staging.
 
 ## 2026-10-05 — Exact-product-tip dense workstation performance
 
@@ -17776,6 +17776,30 @@ Changed ops files in this checkpoint:
 - ops/workstreams/feat-tc2000-frontend-rework/handoff.md
 - ops/workstreams/feat-tc2000-frontend-rework/session.json
 - ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl
+
+## 2026-10-05 — Exact-product-tip browser and visual refresh
+
+At product source `f0e946000e15336d972f33f24520d72b06e5cf7e`, the corrected
+seeded authenticated Playwright functional run completed `175/177`, with two
+documented skips and zero failures. The four-profile visual suite in
+`mcr.microsoft.com/playwright:v1.62.1-noble` completed `94/104`. The ten
+screenshot-only differences match the established protected set: workspace-
+floating at all four profiles, Study structured-result at all four, and Study
+sandbox-error at the two 1080p profiles. All preceding state/interaction
+assertions passed. No reference, mask, threshold, skip, or acceptance policy
+changed.
+
+The host-only full visual attempt showed broad glyph drift because its Arial
+fallback is Nimbus Sans; the repository-pinned Noble image resolves Arial to
+Liberation Sans. The focused default-shell comparison passed `1/1` in the
+pinned image, and its complete suite reproduced the previous `94/104`. A
+disposable exact-project Compose stack supplied seeded data; cleanup removed
+only that project's six containers, four fixture volumes, network, and four
+generated images. Post-cleanup inventory found none of those resources, while
+the assigned TC stack's six services and four volumes remained intact. The
+generic integration target is still open: Buildx is unavailable and its
+cleanup trap targets the assigned stack. Complete remaining integration stages
+using scoped commands; keep all ten screenshot oracles unchanged.
 
 ## 2026-10-05 — Manual narrow Python Library diagnostic
 

@@ -5,19 +5,40 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-05
 
+## 2026-10-05 — Exact-product-tip seeded browser refresh
+
+At product source `f0e946000e15336d972f33f24520d72b06e5cf7e`, the corrected
+seeded authenticated Playwright functional suite passed `175/177`, with two
+documented skips and zero failures. The full four-profile visual suite ran in
+the repository-pinned `mcr.microsoft.com/playwright:v1.62.1-noble` image and
+completed `94/104`. The ten failures are the existing screenshot-only
+differences: workspace-floating across all profiles, Study structured-result
+across all profiles, and Study sandbox-error at both 1080p profiles. Their
+state and interaction assertions passed. No reference, mask, threshold, skip,
+or acceptance policy changed.
+
+A host-rendered visual diagnostic produced broad glyph diffs because host Arial
+resolves to Nimbus Sans while the pinned Noble image resolves to Liberation
+Sans. One focused default-shell comparison passed `1/1` in the pinned image,
+and the full pinned run reproduced the previous `94/104`; treat the host result
+as environment-only. The isolated Compose project was removed by exact project
+name after verification. Its six containers, four fixture volumes, network,
+and four generated images were removed; the assigned six-service stack and
+four volumes were preserved. The generic integration target remains open
+because its Buildx/cleanup setup cannot safely target the assigned stack; close
+remaining independent gate stages with scoped commands.
+
 ## 2026-10-05 — Exact branch-tip backend test refresh
 
-At branch checkpoint `8b9046b54c03e4c270d317989f95625b3adba363`, the backend
-unit suite passed `1622/1622` and integration suite passed `409/409` without
-coverage instrumentation. The integration run's Testcontainers resources were
-cleaned up; inventory confirmed the assigned six-service stack and four
-worktree volumes remained intact. The current coverage-instrumented unit retry
-ended at process code 152 without a pytest summary, so it is inconclusive. The
-last complete combined unit/integration coverage receipt remains `82.26%` at
-`1d52ab41372b6cbf12efdf8d533e00e858b4966f`. Since that checkpoint, no backend
-application or migration files changed; the only backend path change is a
-breadth test that passed in the current unit run. Do not describe the prior
-coverage figure as a current-tip instrumented result.
+At branch checkpoint `d6bd60d15f22b630b9f661fb566837d0c1110674`, the exact
+current backend unit and integration suites passed with coverage enabled using
+Python 3.12's `sys.monitoring` coverage core: `1622/1622` unit tests,
+`409/409` integration tests, and `82.26%` combined app coverage (the configured
+threshold is 75%). This resolves the current-tip coverage uncertainty. The
+earlier coverage run that exited 152 without a pytest summary is retained as
+raw history, not as the current result. After integration tests, no
+Testcontainers-labeled containers remained; all six assigned services and
+four worktree volumes were intact.
 
 The complete unit suite was rechecked at documentation checkpoint
 `5812ba46af827eb5b9f6bdfa406d53f30e65190c` and again passed `1622/1622`.
@@ -26,10 +47,12 @@ Diagnostic coverage sharding isolated an order-sensitive ETF-owned test:
 because a case expecting a `HOLDING-*` placeholder instead resolved `TXN`. The
 complete unit suite passes; no ETF implementation or test was changed in TC.
 
-The current generic integration gate remains open because Docker Buildx is
+The generic full-stack/browser gate remains open because Docker Buildx is
 unavailable and the standard helper's cleanup path is unsafe for the assigned
-stack. The ten protected visual differences remain unchanged. Provider and ETF
-consumer work remains deferred until both branches reach staging.
+stack. Continue remaining Compose/browser stages in an isolated project and
+clean only resources identified with that exact project. The ten protected
+visual differences remain unchanged. Provider and ETF consumer work remains
+deferred until both branches reach staging.
 
 ## 2026-10-05 — Exact-product-tip dense workstation performance
 
