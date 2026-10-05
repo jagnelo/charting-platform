@@ -11327,3 +11327,50 @@ hash, the existing goal is active, and the required session checkpoint passed
 at that synchronized tip. The session helper's known first-path truncation in
 `dirty_paths` was corrected in `session.json` before this operational
 checkpoint.
+
+## 2026-10-05 - Authenticated processed-history composition
+
+Commit `14332ca777c772ca4b72845e17a6e4e9f31de632` is pushed to
+`origin/feat/strategy-lab-v2`. It adds an owner-bound canonical processed-prefix
+resolver and composes that exact pre-event suffix with the bounded frozen
+warm-up window. The composer joins only source-verified canonical identities,
+never treats dependency-local frozen-tape sequence values as the canonical
+global sequence, trims after joining to each dependency's declared
+`lookback + 1`, and records the snapshot, tape/source artifacts, processed
+prefix, checkpoint, and exact incoming-event fingerprints in the history.
+Checkpoint validation now classifies warm-up rows by their explicit verified
+IDs, not by a sequence-number heuristic; an empty warm-up can no longer make an
+unprocessed sequence-zero event appear valid.
+
+Validation: focused forward-history/session suite 30/30; full Strategy Lab
+package 1,449 passed and its one sandbox-denied Unix-socket test passed on an
+exact scoped-permission retry (1,450 total); package Ruff, changed-file Ruff
+format, focused MyPy over four production modules, and `git diff --check` all
+passed. Exact local `origin/feat/strategy-lab-v2` and implementation commit
+hashes matched after push.
+
+This supplies the composable history contract, not its platform-owned database
+readers or the live runtime. Still code-owned: implement and wire the concrete
+owner-scoped canonical history readers; resolve all component histories into
+one shared-account persistent Nautilus session; persist native outputs and
+checkpoint receipts before Redis ACK; and restore/replay deterministically
+after process loss. Final full-stack acceptance remains Docker-gated (Buildx is
+missing in the default environment and the sandbox cannot access the Docker
+socket). Provider/ETF/TC2000 contract consumption remains gated only on those
+workstreams reaching staging; neither condition blocks package-owned work.
+Stable Nautilus 2.x is not a gate: exact RC5 has the recorded five-scope
+qualification, while newer RC6 would require its own qualification before
+changing the pin.
+
+Changed paths: `backend/app/strategy_lab_v2/forward_processed_prefix.py`,
+`backend/app/strategy_lab_v2/forward_history_resolution.py`,
+`backend/app/strategy_lab_v2/forward_context.py`,
+`backend/app/strategy_lab_v2/nautilus_forward_session.py`, and the three
+matching forward-history tests. The operational checkpoint also updates
+`ops/workstreams/feat-strategy-lab-v2/session.json`, `handoff.md`, and
+`validation.jsonl`.
+
+Next implementation context: build an authenticated portfolio-wide context
+resolver and native persistent-session boundary that keeps one Nautilus node
+and shared account for every strategy component, then implement durable native
+state/output restoration and crash replay before acknowledging dispatch.
