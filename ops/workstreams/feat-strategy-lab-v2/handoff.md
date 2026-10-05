@@ -9942,3 +9942,73 @@ Next: continue the remaining domain/API lifecycle audit and add the next
 owner-scoped persistence composition regression, prioritizing mutation/read
 behavior across other normalized domain resource types before advancing the
 remaining metrics and forward-correctness gaps.
+
+## 2026-10-05 - Native session metric intervals reach worker terminal
+
+The native session-interval path is wired through the frozen runtime bundle,
+calendar-aware Nautilus callbacks, runner result parsing, OOS materialization,
+and worker-terminal artifact publication. A new worker-terminal regression
+proves that session intervals are included in the result, published as a
+content-addressed artifact, and cited by session-distribution metrics. Its
+calendar intentionally has one missing close: resulting session metrics remain
+null instead of bridging the gap. The regression uses deterministic native
+callback observations; it does not claim a live Nautilus process or Docker
+Compose run. This supersedes the older remaining-gap sentence saying the
+ordinary result path lacked a native session-interval producer.
+
+Commit `0fb50ddd05cd14f10a0586de4a74830b80ac2140` contains the regression.
+All six worker-terminal tests passed; Ruff check/format, focused MyPy, and
+`git diff --check` passed. The implementation commit was pushed to
+`origin/feat/strategy-lab-v2`.
+
+There is no stable Nautilus 2.x wait gate. As checked on 2026-10-05, the
+[official release list](https://github.com/nautechsystems/nautilus_trader/releases)
+shows `2.0.0rc5` as the latest 2.x release, and its official
+[installation guidance](https://github.com/nautechsystems/nautilus_trader/blob/develop/docs/getting_started/installation.md)
+still identifies 2.x as `2.0.0rcN` pre-releases. This branch pins RC5 and its
+four backtest checks permit appropriately qualified local backtests; stable
+labeling is not required. RC5 cannot connect to a broker or control real
+capital, and full forward-shadow authority still requires event-tape parity.
+The saved goal description exposed by `get_goal` still contains an older
+stable-only clause; the branch-owned `plan.yaml` is the current source of truth
+and explicitly permits exact-pinned release candidates after scope conformance.
+
+Remaining hard gates are unchanged: shared provider/ETF/TC2000 paths wait for
+their owner branches to reach staging and undergo exact reconciliation, and
+the final full Compose/browser profile remains host-limited by absent Docker
+Buildx and denied Docker-socket access. Neither prevents continued work in
+package-owned paths.
+
+Next: continue domain/API mutation lifecycles and forward-correctness work;
+separately retain the final native-image/Compose acceptance gates without
+waiting for a stable-release label.
+
+## 2026-10-05 - Durable package resource survives persistence reconstruction
+
+The owner-scoped durable-resource composition regression now follows the
+strategy creation with a typed package that references that strategy's
+persisted domain fingerprint. After reconstructing the application adapter over
+the same PostgreSQL-session state, the test verifies the package resource and
+typed `StrategyPackage` rehydration, exact idempotent replay without additional
+writes, and owner isolation. This is deterministic SQL-session test evidence,
+not a live PostgreSQL integration claim.
+
+Commit `a89b762bb45f54665e5d1d5fd06e202e4edb2d2b` contains the regression. Its
+focused test passed, as did Ruff check/format, focused MyPy, and
+`git diff --check`; the source commit is pushed to
+`origin/feat/strategy-lab-v2`.
+
+There is still no blocker to package-owned development. Exact-pinned Nautilus
+RC5 remains qualified for local backtests after its four scope checks; the
+stable-only sentence in the saved goal description is stale against the
+branch-owned scope and AC-NAUTILUS. Shared provider, ETF, and TC2000 contracts
+remain gated on their owner branches reaching staging. The full Compose/browser
+profile is currently unavailable because Docker Buildx is absent. The daemon
+itself responds as Docker 29.1.3 under scoped host-level execution; the
+unprivileged shell cannot access its socket. Event-tape parity gates only full
+broker-free forward shadow, not backtests or this ongoing backend work.
+
+Next: extend durable persistence composition coverage across portfolio,
+snapshot, experiment, and trial dependencies, then continue forward event-tape
+parity and worker correctness. Do not wait for a stable Nautilus label or edit
+the upstream-owned shared paths before staging reconciliation.
