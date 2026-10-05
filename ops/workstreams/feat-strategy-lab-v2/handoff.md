@@ -10600,38 +10600,62 @@ production modules, additive Alembic-head validation (`ff5a6b7c8d9e` is the
 single head), and `git diff --check` passed. Worktree-scoped Docker cleanup
 found no retained containers, images, volumes, or Testcontainers sessions.
 
-## In progress - Nautilus OOS event exposure metrics v17
+## 2026-10-05 - Native OOS event exposure metrics v17
 
-Context intent: promote existing lower-level gross/net exposure calculations
-into official local Nautilus OOS results using exact event-time account exposure
-captured beside verified equity/cash marks. Publish event-weighted average and
-maximum gross/net exposure-to-equity values with trace-bound provenance. Do not
-infer margin or leverage, and represent any unsupported exposure sample as
-unavailable instead of silently dropping it.
+Implemented and pushed in `973f9c6e3f0571471c0ef9e7873b710895405388`.
+The native account trace is now v2 and records gross and signed-net base
+exposure from Nautilus's native portfolio valuation on the same canonical
+pre-strategy event mark as equity/cash. A missing exposure pair is preserved as
+unavailable; zero equity or any missing mark withholds the complete exposure
+metric family with explicit null reasons. Metric definition v17 publishes
+event-weighted average/max gross and signed-net exposure-to-equity ratios,
+bound to the observation and verified trace digests. No margin, leverage,
+buying power, or profitability verdict is inferred.
 
 Owned implementation paths: `backend/app/strategy_lab_v2/nautilus_equity_trace.py`,
 `nautilus_strategy_bridge.py`, `observations.py`, `metrics.py`,
 `nautilus_result_materialization.py`, and `nautilus_result_metrics.py`; focused
 tests `test_nautilus_equity_trace.py`, `test_nautilus_strategy_bridge.py`,
 `test_observations.py`, `test_metrics.py`, `test_nautilus_result_metrics.py`,
-and `test_result_materialization.py`; plus `docs/strategy-lab-v2.md` and this
-workstream. No provider, ETF, TC2000, shared API registration, or other-worktree
-paths are in scope.
+and `test_result_materialization.py`. The exact RC runtime allowlist was also
+reconciled: its image now explicitly includes session-equity and frozen
+calendar-wire modules already required by the adapter/CLI. Static image-boundary
+tests prevent those dependencies from silently disappearing again. No provider,
+ETF, TC2000, shared API registration, or other-worktree paths changed.
 
-There is no external dependency blocking this package-owned backtest metric
-work. Exact-pinned Nautilus 2.0.0rc5 remains eligible for authoritative local
-backtests after four checks; stable release labeling is not a gate. Forward-
-shadow authority requires the fifth event-tape-parity check. Missing Docker
-Buildx limits final Compose/browser acceptance only; it does not limit focused
-worker/runtime or database validation. Shared provider, ETF, and TC2000
-contracts are gated only at eventual shared-path integration. Options admission
-remains fail-closed pending canonical Greeks/delta and settlement evidence.
+Validation: 87 focused trace/metric/materialization tests and 41 bridge/runtime
+adapter tests passed; the full Strategy Lab plus schema-migration suite passed
+1,391 tests. Ruff check/format, targeted MyPy across six production modules,
+and `git diff --check` passed. The exact source-built RC5 runtime and fixture
+probes passed all four local backtest conformance checks; source digest
+`sha256:2f5ed0747f936adfad8ca85fa691ab2c53d3478270d77e26678c0e5d3fc70d1c`,
+image digest
+`sha256:c150aa4ed2fd075afe16afb3fcec6f7516cd7a43bc691d4f302091bbcf91f3bf`,
+artifact digest
+`sha256:6d52cf46897bb4e10a854d60bbb2d979dc99a4e30696bf004cfc862555ef3107`,
+and conformance fingerprint
+`sha256:ad38b38cd526a24afac9d5f1e1d29c440a38a479cf1ab001bf5e63e2ae7de317`.
+The pushed implementation commit is `973f9c6e3f0571471c0ef9e7873b710895405388`.
 
-Exact next action: version the native OOS trace exposure fields, capture native
-gross/net signed base exposure at the existing canonical event callback, and
-wire trace-verified exposure observations into metric definition v17 and the
-official OOS MetricSet. Then run trace/bridge/metric/materialization tests, the
-full Strategy Lab suite, and the Nautilus RC5 fixture probe; commit and push this
-changeset before selecting another context. Preserve the full goal and stop at
+No external dependency blocks further package-owned work. The current branch is
+explicitly allowed to use exact-pinned release-candidate Nautilus v2 for local
+backtests after the four checks; stable labeling is not a prerequisite. The
+newer upstream RC6 is an optional deliberate requalification, not a reason to
+wait or a requirement to replace the currently qualified pin. Forward-shadow
+authority still requires event-tape parity. Missing Docker Buildx limits only
+final Compose/browser acceptance. Shared provider, ETF, and TC2000 contracts
+remain staging-gated at shared paths; options admission remains fail-closed
+pending canonical Greeks/delta and settlement evidence.
+
+## Next context - forward event-tape parity audit
+
+Audit the forward-shadow event-tape parity contract against the native runtime
+adapter, canonical Redis stream, persisted warm-up cursor, and correction/replay
+records. Record the exact missing parity invariant before implementing the next
+branch-owned slice. Preserve this feature worktree boundary and stop at
 `ready_for_human_review`; do not integrate, promote, deploy, activate a live
 shadow, or modify another worktree.
+
+Checkpoint records updated with this slice: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`,
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`, and this handoff.
