@@ -87,30 +87,13 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+    "ackend/app/strategy_lab_v2/nautilus_runtime_protocol.py",
+    "backend/app/strategy_lab_v2/nautilus_runtime_ipc.py",
+    "backend/app/strategy_lab_v2/tests/test_nautilus_runtime_ipc.py"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-strategy-lab-v2-7794d9e5",
-      "charting-stack-feat-strategy-lab-v2-7794d9e5"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -126,10 +109,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "aa74c797c99ed55b270ca688040d22e766018ee2",
+  "head": "13c7c00dd82e4012ff3904d6b675b982130c0b66",
   "implementation_sha": "204efd3451463b09df6fee280e190149197f6acc",
   "last_checkpoint": "2026-10-05T14:29:01.861100+00:00",
-  "last_human_progress_update": "2026-10-05T14:28:06.945546+00:00",
+  "last_human_progress_update": "2026-10-05T14:38:18.058955+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -149,12 +132,12 @@
   "progress": {
     "completed": [],
     "current_blocker": "none",
-    "current_phase": "forward-session-supervisor",
-    "next_action": "Implement the hardened RC5 process factory and bounded streaming IPC, then bind exact checkpoint restore to durable canonical event receipts before Redis ACK.",
+    "current_phase": "bounded-forward-runtime-ipc",
+    "next_action": "Connect bounded NDJSON frames to the host persistent Nautilus process client and exact-pinned RC5 runtime server; persist execution outputs and exact checkpoints before Redis ACK, then prove restart replay.",
     "total": 18,
-    "updated_at": "2026-10-05T14:28:06.945528+00:00"
+    "updated_at": "2026-10-05T14:38:18.058927+00:00"
   },
-  "remote": "aa74c797c99ed55b270ca688040d22e766018ee2",
+  "remote": "13c7c00dd82e4012ff3904d6b675b982130c0b66",
   "remote_sha": "204efd3451463b09df6fee280e190149197f6acc",
   "remote_synchronized": true,
   "retained_docker_resources": [],

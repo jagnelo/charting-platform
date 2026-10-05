@@ -11452,3 +11452,35 @@ Docker probe was available and found no worktree-owned containers or volumes.
 The checkpoint helper truncated the leading `o` from the first dirty path in
 its summary; `session.json` was corrected to the exact handoff path before this
 operational record was committed.
+
+## 2026-10-05 - Bounded forward runtime IPC framing
+
+Added the v1 media/schema identifiers and a strict, fingerprinted NDJSON frame
+codec for the isolated Nautilus forward runtime. Frames carry a request identity,
+operation/status, and JSON payload; duplicate keys, unknown fields, unsupported
+values, non-finite numbers, malformed UTF-8/newlines, digest mismatches, and
+oversized frames fail closed. Nested payload data is immutable after parsing.
+Large history/artifact inputs must remain content-addressed references rather
+than being embedded in a frame.
+
+Validation: four focused IPC tests pass; the complete Strategy Lab package
+passes 1,462 tests and schema-migration validation passes 6 tests. Package Ruff,
+focused formatter checks, focused MyPy for both protocol modules, and
+`git diff --check` pass.
+
+This is the bounded transport contract only; it is not yet connected to a host
+process factory or an RC5 runtime server. Still code-owned: implement the
+isolated `--serve-forward` runtime and host process factory, bind authenticated
+delivery/preparation inputs to the frames without copying unbounded history,
+then persist native output and exact checkpoint receipts before Redis ACK and
+prove deterministic restore/replay after process loss. The exact-pinned RC5
+build remains five-check qualified; stable labeling is not a gate, and RC6
+requalification is optional unless the runtime pin changes. Current live
+environment checks found no Docker Buildx plugin and denied access to
+`/var/run/docker.sock`; these block final Compose/browser acceptance only, not
+package-owned implementation. Provider/ETF/TC2000 reconciliation remains
+conditional on those approved workstreams reaching staging.
+
+Next: connect this frame codec to the bounded host-side persistent process
+client and matching RC5 runtime server, then bind it to durable event receipts
+before Redis acknowledgement.
