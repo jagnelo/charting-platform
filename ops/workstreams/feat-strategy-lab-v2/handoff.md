@@ -11653,3 +11653,12 @@ Next: bind the bootstrap artifact path and fingerprint into the fixed CLI
 command, verify the mounted bootstrap plus referenced runtime input/event
 artifacts, and use it to construct one persistent shared-account session.
 Then complete durable output/checkpoint-before-ACK and restart replay.
+
+The existing schema-4 session was synchronized after the plan commit: the saved
+goal is active, the committed plan hash and `full_stack_browser` readiness are
+recorded, and the session progress now names the exact next action above. The
+checkpoint helper omitted the leading `o` from its first dirty path; the
+`session.json` value was corrected against raw `git status`. For this enclosing
+operational checkpoint, `session.json` records the last known synchronized
+source `369beaa9dbbfef9b8ca9e699f59b6c20dc1e8764`; verify the enclosing commit
+and remote equality externally rather than trying to store its own hash.
