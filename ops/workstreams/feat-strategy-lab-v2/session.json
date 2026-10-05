@@ -88,6 +88,7 @@
   },
   "dirty_paths": [
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
@@ -126,14 +127,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "485e2b1c20c80fcaf62cbe491df2edcaf3a35d3a",
+  "head": "ed26dd2ed0d8d618c319e12abdf2983b8f3d00a0",
   "implementation_sha": "485e2b1c20c80fcaf62cbe491df2edcaf3a35d3a",
-  "last_checkpoint": "2026-10-05T06:34:01.139855+00:00",
-  "last_human_progress_update": "2026-10-05T06:33:17.334716+00:00",
+  "last_checkpoint": "2026-10-05T06:43:27.058852+00:00",
+  "last_human_progress_update": "2026-10-05T06:42:41.004265+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Audit the next owner-scoped domain/API mutation flow and implement one durable lifecycle/persistence slice; prioritize backtest and exposure-metric gaps before forward-shadow parity.",
+  "next_action": "Version the native OOS trace exposure fields, capture native gross/net signed base exposure at each canonical event, and wire trace-verified exposure observations into official MetricSet v17; then run focused tests, full package tests, and RC5 runtime conformance.",
   "parent_branch": "staging",
-  "plan_hash": "acdbd226e6f5d5d55dfb489a98e3a8e9fc041f09e126159ec5c5ce160cdc915f",
+  "plan_hash": "35c5b2cf2edb9ae81cba0a18669ee76f7dfe77df12f660b881c37c952290c549",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -148,14 +149,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "No external dependency blocks package-owned implementation. Nautilus 2.0.0rc5 is eligible for local authoritative backtests after four checks; stable labeling is not a gate. Docker Buildx limits final Compose/browser acceptance only. Forward-shadow authority needs event-tape parity; shared provider, ETF, and TC2000 contracts wait for owner-branch staging only when integration overlaps them.",
-    "current_phase": "strategy-lab-v2-domain-api-lifecycle-audit-v1",
-    "next_action": "Audit the next owner-scoped domain/API mutation flow and implement one durable lifecycle/persistence slice; prioritize backtest and exposure-metric gaps before forward-shadow parity.",
+    "current_blocker": "No external dependency blocks this package-owned backtest metric work. Exact-pinned Nautilus 2.0.0rc5 qualifies for local authoritative backtests after four conformance checks; stable labeling is not a gate. Docker Buildx limits final Compose/browser acceptance only; forward-shadow authority separately requires event-tape parity.",
+    "current_phase": "nautilus-oos-event-exposure-metrics-v17",
+    "next_action": "Version the native OOS trace exposure fields, capture native gross/net signed base exposure at each canonical event, and wire trace-verified exposure observations into official MetricSet v17; then run focused tests, full package tests, and RC5 runtime conformance.",
     "total": 18,
-    "updated_at": "2026-10-05T06:33:17.334685+00:00"
+    "updated_at": "2026-10-05T06:42:41.004246+00:00"
   },
-  "remote": "485e2b1c20c80fcaf62cbe491df2edcaf3a35d3a",
-  "remote_sha": "485e2b1c20c80fcaf62cbe491df2edcaf3a35d3a",
+  "remote": "ed26dd2ed0d8d618c319e12abdf2983b8f3d00a0",
+  "remote_sha": "ed26dd2ed0d8d618c319e12abdf2983b8f3d00a0",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

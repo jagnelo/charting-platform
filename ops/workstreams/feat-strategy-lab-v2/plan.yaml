@@ -836,52 +836,28 @@ progress:
     - nautilus-oos-session-risk-metric-wiring-v1
     - nautilus-oos-session-close-intervals-v1
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
+    - strategy-lab-v2-forward-lifecycle-idempotency-v1
   total: 18
-  current_phase: strategy-lab-v2-forward-lifecycle-idempotency-v1
+  current_phase: nautilus-oos-event-exposure-metrics-v17
   current_blocker: >-
-    No external Nautilus release or upstream event blocks package-owned
-    implementation. Exact-pinned Nautilus 2.0.0rc5 has the four backtest checks;
-    stable release labeling is explicitly not a gate. Package-owned worker-fleet
-    discovery now ranks matching idle serial profiles, creates deterministic
-    worker-bound leases/reservations, and leaves the PostgreSQL dispatch
-    transaction as the final capacity arbiter. The focused fleet/persisted-
-    dispatch slice passes 40 tests; the full Strategy Lab and schema-migration
-    suite passes 1,379, with its single Unix-socket RPC test passing separately
-    under scoped local access. Ruff, format, focused MyPy, and diff checks pass.
-    Scoped local PostgreSQL/Redis integration passes 5/5: two concurrent
-    reservations on one serial PostgreSQL worker profile produce exactly one
-    winner; PostgreSQL recovery and persisted search-dispatch/RPC pass; a second
-    real Redis consumer reclaims an abandoned message and acknowledges only
-    after completion. The PostgreSQL RPC path also creates, exactly replays,
-    owner-isolates, and rehydrates typed MetricSet and ForwardInstance records.
-    Ruff, formatting, diff checks, and scoped resource cleanup pass. This is
-    focused service-level evidence, not proof of live Compose replica/browser
-    acceptance or forward event processing. No external dependency blocks
-    package-owned implementation. Full Compose/browser validation remains
-    environment-limited by absent Docker Buildx; scoped socket access is
-    available for focused local tests. Stable Nautilus labeling is not a gate.
-    Native OOS account-cash metrics now preserve verified trace values and
-    publish v16 equal-event cash/equity ratios in the official MetricSet.
-    Remaining product work includes broader domain/API lifecycle coverage,
-    exposure/metric breadth, and forward-shadow event-tape parity.
-    Provider, ETF, and TC2000
-    contracts are staging-gated only if an owned change overlaps their paths.
-    Options order admission remains fail-closed pending canonical event-time
-    Greeks/delta and settlement evidence.
+    No external dependency blocks package-owned backtest metric work. The
+    isolated exact-pinned Nautilus 2.0.0rc5 runtime is eligible for authoritative
+    local backtests after its four conformance checks; stable release labeling
+    is not a gate. This context adds verified event-time gross/net native
+    exposure to the OOS trace and official MetricSet without inferring margin
+    usage. Forward-shadow authority still requires event-tape parity. Full
+    Compose/browser acceptance remains environment-limited by unavailable
+    Docker Buildx. Shared provider, ETF, and TC2000 contracts gate only their
+    eventual shared-path integration; options admission remains fail-closed
+    pending canonical Greeks/delta and settlement evidence.
   next_action: >-
-    Forward-instance lifecycle mutation: require Idempotency-Key, bind the
-    owner/instance/key to target and request time, and persist the accepted
-    outcome snapshot atomically with the PostgreSQL state transition. Exact
-    retries must replay the original instance snapshot; key reuse with changed
-    intent must return a typed conflict. Also map rejected lifecycle transitions
-    to HTTP 409 rather than 202. Owned paths: api_router.py, application.py,
-    postgres_forward_state.py, a new additive Alembic revision, focused router,
-    adapter, and migration tests, docs/strategy-lab-v2.md, and this workstream.
-    Then continue broader domain/API lifecycle gaps, exposure metrics,
-    forward-shadow event-tape parity, and exact-tip acceptance.
-    Exact-pinned RC5 remains eligible for authoritative local backtests after
-    four checks; stable labeling is not a gate. Forward shadow requires all five
-    checks. Keep options fail-closed pending canonical event-time Greeks/delta
-    and settlement evidence. Consume shared provider, ETF, and TC2000 contracts
-    only after their approved work reaches staging. Docker Buildx limits the
-    final Compose/browser profile, not package-owned implementation.
+    Implement Nautilus OOS event-time gross/net notional exposure capture in
+    the verified account-equity trace, calculate versioned average/maximum
+    exposure-to-equity metrics, and wire them into official result materialization.
+    Keep unsupported samples explicitly unavailable, bind calculations to the
+    exact trace evidence, and do not infer margin/leverage. Owned paths:
+    nautilus_equity_trace.py, nautilus_strategy_bridge.py, observations.py,
+    metrics.py, nautilus_result_materialization.py, nautilus_result_metrics.py,
+    their focused tests, docs/strategy-lab-v2.md, and this workstream. Then
+    continue broader metrics, domain/API lifecycle gaps, event-tape parity, and
+    exact-tip acceptance; stable release labeling is not a gate.
