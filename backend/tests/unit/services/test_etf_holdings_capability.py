@@ -484,8 +484,8 @@ def test_tier_zero_wisdomtree_symbols_are_degraded_after_current_route_challenge
         assert result.outcome == "degraded"
         assert result.evidence_state == "issuer_route_access_blocked"
         assert result.provider_identity == "wisdomtree"
-        assert result.investigated_at == date(2026, 10, 4)
-        assert "top-ten preview is incomplete" in result.next_action
+        assert result.investigated_at == date(2026, 10, 5)
+        assert "only ten named rows plus Remaining Portfolio" in result.next_action
         assert any("httpx-403" in ref for ref in result.evidence_refs)
         assert any("curl-http1-1" in ref for ref in result.evidence_refs)
         assert (
@@ -493,6 +493,12 @@ def test_tier_zero_wisdomtree_symbols_are_degraded_after_current_route_challenge
             in result.evidence_refs
         )
         assert "live:wisdomtree-dxj-ntsx-canary-2026-10-04-issuer-challenge" in result.evidence_refs
+        assert (
+            f"web:wisdomtree-{symbol.lower()}-product-page-2026-10-05-top-ten"
+            in result.evidence_refs
+        )
+        assert "live:wisdomtree-dxj-ntsx-canary-2026-10-05-dns-failure" in result.evidence_refs
+        assert "local DNS failure" in result.next_action
 
 
 def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
@@ -509,6 +515,9 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
                 "live:pimco-mint-fund-explorer-documents-2026-09-24-http-400",
                 "web:pimco-etf-suite-current-2026-09-25",
                 "web:pimco-mint-product-page-no-holdings-2026-09-25",
+                "web:pimco-etf-suite-current-2026-10-05-ticker-nav-aum-only",
+                "web:pimco-mint-official-daily-disclosure-2026-10-05",
+                "live:pimco-mint-top-ten-2026-10-05-unauthorized",
             },
         ),
         (
@@ -523,6 +532,9 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
                 "live:pimco-bond-fund-explorer-documents-2026-09-24-http-400",
                 "web:pimco-etf-suite-current-2026-09-25",
                 "web:pimco-bond-product-page-no-holdings-2026-09-25",
+                "web:pimco-etf-suite-current-2026-10-05-ticker-nav-aum-only",
+                "web:pimco-bond-official-daily-disclosure-2026-10-05",
+                "live:pimco-bond-top-ten-2026-10-05-unauthorized",
             },
         ),
     ):
@@ -531,9 +543,9 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
         assert result.tier == 0
         assert result.outcome == UNAVAILABLE
         assert result.evidence_state == "no_complete_executable_public_artifact"
-        assert result.investigated_at == date(2026, 10, 4)
+        assert result.investigated_at == date(2026, 10, 5)
         assert evidence_refs <= set(result.evidence_refs)
-        assert "authentication-gated" in result.next_action
+        assert "HTTP 401" in result.next_action
 
     assert (
         "web:pimco-short-term-strategies-current-2026-10-01"
@@ -542,7 +554,7 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
         ).evidence_refs
     )
     assert (
-        "web:pimco-etf-suite-current-2026-10-02"
+        "web:pimco-etf-suite-current-2026-10-05-ticker-nav-aum-only"
         in symbol_audit_for_profile(
             profile_with_symbol("MINT", "pacific_investments")
         ).evidence_refs
@@ -554,7 +566,7 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
         ).evidence_refs
     )
     assert (
-        "web:pimco-bond-product-shell-current-2026-10-02"
+        "web:pimco-bond-official-daily-disclosure-2026-10-05"
         in symbol_audit_for_profile(
             profile_with_symbol("BOND", "pacific_investments")
         ).evidence_refs

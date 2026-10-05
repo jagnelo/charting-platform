@@ -3637,3 +3637,33 @@ runtime/ledger-parity, and current-workstream-narrative tests passed together
 unavailable because GitHub DNS failed, but the push completed successfully and
 the local remote-tracking ref matched the implementation commit. The separate
 operational receipt must record that commit and remain branch-local.
+
+## Tier-0 source availability recheck — 2026-10-05
+
+The 2026-10-05 first-party WisdomTree DXJ and NTSX pages show holdings dated
+2026-10-01 but only ten named rows plus `Remaining Portfolio`, so they do not
+prove complete holdings. The two bounded application canaries were skipped
+because the host could not resolve `www.wisdomtree.com`; that DNS result is
+neither route success nor a new issuer failure. Keep both symbols degraded
+under the last confirmed 2026-10-04 issuer-challenge evidence and retry when
+DNS works.
+
+PIMCO's current ETF suite lists MINT and BOND and current NAV/market-price
+context. Official fund sheets assert daily complete-holdings disclosure, but
+the reviewed sheets are dated 2026-03-31 and are not an executable current
+artifact. Fresh anonymous calls to the MINT and BOND `topTenHoldings` routes
+returned HTTP 401 JSON. Because a published disclosure policy is not the same
+as an executable route, keep both unavailable; do not infer support from the
+top-ten response, the delayed sheets, creation baskets, or SEC records.
+
+The Tier-0 capability map and `provider-audit.yaml` now agree on investigated
+date, evidence references, outcomes, and next action. No provider registration,
+native/fallback count, vendor entitlement, or paid activation changed. The full
+ETF capability/adapter unit suites pass (691 tests), the selected Tier-0
+runtime/ledger/narrative checks pass (3 tests), Ruff passes, and both changed
+Python files satisfy Ruff formatting. The full-stack profile is currently
+blocked by permission denied on `/var/run/docker.sock`. The escalation request
+to check the Docker-backed gate was not executed because automatic approval
+review was at capacity; that review was not a safety rejection, and its
+approval must not be bypassed. Exact-SHA hosted CI and the local full gate
+therefore remain open for this changeset.

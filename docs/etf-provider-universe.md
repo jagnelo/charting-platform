@@ -2360,6 +2360,43 @@ fallback-only providers; runtime fallback statuses are 8 issuer-access-blocked,
 56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.
 
+## Tier-0 source availability recheck — 2026-10-05
+
+Fresh first-party page review confirmed that the WisdomTree DXJ and NTSX product
+pages display holdings dated `2026-10-01`, but each rendered table still
+contains ten named positions followed by `Remaining Portfolio`. That page is
+not a complete constituent artifact. The bounded application tests for both
+symbols were retried and skipped because this host could not resolve the
+WisdomTree hostname; this is a local DNS limitation, not a pass and not a new
+issuer rejection. The latest actual adapter response remains the issuer
+challenge recorded on `2026-10-04`, so both symbols stay `degraded` and the next
+action is to retry only after name resolution recovers.
+
+PIMCO's current official ETF suite still lists MINT and BOND, with AUM as of
+`2026-08-31` and daily NAV/market-price observations through `2026-10-01`. Its
+official fund sheets state that both funds disclose all portfolio holdings
+daily, but the latest reviewed sheet itself is dated `2026-03-31` and is not a
+current executable basket. Fresh anonymous requests to the two declared PIMCO
+fund-detail endpoints returned HTTP 401 JSON responses. The previously tested
+document/API alternatives remain non-complete or inaccessible, so MINT/BOND
+remain `unavailable` for this application rather than being silently
+supported from a policy statement, top-ten route, creation basket, or SEC-
+derived snapshot. No vendor account, credential, payment, or activation was
+used.
+
+The Tier-0 runtime symbol audit and YAML ledger now carry this dated evidence
+and the same outcomes/next steps. Provider counts remain 496 registered, 421
+native/live-backed, and 75 fallback-only; no native promotion or budget change
+occurred. Evidence refs:
+`web:wisdomtree-dxj-product-page-2026-10-05-top-ten`,
+`web:wisdomtree-ntsx-product-page-2026-10-05-top-ten`,
+`live:wisdomtree-dxj-ntsx-canary-2026-10-05-dns-failure`,
+`web:pimco-etf-suite-current-2026-10-05-ticker-nav-aum-only`,
+`web:pimco-mint-official-daily-disclosure-2026-10-05`,
+`web:pimco-bond-official-daily-disclosure-2026-10-05`,
+`live:pimco-mint-top-ten-2026-10-05-unauthorized`, and
+`live:pimco-bond-top-ten-2026-10-05-unauthorized`.
+
 ## WisdomTree Tier-0 route availability recheck — 2026-10-04
 
 The official DXJ and NTSX product pages currently show a holdings section dated
