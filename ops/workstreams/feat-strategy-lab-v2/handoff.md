@@ -18,6 +18,24 @@ Buildx still gates only final Compose/browser validation; provider, ETF, and
 TC2000 shared paths remain gated only until their approved work reaches
 staging.
 
+## 2026-10-05 - Bounded forward context and invocation memory
+
+Commit `91acc979c` adds two pieces required by a restartable long-lived session.
+An authenticated replay can seed each component's rolling SDK context directly
+from digest-verified context-stream `MarketEvent` history, deduplicating
+overlapping per-callback windows and retaining only each dependency's declared
+lookback. It does not invent canonical-event/source provenance for historical
+rows. The native bridge can also disable retained invocation results for
+staged forward operation while continuing to validate full callback parity;
+backtest behavior remains unchanged by default.
+
+Validation: 40 focused forward-context and native-bridge tests passed; Ruff
+check/format, MyPy for both changed production modules, and `git diff --check`
+passed. Commit `91acc979c` is local; workstream checkpoint and publication are
+in progress. Native account effect extraction, the persistent shared-account
+BacktestEngine, CLI `--serve-forward`, checkpoint-before-ACK, and process-loss
+replay remain open. Stable release labeling is not a blocker.
+
 ## 2026-10-05 - Native forward event staging seam
 
 Source commit `e51b81ec96f6700dc8f3394f8be57f078b0dce37` adds a tested

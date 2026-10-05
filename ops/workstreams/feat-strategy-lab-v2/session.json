@@ -127,7 +127,7 @@
   "head": "7d162372de4a787ea63e2c98c466f2ee51597ed2",
   "implementation_sha": "7d162372de4a787ea63e2c98c466f2ee51597ed2",
   "last_checkpoint": "2026-10-05T18:24:22.762743+00:00",
-  "last_human_progress_update": "2026-10-05T18:21:49.467048+00:00",
+  "last_human_progress_update": "2026-10-05T18:40:20.899163+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -150,9 +150,9 @@
     "completed": [],
     "current_blocker": "none",
     "current_phase": "forward-native-session-implementation",
-    "next_action": "Build the persistent RC5 shared-account BacktestEngine session: replay immutable warm-up and processed-prefix contexts, stage each canonical event through the same engine, extract native effects, checkpoint before ACK, then wire the verified session into CLI --serve-forward.",
+    "next_action": "Implement native per-event order, fill, cash effect capture in the persistent bridge; then construct the shared-account BacktestEngine session and verify replay/checkpoint restore.",
     "total": 18,
-    "updated_at": "2026-10-05T18:21:49.467027+00:00"
+    "updated_at": "2026-10-05T18:40:20.899138+00:00"
   },
   "remote": "7d162372de4a787ea63e2c98c466f2ee51597ed2",
   "remote_sha": "7d162372de4a787ea63e2c98c466f2ee51597ed2",

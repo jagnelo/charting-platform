@@ -882,16 +882,15 @@ progress:
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Construct the concrete RC5 persistent shared-account BacktestEngine
-    session around the tested bridge staging seam. Replay the immutable
-    warm-up and processed prefix, build each replay/live component context from
-    source-verified history, and stage one accepted event before streaming it
-    through the persistent engine. Extract real native orders, fills, and cash
-    effects, then persist the event output and exact replay checkpoint before
-    Redis acknowledgement. Wire the immutable authenticated bootstrap into the
-    fixed CLI --serve-forward mode after verifying all mounted artifact bytes.
-    Recover deterministically after process loss without rewriting prior
-    decisions; corrections remain on the counterfactual path. Preserve
-    provider-owned canonical event identity and consume shared contracts only
-    after their source branches reach staging. Stable release labeling is not a
-    gate.
+    Extend the bridge staging seam to bind canonical identity and capture the
+    real native orders, fills, and all-currency cash delta for each staged
+    event. Then construct the concrete RC5 persistent shared-account
+    BacktestEngine session: replay immutable warm-up and processed-prefix
+    contexts from verified artifacts, stage accepted events through the same
+    engine, and persist each output plus exact replay checkpoint before Redis
+    acknowledgement. Wire the authenticated bootstrap into fixed CLI
+    --serve-forward only after byte verification. Recover deterministically
+    after process loss without rewriting prior decisions; corrections remain
+    counterfactual. Preserve provider-owned event identity and consume shared
+    contracts only after their source branches reach staging. Stable release
+    labeling is not a gate.
