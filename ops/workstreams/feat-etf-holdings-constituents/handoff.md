@@ -8997,3 +8997,50 @@ opt-in Arin/VistaShares probe remains inconclusive due to its earlier timeout.
 Next: inspect run `37328831048` through completion, record each live-route
 result accurately, then publish the operational checkpoint. Resume the Docker
 gate only after the other stack exits and resource preflight is safe.
+
+### Current implementation context — Hedgeye HECA artifact route repair (2026-10-05)
+
+Scope is limited to `HedgeyeHoldingsAdapter`, its adapter tests, and the ETF
+provider-universe note. Exact-SHA CI run `37343409378` on
+`69dc6d34b462a5ac15766caf61377b815949eee0` passed Backend Tests, Frontend Unit
+Tests, and hosted Playwright, but Branch-declared Tests failed only
+`hedgeye-HECA`: the official product page no longer returned the complete
+embedded payload. The opt-in live matrix otherwise reported 525 passed and 17
+explicit skips; no skip was inferred for Hedgeye. This is a route-shape drift,
+not a proven external transport outage.
+
+At the 2026-10-05 source recheck, the official HECA page linked the issuer's
+all-funds CSV; parsing the downloaded artifact selected the HECA snapshot dated
+2026-10-05 with 17 rows, including cash. The implementation now prefers this
+declared CSV, constrains it to the exact official HTTPS host/path before and
+after redirects, filters by exact account/latest non-future date, and fails
+closed on schema or row defects. SCM Edge HEFT reuses the parser while keeping
+its provider identity. Focused Hedgeye/SCM tests pass 7/7; the full ETF
+adapter/capability unit suites pass 707/707; Ruff, formatting, and diff-check
+pass. The bounded opt-in HECA replay skipped on temporary DNS failure and is
+not live acceptance evidence. The actual captured official artifact parsed to
+17 rows, but the new implementation still needs exact-SHA hosted CI.
+
+The source changeset is committed and published as
+`2ba6aa60064fb151d63b4c7924c1aa2e616c4494`; a GitHub API branch read confirmed
+`origin/feat/etf-holdings-constituents` points to that exact SHA. Exact-SHA CI
+run `37347676334` is in progress: Frontend Unit Tests passed; Backend Tests
+integration and Branch-declared Tests are running. Next: inspect it through
+completion, verify the
+Hedgeye HECA live case and each emitted skip reason, and only then record the
+hosted acceptance result. Do not alter provider counts or treat a local DNS
+skip as a live pass.
+
+The root `make agent-context` helper could not acquire its shared runtime
+registry lock because that path is read-only in this session; direct UV-managed
+`scripts/agent-context.py` confirmed the exact implementation role, branch,
+and worktree. The existing writer claim belongs to the resumed workstream
+session, so no takeover or cross-worktree state change was attempted.
+
+Operational incident: the first push command omitted the slash in the branch
+name and advanced the separate remote ref `feat-etf-holdings-constituents` to
+the same `2ba6aa6` source commit. The correct slash branch was subsequently
+pushed and verified. That alias ref is outside this workstream authorization;
+it has not been rewritten or deleted. Do not mutate it without explicit human
+direction. No other branch/worktree, staging ref, or Docker resource was
+changed.

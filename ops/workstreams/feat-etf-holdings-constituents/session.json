@@ -70,15 +70,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "dirty_paths": [
-    "backend/tests/live/test_etf_holdings_live_providers.py",
-    "docs/etf-provider-universe.md",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -97,13 +89,13 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "d2e163c46bad2a9e58affe5b32461c8b783fbaa8",
-  "implementation_sha": "d2e163c46bad2a9e58affe5b32461c8b783fbaa8",
-  "last_checkpoint": "2026-10-05T16:45:07+00:00",
+  "head": "2ba6aa60064fb151d63b4c7924c1aa2e616c4494",
+  "implementation_sha": "2ba6aa60064fb151d63b4c7924c1aa2e616c4494",
+  "last_checkpoint": "2026-10-05T17:24:54+00:00",
   "last_human_progress_update": "2026-10-05T16:45:07+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "run focused/default-live/workstream checks for the Redwood-specific empty-payload skip contract, publish the narrow guard, and inspect its exact-SHA CI; record current d2 Playwright completion; retry the Docker/browser gate only after the unrelated six-service stack exits and resource preflight is safe",
-  "plan_hash": "72b5862c5f00bfb90e961b79f2381ef4bc9b2ca5615902513b06440464c14dec",
+  "next_action": "inspect exact-SHA CI run 37347676334 for the Hedgeye HECA linked-CSV repair through completion, then rerun the local full-stack/browser gate only after a read-only resource preflight confirms the other worktree's stack has exited and host capacity is safe; do not mutate the unrelated remote alias ref without human direction",
+  "plan_hash": "b1dc0176074b3b68f5246ac28acef76c0c48f8a5d6ec7295498ffd0ff700f0ac",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -126,14 +118,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Exact-SHA run 37340283972 on d2e163c46bad2a9e58affe5b32461c8b783fbaa8 passed Backend Tests, Frontend Unit Tests, and Branch-declared Tests; the opt-in matrix passed 525 and skipped 17 in 810.16 seconds with per-case reasons. Kovitz EQTY was not skipped, so its live fetch/content assertions passed. The protected Exhaustive Integration Gate was skipped by feature-branch design; hosted Playwright is still running. Skip audit found the shared external-failure classifier treated any ValueError containing 'empty payload' as external; the local patch now narrows it to Redwood's exact issuer message and tests generic empty payloads as hard failures. Network-off live contracts passed 7, Ruff/format, workstream validation, and narrative invariant passed; this patch's exact-SHA CI is pending. The local Docker/browser gate remains deferred while another worktree's six-service stack is active; AC10 awaits provider-platform staging and AC14 is post-integration/deployment.",
-    "current_phase": "diagnostic_matrix_kovitz_pass_redwood_classifier_tightening_pending",
-    "next_action": "Run focused/default-live/workstream checks for the Redwood-specific empty-payload classification, commit/push it as a separate source change, and inspect exact-SHA CI. Record completion of the d2 Playwright job. Keep malformed content hard-failing. Retry the local full gate only after the unrelated stack exits and resource preflight is safe.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Exact-SHA run 37340283972 on d2e163c46bad2a9e58affe5b32461c8b783fbaa8 completed successfully: Backend Tests, Frontend Unit Tests, Branch-declared Tests (525 passed/17 explicit skips), and hosted Playwright passed; the protected Exhaustive Integration Gate was skipped by feature-branch design. Exact-SHA run 37343409378 on 69dc6d34b462a5ac15766caf61377b815949eee0 then failed only the live Hedgeye HECA case (525 passed/17 skips/1 failure): the product page no longer exposed the expected embedded daily rows. This is source-route drift, not an external outage. The official page-declared all-funds CSV parsed to a 2026-10-05 HECA snapshot with 17 rows including cash. Adapter and regression changes are pushed as 2ba6aa60064fb151d63b4c7924c1aa2e616c4494 to the exact authorized feat/etf-holdings-constituents ref, verified through GitHub API; local ls-remote was DNS-blocked. Run 37347676334 is in progress: Frontend Unit Tests passed; Backend Tests integration and Branch-declared Tests are running. The deterministic ETF adapter/capability suites pass 707, focused Hedgeye/SCM tests pass 7, Ruff/format/diff pass, and the bounded live HECA replay skipped on temporary DNS failure (not a route pass). A push typo also advanced the separate feat-etf-holdings-constituents remote ref to 2ba6aa6; it remains untouched pending human direction. The local Docker/browser gate remains deferred until safe resource preflight; AC10 awaits provider-platform staging and AC14 is post-integration/deployment.",
+    "current_phase": "hedgeye_linked_csv_route_exact_sha_ci_in_progress",
+    "next_action": "Inspect run 37347676334 through completion; verify the live HECA CSV case and review every skip reason. Then recheck Docker and host capacity read-only and run the required local full-stack/browser gate only if the unrelated services have exited and preflight is safe. Do not rewrite or delete the unrelated remote alias ref without explicit human direction.",
     "total": 14,
-    "updated_at": "2026-10-05T16:45:07+00:00"
+    "updated_at": "2026-10-05T17:24:54+00:00"
   },
-  "remote": "d2e163c46bad2a9e58affe5b32461c8b783fbaa8",
-  "remote_sha": "d2e163c46bad2a9e58affe5b32461c8b783fbaa8",
+  "remote": "2ba6aa60064fb151d63b4c7924c1aa2e616c4494",
+  "remote_sha": "2ba6aa60064fb151d63b4c7924c1aa2e616c4494",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",

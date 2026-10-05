@@ -3971,3 +3971,38 @@ live-contract module passed 7 checks, and Ruff, format-check, workstream
 validation, and the narrative-count invariant passed locally. The exact-SHA
 rerun for this tightening remains pending; this test guard does not alter
 adapter behavior or classify an unavailable route as a live success.
+
+### Hedgeye HECA route-drift repair — 2026-10-05
+
+Exact-SHA CI run `37343409378` on implementation SHA
+`69dc6d34b462a5ac15766caf61377b815949eee0` passed Backend Tests, Frontend Unit
+Tests, and hosted Playwright but failed Branch-declared Tests only on the live
+Hedgeye HECA case. Its first-party product page no longer provided the complete
+embedded payload expected by the adapter. This was treated as provider-route
+drift, not skipped as an external access failure.
+
+The 2026-10-05 source recheck found an official page-declared all-funds CSV.
+The captured artifact parsed into 17 HECA rows at composition date 2026-10-05.
+The adapter now follows only the expected HTTPS host/path, validates that
+allowlist again after redirects, scopes by the requested account and latest
+non-future date, and fails closed for schema or incomplete-row changes. SCM
+Edge's HEFT adapter uses the same parser but retains its own provenance.
+Regression coverage includes valid mapping, cash, unrelated/future rows,
+schema failure, redirect rejection, and SCM Edge metadata.
+
+Local verification: the focused Hedgeye/SCM selection passed 7 tests; the full
+ETF adapter/capability unit suites passed 707; the actual downloaded issuer CSV
+parsed to 17 HECA rows; Ruff, formatting, and diff-check passed. The bounded
+opt-in HECA test was skipped on temporary DNS failure and is not live-route
+acceptance evidence. The source changeset was committed and pushed as
+`2ba6aa60064fb151d63b4c7924c1aa2e616c4494` to the exact authorized
+`feat/etf-holdings-constituents` branch; GitHub API confirmed this branch tip.
+Provider counts and native/fallback disposition are unchanged. At the latest
+check, exact-SHA run `37347676334` is in progress: Frontend Unit Tests passed;
+Backend Tests integration and Branch-declared Tests are still running.
+
+Operational incident: the first push command omitted the slash in the branch
+name and advanced the separate remote ref `feat-etf-holdings-constituents` to
+the same `2ba6aa6` commit. The correct slash branch was then pushed and
+verified. The alias ref is outside this workstream's authorization; it has not
+been rewritten or deleted and requires human direction before any cleanup.

@@ -434,7 +434,7 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: vistashares_retry_arin_promotion_ledger_reconcile_exact_sha_ci_pending
+current_phase: hedgeye_linked_csv_route_exact_sha_ci_in_progress
 current_blocker: >-
   Current checkpoint 2026-10-05: 15 Tier-0 and 156 Tier-1 symbol outcomes
   remain accounted for; current totals are 496 registered / 422 native / 74
@@ -1046,27 +1046,49 @@ current_blocker: >-
   remain open pending the current hosted Playwright result and a safe local
   full-gate window. The unrelated Docker stack remains untouched.
 
-  UPDATE 2026-10-05T16:43Z: The Redwood-specific skip-contract change now
-  passes the network-off live-contract module (7 passed, 536 opt-in cases
-  skipped), Ruff, format-check, the branch workstream validator, and the
-  narrative-count invariant (1 passed); JSON parsing, plan-hash parity, and
-  `git diff --check` also pass. Exact-SHA run `37340283972` remains green for
-  Backend Tests, Frontend Unit Tests, and Branch-declared Tests, with the
-  latter's Kovitz EQTY case passing; hosted Playwright is still in progress.
-  The Redwood guard awaits a separate pushed-SHA CI run.
+  UPDATE 2026-10-05T17:24Z: Exact-SHA run `37340283972` on
+  `d2e163c46bad2a9e58affe5b32461c8b783fbaa8` completed successfully across all
+  applicable feature-branch jobs: Backend Tests, Frontend Unit Tests,
+  Branch-declared Tests (525 passed / 17 explicit skips), and hosted
+  Playwright. The protected Exhaustive Integration Gate was skipped by design.
+  Its 17 explicit live skips are retained in the handoff; Kovitz EQTY passed.
+  The next exact-SHA run, `37343409378` on
+  `69dc6d34b462a5ac15766caf61377b815949eee0`, failed only the live Hedgeye
+  HECA branch test after the product page stopped exposing the expected
+  embedded rows (525 passed / 17 skips / 1 failure). Backend Tests, Frontend
+  Unit Tests, and hosted Playwright passed; this was not reclassified as an
+  external outage. The official HECA page's declared all-funds CSV was
+  inspected; its 2026-10-05 HECA account parses to 17 rows including cash.
+  The fail-closed CSV route, post-redirect URL allowlist, HEFT/SCM Edge
+  provenance, and deterministic regressions are now in commit
+  `2ba6aa60064fb151d63b4c7924c1aa2e616c4494`. The complete local ETF
+  adapter/capability suites pass 707/707, focused Hedgeye/SCM tests pass 7/7,
+  Ruff/format/diff checks pass, and the captured issuer artifact parses to 17
+  HECA rows. The bounded opt-in live replay skipped on temporary DNS failure;
+  it is not live acceptance evidence. GitHub API confirms the exact authorized
+  branch `feat/etf-holdings-constituents` points to `2ba6aa6`; exact-SHA run
+  `37347676334` is in progress: Frontend Unit Tests passed; Backend Tests
+  integration and Branch-declared Tests are running. The local SSH `ls-remote` probe failed DNS, so the
+  API branch read is the current remote-tip evidence.
+
+  A push-command typo also advanced the separate remote ref
+  `feat-etf-holdings-constituents` (without the slash) to the same source
+  commit. That ref is outside this workstream's authorization and has not been
+  rewritten or deleted; obtain human direction before any corrective mutation.
+  No other branch/worktree, staging, or Docker resource was changed. The goal
+  remains active; AC7 awaits exact-SHA CI and a safe local full gate, AC8 awaits
+  the complete review checkpoint, AC10 awaits provider-platform staging, and
+  AC14 remains post-integration/deployment observation.
 
 next_action: >-
-  The Redwood-specific empty-payload classifier regression is implemented and
-  its focused default-live/workstream checks pass. Publish it as a separate
-  feature-branch commit and inspect the exact-SHA workflow using `-rs`. Keep
-  parser, identity, date, row, and completeness failures hard failures; external
-  transport/access skips remain outages, not route passes. The live matrix in
-  run `37340283972` passed the Kovitz EQTY case and all other non-skipped cases,
-  with 17 explicit skips; wait for its hosted Playwright job to finish and
-  retain that outcome in the handoff. Reattempt the Docker-backed browser gate
-  only after the other worktree's six active
-  Compose services exit and read-only resource preflight confirms a safe
-  isolated window; latest inventory showed 3.2 GiB available, so leave those
-  services untouched. Await the user's notice before provider-platform
-  integration. Do not integrate, promote, deploy, or modify another worktree;
-  AC10 awaits staging and AC14 remains the later 30-day production observation.
+  Inspect exact-SHA Actions run `37347676334` for commit
+  `2ba6aa60064fb151d63b4c7924c1aa2e616c4494` through completion. Confirm the
+  Hedgeye HECA live case passes on the issuer-linked CSV and review every
+  emitted external skip reason; do not treat local DNS skip as a route pass.
+  Then recheck the Docker/resource inventory read-only and run the required
+  local full-stack/browser gate only if the other worktree's services have
+  exited and resource preflight is safe. Keep the local sessions on this ETF
+  branch only. Do not rewrite/delete the unrelated remote alias ref; user
+  direction is required for that recovery. Await the user's notice before
+  provider-platform integration. AC10 still awaits staging and AC14 remains
+  the later 30-day production observation.
