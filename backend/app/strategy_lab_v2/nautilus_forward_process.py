@@ -6,6 +6,7 @@ import asyncio
 import os
 import select
 import signal
+import stat
 import subprocess
 import threading
 import time
@@ -16,6 +17,10 @@ from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.forward_context import (
     ForwardPortfolioContextPreparation,
     ForwardStrategyContextPreparation,
+)
+from app.strategy_lab_v2.nautilus_forward_bootstrap import (
+    MAX_NAUTILUS_FORWARD_BOOTSTRAP_BYTES,
+    NautilusForwardRuntimeBootstrap,
 )
 from app.strategy_lab_v2.nautilus_forward_delivery import NautilusForwardDeliveryInput
 from app.strategy_lab_v2.nautilus_forward_session import NautilusForwardExecutionResult
@@ -29,6 +34,8 @@ from app.strategy_lab_v2.nautilus_runtime_ipc import (
 from app.strategy_lab_v2.sandbox import (
     NAUTILUS_RUNTIME_CLI_MODULE,
     SandboxCommandPlan,
+    sandbox_forward_bootstrap_digest,
+    sandbox_forward_bootstrap_path,
     sandbox_runtime_command,
     validate_sandbox_command_plan,
 )
@@ -392,6 +399,7 @@ class HardenedNautilusForwardSessionProcessFactory:
         self, instance_id: str, checkpoint_fingerprint: str
     ) -> NautilusForwardSessionProcess:
         plan = self._plan_factory(instance_id, checkpoint_fingerprint)
+        _validate_forward_checkpoint_plan(plan, instance_id, checkpoint_fingerprint)
         argv = _forward_session_argv(plan, instance_id, self._docker_binary)
         _prepare_writable_output_mounts(
             plan,
@@ -455,6 +463,45 @@ class HardenedNautilusForwardSessionProcessFactory:
             self._codec,
             base_checkpoint_fingerprint=checkpoint_fingerprint,
         )
+
+
+def _validate_forward_checkpoint_plan(
+    plan: SandboxCommandPlan,
+    instance_id: str,
+    checkpoint_fingerprint: str,
+) -> None:
+    """Require host-resolved launch inputs to match the requested durable cursor."""
+
+    validate_sandbox_command_plan(plan)
+    bootstrap_path = sandbox_forward_bootstrap_path(plan)
+    bootstrap_fingerprint = sandbox_forward_bootstrap_digest(plan)
+    if bootstrap_path is None or bootstrap_fingerprint is None:
+        raise ValueError("forward process plan must bind its durable bootstrap artifact")
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_NONBLOCK", 0)
+    )
+    try:
+        descriptor = os.open(bootstrap_path, flags)
+    except OSError as error:
+        raise ValueError("forward process bootstrap artifact could not be read") from error
+    with os.fdopen(descriptor, "rb") as source:
+        metadata = os.fstat(source.fileno())
+        if not stat.S_ISREG(metadata.st_mode):
+            raise ValueError("forward process bootstrap artifact must be a regular file")
+        encoded = source.read(MAX_NAUTILUS_FORWARD_BOOTSTRAP_BYTES + 1)
+    if not encoded or len(encoded) > MAX_NAUTILUS_FORWARD_BOOTSTRAP_BYTES:
+        raise ValueError("forward process bootstrap artifact is empty or exceeds its byte limit")
+    bootstrap = NautilusForwardRuntimeBootstrap.from_json_bytes(
+        encoded,
+        expected_fingerprint=bootstrap_fingerprint,
+    )
+    if bootstrap.instance_id != instance_id:
+        raise ValueError("forward process bootstrap belongs to another instance")
+    if bootstrap.processed_checkpoint_fingerprint != checkpoint_fingerprint:
+        raise ValueError("forward process bootstrap differs from the requested durable checkpoint")
 
 
 def _forward_session_argv(

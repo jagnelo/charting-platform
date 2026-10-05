@@ -9,6 +9,10 @@ import pytest
 
 from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.nautilus_forward_bootstrap import (
+    NautilusForwardBootstrapComponent,
+    NautilusForwardRuntimeBootstrap,
+)
 from app.strategy_lab_v2.nautilus_forward_process import (
     HardenedNautilusForwardSessionProcessFactory,
     _forward_session_argv,
@@ -47,11 +51,58 @@ def _request(profile: RuntimeIsolationProfile) -> StrategyRuntimeRequest:
     )
 
 
-def _plan(tmp_path: Path, *, instance_id: str = "forward-1"):
+def _bootstrap(instance_id: str, checkpoint_fingerprint: str) -> NautilusForwardRuntimeBootstrap:
+    digest = content_digest
+    component = NautilusForwardBootstrapComponent(
+        component_id="component-1",
+        execution_binding_fingerprint=digest("execution-binding"),
+        resolved_component_fingerprint=digest("resolved-component"),
+        strategy_fingerprint=digest("strategy"),
+        package_fingerprint=digest("package"),
+        package_archive_digest=digest("package-archive"),
+        dependency_lock_digest=digest("dependency-lock"),
+        manifest_fingerprint=digest("manifest"),
+        source_digest=digest("source"),
+        parameters_digest=digest("parameters"),
+        random_seed=17,
+    )
+    return NautilusForwardRuntimeBootstrap(
+        instance_id=instance_id,
+        execution_plan_fingerprint=digest("execution-plan"),
+        portfolio_fingerprint=digest("portfolio"),
+        snapshot_fingerprint=digest("snapshot"),
+        warmup_receipt_fingerprint=digest("warmup-receipt"),
+        warmup_result_fingerprint=digest("warmup-result"),
+        warmup_tape_fingerprint=digest("warmup-tape"),
+        warmup_event_count=0,
+        warmup_source_artifact_digests=(),
+        warmup_cursor_event_id=None,
+        warmup_cursor_sequence=0,
+        warmup_cursor_event_fingerprint=None,
+        processed_checkpoint_fingerprint=checkpoint_fingerprint,
+        processed_prefix_fingerprint=digest("processed-prefix"),
+        before_event_fingerprint=digest("before-event"),
+        engine_input_fingerprint=digest("engine-input"),
+        runtime_input_bundle_digest=digest("runtime-bundle"),
+        native_event_stream_digest=digest("native-event-stream"),
+        native_event_stream_adapter_version="adapter-v1",
+        components=(component,),
+        processed_events=(),
+    )
+
+
+def _plan(
+    tmp_path: Path,
+    *,
+    instance_id: str = "forward-1",
+    checkpoint_fingerprint: str | None = None,
+):
     input_path = tmp_path / "bootstrap.json"
     input_path.write_text("{}", encoding="utf-8")
     forward_bootstrap_path = tmp_path / "forward-session-bootstrap.json"
-    forward_bootstrap_path.write_text("{}", encoding="utf-8")
+    checkpoint = checkpoint_fingerprint or content_digest("checkpoint")
+    bootstrap = _bootstrap(instance_id, checkpoint)
+    forward_bootstrap_path.write_bytes(bootstrap.to_json_bytes())
     context_stream_path = tmp_path / "strategy-contexts.ndjson"
     context_stream_path.write_bytes(b"strategy context artifact")
     native_event_stream_path = tmp_path / "native-events.parquet"
@@ -65,7 +116,7 @@ def _plan(tmp_path: Path, *, instance_id: str = "forward-1"):
         image_name="nautilus-runtime",
         input_bundle_path=input_path,
         forward_bootstrap_path=forward_bootstrap_path,
-        bootstrap_fingerprint=content_digest("forward-session-bootstrap"),
+        bootstrap_fingerprint=bootstrap.fingerprint,
         context_stream_path=context_stream_path,
         context_stream_digest=artifact_content_digest(context_stream_path.read_bytes()),
         native_event_stream_path=native_event_stream_path,
@@ -121,6 +172,63 @@ def test_forward_process_factory_launches_persistent_hardened_ipc(tmp_path: Path
         await process.close()
 
     asyncio.run(exercise())
+
+
+def test_forward_process_factory_rejects_stale_durable_checkpoint_before_launch(
+    tmp_path: Path,
+) -> None:
+    requested_checkpoint = content_digest("new durable checkpoint")
+    stale_plan = _plan(tmp_path, checkpoint_fingerprint=content_digest("old checkpoint"))
+    requested: list[tuple[str, str]] = []
+    factory = HardenedNautilusForwardSessionProcessFactory(
+        lambda instance_id, checkpoint: requested.append((instance_id, checkpoint)) or stale_plan,
+        docker_binary=str(tmp_path / "must-not-launch"),
+    )
+
+    with pytest.raises(ValueError, match="requested durable checkpoint"):
+        asyncio.run(
+            factory.start(
+                instance_id="forward-1",
+                checkpoint_fingerprint=requested_checkpoint,
+            )
+        )
+    assert requested == [("forward-1", requested_checkpoint)]
+
+
+def test_forward_process_factory_rejects_bootstrap_for_another_instance(
+    tmp_path: Path,
+) -> None:
+    checkpoint = content_digest("checkpoint")
+    other_instance_plan = _plan(
+        tmp_path,
+        instance_id="another-forward",
+        checkpoint_fingerprint=checkpoint,
+    )
+    factory = HardenedNautilusForwardSessionProcessFactory(
+        lambda _instance_id, _checkpoint: other_instance_plan,
+        docker_binary=str(tmp_path / "must-not-launch"),
+    )
+
+    with pytest.raises(ValueError, match="another instance"):
+        asyncio.run(factory.start(instance_id="forward-1", checkpoint_fingerprint=checkpoint))
+
+
+def test_forward_process_factory_rejects_symlinked_bootstrap_before_launch(
+    tmp_path: Path,
+) -> None:
+    checkpoint = content_digest("checkpoint")
+    plan = _plan(tmp_path, checkpoint_fingerprint=checkpoint)
+    bootstrap_path = tmp_path / "forward-session-bootstrap.json"
+    payload_path = tmp_path / "durable-bootstrap.json"
+    bootstrap_path.replace(payload_path)
+    bootstrap_path.symlink_to(payload_path)
+    factory = HardenedNautilusForwardSessionProcessFactory(
+        lambda _instance_id, _checkpoint: plan,
+        docker_binary=str(tmp_path / "must-not-launch"),
+    )
+
+    with pytest.raises(ValueError, match="could not be read"):
+        asyncio.run(factory.start(instance_id="forward-1", checkpoint_fingerprint=checkpoint))
 
 
 def test_forward_process_argv_requires_exact_instance_bound_server_command(
