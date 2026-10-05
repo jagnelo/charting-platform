@@ -356,13 +356,20 @@ class ResourceMutationServiceResult:
             if self.receipt is not None:
                 raise ValueError("rejected resource mutations cannot carry a receipt")
             return
+        if self.resolution.decision is ResourceMutationDecision.IDEMPOTENCY_CONFLICT:
+            if self.resolution.existing_receipt is None:
+                if self.receipt is not None:
+                    raise ValueError("conflicting resource mutations cannot invent a receipt")
+            elif self.receipt != self.resolution.existing_receipt:
+                raise ValueError("conflicting resource mutations require the existing receipt")
+            return
         if not isinstance(self.receipt, ResourceMutationReceipt):
             raise TypeError("accepted resource mutations require a receipt")
         if self.resolution.decision is ResourceMutationDecision.ACCEPT:
             if self.receipt.request.fingerprint != self.resolution.request_fingerprint:
                 raise ValueError("resource mutation receipt does not match the resolved request")
         elif self.receipt != self.resolution.existing_receipt:
-            raise ValueError("replayed/conflicting resource mutations require the existing receipt")
+            raise ValueError("replayed resource mutations require the existing receipt")
 
 
 class ApiAdapterError(Exception):

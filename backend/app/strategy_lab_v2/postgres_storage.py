@@ -22,6 +22,7 @@ from sqlalchemy import text
 
 from app.strategy_lab_v2.canonical import canonical_json, freeze_json
 from app.strategy_lab_v2.storage import (
+    STORAGE_CONCURRENT_WRITE_CONFLICT_REASON,
     AggregateKey,
     AggregateMutation,
     StorageTransactionDecision,
@@ -174,10 +175,11 @@ class PostgresAggregateStore:
     async def apply(self, request: StorageTransactionRequest) -> StorageTransactionResolution:
         """Apply one request atomically, or return a typed rejection.
 
-        Receipt and aggregate rows are locked before pure resolution.  A
-        concurrent compare-and-set race rolls the SQL transaction back and
-        returns the original aggregate snapshot, allowing the caller to retry
-        from a fresh read.
+        Receipt and aggregate rows are locked before pure resolution. If a
+        unique-key/CAS write loses a race, the transaction is rolled back and
+        the winner's durable receipt is re-read in a fresh transaction. This
+        turns a concurrent exact retry into a replay without masking a genuine
+        create collision or compare-and-set conflict.
         """
 
         if not isinstance(request, StorageTransactionRequest):
@@ -201,9 +203,40 @@ class PostgresAggregateStore:
                     await self._persist(session, request, resolved)
                     return resolved
         except _ConcurrentWriteConflict:
-            return _reject(request, current, "storage compare-and-set lost a concurrent race")
+            return await self._resolve_after_concurrent_write(request, current)
         except Exception as error:  # pragma: no cover - live database boundary
-            return _reject(request, current, f"PostgreSQL transaction failed: {type(error).__name__}")
+            return _reject(
+                request, current, f"PostgreSQL transaction failed: {type(error).__name__}"
+            )
+
+    async def _resolve_after_concurrent_write(
+        self,
+        request: StorageTransactionRequest,
+        fallback: tuple[StoredAggregate, ...],
+    ) -> StorageTransactionResolution:
+        """Return a winner's durable outcome after the losing transaction rolls back."""
+
+        current = fallback
+        try:
+            session: AsyncSessionLike = self._session_factory()
+            async with session:
+                async with session.begin():
+                    current = await self._load_current(session, request.mutations)
+                    prior = await self._load_receipt(session, request.request_id)
+                    resolved = resolve_storage_transaction(
+                        current,
+                        request,
+                        (prior,) if prior is not None else (),
+                    )
+                    if resolved.decision is not StorageTransactionDecision.APPLY:
+                        return resolved
+        except Exception as error:  # pragma: no cover - live database boundary
+            return _reject(
+                request,
+                current,
+                f"PostgreSQL concurrent-write reconciliation failed: {type(error).__name__}",
+            )
+        return _reject(request, current, STORAGE_CONCURRENT_WRITE_CONFLICT_REASON)
 
     async def _load_current(
         self,

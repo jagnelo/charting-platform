@@ -15,6 +15,9 @@ from typing import Any
 
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
 
+STORAGE_REQUEST_ID_CONFLICT_REASON = "request id is already bound to different transaction content"
+STORAGE_CONCURRENT_WRITE_CONFLICT_REASON = "storage compare-and-set lost a concurrent race"
+
 
 def _nonempty(value: str, field_name: str) -> None:
     if not isinstance(value, str) or not value.strip():
@@ -114,7 +117,9 @@ class StorageTransactionRequest:
         keys = [item.key for item in self.mutations]
         if len(keys) != len(set(keys)):
             raise ValueError("storage transaction mutation keys must be unique")
-        object.__setattr__(self, "mutations", tuple(sorted(self.mutations, key=lambda item: item.key)))
+        object.__setattr__(
+            self, "mutations", tuple(sorted(self.mutations, key=lambda item: item.key))
+        )
 
     @property
     def fingerprint(self) -> str:
@@ -175,20 +180,32 @@ class StorageTransactionResolution:
             raise ValueError("aggregates must be deterministically ordered")
         if self.receipt is not None and not isinstance(self.receipt, StorageTransactionReceipt):
             raise TypeError("receipt must be a StorageTransactionReceipt")
-        if self.decision in {
-            StorageTransactionDecision.APPLY,
-            StorageTransactionDecision.REPLAY_EXISTING,
-        } and self.receipt is None:
+        if (
+            self.decision
+            in {
+                StorageTransactionDecision.APPLY,
+                StorageTransactionDecision.REPLAY_EXISTING,
+            }
+            and self.receipt is None
+        ):
             raise ValueError("successful storage resolutions require a receipt")
-        if self.decision in {
-            StorageTransactionDecision.CONFLICT,
-            StorageTransactionDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                StorageTransactionDecision.CONFLICT,
+                StorageTransactionDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("failed storage resolutions require a reason")
-        if self.decision in {
-            StorageTransactionDecision.APPLY,
-            StorageTransactionDecision.REPLAY_EXISTING,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            in {
+                StorageTransactionDecision.APPLY,
+                StorageTransactionDecision.REPLAY_EXISTING,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful storage resolutions cannot contain a reason")
 
     @property
@@ -238,7 +255,7 @@ def resolve_storage_transaction(
             StorageTransactionDecision.CONFLICT,
             request.fingerprint,
             tuple(sorted(existing, key=lambda item: item.key)),
-            rejection_reason="request id is already bound to different transaction content",
+            rejection_reason=STORAGE_REQUEST_ID_CONFLICT_REASON,
         )
 
     by_key = {item.key: item for item in existing}

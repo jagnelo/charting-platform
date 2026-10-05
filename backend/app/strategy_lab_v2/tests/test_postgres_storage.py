@@ -49,17 +49,16 @@ class FakeSession:
         sql = str(statement)
         values = dict(params or {})
         self.calls.append((sql, values))
-        if sql.lstrip().startswith("SELECT aggregate_type") and "AND aggregate_id = :aggregate_id" in sql:
+        if (
+            sql.lstrip().startswith("SELECT aggregate_type")
+            and "AND aggregate_id = :aggregate_id" in sql
+        ):
             key = (values["aggregate_type"], values["aggregate_id"])
             return FakeResult([] if key not in self.aggregates else [self.aggregates[key]])
         if sql.lstrip().startswith("SELECT aggregate_type") and "ORDER BY aggregate_id" in sql:
             aggregate_type = values["aggregate_type"]
             return FakeResult(
-                [
-                    row
-                    for key, row in sorted(self.aggregates.items())
-                    if key[0] == aggregate_type
-                ]
+                [row for key, row in sorted(self.aggregates.items()) if key[0] == aggregate_type]
             )
         if sql.lstrip().startswith("SELECT aggregate_type"):
             keys = {
@@ -91,7 +90,11 @@ class FakeSession:
         if sql.lstrip().startswith("UPDATE"):
             key = (values["aggregate_type"], values["aggregate_id"])
             row = self.aggregates.get(key)
-            if row is None or row["version"] != values["expected_version"] or row["state_fingerprint"] != values["expected_state_fingerprint"]:
+            if (
+                row is None
+                or row["version"] != values["expected_version"]
+                or row["state_fingerprint"] != values["expected_state_fingerprint"]
+            ):
                 return FakeResult(rowcount=0)
             row.update(
                 version=values["next_version"],
@@ -107,7 +110,13 @@ class FakeSession:
         raise AssertionError(f"unexpected SQL: {sql}")
 
 
-def _request(value: int = 1, *, request: str = "request", expected_version: int = 0, expected_state_fingerprint: str | None = None):
+def _request(
+    value: int = 1,
+    *,
+    request: str = "request",
+    expected_version: int = 0,
+    expected_state_fingerprint: str | None = None,
+):
     return StorageTransactionRequest(
         content_digest(request),
         (
@@ -156,19 +165,72 @@ async def test_exact_request_replays_receipt_without_writes() -> None:
 
 
 @pytest.mark.asyncio
+async def test_concurrent_exact_create_replays_the_winning_receipt() -> None:
+    racing_session = FakeSession()
+    winner_session = FakeSession()
+    winner_session.aggregates = racing_session.aggregates
+    winner_session.receipts = racing_session.receipts
+    request = _request(request="simultaneous-create")
+    winner_store = PostgresAggregateStore(lambda: winner_session)
+    winner_resolutions = []
+
+    class RacingSession(FakeSession):
+        def __init__(self) -> None:
+            self.aggregates = racing_session.aggregates
+            self.receipts = racing_session.receipts
+            self.calls = []
+            self.fail_next_write = False
+            self.winner_committed = False
+
+        async def execute(self, statement, params=None):
+            sql = str(statement)
+            if (
+                not self.winner_committed
+                and sql.lstrip().startswith("INSERT INTO")
+                and "aggregate_type" in sql
+            ):
+                self.winner_committed = True
+                winner = await winner_store.apply(request)
+                winner_resolutions.append(winner)
+                assert winner.decision is StorageTransactionDecision.APPLY
+                return FakeResult(rowcount=0)
+            return await super().execute(statement, params)
+
+    loser_store = PostgresAggregateStore(lambda: RacingSession())
+    recovered = await loser_store.apply(request)
+
+    assert winner_resolutions[0].receipt is not None
+    assert recovered.decision is StorageTransactionDecision.REPLAY_EXISTING
+    assert recovered.receipt == winner_resolutions[0].receipt
+    assert len(recovered.aggregates) == 1
+    assert len(racing_session.aggregates) == 1
+    assert len(racing_session.receipts) == 1
+
+
+@pytest.mark.asyncio
 async def test_compare_set_drift_and_write_race_preserve_current_state() -> None:
     session = FakeSession()
     store = PostgresAggregateStore(lambda: session)
     created = await store.apply(_request())
     current = created.aggregates[0]
     drift = await store.apply(
-        _request(9, request="drift", expected_version=1, expected_state_fingerprint=content_digest({"wrong": True}))
+        _request(
+            9,
+            request="drift",
+            expected_version=1,
+            expected_state_fingerprint=content_digest({"wrong": True}),
+        )
     )
     assert drift.decision is StorageTransactionDecision.CONFLICT
     assert drift.aggregates[0] == current
     session.fail_next_write = True
     race = await store.apply(
-        _request(3, request="race", expected_version=1, expected_state_fingerprint=current.state_fingerprint)
+        _request(
+            3,
+            request="race",
+            expected_version=1,
+            expected_state_fingerprint=current.state_fingerprint,
+        )
     )
     assert race.decision is StorageTransactionDecision.REJECT
     assert race.aggregates[0] == current

@@ -112,11 +112,11 @@ class ResourceMutationResolution:
             self.existing_receipt, ResourceMutationReceipt
         ):
             raise TypeError("existing_receipt must be a ResourceMutationReceipt")
-        if self.decision in {
-            ResourceMutationDecision.REPLAY_EXISTING,
-            ResourceMutationDecision.IDEMPOTENCY_CONFLICT,
-        } and self.existing_receipt is None:
-            raise ValueError("replay/conflict resolutions require an existing receipt")
+        if (
+            self.decision is ResourceMutationDecision.REPLAY_EXISTING
+            and self.existing_receipt is None
+        ):
+            raise ValueError("replay resolutions require an existing receipt")
         if self.decision is ResourceMutationDecision.REJECT:
             if self.existing_receipt is not None or not self.rejection_reason:
                 raise ValueError("rejected mutations require a reason and no receipt")
@@ -165,9 +165,7 @@ def resolve_resource_mutation(
     if any(not isinstance(item, ResourceMutationReceipt) for item in previous):
         raise TypeError("prior_receipts must contain ResourceMutationReceipt values")
     matching = tuple(
-        item
-        for item in previous
-        if item.request.idempotency_key == request.idempotency_key
+        item for item in previous if item.request.idempotency_key == request.idempotency_key
     )
     if not matching:
         return ResourceMutationResolution(

@@ -697,21 +697,11 @@ class ReplayRouteAdapter(ForwardRouteAdapter):
 class ResourceConflictAdapter(FakeAdapter):
     async def create_resource(self, **kwargs: Any) -> ResourceMutationServiceResult:
         request = kwargs["request"]
-        previous_request = type(request)(
-            resource_type=request.resource_type,
-            idempotency_key=request.idempotency_key,
-            payload={"attributes": {"previous": True}},
-            requested_at=NOW,
-        )
-        previous_receipt = create_resource_mutation_receipt(
-            previous_request, self.document, accepted_at=NOW
-        )
         resolution = ResourceMutationResolution(
             ResourceMutationDecision.IDEMPOTENCY_CONFLICT,
             request.fingerprint,
-            previous_receipt,
         )
-        return ResourceMutationServiceResult(resolution, previous_receipt)
+        return ResourceMutationServiceResult(resolution)
 
 
 class RequestDriftAdapter(FakeAdapter):

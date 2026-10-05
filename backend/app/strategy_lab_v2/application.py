@@ -106,6 +106,7 @@ from app.strategy_lab_v2.search_state import (
     SearchStateResolution,
 )
 from app.strategy_lab_v2.storage import (
+    STORAGE_REQUEST_ID_CONFLICT_REASON,
     AggregateKey,
     AggregateMutation,
     StorageTransactionDecision,
@@ -966,6 +967,16 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             mutations.append(AggregateMutation(domain_identity_key, domain_identity_state))
         storage_request = StorageTransactionRequest(storage_request_id, tuple(mutations))
         resolved = await self._persistence.aggregate_store.apply(storage_request)
+        if (
+            resolved.decision is StorageTransactionDecision.CONFLICT
+            and resolved.rejection_reason == STORAGE_REQUEST_ID_CONFLICT_REASON
+        ):
+            return ResourceMutationServiceResult(
+                ResourceMutationResolution(
+                    ResourceMutationDecision.IDEMPOTENCY_CONFLICT,
+                    request.fingerprint,
+                )
+            )
         committed = next(
             (aggregate for aggregate in resolved.aggregates if aggregate.key == aggregate_key),
             None,

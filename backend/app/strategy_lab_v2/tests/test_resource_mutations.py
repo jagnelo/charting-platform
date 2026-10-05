@@ -9,6 +9,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
     ResourceMutationRequest,
+    ResourceMutationResolution,
     create_resource_mutation_receipt,
     resolve_resource_mutation,
 )
@@ -16,7 +17,9 @@ from app.strategy_lab_v2.resource_mutations import (
 NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
 
 
-def _request(*, resource_type: ApiResourceType = ApiResourceType.TRIAL, payload: dict | None = None) -> ResourceMutationRequest:
+def _request(
+    *, resource_type: ApiResourceType = ApiResourceType.TRIAL, payload: dict | None = None
+) -> ResourceMutationRequest:
     return ResourceMutationRequest(
         resource_type=resource_type,
         idempotency_key="mutation-key",
@@ -25,7 +28,9 @@ def _request(*, resource_type: ApiResourceType = ApiResourceType.TRIAL, payload:
     )
 
 
-def _document(resource_type: ApiResourceType = ApiResourceType.TRIAL, resource_id: str = "trial-1") -> ResourceDocument:
+def _document(
+    resource_type: ApiResourceType = ApiResourceType.TRIAL, resource_id: str = "trial-1"
+) -> ResourceDocument:
     return ResourceDocument(ResourceIdentifier(resource_type, resource_id))
 
 
@@ -52,6 +57,17 @@ def test_resource_mutation_conflicts_on_changed_content_or_history() -> None:
     )
     with pytest.raises(ValueError, match="conflicting idempotency"):
         resolve_resource_mutation(request, (receipt, other))
+
+
+def test_resource_mutation_conflict_can_omit_another_request_receipt() -> None:
+    request = _request()
+    conflict = ResourceMutationResolution(
+        ResourceMutationDecision.IDEMPOTENCY_CONFLICT,
+        request.fingerprint,
+    )
+
+    assert conflict.http_status == 409
+    assert conflict.existing_receipt is None
 
 
 def test_resource_mutation_binds_resource_type_and_normalizes_time() -> None:

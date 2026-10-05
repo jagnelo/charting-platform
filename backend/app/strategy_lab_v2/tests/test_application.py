@@ -53,7 +53,10 @@ from app.strategy_lab_v2.postgres_result_publication import (
 )
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
 from app.strategy_lab_v2.progress import ProgressPhase
-from app.strategy_lab_v2.resource_mutations import ResourceMutationRequest
+from app.strategy_lab_v2.resource_mutations import (
+    ResourceMutationDecision,
+    ResourceMutationRequest,
+)
 from app.strategy_lab_v2.result_completion import (
     ResultCompletionDecision,
     ResultCompletionLedger,
@@ -974,6 +977,7 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     adapter._persistence = SimpleNamespace(aggregate_store=store)
     adapter._resources = reader
     accepted_at = NOW.replace(hour=13)
+    key_conflict_clock = NOW.replace(day=4, hour=0)
     conflict_clock = NOW.replace(hour=14)
     strategy_clock = NOW.replace(hour=15)
     package_clock = NOW.replace(hour=16)
@@ -988,6 +992,7 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     clocks = iter(
         (
             accepted_at,
+            key_conflict_clock,
             conflict_clock,
             strategy_clock,
             package_clock,
@@ -1023,6 +1028,19 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     )
     assert replay.resolution.decision.value == "replay_existing"
     assert replay.receipt == first.receipt
+
+    changed_payload = ResourceMutationRequest(
+        ApiResourceType.ARTIFACT,
+        "trial-key",
+        {"attributes": {"resource_id": "trial-1", "name": "changed"}},
+        NOW,
+    )
+    idempotency_conflict = await adapter.create_resource(
+        principal=_User(42), request_id="request-conflict", request=changed_payload
+    )
+    assert idempotency_conflict.resolution.decision is ResourceMutationDecision.IDEMPOTENCY_CONFLICT
+    assert idempotency_conflict.resolution.http_status == 409
+    assert idempotency_conflict.receipt is None
 
     owner_conflict = await adapter.create_resource(
         principal=_User(7), request_id="request-3", request=request
