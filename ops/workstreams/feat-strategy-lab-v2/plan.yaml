@@ -857,15 +857,22 @@ progress:
   total: 18
   current_phase: forward-runtime-durable-settlement
   active_changeset:
-    id: strategy-lab-v2-nautilus-forward-checkpoint-bootstrap-gate-v1
+    id: strategy-lab-v2-nautilus-forward-process-loss-recovery-v1
     scope: >-
-      Fail closed before process creation unless the host-resolved hardened
-      launch plan contains a canonical, digest-bound bootstrap for the exact
-      forward instance and requested durable admission checkpoint.
+      Resolve the exact RC5 process bootstrap and inputs from host-owned durable
+      admission/account state, then qualify the persistent session across real
+      isolated-process termination and each account/Redis-ACK crash window.
     owned_paths:
+      - backend/app/strategy_lab_v2/nautilus_forward_recovery.py
+      - backend/app/strategy_lab_v2/nautilus_rc_fixture_probe.py
+      - backend/app/strategy_lab_v2/nautilus_runtime_image/evidence_build.py
       - backend/app/strategy_lab_v2/nautilus_forward_process.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_recovery.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process.py
-    status: completed
+      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process_integration.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_session.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_runtime_image.py
+    status: in_progress
   current_blocker: >-
     No external dependency blocks package-owned implementation. Exact-pinned
     Nautilus RC5 remains acceptable for locally controlled testing; stable
@@ -893,8 +900,8 @@ progress:
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Close the checkpoint-bootstrap guard at exact implementation commit
-    df852f75df135a3fc58dd59af087861cc3dcbcf4, then open the image-backed
-    forward process-loss recovery changeset. Resolve checkpoint-specific
-    runtime plans from durable admission/account state, then kill and relaunch
-    the exact RC5 process across pre-commit, committed-before-ACK, and post-ACK.
+    Build the host-side durable checkpoint plan resolver and serializable
+    forward-process fixture inputs, then exercise the exact-source RC5 worker
+    through abrupt process kill/relaunch and verify all settlement/ACK crash
+    windows. Persist exact image and receipt provenance; stable release
+    labeling remains unnecessary.

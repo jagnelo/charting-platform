@@ -12176,7 +12176,39 @@ remote accepted it. Local/remote equality and the final clean boundary are
 recorded in the following operational checkpoint. The next permitted work is
 the independently scoped exact-RC5 process-loss and ACK-window recovery proof.
 
-Next action: finish the separate operational checkpoint for the pushed guard,
-then start `strategy-lab-v2-nautilus-forward-process-loss-recovery-v1` to build
-exact-checkpoint host plan resolution and the RC5 image-backed actual process
-termination/restart proof for all three crash windows.
+The checkpoint-bootstrap guard is closed at implementation SHA
+`df852f75df135a3fc58dd59af087861cc3dcbcf4`; separate operational records were
+committed and synchronized before selecting the next changeset.
+
+## 2026-10-05 - Exact-RC5 forward process-loss recovery
+
+Active changeset context: `strategy-lab-v2-nautilus-forward-process-loss-recovery-v1`.
+Owned paths are `backend/app/strategy_lab_v2/nautilus_forward_recovery.py`,
+`nautilus_forward_process.py`, `nautilus_rc_fixture_probe.py`,
+`nautilus_runtime_image/evidence_build.py`, and the focused suites
+`test_nautilus_forward_recovery.py`, `test_nautilus_forward_process.py`,
+`test_nautilus_forward_process_integration.py`,
+`test_nautilus_forward_session.py`, and `test_nautilus_runtime_image.py` under
+`backend/app/strategy_lab_v2/tests/`.
+
+Intent: build host-side runtime plans from the exact durable admission/account
+checkpoint, then validate duplicate/crash replay after terminating and
+relaunching the actual isolated exact-source RC5 process. Exercise failures
+before account commit, after durable commit but before Redis ACK, and after ACK.
+Keep event identity provider-owned, corrections counterfactual, no broker or
+real-capital route, and leave the legacy backend Nautilus pin untouched.
+
+Starting evidence: the prior guard is implemented at
+`df852f75df135a3fc58dd59af087861cc3dcbcf4`, pushed and fully tested (1,501
+Strategy Lab tests, 51 focused forward/runtime tests, Ruff, focused MyPy).
+Docker daemon version 29.1.3 is reachable via the repository's reviewed local
+runtime path. Exact RC5 image process-death/relaunch and durable ACK-window
+proof remain unimplemented; same-process replay and fake process tests are
+insufficient. Exact stable 2.x publication is not a dependency.
+
+Exact next action: inspect the bootstrap/input generation and durable account
+settlement APIs, implement checkpoint-keyed host plan resolution plus a typed
+fixture export, then add and run the RC5 image-backed process integration test.
+After every Docker-backed run, execute scoped resource cleanup and record the
+remaining resources. Do not close this context until all three crash windows
+are exercised with exact source/image digests and the full relevant tests pass.
