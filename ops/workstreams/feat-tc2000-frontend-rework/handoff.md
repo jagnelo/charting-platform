@@ -1,5 +1,47 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Completed: keyboard navigation for Relative Rotation
+
+The self-contained implementation commit
+`7f586db35c0ce9425cda07bcd67832517612ada2` (`feat(tc2000): make rotation
+plot keyboard navigable`) changes only the Relative Rotation frontend and its
+unit/E2E coverage:
+
+- `frontend/src/components/workstation/RelativeRotationTool.vue`
+- `frontend/tests/unit/components/test_relative_rotation_tool.test.ts`
+- `frontend/tests/e2e/flows.spec.ts`
+
+The plot now has a keyboard path for the latest point in each visible series,
+with arrow/Home/End navigation, an announced tooltip, and Enter/Space
+selection. Pointer behavior, provider/data contracts, rendering, visual
+references, masks, and acceptance rules are unchanged. Focused unit coverage
+passes `12/12`; frontend type-check and production build also pass. The focused
+authenticated Chromium flow passed `1/1` in the cached pinned Playwright 1.62.1
+Noble container: focus shows XLK's latest point, ArrowRight moves to XLE, and
+Enter selects XLE in the linked chart. The Playwright CLI wrapper stalled
+resolving its package, so the repository's pinned runner was used as previously
+authorized. Artifacts are at
+`/tmp/tc2000-relative-rotation-keyboard.hGp788`. Afterward, teardown removed the
+exact assigned six containers, four temporary volumes, network, and the four
+unique images created for this stack; exact-project inventory is empty. Older
+branch-named images outside the Compose project were preserved. The complete
+serial frontend suite now passes `129` files / `1,203` tests; type-check and
+production build pass as well. The product commit is pushed to
+`origin/feat/tc2000-frontend-rework`; local `HEAD` and its tracking ref both
+resolve to `7f586db35c0ce9425cda07bcd67832517612ada2`. Final workstream
+validation passed 30 records, the TC scope guard accepted all 129 changed paths,
+all six scope self-tests passed, and `git diff --check` was clean. The agent
+context check confirmed this is the assigned implementation worktree; the
+default shared UV cache is read-only, so the check used a temporary cache with
+offline/no-sync mode. The assigned test stack is fully removed and its exact
+project inventory is empty.
+
+This product changeset is closed. After this separate workstream receipt is
+pushed, refresh the remote staging/provider/ETF refs and continue the next
+bounded TC-owned UI/Study/Strategy gap. Keep the ten protected visual
+differences visible and defer provider/ETF consumer work until both upstream
+branches reach staging.
+
 ## 2026-10-05 — Evidence checkpoint pushed
 
 The exact-tip browser-results workstream checkpoint was committed as
