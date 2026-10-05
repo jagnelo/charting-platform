@@ -1,5 +1,38 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Current-tip full functional and visual results
+
+At product source `7f586db35c0ce9425cda07bcd67832517612ada2`, pinned Chromium
+ran all 175 authenticated functional cases serially: 169 passed, five
+documented cases were skipped, and one failed. The failure was
+`F8s-market-map-python-output`: after choosing Market Map from the Add Tool
+menu, its visible tool window did not appear within 15 seconds. The same case
+passed unchanged in a focused replay (`1/1` in 14.4 seconds), but that replay
+does not replace the full-suite result. The default Playwright result folder was
+cleared by the focused replay before the failure screenshot could be copied
+elsewhere; preserve the full-run failure and call log here.
+
+The unchanged, seeded, four-project visual matrix completed all 104 cases:
+94 passed and ten failed only at their existing protected screenshot
+comparisons after state assertions passed. Pixel differences were
+workspace-floating `8,995 / 9,825 / 8,995 / 9,825`; Study structured-result
+`109,320 / 105,698 / 22,099 / 21,352`; and Study sandbox-error `13,360 /
+11,120` at 1080p/100 and 1080p/125, with both 1440p sandbox-error cases
+passing. The 1080p/125 sandbox-error count differs by 68 pixels from the
+previous recorded `11,188` result; the state and screenshot oracle are
+unchanged. No reference, mask, threshold, skip, fallback, or acceptance rule
+changed. Actual/diff screenshots and error contexts are retained under
+`/tmp/tc2000-exact-tip-visual-V1LODN` (9.7 MB).
+
+The workstream validator passed 30 records, the TC scope guard accepted all
+129 changed paths, all six scope self-tests passed, session JSON parsed with a
+matching plan hash, and `git diff --check` was clean.
+
+Next: tear down the exact assigned stack, rebuild it from empty test volumes,
+and rerun the full serial functional suite unchanged to check whether the lone
+Market Map visibility failure reproduces. Preserve the failed full-run result
+and focused replay as separate evidence.
+
 ## 2026-10-05 — Refreshed staging and dependency refs
 
 After the synchronized workstream checkpoint, a read-only GitHub ref refresh
@@ -10,11 +43,9 @@ confirmed TC `6ffeee9e46fcf5475df370da962e74ad6d6fa59a`, staging
 staging. Do not consume their direct branch tips or reconcile their shared
 paths in TC.
 
-The next context is exact-tip browser validation at product source
-`7f586db35c0ce9425cda07bcd67832517612ada2`: run the full serial authenticated
-Chromium functional suite and unchanged four-project visual matrix on the
-assigned TC stack, preserve the known screenshot-only differences, then tear
-down and audit that exact stack.
+The next context at that checkpoint was exact-tip browser validation at
+`7f586db35c0ce9425cda07bcd67832517612ada2`; the resulting full suite and
+visual evidence are recorded in the newer section above.
 
 ## 2026-10-05 — Completed: keyboard navigation for Relative Rotation
 

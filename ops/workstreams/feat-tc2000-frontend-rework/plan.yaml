@@ -274,27 +274,27 @@ progress:
   total: 9
   current_phase: R1_R6_KEYBOARD_ACCESSIBILITY_AND_EXACT_TIP_REPLAY
   next_action: >-
-    At product source 7f586db35c0ce9425cda07bcd67832517612ada2, run the full
-    serial authenticated Chromium functional suite and unchanged four-project
-    visual matrix on the assigned TC stack, then tear down and audit its exact
-    resources. Preserve the known screenshot-only differences and all visual
-    acceptance rules. Continue bounded TC-owned UI/Study/Strategy work after
-    this evidence batch.
+    Tear down the exact assigned TC stack, rebuild with empty test volumes, and
+    rerun the full serial authenticated Chromium functional suite unchanged at
+    product source 7f586db35c0ce9425cda07bcd67832517612ada2. Preserve the
+    initial 169/175 functional result and focused Market Map replay separately.
+    Then tear down and audit the exact assigned resources.
   current_blocker: >-
-    Independent TC work is unblocked. At the prior product source, the exact-tip
-    pinned functional suite passed 173/179 with six documented skips and zero
-    failures; two transient first-run diagnostics passed unchanged focused
-    replay. The full visual matrix passed 94/104 with ten known screenshot
-    differences: workspace-floating and Study structured-result in all four
-    viewports, and Study sandbox-error at 1080p/100 and 1080p/125. No visual
-    oracle, mask, threshold, skip, or acceptance rule changed. The read-only
-    2026-10-05 ref refresh confirmed staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35,
-    provider 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF
-    37d32c633b4633bfaebb1259c44374fd107b79ae. Provider and ETF are both
-    outside staging, so R2/R3 and shared-path reconciliation remain deferred.
-    `make validate-integration` still encounters the host's missing Docker
-    Buildx helper; ordinary Compose previously proved the assigned stack path.
-    No authorization gate blocks independent TC work.
+    Independent TC work is unblocked. At current product source
+    7f586db35c0ce9425cda07bcd67832517612ada2, the pinned full functional run
+    passed 169/175, skipped five documented cases, and failed
+    F8s-market-map-python-output when its Market Map window did not appear; its
+    unchanged focused replay passed 1/1 but does not replace the full result.
+    The full visual matrix passed 94/104 with ten screenshot-only differences:
+    workspace-floating 8995/9825/8995/9825; Study structured-result
+    109320/105698/22099/21352; Study sandbox-error 13360/11120 at 1080p,
+    passing at both 1440p scales. The 1080p/125 sandbox count shifted by 68
+    pixels from its prior receipt; no oracle or policy changed. Direct refs
+    refreshed 2026-10-05: staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35,
+    provider 88132e9145a08d1c935a0111b3dba0fbd88bdff1, ETF
+    37d32c633b4633bfaebb1259c44374fd107b79ae. Both dependencies remain outside
+    staging; R2/R3 stay deferred. The standard integration helper still lacks
+    a working host Buildx path; ordinary Compose builds the assigned stack.
 historical_implementation_records:
   - "Exact product-tip pinned validation at be55d1af completed the 174-case functional suite with 172 passed, 2 documented skips, and zero failures. The four-project visual matrix completed all 104 cases: 93 passed, ten protected screenshot differences remain (workspace-floating all four viewports; Study structured-result all four; Study sandbox-error at the two 1080p scales), and one column-editor diagnostic failure from ERR_NETWORK_CHANGED passed unchanged replay 4/4. A separate four-project pinned shell smoke passed 4/4; host-only shell rendering failed glyph pixels with host Arial resolving to Nimbus Sans versus pinned Noble resolving Liberation Sans, consistent with environment/font rendering rather than geometry. Full matrix artifacts: /tmp/tc2000-pinned-visual-full-3t8qbk; functional artifacts: /tmp/tc2000-pinned-functional-full-9Iq2rG. Scoped Docker cleanup left zero resources. No visual acceptance policy changed."
   - "Product commit be55d1af2de8037671d65e33d5b1d5120e11f38c adds keyboard invocation for the TC-owned Virtual Watchlist Boolean header pin menu using Shift+F10 and the Context Menu key, while preserving right-click and Ctrl/Meta-click behavior and anchoring the menu at the header for keyboard use. Focused VirtualWatchlistTool coverage passed 80/80; full serial frontend Vitest passed 129 files / 1,202 tests; the Docker production build (including vue-tsc and Vite build) passed; and authenticated F8u-boolean passed 1/1. The exact-tip 174-case functional run passed 171, skipped 2 documented cases, and failed one F8s-family-matrix diagnostic because unrelated local API requests reported ERR_NETWORK_CHANGED after assertions; unchanged focused replay passed 1/1. The completed prior-tip 104-case visual matrix was 93/104 with ten protected screenshot differences; a post-change full visual attempt was stopped after broad deltas, and a fresh seeded-database shell smoke differed at all four viewports by 42,759 / 44,586 / 50,854 / 53,003 pixels. No screenshot oracle, mask, threshold, skip, or acceptance policy changed. The exact branch commit is pushed and direct GitHub refs verified; staging remains 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider is 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF is 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5. Both dependencies remain outside staging."
