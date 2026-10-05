@@ -10580,3 +10580,20 @@ exposure metrics and forward-shadow event-tape parity. Options order admission
 remains fail-closed pending canonical event-time Greeks/delta and settlement
 evidence; shared provider, ETF, and TC2000 paths remain staging-gated only when
 an owned change overlaps them.
+
+## In progress - forward lifecycle idempotency
+
+Audit finding: `POST /forward-instances/{instance_id}/lifecycle` currently has
+no required `Idempotency-Key`. The PostgreSQL adapter treats an already-equal
+target state as `REPLAY_EXISTING`, but does not bind a key to the original
+target/time or preserve that request's result snapshot. In addition, the route
+currently serializes a `CONFLICT` resolution with an instance as HTTP 202.
+
+Implement a durable owner/instance/key-scoped receipt, atomically stored with
+the lifecycle compare-and-set. Exact retries should replay the receipt's
+original `ForwardInstance`; changed intent under the same key must conflict.
+Map both state-transition and idempotency conflicts to typed HTTP 409, and keep
+cross-owner lookups indistinguishable from missing instances. Owned paths are
+`api_router.py`, `application.py`, `postgres_forward_state.py`, one additive
+Alembic migration, focused router/PostgreSQL/migration tests, this documentation,
+and the branch workstream record.

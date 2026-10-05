@@ -837,7 +837,7 @@ progress:
     - nautilus-oos-session-close-intervals-v1
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
   total: 18
-  current_phase: strategy-lab-v2-domain-api-lifecycle-v1
+  current_phase: strategy-lab-v2-forward-lifecycle-idempotency-v1
   current_blocker: >-
     No external Nautilus release or upstream event blocks package-owned
     implementation. Exact-pinned Nautilus 2.0.0rc5 has the four backtest checks;
@@ -869,12 +869,16 @@ progress:
     Options order admission remains fail-closed pending canonical event-time
     Greeks/delta and settlement evidence.
   next_action: >-
-    Continue the AC-DOMAIN/AC-API lifecycle audit in owner-scoped resource
-    mutation and router paths. Identify and implement the next concrete missing
-    typed lifecycle transition, preserving immutable identities, idempotent
-    replay, owner isolation, and existing route compatibility. Then continue
-    broader exposure metrics, forward-shadow event-tape parity, and full
-    exact-tip acceptance.
+    Forward-instance lifecycle mutation: require Idempotency-Key, bind the
+    owner/instance/key to target and request time, and persist the accepted
+    outcome snapshot atomically with the PostgreSQL state transition. Exact
+    retries must replay the original instance snapshot; key reuse with changed
+    intent must return a typed conflict. Also map rejected lifecycle transitions
+    to HTTP 409 rather than 202. Owned paths: api_router.py, application.py,
+    postgres_forward_state.py, a new additive Alembic revision, focused router,
+    adapter, and migration tests, docs/strategy-lab-v2.md, and this workstream.
+    Then continue broader domain/API lifecycle gaps, exposure metrics,
+    forward-shadow event-tape parity, and exact-tip acceptance.
     Exact-pinned RC5 remains eligible for authoritative local backtests after
     four checks; stable labeling is not a gate. Forward shadow requires all five
     checks. Keep options fail-closed pending canonical event-time Greeks/delta
