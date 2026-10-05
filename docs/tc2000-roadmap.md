@@ -5,6 +5,46 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-05
 
+## 2026-10-05 — Exact-tip functional and visual rerun
+
+At pushed workstream tip `4b88a90600420a37a3e62cc01d0c065e389affcd`, with
+product source `be55d1af2de8037671d65e33d5b1d5120e11f38c` and the keyboard-flow
+test change from `8448c45286b2202800e6079bc30a1a02e5999936`, the full serial
+authenticated Chromium suite completed all `179` cases: `173` passed, `6`
+documented skips, and zero failures (`16.9m`). The first full run at this tip
+had `171` passes and two transient failures (`F9g-series-shape` local
+`ERR_NETWORK_CHANGED`; `F8w` Gauge refresh control not visible). Both passed an
+unchanged focused replay, then the clean-stack full rerun passed; preserve the
+first result without treating the retry as a replacement for that history.
+
+The correctly enabled pinned four-project board matrix completed all `104`
+cases: `94` passed and the ten protected screenshot comparisons below failed
+after their state assertions passed. The prior full matrix's additional
+transport diagnostic did not recur.
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | ---: | ---: | ---: |
+| `visual-1080p-100` | 8,995 | 109,320 | 13,360 |
+| `visual-1080p-125` | 9,825 | 105,698 | 11,188 |
+| `visual-1440p-100` | 8,995 | 22,099 | Passed |
+| `visual-1440p-125` | 9,825 | 21,352 | Passed |
+
+No reference, mask, threshold, skip, or acceptance policy changed. Functional
+artifacts are under `/tmp/tc2000-full-functional-clean-rerun.HJ76xu`; the
+first-run failures and focused replay are preserved under
+`/tmp/tc2000-full-functional-exact-tip.xsyIA9` and
+`/tmp/tc2000-full-functional-failure-replay.o5iFBL`; the valid visual matrix
+is under `/tmp/tc2000-exact-tip-visual-board.0tfCo1`. Scoped teardown and the
+follow-up resource audit left zero assigned TC resources.
+
+Current read-only refs are TC `4b88a90600420a37a3e62cc01d0c065e389affcd`,
+staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`8105d9695fa4f265e1069b18b5dec439b16dadc4`. Provider and ETF remain outside
+staging. Continue independent TC-owned UI/Study/Strategy work; preserve the ten
+visual gaps and defer consumer integration until both upstream branches reach
+staging.
+
 ## 2026-10-05 — Pinned exact-tip validation reconciliation
 
 At product source `be55d1af2de8037671d65e33d5b1d5120e11f38c`, the complete

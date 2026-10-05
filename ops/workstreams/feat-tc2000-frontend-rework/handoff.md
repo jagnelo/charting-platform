@@ -1,5 +1,46 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Exact-tip full browser reconciliation
+
+At pushed workstream tip `4b88a90600420a37a3e62cc01d0c065e389affcd`
+(product source `be55d1af2de8037671d65e33d5b1d5120e11f38c`; keyboard-flow test
+commit `8448c45286b2202800e6079bc30a1a02e5999936`), the full serial pinned
+Chromium suite completed `179` cases: `173` passed, `6` documented skips, and
+zero failures in `16.9m`. An earlier full run had `171` passes plus two
+transient failures: F9g's final browser diagnostics caught local
+`ERR_NETWORK_CHANGED`, and F8w timed out waiting for the Gauge `Refresh`
+control to become visible. The unchanged focused replay passed both (`2/2`),
+and a clean-stack full rerun passed. Keep the first run recorded; it is not
+replaced by the focused replay.
+
+The correctly opted-in (`RUN_BOARD_VISUAL_PARITY=1`, seeded backend) pinned
+four-project matrix completed `104` cases: `94` passed and `10` failed only at
+the existing protected screenshots after their state assertions passed. The
+pixel differences were workspace-floating `8,995 / 9,825 / 8,995 / 9,825`,
+Study structured-result `109,320 / 105,698 / 22,099 / 21,352`, and Study
+sandbox-error `13,360 / 11,188` at 1080p/100 and 1080p/125 (both 1440p cases
+passed). The previous full matrix's network diagnostic did not recur. No
+visual reference, mask, threshold, skip, fallback, or acceptance policy
+changed.
+
+The clean functional artifacts are at
+`/tmp/tc2000-full-functional-clean-rerun.HJ76xu`; the first-run and focused
+replay artifacts are at `/tmp/tc2000-full-functional-exact-tip.xsyIA9` and
+`/tmp/tc2000-full-functional-failure-replay.o5iFBL`; the valid visual matrix
+is at `/tmp/tc2000-exact-tip-visual-board.0tfCo1`. Exact TC stack cleanup plus
+resource accounting left zero containers, volumes, images, sessions, known
+bytes, or unknown components.
+
+Direct remote refs were refreshed: TC
+`4b88a90600420a37a3e62cc01d0c065e389affcd`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`8105d9695fa4f265e1069b18b5dec439b16dadc4`. Provider and ETF remain outside
+staging, so consumer integration and semantic shared-path reconciliation stay
+deferred. `make validate-integration` remains a separate local gate with the
+known missing Docker Buildx helper mismatch. Continue independent TC-owned
+frontend/Study/Strategy work; the branch is not ready for human review.
+
 ## 2026-10-05 — Keyboard activation of the Boolean pin menu
 
 Product/test commit `8448c45286b2202800e6079bc30a1a02e5999936`

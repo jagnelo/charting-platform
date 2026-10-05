@@ -1,5 +1,34 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-10-05 — Exact-tip clean functional and visual results
+
+At pushed TC workstream tip `4b88a90600420a37a3e62cc01d0c065e389affcd`
+(product source `be55d1af2de8037671d65e33d5b1d5120e11f38c`; E2E keyboard
+coverage from `8448c45286b2202800e6079bc30a1a02e5999936`), pinned Playwright
+1.62.1 completed the full serial functional suite: `173` passed, `6`
+documented skips, zero failures across `179` cases. Two first-run failures
+(`ERR_NETWORK_CHANGED` in F9g and an F8w Gauge control visibility timeout)
+both passed unchanged focused replay; the clean-stack complete rerun is the
+current full functional result.
+
+The correctly enabled `RUN_BOARD_VISUAL_PARITY=1` run completed all `104`
+cases: `94` passed and `10` protected screenshot comparisons failed after
+their state assertions passed. Pixel differences are:
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | ---: | ---: | ---: |
+| `visual-1080p-100` | 8,995 | 109,320 | 13,360 |
+| `visual-1080p-125` | 9,825 | 105,698 | 11,188 |
+| `visual-1440p-100` | 8,995 | 22,099 | Passed |
+| `visual-1440p-125` | 9,825 | 21,352 | Passed |
+
+The earlier transport diagnostic did not recur. All four projects retain the
+same open states: workspace-floating at each viewport, Study structured-result
+at each viewport, and Study sandbox-error at both 1080p scales. No reference,
+mask, threshold, skip, fallback, or acceptance rule changed. Full functional
+artifacts are under `/tmp/tc2000-full-functional-clean-rerun.HJ76xu`; full
+visual artifacts are under `/tmp/tc2000-exact-tip-visual-board.0tfCo1`.
+
 ## 2026-10-05 — Pinned exact-tip matrix and renderer diagnostic
 
 At product source `be55d1af2de8037671d65e33d5b1d5120e11f38c`, pinned Playwright

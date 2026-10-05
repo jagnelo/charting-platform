@@ -20,24 +20,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No human or TC-ownership gate blocks independent work. At pushed TC tip
-  `8448c45286b2202800e6079bc30a1a02e5999936` (test-only change), the focused
-  pinned authenticated F8u-boolean browser flow passed 1/1 after keyboard
-  activation was added for the Boolean pin menu. The prior full pinned
-  functional result remains 172 passed, 2 documented skips, and zero failures
-  at product source `be55d1af2de8037671d65e33d5b1d5120e11f38c`; the full visual
-  matrix remains 93/104 with ten protected screenshot differences and one
-  transient network diagnostic. These full-suite results were not rerun for the
-  test-only change. No visual oracle or policy changed. Ordinary Compose built
-  all four images and the exact six-service stack became healthy; cleanup and
-  resource audit left zero assigned resources. `make validate-integration`
-  still encounters the host's missing Docker Buildx helper. Current direct refs
-  are staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+  Independent TC work is unblocked. At exact pushed workstream tip
+  `4b88a90600420a37a3e62cc01d0c065e389affcd`, the pinned full functional suite
+  passed 173/179 with six documented skips and zero failures after an unchanged
+  replay of two first-run browser/environment failures. The correctly enabled
+  104-case visual matrix passed 94; ten protected screenshot comparisons remain
+  open after state assertions passed. No visual oracle or policy changed. The
+  exact six-service Compose stack was removed and the resource audit found zero
+  assigned resources. `make validate-integration` still encounters the host's
+  missing Docker Buildx helper. Current direct refs are staging
+  `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
   `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
-  `5a189326f45e58a1aba00dd490c2ad2f46151d24`; provider and ETF remain outside
+  `8105d9695fa4f265e1069b18b5dec439b16dadc4`; provider and ETF remain outside
   staging. Defer R2/R3 integration and shared-path reconciliation until both
   dependencies reach staging. Continue bounded TC-owned UI/Study/Strategy work;
-  exact full-integration acceptance and the visual gaps remain open.
+  exact full-integration acceptance and ten visual gaps remain open.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -278,28 +275,24 @@ progress:
   current_phase: R1_R6_KEYBOARD_ACCESSIBILITY_AND_EXACT_TIP_REPLAY
   next_action: >-
     Continue the next bounded TC-owned workstation UI, Study, or Strategy gap
-    after checking the candidate against the frontend-led ownership boundary.
-    The pushed test-only tip 8448c452 verifies keyboard focus and Enter-based
-    activation in the authenticated F8u-boolean flow (pinned run 1/1). The last
-    complete functional result is 172 passed, 2 documented skips, zero failures
-    at product source be55d1af; the full visual matrix remains 93/104 with ten
-    protected screenshot differences and one network diagnostic. These full
-    results were not rerun for the test-only change. Preserve the full-matrix
-    result and all visual gaps; continue independent TC work. Defer provider/ETF
+    after checking it against the frontend-led ownership boundary. Exact-tip
+    pinned functional validation passed 173/179 with six documented skips and
+    zero failures; preserve the two first-run failures and successful unchanged
+    replay. The correctly enabled four-project visual matrix passed 94/104, with
+    ten protected screenshot differences still open. Defer provider/ETF
     consumption and shared-path reconciliation until both dependency tips reach
     staging; do not mutate another worktree.
   current_blocker: >-
-    Independent TC work is unblocked. The focused pinned F8u-boolean flow passed
-    1/1 at test-only tip 8448c452. The last complete functional result at
-    product source be55d1af remains 172/174 with two documented skips and zero
-    failures. The full visual matrix remains 93/104 with ten known screenshot
-    differences (workspace-floating in all four viewports, Study structured-
-    result in all four, and Study sandbox-error at both 1080p scales); one
-    additional network diagnostic passed focused replay. No screenshot oracle,
-    mask, threshold, skip, or acceptance rule changed. `make validate-integration`
+    Independent TC work is unblocked. The exact-tip pinned functional suite
+    passed 173/179 with six documented skips and zero failures; two transient
+    first-run diagnostics passed unchanged focused replay. The full visual
+    matrix passed 94/104 with ten known screenshot differences: workspace-
+    floating and Study structured-result in all four viewports, and Study
+    sandbox-error at 1080p/100 and 1080p/125. No screenshot oracle, mask,
+    threshold, skip, or acceptance rule changed. `make validate-integration`
     still encounters the host's missing Docker Buildx helper. Current provider
     tip 88132e9145a08d1c935a0111b3dba0fbd88bdff1 and ETF tip
-    5a189326f45e58a1aba00dd490c2ad2f46151d24 remains outside staging
+    8105d9695fa4f265e1069b18b5dec439b16dadc4 remain outside staging
     8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, so R2/R3 and shared-path
     reconciliation remain deferred. No authorization gate blocks independent
     TC work.
