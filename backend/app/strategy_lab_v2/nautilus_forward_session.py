@@ -16,6 +16,7 @@ from types import MappingProxyType
 from typing import Any, Protocol
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.forward_account import ForwardRuntimeExecutionReceipt
 from app.strategy_lab_v2.forward_account_worker import (
     ForwardAccountEventBinding,
     ForwardAccountStore,
@@ -275,10 +276,29 @@ class NautilusForwardSessionEventHandler:
                 return _reject(entry, "native forward result does not match its accepted input")
             return _retry(entry, "native forward result mismatch and checkpoint recovery failed")
 
+        canonical = delivery.tape.envelopes[0].canonical_event
+        durable_receipt = ForwardRuntimeExecutionReceipt(
+            instance_id=delivery.delivery_binding.instance_id,
+            event_id=canonical.event_id,
+            event_fingerprint=content_digest(canonical),
+            delivery_binding_fingerprint=delivery.delivery_binding.fingerprint,
+            context_preparation_fingerprint=preparation.fingerprint,
+            pre_event_checkpoint_fingerprint=(
+                delivery.delivery_binding.pre_event_checkpoint_fingerprint
+            ),
+            runtime_session_fingerprint=execution.runtime_session_fingerprint,
+            native_output_fingerprint=execution.native_output_fingerprint,
+        )
+        output_binding = execution.account_event_binding
+        durable_binding = ForwardAccountEventBinding(
+            output_binding.canonical_event,
+            output_binding.account_event,
+            durable_receipt,
+        )
         account_handler = ForwardAccountWorkerHandler(
             self._account_store,
             principal=self._principal,
-            event_resolver=lambda _entry, _item: execution.account_event_binding,
+            event_resolver=lambda _entry, _item: durable_binding,
         )
         try:
             settlement = await account_handler(entry, work_item)
@@ -313,6 +333,7 @@ class NautilusForwardSessionEventHandler:
                     "context_preparation_fingerprint": preparation.fingerprint,
                     "runtime_session_fingerprint": execution.runtime_session_fingerprint,
                     "native_output_fingerprint": execution.native_output_fingerprint,
+                    "execution_receipt_fingerprint": durable_receipt.fingerprint,
                     "account_settlement_receipt": settlement.receipt_digest,
                 }
             ),

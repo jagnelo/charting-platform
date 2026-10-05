@@ -30,12 +30,7 @@ def _nonempty(value: str, field_name: str) -> None:
 
 
 def _currency(value: str, field_name: str = "currency") -> str:
-    if (
-        not isinstance(value, str)
-        or len(value) != 3
-        or not value.isascii()
-        or not value.isalpha()
-    ):
+    if not isinstance(value, str) or len(value) != 3 or not value.isascii() or not value.isalpha():
         raise ValueError(f"{field_name} must be a three-letter currency code")
     return value.upper()
 
@@ -132,7 +127,11 @@ class ForwardAccountEvent:
         _nonempty(self.instance_id, "instance_id")
         _nonempty(self.event_id, "event_id")
         require_sha256_digest(self.event_fingerprint, field_name="event_fingerprint")
-        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 0:
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 0
+        ):
             raise ValueError("account event sequence must be a non-negative integer")
         object.__setattr__(self, "event_time", _aware(self.event_time, "event_time"))
         orders = tuple(self.orders)
@@ -168,6 +167,37 @@ class ForwardAccountEvent:
 
 
 @dataclass(frozen=True, slots=True)
+class ForwardRuntimeExecutionReceipt:
+    """Immutable runtime/context evidence bound to one canonical account event."""
+
+    instance_id: str
+    event_id: str
+    event_fingerprint: str
+    delivery_binding_fingerprint: str
+    context_preparation_fingerprint: str
+    pre_event_checkpoint_fingerprint: str
+    runtime_session_fingerprint: str
+    native_output_fingerprint: str
+
+    def __post_init__(self) -> None:
+        _nonempty(self.instance_id, "instance_id")
+        _nonempty(self.event_id, "event_id")
+        for name in (
+            "event_fingerprint",
+            "delivery_binding_fingerprint",
+            "context_preparation_fingerprint",
+            "pre_event_checkpoint_fingerprint",
+            "runtime_session_fingerprint",
+            "native_output_fingerprint",
+        ):
+            require_sha256_digest(getattr(self, name), field_name=name)
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
 class ForwardAppliedAccountEvent:
     """Append-only event identity retained for account replay protection."""
 
@@ -179,13 +209,57 @@ class ForwardAppliedAccountEvent:
     def __post_init__(self) -> None:
         _nonempty(self.event_id, "event_id")
         require_sha256_digest(self.event_fingerprint, field_name="event_fingerprint")
-        require_sha256_digest(self.event_content_fingerprint, field_name="event_content_fingerprint")
-        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 0:
+        require_sha256_digest(
+            self.event_content_fingerprint, field_name="event_content_fingerprint"
+        )
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 0
+        ):
             raise ValueError("applied event sequence must be a non-negative integer")
 
     @property
     def fingerprint(self) -> str:
         return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
+class ForwardAppliedAccountExecutionEvent:
+    """Append-only account event plus the runtime receipt committed with it."""
+
+    event_id: str
+    event_fingerprint: str
+    event_content_fingerprint: str
+    sequence: int
+    execution_receipt: ForwardRuntimeExecutionReceipt
+
+    def __post_init__(self) -> None:
+        _nonempty(self.event_id, "event_id")
+        require_sha256_digest(self.event_fingerprint, field_name="event_fingerprint")
+        require_sha256_digest(
+            self.event_content_fingerprint, field_name="event_content_fingerprint"
+        )
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 0
+        ):
+            raise ValueError("applied event sequence must be a non-negative integer")
+        if not isinstance(self.execution_receipt, ForwardRuntimeExecutionReceipt):
+            raise TypeError("execution_receipt must use ForwardRuntimeExecutionReceipt")
+        if (
+            self.execution_receipt.event_id != self.event_id
+            or self.execution_receipt.event_fingerprint != self.event_fingerprint
+        ):
+            raise ValueError("execution receipt does not match the applied account event")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+ForwardAppliedAccountEventRecord = ForwardAppliedAccountEvent | ForwardAppliedAccountExecutionEvent
 
 
 @dataclass(frozen=True, slots=True)
@@ -201,7 +275,7 @@ class ForwardAccountState:
     positions: tuple[PositionSnapshot, ...] = ()
     orders: tuple[ShadowOrder, ...] = ()
     fills: tuple[ShadowFill, ...] = ()
-    applied_events: tuple[ForwardAppliedAccountEvent, ...] = ()
+    applied_events: tuple[ForwardAppliedAccountEventRecord, ...] = ()
 
     def __post_init__(self) -> None:
         _nonempty(self.instance_id, "instance_id")
@@ -233,7 +307,10 @@ class ForwardAccountState:
             raise TypeError("orders must contain ShadowOrder values")
         if any(not isinstance(item, ShadowFill) for item in fills):
             raise TypeError("fills must contain ShadowFill values")
-        if any(not isinstance(item, ForwardAppliedAccountEvent) for item in applied):
+        if any(
+            not isinstance(item, ForwardAppliedAccountEvent | ForwardAppliedAccountExecutionEvent)
+            for item in applied
+        ):
             raise TypeError("applied_events must contain ForwardAppliedAccountEvent values")
         _unique([item.currency for item in cash], "cash currencies")
         _unique([item.instrument_id for item in positions], "position instruments")
@@ -247,11 +324,21 @@ class ForwardAccountState:
             latest = max(applied, key=lambda item: item.sequence)
             if latest.sequence != self.last_event_sequence or latest.event_id != self.last_event_id:
                 raise ValueError("account cursor must reference the latest applied event")
+        if any(
+            isinstance(item, ForwardAppliedAccountExecutionEvent)
+            and item.execution_receipt.instance_id != self.instance_id
+            for item in applied
+        ):
+            raise ValueError("execution receipt instance differs from account state")
         object.__setattr__(self, "cash", tuple(sorted(cash, key=lambda item: item.currency)))
-        object.__setattr__(self, "positions", tuple(sorted(positions, key=lambda item: item.instrument_id)))
+        object.__setattr__(
+            self, "positions", tuple(sorted(positions, key=lambda item: item.instrument_id))
+        )
         object.__setattr__(self, "orders", tuple(sorted(orders, key=lambda item: item.order_id)))
         object.__setattr__(self, "fills", tuple(sorted(fills, key=lambda item: item.fill_id)))
-        object.__setattr__(self, "applied_events", tuple(sorted(applied, key=lambda item: item.sequence)))
+        object.__setattr__(
+            self, "applied_events", tuple(sorted(applied, key=lambda item: item.sequence))
+        )
 
     @property
     def fingerprint(self) -> str:
@@ -310,6 +397,8 @@ def initial_forward_account_state(
 def apply_forward_account_event(
     state: ForwardAccountState,
     event: ForwardAccountEvent,
+    *,
+    execution_receipt: ForwardRuntimeExecutionReceipt | None = None,
 ) -> ForwardAccountResolution:
     """Apply one engine-produced account observation without broker I/O."""
 
@@ -317,6 +406,15 @@ def apply_forward_account_event(
         raise TypeError("state must be a ForwardAccountState")
     if not isinstance(event, ForwardAccountEvent):
         raise TypeError("event must be a ForwardAccountEvent")
+    if execution_receipt is not None:
+        if not isinstance(execution_receipt, ForwardRuntimeExecutionReceipt):
+            raise TypeError("execution_receipt must use ForwardRuntimeExecutionReceipt")
+        if (
+            execution_receipt.instance_id != event.instance_id
+            or execution_receipt.event_id != event.event_id
+            or execution_receipt.event_fingerprint != event.event_fingerprint
+        ):
+            raise ValueError("execution receipt does not match the account event")
     if event.instance_id != state.instance_id:
         return _reject(
             state,
@@ -324,11 +422,19 @@ def apply_forward_account_event(
             ForwardAccountDecision.REJECT,
             "account event references a different forward instance",
         )
-    existing = next((item for item in state.applied_events if item.event_id == event.event_id), None)
+    existing = next(
+        (item for item in state.applied_events if item.event_id == event.event_id), None
+    )
     if existing is not None:
+        existing_execution_receipt = (
+            existing.execution_receipt
+            if isinstance(existing, ForwardAppliedAccountExecutionEvent)
+            else None
+        )
         if (
             existing.event_fingerprint != event.event_fingerprint
             or existing.event_content_fingerprint != event.fingerprint
+            or existing_execution_receipt != execution_receipt
         ):
             return _reject(
                 state,
@@ -361,7 +467,9 @@ def apply_forward_account_event(
     cash_map = {item.currency: item.amount for item in state.cash}
     filled_quantities: dict[str, Decimal] = {}
     for fill in state.fills:
-        filled_quantities[fill.order_id] = filled_quantities.get(fill.order_id, Decimal(0)) + fill.quantity
+        filled_quantities[fill.order_id] = (
+            filled_quantities.get(fill.order_id, Decimal(0)) + fill.quantity
+        )
     for fill in event.fills:
         if fill.fill_id in fill_map:
             return _reject(
@@ -391,12 +499,21 @@ def apply_forward_account_event(
         _apply_fill(position_map, fill_order.intent, fill)
     for currency, delta in event.cash_deltas.items():
         cash_map[currency] = cash_map.get(currency, Decimal(0)) + delta
-    applied = ForwardAppliedAccountEvent(
-        event.event_id,
-        event.event_fingerprint,
-        event.fingerprint,
-        event.sequence,
-    )
+    if execution_receipt is None:
+        applied: ForwardAppliedAccountEventRecord = ForwardAppliedAccountEvent(
+            event.event_id,
+            event.event_fingerprint,
+            event.fingerprint,
+            event.sequence,
+        )
+    else:
+        applied = ForwardAppliedAccountExecutionEvent(
+            event.event_id,
+            event.event_fingerprint,
+            event.fingerprint,
+            event.sequence,
+            execution_receipt,
+        )
     next_state = ForwardAccountState(
         instance_id=state.instance_id,
         base_currency=state.base_currency,
@@ -409,7 +526,9 @@ def apply_forward_account_event(
         fills=tuple(fill_map.values()),
         applied_events=state.applied_events + (applied,),
     )
-    return ForwardAccountResolution(ForwardAccountDecision.APPLIED, next_state, event.event_fingerprint)
+    return ForwardAccountResolution(
+        ForwardAccountDecision.APPLIED, next_state, event.event_fingerprint
+    )
 
 
 def _apply_fill(
@@ -458,7 +577,9 @@ __all__ = [
     "ForwardAccountEvent",
     "ForwardAccountResolution",
     "ForwardAccountState",
+    "ForwardAppliedAccountExecutionEvent",
     "ForwardAppliedAccountEvent",
+    "ForwardRuntimeExecutionReceipt",
     "ShadowCashBalance",
     "ShadowFill",
     "ShadowOrder",

@@ -16,7 +16,11 @@ from app.strategy_lab_v2.contracts import (
     StrategyVersion,
 )
 from app.strategy_lab_v2.dispatch import DispatchRequest
-from app.strategy_lab_v2.forward_account import ForwardAccountEvent, initial_forward_account_state
+from app.strategy_lab_v2.forward_account import (
+    ForwardAccountEvent,
+    ForwardRuntimeExecutionReceipt,
+    initial_forward_account_state,
+)
 from app.strategy_lab_v2.forward_account_worker import ForwardAccountEventBinding
 from app.strategy_lab_v2.forward_context import ForwardStrategyContextWindow
 from app.strategy_lab_v2.forward_worker_handoff import (
@@ -158,11 +162,29 @@ class AccountStore:
         self.resolution = resolution
         self.order = order
         self.events: list[ForwardAccountEvent] = []
+        self.receipts: list[ForwardRuntimeExecutionReceipt] = []
 
-    async def apply(self, *, principal: Any, event: ForwardAccountEvent):
+    async def apply(
+        self,
+        *,
+        principal: Any,
+        event: ForwardAccountEvent,
+        execution_receipt: ForwardRuntimeExecutionReceipt | None = None,
+    ):
         assert principal == OWNER_ID
         self.order.append("persist")
         self.events.append(event)
+        if execution_receipt is None:
+            return self.resolution
+        self.receipts.append(execution_receipt)
+        if self.resolution.decision in {
+            ForwardAccountStateDecision.APPLIED,
+            ForwardAccountStateDecision.REPLAY_EXISTING,
+        }:
+            return replace(
+                self.resolution,
+                execution_receipt_fingerprint=execution_receipt.fingerprint,
+            )
         return self.resolution
 
 
@@ -260,6 +282,11 @@ async def test_forward_session_persists_native_effects_before_context_commit_and
     assert result.receipt_digest is not None
     assert order == ["execute", "persist"]
     assert len(store.events) == 1
+    assert len(store.receipts) == 1
+    assert store.receipts[0].event_fingerprint == content_digest(canonical)
+    assert store.receipts[0].pre_event_checkpoint_fingerprint == content_digest(
+        "account-before-event"
+    )
     assert window.last_event_key == (canonical.event_time, canonical.sequence)
     assert runtime.restore_calls == []
 

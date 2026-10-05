@@ -13,6 +13,7 @@ from app.strategy_lab_v2.forward_account import (
     ForwardAccountDecision,
     ForwardAccountEvent,
     ForwardAccountState,
+    ForwardRuntimeExecutionReceipt,
     apply_forward_account_event,
 )
 from app.strategy_lab_v2.postgres_forward_state import _principal_id, _statement
@@ -49,6 +50,7 @@ class ForwardAccountStateResolution:
     state: ForwardAccountState | None
     event_fingerprint: str | None = None
     rejection_reason: str | None = None
+    execution_receipt_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.decision, ForwardAccountStateDecision):
@@ -57,6 +59,11 @@ class ForwardAccountStateResolution:
             raise TypeError("state must be a ForwardAccountState or None")
         if self.event_fingerprint is not None:
             require_sha256_digest(self.event_fingerprint, field_name="event_fingerprint")
+        if self.execution_receipt_fingerprint is not None:
+            require_sha256_digest(
+                self.execution_receipt_fingerprint,
+                field_name="execution_receipt_fingerprint",
+            )
         failed = {
             ForwardAccountStateDecision.CONFLICT,
             ForwardAccountStateDecision.NOT_FOUND,
@@ -67,6 +74,13 @@ class ForwardAccountStateResolution:
             raise ValueError("failed account persistence resolutions require a reason")
         if self.decision not in failed and self.rejection_reason:
             raise ValueError("successful account persistence resolutions cannot contain a reason")
+        if self.decision in failed and self.execution_receipt_fingerprint is not None:
+            raise ValueError("failed account persistence resolutions cannot confirm a receipt")
+        if self.execution_receipt_fingerprint is not None and self.decision not in {
+            ForwardAccountStateDecision.APPLIED,
+            ForwardAccountStateDecision.REPLAY_EXISTING,
+        }:
+            raise ValueError("only applied account events can confirm an execution receipt")
 
     @property
     def fingerprint(self) -> str:
@@ -141,9 +155,7 @@ class PostgresForwardAccountAdapter:
                         rejection_reason="forward account is already bound to different state",
                     )
                 await self._insert(session, owner_id, state)
-                return ForwardAccountStateResolution(
-                    ForwardAccountStateDecision.REGISTERED, state
-                )
+                return ForwardAccountStateResolution(ForwardAccountStateDecision.REGISTERED, state)
 
     async def load(self, *, principal: Any, instance_id: str) -> ForwardAccountState | None:
         if not isinstance(instance_id, str) or not instance_id.strip():
@@ -159,9 +171,19 @@ class PostgresForwardAccountAdapter:
         *,
         principal: Any,
         event: ForwardAccountEvent,
+        execution_receipt: ForwardRuntimeExecutionReceipt | None = None,
     ) -> ForwardAccountStateResolution:
         if not isinstance(event, ForwardAccountEvent):
             raise TypeError("event must be a ForwardAccountEvent")
+        if execution_receipt is not None:
+            if not isinstance(execution_receipt, ForwardRuntimeExecutionReceipt):
+                raise TypeError("execution_receipt must use ForwardRuntimeExecutionReceipt")
+            if (
+                execution_receipt.instance_id != event.instance_id
+                or execution_receipt.event_id != event.event_id
+                or execution_receipt.event_fingerprint != event.event_fingerprint
+            ):
+                raise ValueError("execution receipt does not match the account event")
         owner_id = _principal_id(principal)
         session: AsyncSessionLike = self._session_factory()
         async with session:
@@ -174,7 +196,11 @@ class PostgresForwardAccountAdapter:
                         event.event_fingerprint,
                         "forward account was not initialized",
                     )
-                resolution = apply_forward_account_event(current, event)
+                resolution = apply_forward_account_event(
+                    current,
+                    event,
+                    execution_receipt=execution_receipt,
+                )
                 if resolution.decision is ForwardAccountDecision.APPLIED:
                     await self._update(
                         session,
@@ -186,6 +212,18 @@ class PostgresForwardAccountAdapter:
                         ForwardAccountStateDecision.APPLIED,
                         resolution.state,
                         event.event_fingerprint,
+                        execution_receipt_fingerprint=(
+                            execution_receipt.fingerprint if execution_receipt is not None else None
+                        ),
+                    )
+                if resolution.decision is ForwardAccountDecision.REPLAY_EXISTING:
+                    return ForwardAccountStateResolution(
+                        ForwardAccountStateDecision.REPLAY_EXISTING,
+                        resolution.state,
+                        event.event_fingerprint,
+                        execution_receipt_fingerprint=(
+                            execution_receipt.fingerprint if execution_receipt is not None else None
+                        ),
                     )
                 mapped = ForwardAccountStateDecision(resolution.decision.value)
                 return ForwardAccountStateResolution(

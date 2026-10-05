@@ -8,7 +8,11 @@ import pytest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
-from app.strategy_lab_v2.forward_account import ForwardAccountEvent, initial_forward_account_state
+from app.strategy_lab_v2.forward_account import (
+    ForwardAccountEvent,
+    ForwardRuntimeExecutionReceipt,
+    initial_forward_account_state,
+)
 from app.strategy_lab_v2.forward_account_worker import (
     ForwardAccountEventBinding,
     ForwardAccountWorkerHandler,
@@ -33,10 +37,18 @@ class Store:
     def __init__(self, resolution: ForwardAccountStateResolution) -> None:
         self.resolution = resolution
         self.events: list[ForwardAccountEvent] = []
+        self.execution_receipts: list[ForwardRuntimeExecutionReceipt | None] = []
 
-    async def apply(self, *, principal: Any, event: ForwardAccountEvent) -> ForwardAccountStateResolution:
+    async def apply(
+        self,
+        *,
+        principal: Any,
+        event: ForwardAccountEvent,
+        execution_receipt: ForwardRuntimeExecutionReceipt | None = None,
+    ) -> ForwardAccountStateResolution:
         assert principal == "owner-1"
         self.events.append(event)
+        self.execution_receipts.append(execution_receipt)
         return self.resolution
 
 
@@ -50,7 +62,9 @@ def _work() -> tuple[RedisStreamEntry, ForwardEventWorkItem, CanonicalForwardEve
     payload = DispatchPayload.from_mapping(
         {"event_fingerprint": event_fingerprint, "replay_plan_fingerprint": None}
     )
-    request = DispatchRequest("forward-key", "forward-1", payload.payload_digest, "forward-events", NOW)
+    request = DispatchRequest(
+        "forward-key", "forward-1", payload.payload_digest, "forward-events", NOW
+    )
     record = ForwardEventDispatchRecord("owner-1", "forward-1", event_fingerprint, request)
     entry = RedisStreamEntry(
         "strategy-lab:v2:stream:forward-events",
@@ -130,7 +144,9 @@ async def test_account_worker_rejects_event_identity_drift_without_store_write()
     result = await handler(entry, work_item)
 
     assert result.decision is WorkerHandleDecision.REJECT
-    assert result.rejection_reason == "forward account canonical fingerprint does not match dispatch"
+    assert (
+        result.rejection_reason == "forward account canonical fingerprint does not match dispatch"
+    )
     assert store.events == []
 
 
@@ -158,3 +174,41 @@ async def test_account_worker_retries_missing_or_out_of_order_account_state() ->
     assert result.decision is WorkerHandleDecision.RETRY
     assert result.rejection_reason == "forward account was not initialized"
     assert state.instance_id == "forward-1"
+
+
+@pytest.mark.asyncio
+async def test_account_worker_does_not_complete_without_durable_execution_receipt() -> None:
+    entry, work_item, canonical_event = _work()
+    event = _event(work_item, canonical_event)
+    receipt = ForwardRuntimeExecutionReceipt(
+        instance_id=event.instance_id,
+        event_id=event.event_id,
+        event_fingerprint=event.event_fingerprint,
+        delivery_binding_fingerprint=content_digest("delivery-binding"),
+        context_preparation_fingerprint=content_digest("context-preparation"),
+        pre_event_checkpoint_fingerprint=content_digest("pre-event-checkpoint"),
+        runtime_session_fingerprint=content_digest("runtime-session"),
+        native_output_fingerprint=content_digest("native-output"),
+    )
+    store = Store(
+        ForwardAccountStateResolution(
+            ForwardAccountStateDecision.APPLIED,
+            initial_forward_account_state("forward-1", base_currency="USD"),
+            event.event_fingerprint,
+        )
+    )
+    handler = ForwardAccountWorkerHandler(
+        store,
+        principal="owner-1",
+        event_resolver=lambda _entry, _item: ForwardAccountEventBinding(
+            canonical_event, event, receipt
+        ),
+    )
+
+    result = await handler(entry, work_item)
+
+    assert result.decision is WorkerHandleDecision.REJECT
+    assert result.rejection_reason == (
+        "forward account store did not durably confirm the execution receipt"
+    )
+    assert store.execution_receipts == [receipt]

@@ -15,7 +15,10 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.forward_account import ForwardAccountEvent
+from app.strategy_lab_v2.forward_account import (
+    ForwardAccountEvent,
+    ForwardRuntimeExecutionReceipt,
+)
 from app.strategy_lab_v2.forward_worker_handoff import ForwardEventWorkItem
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.postgres_forward_account import (
@@ -30,7 +33,11 @@ class ForwardAccountStore(Protocol):
     """Minimal durable account transition contract used by the worker."""
 
     async def apply(
-        self, *, principal: Any, event: ForwardAccountEvent
+        self,
+        *,
+        principal: Any,
+        event: ForwardAccountEvent,
+        execution_receipt: ForwardRuntimeExecutionReceipt | None = None,
     ) -> ForwardAccountStateResolution: ...
 
 
@@ -40,6 +47,7 @@ class ForwardAccountEventBinding:
 
     canonical_event: CanonicalForwardEvent
     account_event: ForwardAccountEvent
+    execution_receipt: ForwardRuntimeExecutionReceipt | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.canonical_event, CanonicalForwardEvent):
@@ -54,6 +62,15 @@ class ForwardAccountEventBinding:
             raise ValueError("account event sequence does not match canonical event")
         if self.account_event.event_time != self.canonical_event.event_time:
             raise ValueError("account event time does not match canonical event")
+        if self.execution_receipt is not None:
+            if not isinstance(self.execution_receipt, ForwardRuntimeExecutionReceipt):
+                raise TypeError("execution_receipt must use ForwardRuntimeExecutionReceipt")
+            if (
+                self.execution_receipt.instance_id != self.account_event.instance_id
+                or self.execution_receipt.event_id != self.canonical_event.event_id
+                or self.execution_receipt.event_fingerprint != content_digest(self.canonical_event)
+            ):
+                raise ValueError("execution receipt does not match the canonical account event")
 
     @property
     def fingerprint(self) -> str:
@@ -110,11 +127,30 @@ class ForwardAccountWorkerHandler:
             return _reject(entry, "forward account canonical identity does not match event")
         if content_digest(binding.canonical_event) != work_item.payload.event_fingerprint:
             return _reject(entry, "forward account canonical fingerprint does not match dispatch")
-        resolution = await self._account_store.apply(principal=self._principal, event=event)
+        if binding.execution_receipt is None:
+            resolution = await self._account_store.apply(principal=self._principal, event=event)
+        else:
+            resolution = await self._account_store.apply(
+                principal=self._principal,
+                event=event,
+                execution_receipt=binding.execution_receipt,
+            )
         if not isinstance(resolution, ForwardAccountStateResolution):
             return _reject(entry, "forward account store returned an invalid resolution")
         if resolution.event_fingerprint != event.event_fingerprint:
             return _reject(entry, "forward account resolution identity does not match event")
+        if (
+            binding.execution_receipt is not None
+            and resolution.decision
+            in {
+                ForwardAccountStateDecision.APPLIED,
+                ForwardAccountStateDecision.REPLAY_EXISTING,
+            }
+            and (resolution.execution_receipt_fingerprint != binding.execution_receipt.fingerprint)
+        ):
+            return _reject(
+                entry, "forward account store did not durably confirm the execution receipt"
+            )
         if resolution.decision in {
             ForwardAccountStateDecision.APPLIED,
             ForwardAccountStateDecision.REPLAY_EXISTING,
