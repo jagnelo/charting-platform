@@ -22,20 +22,21 @@ human_validation_authorization: "The human explicitly approved implementation of
 current_blocker: >-
   Independent TC implementation is unblocked; current exact-tip browser
   acceptance remains open. At product source
-  `7f586db35c0ce9425cda07bcd67832517612ada2`, the first full run passed
-  169/175 with five documented skips and one Market Map visibility timeout; its
-  focused replay passed 1/1. A second full run from fresh seeded volumes passed
-  167/175, skipped the same five documented cases, and failed F9c-narrow with a
-  60-second timeout plus F9e and all-family readiness with browser
-  `ERR_NETWORK_CHANGED` diagnostics. Unchanged serial focused replay passed all
-  three failures (3/3 in 21.7 seconds), but does not replace the full-suite
-  result. Full-run artifacts are retained at
-  `/tmp/tc2000-functional-rerun-LPqTr4`; focused replay artifacts are separate
-  at `/tmp/tc2000-functional-replays-eZLras`. Run one more clean-volume full
-  suite before deciding whether the remaining failures are full-run-only
-  instability. The unchanged visual matrix remains 94/104 with ten protected
-  screenshot comparisons after successful state assertions; no visual oracle
-  or policy changed. Last refreshed direct refs: staging
+  `7f586db35c0ce9425cda07bcd67832517612ada2`, the third fresh-volume full run
+  passed 160/175, skipped five documented cases, and failed ten cases. Nine
+  reported browser/network diagnostics included `ERR_NETWORK_CHANGED`; the
+  remaining failure was Python Library dock content missing after this burst.
+  All ten exact failures passed unchanged focused replay (10/10 in 1.8 minutes)
+  when Chromium connected directly to the assigned Compose bridge via
+  `http://frontend`. This makes the host-published port/host-network path the
+  leading explanation, but a full clean-volume suite on bridge networking is
+  still needed to verify it. The third host-network full-run artifacts are at
+  `/tmp/tc2000-functional-final-rerun-uEfRP9`; separate bridge replay artifacts
+  are at `/tmp/tc2000-bridge-focused-w4uSsV`. Earlier fresh-volume full runs
+  passed 169/175 and 167/175 with one and three failures respectively; their
+  focused replays also passed. The unchanged visual matrix remains 94/104 with
+  ten protected screenshot comparisons after successful state assertions; no
+  visual oracle or policy changed. Last refreshed direct refs: staging
   `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
   `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
   `16f181c798bc067b0e623e6445c03319d6664ad9`; provider and ETF remain outside
@@ -283,28 +284,31 @@ progress:
   current_phase: R1_R6_KEYBOARD_ACCESSIBILITY_AND_EXACT_TIP_REPLAY
   next_action: >-
     Tear down only the exact assigned TC stack and its generated test volumes,
-    recreate the seeded stack with the existing exact-tip images, and run one
-    more full serial authenticated Chromium suite unchanged at product source
-    7f586db35c0ce9425cda07bcd67832517612ada2. Preserve each full-run result
-    and focused replay separately; then tear down and audit only assigned
-    resources before advancing to the next bounded TC-owned R1/R6 task.
+    recreate the seeded stack with the existing exact-tip images, and run the
+    unchanged full serial authenticated Chromium suite over the assigned
+    Compose bridge (`--network charting-stack-feat-tc2000-frontend-rework-f63d60ae_charting`,
+    `STACK_URL=http://frontend`) at product source
+    7f586db35c0ce9425cda07bcd67832517612ada2. Preserve the full-run output
+    separately; then tear down and audit only assigned resources.
   current_blocker: >-
-    Full exact-tip functional acceptance remains open after two full runs. The
-    latest fresh-volume run passed 167/175, skipped five documented cases, and
-    failed F9c-narrow (60-second timeout), F9e (navigation
-    ERR_NETWORK_CHANGED), and all-family readiness (browser diagnostics with
-    ERR_NETWORK_CHANGED). All three unchanged serial focused replays passed
-    3/3, which is diagnostic only. The full-run artifacts remain under
-    /tmp/tc2000-functional-rerun-LPqTr4 and the replay under
-    /tmp/tc2000-functional-replays-eZLras. The previous 169/175 run's lone
-    Market Map visibility timeout also passed unchanged focused replay. One
-    further clean-volume full run is queued. The four-project visual matrix
+    Full exact-tip functional acceptance remains open after three host-network
+    full runs. At product source 7f586db35c0ce9425cda07bcd67832517612ada2, the
+    third fresh-volume run passed 160/175, skipped five documented cases, and
+    failed ten. Nine failures had ERR_NETWORK_CHANGED browser diagnostics; the
+    remaining Python Library window-visibility failure followed that error
+    burst. All ten exact failures passed unchanged focused replay (10/10 in
+    1.8 minutes) with Playwright attached directly to the assigned Compose
+    bridge at http://frontend. This makes host-network/host-published-port
+    instability the leading explanation, not yet full-suite proof. The full
+    run is retained at /tmp/tc2000-functional-final-rerun-uEfRP9; bridge replay
+    at /tmp/tc2000-bridge-focused-w4uSsV. Earlier full runs passed 169/175 and
+    167/175, with focused replays also passing. The unchanged visual matrix
     remains 94/104 with ten screenshot-only differences and no oracle/policy
     changes. Staging is 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider
     88132e9145a08d1c935a0111b3dba0fbd88bdff1, ETF
     16f181c798bc067b0e623e6445c03319d6664ad9; neither upstream dependency is
-    in staging. The standard helper still lacks host Buildx; ordinary Compose
-    builds and runs the assigned browser stack.
+    in staging. Ordinary Compose builds and runs the assigned browser stack;
+    the standard integration helper lacks host Buildx.
 historical_implementation_records:
   - "Exact product-tip pinned validation at be55d1af completed the 174-case functional suite with 172 passed, 2 documented skips, and zero failures. The four-project visual matrix completed all 104 cases: 93 passed, ten protected screenshot differences remain (workspace-floating all four viewports; Study structured-result all four; Study sandbox-error at the two 1080p scales), and one column-editor diagnostic failure from ERR_NETWORK_CHANGED passed unchanged replay 4/4. A separate four-project pinned shell smoke passed 4/4; host-only shell rendering failed glyph pixels with host Arial resolving to Nimbus Sans versus pinned Noble resolving Liberation Sans, consistent with environment/font rendering rather than geometry. Full matrix artifacts: /tmp/tc2000-pinned-visual-full-3t8qbk; functional artifacts: /tmp/tc2000-pinned-functional-full-9Iq2rG. Scoped Docker cleanup left zero resources. No visual acceptance policy changed."
   - "Product commit be55d1af2de8037671d65e33d5b1d5120e11f38c adds keyboard invocation for the TC-owned Virtual Watchlist Boolean header pin menu using Shift+F10 and the Context Menu key, while preserving right-click and Ctrl/Meta-click behavior and anchoring the menu at the header for keyboard use. Focused VirtualWatchlistTool coverage passed 80/80; full serial frontend Vitest passed 129 files / 1,202 tests; the Docker production build (including vue-tsc and Vite build) passed; and authenticated F8u-boolean passed 1/1. The exact-tip 174-case functional run passed 171, skipped 2 documented cases, and failed one F8s-family-matrix diagnostic because unrelated local API requests reported ERR_NETWORK_CHANGED after assertions; unchanged focused replay passed 1/1. The completed prior-tip 104-case visual matrix was 93/104 with ten protected screenshot differences; a post-change full visual attempt was stopped after broad deltas, and a fresh seeded-database shell smoke differed at all four viewports by 42,759 / 44,586 / 50,854 / 53,003 pixels. No screenshot oracle, mask, threshold, skip, or acceptance policy changed. The exact branch commit is pushed and direct GitHub refs verified; staging remains 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider is 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF is 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5. Both dependencies remain outside staging."

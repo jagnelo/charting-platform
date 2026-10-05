@@ -113,11 +113,11 @@
   "head": "7639200365fc7d93bfe5ee91f7cb6200ce393d8f",
   "implementation_sha": "7f586db35c0ce9425cda07bcd67832517612ada2",
   "interrupted": false,
-  "last_checkpoint": "2026-10-05T06:45:27+00:00",
+  "last_checkpoint": "2026-10-05T07:12:14+00:00",
   "last_human_progress_update": "2026-10-05T01:43:16.000000+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Tear down only the exact assigned TC stack and generated test volumes, recreate the seeded stack with existing exact-tip images, and run one more unchanged full serial authenticated Chromium suite at product source 7f586db35c0ce9425cda07bcd67832517612ada2. Preserve full-run and focused-replay results separately; then audit assigned-resource cleanup before the next bounded TC-owned R1/R6 task.",
-  "plan_hash": "0b1690cac82d7cc383174a95212435b39b41df73412061d3852b28a46c0b2d7a",
+  "next_action": "Tear down only the exact assigned TC stack and generated volumes, recreate seeded services with the existing exact-tip images, then run the unchanged full serial authenticated Chromium suite through the assigned Compose bridge using STACK_URL=http://frontend at product source 7f586db35c0ce9425cda07bcd67832517612ada2. Preserve this full run separately, then audit assigned-resource cleanup.",
+  "plan_hash": "edacc5c1a7a660b1921e8450d63273fcaed612e735a4e2735e4186fe73f14e74",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -131,11 +131,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Full exact-tip functional acceptance remains open after two full runs. At product source 7f586db35c0ce9425cda07bcd67832517612ada2, the latest fresh-volume run passed 167/175, skipped five documented cases, and failed F9c-narrow (60-second timeout), F9e (navigation ERR_NETWORK_CHANGED), and all-family readiness (browser diagnostics with ERR_NETWORK_CHANGED). All three unchanged serial focused replays passed 3/3, diagnostic only. Artifacts are under /tmp/tc2000-functional-rerun-LPqTr4 and /tmp/tc2000-functional-replays-eZLras. The previous 169/175 run's lone Market Map timeout passed focused replay. One more clean-volume full run is queued. The visual matrix remains 94/104 with ten screenshot-only differences and no oracle/policy changes. Latest direct refs: staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider 88132e9145a08d1c935a0111b3dba0fbd88bdff1, ETF 16f181c798bc067b0e623e6445c03319d6664ad9; neither dependency is in staging. The standard integration helper lacks host Buildx; ordinary Compose builds and runs the assigned stack.",
+    "current_blocker": "Full exact-tip functional acceptance remains open after three host-network full runs. At product source 7f586db35c0ce9425cda07bcd67832517612ada2, the third fresh-volume run passed 160/175, skipped five documented cases, and failed ten: nine failures recorded ERR_NETWORK_CHANGED browser diagnostics; F8x-library could not see its opened Python Library dock content after this burst. All ten exact failing tests passed unchanged focused replay (10/10 in 1.8 minutes) using the assigned Compose bridge and STACK_URL=http://frontend. This points toward host-network/host-published-port instability but is not full-suite proof. Full-run artifacts are /tmp/tc2000-functional-final-rerun-uEfRP9; bridge-focused artifacts are /tmp/tc2000-bridge-focused-w4uSsV. Earlier runs passed 169/175 and 167/175 with one and three failures, all passing their focused replays. The unchanged visual matrix remains 94/104 with ten screenshot-only differences and no oracle/policy changes. Last refreshed refs: staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider 88132e9145a08d1c935a0111b3dba0fbd88bdff1, ETF 16f181c798bc067b0e623e6445c03319d6664ad9; neither upstream dependency is in staging. Ordinary Compose builds and runs the assigned stack; the standard integration helper lacks host Buildx.",
     "current_phase": "R1_R6_KEYBOARD_ACCESSIBILITY_AND_EXACT_TIP_REPLAY",
-    "next_action": "Tear down only the exact assigned TC stack and generated volumes, recreate seeded services using the existing exact-tip images, run one more unchanged full serial authenticated Chromium suite at product source 7f586db35c0ce9425cda07bcd67832517612ada2, preserve each full/replay receipt, and audit cleanup.",
+    "next_action": "Tear down only the exact assigned TC stack and generated volumes, recreate seeded services using existing exact-tip images, run the unchanged full serial authenticated Chromium suite over the assigned Compose bridge with STACK_URL=http://frontend at product source 7f586db35c0ce9425cda07bcd67832517612ada2, preserve the full run separately, and audit cleanup.",
     "total": 9,
-    "updated_at": "2026-10-05T06:45:27+00:00"
+    "updated_at": "2026-10-05T07:12:14+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

@@ -1,5 +1,35 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Isolating full-run browser network errors
+
+At product source `7f586db35c0ce9425cda07bcd67832517612ada2`, a third full
+serial run with fresh seeded volumes through the host-published frontend port
+completed `175` cases: `160` passed, five documented cases were skipped, and
+ten failed. Nine failed browser-diagnostics assertions included one or more
+`net::ERR_NETWORK_CHANGED` requests to local assets/API routes. The tenth,
+`F8x-library`, did not find the Python Library dock content after selecting it
+following that network-error burst. Screenshots, videos, and error contexts
+are preserved at `/tmp/tc2000-functional-final-rerun-uEfRP9`.
+
+To isolate that transport path, the same ten exact failing tests were replayed
+unchanged, serially, with Chromium attached directly to the assigned Compose
+bridge network and `STACK_URL=http://frontend` rather than the host-published
+port. All ten passed in 1.8 minutes; artifacts are at
+`/tmp/tc2000-bridge-focused-w4uSsV`. Docker recorded no project-network
+create/remove events during the host-network full run. The only later event in
+the extended window was the expected disconnect of the ephemeral focused
+Playwright runner at `2026-10-05T07:09:26Z`; the assigned Compose network
+remained. Frontend/backend containers stayed healthy with zero restarts. Host
+interface inspection via `ip` was denied by the execution sandbox. The bridge
+comparison makes host networking the leading cause, but only a full
+fresh-volume suite over the bridge can confirm the functional gate. Do not
+change source, tests, retries/timeouts, diagnostics, skip rules, or visual
+acceptance policy to hide this issue.
+
+Next: recreate only the assigned project with fresh seeded volumes, then run
+the full serial authenticated Chromium suite unchanged over the same Compose
+bridge. Preserve all previous full-run evidence separately.
+
 ## 2026-10-05 — Direct dependency ref refresh
 
 Read-only GitHub refs refreshed after the retry checkpoint: TC
