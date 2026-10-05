@@ -71,7 +71,7 @@
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "dirty_paths": [
-    "ps/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
@@ -110,12 +110,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "4e5f24135869c361645683ac93690761e1efdaaf",
-  "implementation_sha": "4e5f24135869c361645683ac93690761e1efdaaf",
-  "last_checkpoint": "2026-10-05T19:31:43.998544+00:00",
-  "last_human_progress_update": "2026-10-05T19:28:24.763198+00:00",
+  "head": "6794c2e82f3499543d00d7dd6fda83e3b48a4c8a",
+  "implementation_sha": "6794c2e82f3499543d00d7dd6fda83e3b48a4c8a",
+  "last_checkpoint": "2026-10-05T20:31:49.561920+00:00",
+  "last_human_progress_update": "2026-10-05T20:29:50.045088+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Close and publish the exact-SHA 37359921407 checkpoint with corrected session paths. Then label only ERShares/XOVR and LSV/LSVD custom timeout skips, run deterministic/live-contract and Ruff checks, push to the authorized feature ref, and inspect exact-SHA CI. Recheck host capacity; run full_stack_browser only when unrelated containers have exited and resources are safe.",
+  "next_action": "Wait for the GitHub Actions runner-assignment incident to clear, then publish the pending branch-owned receipt and obtain complete exact-SHA CI on the latest branch. Recheck the read-only Docker inventory and host headroom; run full_stack_browser only after unrelated and unscoped containers exit and capacity is safe. Keep AC7 and AC8 open until both validation and record synchronization are complete.",
   "plan_hash": "60a8039ed1eba544637c0203b6b6087dc5d86a02c659b30329c45667c3bd37f4",
   "planning_required": false,
   "planning_state": "ready",
@@ -140,14 +140,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for; provider totals are 496 registered / 422 native / 74 fallback. Exact-SHA run 37359921407 passed all applicable hosted checks for 4e5f24135869c361645683ac93690761e1efdaaf: Backend, Frontend Unit, Branch-declared Tests (513 live passes / 31 classified skips), and Playwright (151 passed / 109 skipped); protected integration skipped by feature-branch design. Remaining independent work: contextualize two custom ConnectTimeout skips (ERShares/XOVR, LSV/LSVD). Local full_stack_browser remains unsafe while six unrelated TC2000 services and Stremio are running, with 3.1 GiB available RAM and 11 GiB swap used. AC10 waits for the provider-platform branch to reach staging; AC14 is post-integration observation. Goal remains active.",
-    "current_phase": "exact_sha_green_skip_label_followup",
-    "next_action": "After publishing this branch-owned record for run 37359921407, add adapter/symbol context to only the ERShares/XOVR and LSV/LSVD custom timeout skips, rerun live contracts and Ruff, publish that source commit, and inspect its exact-SHA CI. Recheck host inventory; run full_stack_browser only after unrelated services exit and resources are safe.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for; provider totals remain 496 registered / 422 native / 74 fallback. Source commit 6794c2e82f3499543d00d7dd6fda83e3b48a4c8a is pushed. Local adapter/default-live suite passed 617 with 537 opt-in skips, Ruff/format/diff passed, and focused ERShares/XOVR plus LSV/LSVD probes skipped with explicit provider/symbol DNS ConnectError details. Exact run 37367049631 passed Backend but Frontend Unit and Branch-declared jobs were cancelled before starting; hosted Playwright and protected integration were skipped by branch design. GitHub Actions runner-assignment incident remains investigating, so full hosted exact-SHA validation is not yet green. Local full_stack_browser remains unsafe with six unrelated TC2000 containers, Stremio, and a new unscoped Testcontainers session (two containers plus Ryuk) active; 3.2 GiB RAM available, 10 GiB swap used. Do not alter these resources. AC10 awaits provider-platform staging; AC14 is post-integration. Goal remains active.",
+    "current_phase": "provider_skip_labels_published_ci_cancelled_by_runner_incident",
+    "next_action": "Wait for the GitHub Actions runner-assignment incident to clear, then publish the pending branch-owned receipt and obtain complete exact-SHA CI on the latest branch. Recheck the read-only Docker inventory and host headroom; run full_stack_browser only after unrelated and unscoped containers exit and capacity is safe. Keep AC7 and AC8 open until both validation and record synchronization are complete.",
     "total": 14,
-    "updated_at": "2026-10-05T19:28:24.763178+00:00"
+    "updated_at": "2026-10-05T20:29:50.045065+00:00"
   },
-  "remote": "4e5f24135869c361645683ac93690761e1efdaaf",
-  "remote_sha": "4e5f24135869c361645683ac93690761e1efdaaf",
+  "remote": "6794c2e82f3499543d00d7dd6fda83e3b48a4c8a",
+  "remote_sha": "6794c2e82f3499543d00d7dd6fda83e3b48a4c8a",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "0bd23cfe-9271-4e5e-8621-db8985e62c75",
