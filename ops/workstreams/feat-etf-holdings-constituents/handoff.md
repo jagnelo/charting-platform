@@ -8325,3 +8325,79 @@ action is to rerun the official full gate under that safe condition, inspecting
 new traces before considering any change. AC7/AC8 remain open; AC14 is still
 the post-integration/deployment observation. The goal is active, not blocked or
 complete.
+
+## 2026-10-05 08:41 UTC — resume clarification and branch-only validation
+
+The human asked why the saved goal appeared blocked and authorized autonomous
+continuation in this exact ETF worktree. The saved goal is active (not blocked);
+the durable session claim belonged to the displaced session `70226446-14cf-41f6-828c-abe83c833146`.
+Using the human's explicit resume instruction, the repository takeover helper
+created current session claim `2fcd05d8-12db-42ac-8cb6-83d9db9efafa`, and the
+session goal state/progress were restored to active. The root password was not
+needed or used. A default preflight attempt hit the sandbox's read-only boundary
+on the shared runtime allocation lock; the repository's intended session
+takeover/progress operations succeeded through the approved escalation path.
+After takeover, `agent-session-start` correctly declined a clean bootstrap
+because takeover itself had changed `session.json`; the existing session was
+continued rather than creating another claim.
+
+Current branch-local results on source SHA
+`8f4e23b2d0d2b3af8a93b038c6592316aa842d10`:
+
+- ETF adapter unit suite: 596 passed in 14.37 seconds.
+- Default live contract suite: 3 passed, 535 opt-in tests skipped as designed.
+- Focused frontend workstation source-capability suite: 12 passed.
+- Workstream validator: one record valid; `git diff --check` passed.
+- Local HEAD matched cached `origin/feat/etf-holdings-constituents` at the start
+  of this checkpoint.
+
+The GitHub connector shows branch-declared workflow run `37261715527` completed
+successfully on ancestor SHA `5a189326f45e58a1aba00dd490c2ad2f46151d24`. Its
+branch-declared job recorded adapter tests 596/596, default live contracts
+3 passed/535 skipped, opt-in provider matrix 522 passed/16 classified skips,
+Ruff success, 17 ETF panel/view tests, and a successful production build. The
+backend tree is unchanged from that SHA through current HEAD. The overall
+workflow was nevertheless red because both Codecov uploads failed with TLS
+`EPROTO`; hosted Playwright E2E was skipped. This predecessor run is not
+misrepresented as exact-current-SHA CI. Current HEAD `8f4e23b` has empty
+combined-status and workflow-run lookup results; a read-only search found no
+open PR, and no PR was created.
+
+Two current-HEAD local opt-in live attempts did not produce complete summaries
+and are not passes. The original long run `44767` was interrupted with exit
+130 after it remained network-bound; its interim output included a failure
+marker, but no failing test or reason was captured. A fail-fast diagnostic
+replay `73734` collected 538 tests, passed the initial live-contract guards,
+then entered issuer-route tests that were being skipped locally; it too was
+interrupted at 1% with exit 130 to avoid duplicating the already successful
+hosted matrix against an identical backend tree and making further unnecessary
+issuer requests. The incomplete local sweeps remain disclosed; no matrix pass
+is claimed for them.
+
+The official local full integration gate at source SHA `16f181c` passed all
+pre-browser stages (including backend coverage, frontend tests/build, Compose
+health, and research-runner probes) but the functional Playwright stage ended
+150 passed, 106 skipped, and four failed. Three reported `ERR_NETWORK_CHANGED`
+against this worktree's local API; the fourth was a Market Map-to-Study-Lab
+handoff timeout. All four exact cases passed 4/4 on a fresh ETF-only stack, and
+the Market Map case passed twice alone. This does not prove the full-run root
+cause; no generic tests or unrelated product paths were changed.
+
+At 08:41 UTC, read-only Docker inventory still showed six active
+`feat-tc2000-frontend-rework` services, a separate Playwright browser
+container, and `stremio-server`; host memory showed 3.6 GiB available. These
+resources are not owned by this worktree and were left untouched. Do not start
+the resource-heavy full gate until the other stack and separate browser
+container exit and host headroom is safe.
+
+The remaining criteria are precise: AC7 needs a clean/full browser-gate result
+and exact-current-SHA CI evidence (the predecessor branch run has TLS coverage
+upload failures and no current PR-triggered run is visible); AC8 remains open
+pending human review of the clean final branch SHA; this checkpoint makes it
+available for review. AC10 awaits
+`feat/market-data-provider-platform` reaching `staging` (the read-only compare
+still reports it 1,856 commits ahead, with `staging` as merge base); AC14 is a
+30-day production shadow observation after integration/deployment. No
+cross-worktree mutation, integration, promotion, or deployment was performed.
+The saved goal remains active and work continues when the external Docker load
+clears.
