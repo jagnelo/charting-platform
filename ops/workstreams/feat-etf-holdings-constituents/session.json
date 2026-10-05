@@ -70,12 +70,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -88,9 +83,7 @@
       "charting-dev-feat-etf-holdings-constituents-fdc36fa2",
       "charting-stack-feat-etf-holdings-constituents-fdc36fa2"
     ],
-    "testcontainer_sessions": [
-      "ed4e99dc-2367-4242-bbe8-e23de41866c5"
-    ],
+    "testcontainer_sessions": [],
     "threshold_bytes": 5000000000,
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
@@ -113,13 +106,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "8105d9695fa4f265e1069b18b5dec439b16dadc4",
+  "head": "7c14feb2780a0c4e3283ef76fdf81bb95e16eece",
   "implementation_sha": "f04b0a39a60fadd6d8d21cf2bca360d8d746c88c",
   "last_checkpoint": "2026-10-05T04:01:03.000000+00:00",
   "last_human_progress_update": "2026-10-05T05:51:50.873339+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Wait for the other worktree Docker/browser stack to exit and host memory headroom to recover, then run make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents through the approved Docker boundary and inspect visual actual/diff artifacts before changing baselines or UI. Avoid further documentation-only CI churn until the local full gate yields new evidence. Do not change generic CI, stop or alter another worktree, integrate, promote, or deploy. AC10 still awaits provider-platform staging; AC14 remains post-release.",
-  "plan_hash": "c936a128bfb04bd1c35ebb18e3e3d41a5d85273c1364600a5bd2f817e74f098a",
+  "next_action": "Wait for the feat-tc2000-frontend-rework Docker/browser stack to exit, then replay the four exact failing browser cases on a fresh ETF stack using the temporary Buildx plugin. If they pass, rerun the official full gate; if any reproduces, diagnose only the directly causal ETF-owned code and preserve generic assertions/baselines. Do not stop or alter another worktree. Exact-SHA branch tests passed, but Codecov uploads remain TLS-failing and the GitHub retry endpoint returned 403. AC7/AC8 remain open; AC10 awaits provider-platform staging; AC14 remains the post-integration/deployment shadow gate.",
+  "plan_hash": "a18d859140ce1d6e3cbf342ea179f23082cddd966382e5e0ccb298221f036cfb",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -146,8 +139,8 @@
     "total": 14,
     "updated_at": "2026-10-05T05:51:50.873303+00:00"
   },
-  "remote": "8105d9695fa4f265e1069b18b5dec439b16dadc4",
-  "remote_sha": "8105d9695fa4f265e1069b18b5dec439b16dadc4",
+  "remote": "7c14feb2780a0c4e3283ef76fdf81bb95e16eece",
+  "remote_sha": "7c14feb2780a0c4e3283ef76fdf81bb95e16eece",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "70226446-14cf-41f6-828c-abe83c833146",

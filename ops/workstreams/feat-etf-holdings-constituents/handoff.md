@@ -8147,6 +8147,16 @@ remain open pending the local gate and hosted E2E evidence. AC10 still awaits
 post-integration/deployment 30-day shadow observation. The goal is active, not
 blocked or complete.
 
+## Workstream checkpoint synchronization — 2026-10-05 05:55 UTC
+
+The preceding gate evidence and progress update were committed as
+`7c14feb2780a0c4e3283ef76fdf81bb95e16eece` and pushed only to
+`origin/feat/etf-holdings-constituents`. A direct `git ls-remote` readback
+returned that exact SHA. The refreshed session snapshot reported local HEAD
+and its tracked origin ref equal at that SHA, with no dirty paths and the goal
+still active. AC7/AC8 remain open; no merge, promotion, or deployment was
+performed.
+
 ## Exact-SHA run 37264499974 — 2026-10-05
 
 The pushed workstream checkpoint `8105d9695fa4f265e1069b18b5dec439b16dadc4`
