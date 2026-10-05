@@ -11320,3 +11320,10 @@ to eventual shared-path reconciliation.
 Changed paths: `backend/app/strategy_lab_v2/event_tape_artifacts.py`,
 `backend/app/strategy_lab_v2/authenticated_event_tape.py`, and
 `backend/app/strategy_lab_v2/tests/test_event_tape_artifacts.py`.
+
+The plan/handoff checkpoint was committed and pushed at
+`6ee0b9e8dcaef2f035b4c4f3ef167da05ad180ad`; plan-ready refreshed the exact plan
+hash, the existing goal is active, and the required session checkpoint passed
+at that synchronized tip. The session helper's known first-path truncation in
+`dirty_paths` was corrected in `session.json` before this operational
+checkpoint.
