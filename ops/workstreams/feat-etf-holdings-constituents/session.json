@@ -71,13 +71,12 @@
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "dirty_paths": [
-    "ackend/tests/live/test_etf_holdings_live_providers.py",
     "docs/etf-provider-universe.md",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json"
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
     "available": false,
@@ -97,13 +96,13 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "61265673611bc7afef4ca5af9d34ccae57bb2bfa",
-  "implementation_sha": "07b9e6f34b4fb66858662e8c05d3bf63fbb87025",
-  "last_checkpoint": "2026-10-05T12:53:04+00:00",
-  "last_human_progress_update": "2026-10-05T14:45:36.207363+00:00",
+  "head": "9f746e25b4137fe3c7337a87d73becfa0969e202",
+  "implementation_sha": "9f746e25b4137fe3c7337a87d73becfa0969e202",
+  "last_checkpoint": "2026-10-05T16:17:38+00:00",
+  "last_human_progress_update": "2026-10-05T16:17:38+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "publish the narrowly scoped Arin ATTR access-challenge test classification, rerun exact-SHA CI, then resume the safe local full-stack gate",
-  "plan_hash": "5ad5bde71849b2ea3a3f894244e0cea93f466a823554d632b17b53920dfed62d",
+  "next_action": "publish the completed exact-SHA outcome and the opt-in matrix -rs diagnostic flag; inspect the next push-triggered exact-SHA workflow and review each printed skip reason individually; retry the Docker/browser gate only after the unrelated six-service stack exits and resource preflight is safe",
+  "plan_hash": "216681b7c1939f984b7cae56fd134e64ac271c13f9a366dba79dedf5aec8910d",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -126,14 +125,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Exact-SHA run 37328831048 on 61265673611bc7afef4ca5af9d34ccae57bb2bfa completed with 523 provider-matrix passes, 16 classified skips, and one Arin ATTR failure: ETF Architect challenged both HTTP transports. Backend, frontend unit, and hosted Playwright jobs passed; overall CI is red only because of that matrix case, and the protected integration gate was skipped by design. The local application-style Arin probe skipped on temporary DNS resolution failure and is not a route pass. A narrowly scoped exact Arin/ATTR challenge classification has been added; its repair-SHA opt-in matrix is pending. The local Docker browser gate remains deferred while another worktree's Compose stack is active with low available RAM. AC10 awaits provider-platform staging; AC14 is post-integration/deployment.",
-    "current_phase": "arin_attr_access_challenge_narrowed_exact_sha_retest_pending",
-    "next_action": "Complete branch-local deterministic/default-live/workstream checks, publish the test-only external-access classification and evidence to this feature branch, and inspect its exact-SHA Actions matrix. Accept only the exact Arin/ATTR issuer challenge as an external skip, never as a route pass. Resume the Docker browser gate after the other worktree stack exits and read-only resource preflight is safe.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Exact-SHA run 37336513293 on 9f746e25b4137fe3c7337a87d73becfa0969e202 completed successfully: Backend Tests, Frontend Unit Tests, Branch-declared Tests, and hosted Playwright passed; the protected integration gate was skipped by feature-branch design. Its opt-in matrix reported 511 passed and 31 skipped, but the hosted command omitted per-case skip reasons, so the aggregate does not establish whether Kovitz EQTY passed or skipped; no route pass is inferred. The branch plan now adds -rs to expose reasons on the next exact-SHA run. Local deterministic ETF tests passed 749, default live contracts passed 6 with 536 opt-in cases skipped, and the bounded Kovitz probe skipped on temporary DNS failure, not a route pass. The local Docker/browser gate remains deferred because another worktree's six-service stack is active with 3.2 GiB available RAM. AC10 awaits provider-platform staging; AC14 is post-integration/deployment.",
+    "current_phase": "exact_sha_ci_success_case_skip_reason_diagnostic_run_pending",
+    "next_action": "Commit and push the branch-owned checkpoint with pytest -rs on the opt-in live matrix, then inspect exact-SHA Actions through completion and review each reported skip cause individually. Keep parser, identity, date, row, and completeness failures fatal. Retry the local Docker/browser gate only after the unrelated stack exits and resource preflight is safe.",
     "total": 14,
-    "updated_at": "2026-10-05T15:21:46+00:00"
+    "updated_at": "2026-10-05T16:17:38+00:00"
   },
-  "remote": "61265673611bc7afef4ca5af9d34ccae57bb2bfa",
-  "remote_sha": "07b9e6f34b4fb66858662e8c05d3bf63fbb87025",
+  "remote": "9f746e25b4137fe3c7337a87d73becfa0969e202",
+  "remote_sha": "9f746e25b4137fe3c7337a87d73becfa0969e202",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",

@@ -2428,6 +2428,24 @@ excuse JSON, identity, date, identifier, or completeness failures. The next
 exact-SHA matrix must validate this, and neither a timeout nor skip is counted
 as a successful Kovitz fetch.
 
+The transport-only repair and its contract guard were published as
+`9f746e25b4137fe3c7337a87d73becfa0969e202`. Exact-SHA run `37336513293`
+passed the Branch-declared Tests job, including 511 live-matrix passes and 31
+skips; Backend Tests and Frontend Unit Tests also passed. The job omitted
+pytest's per-case skip-reason output, so the aggregate does not establish
+whether the Kovitz EQTY case passed or skipped. No route pass is inferred from
+that result. The branch-owned opt-in matrix command now uses `-rs` so the next
+exact-SHA run retains every skip reason; hosted Playwright was still running at
+the time of this checkpoint.
+
+Run `37336513293` subsequently completed successfully, with Backend Tests,
+Frontend Unit Tests, Branch-declared Tests, and hosted Playwright all green;
+the protected Exhaustive Integration Gate was skipped by feature-branch
+design. Its 511-pass / 31-skip matrix summary lacks per-case reasons, so this
+run does not establish whether Kovitz EQTY itself passed or skipped. The
+workstream now adds pytest `-rs` to the next opt-in matrix so the reasons can
+be reviewed individually. A skipped route is still not a successful fetch.
+
 ## Current audit checkpoint — Arin ATTR route and VistaShares CI recheck — 2026-10-05
 
 A bounded direct request to Arin's official ATTR page returned HTTP 200 HTML

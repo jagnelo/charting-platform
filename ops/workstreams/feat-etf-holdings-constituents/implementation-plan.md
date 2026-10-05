@@ -3907,3 +3907,46 @@ external skip; this is not a live pass and does not assert current application
 reachability. Identity, date, row-count, and row-completeness failures remain
 hard failures. The rerun on the next exact SHA must confirm this precise
 classification and keep every unrelated case green.
+
+### 2026-10-05 follow-up: transient Kovitz FilePoint timeout
+
+Exact-SHA run `37332486447` accepted the narrow Arin/ATTR challenge skip, but
+the broad live matrix then failed once on a Kovitz EQTY FilePoint
+`httpx.ReadTimeout` (521 passed, 19 skipped, 1 failed). Backend, frontend, and
+hosted Playwright passed; overall CI failed only the Kovitz matrix case. The
+local bounded replay hit temporary DNS failure. This same isolated timeout was documented
+on 2026-10-02 and passed immediate isolated/full reruns, supporting transient
+transport failure rather than a parser regression. The Kovitz live test now
+uses the established external-transport classifier only around its fetch; its
+strict JSON, route, date, CUSIP, and row-count checks are unchanged and cannot
+be skipped by the handler. The rerun on the next exact SHA must still show all
+content-validating cases green; a skip remains an outage record, not a route
+pass.
+
+The repair is published as `9f746e25b4137fe3c7337a87d73becfa0969e202`. Its
+always-on live-contract regression confirms a transport timeout is classified
+as external while incomplete Kovitz JSON remains outside that classification;
+the actual live test catches only transport exception types around the fetch,
+leaving response/content assertions uncaught. The bounded local EQTY retry
+skipped on temporary DNS failure, not a route pass. The default live module
+passes 6 contract checks with 536 opt-in network cases skipped; the complete
+deterministic ETF suite passes 749 tests, Ruff/format/diff checks pass. Exact
+push-triggered CI run `37336513293` is still in progress; inspect its Branch-
+declared Tests, Backend Tests, and Frontend Unit Tests before recording AC7.
+The Branch-declared Tests job subsequently passed: the opt-in matrix reported
+511 passed and 31 skipped in 568.77 seconds. Backend and Frontend Unit Tests
+also passed, while hosted Playwright was still running. Because the command
+did not request `-rs`, the job log omits per-case skip reasons; in particular,
+it does not establish whether the Kovitz EQTY live case passed or skipped. The
+workstream command now adds `-rs` to the opt-in matrix so the next exact-SHA
+run will retain those reasons. Do not infer a Kovitz route pass from the
+aggregate job success.
+
+Exact-SHA run `37336513293` has now completed successfully, including hosted
+Playwright; the protected integration gate was skipped as expected for this
+feature-branch push. The live matrix was 511 passed / 31 skipped. Since its
+command used `-q` without `-rs`, the logs cannot attribute the skips to
+specific providers. The workstream command was updated to emit reasons on the
+next exact SHA; verify all of them before closing the matrix evidence. The
+local Docker-backed browser gate remains deferred until the unrelated
+six-service stack exits and a read-only resource preflight confirms safety.

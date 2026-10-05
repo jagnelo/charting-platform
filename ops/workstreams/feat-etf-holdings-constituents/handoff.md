@@ -8856,6 +8856,97 @@ Compose stack exits and resource preflight is safe. AC7/AC8 remain open; AC10
 awaits provider-platform staging, and AC14 is a post-integration/deployment
 observation. Goal remains active, not blocked or complete.
 
+## Kovitz EQTY matrix timeout — 2026-10-05
+
+After the Arin challenge classification, exact-SHA run `37332486447` on
+`d3b10fce254d9625810ad5258bf493d84b416e7c` completed its branch-declared
+provider matrix with 521 passes, 19 classified skips, and one failure in
+917.55 seconds. The sole failure was the bespoke `kovitz` / `EQTY` FilePoint
+JSON live route raising `httpx.ReadTimeout`. The Arin/ATTR challenge was
+classified by the exact previously tested external variant. Backend,
+frontend-unit, and hosted Playwright jobs passed; overall CI failed only
+because of the Kovitz matrix case, and the feature-branch integration gate was
+skipped by design.
+
+This is not the first isolated Kovitz timeout: the durable 2026-10-02 record
+reports a broad-matrix `httpx.ReadTimeout` that passed on immediate isolated
+and full reruns. The bounded local retry on this SHA instead encountered
+temporary DNS failure. Accordingly, the Kovitz live test now routes only
+transport exceptions through the existing external-network failure classifier
+and records such an event as a skip. Its response parsing, CUSIP, route identity,
+composition date, and 20-row checks remain outside the catch and still fail
+normally. The local DNS outcome and hosted timeout are external skips in
+validation evidence—not successful route fetches.
+
+The new exact-SHA run must confirm that only the known Arin issuer challenge
+and a transport-only Kovitz outage are classified as external skips, with every
+other provider and content-validation assertion green. The local Docker full
+gate remains deferred while the other worktree's six-service Compose stack is
+active and available RAM is 2.5 GiB. Do not stop or alter its services. AC7/AC8
+remain open; AC10 awaits provider-platform staging, and AC14 remains a later
+post-integration/deployment observation. Goal stays active.
+
+### Repair published; exact-SHA CI running — 2026-10-05 15:56 UTC
+
+The Kovitz-only external-transport exception, its always-on contract assertion,
+and the matching provider-universe note are committed and pushed as
+`9f746e25b4137fe3c7337a87d73becfa0969e202` to
+`origin/feat/etf-holdings-constituents`. Local deterministic ETF coverage passed
+749/749; the default live-provider module passed 6 contract checks and skipped
+536 opt-in network checks. The bounded Kovitz live request itself skipped on
+temporary DNS failure, not a route pass. Ruff, format, and diff checks passed.
+Push-triggered Actions run `37336513293` is currently running the Backend Tests,
+Frontend Unit Tests, and Branch-declared Tests jobs; no hosted result is claimed
+yet.
+
+A fresh read-only Docker inventory found six healthy/running services belonging
+to `feat-tc2000-frontend-rework`, plus the unrelated `stremio-server`; 3.2 GiB
+RAM was available. These services were not stopped or modified. Running this
+branch's full Docker/browser gate concurrently would compete for the same small
+host, so it remains deferred until that stack exits and a fresh preflight is
+safe. The exact-SHA hosted jobs remain the immediate gate. AC7/AC8 are open;
+AC10 still requires provider-platform staging, and AC14 is post-integration /
+deployment observation. The saved goal remains active, not blocked or complete.
+
+### Exact-SHA matrix progress — 2026-10-05 16:07 UTC
+
+For `9f746e25b4137fe3c7337a87d73becfa0969e202`, Backend Tests and Frontend
+Unit Tests passed. Branch-declared Tests passed; its live matrix reported 511
+passes and 31 skips in 568.77 seconds. The CI command used `-q` without
+`-rs`, so its log does not show individual skip reasons. This aggregate does
+not prove whether the Kovitz EQTY case passed or skipped, and no route success
+is inferred. The plan's opt-in matrix command now adds `-rs` so the next
+published SHA will expose each skip reason for review. Hosted Playwright was
+still running at this checkpoint; the protected integration gate was skipped
+by feature-branch design.
+
+The opt-in matrix's skip count is therefore operationally inconclusive rather
+than a test failure: the job passed, but we need the next run's per-case skip
+reasons to confirm no route/content failure is being masked. AC7/AC8 remain
+open pending that next exact-SHA output, the current hosted Playwright result,
+and a safe local full-gate disposition. The other worktree's six-service
+Compose stack remains untouched.
+
+### Hosted run completed — 2026-10-05 16:16 UTC
+
+Exact-SHA push run `37336513293` completed successfully on
+`9f746e25b4137fe3c7337a87d73becfa0969e202`. Backend Tests, Frontend Unit
+Tests, Branch-declared Tests, and hosted Playwright all passed. The
+feature-branch run skipped the protected Exhaustive Integration Gate by
+design. The live matrix summary was 511 passes and 31 skips in 568.77 seconds;
+because the command omitted `-rs`, its log does not show individual skip
+reasons. This does not establish whether Kovitz EQTY itself passed or skipped,
+so no route pass is claimed for that case from this receipt.
+
+The branch-owned opt-in live command now includes pytest `-rs`. The next
+checkpoint push will rerun exact-SHA CI and retain every skip reason for
+review. AC7/AC8 remain open pending that diagnostic run and a safe local
+full-stack gate disposition. Current host evidence still shows the other
+worktree's six services active with 3.2 GiB available RAM; none was stopped or
+changed. AC10 continues to await provider-platform staging; AC14 remains the
+post-integration/deployment observation. The saved goal remains active, not
+blocked or complete.
+
 ### Implementation publication — 2026-10-05
 
 Implementation commit `61265673611bc7afef4ca5af9d34ccae57bb2bfa` is pushed to

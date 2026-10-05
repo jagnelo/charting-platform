@@ -113,7 +113,7 @@ acceptance_criteria:
 branch_tests:
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_adapters.py -q --no-cov"
   - "uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov"
-  - "RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov"
+  - "RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q -rs --no-cov"
   - "uv run --project backend ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py"
   - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-etf-holdings-constituents"
   - "npm --prefix frontend run type-check"
@@ -465,8 +465,19 @@ current_blocker: >-
   Playwright passed; Branch-declared Tests failed only Arin ATTR after both HTTP
   transports received ETF Architect's access challenge (523 passed, 16
   classified skips, 1 failed). The protected Exhaustive Integration Gate was
-  skipped by feature-branch design. AC7 awaits the exact-SHA rerun for the
-  narrowly scoped external-access classification and a safe full-stack gate.
+  skipped by feature-branch design. Its repair commit `d3b10fce254d9625810ad5258bf493d84b416e7c`
+  correctly classified the exact Arin challenge, but new exact-SHA run
+  `37332486447` exposed a single transient Kovitz EQTY FilePoint `httpx.ReadTimeout`
+  (521 passed, 19 classified skips, 1 failed in 917.55 seconds). Backend and
+  frontend and hosted Playwright jobs passed; overall CI failed only because
+  of the Kovitz matrix case. The focused local
+  Kovitz application probe skipped on DNS resolution failure, not a route pass.
+  Since the same timeout had occurred once before and then passed on focused
+  reruns, the live test now applies the shared external-transport classifier
+  only around this Kovitz fetch; parser, identity, date, and completeness
+  assertions remain hard failures. The rerun on this repair is pending. The
+  protected Exhaustive Integration Gate was skipped by feature-branch design.
+  AC7 awaits exact-SHA revalidation and a safe full-stack gate.
   AC8 awaits a clean synchronized branch for human review. AC10 awaits
   `feat/market-data-provider-platform` reaching staging, and AC14 remains the
   post-integration/deployment 30-day observation. The goal remains active, not
@@ -959,19 +970,71 @@ current_blocker: >-
   and available RAM is low. AC10 awaits provider-platform staging; AC14 remains
   the later 30-day post-integration/deployment observation.
 
+  UPDATE 2026-10-05T15:46Z: The repair-SHA Actions run `37332486447` on
+  `d3b10fce254d9625810ad5258bf493d84b416e7c` completed the 541-case live module
+  with 521 passed, 19 classified skips, and one failure: the bespoke Kovitz
+  EQTY FilePoint route raised `httpx.ReadTimeout` during the broad sequential
+  matrix. The Arin challenge now classified as its narrow external skip;
+  backend, frontend, and hosted Playwright jobs passed; overall CI failed only
+  because of the Kovitz matrix case. Local focused Kovitz replay hit temporary DNS failure. Prior
+  workstream evidence records the same transient timeout followed by successful
+  isolated/full reruns, so a narrowly scoped network-exception handler was
+  added to the Kovitz live test only. It cannot skip JSON parsing, identity,
+  dates, rows, or completeness failures; the bounded local retry now skips on
+  DNS, not a route pass. The next exact-SHA matrix result is pending. The goal
+  remains active; AC7/AC8 remain open, AC10 awaits provider-platform staging,
+  and AC14 is post-integration/deployment.
+
+  UPDATE 2026-10-05T15:56Z: The transport-only Kovitz test classification and
+  matching provider-universe note are committed and pushed as
+  `9f746e25b4137fe3c7337a87d73becfa0969e202`. Deterministic ETF tests passed
+  749/749; the live contract module passed 6 always-on checks with 536
+  opt-in network cases skipped; the bounded Kovitz probe itself skipped on
+  temporary DNS failure, not a route pass. Ruff, format, and diff checks pass.
+  Exact push-triggered CI run `37336513293` for this SHA has Backend Tests,
+  Frontend Unit Tests, and Branch-declared Tests in progress. A fresh read-only
+  host check found the other worktree's six-service Compose stack still active
+  and 3.2 GiB available RAM; do not touch its services or launch the competing
+  Docker/browser gate until that stack exits and resource preflight is safe.
+  The goal remains active; AC7/AC8 remain open, AC10 awaits provider-platform
+  staging, and AC14 is the post-integration/deployment observation.
+
+  UPDATE 2026-10-05T16:07Z: On run `37336513293`, the Branch-declared Tests job
+  completed successfully. Its opt-in provider matrix reports 511 passed and
+  31 skipped in 568.77 seconds, but the hosted log does not print per-case
+  skip reasons, so it does not establish case-by-case why those skips occurred;
+  do not infer from the aggregate whether Kovitz specifically passed or
+  skipped. Backend Tests and Frontend Unit Tests passed; hosted Playwright is
+  still running; Exhaustive Integration was skipped by feature-branch design.
+  Added `-rs` to the branch-owned opt-in matrix command so the next exact-SHA
+  log preserves per-case skip reasons. The goal remains active and AC7/AC8
+  remain open until hosted Playwright completes, the next exact-SHA matrix
+  logs its skip causes, and the local full gate is safely dispositioned.
+
+  UPDATE 2026-10-05T16:16Z: Exact-SHA run `37336513293` for
+  `9f746e25b4137fe3c7337a87d73becfa0969e202` completed successfully. Backend
+  Tests, Frontend Unit Tests, Branch-declared Tests, and hosted Playwright
+  passed; the staging/master-only Exhaustive Integration Gate was skipped by
+  feature-branch design. The opt-in provider matrix was 511 passed / 31 skipped
+  in 568.77 seconds, but its `-q` invocation did not emit per-case skip reasons.
+  As an evidence-quality improvement, the branch-owned opt-in command now adds
+  `-rs`; the next pushed SHA must be inspected to review each skip. No claim is
+  made that Kovitz EQTY specifically passed or skipped in run 37336513293.
+  The active other-worktree Docker stack and 3.2 GiB RAM inventory remain a
+  separate reason not to launch the local browser gate yet. AC7/AC8 remain
+  open; AC10 awaits provider-platform staging; AC14 remains post-integration /
+  deployment observation.
+
 next_action: >-
-  Finish deterministic/default-live/workstream checks for the narrowly scoped
-  Arin ATTR external-access classifier, publish the fix and exact evidence to
-  this feature branch, and inspect the resulting push-triggered Actions run
-  through completion. Require the opt-in provider matrix to show the exact
-  Arin challenge as one explicit external skip and all other cases green; do
-  not treat that skip as a route pass. Record both failed-source-SHA and
-  repaired-SHA results in the provider audit, handoff, session, and append-only
-  validation receipt. Reattempt the Docker-backed browser gate only after the other
-  worktree's active Compose stack ends and read-only resource preflight shows a
-  safe isolated window; current inventory showed that stack active with 2.7
-  GiB available, so leave all its services untouched. Continue independent
-  free-first provider-source audits while pending. Await the user's notice
-  before provider-platform integration. Do not integrate, promote, deploy, or
-  modify another worktree; AC14 remains the later 30-day production
-  observation.
+  Publish the completed exact-SHA `37336513293` outcome and the opt-in
+  matrix's new `-rs` diagnostic flag in the branch-owned checkpoint. Inspect
+  the push-triggered workflow for that exact checkpoint SHA; require all
+  applicable jobs green and review each printed live skip reason individually.
+  Keep parser, identity, date, row, and completeness failures hard failures;
+  external transport/access skips remain outages, not route passes. Reattempt
+  the Docker-backed browser gate only after the other worktree's six active
+  Compose services exit and read-only resource preflight confirms a safe
+  isolated window; latest inventory showed 3.2 GiB available, so leave those
+  services untouched. Await the user's notice before provider-platform
+  integration. Do not integrate, promote, deploy, or modify another worktree;
+  AC10 awaits staging and AC14 remains the later 30-day production observation.
