@@ -240,10 +240,13 @@ acceptance_criteria:
     text: >-
       Persistent broker-free shadow instances use immutable historical warm-up
       followed only by new canonical events; activation declares flat start or
-      synthetic carry-in. Orders, positions, cash, metrics, and events survive
-      restart; duplicate, missing, late, corrected, stale, and out-of-order data
-      are observable, and corrections create separately identified counterfactual
-      replay without rewriting prior decisions.
+      synthetic carry-in. Before warm-up, an owner-scoped immutable execution
+      plan pins the exact strategy version/package, parameters, and random seed
+      for every portfolio component; activation fails closed when any binding is
+      missing or inconsistent. Orders, positions, cash, metrics, and events
+      survive restart; duplicate, missing, late, corrected, stale, and
+      out-of-order data are observable, and corrections create separately
+      identified counterfactual replay without rewriting prior decisions.
   - id: AC-API
     text: >-
       Versioned REST APIs under /api/v1/strategy-lab/v2 support strategy/package
@@ -683,6 +686,15 @@ remaining_gaps:
       completion. Exact retries replay the immutable plan, rejected plans
       remain audit evidence and cannot complete, and publication registration
       is explicitly separate from the completion/artifact transaction.
+  - >-
+      Forward instances now require an immutable, instance-keyed execution-plan
+      resource before warm-up activation. Each component binds the exact
+      strategy and package fingerprints, frozen parameters, and random seed;
+      owner-scoped application validation checks the instance, portfolio,
+      strategy, and package links, and the runtime resolver verifies source
+      archive bytes and SDK manifests before returning all component recipes.
+      Persistent runtime integration and checkpoint-bound market-history
+      resolution remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -840,32 +852,27 @@ progress:
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
     - strategy-lab-v2-forward-lifecycle-idempotency-v1
   total: 18
-  current_phase: native-forward-context-window
+  current_phase: forward-execution-plan-and-persistent-runtime
   current_blocker: >-
     No external dependency blocks package-owned implementation. The exact RC5
-    source/image built from this worktree passed the four backtest conformance
-    checks; stable release labeling is not a gate. Metric v17 now includes
-    trace-bound event-time gross/net native exposure without margin inference.
-    Forward-shadow authority still requires event-tape parity. Forward dispatches
-    now persist admission checkpoint, warm-up receipt, and disposition identity;
-    the v2 native tape requires accepted Redis/dispatch bindings and isolates
-    correction replay inputs. A host callback factory now authenticates one
-    accepted Redis/PostgreSQL dispatch and its verified market payload into a
-    single-event Nautilus input; correction and buffered events remain excluded.
-    A bounded SDK context window now validates frozen declared dependencies,
-    binds event contexts to accepted delivery/checkpoint identities, and stages
-    history updates until durable settlement. The stateful exact-pinned Nautilus
-    session and its durable output-before-ack/recovery path remain code-owned
-    work. Full Compose/browser
-    acceptance remains environment-limited by unavailable Docker Buildx. Shared
-    provider, ETF, and TC2000 contracts gate only their eventual shared-path
-    integration; options admission remains fail-closed pending canonical
-    Greeks/delta and settlement evidence.
+    source/image built from this worktree passed all five scope checks, including
+    forward event-tape parity; stable release labeling is not a gate. Immutable
+    per-component forward execution plans now pin strategy/package fingerprints,
+    parameters, and seeds, and activation requires a valid owner-scoped plan.
+    The plan resolver authenticates the portfolio and every strategy/package
+    reference and verifies exact package artifacts. The persistent isolated
+    Nautilus session, frozen/canonical history readers, durable output/checkpoint
+    restore, and deterministic crash replay remain code-owned work. Full
+    Compose/browser acceptance remains environment-limited by unavailable
+    Docker Buildx and default Docker API socket access. Shared provider, ETF, and
+    TC2000 contracts gate only their eventual shared-path integration; options
+    admission remains fail-closed pending canonical Greeks/delta and settlement
+    evidence.
   next_action: >-
-    Integrate the staged context window with a long-lived isolated Nautilus
-    session consuming authenticated one-event inputs on one BacktestEngine and
-    trader. Persist native invocation/account outputs and the resulting
-    checkpoint before Redis acknowledgement; make replay/recovery deterministic,
-    preserve corrections on the counterfactual path, and qualify event-tape
-    parity against the exact runtime image. Consume provider-owned source
+    Connect the authenticated portfolio-wide execution-plan resolver to the
+    persistent isolated Nautilus runtime, then implement platform-owned frozen
+    warm-up/canonical event readers. Retain native invocation/account outputs
+    and runtime checkpoints before Redis acknowledgement; restore one shared
+    BacktestEngine/trader deterministically after process loss, preserving
+    correction events on the counterfactual path. Consume provider-owned source
     contracts only after staging; stable release labeling is not a gate.

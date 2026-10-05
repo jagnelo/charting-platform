@@ -11154,3 +11154,57 @@ TC2000 gates apply only to overlapping paths after those branches reach staging.
 Changed workstream paths: `ops/workstreams/feat-strategy-lab-v2/handoff.md`,
 `ops/workstreams/feat-strategy-lab-v2/session.json`, and
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+## 2026-10-05 - Exact per-component forward execution plans
+
+Forward instances now have a typed, immutable `forward-execution-plans`
+resource keyed by the instance id. Each portfolio component pins its strategy
+fingerprint, exact package fingerprint, frozen parameter mapping, and random
+seed. The plan contract fingerprints every executable input and verifies exact
+component coverage and strategy/portfolio agreement. Forward-instance resource
+IDs are canonicalized to the instance id so the plan lookup cannot drift from
+the lifecycle record.
+
+The application rejects warm-up activation until the owner-scoped plan exists
+and matches the instance portfolio. Plan creation validates the owner-scoped
+instance, portfolio, strategy versions, and package-to-strategy links. The new
+`AuthenticatedForwardExecutionPlanResolver` loads only those pinned domain
+fingerprints, checks runtime ABI/SDK compatibility, and uses the local strategy
+package artifact resolver to verify archive, manifest, dependency lock, source,
+and static validation before returning recipes for every portfolio component.
+No provider fetch or external execution service is involved, and this addition
+uses the existing aggregate resource store without a schema migration.
+
+This closes exact forward recipe identity and package loading, not live market
+history or native execution. Still code-owned: source-verified frozen warm-up
+and canonical event history readers; connecting all component recipes to one
+persistent shared-account Nautilus process; durable native output/checkpoint
+restore; and deterministic crash replay before Redis acknowledgement. Exact
+Nautilus RC5 five-scope conformance remains valid for its recorded runtime;
+stable release labeling is not a gate. Docker Buildx/socket access constrain
+only the final local full-stack acceptance profile.
+
+Validation: 104 focused forward-plan/domain/application/API tests pass; the full
+Strategy Lab package passed 1,434 tests, and its one default-sandbox-denied
+Unix-socket case passed separately with scoped local-socket access. Ruff,
+format, focused MyPy, and `git diff --check` passed. Implementation and
+focused retest on 2026-10-05 passed again (104 tests, Ruff check, formatting on
+all nine changed files, focused MyPy on four production files, and cached plus
+uncached diff checks). The implementation is committed as
+`3b829fe5faf58ffbd161b528d1bd998470f257ec`; the workstream checkpoint commit
+and push are pending.
+
+Changed paths:
+`backend/app/strategy_lab_v2/api_resources.py`,
+`backend/app/strategy_lab_v2/api_router.py`,
+`backend/app/strategy_lab_v2/application.py`,
+`backend/app/strategy_lab_v2/forward_execution_plan.py`,
+`backend/app/strategy_lab_v2/forward_execution_plan_resolution.py`,
+`backend/app/strategy_lab_v2/resource_domains.py`,
+`backend/app/strategy_lab_v2/tests/test_application.py`,
+`backend/app/strategy_lab_v2/tests/test_forward_execution_plan.py`, and
+`backend/app/strategy_lab_v2/tests/test_resource_domains.py`.
+Workstream paths: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
