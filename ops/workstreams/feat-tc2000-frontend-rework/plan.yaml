@@ -47,8 +47,11 @@ current_blocker: >-
   unavailable and its cleanup trap targets the assigned stack, so do not invoke
   it directly. The current scoped migration check correctly skipped because no
   migrations changed; backend Ruff/check-format, frontend TypeScript, Compose
-  contract, and no-provider-change probe checks pass. Research-runner
-  security/resource probes remain to be refreshed in an isolated runner project.
+  contract, and no-provider-change probe checks pass. Isolated research-runner
+  sandbox/resource probes passed at checkpoint 8e6a818: all expected denials,
+  resource limits, and bounded concurrent-pressure containment were observed
+  with zero restarts. The exact disposable project was removed, but a fresh
+  Docker-socket inventory cannot be queried from this execution sandbox.
   Provider and ETF branches remain outside staging, so R2/R3 consumption and
   shared-path reconciliation are deferred.
 active_changeset_context:
@@ -67,11 +70,12 @@ active_changeset_context:
     Continue a distinct TC-owned R1/R5/R6 behavior slice while preserving the
     ten visual-oracle failures. The exact backend combined-coverage gate passes
     at 82.26%, and complete isolated seeded functional/visual browser runs are
-    refreshed at product source f0e946. Reconcile the remaining research-runner
-    sandbox/resource probes in an isolated project with exact-target cleanup;
-    migration, lint, Compose contract, and provider-change probe checks have
-    been reconciled. Never invoke the generic cleanup trap against the assigned
-    stack.
+    refreshed at product source f0e946. Research-runner sandbox/resource
+    probes passed at checkpoint 8e6a818; refresh only if runner configuration
+    or source changes. Migration, lint, Compose contract, and provider-change
+    probe checks have been reconciled. Never invoke the generic cleanup trap
+    against the assigned stack. The current sandbox denies Docker-socket access,
+    so continue independent frontend work and non-Docker checks meanwhile.
     Keep provider/ETF work out of this branch and defer R2/R3 until both
     dependencies reach staging.
 planning_state: ready
@@ -325,15 +329,17 @@ progress:
     both upstream branches reach staging. Stop only at ready_for_human_review.
   current_blocker: >-
     Current backend unit and integration suites pass 1622/1622 and 409/409
-    under coverage at 82.26%, using sys.monitoring. Frontend seeded flows remain
+    under coverage at 82.26%, using sys.monitoring. Isolated research-runner
+    sandbox/resource probes pass with zero restarts. Frontend seeded flows remain
     175/177 with two documented skips and zero failures on unchanged replay;
     the visual matrix is 94/104 with ten protected diffs; dense performance is
     4/4 including 10k rows. The generic helper's Buildx/cleanup path is unsafe
     for assigned volumes; remaining browser/Compose stages need isolated
-    execution. Provider and ETF remain outside staging, deferring R2/R3 and
-    shared-path reconciliation.
+    execution when Docker access is available. Provider and ETF remain outside
+    staging, deferring R2/R3 and shared-path reconciliation.
 historical_implementation_records:
   - "Product commit f0e946000e15336d972f33f24520d72b06e5cf7e bounds historical breadth and generic event occurrence lists to 100 visible rows per increment, with truthful visible/matching counts and filter/selection resets. Focused ResearchResultsTool tests passed 57/57; full serial frontend Vitest passed 129 files / 1,209 tests; Vue type-check/build, direct TC ownership guard (130 touched paths, all six self-tests), and direct workstream validation (30 records) passed. The assigned Docker socket is denied, so browser replay and the generic full integration gate remain open. This slice changes neither provider/ETF behavior nor visual reference or acceptance policy."
+  - "At exact pushed checkpoint 8e6a8180672e332904014a7f59d7ecf0887b72f4, an isolated research-runner project passed all eight expected sandbox-denial probes (unshare, setns, mount, ptrace, fork, network, subprocess, root-write), memory-cgroup denial (exit 137), tmpfs-capacity denial, and bounded concurrent-pressure containment (three child failures, restart count zero). The runner config was 768 MiB, one CPU, 128 PIDs, network none, read-only root, uid 10001:10001. The exact temporary project, volumes, and local image were removed; the assigned TC stack was preserved according to the probe-run cleanup inventory. A fresh Docker-socket inventory is unavailable in this execution sandbox. Probe script behavior was unchanged; only its host temporary-log prefix was narrowed to this unique project. No product source, provider/ETF behavior, or visual acceptance policy changed."
   - "Product commit 8d1d63b7945ad94226ac02e338aac8f4ef447f2a fixes data loss in the advanced Market Map breadth editor: switching a multi-child all/any group to not now wraps the complete prior group as the sole NOT child. The regression failed against the prior editor; BreadthConditionTreeEditor and MarketMapTool suites passed 10/10 and 56/56, backend breadth service tests passed 30/30, frontend type-check/build and Ruff format check passed. No provider/ETF behavior, visual styling, or acceptance policy changed."
   - "Exact product-tip pinned validation at be55d1af completed the 174-case functional suite with 172 passed, 2 documented skips, and zero failures. The four-project visual matrix completed all 104 cases: 93 passed, ten protected screenshot differences remain (workspace-floating all four viewports; Study structured-result all four; Study sandbox-error at the two 1080p scales), and one column-editor diagnostic failure from ERR_NETWORK_CHANGED passed unchanged replay 4/4. A separate four-project pinned shell smoke passed 4/4; host-only shell rendering failed glyph pixels with host Arial resolving to Nimbus Sans versus pinned Noble resolving Liberation Sans, consistent with environment/font rendering rather than geometry. Full matrix artifacts: /tmp/tc2000-pinned-visual-full-3t8qbk; functional artifacts: /tmp/tc2000-pinned-functional-full-9Iq2rG. Scoped Docker cleanup left zero resources. No visual acceptance policy changed."
   - "Product commit be55d1af2de8037671d65e33d5b1d5120e11f38c adds keyboard invocation for the TC-owned Virtual Watchlist Boolean header pin menu using Shift+F10 and the Context Menu key, while preserving right-click and Ctrl/Meta-click behavior and anchoring the menu at the header for keyboard use. Focused VirtualWatchlistTool coverage passed 80/80; full serial frontend Vitest passed 129 files / 1,202 tests; the Docker production build (including vue-tsc and Vite build) passed; and authenticated F8u-boolean passed 1/1. The exact-tip 174-case functional run passed 171, skipped 2 documented cases, and failed one F8s-family-matrix diagnostic because unrelated local API requests reported ERR_NETWORK_CHANGED after assertions; unchanged focused replay passed 1/1. The completed prior-tip 104-case visual matrix was 93/104 with ten protected screenshot differences; a post-change full visual attempt was stopped after broad deltas, and a fresh seeded-database shell smoke differed at all four viewports by 42,759 / 44,586 / 50,854 / 53,003 pixels. No screenshot oracle, mask, threshold, skip, or acceptance policy changed. The exact branch commit is pushed and direct GitHub refs verified; staging remains 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider is 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF is 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5. Both dependencies remain outside staging."
