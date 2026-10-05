@@ -87,8 +87,6 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
@@ -126,9 +124,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "54dc7aeff87aac530aca03e19b8d47048316e184",
+  "head": "0095e8af66713d63b7f9a92bb2b5104278e40143",
   "implementation_sha": "204efd3451463b09df6fee280e190149197f6acc",
-  "last_checkpoint": "2026-10-05T14:42:16.247607+00:00",
+  "last_checkpoint": "2026-10-05T14:54:17.407548+00:00",
   "last_human_progress_update": "2026-10-05T14:52:51.883466+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
@@ -154,7 +152,7 @@
     "total": 18,
     "updated_at": "2026-10-05T14:52:51.883444+00:00"
   },
-  "remote": "54dc7aeff87aac530aca03e19b8d47048316e184",
+  "remote": "0095e8af66713d63b7f9a92bb2b5104278e40143",
   "remote_sha": "204efd3451463b09df6fee280e190149197f6acc",
   "remote_synchronized": true,
   "retained_docker_resources": [],
