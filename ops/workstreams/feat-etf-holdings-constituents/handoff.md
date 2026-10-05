@@ -9227,3 +9227,25 @@ post-integration/deployment shadow observation. The next in-scope action is to
 publish this receipt at a new feature-branch SHA for a fresh exact-SHA workflow
 run, then continue monitoring the actual job outcomes rather than infer success
 from a queued or cancelled job.
+
+### Corrected workstream narrative invariant — 2026-10-05
+
+The fresh exact-SHA run `37375711364` on `c9d702489aab80acae85cbf15d7152947b475835`
+started successfully and reached terminal jobs. Frontend Unit Tests passed.
+Backend Tests failed with 1,519 passed and one failed assertion; Branch-declared
+Tests failed with 608 passed and one failed assertion. Both failures are the
+same deterministic narrative guard:
+`test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers`
+requires the exact phrase `15 Tier-0 and 156 Tier-1` in
+`session.json`'s `progress.current_blocker`. The preceding checkpoint had
+rewritten that summary and omitted the required phrase. The phrase has now been
+restored without changing product code, providers, or audit counts. The complete
+branch-owned adapter test file passes locally (609/609) using the branch-test
+configuration, and the focused narrative test passes with `--no-cov`. The
+standalone one-test invocation with default coverage correctly reported the
+test passed but exited nonzero because the repository-wide 55% coverage floor
+cannot be met by a single test; this is not a test assertion failure.
+
+This corrected worktree state is not yet represented by the failed run's SHA.
+Publish a new receipt SHA and require exact-SHA Backend and Branch-declared
+success before closing AC7. Frontend success does not waive those failures.
