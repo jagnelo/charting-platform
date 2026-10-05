@@ -9044,3 +9044,60 @@ pushed and verified. That alias ref is outside this workstream authorization;
 it has not been rewritten or deleted. Do not mutate it without explicit human
 direction. No other branch/worktree, staging ref, or Docker resource was
 changed.
+
+## Vident VUSE successful-shell route recovery — 2026-10-05
+
+Exact-SHA CI run `37348758844` on `434b1d3856c4430d50253071da4b07892a7447d4`
+passed Backend Tests, Frontend Unit Tests, and hosted Playwright, but its
+branch-declared live matrix failed only `mm_vam-VUSE`: the official product URL
+returned a successful HTTP response that did not contain the verified VUSE
+holdings table. This was a real route-response failure, not a provider skip.
+The run reported 523 passed, 19 explicit skips, and 1 failure. The preceding
+run `37347676334` on `2ba6aa6` was cancelled and supplies no validation result.
+
+The route now performs one bounded `requests` transport retry not only after an
+HTTP 403 but also after an HTTP 2xx response whose page lacks the expected
+issuer/product/table markers. No holdings are accepted from an unverified
+response: the retry must still pass the existing exact ticker/issuer marker,
+required holdings headers, dated-table, and minimum-row checks. Unit regressions
+prove both recovery from a 200 shell and rejection when the alternate response
+also lacks the verified table. This covers both `mm_vam` and its Vident adapter
+without changing provider identity, data provenance, route classification, or
+fallback disposition.
+
+The fix is commit `b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc`, pushed only to
+`feat/etf-holdings-constituents`. Exact-SHA run
+[`37351561573`](https://github.com/jagnelo/charting-platform/actions/runs/37351561573)
+completed successfully: Backend Tests passed 1,520 unit and 379 integration
+tests; Frontend Unit Tests passed; Branch-declared Tests passed 609
+deterministic adapter tests, the default live contract (7 passed / 536 skipped),
+and the opt-in live matrix (525 passed / 18 explicit skips). The VUSE case
+passed and was not skipped; HECA passed too. Ruff, frontend type-check, 17 ETF
+panel/view tests, and production build passed. Hosted Playwright passed 151
+with 109 expected skips. The protected Exhaustive Integration Gate was skipped
+as designed for a feature branch. The full 18 live skip reasons remain
+provider-specific: ETF Architect access challenge (2), BBH 403, Neuberger
+Berman 429, IronHorse and Conductor CGV non-complete rows, Grayscale GBTC and
+BCOR 429, Pacer COWZ 403, Miller Value MVPA 403, Procure UFO 403, Schwab SCHD
+403, Strive STXF 403, Theme SPAM 403, US Global JETS 403, WisdomTree's two
+blocked product-route attempts, and Redwood's exact empty-payload outage. No
+generic parser/identity/schema error was skipped.
+
+Local verification after the code change: all 609 ETF adapter tests passed,
+Ruff and formatting checks passed, and `git diff --check` passed. A bounded
+local opt-in VUSE request skipped because this workstation could not resolve
+the issuer hostname; it is not live acceptance evidence.
+
+The local Docker-backed full-integration gate remains unrun. Read-only inventory
+at 18:16 UTC showed six running services owned by the unrelated
+`feat-tc2000-frontend-rework` worktree and `stremio-server`; about 3.0 GiB RAM
+was available with 10 GiB swap in use. I did not stop or alter them. Run the
+local gate only after they exit and a read-only preflight says host capacity is
+safe. AC7/AC8 remain open for that gate and the final branch checkpoint. AC10
+still awaits provider-platform staging and the human's notice; AC14 is the
+post-integration/deployment observation. The goal stays active.
+
+The earlier push typo remains disclosed: the separate remote ref
+`feat-etf-holdings-constituents` (without the slash) still points at the older
+`2ba6aa6` source commit. It remains untouched because it is outside the
+authorized branch.

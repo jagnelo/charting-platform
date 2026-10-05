@@ -2423,10 +2423,29 @@ parser converts the page's market-value-millions field to canonical USD,
 preserves issuer provenance and cash/fund rows, and passed the bounded live
 matrix case. AAAA is native-promoted without SEC-derived reconstruction.
 
-The current code-derived split is 496 registered / 419 native-live-backed / 77
-fallback-only providers; runtime fallback statuses are 8 issuer-access-blocked,
-56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
-non-portfolio-publisher, and 2 inactive-or-successor-disposition.
+At that 2026-09-25 checkpoint, the code-derived split was 496 registered / 419
+native-live-backed / 77 fallback-only providers; runtime fallback statuses
+were 8 issuer-access-blocked, 56 needs-first-party-route-discovery, 3
+non-executable-public-source, 8 non-portfolio-publisher, and 2
+inactive-or-successor-disposition.
+
+## Vident VUSE successful-shell recovery — 2026-10-05
+
+Exact-SHA CI run `37348758844` exposed one live VUSE failure: the configured
+first-party product route returned a successful response without the verified
+holdings table. The route now makes one alternate `requests` fetch after either
+HTTP 403 or an HTTP 2xx page that lacks the expected issuer/product/table
+markers. The alternate response is subject to the same issuer, symbol, header,
+date, and completeness checks; an unverified page still fails closed.
+
+On commit `b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc`, exact-SHA run
+`37351561573` passed the VUSE live case. The full opt-in matrix passed 525
+cases and classified 18 narrow provider-specific skips; deterministic adapter
+coverage passed 609 tests. Provider totals remain 496 registered / 422 native /
+74 fallback-only; this transport recovery did not alter support disposition.
+The workstation's opt-in VUSE request was DNS-skipped and is not route evidence.
+The separate local Docker gate remains deferred until unrelated active
+worktree services exit and host resources are safe.
 
 ## Arin ATTR exact-SHA access result — 2026-10-05
 
@@ -2853,7 +2872,14 @@ USD market values, and issuer provenance, and all three symbol-scoped cases
 passed the bounded opt-in live matrix. The three products are native-promoted
 without SEC-derived reconstruction.
 
-The current code-derived split is 496 registered / 419 native-live-backed / 77
-fallback-only providers; runtime fallback statuses are 8 issuer-access-blocked,
-56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
-non-portfolio-publisher, and 2 inactive-or-successor-disposition.
+At that 2026-09-25 checkpoint, the code-derived split was 496 registered / 419
+native-live-backed / 77 fallback-only providers; runtime fallback statuses
+were 8 issuer-access-blocked, 56 needs-first-party-route-discovery, 3
+non-executable-public-source, 8 non-portfolio-publisher, and 2
+inactive-or-successor-disposition.
+
+## Current ETF provider totals — 2026-10-05
+
+The current code-derived split is 496 registered / 422 native-live-backed / 74
+fallback-only providers. A route transport retry does not change provider
+identity, native support disposition, or source provenance.

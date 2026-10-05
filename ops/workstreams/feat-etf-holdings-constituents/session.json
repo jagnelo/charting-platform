@@ -73,7 +73,7 @@
   "dirty_paths": [],
   "docker": {
     "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "reason": "The default sandbox denies the Docker socket. A narrow read-only inventory succeeded and found six services owned by the unrelated feat-tc2000-frontend-rework worktree plus stremio-server still running; the full local gate is deferred until they exit and host capacity is safe."
   },
   "docker_ready": {
     "ready": true,
@@ -89,13 +89,13 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "2ba6aa60064fb151d63b4c7924c1aa2e616c4494",
-  "implementation_sha": "2ba6aa60064fb151d63b4c7924c1aa2e616c4494",
-  "last_checkpoint": "2026-10-05T17:24:54+00:00",
+  "head": "b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc",
+  "implementation_sha": "b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc",
+  "last_checkpoint": "2026-10-05T18:28:01+00:00",
   "last_human_progress_update": "2026-10-05T16:45:07+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "inspect exact-SHA CI run 37347676334 for the Hedgeye HECA linked-CSV repair through completion, then rerun the local full-stack/browser gate only after a read-only resource preflight confirms the other worktree's stack has exited and host capacity is safe; do not mutate the unrelated remote alias ref without human direction",
-  "plan_hash": "b1dc0176074b3b68f5246ac28acef76c0c48f8a5d6ec7295498ffd0ff700f0ac",
+  "next_action": "run the assigned local full-stack/browser gate only after read-only Docker and host-capacity checks confirm the unrelated feat-tc2000-frontend-rework services and Stremio have exited and resources are safe; do not mutate those services or the unrelated remote alias ref",
+  "plan_hash": "60a8039ed1eba544637c0203b6b6087dc5d86a02c659b30329c45667c3bd37f4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -118,14 +118,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Exact-SHA run 37340283972 on d2e163c46bad2a9e58affe5b32461c8b783fbaa8 completed successfully: Backend Tests, Frontend Unit Tests, Branch-declared Tests (525 passed/17 explicit skips), and hosted Playwright passed; the protected Exhaustive Integration Gate was skipped by feature-branch design. Exact-SHA run 37343409378 on 69dc6d34b462a5ac15766caf61377b815949eee0 then failed only the live Hedgeye HECA case (525 passed/17 skips/1 failure): the product page no longer exposed the expected embedded daily rows. This is source-route drift, not an external outage. The official page-declared all-funds CSV parsed to a 2026-10-05 HECA snapshot with 17 rows including cash. Adapter and regression changes are pushed as 2ba6aa60064fb151d63b4c7924c1aa2e616c4494 to the exact authorized feat/etf-holdings-constituents ref, verified through GitHub API; local ls-remote was DNS-blocked. Run 37347676334 is in progress: Frontend Unit Tests passed; Backend Tests integration and Branch-declared Tests are running. The deterministic ETF adapter/capability suites pass 707, focused Hedgeye/SCM tests pass 7, Ruff/format/diff pass, and the bounded live HECA replay skipped on temporary DNS failure (not a route pass). A push typo also advanced the separate feat-etf-holdings-constituents remote ref to 2ba6aa6; it remains untouched pending human direction. The local Docker/browser gate remains deferred until safe resource preflight; AC10 awaits provider-platform staging and AC14 is post-integration/deployment.",
-    "current_phase": "hedgeye_linked_csv_route_exact_sha_ci_in_progress",
-    "next_action": "Inspect run 37347676334 through completion; verify the live HECA CSV case and review every skip reason. Then recheck Docker and host capacity read-only and run the required local full-stack/browser gate only if the unrelated services have exited and preflight is safe. Do not rewrite or delete the unrelated remote alias ref without explicit human direction.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for; provider totals are 496 registered / 422 native / 74 fallback. Exact-SHA run 37348758844 on 434b1d3856c4430d50253071da4b07892a7447d4 failed only the live Vident mm_vam-VUSE case (523 passed/19 explicit skips/1 failure) because a successful page response lacked the verified holdings table; this was not skipped or classified as an external outage. Commit b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc adds one alternate requests retry for 2xx unverified page shells and preserves all strict product, table, date, and completeness checks. Exact-SHA run 37351561573 on b70b729 completed successfully: backend 1,520 unit/379 integration, frontend unit, branch checks, 609 deterministic adapters, default live 7 passed/536 skipped, opt-in live 525 passed/18 provider-specific skips, and hosted Playwright 151 passed/109 skipped; VUSE and HECA passed. The protected integration gate was skipped by feature-branch design. A local opt-in VUSE probe skipped on DNS and is not route evidence. AC7/AC8 remain open because the required local Docker full-integration gate is deferred: the 18:16 UTC read-only inventory showed six services from feat-tc2000-frontend-rework plus stremio-server active, about 3 GiB available RAM and 10 GiB swap used. Do not stop or mutate those resources. The mistaken separate remote alias ref feat-etf-holdings-constituents remains untouched at the older 2ba6aa6 commit. AC10 awaits provider-platform staging and human notice; AC14 is post-integration/deployment observation.",
+    "current_phase": "vident_route_retry_exact_sha_green_docker_gate_deferred",
+    "next_action": "Run the assigned local full-stack/browser gate only after read-only Docker and host-capacity checks confirm the unrelated feat-tc2000-frontend-rework services and Stremio have exited and resources are safe; do not mutate those services or the unrelated remote alias ref.",
     "total": 14,
-    "updated_at": "2026-10-05T17:24:54+00:00"
+    "updated_at": "2026-10-05T18:28:01+00:00"
   },
-  "remote": "2ba6aa60064fb151d63b4c7924c1aa2e616c4494",
-  "remote_sha": "2ba6aa60064fb151d63b4c7924c1aa2e616c4494",
+  "remote": "b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc",
+  "remote_sha": "b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",

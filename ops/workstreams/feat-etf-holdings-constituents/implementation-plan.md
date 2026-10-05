@@ -4006,3 +4006,28 @@ name and advanced the separate remote ref `feat-etf-holdings-constituents` to
 the same `2ba6aa6` commit. The correct slash branch was then pushed and
 verified. The alias ref is outside this workstream's authorization; it has not
 been rewritten or deleted and requires human direction before any cleanup.
+
+### Vident successful-shell recovery and exact-SHA validation — 2026-10-05
+
+The exact hosted matrix at `434b1d3` exposed a new VUSE failure: the issuer URL
+returned HTTP 2xx but not the verified holdings page. Commit `b70b729` adds a
+single alternate-transport retry for that successful-but-unverified shell,
+while preserving all the original issuer/ticker/table/date/completeness gates.
+Deterministic regressions cover a recoverable shell and a retry that must still
+fail closed.
+
+Exact-SHA Actions run `37351561573` on
+`b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc` passed: backend 1,520 unit and 379
+integration tests, frontend unit tests, all branch-declared checks, 609
+deterministic ETF adapter tests, default live 7 passed / 536 skipped, opt-in
+live 525 passed / 18 provider-specific skips, and hosted Playwright 151 passed /
+109 skipped. VUSE and HECA both passed their live cases. Ruff, format-check,
+frontend type-check, 17 ETF view/panel tests, and production build passed. The
+feature-branch Exhaustive Integration Gate was skipped by design.
+
+AC7/AC8 are not complete: the required local Docker full-integration gate is
+deferred while six services from another worktree plus Stremio remain active
+and only about 3 GiB RAM is available. No cross-worktree resource may be stopped
+from this branch. Keep this goal active until a safe gate window and the final
+durable review checkpoint. AC10 remains dependent on provider-platform staging;
+AC14 remains the later 30-day observation.

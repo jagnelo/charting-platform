@@ -434,7 +434,7 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: hedgeye_linked_csv_route_exact_sha_ci_in_progress
+current_phase: vident_route_retry_exact_sha_green_docker_gate_deferred
 current_blocker: >-
   Current checkpoint 2026-10-05: 15 Tier-0 and 156 Tier-1 symbol outcomes
   remain accounted for; current totals are 496 registered / 422 native / 74
@@ -1072,23 +1072,51 @@ current_blocker: >-
   API branch read is the current remote-tip evidence.
 
   A push-command typo also advanced the separate remote ref
-  `feat-etf-holdings-constituents` (without the slash) to the same source
-  commit. That ref is outside this workstream's authorization and has not been
-  rewritten or deleted; obtain human direction before any corrective mutation.
-  No other branch/worktree, staging, or Docker resource was changed. The goal
-  remains active; AC7 awaits exact-SHA CI and a safe local full gate, AC8 awaits
-  the complete review checkpoint, AC10 awaits provider-platform staging, and
-  AC14 remains post-integration/deployment observation.
+  `feat-etf-holdings-constituents` (without the slash) to commit `2ba6aa6`.
+  That ref is outside this workstream's authorization and remains untouched;
+  obtain human direction before any corrective mutation.
+
+  UPDATE 2026-10-05T18:15Z: Run `37347676334` on `2ba6aa6` was cancelled and
+  provides no acceptance evidence. Run `37348758844` on `434b1d3` completed
+  with Backend Tests, Frontend Unit Tests, and hosted Playwright passing; the
+  branch matrix reported 523 passed / 19 explicit skips / 1 failure, the sole
+  failure being Vident `mm_vam-VUSE` because the successful HTTP response did
+  not contain the verified holdings table. This was not skipped or treated as
+  an external outage. Commit `b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc` adds
+  one bounded `requests` retry for a successful but unverified product-page
+  shell (as already used for HTTP 403); the returned body still must pass the
+  exact product identity, holdings marker/header, dated-table, and minimum-row
+  checks. Regressions cover both successful recovery and fail-closed behavior
+  if the retry is still unverified.
+
+  Exact-SHA run `37351561573` on `b70b729` completed successfully: Backend
+  Tests passed (1,520 unit / 379 integration), Frontend Unit Tests passed,
+  Branch-declared Tests passed (609 deterministic adapter tests; default live
+  7 passed / 536 skipped; opt-in live matrix 525 passed / 18 explicit skips),
+  and hosted Playwright passed (151 passed / 109 skipped). VUSE passed live and
+  was not skipped; HECA also passed. The protected Exhaustive Integration Gate
+  was skipped by feature-branch design. Local adapter suite 609/609, Ruff,
+  format-check, and diff-check pass. The workstation's bounded live VUSE
+  replay skipped on DNS failure and is not route evidence.
+
+  The required local Docker full-integration gate is still deferred: a fresh
+  read-only inventory shows six services owned by `feat-tc2000-frontend-rework`
+  plus `stremio-server`, with about 3.0 GiB RAM available and 10 GiB swap in
+  use. No containers, volumes, other worktrees, branches, staging refs, or the
+  unrelated alias ref were modified. Do not run the full gate until those
+  unrelated services have exited and host capacity is safe. AC7 remains open
+  for that gate; AC8 remains open until the gate and durable review checkpoint
+  are complete. AC10 still awaits provider-platform staging and the human's
+  notice; AC14 remains post-integration/deployment observation. The goal
+  remains active.
 
 next_action: >-
-  Inspect exact-SHA Actions run `37347676334` for commit
-  `2ba6aa60064fb151d63b4c7924c1aa2e616c4494` through completion. Confirm the
-  Hedgeye HECA live case passes on the issuer-linked CSV and review every
-  emitted external skip reason; do not treat local DNS skip as a route pass.
-  Then recheck the Docker/resource inventory read-only and run the required
-  local full-stack/browser gate only if the other worktree's services have
-  exited and resource preflight is safe. Keep the local sessions on this ETF
-  branch only. Do not rewrite/delete the unrelated remote alias ref; user
-  direction is required for that recovery. Await the user's notice before
-  provider-platform integration. AC10 still awaits staging and AC14 remains
-  the later 30-day production observation.
+  Keep monitoring only for a safe local full-integration window. Recheck Docker
+  and host capacity read-only; run the assigned `full_stack_browser` gate only
+  after the unrelated `feat-tc2000-frontend-rework` services and Stremio have
+  exited and resources are safe. Never stop or mutate those services from this
+  branch. Preserve the branch boundary and do not rewrite/delete the unrelated
+  remote alias ref without explicit human direction. Keep AC7/AC8 open until
+  the local gate and final workstream checkpoint pass. Await the human's notice
+  before any provider-platform integration (AC10); AC14 remains the later
+  30-day post-integration/deployment observation.
