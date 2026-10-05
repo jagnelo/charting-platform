@@ -1,5 +1,35 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Clean-volume functional retry and focused replays
+
+At product source `7f586db35c0ce9425cda07bcd67832517612ada2`, a second full
+serial Chromium run started from freshly created seeded database volumes and
+completed all 175 cases: 167 passed, five documented cases were skipped, and
+three failed. `F9c-narrow` hit the 60-second test timeout; `F9e` failed its
+initial navigation with `net::ERR_NETWORK_CHANGED`; and all-family readiness
+failed its browser-diagnostics assertion after multiple requests reported the
+same network error. The failed-run screenshot, video, and/or error context are
+retained under `/tmp/tc2000-functional-rerun-LPqTr4`.
+
+An unchanged serial focused replay of those exact three tests passed `3/3` in
+21.7 seconds. That is diagnostic evidence only and does not replace the full
+run. The prior full run at this product source passed `169/175`, skipped five,
+and had one Market Map visibility timeout; its unchanged focused replay also
+passed. The repository Playwright runner remains pinned at 1.62.1. The
+fresh-volume assigned stack stayed healthy with no frontend/backend container
+restarts, and backend logs showed successful API responses while Chromium
+reported the navigation failures. The full-run failure contexts and the new
+focused replay are kept separately at `/tmp/tc2000-functional-rerun-LPqTr4`
+and `/tmp/tc2000-functional-replays-eZLras`.
+
+One more full serial functional run from empty assigned test volumes is queued
+to distinguish full-run timing/network instability from a repeatable failure.
+Do not change test timeouts, retries, visuals, screenshot references, masks,
+thresholds, skip policy, or acceptance rules to make the suite appear green.
+The existing 104-case visual result remains 94 passed with ten protected
+screenshot-only differences; no visual oracle or policy changed. The focused
+Relative Rotation keyboard E2E case passed again as case 140 in the full retry.
+
 ## 2026-10-05 — Current-tip full functional and visual results
 
 At product source `7f586db35c0ce9425cda07bcd67832517612ada2`, pinned Chromium

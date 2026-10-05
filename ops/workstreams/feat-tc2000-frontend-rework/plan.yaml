@@ -20,21 +20,29 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Independent TC work is unblocked. At exact pushed workstream tip
-  `4b88a90600420a37a3e62cc01d0c065e389affcd`, the pinned full functional suite
-  passed 173/179 with six documented skips and zero failures after an unchanged
-  replay of two first-run browser/environment failures. The correctly enabled
-  104-case visual matrix passed 94; ten protected screenshot comparisons remain
-  open after state assertions passed. No visual oracle or policy changed. The
-  exact six-service Compose stack was removed and the resource audit found zero
-  assigned resources. `make validate-integration` still encounters the host's
-  missing Docker Buildx helper. Current direct refs are staging
+  Independent TC implementation is unblocked; current exact-tip browser
+  acceptance remains open. At product source
+  `7f586db35c0ce9425cda07bcd67832517612ada2`, the first full run passed
+  169/175 with five documented skips and one Market Map visibility timeout; its
+  focused replay passed 1/1. A second full run from fresh seeded volumes passed
+  167/175, skipped the same five documented cases, and failed F9c-narrow with a
+  60-second timeout plus F9e and all-family readiness with browser
+  `ERR_NETWORK_CHANGED` diagnostics. Unchanged serial focused replay passed all
+  three failures (3/3 in 21.7 seconds), but does not replace the full-suite
+  result. Full-run artifacts are retained at
+  `/tmp/tc2000-functional-rerun-LPqTr4`; focused replay artifacts are separate
+  at `/tmp/tc2000-functional-replays-eZLras`. Run one more clean-volume full
+  suite before deciding whether the remaining failures are full-run-only
+  instability. The unchanged visual matrix remains 94/104 with ten protected
+  screenshot comparisons after successful state assertions; no visual oracle
+  or policy changed. Last refreshed direct refs: staging
   `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
   `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
-  `8105d9695fa4f265e1069b18b5dec439b16dadc4`; provider and ETF remain outside
-  staging. Defer R2/R3 integration and shared-path reconciliation until both
-  dependencies reach staging. Continue bounded TC-owned UI/Study/Strategy work;
-  exact full-integration acceptance and ten visual gaps remain open.
+  `37d32c633b4633bfaebb1259c44374fd107b79ae`; provider and ETF remain outside
+  staging, so defer R2/R3 and shared-path reconciliation until both arrive.
+  `make validate-integration` still encounters the host's missing Docker
+  Buildx helper; ordinary serial Compose successfully builds the assigned
+  stack. Exact full-integration acceptance and ten visual gaps remain open.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -274,27 +282,29 @@ progress:
   total: 9
   current_phase: R1_R6_KEYBOARD_ACCESSIBILITY_AND_EXACT_TIP_REPLAY
   next_action: >-
-    Tear down the exact assigned TC stack, rebuild with empty test volumes, and
-    rerun the full serial authenticated Chromium functional suite unchanged at
-    product source 7f586db35c0ce9425cda07bcd67832517612ada2. Preserve the
-    initial 169/175 functional result and focused Market Map replay separately.
-    Then tear down and audit the exact assigned resources.
+    Tear down only the exact assigned TC stack and its generated test volumes,
+    recreate the seeded stack with the existing exact-tip images, and run one
+    more full serial authenticated Chromium suite unchanged at product source
+    7f586db35c0ce9425cda07bcd67832517612ada2. Preserve each full-run result
+    and focused replay separately; then tear down and audit only assigned
+    resources before advancing to the next bounded TC-owned R1/R6 task.
   current_blocker: >-
-    Independent TC work is unblocked. At current product source
-    7f586db35c0ce9425cda07bcd67832517612ada2, the pinned full functional run
-    passed 169/175, skipped five documented cases, and failed
-    F8s-market-map-python-output when its Market Map window did not appear; its
-    unchanged focused replay passed 1/1 but does not replace the full result.
-    The full visual matrix passed 94/104 with ten screenshot-only differences:
-    workspace-floating 8995/9825/8995/9825; Study structured-result
-    109320/105698/22099/21352; Study sandbox-error 13360/11120 at 1080p,
-    passing at both 1440p scales. The 1080p/125 sandbox count shifted by 68
-    pixels from its prior receipt; no oracle or policy changed. Direct refs
-    refreshed 2026-10-05: staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35,
-    provider 88132e9145a08d1c935a0111b3dba0fbd88bdff1, ETF
-    37d32c633b4633bfaebb1259c44374fd107b79ae. Both dependencies remain outside
-    staging; R2/R3 stay deferred. The standard integration helper still lacks
-    a working host Buildx path; ordinary Compose builds the assigned stack.
+    Full exact-tip functional acceptance remains open after two full runs. The
+    latest fresh-volume run passed 167/175, skipped five documented cases, and
+    failed F9c-narrow (60-second timeout), F9e (navigation
+    ERR_NETWORK_CHANGED), and all-family readiness (browser diagnostics with
+    ERR_NETWORK_CHANGED). All three unchanged serial focused replays passed
+    3/3, which is diagnostic only. The full-run artifacts remain under
+    /tmp/tc2000-functional-rerun-LPqTr4 and the replay under
+    /tmp/tc2000-functional-replays-eZLras. The previous 169/175 run's lone
+    Market Map visibility timeout also passed unchanged focused replay. One
+    further clean-volume full run is queued. The four-project visual matrix
+    remains 94/104 with ten screenshot-only differences and no oracle/policy
+    changes. Staging is 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider
+    88132e9145a08d1c935a0111b3dba0fbd88bdff1, ETF
+    37d32c633b4633bfaebb1259c44374fd107b79ae; neither upstream dependency is
+    in staging. The standard helper still lacks host Buildx; ordinary Compose
+    builds and runs the assigned browser stack.
 historical_implementation_records:
   - "Exact product-tip pinned validation at be55d1af completed the 174-case functional suite with 172 passed, 2 documented skips, and zero failures. The four-project visual matrix completed all 104 cases: 93 passed, ten protected screenshot differences remain (workspace-floating all four viewports; Study structured-result all four; Study sandbox-error at the two 1080p scales), and one column-editor diagnostic failure from ERR_NETWORK_CHANGED passed unchanged replay 4/4. A separate four-project pinned shell smoke passed 4/4; host-only shell rendering failed glyph pixels with host Arial resolving to Nimbus Sans versus pinned Noble resolving Liberation Sans, consistent with environment/font rendering rather than geometry. Full matrix artifacts: /tmp/tc2000-pinned-visual-full-3t8qbk; functional artifacts: /tmp/tc2000-pinned-functional-full-9Iq2rG. Scoped Docker cleanup left zero resources. No visual acceptance policy changed."
   - "Product commit be55d1af2de8037671d65e33d5b1d5120e11f38c adds keyboard invocation for the TC-owned Virtual Watchlist Boolean header pin menu using Shift+F10 and the Context Menu key, while preserving right-click and Ctrl/Meta-click behavior and anchoring the menu at the header for keyboard use. Focused VirtualWatchlistTool coverage passed 80/80; full serial frontend Vitest passed 129 files / 1,202 tests; the Docker production build (including vue-tsc and Vite build) passed; and authenticated F8u-boolean passed 1/1. The exact-tip 174-case functional run passed 171, skipped 2 documented cases, and failed one F8s-family-matrix diagnostic because unrelated local API requests reported ERR_NETWORK_CHANGED after assertions; unchanged focused replay passed 1/1. The completed prior-tip 104-case visual matrix was 93/104 with ten protected screenshot differences; a post-change full visual attempt was stopped after broad deltas, and a fresh seeded-database shell smoke differed at all four viewports by 42,759 / 44,586 / 50,854 / 53,003 pixels. No screenshot oracle, mask, threshold, skip, or acceptance policy changed. The exact branch commit is pushed and direct GitHub refs verified; staging remains 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider is 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF is 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5. Both dependencies remain outside staging."
