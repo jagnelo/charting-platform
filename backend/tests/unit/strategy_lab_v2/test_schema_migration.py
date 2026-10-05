@@ -13,6 +13,9 @@ _MIGRATION_PATH = (
 _PAYLOAD_MIGRATION_PATH = _MIGRATION_PATH.with_name(
     "ff1a2b3c4d5e_add_strategy_lab_v2_dispatch_payloads.py"
 )
+_RECOVERY_MIGRATION_PATH = _MIGRATION_PATH.with_name(
+    "ff3a4b5c6d7e_add_strategy_lab_v2_worker_recoveries.py"
+)
 
 
 def _migration() -> ModuleType:
@@ -30,6 +33,17 @@ def _payload_migration() -> ModuleType:
     )
     if spec is None or spec.loader is None:
         raise AssertionError("could not load the Strategy Lab dispatch-payload migration")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _recovery_migration() -> ModuleType:
+    spec = importlib.util.spec_from_file_location(
+        "strategy_lab_v2_worker_recovery_migration", _RECOVERY_MIGRATION_PATH
+    )
+    if spec is None or spec.loader is None:
+        raise AssertionError("could not load the Strategy Lab worker-recovery migration")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -66,3 +80,20 @@ def test_dispatch_payload_migration_is_additive_and_follows_storage() -> None:
     assert any("CREATE TABLE strategy_lab_v2_dispatch_payloads" in value for value in constants)
     down_constants = tuple(str(constant) for constant in migration.downgrade.__code__.co_consts)
     assert any("DROP TABLE strategy_lab_v2_dispatch_payloads" in value for value in down_constants)
+
+
+def test_worker_recovery_migration_is_additive_and_follows_settlement_receipts() -> None:
+    migration = _recovery_migration()
+
+    assert migration.revision == "ff3a4b5c6d7e"
+    assert migration.down_revision == "ff2a3b4c5d6e"
+    upgrade_constants = tuple(str(value) for value in migration.upgrade.__code__.co_consts)
+    assert any(
+        "CREATE TABLE strategy_lab_v2_worker_recoveries" in value for value in upgrade_constants
+    )
+    assert any("UNIQUE (owner_id, attempt_id)" in value for value in upgrade_constants)
+    assert any("reason TEXT NOT NULL" in value for value in upgrade_constants)
+    downgrade_constants = tuple(str(value) for value in migration.downgrade.__code__.co_consts)
+    assert any(
+        "DROP TABLE strategy_lab_v2_worker_recoveries" in value for value in downgrade_constants
+    )

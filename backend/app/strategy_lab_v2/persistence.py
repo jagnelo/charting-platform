@@ -52,6 +52,7 @@ from app.strategy_lab_v2.postgres_search_state import PostgresSearchStateAdapter
 from app.strategy_lab_v2.postgres_snapshot_coverage import PostgresSnapshotCoverageAdapter
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
+from app.strategy_lab_v2.postgres_worker_recovery import PostgresWorkerRecoveryAdapter
 from app.strategy_lab_v2.postgres_worker_settlement import PostgresWorkerSettlementAdapter
 from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
@@ -89,9 +90,7 @@ def _record_document(
 
 SearchDispatchBindingResolver = Callable[
     [SearchDispatchRecord],
-    Awaitable[WorkerSubmissionBinding | None]
-    | WorkerSubmissionBinding
-    | None,
+    Awaitable[WorkerSubmissionBinding | None] | WorkerSubmissionBinding | None,
 ]
 
 
@@ -127,6 +126,7 @@ class PostgresStrategyLabV2Persistence:
     submissions: PostgresSubmissionDispatchAdapter
     worker_state: PostgresWorkerStateAdapter
     worker_settlements: PostgresWorkerSettlementAdapter
+    worker_recoveries: PostgresWorkerRecoveryAdapter
 
     @classmethod
     def build(
@@ -240,9 +240,7 @@ class PostgresStrategyLabV2Persistence:
                 )
             return tuple(documents)
 
-        async def capability_summary_projection(
-            *, principal: Any
-        ) -> tuple[ResourceDocument, ...]:
+        async def capability_summary_projection(*, principal: Any) -> tuple[ResourceDocument, ...]:
             summaries = await capability.load_all(principal=principal)
             return tuple(
                 ResourceDocument(
@@ -262,9 +260,7 @@ class PostgresStrategyLabV2Persistence:
                 for summary in summaries
             )
 
-        async def legacy_import_projection(
-            *, principal: Any
-        ) -> tuple[ResourceDocument, ...]:
+        async def legacy_import_projection(*, principal: Any) -> tuple[ResourceDocument, ...]:
             registry = await legacy_imports.load_registry(principal=principal)
             return tuple(
                 ResourceDocument(
@@ -331,11 +327,13 @@ class PostgresStrategyLabV2Persistence:
             submissions=PostgresSubmissionDispatchAdapter(session_factory, clock=clock),
             worker_state=worker_state,
             worker_settlements=PostgresWorkerSettlementAdapter(session_factory),
+            worker_recoveries=PostgresWorkerRecoveryAdapter(
+                session_factory,
+                worker_state=worker_state,
+            ),
         )
 
-    def artifact_publication(
-        self, root: str | os.PathLike[str]
-    ) -> LocalArtifactPublicationService:
+    def artifact_publication(self, root: str | os.PathLike[str]) -> LocalArtifactPublicationService:
         """Create a byte/commit publication service for an explicit artifact root."""
 
         return LocalArtifactPublicationService(
@@ -353,9 +351,7 @@ class PostgresStrategyLabV2Persistence:
             self.artifact_retention,
         )
 
-    def artifact_cleanup_service(
-        self, root: str | os.PathLike[str]
-    ) -> LocalArtifactCleanupService:
+    def artifact_cleanup_service(self, root: str | os.PathLike[str]) -> LocalArtifactCleanupService:
         """Create an orphan reconciler over this bundle's commit ledger."""
 
         return LocalArtifactCleanupService(
@@ -448,9 +444,8 @@ class PostgresStrategyLabV2Persistence:
         submission receipt; without that seam, the lookup fails closed.
         """
 
-        if (
-            search_dispatch_binding_resolver is not None
-            and not callable(search_dispatch_binding_resolver)
+        if search_dispatch_binding_resolver is not None and not callable(
+            search_dispatch_binding_resolver
         ):
             raise TypeError("search_dispatch_binding_resolver must be callable or None")
 
@@ -459,9 +454,7 @@ class PostgresStrategyLabV2Persistence:
             attempt_id=attempt_id,
         )
         if binding is None:
-            dispatch = await self.search_dispatch.load_by_request_fingerprint(
-                request_fingerprint
-            )
+            dispatch = await self.search_dispatch.load_by_request_fingerprint(request_fingerprint)
             if dispatch is None:
                 return None
             if dispatch.request.attempt_id != attempt_id:

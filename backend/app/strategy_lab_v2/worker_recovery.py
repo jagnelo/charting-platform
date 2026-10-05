@@ -45,9 +45,11 @@ class WorkerRecoveryRecord:
     attempt_id: str
     reservation_id: str
     decision: WorkerRecoveryDecision
+    reason: RecoveryReason
     plan_fingerprint: str
     next_attempt_id: str | None
     lease_observation_fingerprint: str
+    lease_observation_sequence: int
     released_at: datetime
 
     def __post_init__(self) -> None:
@@ -63,10 +65,18 @@ class WorkerRecoveryRecord:
                 raise ValueError(f"{name} must not be empty")
         if not isinstance(self.decision, WorkerRecoveryDecision):
             raise TypeError("decision must be a WorkerRecoveryDecision")
+        if not isinstance(self.reason, RecoveryReason):
+            raise TypeError("reason must be a RecoveryReason")
         if self.next_attempt_id is not None and (
             not isinstance(self.next_attempt_id, str) or not self.next_attempt_id.strip()
         ):
             raise ValueError("next_attempt_id must be non-empty when provided")
+        if (
+            not isinstance(self.lease_observation_sequence, int)
+            or isinstance(self.lease_observation_sequence, bool)
+            or self.lease_observation_sequence < 1
+        ):
+            raise ValueError("lease_observation_sequence must be a positive integer")
         if self.released_at.tzinfo is None or self.released_at.utcoffset() is None:
             raise ValueError("released_at must be timezone-aware")
         object.__setattr__(self, "released_at", self.released_at.astimezone(UTC))
@@ -95,7 +105,9 @@ class WorkerRecoveryLedger:
         reservations = [item.reservation_id for item in records]
         if len(reservations) != len(set(reservations)):
             raise ValueError("a reservation may have only one recovery receipt")
-        object.__setattr__(self, "records", tuple(sorted(records, key=lambda item: item.recovery_fingerprint)))
+        object.__setattr__(
+            self, "records", tuple(sorted(records, key=lambda item: item.recovery_fingerprint))
+        )
 
     @property
     def fingerprint(self) -> str:
@@ -114,6 +126,7 @@ class WorkerRecoveryResolution:
     released_reservation_id: str | None = None
     rejection_reason: str | None = None
     ledger: WorkerRecoveryLedger = WorkerRecoveryLedger()
+    release_observation: LeaseObservation | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.decision, WorkerRecoveryDecision):
@@ -126,6 +139,10 @@ class WorkerRecoveryResolution:
             raise TypeError("lease_state must be a LeaseObservationState")
         if not isinstance(self.ledger, WorkerRecoveryLedger):
             raise TypeError("ledger must be a WorkerRecoveryLedger")
+        if self.release_observation is not None and not isinstance(
+            self.release_observation, LeaseObservation
+        ):
+            raise TypeError("release_observation must be a LeaseObservation or None")
         if self.next_attempt is not None and not isinstance(self.next_attempt, RunAttempt):
             raise TypeError("next_attempt must be a RunAttempt")
         if self.released_reservation_id is not None:
@@ -137,7 +154,9 @@ class WorkerRecoveryResolution:
             if self.plan is None or self.plan.disposition is not RecoveryDisposition.RETRY:
                 raise ValueError("retry decisions require a retry plan")
             if self.next_attempt is None or self.released_reservation_id is None:
-                raise ValueError("retry decisions require a queued attempt and released reservation")
+                raise ValueError(
+                    "retry decisions require a queued attempt and released reservation"
+                )
         elif self.decision in {
             WorkerRecoveryDecision.TERMINAL,
             WorkerRecoveryDecision.NOOP,
@@ -152,19 +171,45 @@ class WorkerRecoveryResolution:
             }:
                 raise ValueError("terminal/no-op/replay decisions require a matching recovery plan")
             if self.decision in {WorkerRecoveryDecision.TERMINAL, WorkerRecoveryDecision.NOOP}:
-                if self.plan.disposition is RecoveryDisposition.RETRY or self.next_attempt is not None:
+                if (
+                    self.plan.disposition is RecoveryDisposition.RETRY
+                    or self.next_attempt is not None
+                ):
                     raise ValueError("terminal/no-op decisions cannot create an attempt")
             elif self.plan.disposition is RecoveryDisposition.RETRY:
                 if self.next_attempt is None or self.released_reservation_id is None:
-                    raise ValueError("replayed retry decisions require a queued attempt and released reservation")
+                    raise ValueError(
+                        "replayed retry decisions require a queued attempt and released reservation"
+                    )
         elif self.decision is WorkerRecoveryDecision.CONFLICT:
             if self.plan is not None or self.next_attempt is not None:
                 raise ValueError("conflicting recovery cannot contain a plan or next attempt")
         elif self.plan is not None or self.next_attempt is not None:
             raise ValueError("rejected recovery cannot contain a plan or next attempt")
-        if self.decision in {WorkerRecoveryDecision.REJECT, WorkerRecoveryDecision.CONFLICT} and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                WorkerRecoveryDecision.RETRY_SCHEDULED,
+                WorkerRecoveryDecision.TERMINAL,
+                WorkerRecoveryDecision.NOOP,
+                WorkerRecoveryDecision.REPLAY_EXISTING,
+            }
+            and self.release_observation is None
+        ):
+            raise ValueError("successful recovery requires its durable release observation")
+        if self.decision in {WorkerRecoveryDecision.REJECT, WorkerRecoveryDecision.CONFLICT} and (
+            self.release_observation is not None
+        ):
+            raise ValueError("rejected/conflicting recovery cannot contain a release observation")
+        if (
+            self.decision in {WorkerRecoveryDecision.REJECT, WorkerRecoveryDecision.CONFLICT}
+            and not self.rejection_reason
+        ):
             raise ValueError("rejected/conflicting recovery requires a reason")
-        if self.decision not in {WorkerRecoveryDecision.REJECT, WorkerRecoveryDecision.CONFLICT} and self.rejection_reason:
+        if (
+            self.decision not in {WorkerRecoveryDecision.REJECT, WorkerRecoveryDecision.CONFLICT}
+            and self.rejection_reason
+        ):
             raise ValueError("successful recovery cannot contain a rejection reason")
 
 
@@ -211,7 +256,9 @@ def resolve_worker_recovery(
         None,
     )
     if admission is None:
-        return _reject(pool, ledger, lease_state, "latest attempt has no execution admission receipt")
+        return _reject(
+            pool, ledger, lease_state, "latest attempt has no execution admission receipt"
+        )
     if latest.attempt_id != lease_state.lease.attempt_id:
         return _reject(pool, ledger, lease_state, "latest attempt does not match the lease")
     if admission.worker_id != lease_state.lease.worker_id:
@@ -229,11 +276,6 @@ def resolve_worker_recovery(
     )
     if reservation is None:
         return _reject(pool, ledger, lease_state, "admission has no active worker reservation")
-    if reason is RecoveryReason.LEASE_EXPIRED:
-        status = lease_state.lease.status_at(observed_at)
-        if status is not AttemptLeaseStatus.EXPIRED:
-            return _reject(pool, ledger, lease_state, "lease-expired recovery requires an expired lease")
-
     plan = plan_attempt_recovery(
         attempts,
         reason=reason,
@@ -243,7 +285,9 @@ def resolve_worker_recovery(
     next_attempt: RunAttempt | None = None
     if plan.disposition is RecoveryDisposition.RETRY:
         if not next_attempt_id or not next_attempt_id.strip():
-            return _reject(pool, ledger, lease_state, "retry recovery requires a next attempt identity")
+            return _reject(
+                pool, ledger, lease_state, "retry recovery requires a next attempt identity"
+            )
         next_attempt = plan.materialize_retry_attempt(attempts, attempt_id=next_attempt_id)
     recovery_fingerprint = content_digest(
         {
@@ -268,24 +312,64 @@ def resolve_worker_recovery(
                 rejection_reason="attempt is already bound to different recovery content",
                 ledger=ledger,
             )
-        if reservation.active:
+        release_observation = _release_observation(
+            lease_state,
+            recovery_fingerprint=existing.recovery_fingerprint,
+            observed_at=existing.released_at,
+            sequence=existing.lease_observation_sequence,
+        )
+        if release_observation.fingerprint != existing.lease_observation_fingerprint:
             return _reject(
                 pool,
                 ledger,
                 lease_state,
-                "recovery receipt exists but worker reservation is still active",
+                "recovery receipt release observation does not match its fingerprint",
             )
-        if reservation.released_at != existing.released_at:
+        observation_persisted = any(
+            item.fingerprint == existing.lease_observation_fingerprint
+            for item in lease_state.applied_observations
+        )
+        replay_pool = pool
+        replay_lease_state = lease_state
+        if reservation.active:
+            if not observation_persisted and (
+                lease_state.last_sequence + 1 != existing.lease_observation_sequence
+            ):
+                return _reject(
+                    pool,
+                    ledger,
+                    lease_state,
+                    "recovery receipt cannot resume from the current lease sequence",
+                )
+            lease_resolution = apply_lease_observation(lease_state, release_observation)
+            if lease_resolution.decision not in {
+                LeaseObservationDecision.APPLY,
+                LeaseObservationDecision.REPLAY_EXISTING,
+            }:
+                return _reject(
+                    pool,
+                    ledger,
+                    lease_state,
+                    lease_resolution.rejection_reason
+                    or "recovery receipt release observation cannot be replayed",
+                )
+            try:
+                replay_pool = release_worker_slot(
+                    pool,
+                    reservation_id=reservation.reservation_id,
+                    released_at=existing.released_at,
+                )
+            except ValueError as error:
+                return _reject(pool, ledger, lease_state, str(error))
+            replay_lease_state = lease_resolution.state
+        elif reservation.released_at != existing.released_at:
             return _reject(
                 pool,
                 ledger,
                 lease_state,
                 "worker reservation release time differs from recovery receipt",
             )
-        if not any(
-            item.fingerprint == existing.lease_observation_fingerprint
-            for item in lease_state.applied_observations
-        ):
+        elif not observation_persisted:
             return _reject(
                 pool,
                 ledger,
@@ -302,12 +386,19 @@ def resolve_worker_recovery(
         return WorkerRecoveryResolution(
             replay_decision,
             plan,
-            pool,
-            lease_state,
+            replay_pool,
+            replay_lease_state,
             replay_attempt,
             existing.reservation_id,
             ledger=ledger,
+            release_observation=release_observation,
         )
+    if reason is RecoveryReason.LEASE_EXPIRED:
+        status = lease_state.lease.status_at(observed_at)
+        if status is not AttemptLeaseStatus.EXPIRED:
+            return _reject(
+                pool, ledger, lease_state, "lease-expired recovery requires an expired lease"
+            )
     if not reservation.active:
         return _reject(
             pool,
@@ -316,20 +407,11 @@ def resolve_worker_recovery(
             "worker reservation is already released without a recovery receipt",
         )
 
-    release_observation = LeaseObservation(
-        observation_id=content_digest(
-            {
-                "kind": LeaseObservationKind.RELEASE,
-                "lease_id": lease_state.lease.lease_id,
-                "recovery_fingerprint": recovery_fingerprint,
-            }
-        ),
-        lease_id=lease_state.lease.lease_id,
-        worker_id=lease_state.lease.worker_id,
-        attempt_id=lease_state.lease.attempt_id,
-        sequence=lease_state.last_sequence + 1,
-        kind=LeaseObservationKind.RELEASE,
+    release_observation = _release_observation(
+        lease_state,
+        recovery_fingerprint=recovery_fingerprint,
         observed_at=observed_at,
+        sequence=lease_state.last_sequence + 1,
     )
     lease_resolution = apply_lease_observation(lease_state, release_observation)
     if lease_resolution.decision is not LeaseObservationDecision.APPLY:
@@ -357,9 +439,11 @@ def resolve_worker_recovery(
         attempt_id=latest.attempt_id,
         reservation_id=reservation.reservation_id,
         decision=decision,
+        reason=reason,
         plan_fingerprint=plan.fingerprint,
         next_attempt_id=next_attempt.attempt_id if next_attempt is not None else None,
         lease_observation_fingerprint=release_observation.fingerprint,
+        lease_observation_sequence=release_observation.sequence,
         released_at=observed_at,
     )
     return WorkerRecoveryResolution(
@@ -370,6 +454,31 @@ def resolve_worker_recovery(
         next_attempt,
         reservation.reservation_id,
         ledger=WorkerRecoveryLedger(ledger.records + (record,)),
+        release_observation=release_observation,
+    )
+
+
+def _release_observation(
+    lease_state: LeaseObservationState,
+    *,
+    recovery_fingerprint: str,
+    observed_at: datetime,
+    sequence: int,
+) -> LeaseObservation:
+    return LeaseObservation(
+        observation_id=content_digest(
+            {
+                "kind": LeaseObservationKind.RELEASE,
+                "lease_id": lease_state.lease.lease_id,
+                "recovery_fingerprint": recovery_fingerprint,
+            }
+        ),
+        lease_id=lease_state.lease.lease_id,
+        worker_id=lease_state.lease.worker_id,
+        attempt_id=lease_state.lease.attempt_id,
+        sequence=sequence,
+        kind=LeaseObservationKind.RELEASE,
+        observed_at=observed_at,
     )
 
 

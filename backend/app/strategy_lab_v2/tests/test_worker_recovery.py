@@ -26,7 +26,9 @@ from app.strategy_lab_v2.workers import WorkerKind, WorkerPoolState, WorkerProfi
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
 
-def _admitted() -> tuple[RunAttempt, ExecutionAttemptLease, ExecutionAdmissionLedger, WorkerPoolState]:
+def _admitted() -> (
+    tuple[RunAttempt, ExecutionAttemptLease, ExecutionAdmissionLedger, WorkerPoolState]
+):
     trial, running, validation, capability, lease = _execution_fixture()
     authorization = authorize_execution(
         trial,
@@ -95,6 +97,24 @@ def test_worker_recovery_release_receipt_normalizes_offset_equivalent_time() -> 
     assert resolution.decision is WorkerRecoveryDecision.RETRY_SCHEDULED
     assert resolution.ledger.records[0].released_at == NOW + timedelta(seconds=6)
     assert resolution.ledger.records[0].released_at.tzinfo is UTC
+
+    # A process can stop after the immutable recovery receipt is persisted but
+    # before PostgreSQL commits the lease/capacity release. Replaying from the
+    # original active state must recover the same deterministic observation.
+    receipt_only_replay = resolve_worker_recovery(
+        (failed,),
+        admission_ledger=ledger,
+        lease_state=LeaseObservationState(lease),
+        pool=pool,
+        ledger=resolution.ledger,
+        reason=RecoveryReason.WORKER_CRASH,
+        observed_at=NOW + timedelta(seconds=6),
+        next_attempt_id="attempt-2",
+    )
+    assert receipt_only_replay.decision is WorkerRecoveryDecision.REPLAY_EXISTING
+    assert receipt_only_replay.release_observation == resolution.release_observation
+    assert receipt_only_replay.next_attempt == resolution.next_attempt
+    assert not receipt_only_replay.pool.active_reservations
 
     replay = resolve_worker_recovery(
         (failed,),

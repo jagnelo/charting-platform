@@ -38,6 +38,7 @@ from app.strategy_lab_v2.postgres_search_dispatch import (
 )
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore
 from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAdapter
+from app.strategy_lab_v2.postgres_worker_recovery import PostgresWorkerRecoveryAdapter
 from app.strategy_lab_v2.progress import new_progress_state
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
@@ -65,6 +66,7 @@ def test_persistence_bundle_shares_store_and_wires_all_initial_api_dependencies(
     assert isinstance(bundle.commands, PostgresCommandAdapter)
     assert isinstance(bundle.submissions, PostgresSubmissionDispatchAdapter)
     assert isinstance(bundle.search_dispatch, PostgresSearchDispatchAdapter)
+    assert isinstance(bundle.worker_recoveries, PostgresWorkerRecoveryAdapter)
     assert isinstance(bundle.artifact_commits, PostgresArtifactCommitAdapter)
     assert isinstance(
         bundle.artifact_retention_service(tmp_path / "artifacts"), LocalArtifactRetentionService
