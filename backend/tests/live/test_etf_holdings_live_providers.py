@@ -464,6 +464,7 @@ _NON_NETWORK_CONTRACT_TESTS = {
     "test_arin_attr_access_challenge_skip_is_narrow",
     "test_kovitz_transport_outage_skip_does_not_cover_content_errors",
     "test_redwood_empty_payload_skip_is_provider_specific",
+    "test_live_route_skip_reason_identifies_empty_exception",
 }
 
 
@@ -546,6 +547,29 @@ def _is_external_live_access_failure(exc: Exception) -> bool:
             "vistashares official product page returned an issuer access challenge",
         )
     )
+
+
+def _live_route_skip_reason(exc: Exception, *, adapter_key: str, symbol: str) -> str:
+    """Retain enough context to attribute every accepted live-route skip."""
+
+    response = getattr(exc, "response", None)
+    status_code = getattr(response, "status_code", None)
+    detail = str(exc).strip()
+    if detail.casefold() == "skipped":
+        detail = ""
+
+    context = f"{adapter_key}/{symbol}: {type(exc).__name__}"
+    if isinstance(status_code, int):
+        context += f" (HTTP {status_code})"
+    return f"{context}: {detail}" if detail else f"{context}: no exception message"
+
+
+def test_live_route_skip_reason_identifies_empty_exception():
+    exc = httpx.ConnectError("")
+
+    assert _is_external_live_access_failure(exc)
+    reason = _live_route_skip_reason(exc, adapter_key="sample_issuer", symbol="TEST")
+    assert reason == "sample_issuer/TEST: ConnectError: no exception message"
 
 
 def test_donoghue_forlines_access_variant_skip_is_scoped_to_dftt():
@@ -2677,7 +2701,7 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
             )
             or _is_external_live_access_failure(exc)
         ):
-            pytest.skip(str(exc))
+            pytest.skip(_live_route_skip_reason(exc, adapter_key=adapter_key, symbol=symbol))
         raise
     except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
         if (
@@ -2705,7 +2729,7 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
             )
             or _is_external_live_access_failure(exc)
         ):
-            pytest.skip(str(exc))
+            pytest.skip(_live_route_skip_reason(exc, adapter_key=adapter_key, symbol=symbol))
         raise
 
     try:
