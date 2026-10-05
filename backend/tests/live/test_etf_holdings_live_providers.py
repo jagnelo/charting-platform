@@ -463,6 +463,7 @@ _NON_NETWORK_CONTRACT_TESTS = {
     "test_vistashares_access_challenge_skip_is_narrow",
     "test_arin_attr_access_challenge_skip_is_narrow",
     "test_kovitz_transport_outage_skip_does_not_cover_content_errors",
+    "test_redwood_empty_payload_skip_is_provider_specific",
 }
 
 
@@ -506,7 +507,11 @@ def _is_external_live_access_failure(exc: Exception) -> bool:
         marker in message
         for marker in (
             "aws waf challenge",
-            "empty payload",
+            # Redwood's issuer route may return an empty body during an
+            # observed issuer-side outage. Do not classify arbitrary empty
+            # provider payloads as external failures; those can indicate a
+            # broken or incomplete holdings artifact.
+            "redwood issuer holdings download returned an empty payload",
             "timed out",
             "readtimeout",
             "403 forbidden",
@@ -742,6 +747,18 @@ def test_kovitz_transport_outage_skip_does_not_cover_content_errors():
     assert _is_external_live_access_failure(httpx.ReadTimeout("read timed out"))
     assert not _is_external_live_access_failure(
         ValueError("Kovitz EQTY holdings JSON did not include complete positions.")
+    )
+
+
+def test_redwood_empty_payload_skip_is_provider_specific():
+    assert _is_external_live_access_failure(
+        ValueError(
+            "Redwood issuer holdings download returned an empty payload; "
+            "the issuer route is temporarily unavailable."
+        )
+    )
+    assert not _is_external_live_access_failure(
+        ValueError("Provider holdings CSV returned an empty payload after parsing.")
     )
 
 

@@ -71,6 +71,7 @@
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "dirty_paths": [
+    "backend/tests/live/test_etf_holdings_live_providers.py",
     "docs/etf-provider-universe.md",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md",
@@ -96,13 +97,13 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "9f746e25b4137fe3c7337a87d73becfa0969e202",
-  "implementation_sha": "9f746e25b4137fe3c7337a87d73becfa0969e202",
-  "last_checkpoint": "2026-10-05T16:17:38+00:00",
-  "last_human_progress_update": "2026-10-05T16:17:38+00:00",
+  "head": "d2e163c46bad2a9e58affe5b32461c8b783fbaa8",
+  "implementation_sha": "d2e163c46bad2a9e58affe5b32461c8b783fbaa8",
+  "last_checkpoint": "2026-10-05T16:45:07+00:00",
+  "last_human_progress_update": "2026-10-05T16:45:07+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "publish the completed exact-SHA outcome and the opt-in matrix -rs diagnostic flag; inspect the next push-triggered exact-SHA workflow and review each printed skip reason individually; retry the Docker/browser gate only after the unrelated six-service stack exits and resource preflight is safe",
-  "plan_hash": "216681b7c1939f984b7cae56fd134e64ac271c13f9a366dba79dedf5aec8910d",
+  "next_action": "run focused/default-live/workstream checks for the Redwood-specific empty-payload skip contract, publish the narrow guard, and inspect its exact-SHA CI; record current d2 Playwright completion; retry the Docker/browser gate only after the unrelated six-service stack exits and resource preflight is safe",
+  "plan_hash": "72b5862c5f00bfb90e961b79f2381ef4bc9b2ca5615902513b06440464c14dec",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -125,14 +126,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Exact-SHA run 37336513293 on 9f746e25b4137fe3c7337a87d73becfa0969e202 completed successfully: Backend Tests, Frontend Unit Tests, Branch-declared Tests, and hosted Playwright passed; the protected integration gate was skipped by feature-branch design. Its opt-in matrix reported 511 passed and 31 skipped, but the hosted command omitted per-case skip reasons, so the aggregate does not establish whether Kovitz EQTY passed or skipped; no route pass is inferred. The branch plan now adds -rs to expose reasons on the next exact-SHA run. Local deterministic ETF tests passed 749, default live contracts passed 6 with 536 opt-in cases skipped, and the bounded Kovitz probe skipped on temporary DNS failure, not a route pass. The local Docker/browser gate remains deferred because another worktree's six-service stack is active with 3.2 GiB available RAM. AC10 awaits provider-platform staging; AC14 is post-integration/deployment.",
-    "current_phase": "exact_sha_ci_success_case_skip_reason_diagnostic_run_pending",
-    "next_action": "Commit and push the branch-owned checkpoint with pytest -rs on the opt-in live matrix, then inspect exact-SHA Actions through completion and review each reported skip cause individually. Keep parser, identity, date, row, and completeness failures fatal. Retry the local Docker/browser gate only after the unrelated stack exits and resource preflight is safe.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Exact-SHA run 37340283972 on d2e163c46bad2a9e58affe5b32461c8b783fbaa8 passed Backend Tests, Frontend Unit Tests, and Branch-declared Tests; the opt-in matrix passed 525 and skipped 17 in 810.16 seconds with per-case reasons. Kovitz EQTY was not skipped, so its live fetch/content assertions passed. The protected Exhaustive Integration Gate was skipped by feature-branch design; hosted Playwright is still running. Skip audit found the shared external-failure classifier treated any ValueError containing 'empty payload' as external; the local patch now narrows it to Redwood's exact issuer message and tests generic empty payloads as hard failures. Network-off live contracts passed 7, Ruff/format, workstream validation, and narrative invariant passed; this patch's exact-SHA CI is pending. The local Docker/browser gate remains deferred while another worktree's six-service stack is active; AC10 awaits provider-platform staging and AC14 is post-integration/deployment.",
+    "current_phase": "diagnostic_matrix_kovitz_pass_redwood_classifier_tightening_pending",
+    "next_action": "Run focused/default-live/workstream checks for the Redwood-specific empty-payload classification, commit/push it as a separate source change, and inspect exact-SHA CI. Record completion of the d2 Playwright job. Keep malformed content hard-failing. Retry the local full gate only after the unrelated stack exits and resource preflight is safe.",
     "total": 14,
-    "updated_at": "2026-10-05T16:17:38+00:00"
+    "updated_at": "2026-10-05T16:45:07+00:00"
   },
-  "remote": "9f746e25b4137fe3c7337a87d73becfa0969e202",
-  "remote_sha": "9f746e25b4137fe3c7337a87d73becfa0969e202",
+  "remote": "d2e163c46bad2a9e58affe5b32461c8b783fbaa8",
+  "remote_sha": "d2e163c46bad2a9e58affe5b32461c8b783fbaa8",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",

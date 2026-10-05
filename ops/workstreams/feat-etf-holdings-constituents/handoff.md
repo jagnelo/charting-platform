@@ -8947,6 +8947,37 @@ changed. AC10 continues to await provider-platform staging; AC14 remains the
 post-integration/deployment observation. The saved goal remains active, not
 blocked or complete.
 
+### Diagnostic live matrix — 2026-10-05 16:40 UTC
+
+The next push-triggered exact-SHA run, `37340283972` on
+`d2e163c46bad2a9e58affe5b32461c8b783fbaa8`, used the updated `-rs` command.
+Backend Tests, Frontend Unit Tests, and Branch-declared Tests passed; its
+opt-in provider matrix reported 525 passed and 17 skipped in 810.16 seconds.
+The per-case output showed explicit issuer access/rate-limit/transport variants
+plus the previously documented Arin, Redwood, and Donoghue Forlines route
+variants. Kovitz EQTY did not appear among the skips, so its live fetch, JSON,
+identity, date, CUSIP, and row assertions passed on this exact run. The Arin
+challenge, BBH/Schwab/Pacer/Procure/Strive/Theme/Miller/US Global access
+responses, Neuberger Berman and Grayscale rate limits, Alpha Architect
+timeout, WisdomTree challenge, Redwood empty response, and DFTT no-row
+response remain outages/route unavailability—not successful fetches. The
+protected Exhaustive Integration Gate was skipped by feature-branch design;
+hosted Playwright was still running when this checkpoint was recorded.
+
+Reviewing these reasons exposed that the shared live-skip helper treated any
+`ValueError` containing `empty payload` as an external outage. The only
+observed case is Redwood's exact issuer message. The helper now matches that
+Redwood message specifically, and a new always-on contract requires a generic
+empty/malformed provider payload to remain a hard failure. The network-off
+live-contract module passed 7 tests with 536 opt-in cases skipped; Ruff,
+format-check, the workstream validator, the narrative-count invariant, JSON
+parsing, plan-hash parity, and diff-check passed. A new exact-SHA run remains
+required for this guard. As of 16:43 UTC, run `37340283972` still had hosted
+Playwright in progress; AC7/AC8 remain open pending that result, the new exact-
+SHA run, and a safe local full-stack validation window. The other worktree's
+active services remain untouched; AC10 still awaits provider-platform staging,
+and AC14 remains post-integration/deployment observation. Goal remains active.
+
 ### Implementation publication — 2026-10-05
 
 Implementation commit `61265673611bc7afef4ca5af9d34ccae57bb2bfa` is pushed to

@@ -3950,3 +3950,24 @@ specific providers. The workstream command was updated to emit reasons on the
 next exact SHA; verify all of them before closing the matrix evidence. The
 local Docker-backed browser gate remains deferred until the unrelated
 six-service stack exits and a read-only resource preflight confirms safety.
+
+### 2026-10-05 follow-up: diagnostic skip audit and Redwood classifier scope
+
+Exact-SHA run `37340283972` on `d2e163c46bad2a9e58affe5b32461c8b783fbaa8`
+ran the live matrix with `-rs`: 525 passed, 17 skipped in 810.16 seconds.
+Kovitz EQTY was not skipped; its FilePoint fetch, JSON parsing, route identity,
+composition date, CUSIP, and row-count checks passed. The remaining skip
+reasons were retained individually in the branch handoff. Backend Tests,
+Frontend Unit Tests, and Branch-declared Tests passed; hosted Playwright was
+still running and the protected integration gate was skipped by design.
+
+Review found the generic `empty payload` marker in
+`_is_external_live_access_failure` could incorrectly turn another provider's
+malformed/incomplete artifact into a successful test skip. The only observed
+empty-payload case is Redwood's exact issuer outage message. The marker has
+been narrowed to that exact message, and an always-on regression proves
+generic provider empty-payload errors are not external skips. The network-off
+live-contract module passed 7 checks, and Ruff, format-check, workstream
+validation, and the narrative-count invariant passed locally. The exact-SHA
+rerun for this tightening remains pending; this test guard does not alter
+adapter behavior or classify an unavailable route as a live success.

@@ -2446,6 +2446,19 @@ run does not establish whether Kovitz EQTY itself passed or skipped. The
 workstream now adds pytest `-rs` to the next opt-in matrix so the reasons can
 be reviewed individually. A skipped route is still not a successful fetch.
 
+The first diagnostic run, `37340283972` on
+`d2e163c46bad2a9e58affe5b32461c8b783fbaa8`, passed the live matrix 525/17 in
+810.16 seconds and emitted all 17 skip reasons. Kovitz EQTY was not skipped and
+its provider-owned JSON route passed the fetch, identity, date, CUSIP, and row
+checks. Redwood's only skip was an issuer response explicitly classified as a
+temporarily unavailable empty download. Review found the shared helper's
+generic `empty payload` text match could also hide an unrelated malformed
+provider artifact; the current workstream narrows it to Redwood's exact
+message and adds a non-network contract rejecting generic empty-payload
+errors. Backend, frontend-unit, and branch-declared jobs passed; hosted
+Playwright was still running when recorded. The next exact-SHA run must
+revalidate the tightened classifier and preserve each remaining skip reason.
+
 ## Current audit checkpoint — Arin ATTR route and VistaShares CI recheck — 2026-10-05
 
 A bounded direct request to Arin's official ATTR page returned HTTP 200 HTML

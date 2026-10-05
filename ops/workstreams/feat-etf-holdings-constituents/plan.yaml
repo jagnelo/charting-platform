@@ -1025,14 +1025,46 @@ current_blocker: >-
   open; AC10 awaits provider-platform staging; AC14 remains post-integration /
   deployment observation.
 
+  UPDATE 2026-10-05T16:40Z: The diagnostic opt-in command on exact checkpoint
+  SHA `d2e163c46bad2a9e58affe5b32461c8b783fbaa8` completed successfully in run
+  `37340283972`: the live matrix passed 525 cases and emitted 17 explicit skip
+  reasons. Kovitz EQTY was absent from the skip list, so its live fetch and
+  content assertions passed on this run. All 17 skips identify provider access,
+  rate limiting, transport, or a specifically named issuer edge (Arin, BBH,
+  Neuberger Berman, Alpha Architect, Grayscale, Pacer, Miller Value, Procure,
+  Schwab, Strive, Theme, US Global, WisdomTree, Redwood, and Donoghue Forlines);
+  no generic parser/identity/date assertion appeared in the skip reasons; the
+  Redwood and DFTT no-body/no-row cases were exact route-unavailable variants.
+  Backend Tests and Frontend Unit Tests passed; Branch-declared Tests passed;
+  hosted Playwright remained in progress and the protected Exhaustive
+  Integration Gate was skipped by feature-branch design. Review of Redwood's
+  explicit empty-body outage exposed a broad shared `empty payload` string
+  marker that could also excuse an unrelated malformed provider response. The
+  live contract now narrows that marker to Redwood's exact issuer message and
+  adds an always-on regression proving generic empty payload errors remain
+  hard failures. A new exact-SHA run is required for this guard; AC7/AC8 also
+  remain open pending the current hosted Playwright result and a safe local
+  full-gate window. The unrelated Docker stack remains untouched.
+
+  UPDATE 2026-10-05T16:43Z: The Redwood-specific skip-contract change now
+  passes the network-off live-contract module (7 passed, 536 opt-in cases
+  skipped), Ruff, format-check, the branch workstream validator, and the
+  narrative-count invariant (1 passed); JSON parsing, plan-hash parity, and
+  `git diff --check` also pass. Exact-SHA run `37340283972` remains green for
+  Backend Tests, Frontend Unit Tests, and Branch-declared Tests, with the
+  latter's Kovitz EQTY case passing; hosted Playwright is still in progress.
+  The Redwood guard awaits a separate pushed-SHA CI run.
+
 next_action: >-
-  Publish the completed exact-SHA `37336513293` outcome and the opt-in
-  matrix's new `-rs` diagnostic flag in the branch-owned checkpoint. Inspect
-  the push-triggered workflow for that exact checkpoint SHA; require all
-  applicable jobs green and review each printed live skip reason individually.
-  Keep parser, identity, date, row, and completeness failures hard failures;
-  external transport/access skips remain outages, not route passes. Reattempt
-  the Docker-backed browser gate only after the other worktree's six active
+  The Redwood-specific empty-payload classifier regression is implemented and
+  its focused default-live/workstream checks pass. Publish it as a separate
+  feature-branch commit and inspect the exact-SHA workflow using `-rs`. Keep
+  parser, identity, date, row, and completeness failures hard failures; external
+  transport/access skips remain outages, not route passes. The live matrix in
+  run `37340283972` passed the Kovitz EQTY case and all other non-skipped cases,
+  with 17 explicit skips; wait for its hosted Playwright job to finish and
+  retain that outcome in the handoff. Reattempt the Docker-backed browser gate
+  only after the other worktree's six active
   Compose services exit and read-only resource preflight confirms a safe
   isolated window; latest inventory showed 3.2 GiB available, so leave those
   services untouched. Await the user's notice before provider-platform
