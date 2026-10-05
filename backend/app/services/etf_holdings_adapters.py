@@ -55034,7 +55034,10 @@ class MmVamHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
                 follow_redirects=True,
             )
-            if response.status_code == 403:
+            if response.status_code == 403 or (
+                200 <= response.status_code < 300
+                and not self._is_verified_product_page(response.text, symbol=requested_symbol)
+            ):
                 response = await asyncio.to_thread(
                     requests.get,
                     product_page_url,

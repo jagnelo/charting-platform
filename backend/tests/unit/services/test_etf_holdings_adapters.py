@@ -14415,6 +14415,84 @@ async def test_vident_product_page_adapter_parses_holdings_table(monkeypatch, ad
 
 
 @pytest.mark.asyncio
+async def test_vident_retries_unverified_success_page_with_requests(monkeypatch):
+    adapter = get_holdings_adapter("mm_vam")
+    assert adapter is not None
+    product_url = adapter.FUND_PAGES["VUSE"]
+    rows = [
+        ["Name", "Ticker", "CUSIP or Other Identifier", "Weight", "Shares"],
+        *[
+            [f"Example Company {index}", f"EX{index}", f"12345678{index}", "1.00%", "1000"]
+            for index in range(10)
+        ],
+    ]
+    table_html = "".join(
+        "<tr>" + "".join(f"<td>{value}</td>" for value in row) + "</tr>" for row in rows
+    )
+    verified_html = (
+        "<html><body><h1>VUSE Vident ETF Holdings</h1>As of 06/30/2026"
+        f"<table>{table_html}</table></body></html>"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><body>VUSE product page shell without holdings</body></html>",
+            content_type="text/html",
+            url=product_url,
+        )
+    ]
+    requests_calls: list[str] = []
+
+    def fake_get(url, **kwargs):
+        requests_calls.append(url)
+        assert kwargs["allow_redirects"] is True
+        return FakeResponse(text=verified_html, content_type="text/html", url=product_url)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    result = await adapter.fetch_latest(symbol="VUSE")
+
+    assert FakeAsyncClient.requested[0][0] == product_url
+    assert requests_calls == [product_url]
+    assert len(result.rows) == 10
+    assert result.rows[0].symbol == "EX0"
+    assert result.legal_metadata["composition_date"] == "2026-06-30"
+
+
+@pytest.mark.asyncio
+async def test_vident_still_rejects_unverified_page_after_requests_retry(monkeypatch):
+    adapter = get_holdings_adapter("mm_vam")
+    assert adapter is not None
+    product_url = adapter.FUND_PAGES["VUSE"]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><body>VUSE product page shell without holdings</body></html>",
+            content_type="text/html",
+            url=product_url,
+        )
+    ]
+    requests_calls: list[str] = []
+
+    def fake_get(url, **_kwargs):
+        requests_calls.append(url)
+        return FakeResponse(
+            text="<html><body>VUSE still has no declared holdings table</body></html>",
+            content_type="text/html",
+            url=product_url,
+        )
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    with pytest.raises(ValueError, match="did not declare the verified VUSE holdings table"):
+        await adapter.fetch_latest(symbol="VUSE")
+
+    assert requests_calls == [product_url]
+
+
+@pytest.mark.asyncio
 async def test_focus_financial_adapter_parses_kovitz_and_longview_native_routes(monkeypatch):
     adapter = get_holdings_adapter("focus_financial")
     assert adapter is not None
