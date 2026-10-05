@@ -71,7 +71,6 @@
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "dirty_paths": [
-    "backend/app/services/etf_holdings_adapters.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -114,11 +113,11 @@
   "goal_unavailable_reason": null,
   "head": "26d9f84b5ac35ed0fe0b31d196caae1a6ee05139",
   "implementation_sha": "f04b0a39a60fadd6d8d21cf2bca360d8d746c88c",
-  "last_checkpoint": "2026-10-05T11:29:21+00:00",
+  "last_checkpoint": "2026-10-05T12:00:33+00:00",
   "last_human_progress_update": "2026-10-05T09:35:35+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Final workstream, narrative, JSON/JSONL, plan-hash, and diff validations pass. Commit and push only the formatting normalization and ETF-owned checkpoint to feat/etf-holdings-constituents, then inspect exact-SHA Actions. The local full integration gate remains non-green because of its F8w timeout amid ERR_NETWORK_CHANGED, even though the fresh-stack replay passed. Do not change generic UI/network paths without new causal evidence. After exact-SHA hosted jobs pass, stop at ready_for_human_review; AC8 awaits human review, AC10 awaits provider-platform staging, and AC14 remains post-integration/deployment.",
-  "plan_hash": "65675e4590bc687ab68797228d7419af8c5b8caf18299fe227964a4c74c1e668",
+  "next_action": "Exact-SHA run 37303452888 on a207ea0a801824037073de8cb5ca92b13d4c0c7d passed Backend Tests, Frontend Unit Tests, Branch-declared Tests, and hosted Playwright; protected staging/master Exhaustive Integration was skipped by design. AC7 is complete with its documented narrow local network-instability exception; the full local gate itself remains explicitly non-green at one F8w ERR_NETWORK_CHANGED timeout despite all six prior cases passing in the full rerun and exact fresh-stack F8w replay passing. Branch-owned work is ready for human review. No further ETF-branch implementation is pending before review. Await the user's notice that feat/market-data-provider-platform reached staging before any shared-platform integration; AC14 remains the post-integration 30-day observation. The overarching saved goal remains active because those external/later criteria are not complete.",
+  "plan_hash": "c4544a6f3e10f1f1372b17a3554b922d38a6552f129486a547c4e1aa213af643",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -135,16 +134,17 @@
       "AC4",
       "AC5",
       "AC6",
+      "AC7",
       "AC9",
       "AC11",
       "AC12",
       "AC13"
     ],
-    "current_blocker": "15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Exact-SHA run 37291546362 on 26d9f84b5ac35ed0fe0b31d196caae1a6ee05139 passed all feature-branch-applicable jobs: Branch-declared Tests (519 passed, 19 classified skips), Backend Tests, Frontend Unit Tests, and hosted Playwright; the protected staging/master-only integration gate was skipped by design. The local make validate-integration rerun passed preflight, backend tests (1,881 passed; 81.14% coverage), frontend tests (947 passed; 82.08% statement coverage), builds, stack health, and research-runner probes. Its Playwright bundle reported 153 passed, 106 skipped, and one F8w timeout amid repeated net::ERR_NETWORK_CHANGED. All six earlier failing cases passed in the full serial run. On a fresh ETF-only stack, exact F8w replay passed 1/1 in 11.5s; this does not establish the network root cause and the full gate remains non-green. All 597 deterministic ETF adapter tests, Ruff, and format checks pass. The local live Longview test remains DNS-skipped, not passed. AC7 remains open pending exact-SHA CI on the checkpoint SHA and a green full gate or narrowly evidenced external instability. AC8 awaits human review; AC10 awaits provider-platform staging; AC14 is post-integration/deployment.",
-    "current_phase": "longview_parser_hosted_ci_green_local_full_gate_network_flake_f8w_replay_passed",
-    "next_action": "Run final workstream, narrative, JSON/JSONL, and diff validations. Commit and push only the formatter normalization and ETF-owned checkpoint to feat/etf-holdings-constituents, then inspect exact-SHA Actions. Do not represent the local full integration gate as green: it failed one browser test with ERR_NETWORK_CHANGED despite the fresh-stack isolated replay passing. Do not change generic UI/network paths without new causal evidence. AC8 awaits human review; AC10 and AC14 remain external/later gates.",
+    "current_blocker": "15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The feature branch checkpoint a207ea0a801824037073de8cb5ca92b13d4c0c7d is pushed and exact-SHA run 37303452888 passed Backend Tests, Frontend Unit Tests, Branch-declared Tests, and hosted Playwright; the protected staging/master integration gate was skipped by design. The local full gate itself is not green: its 260 Playwright cases reported 153 passed, 106 skipped, and one F8w save-response timeout with repeated net::ERR_NETWORK_CHANGED. All six prior failures passed in that full rerun; the exact F8w case passed 1/1 on a fresh ETF-only stack. Root cause is not proven and no UI/network code changed. AC7 is satisfied via its narrow, explicitly documented environment-instability exception plus successful exact-SHA hosted validation; this is not a claim that the local full gate passed. The complete 597-case ETF adapter suite, Ruff/format checks, and workstream consistency checks pass. Local Longview DNS failure is not counted as a route pass; hosted provider matrix passed. AC8 is ready for human review, pending the human review itself. AC10 awaits feat/market-data-provider-platform reaching staging; AC14 is the later post-integration/deployment 30-day observation. No cross-worktree action occurred. The overarching goal stays active pending these external/later criteria.",
+    "current_phase": "ready_for_human_review_ac10_provider_platform_staging_and_ac14_observation_deferred",
+    "next_action": "Preserve the clean synchronized feature branch for human review. Await human feedback and the user's notice that feat/market-data-provider-platform has reached staging before any shared-platform integration; do not alter another branch or worktree. AC14 remains the later post-integration/deployment 30-day observation. Do not call the overall saved goal complete while AC10 and AC14 remain outstanding.",
     "total": 14,
-    "updated_at": "2026-10-05T11:29:21+00:00"
+    "updated_at": "2026-10-05T12:00:33+00:00"
   },
   "remote": "26d9f84b5ac35ed0fe0b31d196caae1a6ee05139",
   "remote_sha": "26d9f84b5ac35ed0fe0b31d196caae1a6ee05139",

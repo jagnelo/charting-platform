@@ -123,7 +123,7 @@ branch_tests_reason: "Provider adapters require deterministic parser/registry co
 live_test_impact: "Live calls are opt-in, bounded, rate-conscious, and restricted to reviewed public/free or already-entitled provider routes. Live failures must distinguish route drift, issuer blocking, entitlement, network, parser, and source-data failures."
 migration_impact: "Additive ETF capability/freshness/schema-observation state and the ETF_HOLDINGS shared-capability seed; preserve existing snapshots and compatibility reads."
 deployment_impact: "New disabled-by-default ETF canary configuration, shared provider-platform capability/entitlement/budget integration, and post-deployment 30-day shadow evidence; no paid activation or deployment in this session."
-status: authorized
+status: ready_for_human_review
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, and Baillie Gifford/BGGG-BGIA-BGEG-BGUS, current code and provider-universe documentation report 496/421/75 and future counts must remain derived."
   - "The 140 starting fallback providers have a baseline ledger snapshot; all verified native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, and VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY are recorded explicitly. The ledger has zero queued records, and the 17 legacy entries were refreshed with dated issuer-specific route, identity, or access evidence on 2026-09-03. The current code-derived status split is recorded in the latest synchronized implementation checkpoint below; the ledger preserves more specific evidence-backed classifications."
@@ -427,14 +427,40 @@ progress:
     - AC4
     - AC5
     - AC6
+    - AC7
     - AC9
     - AC11
     - AC13
     - AC12
   total: 14
-current_phase: longview_parser_hosted_ci_green_local_full_gate_network_flake_f8w_replay_passed
+current_phase: ready_for_human_review_ac10_provider_platform_staging_and_ac14_observation_deferred
 current_blocker: >-
-  Current checkpoint 2026-10-05T11:27Z: 15 Tier-0 and 156 Tier-1 symbol
+  Current checkpoint 2026-10-05T11:58Z: 15 Tier-0 and 156 Tier-1 symbol
+  outcomes remain accounted for. The checkpoint commit
+  a207ea0a801824037073de8cb5ca92b13d4c0c7d is pushed to
+  feat/etf-holdings-constituents and exact-SHA Actions run 37303452888
+  completed successfully: Backend Tests, Frontend Unit Tests, Branch-declared
+  Tests, and hosted Playwright passed; the protected staging/master-only
+  Exhaustive Integration Gate was skipped by design. The local full
+  `make validate-integration` rerun passed all pre-browser stages and produced
+  153 Playwright passes, 106 classified skips, and one F8w timeout accompanied
+  by repeated Chromium `net::ERR_NETWORK_CHANGED`. All six failures from the
+  earlier full run passed during this serial rerun. A fresh ETF-only stack exact
+  replay of F8w passed 1/1 in 11.5 seconds. The local full gate is explicitly
+  not green and the network root cause is not proven. AC7 is satisfied with its
+  narrowly evidenced environment-instability exception: the failed browser
+  request is isolated, the exact case passes on a fresh stack, the rest of the
+  full browser suite passed or was classified skipped, and exact-SHA hosted
+  validation passed. No generic UI/network code was changed. The 597-case
+  deterministic ETF adapter suite, Ruff, format check, workstream validator,
+  narrative invariant, JSON/JSONL parsing, plan-hash check, and diff-check pass.
+  The local direct Longview replay was DNS-blocked and is not claimed as a live
+  route pass; the hosted branch matrix passed. AC8 is ready for human review,
+  pending actual review. AC10 awaits
+  `feat/market-data-provider-platform` reaching staging, and AC14 remains the
+  post-integration/deployment 30-day observation. No integration, promotion,
+  deployment, or cross-worktree change occurred.
+  Previous checkpoint 2026-10-05T11:27Z: 15 Tier-0 and 156 Tier-1 symbol
   outcomes remain accounted for. Exact-SHA push run 37291546362 on
   26d9f84b5ac35ed0fe0b31d196caae1a6ee05139 passed all feature-branch
   applicable jobs: Branch-declared Tests (519 passed, 19 classified skips),
@@ -875,14 +901,9 @@ current_blocker: >-
   saved goal is active, not blocked or complete.
 
 next_action: >-
-  Commit and push the Ruff formatting normalization and validated ETF-owned
-  workstream checkpoint to feat/etf-holdings-constituents, then inspect the
-  exact-SHA Actions run. Preserve the official local full-gate outcome as
-  non-green: its sole E2E failure was F8w with repeated ERR_NETWORK_CHANGED,
-  while the exact fresh-stack replay passed and all six prior cases passed in
-  the full rerun. Do not alter generic UI/network code without new causal
-  evidence or repeat another resource-heavy full gate absent a meaningful
-  environmental change. Once the checkpoint SHA's hosted jobs pass, stop at
-  ready_for_human_review without integrating or deploying; AC10 awaits
-  feat/market-data-provider-platform reaching staging and AC14 is the later
-  30-day post-integration/deployment observation.
+  Preserve this feature branch at ready_for_human_review with a clean,
+  synchronized tip. Await human review and the user's notice that
+  feat/market-data-provider-platform has reached staging before any shared-
+  platform integration. Do not integrate, promote, deploy, or change another
+  worktree. AC14 remains the later 30-day production observation after the
+  separately authorized integration/deployment workflow.

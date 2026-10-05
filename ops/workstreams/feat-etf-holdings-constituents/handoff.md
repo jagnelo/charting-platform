@@ -8514,3 +8514,35 @@ review of a clean, synchronized branch. AC10 awaits the separate
 cross-worktree action was performed. AC14 is the later 30-day production
 shadow-observation gate. The saved goal remains active, not blocked or
 complete.
+
+## 2026-10-05 11:58 UTC — exact-SHA checkpoint green; ready for human review
+
+Commit `a207ea0a801824037073de8cb5ca92b13d4c0c7d` is pushed to
+`origin/feat/etf-holdings-constituents`, and exact-SHA Actions run
+`37303452888` completed successfully. Backend Tests, Frontend Unit Tests,
+Branch-declared Tests, and hosted Playwright all passed. The protected
+staging/master-only Exhaustive Integration Gate was skipped by design on this
+feature branch. Run URL:
+https://github.com/jagnelo/charting-platform/actions/runs/37303452888.
+
+The final local full-profile run remains explicitly non-green, not silently
+relabelled as a full-gate pass: its 260 Playwright cases produced 153 passes,
+106 classified skips, and one F8w EasyScan-to-Gauge save timeout accompanied
+by repeated Chromium `net::ERR_NETWORK_CHANGED`. All six earlier failing cases
+passed within this same full run; after rebuilding the isolated ETF stack, the
+exact F8w test passed 1/1 in 11.5 seconds. No network root cause was proven and
+no generic UI, network, or Playwright assertion was changed. Under AC7's
+explicit exception for narrowly evidenced external instability, the
+non-reproducible local browser network failure is recorded as an acceptance
+exception; the independent hosted full Playwright job passed. The 597-case
+deterministic ETF adapter suite, Ruff, format check, workstream validator,
+narrative invariant, JSON/JSONL parsing, plan-hash check, and diff-check passed.
+The attempted local live Longview route remains DNS-blocked and is not a live
+pass; the hosted provider matrix succeeded.
+
+The branch-owned work is now at `ready_for_human_review`. AC7 is complete with
+the above exception; AC8 awaits the human review itself. AC10 remains dependent
+on `feat/market-data-provider-platform` reaching `staging`; the human said they
+will notify when it is ready. AC14 is the later 30-day observation after its
+separate integration/deployment workflow. No parallel worktree, staging ref,
+integration, promotion, deployment, or unrelated Docker resource was changed.
