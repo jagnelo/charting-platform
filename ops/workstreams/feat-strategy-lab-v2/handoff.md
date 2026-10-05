@@ -11114,3 +11114,43 @@ Changed paths: `backend/app/strategy_lab_v2/forward_account.py`,
 `backend/app/strategy_lab_v2/tests/test_postgres_forward_account.py`.
 Operational checkpoint paths: this handoff, `session.json`, and
 `validation.jsonl`.
+
+## 2026-10-05 - Authenticated forward context composition
+
+Commit `31f079e7a7376011e8294df0b46abb2890adcf82` is pushed to
+`origin/feat/strategy-lab-v2`. A concrete context-window coordinator now binds
+the delivery to its exact archived admission checkpoint and immutable warm-up
+receipt, resolves one portfolio-bound strategy-component recipe, validates
+bounded market history against the warm-up boundary and processed live-event
+prefix, and replays native account positions at that same checkpoint. The
+PostgreSQL forward-state adapter now exposes an owner-scoped authenticated
+warm-up-receipt read for that path. An uncommitted/future live event, mismatched
+checkpoint, warm-up receipt, portfolio recipe, or account identity fails
+closed before native execution.
+
+The recipe and frozen/canonical history readers remain explicit platform-owned
+ports; their concrete artifact/data adapters and worker startup wiring are not
+implemented yet. This coordinator currently resolves a component context; the
+portfolio-wide multi-component persistent execution path and durable native
+checkpoint/output recovery still remain package-owned work.
+
+Validation: focused context/session/PostgreSQL tests passed `19/19`. The whole
+Strategy Lab package passed `1,424` tests; its one temporary Unix-socket test
+was denied by the default sandbox and passed on an exact single-test retry with
+scoped socket access. Ruff check/format, focused MyPy for the two changed
+production modules, and `git diff --check` passed. The implementation commit is
+published.
+
+Next: provide concrete, content-addressed strategy-recipe and bounded history
+readers over the platform's immutable warm-up artifacts and canonical event
+store, then wire them into a serial persistent Nautilus session that durably
+commits native output/checkpoint receipts before Redis ACK and restores by
+deterministic replay after crash. Nautilus `2.0.0rc5` already passes all five
+scope checks; no stable 2.x release is required. Final `full_stack_browser`
+acceptance is currently environment-limited: Docker Buildx is unavailable and
+the default sandbox cannot access the Docker API socket. Shared provider/ETF/
+TC2000 gates apply only to overlapping paths after those branches reach staging.
+
+Changed workstream paths: `ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
