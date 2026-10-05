@@ -87,6 +87,7 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
@@ -125,10 +126,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "369beaa9dbbfef9b8ca9e699f59b6c20dc1e8764",
-  "implementation_sha": "369beaa9dbbfef9b8ca9e699f59b6c20dc1e8764",
-  "last_checkpoint": "2026-10-05T16:44:16.687435+00:00",
-  "last_human_progress_update": "2026-10-05T16:43:05.606515+00:00",
+  "head": "46d443976f312da4beba47e37b2111f1e8631923",
+  "implementation_sha": "46d443976f312da4beba47e37b2111f1e8631923",
+  "last_checkpoint": "2026-10-05T17:04:00.769538+00:00",
+  "last_human_progress_update": "2026-10-05T17:03:33.943175+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Wire the immutable authenticated bootstrap into the fixed RC5 CLI --serve-forward mode; verify its mounted bytes and referenced runtime-input/native-event artifacts; construct one persistent shared-account BacktestEngine/strategy bridge; then persist native output and exact replay checkpoints before Redis ACK and prove deterministic process-loss recovery.",
   "parent_branch": "staging",
@@ -147,14 +148,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "No external dependency blocks package-owned implementation; CLI, persistent engine session, durable checkpoints, and process-loss replay remain code-owned.",
+    "current_blocker": "none",
     "current_phase": "forward-runtime-session-bootstrap",
-    "next_action": "Wire the immutable authenticated bootstrap into the fixed RC5 CLI --serve-forward mode; verify its mounted bytes and referenced runtime-input/native-event artifacts; construct one persistent shared-account BacktestEngine/strategy bridge; then persist native output and exact replay checkpoints before Redis ACK and prove deterministic process-loss recovery.",
+    "next_action": "Wire --serve-forward to authenticated bootstrap verification and construct a persistent shared-account Nautilus session; then make native outputs and exact checkpoints durable before ACK and prove deterministic process-loss recovery.",
     "total": 18,
-    "updated_at": "2026-10-05T16:43:05.606473+00:00"
+    "updated_at": "2026-10-05T17:03:33.943156+00:00"
   },
-  "remote": "369beaa9dbbfef9b8ca9e699f59b6c20dc1e8764",
-  "remote_sha": "369beaa9dbbfef9b8ca9e699f59b6c20dc1e8764",
+  "remote": "46d443976f312da4beba47e37b2111f1e8631923",
+  "remote_sha": "46d443976f312da4beba47e37b2111f1e8631923",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

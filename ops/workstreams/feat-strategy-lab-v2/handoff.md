@@ -11662,3 +11662,36 @@ checkpoint helper omitted the leading `o` from its first dirty path; the
 operational checkpoint, `session.json` records the last known synchronized
 source `369beaa9dbbfef9b8ca9e699f59b6c20dc1e8764`; verify the enclosing commit
 and remote equality externally rather than trying to store its own hash.
+
+## 2026-10-05 - Forward bootstrap and native-history artifact binding
+
+The hardened forward sandbox command now mounts the immutable bootstrap and
+native history tape read-only, binds their fingerprints in argv/environment,
+and requires both mounts for `--serve-forward`. Forward mode may mount the
+native tape without the backtest-only strategy-context/result streams. Added
+isolated startup verification that reads the bounded canonical bootstrap with
+`O_NOFOLLOW`, binds it to the expected instance and snapshot, verifies the
+runtime bundle against its sandbox digest, and checks the mounted native tape's
+length and SHA-256 against both bootstrap and runtime-bundle references.
+
+Implementation commit `46d443976f312da4beba47e37b2111f1e8631923` is pushed to
+`origin/feat/strategy-lab-v2`; local and remote refs matched. Validation: all
+`1,486` Strategy Lab package tests passed in `29.35s` with coverage reporting
+disabled after the configured coverage teardown hung despite all tests reaching
+100%; the focused bootstrap/sandbox/forward-process set passed `17/17`; Ruff
+check and format, focused MyPy for the CLI and sandbox, and `git diff --check`
+passed.
+
+This adds the verified artifact boundary but does not yet make the CLI's
+`--serve-forward` mode runnable: `main` does not yet consume the new verifier,
+and there is still no persistent native shared-account engine session factory.
+Durable native outputs/checkpoints-before-ACK and deterministic process-loss
+replay also remain open. No external dependency blocks those code-owned steps;
+the exact qualified RC5 remains the pinned image, and stable 2.x is not a gate.
+
+Next changeset: wire argparse `--serve-forward` to this verifier, restore and
+validate the mounted runtime bundle's context/event artifact references, and
+build one persistent BacktestEngine/strategy bridge that processes forward
+deliveries in that account. Then make native output plus an exact engine
+checkpoint durable before Redis ACK and prove deterministic process-loss
+replay. Keep all work inside the existing package/runtime boundary.
