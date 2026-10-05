@@ -76,6 +76,22 @@ def test_worker_config_reads_namespaced_environment_and_fails_closed() -> None:
         _config(artifact_root=Path("relative"))
 
 
+def test_worker_config_derives_distinct_consumers_for_compose_replicas() -> None:
+    base = {
+        "STRATEGY_LAB_V2_REDIS_URL": "redis://redis:6379/0",
+        "STRATEGY_LAB_V2_DATABASE_URL_SYNC": "postgresql+psycopg2://postgres/chartingdb",
+        "STRATEGY_LAB_V2_ARTIFACT_ROOT": "/strategy-lab-artifacts",
+    }
+
+    first = WorkerEntrypointConfig.from_env({**base, "HOSTNAME": "backtest-worker-1"})
+    second = WorkerEntrypointConfig.from_env({**base, "HOSTNAME": "backtest-worker-2"})
+
+    assert first.group_name == second.group_name == "strategy-lab-v2"
+    assert first.consumer_name.startswith("backtest-worker-1-")
+    assert second.consumer_name.startswith("backtest-worker-2-")
+    assert first.consumer_name != second.consumer_name
+
+
 def test_callback_factory_loader_requires_module_attribute_syntax() -> None:
     with pytest.raises(ValueError, match="module:attribute"):
         _load_callback_factory("callbacks.create")

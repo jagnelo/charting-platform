@@ -1478,7 +1478,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   local Docker socket. The package-owned callback composer is the default; its
   resolver setting may be overridden before Redis opens when a host needs
   multi-artifact mapping, and the profile is never enabled by the default
-  stack.
+  stack. The service deliberately has no fixed `container_name` or host port,
+  and its default Redis consumer identity includes the Compose `HOSTNAME` and
+  process ID, so local Docker Compose can add independent serial worker
+  processes with, for example,
+  `docker compose --profile strategy-lab-v2 up --scale strategy-lab-v2-worker=3`.
+  Each replica still runs one Nautilus child at a time; actual parallel
+  admissions remain bounded by separately reserved worker profiles and local
+  host capacity.
 - The root Compose stack also contains a separate opt-in
   `strategy-lab-v2-forward-worker` profile. It consumes only the dedicated
   `forward-events` Redis queue, uses the namespaced forward database setting,

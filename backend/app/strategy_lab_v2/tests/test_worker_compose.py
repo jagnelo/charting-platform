@@ -22,3 +22,10 @@ def test_compose_declares_isolated_backtest_worker_boundary() -> None:
     assert "strategy_lab_artifacts:/strategy-lab-artifacts" in service
     assert "target: /var/run/docker.sock" in service
     assert "postgres:" in service and "redis:" in service
+    # Compose --scale requires anonymous service containers and no host-port
+    # collision. Each replica inherits the same Redis group but must derive its
+    # own consumer name from Compose's per-container HOSTNAME.
+    assert "container_name:" not in service
+    assert "\n    ports:" not in service
+    assert "STRATEGY_LAB_V2_GROUP:" in service
+    assert "STRATEGY_LAB_V2_CONSUMER_NAME:" not in service
