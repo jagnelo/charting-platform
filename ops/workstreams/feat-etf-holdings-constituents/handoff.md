@@ -9191,3 +9191,39 @@ Exact-SHA run [37367049631](https://github.com/jagnelo/charting-platform/actions
 The local full-stack/browser gate remains unsafe. Read-only inventory at 20:28 UTC shows six containers owned by `feat-tc2000-frontend-rework`, one `stremio-server`, and three containers from a newly active unscoped Testcontainers session (two containers labeled `charting.worktree.id=unscoped` plus that session's Ryuk, session `7fa940fb-f533-4bab-b9f4-0a663e54a7fc`), ten running containers total. About 3.2 GiB RAM is available, 10 GiB swap is used, and host load is 0.99/1.45/1.76. No unrelated container was stopped, restarted, or modified. Recheck only after these external workloads exit and host capacity is safe.
 
 AC7 remains open for resource-safe local full-stack/browser validation and a complete hosted exact-SHA run. AC8 remains open until the final workstream receipt and branch validation are published at a clean synchronized SHA. AC10 still requires the provider-platform dependency to reach staging; this feature session will not inspect or mutate that worktree or integrate. AC14 remains the post-integration/deployment shadow observation. Ten of fourteen acceptance criteria remain marked complete; the saved goal remains active, not blocked or complete. Continue with the local branch only, preserve this cancellation evidence, and rerun exact-SHA validation after GitHub restores runner assignment.
+
+## Exact-SHA job result, retry permission, and current resource recheck — 2026-10-05
+
+The follow-up exact-SHA workflow run `37372977711` on receipt SHA
+`e9780d36cfd1e3767f27b5e8e711931962b16a74` is terminal at the job level.
+Frontend Unit Tests and Branch-declared Tests succeeded. Backend Tests was
+cancelled before test execution; E2E Playwright and the protected Exhaustive
+Integration Gate were skipped by feature-branch design. A targeted retry of
+the cancelled Backend Tests job was attempted against that exact run, but the
+connected GitHub Actions API returned HTTP 403 `Resource not accessible by
+integration`. This is an integration-permission boundary, not a backend test
+failure. The public GitHub Status incident page still reports delays assigning
+hosted runners (its latest update at this check was 19:50 UTC).
+
+The normal session cannot read the Docker socket; a narrowly elevated,
+read-only `docker ps` inventory confirmed six running containers labeled for
+`feat-tc2000-frontend-rework` and `stremio-server`, with no ETF-owned or
+unscoped Testcontainers session present. No container was changed. Host
+headroom at 21:22 UTC was approximately 2.4 GiB available RAM, 10 GiB swap in
+use, and load averages 2.28/2.74/3.00. The local `full_stack_browser` gate is
+therefore still deferred until the unrelated stack exits and a fresh resource
+check supports running it. `make agent-context` reports the correct assigned
+worktree but cannot acquire the shared runtime registry lock because that
+registry is read-only in this session; the existing branch-local active claim
+remains the session record. The session runtime cache was redirected to `/tmp`
+to complete its UV-managed invocation.
+
+The goal remains active with ten of fourteen criteria complete. AC7 and AC8
+remain open for the complete exact-SHA backend result, resource-safe local
+gate, and final clean synchronized review checkpoint. AC10 still awaits the
+separate provider-platform dependency reaching staging; this worker will not
+inspect or modify that branch, staging, or any other worktree. AC14 remains the
+post-integration/deployment shadow observation. The next in-scope action is to
+publish this receipt at a new feature-branch SHA for a fresh exact-SHA workflow
+run, then continue monitoring the actual job outcomes rather than infer success
+from a queued or cancelled job.
