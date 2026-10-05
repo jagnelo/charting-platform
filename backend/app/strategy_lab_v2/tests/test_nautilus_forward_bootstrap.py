@@ -167,8 +167,13 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
     native_bytes = b"native-history-artifact"
     native_digest = f"sha256:{hashlib.sha256(native_bytes).hexdigest()}"
     bundle_digest = _digest("runtime-bundle")
+    engine_input = {
+        "data_snapshot_fingerprint": _bootstrap().snapshot_fingerprint,
+        "event_tape": {"bound": True},
+    }
     bootstrap = replace(
         _bootstrap(),
+        engine_input_fingerprint=content_digest(engine_input),
         runtime_input_bundle_digest=bundle_digest,
         native_event_stream_digest=native_digest,
     )
@@ -179,7 +184,6 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
     monkeypatch.setenv("STRATEGY_FORWARD_BOOTSTRAP_DIGEST", bootstrap.fingerprint)
     monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle_digest)
     monkeypatch.setenv("STRATEGY_NATIVE_EVENT_STREAM_DIGEST", native_digest)
-    engine_input = {"data_snapshot_fingerprint": bootstrap.snapshot_fingerprint}
     runtime_bundle = {"engine_input": engine_input}
     monkeypatch.setattr(
         nautilus_runtime_cli, "_read_bundle", lambda *_args, **_kwargs: runtime_bundle
@@ -209,13 +213,83 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
     assert verified_bootstrap == bootstrap
     assert verified_bundle is runtime_bundle
 
+    monkeypatch.setattr(
+        nautilus_runtime_cli,
+        "_read_bundle",
+        lambda *_args, **_kwargs: {"engine_input": {**engine_input, "unexpected": "tampered"}},
+    )
+    with pytest.raises(ValueError, match="engine input differs from its bootstrap binding"):
+        nautilus_runtime_cli._verify_forward_startup(
+            bootstrap_path=str(bootstrap_path),
+            bootstrap_fingerprint=bootstrap.fingerprint,
+            input_path="/inputs/bundle",
+            native_event_stream_path=str(native_path),
+            expected_instance_id=bootstrap.instance_id,
+            expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
+            max_input_bytes=1024,
+        )
+
+    monkeypatch.setattr(
+        nautilus_runtime_cli,
+        "_read_bundle",
+        lambda *_args, **_kwargs: runtime_bundle,
+    )
+    monkeypatch.setattr(
+        nautilus_runtime_cli,
+        "_native_event_stream_reference",
+        lambda _bundle: (
+            native_digest,
+            len(native_bytes),
+            _digest("different-warmup-tape"),
+            bootstrap.native_event_stream_adapter_version,
+            8,
+        ),
+    )
+    with pytest.raises(ValueError, match="native event stream differs from its runtime bundle"):
+        nautilus_runtime_cli._verify_forward_startup(
+            bootstrap_path=str(bootstrap_path),
+            bootstrap_fingerprint=bootstrap.fingerprint,
+            input_path="/inputs/bundle",
+            native_event_stream_path=str(native_path),
+            expected_instance_id=bootstrap.instance_id,
+            expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
+            max_input_bytes=1024,
+        )
+
+    monkeypatch.setattr(
+        nautilus_runtime_cli,
+        "_native_event_stream_reference",
+        lambda _bundle: (
+            native_digest,
+            len(native_bytes),
+            bootstrap.warmup_tape_fingerprint,
+            bootstrap.native_event_stream_adapter_version,
+            bootstrap.warmup_event_count - 1,
+        ),
+    )
+    with pytest.raises(ValueError, match="native event stream differs from its runtime bundle"):
+        nautilus_runtime_cli._verify_forward_startup(
+            bootstrap_path=str(bootstrap_path),
+            bootstrap_fingerprint=bootstrap.fingerprint,
+            input_path="/inputs/bundle",
+            native_event_stream_path=str(native_path),
+            expected_instance_id=bootstrap.instance_id,
+            expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
+            max_input_bytes=1024,
+        )
+
 
 def test_runtime_cli_rejects_tampered_forward_native_artifact(tmp_path, monkeypatch) -> None:
     native_bytes = b"native-history-artifact"
     native_digest = f"sha256:{hashlib.sha256(native_bytes).hexdigest()}"
     bundle_digest = _digest("runtime-bundle")
+    engine_input = {
+        "data_snapshot_fingerprint": _bootstrap().snapshot_fingerprint,
+        "event_tape": {"bound": True},
+    }
     bootstrap = replace(
         _bootstrap(),
+        engine_input_fingerprint=content_digest(engine_input),
         runtime_input_bundle_digest=bundle_digest,
         native_event_stream_digest=native_digest,
     )
@@ -229,9 +303,7 @@ def test_runtime_cli_rejects_tampered_forward_native_artifact(tmp_path, monkeypa
     monkeypatch.setattr(
         nautilus_runtime_cli,
         "_read_bundle",
-        lambda *_args, **_kwargs: {
-            "engine_input": {"data_snapshot_fingerprint": bootstrap.snapshot_fingerprint}
-        },
+        lambda *_args, **_kwargs: {"engine_input": engine_input},
     )
     monkeypatch.setattr(
         nautilus_runtime_cli,

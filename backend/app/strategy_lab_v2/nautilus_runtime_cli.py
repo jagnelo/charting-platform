@@ -196,13 +196,17 @@ def _verify_forward_startup(
     if bootstrap.runtime_input_bundle_digest != expected_bundle_digest:
         raise ValueError("forward bootstrap runtime bundle differs from its artifact binding")
     engine_input = bundle["engine_input"]
+    if content_digest(engine_input) != bootstrap.engine_input_fingerprint:
+        raise ValueError("forward runtime engine input differs from its bootstrap binding")
     if engine_input.get("data_snapshot_fingerprint") != bootstrap.snapshot_fingerprint:
         raise ValueError("forward runtime bundle snapshot differs from its bootstrap")
-    native_digest, native_length, _tape_fingerprint, adapter_version, _event_count = (
+    native_digest, native_length, tape_fingerprint, adapter_version, event_count = (
         _native_event_stream_reference(bundle)
     )
     if (
         native_digest != bootstrap.native_event_stream_digest
+        or tape_fingerprint != bootstrap.warmup_tape_fingerprint
+        or event_count != bootstrap.warmup_event_count
         or adapter_version != bootstrap.native_event_stream_adapter_version
         or os.environ.get("STRATEGY_NATIVE_EVENT_STREAM_DIGEST") != native_digest
     ):
