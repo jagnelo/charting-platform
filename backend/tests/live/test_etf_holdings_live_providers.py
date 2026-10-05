@@ -572,6 +572,14 @@ def test_live_route_skip_reason_identifies_empty_exception():
     assert reason == "sample_issuer/TEST: ConnectError: no exception message"
 
 
+def test_live_route_skip_reason_identifies_timeout_provider_and_symbol():
+    exc = httpx.ConnectTimeout("")
+
+    reason = _live_route_skip_reason(exc, adapter_key="ershares", symbol="XOVR")
+
+    assert reason == "ershares/XOVR: ConnectTimeout: no exception message"
+
+
 def test_donoghue_forlines_access_variant_skip_is_scoped_to_dftt():
     assert _is_external_live_access_failure(
         ValueError(
@@ -3443,7 +3451,7 @@ async def test_live_ershares_ssnc_full_holdings_api():
         result = await adapter.fetch_latest(symbol="XOVR")
     except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
         if _is_external_live_access_failure(exc):
-            pytest.skip(str(exc) or exc.__class__.__name__)
+            pytest.skip(_live_route_skip_reason(exc, adapter_key="ershares", symbol="XOVR"))
         raise
 
     _assert_live_holdings_result(result, adapter_key="ershares", min_rows=20)
@@ -4260,7 +4268,7 @@ async def test_live_lsv_lsvd_product_page_declared_holdings_csv():
         result = await adapter.fetch_latest(symbol="LSVD")
     except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
         if _is_external_live_access_failure(exc):
-            pytest.skip(str(exc) or exc.__class__.__name__)
+            pytest.skip(_live_route_skip_reason(exc, adapter_key="lsv", symbol="LSVD"))
         raise
 
     _assert_live_holdings_result(result, adapter_key="lsv", min_rows=100)
