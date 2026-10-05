@@ -16,6 +16,7 @@ from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.application import PostgresStrategyLabV2Adapter
 from app.strategy_lab_v2.canonical import content_digest, freeze_json
 from app.strategy_lab_v2.conformance_fixtures import resolve_nautilus_rc_conformance
+from app.strategy_lab_v2.contracts import ProductClass
 from app.strategy_lab_v2.dispatch import SearchDispatchIntent
 from app.strategy_lab_v2.engine_execution import NautilusExecutionScope
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
@@ -32,6 +33,7 @@ from app.strategy_lab_v2.postgres_worker_state import (
     PostgresWorkerStateSchema,
 )
 from app.strategy_lab_v2.resource_mutations import ResourceMutationRequest
+from app.strategy_lab_v2.search_dispatch_preparation import NautilusTrialPreparationContext
 from app.strategy_lab_v2.search_dispatch_rpc import UnixSocketSearchDispatchClient
 from app.strategy_lab_v2.search_preparation_composition import (
     SearchPreparationHostBindings,
@@ -51,6 +53,7 @@ from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import (
 from app.strategy_lab_v2.tests.test_nautilus_trial_materializer import RUNTIME_ABI
 from app.strategy_lab_v2.tests.test_search_dispatch_preparation import _setup
 from app.strategy_lab_v2.trial_hydration import TrialDomainHydrationError
+from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile
 
 
 async def _persist_trial_domain_graph(
@@ -205,8 +208,22 @@ async def test_search_dispatch_rpc_persists_and_replays_against_postgres(
             _package_resolver,
             _materializer,
             context,
-            preparation_worker_state,
+            _preparation_worker_state,
         ) = _setup(tmp_path / "trial")
+        conformance_resolution = _conformance_resolution()
+        context = NautilusTrialPreparationContext.from_authoritative_backtest_conformance(
+            conformance_resolution=conformance_resolution,
+            product_classes=frozenset({ProductClass.EQUITY}),
+            execution_models=frozenset({"bar-close-v1"}),
+            account_models=frozenset({"cash-equity-v1"}),
+            market_context=context.market_context,
+            runtime_profile=context.runtime_profile,
+            admission_ledger=context.admission_ledger,
+            image_name=context.image_name,
+            output_path=context.output_path,
+            now=context.now,
+            lease_duration=context.lease_duration,
+        )
         resource_adapter = PostgresStrategyLabV2Adapter(
             session_factory,
             persistence=persistence,
@@ -227,10 +244,13 @@ async def test_search_dispatch_rpc_persists_and_replays_against_postgres(
                 now=BASE,
             ),
         )
-        await worker_state.ensure_profile(context.worker_profile)
-        if preparation_worker_state.lease_state is None:
-            raise AssertionError("search-preparation fixture omitted its lease")
-        await worker_state.persist_lease(preparation_worker_state.lease_state.lease)
+        await worker_state.ensure_profile(
+            WorkerProfile(
+                "rpc-integration-worker",
+                WorkerKind.BACKTEST,
+                context.runtime_profile.fingerprint,
+            )
+        )
 
         hydrated_graphs = []
 
@@ -238,7 +258,6 @@ async def test_search_dispatch_rpc_persists_and_replays_against_postgres(
             hydrated_graphs.append(hydrated_graph)
             return context
 
-        conformance_resolution = _conformance_resolution()
         assert context.execution_scope is NautilusExecutionScope.BACKTEST_AUTHORITATIVE
         assert context.requested_authoritative
         preparation = create_search_preparation_evidence_resolver(
