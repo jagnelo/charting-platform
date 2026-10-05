@@ -11792,3 +11792,45 @@ native account-effect capture, checkpoint settlement, and exact restore; then
 wire the fixed `--serve-forward` command to this verified server path. Use the
 exact RC5 image for native runtime evidence, not the host backend's unrelated
 Nautilus `1.226.0` installation.
+
+## 2026-10-05 - Keep probe/backtest CLI imports image-compatible
+
+Commit `35365d6990d44ee23490f1341544ac9290b9227e` makes bootstrap, forward
+handler, DTO codec, and IPC imports lazy. The RC5 runtime image intentionally
+uses an explicit source COPY allowlist; its existing probe/backtest modes must
+not import forward-only modules that are not yet in that image. A regression
+guards probe execution against importing those modules. The `serve_forward_runtime`
+helper still performs the deferred imports when invoked, so this preserves the
+current CLI modes without claiming that forward mode is image-ready.
+
+Validation: full Strategy Lab package `1,489/1,489`; focused Ruff check/format;
+focused MyPy for `nautilus_runtime_cli.py`; and `git diff --check` all passed.
+The source commit is pushed. The forward image still lacks the concrete
+isolated session and a declared dependency closure for the forward DTO/runtime
+modules; no RC5 forward process was run in this increment.
+
+Next: split or otherwise isolate the wire/runtime DTO dependency closure from
+host-only dispatch/database orchestration, add only the needed modules to the
+image allowlist, and test an exact-image import smoke before wiring the
+production session factory and CLI dispatch.
+
+## 2026-10-05 - Remove host process dependency from isolated handler
+
+Commit `a107db187fca9b6a095bc653d451761255cb5d7c` replaces the isolated
+forward operation handler's import of `nautilus_forward_process` with its own
+small structural codec protocol. The runtime handler no longer imports the
+host Docker/subprocess process factory just to type its codec dependency,
+preserving the host/container boundary while keeping the concrete JSON codec
+compatible.
+
+Validation: full Strategy Lab package `1,489/1,489`; focused Ruff check/format;
+focused MyPy for the runtime handler and CLI; focused wire/CLI/image tests
+`31/31`; and `git diff --check` passed. The commit is pushed. The handler still
+imports broader delivery/session modules and the wire codec still references
+host-oriented DTO modules; no full RC5 forward image import or execution has
+been proven.
+
+Next: extract the minimal forward IPC DTO contracts from host orchestration
+modules, close and explicitly allowlist their pure runtime dependencies, then
+build/import the exact RC5 image before implementing the concrete persistent
+Nautilus session and activating `main --serve-forward`.
