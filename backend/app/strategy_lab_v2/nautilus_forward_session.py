@@ -25,6 +25,7 @@ from app.strategy_lab_v2.forward_account_worker import (
 )
 from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
 from app.strategy_lab_v2.forward_context import (
+    ForwardPortfolioContextPreparation,
     ForwardStrategyContextHistory,
     ForwardStrategyContextPreparation,
     ForwardStrategyContextWindow,
@@ -90,7 +91,7 @@ class NautilusForwardSessionRuntime(Protocol):
     def execute(
         self,
         delivery: NautilusForwardDeliveryInput,
-        preparation: ForwardStrategyContextPreparation,
+        preparation: ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation,
     ) -> ForwardExecutionResolution: ...
 
     def restore(
@@ -159,8 +160,58 @@ class ResolvedForwardContextWindow:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class ResolvedForwardPortfolioContextWindows:
+    """Component SDK histories sharing one account and pre-event checkpoint."""
+
+    component_windows: Mapping[str, ResolvedForwardContextWindow]
+    pre_event_checkpoint_fingerprint: str
+    warmup_receipt_fingerprint: str
+    positions: Mapping[str, PositionSnapshot] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        require_sha256_digest(
+            self.pre_event_checkpoint_fingerprint,
+            field_name="pre_event_checkpoint_fingerprint",
+        )
+        require_sha256_digest(
+            self.warmup_receipt_fingerprint,
+            field_name="warmup_receipt_fingerprint",
+        )
+        if not isinstance(self.component_windows, Mapping):
+            raise TypeError("component_windows must be a mapping")
+        components = dict(self.component_windows)
+        if any(
+            not isinstance(component_id, str) or not component_id.strip()
+            for component_id in components
+        ):
+            raise ValueError("component ids must be non-empty strings")
+        if any(not isinstance(item, ResolvedForwardContextWindow) for item in components.values()):
+            raise TypeError("component_windows must contain resolved context windows")
+        if not isinstance(self.positions, Mapping):
+            raise TypeError("positions must be a mapping")
+        positions = dict(self.positions)
+        if any(not isinstance(position, PositionSnapshot) for position in positions.values()):
+            raise TypeError("positions must contain PositionSnapshot values")
+        if any(instrument_id != item.instrument_id for instrument_id, item in positions.items()):
+            raise ValueError("position keys must match their instrument ids")
+        for component in components.values():
+            if (
+                component.pre_event_checkpoint_fingerprint != self.pre_event_checkpoint_fingerprint
+                or component.warmup_receipt_fingerprint != self.warmup_receipt_fingerprint
+                or dict(component.positions) != positions
+            ):
+                raise ValueError("portfolio components must share the same checkpoint and account")
+        object.__setattr__(
+            self, "component_windows", MappingProxyType(dict(sorted(components.items())))
+        )
+        object.__setattr__(self, "positions", MappingProxyType(dict(sorted(positions.items()))))
+
+
 ForwardContextWindowResolution = (
-    ResolvedForwardContextWindow | Awaitable[ResolvedForwardContextWindow]
+    ResolvedForwardContextWindow
+    | ResolvedForwardPortfolioContextWindows
+    | Awaitable[ResolvedForwardContextWindow | ResolvedForwardPortfolioContextWindows]
 )
 
 
@@ -443,6 +494,92 @@ class AuthenticatedForwardContextWindowResolver:
         )
 
 
+class AuthenticatedForwardPortfolioContextWindowResolver:
+    """Resolve each immutable portfolio component at the same shared account checkpoint."""
+
+    def __init__(
+        self,
+        component_resolvers: Mapping[str, ForwardContextWindowResolver],
+    ) -> None:
+        if not isinstance(component_resolvers, Mapping) or not component_resolvers:
+            raise ValueError("component_resolvers must be a non-empty mapping")
+        components = dict(component_resolvers)
+        if any(
+            not isinstance(component_id, str) or not component_id.strip()
+            for component_id in components
+        ):
+            raise ValueError("component resolver ids must be non-empty strings")
+        if any(not callable(resolver) for resolver in components.values()):
+            raise TypeError("component resolvers must be callable")
+        self._component_resolvers = dict(sorted(components.items()))
+
+    @classmethod
+    def from_execution_plan(
+        cls,
+        execution_plan: ResolvedForwardExecutionPlan,
+        admission_store: ForwardContextAdmissionStore,
+        account_store: ForwardContextAccountHistoryStore,
+        history_resolver: ForwardVerifiedHistoryResolver,
+        *,
+        principal: Any,
+    ) -> AuthenticatedForwardPortfolioContextWindowResolver:
+        """Pin one authenticated context resolver per immutable plan component."""
+
+        if not isinstance(execution_plan, ResolvedForwardExecutionPlan):
+            raise TypeError("execution_plan must use ResolvedForwardExecutionPlan")
+        if not callable(history_resolver):
+            raise TypeError("history_resolver must be callable")
+        resolvers = {
+            component_id: AuthenticatedForwardContextWindowResolver(
+                admission_store,
+                account_store,
+                ResolvedForwardExecutionPlanRecipeResolver(
+                    execution_plan,
+                    component_id=component_id,
+                    principal=principal,
+                ),
+                history_resolver,
+                principal=principal,
+            )
+            for component_id in execution_plan.components
+        }
+        return cls(resolvers)
+
+    async def __call__(
+        self, delivery: NautilusForwardDeliveryInput
+    ) -> ResolvedForwardPortfolioContextWindows:
+        if not isinstance(delivery, NautilusForwardDeliveryInput):
+            raise TypeError("delivery must use NautilusForwardDeliveryInput")
+        resolved: dict[str, ResolvedForwardContextWindow] = {}
+        checkpoint_fingerprint: str | None = None
+        receipt_fingerprint: str | None = None
+        positions: Mapping[str, PositionSnapshot] | None = None
+        for component_id, resolver in self._component_resolvers.items():
+            value = resolver(delivery)
+            component = await value if inspect.isawaitable(value) else value
+            if not isinstance(component, ResolvedForwardContextWindow):
+                raise TypeError("component resolver returned an invalid context window")
+            if checkpoint_fingerprint is None:
+                checkpoint_fingerprint = component.pre_event_checkpoint_fingerprint
+                receipt_fingerprint = component.warmup_receipt_fingerprint
+                positions = component.positions
+            elif (
+                component.pre_event_checkpoint_fingerprint != checkpoint_fingerprint
+                or component.warmup_receipt_fingerprint != receipt_fingerprint
+                or dict(component.positions) != dict(positions or {})
+            ):
+                raise ValueError("portfolio components resolved different checkpoint/account state")
+            resolved[component_id] = component
+        assert checkpoint_fingerprint is not None
+        assert receipt_fingerprint is not None
+        return ResolvedForwardPortfolioContextWindows(
+            resolved,
+            checkpoint_fingerprint,
+            receipt_fingerprint,
+            {} if positions is None else positions,
+        )
+
+
 def _validate_history_prefix(
     history: ForwardStrategyContextHistory,
     admission: ForwardLiveAdmissionState,
@@ -549,24 +686,78 @@ class NautilusForwardSessionEventHandler:
             )
         except Exception as error:
             return _retry(entry, f"forward context window lookup failed: {type(error).__name__}")
-        if not isinstance(resolved_window, ResolvedForwardContextWindow):
+        if isinstance(resolved_window, ResolvedForwardContextWindow):
+            if (
+                resolved_window.pre_event_checkpoint_fingerprint
+                != delivery.delivery_binding.pre_event_checkpoint_fingerprint
+                or resolved_window.warmup_receipt_fingerprint
+                != delivery.delivery_binding.warmup_receipt_fingerprint
+            ):
+                return _retry(
+                    entry, "forward context window is not at the authenticated pre-event state"
+                )
+            try:
+                preparation: (
+                    ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation
+                ) = resolved_window.window.prepare_delivery(
+                    delivery,
+                    positions=resolved_window.positions,
+                )
+            except (TypeError, ValueError) as error:
+                return _reject(
+                    entry, f"forward strategy context rejected input: {type(error).__name__}"
+                )
+        elif isinstance(resolved_window, ResolvedForwardPortfolioContextWindows):
+            if (
+                resolved_window.pre_event_checkpoint_fingerprint
+                != delivery.delivery_binding.pre_event_checkpoint_fingerprint
+                or resolved_window.warmup_receipt_fingerprint
+                != delivery.delivery_binding.warmup_receipt_fingerprint
+            ):
+                return _retry(
+                    entry, "forward portfolio contexts are not at the authenticated pre-event state"
+                )
+            component_preparations: dict[str, ForwardStrategyContextPreparation] = {}
+            dependency_id = delivery.market_event.dependency_id
+            for component_id, component in resolved_window.component_windows.items():
+                if dependency_id not in component.window.dependency_ids:
+                    continue
+                try:
+                    component_preparations[component_id] = component.window.prepare_delivery(
+                        delivery,
+                        positions=component.positions,
+                    )
+                except (TypeError, ValueError) as error:
+                    for prepared_component_id, prior in component_preparations.items():
+                        resolved_window.component_windows[prepared_component_id].window.discard(
+                            prior
+                        )
+                    return _reject(
+                        entry,
+                        f"forward portfolio context rejected input: {type(error).__name__}",
+                    )
+            try:
+                preparation = ForwardPortfolioContextPreparation(
+                    instance_id=delivery.delivery_binding.instance_id,
+                    payload_fingerprint=delivery.verified_market_payload.fingerprint,
+                    delivery_binding_fingerprint=delivery.delivery_binding.fingerprint,
+                    dispatch_fingerprint=(delivery.delivery_binding.dispatch_record_fingerprint),
+                    pre_event_checkpoint_fingerprint=(
+                        delivery.delivery_binding.pre_event_checkpoint_fingerprint
+                    ),
+                    warmup_receipt_fingerprint=(
+                        delivery.delivery_binding.warmup_receipt_fingerprint
+                    ),
+                    component_preparations=component_preparations,
+                )
+            except (TypeError, ValueError) as error:
+                for component_id, prior in component_preparations.items():
+                    resolved_window.component_windows[component_id].window.discard(prior)
+                return _reject(
+                    entry, f"forward portfolio context rejected input: {type(error).__name__}"
+                )
+        else:
             return _reject(entry, "forward context resolver returned an invalid resolution")
-        if (
-            resolved_window.pre_event_checkpoint_fingerprint
-            != delivery.delivery_binding.pre_event_checkpoint_fingerprint
-            or resolved_window.warmup_receipt_fingerprint
-            != delivery.delivery_binding.warmup_receipt_fingerprint
-        ):
-            return _retry(
-                entry, "forward context window is not at the authenticated pre-event state"
-            )
-        window = resolved_window.window
-        try:
-            preparation = window.prepare_delivery(delivery, positions=resolved_window.positions)
-        except (TypeError, ValueError) as error:
-            return _reject(
-                entry, f"forward strategy context rejected input: {type(error).__name__}"
-            )
 
         try:
             execution_resolution = self._runtime.execute(delivery, preparation)
@@ -576,19 +767,19 @@ class NautilusForwardSessionEventHandler:
                 else execution_resolution
             )
         except Exception as error:
-            recovered = await self._restore_pre_event(window, preparation)
+            recovered = await self._restore_pre_event(resolved_window, preparation)
             if recovered:
                 return _retry(entry, f"native forward execution failed: {type(error).__name__}")
             return _retry(entry, "native forward execution and checkpoint recovery failed")
         if not isinstance(execution, NautilusForwardExecutionResult):
-            recovered = await self._restore_pre_event(window, preparation)
+            recovered = await self._restore_pre_event(resolved_window, preparation)
             if recovered:
                 return _reject(entry, "native forward runtime returned an invalid result")
             return _retry(entry, "native forward result invalid and checkpoint recovery failed")
         try:
             _validate_execution(delivery, preparation, execution)
         except (TypeError, ValueError):
-            recovered = await self._restore_pre_event(window, preparation)
+            recovered = await self._restore_pre_event(resolved_window, preparation)
             if recovered:
                 return _reject(entry, "native forward result does not match its accepted input")
             return _retry(entry, "native forward result mismatch and checkpoint recovery failed")
@@ -620,18 +811,31 @@ class NautilusForwardSessionEventHandler:
         try:
             settlement = await account_handler(entry, work_item)
         except Exception as error:
-            recovered = await self._restore_pre_event(window, preparation)
+            recovered = await self._restore_pre_event(resolved_window, preparation)
             if recovered:
                 return _retry(entry, f"native forward settlement failed: {type(error).__name__}")
             return _retry(entry, "native forward settlement and checkpoint recovery failed")
         if settlement.decision is not WorkerHandleDecision.COMPLETE:
-            recovered = await self._restore_pre_event(window, preparation)
+            recovered = await self._restore_pre_event(resolved_window, preparation)
             if not recovered:
                 return _retry(entry, "forward event not settled and checkpoint recovery failed")
             return settlement
 
         try:
-            window.commit(preparation)
+            if isinstance(preparation, ForwardStrategyContextPreparation):
+                if not isinstance(resolved_window, ResolvedForwardContextWindow):
+                    return _retry(entry, "forward context resolution changed before commit")
+                resolved_window.window.commit(preparation)
+            else:
+                if not isinstance(resolved_window, ResolvedForwardPortfolioContextWindows):
+                    return _retry(entry, "forward portfolio resolution changed before commit")
+                for (
+                    component_id,
+                    component_preparation,
+                ) in preparation.component_preparations.items():
+                    resolved_window.component_windows[component_id].window.commit(
+                        component_preparation
+                    )
         except (TypeError, ValueError):
             # The account output is already durable. Leave this event pending
             # for idempotent replay rather than acknowledging an uncommitted
@@ -658,12 +862,22 @@ class NautilusForwardSessionEventHandler:
 
     async def _restore_pre_event(
         self,
-        window: ForwardStrategyContextWindow,
-        preparation: ForwardStrategyContextPreparation,
+        resolved_window: ResolvedForwardContextWindow | ResolvedForwardPortfolioContextWindows,
+        preparation: ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation,
     ) -> bool:
         checkpoint_fingerprint = preparation.pre_event_checkpoint_fingerprint
         if checkpoint_fingerprint is None:
             return False
+        if isinstance(preparation, ForwardStrategyContextPreparation):
+            if not isinstance(resolved_window, ResolvedForwardContextWindow):
+                return False
+        else:
+            if not isinstance(resolved_window, ResolvedForwardPortfolioContextWindows):
+                return False
+            if not set(preparation.component_preparations).issubset(
+                resolved_window.component_windows
+            ):
+                return False
         try:
             result = self._runtime.restore(
                 instance_id=preparation.instance_id,
@@ -671,7 +885,18 @@ class NautilusForwardSessionEventHandler:
             )
             if inspect.isawaitable(result):
                 await result
-            window.discard(preparation)
+            if isinstance(preparation, ForwardStrategyContextPreparation):
+                assert isinstance(resolved_window, ResolvedForwardContextWindow)
+                resolved_window.window.discard(preparation)
+            else:
+                assert isinstance(resolved_window, ResolvedForwardPortfolioContextWindows)
+                for (
+                    component_id,
+                    component_preparation,
+                ) in preparation.component_preparations.items():
+                    resolved_window.component_windows[component_id].window.discard(
+                        component_preparation
+                    )
         except Exception:
             return False
         return True
@@ -679,7 +904,7 @@ class NautilusForwardSessionEventHandler:
 
 def _validate_execution(
     delivery: NautilusForwardDeliveryInput,
-    preparation: ForwardStrategyContextPreparation,
+    preparation: ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation,
     execution: NautilusForwardExecutionResult,
 ) -> None:
     binding = delivery.delivery_binding
@@ -716,6 +941,7 @@ def _reject(entry: RedisStreamEntry, reason: str) -> WorkerHandleResult:
 
 __all__ = [
     "AuthenticatedForwardContextWindowResolver",
+    "AuthenticatedForwardPortfolioContextWindowResolver",
     "ForwardContextAccountHistoryStore",
     "ForwardContextAdmissionStore",
     "ForwardContextRecipeResolver",
@@ -726,5 +952,6 @@ __all__ = [
     "NautilusForwardSessionEventHandler",
     "NautilusForwardSessionRuntime",
     "ResolvedForwardContextWindow",
+    "ResolvedForwardPortfolioContextWindows",
     "ResolvedForwardExecutionPlanRecipeResolver",
 ]

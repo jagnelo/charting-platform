@@ -22,7 +22,10 @@ from app.strategy_lab_v2.forward_account import (
     initial_forward_account_state,
 )
 from app.strategy_lab_v2.forward_account_worker import ForwardAccountEventBinding
-from app.strategy_lab_v2.forward_context import ForwardStrategyContextWindow
+from app.strategy_lab_v2.forward_context import (
+    ForwardPortfolioContextPreparation,
+    ForwardStrategyContextWindow,
+)
 from app.strategy_lab_v2.forward_worker_handoff import (
     ForwardEventDispatchPayload,
     ForwardEventWorkItem,
@@ -33,9 +36,11 @@ from app.strategy_lab_v2.nautilus_forward_delivery import (
     create_nautilus_forward_delivery_callback_factory,
 )
 from app.strategy_lab_v2.nautilus_forward_session import (
+    AuthenticatedForwardPortfolioContextWindowResolver,
     NautilusForwardExecutionResult,
     NautilusForwardSessionEventHandler,
     ResolvedForwardContextWindow,
+    ResolvedForwardPortfolioContextWindows,
 )
 from app.strategy_lab_v2.postgres_forward_account import (
     ForwardAccountStateDecision,
@@ -114,7 +119,7 @@ def _dispatch(
     return entry, ForwardEventWorkItem(record, ForwardEventDispatchPayload(event_fingerprint))
 
 
-def _manifest() -> StrategySdkManifest:
+def _manifest(dependency_id: str = "daily-bars") -> StrategySdkManifest:
     requirement = CapabilityRequirement(
         instrument_id="US.AAPL",
         product_class=ProductClass.EQUITY,
@@ -134,7 +139,7 @@ def _manifest() -> StrategySdkManifest:
         StrategyVersion("strategy-1", "version-1", "2.0", content_digest(STRATEGY_SOURCE)),
         (
             StrategyDataDependency(
-                "daily-bars",
+                dependency_id,
                 requirement,
                 ("open", "high", "low", "close", "volume"),
                 1,
@@ -224,10 +229,12 @@ class Runtime:
         self.restore_calls.append((instance_id, checkpoint_fingerprint))
 
 
-def _window() -> ForwardStrategyContextWindow:
+def _window(
+    manifest: StrategySdkManifest | None = None,
+) -> ForwardStrategyContextWindow:
     return ForwardStrategyContextWindow(
         INSTANCE_ID,
-        _manifest(),
+        _manifest() if manifest is None else manifest,
         parameters={},
         random_seed=7,
     )
@@ -253,6 +260,46 @@ def _handler(
             delivery.delivery_binding.warmup_receipt_fingerprint,
             {} if positions is None else positions,
         ),
+        runtime,
+        store,
+        principal=OWNER_ID,
+    )
+
+
+def _portfolio_handler(
+    canonical: CanonicalForwardEvent,
+    windows: dict[str, ForwardStrategyContextWindow],
+    runtime: Runtime,
+    store: AccountStore,
+    *,
+    positions: dict[str, PositionSnapshot] | None = None,
+) -> NautilusForwardSessionEventHandler:
+    delivery_factory = create_nautilus_forward_delivery_callback_factory(
+        PayloadResolver(_payload(canonical)),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+    )
+
+    def resolve(delivery) -> ResolvedForwardPortfolioContextWindows:
+        shared_positions = {} if positions is None else positions
+        components = {
+            component_id: ResolvedForwardContextWindow(
+                window,
+                delivery.delivery_binding.pre_event_checkpoint_fingerprint,
+                delivery.delivery_binding.warmup_receipt_fingerprint,
+                shared_positions,
+            )
+            for component_id, window in windows.items()
+        }
+        return ResolvedForwardPortfolioContextWindows(
+            components,
+            delivery.delivery_binding.pre_event_checkpoint_fingerprint,
+            delivery.delivery_binding.warmup_receipt_fingerprint,
+            shared_positions,
+        )
+
+    return NautilusForwardSessionEventHandler(
+        delivery_factory,
+        resolve,
         runtime,
         store,
         principal=OWNER_ID,
@@ -289,6 +336,172 @@ async def test_forward_session_persists_native_effects_before_context_commit_and
     )
     assert window.last_event_key == (canonical.event_time, canonical.sequence)
     assert runtime.restore_calls == []
+
+
+@pytest.mark.asyncio
+async def test_portfolio_components_share_one_native_event_and_commit_together() -> None:
+    canonical = _canonical()
+    entry, work_item = _dispatch(canonical)
+    order: list[str] = []
+    windows = {"alpha": _window(), "beta": _window()}
+    runtime = Runtime(order)
+    store = AccountStore(
+        ForwardAccountStateResolution(
+            ForwardAccountStateDecision.APPLIED,
+            initial_forward_account_state(INSTANCE_ID, base_currency="USD"),
+            content_digest(canonical),
+        ),
+        order,
+    )
+
+    result = await _portfolio_handler(canonical, windows, runtime, store)(entry, work_item)
+
+    assert result.decision is WorkerHandleDecision.COMPLETE
+    assert order == ["execute", "persist"]
+    assert len(store.events) == 1
+    preparation = runtime.preparations[0]
+    assert isinstance(preparation, ForwardPortfolioContextPreparation)
+    assert set(preparation.component_preparations) == {"alpha", "beta"}
+    assert windows["alpha"].last_event_key == (canonical.event_time, canonical.sequence)
+    assert windows["beta"].last_event_key == (canonical.event_time, canonical.sequence)
+
+
+@pytest.mark.asyncio
+async def test_portfolio_event_advances_only_components_declaring_its_dependency() -> None:
+    canonical = _canonical()
+    entry, work_item = _dispatch(canonical)
+    order: list[str] = []
+    windows = {"matching": _window(), "unrelated": _window(_manifest("minute-bars"))}
+    runtime = Runtime(order)
+    store = AccountStore(
+        ForwardAccountStateResolution(
+            ForwardAccountStateDecision.APPLIED,
+            initial_forward_account_state(INSTANCE_ID, base_currency="USD"),
+            content_digest(canonical),
+        ),
+        order,
+    )
+
+    result = await _portfolio_handler(canonical, windows, runtime, store)(entry, work_item)
+
+    assert result.decision is WorkerHandleDecision.COMPLETE
+    preparation = runtime.preparations[0]
+    assert isinstance(preparation, ForwardPortfolioContextPreparation)
+    assert set(preparation.component_preparations) == {"matching"}
+    assert windows["matching"].last_event_key == (canonical.event_time, canonical.sequence)
+    assert windows["unrelated"].last_event_key is None
+
+
+@pytest.mark.asyncio
+async def test_portfolio_runtime_failure_restores_once_and_discards_every_component() -> None:
+    canonical = _canonical()
+    entry, work_item = _dispatch(canonical)
+    order: list[str] = []
+    windows = {"alpha": _window(), "beta": _window()}
+    runtime = Runtime(order)
+    runtime.fail_execution = True
+    store = AccountStore(
+        ForwardAccountStateResolution(
+            ForwardAccountStateDecision.APPLIED,
+            initial_forward_account_state(INSTANCE_ID, base_currency="USD"),
+            content_digest(canonical),
+        ),
+        order,
+    )
+
+    result = await _portfolio_handler(canonical, windows, runtime, store)(entry, work_item)
+
+    assert result.decision is WorkerHandleDecision.RETRY
+    assert order == ["execute", "restore"]
+    assert runtime.restore_calls == [
+        (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint)
+    ]
+    assert all(window.last_event_key is None for window in windows.values())
+    assert store.events == []
+
+
+def test_resolved_portfolio_context_rejects_component_account_divergence() -> None:
+    checkpoint = content_digest("checkpoint")
+    warmup = content_digest("warmup")
+    position = PositionSnapshot("US.AAPL", Decimal("3"), Decimal("99"), None)
+    first = ResolvedForwardContextWindow(_window(), checkpoint, warmup, {"US.AAPL": position})
+    second = ResolvedForwardContextWindow(_window(), checkpoint, warmup)
+
+    with pytest.raises(ValueError, match="same checkpoint and account"):
+        ResolvedForwardPortfolioContextWindows(
+            {"alpha": first, "beta": second},
+            checkpoint,
+            warmup,
+            {"US.AAPL": position},
+        )
+
+
+@pytest.mark.asyncio
+async def test_authenticated_portfolio_resolver_aligns_components_to_one_checkpoint() -> None:
+    canonical = _canonical()
+    entry, work_item = _dispatch(canonical)
+    delivery_factory = create_nautilus_forward_delivery_callback_factory(
+        PayloadResolver(_payload(canonical)),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+    )
+    delivery = await delivery_factory(entry, work_item)
+    positions = {"US.AAPL": PositionSnapshot("US.AAPL", Decimal("2"), Decimal("100"), None)}
+
+    async def resolve_beta(_delivery):
+        return ResolvedForwardContextWindow(
+            _window(),
+            delivery.delivery_binding.pre_event_checkpoint_fingerprint,
+            delivery.delivery_binding.warmup_receipt_fingerprint,
+            positions,
+        )
+
+    resolver = AuthenticatedForwardPortfolioContextWindowResolver(
+        {
+            "beta": resolve_beta,
+            "alpha": lambda _delivery: ResolvedForwardContextWindow(
+                _window(),
+                delivery.delivery_binding.pre_event_checkpoint_fingerprint,
+                delivery.delivery_binding.warmup_receipt_fingerprint,
+                positions,
+            ),
+        }
+    )
+
+    result = await resolver(delivery)
+
+    assert tuple(result.component_windows) == ("alpha", "beta")
+    assert result.pre_event_checkpoint_fingerprint == (
+        delivery.delivery_binding.pre_event_checkpoint_fingerprint
+    )
+    assert dict(result.positions) == positions
+
+
+@pytest.mark.asyncio
+async def test_authenticated_portfolio_resolver_rejects_checkpoint_divergence() -> None:
+    canonical = _canonical()
+    entry, work_item = _dispatch(canonical)
+    delivery_factory = create_nautilus_forward_delivery_callback_factory(
+        PayloadResolver(_payload(canonical)),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+    )
+    delivery = await delivery_factory(entry, work_item)
+    resolver = AuthenticatedForwardPortfolioContextWindowResolver(
+        {
+            "alpha": lambda _delivery: ResolvedForwardContextWindow(
+                _window(),
+                delivery.delivery_binding.pre_event_checkpoint_fingerprint,
+                delivery.delivery_binding.warmup_receipt_fingerprint,
+            ),
+            "beta": lambda _delivery: ResolvedForwardContextWindow(
+                _window(),
+                content_digest("wrong-checkpoint"),
+                delivery.delivery_binding.warmup_receipt_fingerprint,
+            ),
+        }
+    )
+
+    with pytest.raises(ValueError, match="different checkpoint/account state"):
+        await resolver(delivery)
 
 
 @pytest.mark.asyncio

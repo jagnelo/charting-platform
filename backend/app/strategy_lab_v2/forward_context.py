@@ -12,6 +12,7 @@ from collections import deque
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
+from types import MappingProxyType
 from typing import Any
 
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
@@ -70,6 +71,61 @@ class ForwardStrategyContextPreparation:
                 require_sha256_digest(getattr(self, name), field_name=name)
         if not isinstance(self.context, StrategyContext):
             raise TypeError("context must use StrategyContext")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
+class ForwardPortfolioContextPreparation:
+    """All component contexts staged for one event in a shared portfolio."""
+
+    instance_id: str
+    payload_fingerprint: str
+    delivery_binding_fingerprint: str
+    dispatch_fingerprint: str
+    pre_event_checkpoint_fingerprint: str
+    warmup_receipt_fingerprint: str
+    component_preparations: Mapping[str, ForwardStrategyContextPreparation]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.instance_id, str) or not self.instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        for name in (
+            "payload_fingerprint",
+            "delivery_binding_fingerprint",
+            "dispatch_fingerprint",
+            "pre_event_checkpoint_fingerprint",
+            "warmup_receipt_fingerprint",
+        ):
+            require_sha256_digest(getattr(self, name), field_name=name)
+        if not isinstance(self.component_preparations, Mapping):
+            raise TypeError("component_preparations must be a mapping")
+        preparations = dict(self.component_preparations)
+        if any(
+            not isinstance(component_id, str) or not component_id.strip()
+            for component_id in preparations
+        ):
+            raise ValueError("component preparation ids must be non-empty strings")
+        for preparation in preparations.values():
+            if not isinstance(preparation, ForwardStrategyContextPreparation):
+                raise TypeError("portfolio contexts must contain strategy preparations")
+            if (
+                preparation.instance_id != self.instance_id
+                or preparation.payload_fingerprint != self.payload_fingerprint
+                or preparation.delivery_binding_fingerprint != self.delivery_binding_fingerprint
+                or preparation.dispatch_fingerprint != self.dispatch_fingerprint
+                or preparation.pre_event_checkpoint_fingerprint
+                != self.pre_event_checkpoint_fingerprint
+                or preparation.warmup_receipt_fingerprint != self.warmup_receipt_fingerprint
+            ):
+                raise ValueError("component context is not bound to the shared portfolio event")
+        object.__setattr__(
+            self,
+            "component_preparations",
+            MappingProxyType(dict(sorted(preparations.items()))),
+        )
 
     @property
     def fingerprint(self) -> str:
@@ -197,6 +253,12 @@ class ForwardStrategyContextWindow:
     @property
     def last_event_key(self) -> tuple[datetime, int] | None:
         return self._last_event_key
+
+    @property
+    def dependency_ids(self) -> frozenset[str]:
+        """Declared input dependencies available to this component window."""
+
+        return frozenset(self._dependencies)
 
     @property
     def window_fingerprint(self) -> str:
@@ -486,6 +548,7 @@ def _same_delivery_binding(
 
 
 __all__ = [
+    "ForwardPortfolioContextPreparation",
     "ForwardStrategyContextHistory",
     "ForwardStrategyContextPreparation",
     "ForwardStrategyContextWindow",
