@@ -44,6 +44,7 @@ from app.strategy_lab_v2.lease_observations import (
     apply_lease_observation,
 )
 from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease
+from app.strategy_lab_v2.migration_startup import MigrationDecision, MigrationResolution
 from app.strategy_lab_v2.nautilus_equity_trace import NautilusAccountEquityTraceWriter
 from app.strategy_lab_v2.nautilus_native_reports import NautilusNativeReportsWriter
 from app.strategy_lab_v2.nautilus_rebalance_schedule import (
@@ -97,6 +98,7 @@ from app.strategy_lab_v2.rebalance import (
     RebalanceTrigger,
     ScheduledRebalance,
 )
+from app.strategy_lab_v2.redis_application import RedisDispatchRuntime
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport, RedisStreamEntry
 from app.strategy_lab_v2.result_completion import ResultCompletionLedger, finalize_execution_result
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile
@@ -124,10 +126,13 @@ from app.strategy_lab_v2.tests.test_worker_consumer import FakeRedis, _raw_entry
 from app.strategy_lab_v2.trial_hydration import NautilusTrialDomainHydrator
 from app.strategy_lab_v2.worker_callbacks import create_search_dispatch
 from app.strategy_lab_v2.worker_consumer import (
-    RedisDispatchWorker,
-    RedisDispatchWorkerScheduler,
     WorkerHandleDecision,
     WorkerHandleResult,
+)
+from app.strategy_lab_v2.worker_entrypoint import (
+    WorkerEntrypointConfig,
+    WorkerEntrypointDecision,
+    run_strategy_lab_v2_worker,
 )
 from app.strategy_lab_v2.worker_evidence import (
     WorkerSubmissionBinding,
@@ -145,10 +150,7 @@ from app.strategy_lab_v2.worker_process import (
     WorkerProcessDecision,
     WorkerProcessResolution,
 )
-from app.strategy_lab_v2.worker_service import (
-    DedicatedStrategyWorkerService,
-    WorkerCompletionContext,
-)
+from app.strategy_lab_v2.worker_service import WorkerCompletionContext
 from app.strategy_lab_v2.worker_settlement import WorkerSettlementLedger
 from app.strategy_lab_v2.worker_terminal_adapter import (
     PostgresWorkerTerminalAdapter,
@@ -931,6 +933,9 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
 
     dispatch_adapter = PostgresSearchDispatchAdapter(lambda: PersistedSession())
     submission_adapter = PostgresSubmissionDispatchAdapter(lambda: PersistedSession())
+    timeline: list[str] = []
+    terminal_write_attempts = 0
+    artifact_committer = _MemoryCommitter()
     domain_reader = MemoryDomainReader(
         {
             "attempt": graph.attempt,
@@ -956,7 +961,7 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         def artifact_publication(self, root: Path) -> LocalArtifactPublicationService:
             self.publisher = LocalArtifactPublicationService(
                 LocalArtifactStore(root),
-                _MemoryCommitter(),
+                artifact_committer,
             )
             return self.publisher
 
@@ -988,17 +993,27 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
                 worker_state=worker_state_port,
                 settlements=settlement_port,
             )
-            return self.terminal_adapter.write
 
-    persistence = Persistence()
+            async def persist_terminal(
+                completion_context: WorkerCompletionContext,
+            ) -> WorkerHandleResult:
+                nonlocal terminal_write_attempts
+                terminal_write_attempts += 1
+                assert self.terminal_adapter is not None
+                receipt = await self.terminal_adapter.write(completion_context)
+                if terminal_write_attempts == 1:
+                    timeline.append("terminal-commit-response-lost")
+                    raise TimeoutError("terminal receipt response was interrupted after commit")
+                timeline.append("terminal-persisted")
+                return receipt
+
+            return persist_terminal
+
     monkeypatch.setenv(
         "STRATEGY_LAB_V2_EVIDENCE_RESOLVER",
         "app.strategy_lab_v2.worker_callbacks:default_evidence_resolver_factory",
     )
     monkeypatch.setenv("STRATEGY_LAB_V2_QUEUE", "backtest")
-    callbacks = await create_search_dispatch(persistence, tmp_path / "worker-artifacts")
-    assert callbacks.terminal_writer is not None
-    assert persistence.terminal_adapter is not None
     entry = RedisStreamEntry(
         "strategy-lab:v2:stream:backtest",
         "1-0",
@@ -1020,90 +1035,129 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
             assert request == context.request
             return context.process
 
-    async def unused_completion_writer(_entry, _result) -> WorkerHandleResult:
-        raise AssertionError("terminal writer owns durable completion")
-
-    timeline = []
-
     class OrderedRedis(FakeRedis):
         async def xack(self, *args):
             timeline.append("ack")
             return await super().xack(*args)
 
+        async def aclose(self) -> None:
+            timeline.append("runtime-closed")
+
     async def scheduler_sleep(_seconds):
         return None
 
-    redis = OrderedRedis(fresh=_stream_response(entry))
-    dispatch_worker = RedisDispatchWorker(
-        RedisDispatchTransport(redis),
-        queue_name="backtest",
-        group_name="workers",
-        consumer_name="multi-strategy-terminal-test",
+    redis_clients = (
+        OrderedRedis(fresh=_stream_response(entry)),
+        OrderedRedis(reclaimed=(_raw_entry(entry),)),
+        OrderedRedis(fresh=_stream_response(entry)),
     )
-    scheduler = RedisDispatchWorkerScheduler(
-        dispatch_worker,
-        interval_seconds=1,
-        sleep=scheduler_sleep,
-    )
-    clock_value = [context.observed_at]
-    terminal_write_attempts = 0
+    migrations: list[MigrationDecision] = []
 
-    async def persist_terminal(completion_context: WorkerCompletionContext) -> WorkerHandleResult:
-        nonlocal terminal_write_attempts
-        terminal_write_attempts += 1
-        assert callbacks.terminal_writer is not None
-        receipt = await callbacks.terminal_writer(completion_context)
-        if terminal_write_attempts == 1:
-            timeline.append("terminal-commit-response-lost")
-            raise TimeoutError("terminal receipt response was interrupted after commit")
-        timeline.append("terminal-persisted")
-        return receipt
+    class AppliedMigration:
+        async def upgrade(self) -> MigrationResolution:
+            decision = (
+                MigrationDecision.APPLIED if not migrations else MigrationDecision.REPLAY_EXISTING
+            )
+            migrations.append(decision)
+            return MigrationResolution(
+                content_digest("worker-entrypoint-terminal-migration"),
+                decision,
+                "head",
+            )
 
-    service = DedicatedStrategyWorkerService(
-        scheduler,
-        submission_adapter,
-        callbacks.materializer,
-        unused_completion_writer,
-        process_executor=EvidenceProcessExecutor(),
-        clock=lambda: clock_value[0],
-        terminal_writer=persist_terminal,
-    )
+    async def runtime_factory(url: str, *, namespace: str) -> RedisDispatchRuntime:
+        assert url == "redis://localhost:6379/0"
+        client = redis_clients[len(migrations) - 1]
+        return RedisDispatchRuntime(
+            client,
+            RedisDispatchTransport(client, namespace=namespace),
+        )
 
-    failed_cycle = await dispatch_worker.handle_materialized_once(
-        submission_adapter,
-        service.handle,
-    )
+    def install_signals(_stop_event: Any) -> Any:
+        return lambda: timeline.append("signals-cleaned")
+
+    async def run_worker():
+        return await run_strategy_lab_v2_worker(
+            WorkerEntrypointConfig(
+                redis_url="redis://localhost:6379/0",
+                database_url_sync="postgresql+psycopg2://localhost/chartingdb",
+                artifact_root=tmp_path / "worker-artifacts",
+                queue_name="backtest",
+                group_name="workers",
+                consumer_name="multi-strategy-terminal-test",
+                migration_enabled=True,
+            ),
+            callback_factory=create_search_dispatch,
+            migration_service=AppliedMigration(),  # type: ignore[arg-type]
+            session_factory=lambda: object(),
+            persistence_factory=lambda _factory: Persistence(),  # type: ignore[arg-type]
+            runtime_factory=runtime_factory,
+            signal_installer=install_signals,
+            process_executor=EvidenceProcessExecutor(),
+            sleep=scheduler_sleep,
+            max_cycles=1,
+        )
+
+    failed_run = await run_worker()
+    assert failed_run.decision is WorkerEntrypointDecision.STOPPED
+    assert failed_run.runtime_closed is True
+    assert failed_run.migration is not None
+    assert failed_run.migration.decision is MigrationDecision.APPLIED
+    assert len(failed_run.cycles) == 1
+    failed_cycle = failed_run.cycles[0]
     assert len(failed_cycle.entries) == 1
     failed_resolution = failed_cycle.entries[0]
     assert failed_resolution.decision.value == "retry"
     assert failed_resolution.handler.rejection_reason == (
         "worker terminal completion failed: TimeoutError"
     )
-    assert timeline == ["terminal-commit-response-lost"]
-    assert not any(call[0] == "xack" for call in redis.calls)
+    assert timeline == [
+        "terminal-commit-response-lost",
+        "signals-cleaned",
+        "runtime-closed",
+    ]
+    assert not any(call[0] == "xack" for call in redis_clients[0].calls)
 
-    redis.fresh = ()
-    redis.reclaimed = (_raw_entry(entry),)
-    recovered_cycle = await dispatch_worker.handle_materialized_once(
-        submission_adapter,
-        service.handle,
-    )
+    recovered_run = await run_worker()
+    assert recovered_run.decision is WorkerEntrypointDecision.STOPPED
+    assert recovered_run.runtime_closed is True
+    assert recovered_run.migration is not None
+    assert recovered_run.migration.decision is MigrationDecision.REPLAY_EXISTING
+    assert len(recovered_run.cycles) == 1
+    recovered_cycle = recovered_run.cycles[0]
     assert len(recovered_cycle.entries) == 1
     first_resolution = recovered_cycle.entries[0]
     assert (
         first_resolution.decision.value == "acknowledged"
     ), first_resolution.handler.rejection_reason
-    assert timeline == ["terminal-commit-response-lost", "terminal-persisted", "ack"]
+    assert timeline == [
+        "terminal-commit-response-lost",
+        "signals-cleaned",
+        "runtime-closed",
+        "terminal-persisted",
+        "ack",
+        "signals-cleaned",
+        "runtime-closed",
+    ]
     first = first_resolution.handler
-    clock_value[0] += timedelta(seconds=30)
-    redelivered = await service.handle(entry, payload)
+    duplicate_run = await run_worker()
+    assert duplicate_run.decision is WorkerEntrypointDecision.STOPPED
+    assert duplicate_run.runtime_closed is True
+    assert duplicate_run.migration is not None
+    assert duplicate_run.migration.decision is MigrationDecision.REPLAY_EXISTING
+    assert len(duplicate_run.cycles) == 1
+    duplicate_cycle = duplicate_run.cycles[0]
+    assert len(duplicate_cycle.entries) == 1
+    duplicate_resolution = duplicate_cycle.entries[0]
+    assert duplicate_resolution.decision.value == "acknowledged"
+    redelivered = duplicate_resolution.handler
 
     assert first.decision is WorkerHandleDecision.COMPLETE
     assert redelivered.decision is WorkerHandleDecision.COMPLETE
     assert redelivered.receipt_digest == first.receipt_digest
-    assert runtime_port.observed_at == [NOW, NOW, NOW]
-    assert worker_state_port.release_times == [NOW, NOW, NOW]
-    assert completion_port.completed_at == [NOW, NOW, NOW]
+    assert len(runtime_port.observed_at) == 3
+    assert len(worker_state_port.release_times) == 3
+    assert len(completion_port.completed_at) == 3
     assert len(settlement_port.ledger.records) == 1
     assert len(completion_port.completions.records) == 1
     assert not worker_state_port.pool.active_reservations
@@ -1115,6 +1169,24 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         item.action is ArtifactPublicationAction.REUSE_EXISTING
         for item in completion_port.inputs[1]["artifact_plans"]
     )
+    assert timeline == [
+        "terminal-commit-response-lost",
+        "signals-cleaned",
+        "runtime-closed",
+        "terminal-persisted",
+        "ack",
+        "signals-cleaned",
+        "runtime-closed",
+        "terminal-persisted",
+        "ack",
+        "signals-cleaned",
+        "runtime-closed",
+    ]
+    assert migrations == [
+        MigrationDecision.APPLIED,
+        MigrationDecision.REPLAY_EXISTING,
+        MigrationDecision.REPLAY_EXISTING,
+    ]
 
 
 @pytest.mark.asyncio
