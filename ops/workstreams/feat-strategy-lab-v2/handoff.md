@@ -18,6 +18,26 @@ Buildx still gates only final Compose/browser validation; provider, ETF, and
 TC2000 shared paths remain gated only until their approved work reaches
 staging.
 
+## 2026-10-05 - Native forward account-effect capture
+
+Commit `c95074184` extends the tested native bridge staging seam to accept and
+verify canonical platform event identity before scheduling a new event. After
+the event runs, the bridge returns one typed `ForwardAccountEvent` containing
+deterministically identified shadow orders/fills and exact cash deltas across
+currencies, measured from the native account before and after that event. It
+rejects identity mismatches, missing fill/order attribution, duplicate
+extraction, and incomplete callback processing. Persistent forward operation
+can disable retained invocation results, preventing callback-output growth over
+the session lifetime.
+
+Validation: all 40 focused forward-context and native-bridge tests passed,
+including a staged order/fill/commission and cash-delta case. Ruff
+check/format, MyPy for both changed production modules, and `git diff --check`
+passed. Commit `c95074184` is local; workstream checkpoint and publication are
+in progress. The concrete persistent shared-account BacktestEngine,
+replayable checkpoints, CLI `--serve-forward`, and exact-image restart proof
+remain open. Stable release labeling is not a blocker.
+
 ## 2026-10-05 - Bounded forward context and invocation memory
 
 Commit `91acc979c` adds two pieces required by a restartable long-lived session.

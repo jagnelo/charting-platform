@@ -870,9 +870,11 @@ progress:
     canonical, size-bounded, rejects duplicate fields, and binds the decoded
     fingerprint to its artifact. The
     fixed CLI `--serve-forward` mode and concrete persistent shared-account
-    BacktestEngine session are still unimplemented. The bridge now exposes a
-    tested single-event staging seam after the immutable prefix, but native
-    account effect extraction, output/checkpoint persistence before ACK, and
+    BacktestEngine session are still unimplemented. The bridge exposes tested
+    single-event staging and native-effect capture seams after the immutable
+    prefix, including canonical identity binding, deterministic shadow
+    orders/fills, and all-currency cash deltas. Their use inside a persistent
+    shared-account session, output/checkpoint persistence before ACK, and
     deterministic process-loss replay remain code-owned. Preserve canonical
     platform event identity and ordering; never derive them from dependency-
     local frozen series rows. Full
@@ -882,15 +884,14 @@ progress:
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Extend the bridge staging seam to bind canonical identity and capture the
-    real native orders, fills, and all-currency cash delta for each staged
-    event. Then construct the concrete RC5 persistent shared-account
-    BacktestEngine session: replay immutable warm-up and processed-prefix
-    contexts from verified artifacts, stage accepted events through the same
-    engine, and persist each output plus exact replay checkpoint before Redis
-    acknowledgement. Wire the authenticated bootstrap into fixed CLI
-    --serve-forward only after byte verification. Recover deterministically
-    after process loss without rewriting prior decisions; corrections remain
-    counterfactual. Preserve provider-owned event identity and consume shared
-    contracts only after their source branches reach staging. Stable release
-    labeling is not a gate.
+    Construct the concrete RC5 persistent shared-account BacktestEngine
+    session around the authenticated bootstrap and tested bridge effects.
+    Replay the immutable warm-up and processed prefix with bounded component
+    context windows, then stage each accepted canonical delivery through the
+    same long-lived engine. Return native account effects with deterministic
+    runtime-session identity; persist outputs and exact replay checkpoints
+    before Redis acknowledgement. Wire the verified builder into fixed CLI
+    --serve-forward and prove restore/replay after process loss without
+    rewriting prior decisions; corrections remain counterfactual. Preserve
+    provider-owned event identity and consume shared contracts only after their
+    source branches reach staging. Stable release labeling is not a gate.
