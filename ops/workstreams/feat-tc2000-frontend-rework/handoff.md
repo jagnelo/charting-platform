@@ -17538,6 +17538,11 @@ matched that exact SHA and the assigned worktree was clean. This commit records
 the diagnostic and is not a product fix or gate pass. Product source remains
 `721b0efbea486361fa0632b2f874353ca7802127`.
 
+The replay-results checkpoint `704bdfefe72c009360935139403c6234046752e3`
+was pushed to the same branch; direct remote lookup matched, and the worktree
+was clean. Next action is the unchanged full serial functional suite described
+above; no full-gate result is implied by the focused passes.
+
 ## 2026-10-05 — Detached-tool accessibility relationships and ID uniqueness
 
 Product commit `721b0efbea486361fa0632b2f874353ca7802127` is pushed to
