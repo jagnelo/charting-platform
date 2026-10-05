@@ -842,16 +842,22 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="aegon",
-    investigated_at=date(2026, 10, 1),
+    investigated_at=date(2026, 10, 5),
     evidence_refs=(
         "web:aegonam-us-asset-management-capabilities-2026-09-03",
         "live:transamerica-talv-incapsula-tabd-404-2026-09-07",
         "live:transamerica-fund-center-incapsula-2026-10-01",
+        "web:transamerica-fund-center-incapsula-2026-10-05",
+        "web:transamerica-prospectus-daily-holdings-policy-2026-10-05",
+        "web:transamerica-ncsrs-full-schedule-as-of-2026-03-31-2026-10-05",
     ),
     next_action=(
-        "Re-test the official Transamerica TALV/TABD product and holdings routes; promote "
-        "only after complete current rows, symbol mapping, parser coverage, and bounded "
-        "live evidence are proven."
+        "Keep TALV/TABD unavailable. The official prospectus says daily holdings are published "
+        "through the Transamerica Fund Center, but the current retrieval resolves to an "
+        "Incapsula challenge with no holdings artifact. The SEC semiannual report contains "
+        "full schedules only as of 2026-03-31, which is not current support. Re-test the "
+        "first-party route when it is machine-accessible; promote only after complete current "
+        "rows, symbol mapping, parser coverage, and bounded live evidence are proven."
     ),
 )
 _register_non_tier_0_audits(

@@ -325,17 +325,17 @@ symbol_audit_ledger:
       provider_identity: aegon
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-10-01
-      evidence_refs: [web:aegonam-us-asset-management-capabilities-2026-09-03, live:transamerica-talv-incapsula-tabd-404-2026-09-07, live:transamerica-fund-center-incapsula-2026-10-01]
-      next_action: "Re-test the official Transamerica TALV/TABD product and holdings routes; promote only after complete current rows, symbol mapping, parser coverage, and bounded live evidence are proven."
+      investigated_at: 2026-10-05
+      evidence_refs: [web:aegonam-us-asset-management-capabilities-2026-09-03, live:transamerica-talv-incapsula-tabd-404-2026-09-07, live:transamerica-fund-center-incapsula-2026-10-01, web:transamerica-fund-center-incapsula-2026-10-05, web:transamerica-prospectus-daily-holdings-policy-2026-10-05, web:transamerica-ncsrs-full-schedule-as-of-2026-03-31-2026-10-05]
+      next_action: "Keep TALV/TABD unavailable. The official prospectus says daily holdings are published through the Transamerica Fund Center, but the current retrieval resolves to an Incapsula challenge with no holdings artifact. The SEC semiannual report contains full schedules only as of 2026-03-31, which is not current support. Re-test the first-party route when it is machine-accessible; promote only after complete current rows, symbol mapping, parser coverage, and bounded live evidence are proven."
     - symbol: TABD
       tier: 1
       provider_identity: aegon
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-10-01
-      evidence_refs: [web:aegonam-us-asset-management-capabilities-2026-09-03, live:transamerica-talv-incapsula-tabd-404-2026-09-07, live:transamerica-fund-center-incapsula-2026-10-01]
-      next_action: "Re-test the official Transamerica TALV/TABD product and holdings routes; promote only after complete current rows, symbol mapping, parser coverage, and bounded live evidence are proven."
+      investigated_at: 2026-10-05
+      evidence_refs: [web:aegonam-us-asset-management-capabilities-2026-09-03, live:transamerica-talv-incapsula-tabd-404-2026-09-07, live:transamerica-fund-center-incapsula-2026-10-01, web:transamerica-fund-center-incapsula-2026-10-05, web:transamerica-prospectus-daily-holdings-policy-2026-10-05, web:transamerica-ncsrs-full-schedule-as-of-2026-03-31-2026-10-05]
+      next_action: "Keep TALV/TABD unavailable. The official prospectus says daily holdings are published through the Transamerica Fund Center, but the current retrieval resolves to an Incapsula challenge with no holdings artifact. The SEC semiannual report contains full schedules only as of 2026-03-31, which is not current support. Re-test the first-party route when it is machine-accessible; promote only after complete current rows, symbol mapping, parser coverage, and bounded live evidence are proven."
     - symbol: ADFI
       tier: 1
       provider_identity: anfield
@@ -1575,7 +1575,7 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-10-01
+    last_checked: 2026-10-05
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [TALV, TABD]
     estimated_us_etf_count: null
@@ -1595,6 +1595,9 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.aegon"
       - "runtime:ISSUER_ADAPTER_CONFIGS.aegon"
+      - "web:transamerica-fund-center-incapsula-2026-10-05"
+      - "web:transamerica-prospectus-daily-holdings-policy-2026-10-05"
+      - "web:transamerica-ncsrs-full-schedule-as-of-2026-03-31-2026-10-05"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -1612,8 +1615,12 @@ providers:
         source: "https://www.transamerica.com/investments-fund-center"
         result: "The current bounded request returned HTTP 200 only with an Incapsula challenge placeholder (robots noindex, no holdings content); no complete TALV/TABD artifact was retrieved."
         evidence_ref: "live:transamerica-fund-center-incapsula-2026-10-01"
-    disposition_reason: "aegon: Official Aegon/Transamerica surfaces identify the asset manager and ETF catalogue, but bounded TALV/TABD holdings routes return access-control shells or 404 pages; no complete executable artifact is proven."
-    next_action: "aegon: Re-test the official Transamerica TALV/TABD product and holdings routes; promote only after complete current rows, symbol mapping, parser coverage, and bounded live evidence are proven."
+      - date: 2026-10-05
+        source: "https://www.transamerica.com/investments-fund-center; https://www.sec.gov/Archives/edgar/data/1969674/000199937125020022/transamerica-485bpos_121025.htm; https://www.sec.gov/Archives/edgar/data/1969674/000139834426010450/fp0097659-1_ncsrsixbrl.htm"
+        result: "The official prospectus says daily holdings are available through the Transamerica Fund Center, but current browser retrieval resolves to an Incapsula challenge with no holdings artifact. The SEC semiannual report contains full TALV/TABD schedules only as of 2026-03-31, so it is historical evidence rather than current support. Both symbols remain unavailable; no SEC data was promoted."
+        evidence_ref: "web:transamerica-fund-center-incapsula-2026-10-05; web:transamerica-prospectus-daily-holdings-policy-2026-10-05; web:transamerica-ncsrs-full-schedule-as-of-2026-03-31-2026-10-05"
+    disposition_reason: "aegon: The official prospectus confirms daily holdings should be available through Transamerica's Fund Center, but the current browser retrieval remains an Incapsula challenge with no artifact; the latest official complete schedules are dated 2026-03-31 and are not current support. TALV/TABD remain unavailable and issuer-access-blocked until a complete, executable current source is accessible."
+    next_action: "aegon: Re-test the official Transamerica fund-center and symbol routes after the challenge clears; promote only after complete current rows, strict identity mapping, parser fixtures, and bounded live proof are established. Never promote the March 31 shareholder report or an SEC reconstruction as current support."
     implementation_sha: null
     validation_refs: []
   - adapter_key: anfield

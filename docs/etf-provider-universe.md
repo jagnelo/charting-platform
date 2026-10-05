@@ -2360,6 +2360,24 @@ fallback-only providers; runtime fallback statuses are 8 issuer-access-blocked,
 56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.
 
+## TALV/TABD current-source recheck — 2026-10-05
+
+The current Transamerica Fund Center page resolves to an Incapsula challenge in
+this session and exposes no current holdings artifact. The official prospectus
+does state that daily portfolio holdings are available through that fund
+center, so the prior access failure must not be interpreted as evidence that
+Transamerica has no daily disclosure. The latest official SEC semiannual report
+contains full TALV/TABD schedules of investments, but the disclosed holdings
+date is `2026-03-31`; this is historical evidence, not current analysis
+support. TALV and TABD therefore remain `unavailable` and Aegon remains
+`issuer_access_blocked` until a complete, identity-bound current artifact can
+be fetched and validated. No SEC report was promoted as current holdings, and
+no third-party or paid substitute was enabled.
+
+Evidence refs: `web:transamerica-fund-center-incapsula-2026-10-05`,
+`web:transamerica-prospectus-daily-holdings-policy-2026-10-05`, and
+`web:transamerica-ncsrs-full-schedule-as-of-2026-03-31-2026-10-05`.
+
 ## Tier-0 source availability recheck — 2026-10-05
 
 Fresh first-party page review confirmed that the WisdomTree DXJ and NTSX product

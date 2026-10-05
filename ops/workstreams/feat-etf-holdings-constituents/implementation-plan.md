@@ -3667,3 +3667,16 @@ to check the Docker-backed gate was not executed because automatic approval
 review was at capacity; that review was not a safety rejection, and its
 approval must not be bypassed. Exact-SHA hosted CI and the local full gate
 therefore remain open for this changeset.
+
+## TALV/TABD free-first source recheck — 2026-10-05
+
+The next ranked Tier-1 pair, TALV/TABD, was rechecked against Transamerica's
+first-party Fund Center and official SEC documents. The prospectus says daily
+portfolio holdings are available through the Fund Center; the current browser
+retrieval resolves to an Incapsula challenge with no holdings artifact. The
+semiannual report supplies full schedules only as of `2026-03-31`, so those
+rows are historical and must not be presented as current. Both symbols remain
+unavailable and the Aegon provider remains issuer-access-blocked. No SEC,
+third-party, or paid data was promoted. The runtime map, symbol audit ledger,
+provider attempt history, docs, and regression test now share the 2026-10-05
+evidence and unchanged outcomes.
