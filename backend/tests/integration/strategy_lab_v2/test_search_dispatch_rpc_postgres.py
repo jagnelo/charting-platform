@@ -4,6 +4,7 @@ import asyncio
 import socket
 from dataclasses import replace
 from datetime import timedelta
+from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
 
@@ -16,7 +17,15 @@ from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.application import PostgresStrategyLabV2Adapter
 from app.strategy_lab_v2.canonical import content_digest, freeze_json
 from app.strategy_lab_v2.conformance_fixtures import resolve_nautilus_rc_conformance
-from app.strategy_lab_v2.contracts import ProductClass
+from app.strategy_lab_v2.contracts import (
+    CarryInMode,
+    ForwardInstance,
+    ForwardState,
+    MetricBasis,
+    MetricSet,
+    MetricValue,
+    ProductClass,
+)
 from app.strategy_lab_v2.dispatch import SearchDispatchIntent
 from app.strategy_lab_v2.engine_execution import NautilusExecutionScope
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
@@ -32,6 +41,7 @@ from app.strategy_lab_v2.postgres_worker_state import (
     PostgresWorkerStateAdapter,
     PostgresWorkerStateSchema,
 )
+from app.strategy_lab_v2.resource_domains import rehydrate_resource_contract
 from app.strategy_lab_v2.resource_mutations import ResourceMutationRequest
 from app.strategy_lab_v2.search_dispatch_preparation import NautilusTrialPreparationContext
 from app.strategy_lab_v2.search_dispatch_rpc import UnixSocketSearchDispatchClient
@@ -251,6 +261,83 @@ async def test_search_dispatch_rpc_persists_and_replays_against_postgres(
                 context.runtime_profile.fingerprint,
             )
         )
+
+        durable_domain_contracts = (
+            (
+                ApiResourceType.METRIC_SET,
+                MetricSet(
+                    metric_set_id=f"metrics-{suffix}",
+                    trial_id=graph.trial.trial_id,
+                    attempt_id=graph.attempt.attempt_id,
+                    definition_version="strategy-lab.metrics.v1",
+                    values=(
+                        MetricValue(
+                            name="cumulative_net_return",
+                            value=Decimal("0.05"),
+                            unit="fraction",
+                            definition_version="strategy-lab.metrics.v1",
+                            basis=MetricBasis.NET,
+                            sample_size=1,
+                            calculation_basis="native_equity_trace",
+                        ),
+                    ),
+                    created_at=BASE,
+                ),
+            ),
+            (
+                ApiResourceType.FORWARD_INSTANCE,
+                ForwardInstance(
+                    instance_id=f"forward-{suffix}",
+                    portfolio_fingerprint=graph.portfolio.fingerprint,
+                    warmup_snapshot_fingerprint=graph.snapshot.fingerprint,
+                    carry_in_mode=CarryInMode.FLAT,
+                    state=ForwardState.CREATED,
+                    last_event_id=None,
+                    last_event_sequence=0,
+                    correction_count=0,
+                    created_at=BASE,
+                    updated_at=BASE,
+                ),
+            ),
+        )
+        for resource_type, contract in durable_domain_contracts:
+            attributes = dict(freeze_json(contract))
+            mutation = ResourceMutationRequest(
+                resource_type,
+                f"persist-{suffix}-{resource_type.value}",
+                {"attributes": attributes},
+                BASE,
+            )
+            created = await resource_adapter.create_resource(
+                principal=owner,
+                request_id=f"create-{suffix}-{resource_type.value}",
+                request=mutation,
+            )
+            assert created.receipt is not None, created.resolution.rejection_reason
+            assert created.resolution.decision.value == "accept"
+            domain_fingerprint = created.receipt.resource.meta["domain_fingerprint"]
+            restored = rehydrate_resource_contract(
+                resource_type,
+                created.receipt.resource.attributes,
+                expected_domain_fingerprint=domain_fingerprint,
+            )
+            assert restored == contract
+
+            replay = await resource_adapter.create_resource(
+                principal=owner,
+                request_id=f"replay-{suffix}-{resource_type.value}",
+                request=mutation,
+            )
+            assert replay.receipt == created.receipt
+            assert replay.resolution.decision.value == "replay_existing"
+            assert (
+                await resource_adapter.get_resource(
+                    principal="foreign-owner",
+                    resource_type=resource_type,
+                    resource_id=created.receipt.resource.id,
+                )
+                is None
+            )
 
         hydrated_graphs = []
 
