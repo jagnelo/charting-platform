@@ -208,6 +208,14 @@ async def test_forward_adapter_transitions_completes_warmup_and_replays() -> Non
     assert completed.decision is ForwardWarmupDecision.COMPLETE
     replay = await adapter.complete_warmup(principal="owner-1", receipt=receipt)
     assert replay.decision is ForwardWarmupDecision.REPLAY_EXISTING
+    assert (
+        await adapter.load_warmup_receipt(principal="owner-1", instance_id=instance.instance_id)
+        == receipt
+    )
+    assert (
+        await adapter.load_warmup_receipt(principal="other-owner", instance_id=instance.instance_id)
+        is None
+    )
     loaded = await adapter.load_instance(principal="owner-1", instance_id="instance-1")
     assert loaded is not None
     assert loaded.state is ForwardState.ACTIVE

@@ -15,19 +15,23 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Protocol
 
-from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
-from app.strategy_lab_v2.forward_account import ForwardRuntimeExecutionReceipt
+from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
+from app.strategy_lab_v2.contracts import ForwardInstance, ForwardState
+from app.strategy_lab_v2.forward_account import ForwardAccountState, ForwardRuntimeExecutionReceipt
 from app.strategy_lab_v2.forward_account_worker import (
     ForwardAccountEventBinding,
     ForwardAccountStore,
     ForwardAccountWorkerHandler,
 )
+from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
 from app.strategy_lab_v2.forward_context import (
     ForwardStrategyContextHistory,
     ForwardStrategyContextPreparation,
     ForwardStrategyContextWindow,
 )
+from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
 from app.strategy_lab_v2.forward_worker_handoff import ForwardEventWorkItem
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_forward_delivery import (
     NautilusForwardDeliveryCallbackFactory,
     NautilusForwardDeliveryInput,
@@ -165,6 +169,257 @@ class ForwardContextWindowResolver(Protocol):
     def __call__(
         self, delivery: NautilusForwardDeliveryInput
     ) -> ForwardContextWindowResolution: ...
+
+
+@dataclass(frozen=True, slots=True)
+class ForwardStrategyContextRecipe:
+    """Immutable portfolio-bound strategy inputs for one forward component."""
+
+    portfolio_fingerprint: str
+    component_id: str
+    manifest: StrategySdkManifest
+    parameters: Mapping[str, Any]
+    random_seed: int
+
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
+        if not isinstance(self.component_id, str) or not self.component_id.strip():
+            raise ValueError("component_id must not be empty")
+        if not isinstance(self.manifest, StrategySdkManifest):
+            raise TypeError("manifest must use StrategySdkManifest")
+        if not isinstance(self.parameters, Mapping):
+            raise TypeError("parameters must be a mapping")
+        if not isinstance(self.random_seed, int) or isinstance(self.random_seed, bool):
+            raise TypeError("random_seed must be an integer")
+        frozen = freeze_json(dict(self.parameters))
+        if not isinstance(frozen, Mapping):
+            raise TypeError("parameters must freeze to a mapping")
+        object.__setattr__(self, "parameters", frozen)
+
+
+class ForwardContextAdmissionStore(Protocol):
+    """Load authenticated forward admission at one immutable checkpoint."""
+
+    async def load_state_at_checkpoint(
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+    ) -> ForwardLiveAdmissionState | None: ...
+
+    async def load_warmup_receipt(
+        self, *, principal: Any, instance_id: str
+    ) -> ForwardWarmupReceipt | None: ...
+
+
+class ForwardContextAccountHistoryStore(Protocol):
+    """Replay native account positions at the same admission checkpoint."""
+
+    async def load_at_checkpoint(
+        self, *, principal: Any, admission_state: ForwardLiveAdmissionState
+    ) -> ForwardAccountState | None: ...
+
+
+class ForwardContextRecipeResolver(Protocol):
+    """Resolve a component recipe from the immutable instance portfolio."""
+
+    def __call__(
+        self, *, principal: Any, instance: ForwardInstance
+    ) -> ForwardStrategyContextRecipe | Awaitable[ForwardStrategyContextRecipe]: ...
+
+
+class ForwardVerifiedHistoryResolver(Protocol):
+    """Load bounded verified history from frozen warm-up and canonical event storage.
+
+    Implementations read the platform-owned immutable snapshot and canonical
+    forward event sources. They must not fetch data from a provider or accept
+    history beyond the supplied pre-event admission checkpoint.
+    """
+
+    def __call__(
+        self,
+        *,
+        principal: Any,
+        instance: ForwardInstance,
+        admission_state: ForwardLiveAdmissionState,
+        warmup_receipt: ForwardWarmupReceipt,
+        manifest: StrategySdkManifest,
+    ) -> ForwardStrategyContextHistory | Awaitable[ForwardStrategyContextHistory]: ...
+
+
+class AuthenticatedForwardContextWindowResolver:
+    """Compose checkpointed account state and source-verified SDK history.
+
+    The injected recipe/history resolvers are platform-owned artifact/data
+    readers; this coordinator binds their results to the authenticated
+    portfolio, warm-up receipt, and exact pre-event checkpoint before replay.
+    """
+
+    def __init__(
+        self,
+        admission_store: ForwardContextAdmissionStore,
+        account_store: ForwardContextAccountHistoryStore,
+        recipe_resolver: ForwardContextRecipeResolver,
+        history_resolver: ForwardVerifiedHistoryResolver,
+        *,
+        principal: Any,
+    ) -> None:
+        if not callable(getattr(admission_store, "load_state_at_checkpoint", None)):
+            raise TypeError("admission_store must load checkpoint-specific forward state")
+        if not callable(getattr(admission_store, "load_warmup_receipt", None)):
+            raise TypeError("admission_store must load the immutable warm-up receipt")
+        if not callable(getattr(account_store, "load_at_checkpoint", None)):
+            raise TypeError("account_store must load account history at a checkpoint")
+        if not callable(recipe_resolver):
+            raise TypeError("recipe_resolver must be callable")
+        if not callable(history_resolver):
+            raise TypeError("history_resolver must be callable")
+        self._admission_store = admission_store
+        self._account_store = account_store
+        self._recipe_resolver = recipe_resolver
+        self._history_resolver = history_resolver
+        self._principal = principal
+
+    async def __call__(
+        self, delivery: NautilusForwardDeliveryInput
+    ) -> ResolvedForwardContextWindow:
+        if not isinstance(delivery, NautilusForwardDeliveryInput):
+            raise TypeError("delivery must use NautilusForwardDeliveryInput")
+        binding = delivery.delivery_binding
+        if binding.admission_decision != "enqueue":
+            raise ValueError("only accepted forward deliveries can resolve context")
+
+        admission = await self._admission_store.load_state_at_checkpoint(
+            principal=self._principal,
+            instance_id=binding.instance_id,
+            checkpoint_fingerprint=binding.pre_event_checkpoint_fingerprint,
+        )
+        if admission is None:
+            raise ValueError("authenticated pre-event admission checkpoint is unavailable")
+        if not isinstance(admission, ForwardLiveAdmissionState):
+            raise TypeError("admission store returned an invalid checkpoint state")
+        checkpoint = admission.checkpoint
+        instance = checkpoint.instance
+        if instance.instance_id != binding.instance_id:
+            raise ValueError("pre-event checkpoint belongs to another forward instance")
+        if checkpoint.fingerprint != binding.pre_event_checkpoint_fingerprint:
+            raise ValueError("admission store returned a different pre-event checkpoint")
+        if instance.state is not ForwardState.ACTIVE:
+            raise ValueError("pre-event forward instance is not active")
+        if admission.warmup_receipt_fingerprint != binding.warmup_receipt_fingerprint:
+            raise ValueError("pre-event checkpoint belongs to a different warm-up receipt")
+        receipt = await self._admission_store.load_warmup_receipt(
+            principal=self._principal,
+            instance_id=binding.instance_id,
+        )
+        if not isinstance(receipt, ForwardWarmupReceipt):
+            raise ValueError("forward warm-up receipt is unavailable")
+        if (
+            receipt.fingerprint != binding.warmup_receipt_fingerprint
+            or receipt.instance_id != instance.instance_id
+            or receipt.warmup_snapshot_fingerprint != instance.warmup_snapshot_fingerprint
+        ):
+            raise ValueError("persisted warm-up receipt differs from the authenticated instance")
+
+        current_event = delivery.tape.envelopes[0].canonical_event
+        current_event_fingerprint = content_digest(current_event)
+        if current_event_fingerprint != binding.event_fingerprint:
+            raise ValueError("forward delivery event differs from its authenticated binding")
+        seen_by_id = {item.event_id: item for item in admission.seen_events}
+        if current_event.event_id in seen_by_id:
+            raise ValueError("pre-event checkpoint already contains the delivered event")
+
+        recipe_resolution = self._recipe_resolver(principal=self._principal, instance=instance)
+        recipe = (
+            await recipe_resolution if inspect.isawaitable(recipe_resolution) else recipe_resolution
+        )
+        if not isinstance(recipe, ForwardStrategyContextRecipe):
+            raise TypeError("strategy recipe resolver returned an invalid recipe")
+        if recipe.portfolio_fingerprint != instance.portfolio_fingerprint:
+            raise ValueError("strategy recipe does not belong to the forward instance portfolio")
+
+        history_resolution = self._history_resolver(
+            principal=self._principal,
+            instance=instance,
+            admission_state=admission,
+            warmup_receipt=receipt,
+            manifest=recipe.manifest,
+        )
+        history = (
+            await history_resolution
+            if inspect.isawaitable(history_resolution)
+            else history_resolution
+        )
+        if not isinstance(history, ForwardStrategyContextHistory):
+            raise TypeError("verified history resolver returned an invalid history")
+        if history.instance_id != instance.instance_id:
+            raise ValueError("verified history belongs to another forward instance")
+        if history.pre_event_checkpoint_fingerprint != checkpoint.fingerprint:
+            raise ValueError("verified history does not match the authenticated checkpoint")
+        if history.warmup_receipt_fingerprint != admission.warmup_receipt_fingerprint:
+            raise ValueError("verified history does not match the active warm-up receipt")
+        if history.manifest_fingerprint != recipe.manifest.fingerprint:
+            raise ValueError("verified history does not match the resolved strategy manifest")
+        _validate_history_prefix(history, admission, receipt, current_event)
+
+        account_resolution = await self._account_store.load_at_checkpoint(
+            principal=self._principal,
+            admission_state=admission,
+        )
+        if account_resolution is None:
+            raise ValueError("native account history is unavailable at the pre-event checkpoint")
+        if not isinstance(account_resolution, ForwardAccountState):
+            raise TypeError("account history store returned an invalid state")
+        if account_resolution.instance_id != instance.instance_id:
+            raise ValueError("account history belongs to another forward instance")
+        positions = {item.instrument_id: item for item in account_resolution.positions}
+
+        return ResolvedForwardContextWindow.replay_verified_history(
+            history,
+            recipe.manifest,
+            parameters=recipe.parameters,
+            random_seed=recipe.random_seed,
+            positions=positions,
+        )
+
+
+def _validate_history_prefix(
+    history: ForwardStrategyContextHistory,
+    admission: ForwardLiveAdmissionState,
+    receipt: ForwardWarmupReceipt,
+    current_event: CanonicalForwardEvent,
+) -> None:
+    """Bind live history to the processed prefix and warm-up snapshot boundary."""
+
+    seen_by_id = {item.event_id: item for item in admission.seen_events}
+    processed_ids = admission.checkpoint.processed_event_ids
+    current_key = (current_event.event_time, current_event.sequence)
+    for payload in history.events:
+        canonical = payload.canonical_event
+        seen = seen_by_id.get(canonical.event_id)
+        if canonical.sequence <= receipt.final_event_sequence:
+            # The immutable warm-up artifact contains historical rows that are
+            # intentionally not copied into the live admission event journal.
+            if seen is not None and (
+                seen.event_fingerprint != content_digest(canonical)
+                or seen.sequence != canonical.sequence
+            ):
+                raise ValueError("warm-up history differs from checkpoint admission evidence")
+        elif canonical.event_id not in processed_ids or seen is None:
+            raise ValueError("context history contains an event outside the processed prefix")
+        elif (
+            seen.event_fingerprint != content_digest(canonical)
+            or seen.sequence != canonical.sequence
+        ):
+            raise ValueError("context history event differs from checkpoint admission evidence")
+        if (
+            canonical.event_id == receipt.final_event_id
+            and content_digest(canonical) != receipt.final_event_fingerprint
+        ):
+            raise ValueError("context history differs from the final warm-up event identity")
+        if (canonical.event_time, canonical.sequence) >= current_key:
+            raise ValueError("context history includes the current or a future event")
 
 
 class NautilusForwardSessionEventHandler:
@@ -398,7 +653,13 @@ def _reject(entry: RedisStreamEntry, reason: str) -> WorkerHandleResult:
 
 
 __all__ = [
+    "AuthenticatedForwardContextWindowResolver",
+    "ForwardContextAccountHistoryStore",
+    "ForwardContextAdmissionStore",
+    "ForwardContextRecipeResolver",
     "ForwardContextWindowResolver",
+    "ForwardStrategyContextRecipe",
+    "ForwardVerifiedHistoryResolver",
     "NautilusForwardExecutionResult",
     "NautilusForwardSessionEventHandler",
     "NautilusForwardSessionRuntime",

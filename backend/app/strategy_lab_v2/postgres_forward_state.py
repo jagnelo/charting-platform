@@ -492,6 +492,20 @@ class PostgresForwardStateAdapter:
             async with session.begin():
                 return await self._load_live_state(session, owner_id, instance_id)
 
+    async def load_warmup_receipt(
+        self, *, principal: Any, instance_id: str
+    ) -> ForwardWarmupReceipt | None:
+        """Read and authenticate the immutable warm-up receipt for an instance."""
+
+        _validate_instance_id(instance_id)
+        owner_id = _principal_id(principal)
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                if await self._load_checkpoint(session, owner_id, instance_id) is None:
+                    return None
+                return await self._load_warmup(session, owner_id, instance_id)
+
     async def load_checkpoint_at(
         self,
         *,
