@@ -9284,3 +9284,38 @@ active; about 3.6 GiB RAM is available, 10 GiB swap is used, and host load is
 run exact-SHA CI again; then retry the Docker/browser gate only after those
 other-worktree containers exit and resource preflight confirms adequate headroom.
 *** End of File
+### Longview fix exact-SHA CI passed; local resource gate remains held — 2026-10-05
+
+The published fix SHA `05aa350a769b9e039e4d12ebb7c97c4d3c6ca947` completed
+exact-SHA run `37379339309`. Backend Tests, Frontend Unit Tests,
+Branch-declared Tests, and hosted Playwright all succeeded. The protected
+Exhaustive Integration Gate was skipped as designed for a feature branch. The
+full live provider matrix reported 518 passed and 28 narrow access skips; the
+Longview EBI row explicitly skipped with `Longview EBI fund-data page returned
+an issuer access challenge.` The route has not been counted as a successful
+live fetch.
+
+Local source verification on this fix included all 610 ETF adapter unit tests,
+the focused Longview/access-classifier tests (4/4), Ruff, formatter checks, and
+a single opt-in EBI probe that reproduced the explicit Cloudflare challenge
+disposition. The workstream validator reports 30 valid records and the session
+narrative invariant passes. The official issuer page's rendered content
+currently shows EBI constituent rows, but bounded direct access from this
+environment receives a Cloudflare `Attention Required!` response. This supports
+an issuer-edge restriction explanation, not an operational support guarantee.
+
+The required local `full_stack_browser` gate remains deferred. The latest
+read-only inventory still shows six running containers owned by
+`feat-tc2000-frontend-rework` and Stremio; host available RAM is about 1.9 GiB,
+swap usage is 10 GiB, and load is 4.38/3.06/2.46. Do not alter those containers.
+Recheck only after they exit and host capacity is safe. No other branch, worktree,
+container, or service was changed.
+
+Current state remains ten of fourteen acceptance criteria complete. AC7 stays
+open for the safe local full-stack/browser gate and an exact-SHA receipt after
+the final workstream-record update. AC8 awaits that gate, final clean synchronized
+review checkpoint, and human review. AC10 still awaits the separate provider
+platform reaching staging; this worker will not inspect or mutate that branch or
+integrate. AC14 remains the post-integration/deployment 30-day observation. The
+saved goal is active, not blocked or complete.
+*** End of File
