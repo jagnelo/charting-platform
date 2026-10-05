@@ -20,34 +20,23 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No human or ownership gate blocks independent TC-owned work. Product source
-  `05aac7f816aab492c7b2aadb1adb9ffc6e76f02a` adds generic-breadth reference
-  target lineage using the existing TC analysis response only. Serial frontend
-  coverage passed 129 files / 1,200 tests, type-check and production build
-  passed, and backend unit/integration coverage passed 1,621 / 409 tests with
-  82.26% combined coverage. The earlier backend exit 152 did not recur. The
-  aggregate `make validate-integration` passed code, compose-contract, and
-  runner-probe stages, then stopped at stack-up because its Makefile helper
-  requires Docker Buildx (`docker buildx create --name ...` is rejected as
-  `unknown flag: --name` by this host CLI). This is not a Docker availability
-  failure: ordinary Compose built and started the assigned six-service stack,
-  which became healthy; research-runner sandbox/resource probes passed and
-  scoped teardown left zero assigned resources. On that seeded stack, pinned
-  Playwright 1.62.1 ran 282 functional cases: 172 passed, 107 documented skips,
-  and three failed with `ERR_NETWORK_CHANGED` during local-stack requests.
-  The 11-case focused retry, including all three failures, passed; this is
-  consistent with a transient network interruption but does not replace the
-  full-suite result. The previous full run at the same product/test source
-  passed 175 with 107 documented skips and zero failures. The pinned visual
-  matrix remains 94/104 with the same ten screenshot-only differences after
-  state assertions; no visual oracle or policy changed. Current GitHub refs:
-  TC `49028b70c593bd5d81e7694c4f6cc3bde4e3cd23`, staging
-  `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
-  `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
-  `529fc81f60fcbf5f14a7afc7e9aa62461a48e855`. Neither dependency tip is an
-  ancestor of staging. Defer R2/R3 integration and shared-path reconciliation
-  until then; continue distinct TC-owned UI/Study/Strategy work and retain the
-  exact full-stack/browser gate findings.
+  No human or ownership gate blocks independent TC-owned work. At exact pushed
+  branch tip `395a81a2ad0ba4f7328f8ff876ed180a1d348196` (product source
+  `3958886632af62e0207fb02ed6961b16fd1a600c`), the pinned full browser run
+  traversed 282 cases: 169 passed, 110 documented skips, and three failed.
+  Two failures were `ERR_NETWORK_CHANGED`; both passed focused retries. The
+  third was Market Map activation; after rebuilding/recreating only the clean-
+  source frontend service, the unchanged flow passed five serial repetitions.
+  These focused recoveries do not replace a complete rerun. The exact four-
+  viewport visual disposition remains 94/104 with ten screenshot-only
+  differences; preserve all oracles and policy. `make validate-integration`
+  still stops before stack-up because its helper uses unsupported Docker
+  Buildx `--name`, but ordinary Compose built and ran all six assigned services
+  healthy. Staging is `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; provider
+  platform is `88132e9145a08d1c935a0111b3dba0fbd88bdff1` and ETF holdings is
+  `529fc81f60fcbf5f14a7afc7e9aa62461a48e855`; neither dependency tip is in
+  staging. R2/R3 integration and shared-path reconciliation remain deferred;
+  proceed with the exact-tip browser rerun and independent TC-owned work.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -285,15 +274,16 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_V25_BOOLEAN_PIN_INTERACTION_AND_VALIDATION
+  current_phase: R1_CURRENT_TIP_BROWSER_REPLAY
   next_action: >-
-    Run a clean current-tip serial full functional Playwright suite and all four
-    pinned visual-board projects. Preserve the three prior ERR_NETWORK_CHANGED
-    failures and ten screenshot-only differences until these exact-tip results
-    are recorded; do not alter any oracle, threshold, skip, or acceptance rule.
-    Then continue with the next bounded TC-owned workstation, Study, or
-    Strategy gap. Defer provider/ETF consumption and shared-path reconciliation
-    until both dependency tips reach staging; do not mutate another worktree.
+    Run the exact-current-tip serial full functional Playwright suite and all
+    four pinned visual-board projects against a fresh seeded stack with the
+    clean-source frontend image. Record the 169/110/3 full-run result and the
+    focused recoveries without treating them as a substitute. Preserve every
+    screenshot oracle, threshold, skip, and acceptance rule. Then continue the
+    next bounded TC-owned workstation, Study, or Strategy gap. Defer provider/
+    ETF consumption and shared-path reconciliation until both dependency tips
+    reach staging; do not mutate another worktree.
   current_blocker: >-
     Product commit 3958886632af62e0207fb02ed6961b16fd1a600c adds V25 Boolean
     watchlist-header pin/unpin gestures and fixes the detached Golden Layout
@@ -304,22 +294,19 @@ progress:
     measuring Vitest mock-call recording. Lightweight stubs preserve the
     original 1,000 ms limit and exact 199,999 line-segment count; after this
     harness-only correction the full frontend coverage suite passed.
-    `make validate-integration` still stops before stack startup because its
-    Buildx helper passes an unsupported `--name` option. This is not a Docker
-    availability blocker: ordinary Compose built and ran all six assigned
-    services, the focused browser flow passed, and scoped cleanup left zero
-    attributable TC containers, volumes, or images. The latest complete
-    functional matrix predates this product slice (172 passed, 107 documented
-    skips, three ERR_NETWORK_CHANGED failures); the latest visual matrix also
-    predates it (94/104 with the same ten screenshot-only differences). Both
-    exact-current-tip browser matrices remain required. Direct GitHub refs are
-    TC 3958886632af62e0207fb02ed6961b16fd1a600c, staging
-    8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider platform
+    The exact-current-tip full Playwright run covered 282 cases with 169
+    passed, 110 documented skips, and three failures. Two network failures
+    passed focused retries; the unchanged Market Map case passed five serial
+    repetitions after a clean-source frontend recreation. Full functional and
+    four-viewport visual reruns remain required. `make validate-integration`
+    still stops before stack-up because its Buildx helper passes unsupported
+    `--name`; ordinary Compose works and all six assigned services became
+    healthy. Direct refs are TC 395a81a2ad0ba4f7328f8ff876ed180a1d348196,
+    staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider platform
     88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF holdings
     529fc81f60fcbf5f14a7afc7e9aa62461a48e855. Neither dependency tip is in
-    staging, so R2/R3 integration and shared-path reconciliation remain
-    deferred. No human approval or Docker availability blocks independent
-    TC-owned work.
+    staging, so R2/R3 and shared-path reconciliation remain deferred. No
+    human gate blocks this independent TC-owned work.
 historical_implementation_records:
   - "Test commit 435c5b9ad58a1889b040febcadab9a202cfbfc48 adds F9e-plot-library-search against unchanged product source 05aac7f816aab492c7b2aadb1adb9ffc6e76f02a. Authenticated Chromium confirmed full-name filtering, visible RSI selection, and live no-match status; the browser case passed 1/1. The focused component suite passed 45/45, full frontend coverage passed 129 files / 1,200 tests, and type-check/build passed. A current-app screenshot was inspected at /tmp/tc2000-chart-open-rsi-dropdown.png, but the branch reference pack has no authoritative V25 capture of this state; keep the screenshot parity gap open and do not add or change a visual oracle. The only assigned TC Compose project and its fixture resources/images were removed after use. No provider/ETF behavior changed."
   - "Product commit c038aafc6fe8378cdf11d4b76006100488c75556 adds compact requested/eligible/excluded/coverage counts and a collapsible generic-breadth evidence view for universe identity/role, membership version, member observation dates, sampling semantics, source provenance, freshness and details, calculation version, definition hash, and grouped exclusion reasons. Python-backed breadth now preserves reported calculation/provenance and no longer invents a freshness state. Full frontend Vitest passed 128 files / 1,197 tests; vue-tsc/type-check and Vite production build passed; the rebuilt authenticated Chromium F8s-breadth-family-ratio flow passed 1/1 with evidence assertions. The assigned Compose stack was removed and resource audit reported zero containers, volumes, test sessions, unknown components, or known bytes. The full branch-wide browser/visual gate was not rerun at this product tip; preserve every oracle and the ten screenshot-only differences last recorded at a78812d. No provider/ETF ownership or data acquisition changed."

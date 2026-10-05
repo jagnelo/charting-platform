@@ -58,6 +58,29 @@ Paths in this implementation checkpoint: `frontend/src/components/workstation/Vi
 
 The accompanying roadmap/reconciliation checkpoint changes `docs/tc2000-roadmap.md`, `docs/tc2000-visual-parity.md`, `ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`, `ops/workstreams/feat-tc2000-frontend-rework/handoff.md`, `ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`, and `ops/workstreams/feat-tc2000-frontend-rework/session.json`. These files record the new product SHA, exact focused/full frontend results, pinned-browser evidence, resource cleanup, and remaining exact-tip gates.
 
+## 2026-10-05 — Current-tip browser retry checkpoint (in progress)
+
+At exact pushed branch tip `395a81a2ad0ba4f7328f8ff876ed180a1d348196`, the
+pinned full Playwright run traversed 282 cases: 169 passed, 110 documented
+skips, and three failed. F8n gesture and F8u alert failed on
+`ERR_NETWORK_CHANGED`; both passed in the subsequent focused retry. F8s Market
+Map activation failed across the initial full/focused runs. After rebuilding
+and recreating only the assigned frontend service from clean source, the
+unchanged Market Map case passed five serial repetitions. A separate run with
+temporary console diagnostics also passed 3/3, but those diagnostics were
+removed; neither focused repetition substitutes for a full acceptance rerun.
+No application or test-source changes remain from diagnosis.
+
+All six services in the assigned TC Compose project became healthy. The latest
+frontend image is rebuilt from the exact clean worktree source. Next: rerun the
+complete serial functional suite and all four pinned visual-board projects,
+preserving every screenshot oracle, threshold, skip, and acceptance rule.
+Artifacts for the focused network retry and clean-source Market Map repetition
+are under `/tmp/tc2000-current-tip-retries.t7BKkW` and
+`/tmp/tc2000-market-map-clean-repeat.NSXWrh` until the next durable checkpoint.
+The four-viewport baseline remains `94/104` with ten screenshot-only
+differences; no baseline was changed.
+
 ## 2026-10-05 — Gate checkpoint published
 
 Workstream-only commit `0e5d80b74f4614a375118a3ff88f08834b171b43`
