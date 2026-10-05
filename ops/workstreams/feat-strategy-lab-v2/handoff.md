@@ -10908,3 +10908,39 @@ Changed paths:
 `backend/app/strategy_lab_v2/nautilus_forward_session.py`,
 `backend/app/strategy_lab_v2/postgres_result_materialization.py`, and
 `backend/app/strategy_lab_v2/tests/test_forward_context.py`.
+
+## 2026-10-05 - Forward context carries checkpointed account positions
+
+Implementation commit `84f54140980d1f44d8c1879341a4c55249596911` extends the
+host-owned resolved forward context with an immutable, typed position snapshot
+supplied by the resolver. The session handler passes those positions into
+`ForwardStrategyContextWindow` before
+execution, so the staged engine-neutral `StrategyContext` can represent the
+account state at the same pre-event checkpoint as its market-data history.
+Position keys are checked against each `PositionSnapshot.instrument_id`, and
+the resulting mapping is read-only. The production resolver still must load
+and authenticate these positions from the checkpoint-specific account state;
+this change does not claim a concrete Nautilus process, durable native runtime
+receipt, replay implementation, or forward-parity qualification.
+
+Validation on the exact implementation commit: the focused forward
+context/session suite passed `18/18`; the full Strategy Lab package plus
+schema-migration suite passed `1,420/1,420`; Ruff check/format, focused MyPy for
+`nautilus_forward_session.py`, and `git diff --check` passed. The implementation
+commit was pushed and local `HEAD` matched `origin/feat/strategy-lab-v2`.
+`validation.jsonl` records the exact validation and publication evidence.
+
+Changed paths in this context:
+`backend/app/strategy_lab_v2/nautilus_forward_session.py` and
+`backend/app/strategy_lab_v2/tests/test_nautilus_forward_session.py`. The
+operational checkpoint also updates `ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/session.json`, and
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+Next: build the concrete isolated persistent Nautilus session, resolve its
+checkpoint-specific account positions from durable storage, persist native
+execution receipts before Redis acknowledgement, implement replay recovery,
+then run exact-image forward event-tape parity. Stable Nautilus 2.x labeling is
+not a blocker. The default shell was denied Docker API access on this checkpoint,
+so no image-backed or full-stack acceptance claim is added; this is a validation
+constraint, not a blocker to package-owned development.

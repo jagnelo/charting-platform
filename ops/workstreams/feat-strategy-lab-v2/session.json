@@ -86,7 +86,10 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -122,9 +125,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "8366c91263a9cd727edc83de2476a35e9824a276",
-  "implementation_sha": "bc2188a7bfb8456310928f89352d160d94527b42",
-  "last_checkpoint": "2026-10-05T09:50:00.573354+00:00",
+  "head": "84f54140980d1f44d8c1879341a4c55249596911",
+  "implementation_sha": "84f54140980d1f44d8c1879341a4c55249596911",
+  "last_checkpoint": "2026-10-05T10:05:06.883059+00:00",
   "last_human_progress_update": "2026-10-05T09:46:49.358693+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Integrate staged strategy contexts with one persistent isolated Nautilus session, then atomically persist native account/runtime receipts before Redis ACK and qualify exact-image forward event-tape parity.",
@@ -150,8 +153,8 @@
     "total": 18,
     "updated_at": "2026-10-05T09:46:49.358673+00:00"
   },
-  "remote": "8366c91263a9cd727edc83de2476a35e9824a276",
-  "remote_sha": "8366c91263a9cd727edc83de2476a35e9824a276",
+  "remote": "84f54140980d1f44d8c1879341a4c55249596911",
+  "remote_sha": "84f54140980d1f44d8c1879341a4c55249596911",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
