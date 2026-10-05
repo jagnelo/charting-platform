@@ -865,9 +865,13 @@ progress:
     execute/replay the next event. Both reconstructions run within one probe
     process, so OS-process termination/relaunch is not yet proven. Each factory
     invocation creates an independent native engine state. This also does not
-    prove the host transaction that persists native output and advances the
-    exact admission/account checkpoint before Redis ACK, nor bounded
-    process-local replay memory under long-lived load.
+    prove bounded process-local replay memory under long-lived load. The
+    forward account handler now verifies returned durable state cursor and
+    append-only event content before COMPLETE; native deliveries also require
+    the exact runtime receipt in that stored event record. The PostgreSQL
+    adapter applies account state and execution receipt in one transaction,
+    and Redis ACK follows only handler COMPLETE. Focused account/session/
+    PostgreSQL/recovery validation passes 45 tests.
     Preserve canonical platform event identity and ordering; never derive it
     from dependency-local frozen series rows. Full Compose/browser acceptance
     remains a final environment gate; provider, ETF, and TC2000 shared-path
@@ -875,10 +879,10 @@ progress:
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Bind native result persistence and the resulting exact checkpoint
-    transition to the host settlement path before Redis ACK. Then bound
-    process-local replay state and prove duplicate/crash replay against the
-    durable account/admission ledger across actual worker-process termination
-    and restart, without rewriting prior decisions.
-    Corrections remain counterfactual. Preserve provider-owned event identity
-    and consume shared contracts only after their source branches reach staging.
+    Bound process-local replay state from the durable host checkpoint, then
+    prove duplicate/crash replay against the durable account/admission ledger
+    across actual worker-process termination and restart, without rewriting
+    prior decisions. Exercise crash windows before account commit, after commit
+    but before Redis ACK, and after ACK. Corrections remain counterfactual.
+    Preserve provider-owned event identity and consume shared contracts only
+    after their source branches reach staging.

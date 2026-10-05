@@ -18,6 +18,29 @@ Buildx still gates only final Compose/browser validation; provider, ETF, and
 TC2000 shared paths remain gated only until their approved work reaches
 staging.
 
+## 2026-10-05 - Require durable native account evidence before completion
+
+`ForwardAccountWorkerHandler` no longer trusts an `APPLIED`/`REPLAY_EXISTING`
+decision alone. Before returning `COMPLETE`, it requires the returned durable
+account state to belong to the expected instance, verifies the exact new-event
+cursor on `APPLIED`, and verifies the event's identity, content fingerprint,
+and sequence in append-only account history. Native forward deliveries must
+also find the exact `ForwardRuntimeExecutionReceipt` in that history. The
+PostgreSQL account adapter writes state and receipt together transactionally;
+the Redis worker ACK path runs only after this handler returns `COMPLETE`.
+
+Validation: 45 focused account, PostgreSQL account/history, forward-session,
+settlement, and worker-recovery tests passed. Ruff check/format, focused MyPy
+for `forward_account_worker.py`, and `git diff --check` passed. Commit
+`ee24d2a1a1f1d0d672401da68120b61fde7bc763` is local; publication and workstream
+checkpoint are pending.
+
+This establishes the account output/receipt gate before ACK; it does not
+establish bounded in-memory runtime replay or prove recovery across actual
+worker OS-process termination. Next: bound process-local replay state from
+durable checkpoints and exercise the before-commit, committed-before-ACK, and
+after-ACK crash windows in a real subprocess.
+
 ## 2026-10-05 - Non-empty-prefix forward runtime reconstruction
 
 The exact RC5 image fixture now advances beyond an empty bootstrap: after a
