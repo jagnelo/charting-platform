@@ -20,6 +20,8 @@ from typing import Any, BinaryIO
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import PortfolioComposition
+from app.strategy_lab_v2.forward_account import ForwardAccountEvent, ShadowFill, ShadowOrder
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_equity_trace import NautilusAccountEquityTraceWriter
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     NautilusNativeEventStreamCursor,
@@ -163,6 +165,22 @@ def _native_money_amount_for_currency(values: Any, currency_code: str, field_nam
     if len(matches) != 1:
         raise NautilusRuntimeDataError(f"native {field_name} does not resolve to one base currency")
     return _native_decimal(matches[0], field_name)
+
+
+def _native_cash_balances(account: Any) -> dict[str, Decimal]:
+    balances = account.balances_total()
+    if not isinstance(balances, Mapping):
+        raise NautilusRuntimeDataError("native account cash balances are not a currency mapping")
+    result: dict[str, Decimal] = {}
+    for currency, amount in balances.items():
+        code = getattr(currency, "code", str(currency))
+        if not isinstance(code, str) or len(code) != 3 or not code.isascii() or not code.isalpha():
+            raise NautilusRuntimeDataError("native account cash currency is invalid")
+        normalized_code = code.upper()
+        if normalized_code in result:
+            raise NautilusRuntimeDataError("native account cash currency is duplicated")
+        result[normalized_code] = _native_decimal(amount, "account cash balance")
+    return dict(sorted(result.items()))
 
 
 def _match_contexts_to_events(
@@ -881,6 +899,7 @@ class NativeStrategyBridge:
     session_close_equity_output: Any
     rebalance_schedule_output: Any
     stage_forward_event: Any
+    take_forward_account_event: Any
     input_fingerprint: str
     input_protocol: str
 
@@ -908,6 +927,16 @@ class _PendingComponentOrder:
     instrument_id: str
     side: OrderSide
     remaining_quantity: Decimal
+
+
+@dataclass(slots=True)
+class _PendingForwardAccountEvent:
+    instance_id: str
+    canonical_event: CanonicalForwardEvent
+    callback_index: int
+    cash_before: Mapping[str, Decimal]
+    orders: list[ShadowOrder]
+    fills: list[ShadowFill]
 
 
 class NautilusComponentFillLedger:
@@ -980,7 +1009,7 @@ class NautilusComponentFillLedger:
         client_order_id: str,
         instrument_id: str,
         quantity: Decimal,
-    ) -> None:
+    ) -> bool:
         order = self._pending_orders.get(client_order_id)
         if order is None:
             raise NautilusRuntimeDataError("native fill has no component-attributed order")
@@ -997,6 +1026,8 @@ class NautilusComponentFillLedger:
         order.remaining_quantity -= quantity
         if order.remaining_quantity == 0:
             del self._pending_orders[client_order_id]
+            return False
+        return True
 
     def release_terminal_order(self, client_order_id: str) -> None:
         if client_order_id not in self._pending_orders:
@@ -1701,23 +1732,32 @@ def build_native_strategy_bridge(
     component_trigger_stream = context_trigger_groups
     current_trigger = next(component_trigger_stream, None)
     callback_index = 0
+    native_callback_event_id: str | None = None
     forward_event_records: deque[Mapping[str, Any]] = deque()
     forward_context_groups: dict[int, tuple[ComponentContextTrigger, ...]] = {}
     fill_ledger = NautilusComponentFillLedger(portfolio)
+    pending_forward_account_event: _PendingForwardAccountEvent | None = None
+    forward_orders_by_client_id: dict[str, ShadowOrder] = {}
 
     def stage_forward_event(
         event_record: Mapping[str, Any],
         component_contexts: Mapping[str, StrategyContext],
         *,
+        instance_id: str,
+        canonical_event: CanonicalForwardEvent,
         native_init_time_ns: int,
     ) -> None:
         """Queue exactly one authenticated event/context group before engine input."""
 
-        nonlocal expected_contexts, expected_event_count
+        nonlocal expected_contexts, expected_event_count, pending_forward_account_event
         if not allow_forward_event_staging:
             raise NautilusRuntimeDataError("native bridge does not allow forward event staging")
         if not isinstance(event_record, Mapping) or not isinstance(component_contexts, Mapping):
             raise NautilusRuntimeDataError("forward event or context input is invalid")
+        if not isinstance(instance_id, str) or not instance_id.strip():
+            raise NautilusRuntimeDataError("forward event instance id is invalid")
+        if not isinstance(canonical_event, CanonicalForwardEvent):
+            raise NautilusRuntimeDataError("forward event canonical identity is invalid")
         if not isinstance(native_init_time_ns, int) or isinstance(native_init_time_ns, bool):
             raise NautilusRuntimeDataError("forward native init time must be an integer")
         if (
@@ -1729,7 +1769,7 @@ def build_native_strategy_bridge(
             raise NautilusRuntimeDataError(
                 "forward events can only be staged after the immutable replay prefix"
             )
-        if forward_event_records or forward_context_groups:
+        if forward_event_records or forward_context_groups or pending_forward_account_event:
             raise NautilusRuntimeDataError("a forward event is already staged")
         if set(component_contexts) - set(strategy_bindings):
             raise NautilusRuntimeDataError(
@@ -1758,6 +1798,17 @@ def build_native_strategy_bridge(
         event_time_ns = event.get("event_time_ns")
         if not isinstance(event_time_ns, int) or isinstance(event_time_ns, bool):
             raise NautilusRuntimeDataError("forward event time is invalid")
+        event_sequence = event.get("sequence")
+        if not isinstance(event_sequence, int) or isinstance(event_sequence, bool):
+            raise NautilusRuntimeDataError("forward event sequence is invalid")
+        if (
+            event.get("event_id") != canonical_event.event_id
+            or event_sequence != canonical_event.sequence
+            or _datetime_from_unix_nanos(event_time_ns) != canonical_event.event_time
+        ):
+            raise NautilusRuntimeDataError(
+                "forward native event differs from its canonical platform identity"
+            )
         ordered_contexts = tuple(
             (component_id, context)
             for component_id, context in sorted(
@@ -1778,6 +1829,17 @@ def build_native_strategy_bridge(
                 "one forward event produced multiple component callback groups"
             )
         contexts = () if not groups else groups[0].contexts
+        native_account = strategy.portfolio.account(venue=native_venue_id)
+        if native_account is None:
+            raise NautilusRuntimeDataError("native portfolio has no account for its venue")
+        pending_forward_account_event = _PendingForwardAccountEvent(
+            instance_id=instance_id,
+            canonical_event=canonical_event,
+            callback_index=callback_index,
+            cash_before=_native_cash_balances(native_account),
+            orders=[],
+            fills=[],
+        )
         forward_event_records.append(event)
         forward_context_groups[callback_index] = contexts
         expected_event_count += 1
@@ -2090,11 +2152,50 @@ def build_native_strategy_bridge(
 
         def on_order_filled(self, event: Any) -> None:
             try:
-                fill_ledger.record_fill(
-                    client_order_id=str(event.client_order_id),
+                client_order_id = str(event.client_order_id)
+                order_remains_open = fill_ledger.record_fill(
+                    client_order_id=client_order_id,
                     instrument_id=str(event.instrument_id),
                     quantity=_native_decimal(event.last_qty, "fill quantity"),
                 )
+                pending = pending_forward_account_event
+                if pending is not None:
+                    if pending.canonical_event.event_id != native_callback_event_id:
+                        raise NautilusRuntimeDataError(
+                            "native forward fill escaped its staged canonical event"
+                        )
+                    order = forward_orders_by_client_id.get(client_order_id)
+                    if order is None:
+                        raise NautilusRuntimeDataError(
+                            "native forward fill has no captured shadow order"
+                        )
+                    commission = event.commission
+                    currency = getattr(commission.currency, "code", str(commission.currency))
+                    trade_id_value = getattr(event, "trade_id", None)
+                    if not isinstance(trade_id_value, str) or not trade_id_value.strip():
+                        raise NautilusRuntimeDataError("native forward fill omitted its trade id")
+                    trade_id = trade_id_value
+                    fill_id = content_digest(
+                        {
+                            "schema": "strategy-lab.nautilus-forward-fill.v1",
+                            "instance_id": pending.instance_id,
+                            "event_id": pending.canonical_event.event_id,
+                            "trade_id": trade_id,
+                        }
+                    )
+                    pending.fills.append(
+                        ShadowFill(
+                            fill_id=fill_id,
+                            order_id=order.order_id,
+                            quantity=_native_decimal(event.last_qty, "fill quantity"),
+                            price=_native_decimal(event.last_px, "fill price"),
+                            fee=_native_decimal(commission, "fill commission"),
+                            fee_currency=currency,
+                            filled_at=_datetime_from_unix_nanos(int(event.ts_event)),
+                        )
+                    )
+                if not order_remains_open:
+                    forward_orders_by_client_id.pop(client_order_id, None)
             except Exception as error:
                 self._record_callback_failure(error)
 
@@ -2112,7 +2213,9 @@ def build_native_strategy_bridge(
 
         def _release_terminal_order(self, event: Any) -> None:
             try:
-                fill_ledger.release_terminal_order(str(event.client_order_id))
+                client_order_id = str(event.client_order_id)
+                fill_ledger.release_terminal_order(client_order_id)
+                forward_orders_by_client_id.pop(client_order_id, None)
             except Exception as error:
                 self._record_callback_failure(error)
 
@@ -2197,6 +2300,34 @@ def build_native_strategy_bridge(
                         side=intent.side,
                         quantity=intent.quantity,
                     )
+                    pending = pending_forward_account_event
+                    if pending is not None:
+                        if pending.canonical_event.event_id != native_callback_event_id:
+                            raise NautilusRuntimeDataError(
+                                "native forward order escaped its staged canonical event"
+                            )
+                        client_id_value = str(client_order_id)
+                        if client_id_value in forward_orders_by_client_id:
+                            raise NautilusRuntimeDataError(
+                                "native forward client order id was already captured"
+                            )
+                        order_id = content_digest(
+                            {
+                                "schema": "strategy-lab.nautilus-forward-order.v1",
+                                "instance_id": pending.instance_id,
+                                "event_id": pending.canonical_event.event_id,
+                                "ordinal": len(pending.orders),
+                                "component_id": component_id,
+                                "intent": intent,
+                            }
+                        )
+                        shadow_order = ShadowOrder(
+                            order_id=order_id,
+                            event_id=pending.canonical_event.event_id,
+                            intent=intent,
+                        )
+                        pending.orders.append(shadow_order)
+                        forward_orders_by_client_id[client_id_value] = shadow_order
                     self.submit_order(order)
                     submitted_order_count += 1
             return submitted_order_count
@@ -2353,9 +2484,11 @@ def build_native_strategy_bridge(
             ts_init: int,
         ) -> None:
             nonlocal callback_index, current_trigger, invocation_result_count
+            nonlocal native_callback_event_id
             expected_record, following_record = take_native_event_record()
             if expected_record is None:
                 raise NautilusRuntimeDataError("Nautilus emitted an unexpected extra event")
+            native_callback_event_id = str(expected_record["event_id"])
             expected_key = (
                 expected_record["event_type"],
                 expected_record["instrument_id"],
@@ -2625,6 +2758,40 @@ def build_native_strategy_bridge(
         assert invocation_results is not None
         return serialize_invocation_batch_result(invocation_results)
 
+    def take_forward_account_event() -> ForwardAccountEvent:
+        nonlocal pending_forward_account_event
+        pending = pending_forward_account_event
+        if pending is None:
+            raise NautilusRuntimeDataError("no staged forward account event is available")
+        if (
+            callback_index != pending.callback_index + 1
+            or native_callback_event_id != pending.canonical_event.event_id
+        ):
+            raise NautilusRuntimeDataError(
+                "Nautilus did not process the staged canonical event exactly once"
+            )
+        native_account = strategy.portfolio.account(venue=native_venue_id)
+        if native_account is None:
+            raise NautilusRuntimeDataError("native portfolio has no account for its venue")
+        cash_after = _native_cash_balances(native_account)
+        cash_deltas = {
+            currency: cash_after.get(currency, Decimal(0))
+            - pending.cash_before.get(currency, Decimal(0))
+            for currency in sorted(set(pending.cash_before) | set(cash_after))
+        }
+        event = ForwardAccountEvent(
+            instance_id=pending.instance_id,
+            event_id=pending.canonical_event.event_id,
+            event_fingerprint=content_digest(pending.canonical_event),
+            sequence=pending.canonical_event.sequence,
+            event_time=pending.canonical_event.event_time,
+            orders=tuple(pending.orders),
+            fills=tuple(pending.fills),
+            cash_deltas={currency: delta for currency, delta in cash_deltas.items() if delta},
+        )
+        pending_forward_account_event = None
+        return event
+
     def account_equity_trace_output() -> Any:
         if account_equity_trace_writer is None:
             return None
@@ -2643,6 +2810,7 @@ def build_native_strategy_bridge(
         session_close_equity_output=session_close_equity_output,
         rebalance_schedule_output=rebalance_schedule_output,
         stage_forward_event=stage_forward_event,
+        take_forward_account_event=take_forward_account_event,
         input_fingerprint=input_fingerprint,
         input_protocol=input_protocol,
     )

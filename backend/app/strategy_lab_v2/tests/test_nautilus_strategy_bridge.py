@@ -327,6 +327,7 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
 
     from app.strategy_lab_v2.canonical import content_digest
     from app.strategy_lab_v2.contracts import StrategyVersion
+    from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
     from app.strategy_lab_v2.nautilus_native_event_stream import (
         serialize_nautilus_native_event_stream,
     )
@@ -340,7 +341,13 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
         _payload,
     )
     from app.strategy_lab_v2.nautilus_strategy_bridge import build_native_strategy_bridge
-    from app.strategy_lab_v2.sdk import StrategySdkManifest
+    from app.strategy_lab_v2.sdk import (
+        OrderIntent,
+        OrderSide,
+        OrderType,
+        StrategySdkManifest,
+        TimeInForce,
+    )
     from strategy_runtime import (
         InvocationContextStreamSource,
         deserialize_invocation_batch,
@@ -357,8 +364,40 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
             return value
 
     class _FakePortfolio:
+        def __init__(self) -> None:
+            self.cash = Decimal("10000")
+            self.positions: dict[str, Decimal] = {}
+
         def net_position(self, _instrument_id: str) -> None:
-            return None
+            return self.positions.get(_instrument_id)
+
+        def account(self, *, venue: str) -> Any:
+            assert venue
+            return _FakeAccount(self)
+
+    class _FakeCurrency:
+        code = "USD"
+
+    class _FakeMoney:
+        def __init__(self, amount: Decimal) -> None:
+            self.amount = amount
+
+        def as_decimal(self) -> Decimal:
+            return self.amount
+
+    class _FakeAccount:
+        def __init__(self, portfolio: _FakePortfolio) -> None:
+            self.portfolio = portfolio
+
+        def balances_total(self) -> dict[_FakeCurrency, _FakeMoney]:
+            return {_FakeCurrency(): _FakeMoney(self.portfolio.cash)}
+
+    class _FakeOrderFactory:
+        next_id = 0
+
+        def market(self, **_arguments: object) -> Any:
+            self.next_id += 1
+            return SimpleNamespace(client_order_id=f"fake-order-{self.next_id}")
 
     class _FakeStrategyConfig:
         def __new__(cls, *_args: object) -> Any:
@@ -367,6 +406,11 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
     class _FakeStrategy:
         def __init__(self, _config: object) -> None:
             self.portfolio = _FakePortfolio()
+            self.order_factory = _FakeOrderFactory()
+            self.submitted_orders: list[Any] = []
+
+        def submit_order(self, order: Any) -> None:
+            self.submitted_orders.append(order)
 
         def subscribe_quotes(self, _instrument_id: str) -> None:
             return None
@@ -564,9 +608,29 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
     # The immutable bootstrap must be fully consumed before a live event is admitted.
     bridge.result_output()
     live_native_init_time_ns = max(live_event_time_ns + 1, prior_native_init_time_ns + 1)
+    canonical_live_event = CanonicalForwardEvent(
+        live_event_id,
+        live_sequence,
+        live_event_time,
+        live_event_time,
+        content_digest("verified-live-source"),
+    )
+    with pytest.raises(
+        NautilusRuntimeDataError,
+        match="differs from its canonical platform identity",
+    ):
+        bridge.stage_forward_event(
+            {**live_record, "event_id": "altered-live-event"},
+            live_contexts,
+            instance_id="forward-bridge-test",
+            canonical_event=canonical_live_event,
+            native_init_time_ns=live_native_init_time_ns,
+        )
     bridge.stage_forward_event(
         live_record,
         live_contexts,
+        instance_id="forward-bridge-test",
+        canonical_event=canonical_live_event,
         native_init_time_ns=live_native_init_time_ns,
     )
     bridge.strategy.on_quote(
@@ -579,7 +643,47 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
         )
     )
 
+    intent = OrderIntent(
+        instrument_id="EURUSD.SIM",
+        side=OrderSide.BUY,
+        quantity=Decimal("1"),
+        order_type=OrderType.MARKET,
+        time_in_force=TimeInForce.DAY,
+    )
+    bridge.strategy._submit_order_resolution(
+        SimpleNamespace(component_order_intents=(("alpha", (intent,)),))
+    )
+    native_order = bridge.strategy.submitted_orders[-1]
+    bridge.strategy.portfolio.positions["EURUSD.SIM"] = Decimal("1")
+    bridge.strategy.portfolio.cash = Decimal("9989.90")
+    bridge.strategy.on_order_filled(
+        SimpleNamespace(
+            client_order_id=native_order.client_order_id,
+            instrument_id="EURUSD.SIM",
+            last_qty=Decimal("1"),
+            last_px=Decimal("10"),
+            commission=SimpleNamespace(
+                currency=_FakeCurrency(), as_decimal=lambda: Decimal("0.10")
+            ),
+            trade_id="fake-trade-1",
+            ts_event=live_event_time_ns,
+        )
+    )
+
     output = bridge.result_output()
+    account_event = bridge.take_forward_account_event()
+    assert account_event.instance_id == "forward-bridge-test"
+    assert account_event.event_id == live_event_id
+    assert account_event.cash_deltas == {"USD": Decimal("-10.10")}
+    assert len(account_event.orders) == 1
+    assert account_event.orders[0].event_id == live_event_id
+    assert len(account_event.fills) == 1
+    assert account_event.fills[0].order_id == account_event.orders[0].order_id
+    assert account_event.fills[0].quantity == Decimal("1")
+    assert account_event.fills[0].price == Decimal("10")
+    assert account_event.fills[0].fee == Decimal("0.10")
+    with pytest.raises(NautilusRuntimeDataError, match="no staged forward account event"):
+        bridge.take_forward_account_event()
     if retain_invocation_results:
         results = deserialize_invocation_batch_result(output)
         assert [result.status.value for result in results] == [
