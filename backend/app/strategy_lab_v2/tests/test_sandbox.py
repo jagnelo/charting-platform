@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolationRequest
 from app.strategy_lab_v2.runtime_execution import StrategyRuntimeRequest
@@ -17,6 +18,8 @@ from app.strategy_lab_v2.sandbox import (
     sandbox_context_stream_digest,
     sandbox_context_stream_path,
     sandbox_engine_id,
+    sandbox_forward_bootstrap_digest,
+    sandbox_forward_bootstrap_path,
     sandbox_invocation_result_stream_path,
     sandbox_memory_limit_bytes,
     sandbox_native_event_stream_digest,
@@ -247,11 +250,21 @@ def test_sandbox_command_plan_rejects_malformed_values() -> None:
 
 def test_forward_runtime_builder_binds_instance_and_persistent_cli_mode(tmp_path) -> None:
     profile = _profile()
+    bootstrap_path = tmp_path / "forward-bootstrap.json"
+    bootstrap_path.write_text("{}", encoding="utf-8")
+    bootstrap_fingerprint = content_digest("forward bootstrap")
+    native_event_path = tmp_path / "native-events.parquet"
+    native_event_path.write_bytes(b"native event bytes")
+    native_event_digest = artifact_content_digest(native_event_path.read_bytes())
     plan = build_nautilus_forward_runtime_sandbox_command(
         _request(profile),
         profile,
         image_name="nautilus-runtime",
         input_bundle_path=tmp_path / "input.json",
+        forward_bootstrap_path=bootstrap_path,
+        bootstrap_fingerprint=bootstrap_fingerprint,
+        native_event_stream_path=native_event_path,
+        native_event_stream_digest=native_event_digest,
         output_path=tmp_path / "output.json",
         instance_id="forward-instance-1",
         expected_version="2.0.0rc5",
@@ -260,6 +273,18 @@ def test_forward_runtime_builder_binds_instance_and_persistent_cli_mode(tmp_path
 
     command = sandbox_runtime_command(plan)
     assert "--serve-forward" in command
+    assert command[command.index("--bootstrap") + 1] == "/inputs/forward-bootstrap"
+    assert command[command.index("--bootstrap-fingerprint") + 1] == bootstrap_fingerprint
+    assert command[command.index("--native-event-stream") + 1] == "/inputs/native-events"
     instance_index = command.index("--instance-id")
     assert command[instance_index + 1] == "forward-instance-1"
     assert command[command.index("--expected-version") + 1] == "2.0.0rc5"
+    assert sandbox_forward_bootstrap_path(plan) == bootstrap_path
+    assert sandbox_forward_bootstrap_digest(plan) == bootstrap_fingerprint
+    assert (
+        f"--mount=type=bind,src={bootstrap_path},dst=/inputs/forward-bootstrap,readonly"
+        in plan.argv
+    )
+    assert (
+        f"--mount=type=bind,src={native_event_path},dst=/inputs/native-events,readonly" in plan.argv
+    )

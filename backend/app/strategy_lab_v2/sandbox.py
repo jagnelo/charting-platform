@@ -40,6 +40,7 @@ _HARDENED_PIDS_LIMIT = "--pids-limit=256"
 _ENGINE_ENV_PREFIX = "--env=STRATEGY_ENGINE_ID="
 _CONTEXT_STREAM_ENV_PREFIX = "--env=STRATEGY_CONTEXT_STREAM_DIGEST="
 _NATIVE_EVENT_STREAM_ENV_PREFIX = "--env=STRATEGY_NATIVE_EVENT_STREAM_DIGEST="
+_FORWARD_BOOTSTRAP_ENV_PREFIX = "--env=STRATEGY_FORWARD_BOOTSTRAP_DIGEST="
 NAUTILUS_RUNTIME_CLI_MODULE = "app.strategy_lab_v2.nautilus_runtime_cli"
 
 
@@ -132,11 +133,14 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
     _validate_mount(argv[output_mount_index], "/outputs/result", "rw")
     context_mount = _optional_mount_index(argv, "/inputs/contexts")
     native_event_mount = _optional_mount_index(argv, "/inputs/native-events")
+    forward_bootstrap_mount = _optional_mount_index(argv, "/inputs/forward-bootstrap")
     invocation_result_mount = _optional_mount_index(argv, "/outputs/invocations")
     account_equity_trace_mount = _optional_mount_index(argv, "/outputs/account-equity")
     native_reports_mount = _optional_mount_index(argv, "/outputs/native-reports")
+    serves_forward = "--serve-forward" in argv
     context_digest = _optional_argument_index(argv, _CONTEXT_STREAM_ENV_PREFIX)
     native_event_digest = _optional_argument_index(argv, _NATIVE_EVENT_STREAM_ENV_PREFIX)
+    forward_bootstrap_digest = _optional_argument_index(argv, _FORWARD_BOOTSTRAP_ENV_PREFIX)
     if (
         (context_mount is None) != (context_digest is None)
         or (context_mount is None) != (invocation_result_mount is None)
@@ -157,7 +161,7 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
     if (native_event_mount is None) != (native_event_digest is None):
         raise ValueError("sandbox native event stream mount and digest must be bound together")
     if native_event_mount is not None:
-        if context_mount is None:
+        if context_mount is None and not serves_forward:
             raise ValueError("sandbox native event stream requires strategy context streaming")
         if native_event_digest is None:
             raise ValueError("sandbox native event stream digest is required")
@@ -165,6 +169,20 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
         require_sha256_digest(
             argv[native_event_digest].removeprefix(_NATIVE_EVENT_STREAM_ENV_PREFIX),
             field_name="native event stream digest",
+        )
+    if serves_forward and native_event_mount is None:
+        raise ValueError("forward runtime command requires its immutable native event stream")
+    if (forward_bootstrap_mount is None) != (forward_bootstrap_digest is None):
+        raise ValueError("forward bootstrap mount and digest must be bound together")
+    if serves_forward != (forward_bootstrap_mount is not None):
+        raise ValueError("forward runtime command requires its authenticated bootstrap mount")
+    if forward_bootstrap_mount is not None:
+        _validate_mount(argv[forward_bootstrap_mount], "/inputs/forward-bootstrap", "readonly")
+        if forward_bootstrap_digest is None:
+            raise ValueError("forward bootstrap digest is required")
+        require_sha256_digest(
+            argv[forward_bootstrap_digest].removeprefix(_FORWARD_BOOTSTRAP_ENV_PREFIX),
+            field_name="forward bootstrap digest",
         )
     if invocation_result_mount is not None:
         _validate_mount(argv[invocation_result_mount], "/outputs/invocations", "rw")
@@ -190,6 +208,8 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
     image_index = _image_index(argv)
     engine_index = _optional_argument_index(argv, _ENGINE_ENV_PREFIX)
     expected_options = [argv[input_mount_index]]
+    if forward_bootstrap_mount is not None:
+        expected_options.append(argv[forward_bootstrap_mount])
     if context_mount is not None:
         expected_options.append(argv[context_mount])
     if native_event_mount is not None:
@@ -204,6 +224,8 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
             argv[input_digest_index],
         ]
     )
+    if forward_bootstrap_digest is not None:
+        expected_options.append(argv[forward_bootstrap_digest])
     if context_digest is not None:
         expected_options.append(argv[context_digest])
     if native_event_digest is not None:
@@ -348,6 +370,30 @@ def sandbox_native_event_stream_digest(plan: SandboxCommandPlan) -> str | None:
     if index is None:
         return None
     return plan.argv[index].removeprefix(_NATIVE_EVENT_STREAM_ENV_PREFIX)
+
+
+def sandbox_forward_bootstrap_path(plan: SandboxCommandPlan) -> Path | None:
+    """Return the host path bound to the read-only forward bootstrap mount."""
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    index = _optional_mount_index(plan.argv, "/inputs/forward-bootstrap")
+    if index is None:
+        return None
+    return Path(_mount_source(plan.argv[index], "/inputs/forward-bootstrap", "readonly"))
+
+
+def sandbox_forward_bootstrap_digest(plan: SandboxCommandPlan) -> str | None:
+    """Return the optional forward bootstrap fingerprint bound to a plan."""
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
+    index = _optional_argument_index(plan.argv, _FORWARD_BOOTSTRAP_ENV_PREFIX)
+    if index is None:
+        return None
+    return plan.argv[index].removeprefix(_FORWARD_BOOTSTRAP_ENV_PREFIX)
 
 
 def sandbox_invocation_result_stream_path(plan: SandboxCommandPlan) -> Path | None:
@@ -520,6 +566,7 @@ def _image_index(argv: tuple[str, ...]) -> int:
     prefixes = (
         "--env=STRATEGY_ATTEMPT_ID=",
         "--env=STRATEGY_INPUT_BUNDLE_DIGEST=",
+        _FORWARD_BOOTSTRAP_ENV_PREFIX,
         _CONTEXT_STREAM_ENV_PREFIX,
         _NATIVE_EVENT_STREAM_ENV_PREFIX,
         _ENGINE_ENV_PREFIX,
@@ -570,6 +617,8 @@ def build_sandbox_command(
     invocation_result_stream_path: str | os.PathLike[str] | None = None,
     account_equity_trace_path: str | os.PathLike[str] | None = None,
     native_reports_path: str | os.PathLike[str] | None = None,
+    forward_bootstrap_path: str | os.PathLike[str] | None = None,
+    forward_bootstrap_digest: str | None = None,
 ) -> SandboxCommandPlan:
     """Build a shell-free Docker argv after enforcing the runtime preflight."""
 
@@ -603,6 +652,17 @@ def build_sandbox_command(
 
     input_path = _mount_path(input_bundle_path, "input_bundle_path")
     result_path = _mount_path(output_path, "output_path")
+    if (forward_bootstrap_path is None) != (forward_bootstrap_digest is None):
+        raise ValueError("forward bootstrap path and digest must be provided together")
+    forward_bootstrap_mount_path = (
+        None
+        if forward_bootstrap_path is None
+        else _mount_path(forward_bootstrap_path, "forward_bootstrap_path")
+    )
+    if forward_bootstrap_digest is not None:
+        require_sha256_digest(forward_bootstrap_digest, field_name="forward_bootstrap_digest")
+    if ("--serve-forward" in command_argv) != (forward_bootstrap_mount_path is not None):
+        raise ValueError("forward runtime command requires its authenticated bootstrap mount")
     if (context_stream_path is None) != (context_stream_digest is None):
         raise ValueError("context stream path and digest must be provided together")
     if (native_event_stream_path is None) != (native_event_stream_digest is None):
@@ -613,7 +673,11 @@ def build_sandbox_command(
         raise ValueError("context and account-equity trace paths must be provided together")
     if (context_stream_path is None) != (native_reports_path is None):
         raise ValueError("context and native-report paths must be provided together")
-    if native_event_stream_path is not None and context_stream_path is None:
+    if (
+        native_event_stream_path is not None
+        and context_stream_path is None
+        and "--serve-forward" not in command_argv
+    ):
         raise ValueError("native event streaming requires strategy context streaming")
     context_path = (
         None
@@ -667,6 +731,13 @@ def build_sandbox_command(
         f"--mount=type=bind,src={input_path},dst=/inputs/bundle,readonly",
         *(
             ()
+            if forward_bootstrap_mount_path is None
+            else (
+                f"--mount=type=bind,src={forward_bootstrap_mount_path},dst=/inputs/forward-bootstrap,readonly",
+            )
+        ),
+        *(
+            ()
             if context_path is None
             else (f"--mount=type=bind,src={context_path},dst=/inputs/contexts,readonly",)
         ),
@@ -695,6 +766,11 @@ def build_sandbox_command(
         ),
         f"--env=STRATEGY_ATTEMPT_ID={request.attempt_id}",
         f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={request.input_bundle_digest}",
+        *(
+            ()
+            if forward_bootstrap_digest is None
+            else (f"{_FORWARD_BOOTSTRAP_ENV_PREFIX}{forward_bootstrap_digest}",)
+        ),
         *(
             ()
             if context_stream_digest is None
@@ -732,6 +808,8 @@ def build_nautilus_sandbox_command(
     invocation_result_stream_path: str | os.PathLike[str] | None = None,
     account_equity_trace_path: str | os.PathLike[str] | None = None,
     native_reports_path: str | os.PathLike[str] | None = None,
+    forward_bootstrap_path: str | os.PathLike[str] | None = None,
+    forward_bootstrap_digest: str | None = None,
 ) -> SandboxCommandPlan:
     """Build a hardened command explicitly bound to the Nautilus engine."""
 
@@ -750,6 +828,8 @@ def build_nautilus_sandbox_command(
         invocation_result_stream_path=invocation_result_stream_path,
         account_equity_trace_path=account_equity_trace_path,
         native_reports_path=native_reports_path,
+        forward_bootstrap_path=forward_bootstrap_path,
+        forward_bootstrap_digest=forward_bootstrap_digest,
     )
     image_index = _image_index(plan.argv)
     argv = (*plan.argv[:image_index], f"{_ENGINE_ENV_PREFIX}nautilus", *plan.argv[image_index:])
@@ -807,12 +887,16 @@ def nautilus_forward_runtime_command(
     expected_version: str,
     snapshot_fingerprint: str,
     max_input_bytes: int,
+    bootstrap_fingerprint: str,
+    native_event_stream_digest: str,
 ) -> tuple[str, ...]:
     """Build the fixed CLI invocation for one persistent forward instance."""
 
     _safe_text(instance_id, "instance_id")
     _safe_text(expected_version, "expected_version")
     require_sha256_digest(snapshot_fingerprint, field_name="snapshot_fingerprint")
+    require_sha256_digest(bootstrap_fingerprint, field_name="bootstrap_fingerprint")
+    require_sha256_digest(native_event_stream_digest, field_name="native_event_stream_digest")
     if (
         not isinstance(max_input_bytes, int)
         or isinstance(max_input_bytes, bool)
@@ -834,6 +918,12 @@ def nautilus_forward_runtime_command(
         "--max-input-bytes",
         str(max_input_bytes),
         "--serve-forward",
+        "--bootstrap",
+        "/inputs/forward-bootstrap",
+        "--bootstrap-fingerprint",
+        bootstrap_fingerprint,
+        "--native-event-stream",
+        "/inputs/native-events",
         "--instance-id",
         instance_id,
     )
@@ -845,6 +935,10 @@ def build_nautilus_forward_runtime_sandbox_command(
     *,
     image_name: str,
     input_bundle_path: str | os.PathLike[str],
+    forward_bootstrap_path: str | os.PathLike[str],
+    bootstrap_fingerprint: str,
+    native_event_stream_path: str | os.PathLike[str],
+    native_event_stream_digest: str,
     output_path: str | os.PathLike[str],
     instance_id: str,
     expected_version: str,
@@ -858,11 +952,17 @@ def build_nautilus_forward_runtime_sandbox_command(
         image_name=image_name,
         input_bundle_path=input_bundle_path,
         output_path=output_path,
+        forward_bootstrap_path=forward_bootstrap_path,
+        forward_bootstrap_digest=bootstrap_fingerprint,
+        native_event_stream_path=native_event_stream_path,
+        native_event_stream_digest=native_event_stream_digest,
         command=nautilus_forward_runtime_command(
             instance_id=instance_id,
             expected_version=expected_version,
             snapshot_fingerprint=snapshot_fingerprint,
             max_input_bytes=max(1, profile.memory_limit_bytes // 8),
+            bootstrap_fingerprint=bootstrap_fingerprint,
+            native_event_stream_digest=native_event_stream_digest,
         ),
     )
 
@@ -885,6 +985,8 @@ __all__ = [
     "sandbox_memory_limit_bytes",
     "sandbox_native_event_stream_digest",
     "sandbox_native_event_stream_path",
+    "sandbox_forward_bootstrap_digest",
+    "sandbox_forward_bootstrap_path",
     "sandbox_native_reports_path",
     "sandbox_output_path",
     "sandbox_input_path",

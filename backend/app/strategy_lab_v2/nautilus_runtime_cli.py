@@ -13,6 +13,10 @@ from typing import Any, BinaryIO
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.nautilus_calendar_wire import session_calendar_from_wire
+from app.strategy_lab_v2.nautilus_forward_bootstrap import (
+    MAX_NAUTILUS_FORWARD_BOOTSTRAP_BYTES,
+    NautilusForwardRuntimeBootstrap,
+)
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     MAX_NAUTILUS_NATIVE_EVENT_STREAM_BYTES,
 )
@@ -140,6 +144,87 @@ def _read_bundle(path_value: str, *, max_bytes: int) -> Mapping[str, Any]:
     if not isinstance(expected_attempt, str) or engine_attempt != expected_attempt:
         raise ValueError("runtime bundle attempt differs from the sandbox request")
     return decoded
+
+
+def _verify_forward_startup(
+    *,
+    bootstrap_path: str,
+    bootstrap_fingerprint: str,
+    input_path: str,
+    native_event_stream_path: str,
+    expected_instance_id: str,
+    expected_snapshot_fingerprint: str,
+    max_input_bytes: int,
+) -> tuple[NautilusForwardRuntimeBootstrap, Mapping[str, Any]]:
+    """Verify all immutable artifacts needed before opening a forward process."""
+
+    require_sha256_digest(bootstrap_fingerprint, field_name="bootstrap_fingerprint")
+    if os.environ.get("STRATEGY_FORWARD_BOOTSTRAP_DIGEST") != bootstrap_fingerprint:
+        raise ValueError("forward bootstrap fingerprint differs from the sandbox request")
+    descriptor = os.open(
+        Path(bootstrap_path),
+        os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0),
+    )
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise ValueError("forward bootstrap input must be a regular file")
+        if metadata.st_size <= 0 or metadata.st_size > MAX_NAUTILUS_FORWARD_BOOTSTRAP_BYTES:
+            raise ValueError("forward bootstrap input is empty or exceeds its byte limit")
+        encoded = bytearray()
+        while chunk := os.read(descriptor, 65_536):
+            encoded.extend(chunk)
+            if len(encoded) > MAX_NAUTILUS_FORWARD_BOOTSTRAP_BYTES:
+                raise ValueError("forward bootstrap input exceeds its byte limit")
+    finally:
+        os.close(descriptor)
+    bootstrap = NautilusForwardRuntimeBootstrap.from_json_bytes(
+        bytes(encoded),
+        expected_fingerprint=bootstrap_fingerprint,
+    )
+    if bootstrap.instance_id != expected_instance_id:
+        raise ValueError("forward bootstrap belongs to another instance")
+    require_sha256_digest(
+        expected_snapshot_fingerprint,
+        field_name="expected_snapshot_fingerprint",
+    )
+    if bootstrap.snapshot_fingerprint != expected_snapshot_fingerprint:
+        raise ValueError("forward bootstrap snapshot differs from the execution plan")
+
+    bundle = _read_bundle(input_path, max_bytes=max_input_bytes)
+    expected_bundle_digest = os.environ.get("STRATEGY_INPUT_BUNDLE_DIGEST")
+    if bootstrap.runtime_input_bundle_digest != expected_bundle_digest:
+        raise ValueError("forward bootstrap runtime bundle differs from its artifact binding")
+    engine_input = bundle["engine_input"]
+    if engine_input.get("data_snapshot_fingerprint") != bootstrap.snapshot_fingerprint:
+        raise ValueError("forward runtime bundle snapshot differs from its bootstrap")
+    native_digest, native_length, _tape_fingerprint, adapter_version, _event_count = (
+        _native_event_stream_reference(bundle)
+    )
+    if (
+        native_digest != bootstrap.native_event_stream_digest
+        or adapter_version != bootstrap.native_event_stream_adapter_version
+        or os.environ.get("STRATEGY_NATIVE_EVENT_STREAM_DIGEST") != native_digest
+    ):
+        raise ValueError("forward bootstrap native event stream differs from its runtime bundle")
+    native_descriptor = os.open(
+        Path(native_event_stream_path),
+        os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0),
+    )
+    try:
+        metadata = os.fstat(native_descriptor)
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_size != native_length:
+            raise ValueError("forward native event input differs from its artifact length")
+        digest = hashlib.sha256()
+        total = 0
+        while chunk := os.read(native_descriptor, 65_536):
+            digest.update(chunk)
+            total += len(chunk)
+    finally:
+        os.close(native_descriptor)
+    if total != native_length or f"sha256:{digest.hexdigest()}" != native_digest:
+        raise ValueError("forward native event input differs from its artifact digest")
+    return bootstrap, bundle
 
 
 def _context_stream_reference(
