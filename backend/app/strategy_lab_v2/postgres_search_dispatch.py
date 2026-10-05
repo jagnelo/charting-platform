@@ -121,7 +121,7 @@ class PostgresSearchDispatchSchema:
                 created_at TEXT NOT NULL,
                 dispatch_fingerprint TEXT NOT NULL,
                 PRIMARY KEY (owner_id, idempotency_key),
-                UNIQUE (owner_id, experiment_fingerprint, candidate_index),
+            UNIQUE (owner_id, experiment_fingerprint, candidate_index, attempt_id),
                 UNIQUE (owner_id, request_fingerprint)
             )
             """,
@@ -191,8 +191,9 @@ class PostgresSearchDispatchAdapter:
         principal: Any,
         experiment_fingerprint: str,
         candidate_index: int,
+        attempt_id: str | None = None,
     ) -> SearchDispatchRecord | None:
-        """Load one owner-scoped dispatch identity for a worker or recovery task."""
+        """Load a candidate dispatch, optionally selecting one retry attempt."""
 
         owner_id = _principal_id(principal)
         _validate_digest(experiment_fingerprint, "experiment_fingerprint")
@@ -202,18 +203,24 @@ class PostgresSearchDispatchAdapter:
             or candidate_index < 0
         ):
             raise ValueError("candidate_index must be a non-negative integer")
+        if attempt_id is not None and (not isinstance(attempt_id, str) or not attempt_id.strip()):
+            raise ValueError("attempt_id must be non-empty when provided")
+        attempt_clause = " AND attempt_id = :attempt_id" if attempt_id is not None else ""
+        parameters: dict[str, Any] = {
+            "owner_id": owner_id,
+            "experiment_fingerprint": experiment_fingerprint,
+            "candidate_index": candidate_index,
+        }
+        if attempt_id is not None:
+            parameters["attempt_id"] = attempt_id
         session: AsyncSessionLike = self._session_factory()
         async with session:
             async with session.begin():
                 rows = await self._select_dispatch_rows(
                     session,
                     "WHERE owner_id = :owner_id AND experiment_fingerprint = :experiment_fingerprint "
-                    "AND candidate_index = :candidate_index",
-                    {
-                        "owner_id": owner_id,
-                        "experiment_fingerprint": experiment_fingerprint,
-                        "candidate_index": candidate_index,
-                    },
+                    f"AND candidate_index = :candidate_index{attempt_clause}",
+                    parameters,
                 )
                 return _single_dispatch_record(rows, owner_id=owner_id)
 
@@ -234,6 +241,15 @@ class PostgresSearchDispatchAdapter:
                 if len(rows) > 1:
                     raise ValueError("PostgreSQL search dispatch identity is ambiguous")
                 return _single_dispatch_record(rows)
+
+    async def load_admission_ledger(self, *, principal: Any) -> ExecutionAdmissionLedger:
+        """Load and authenticate an owner's immutable worker-admission receipts."""
+
+        owner_id = _principal_id(principal)
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                return await self._load_admission_ledger(session, owner_id)
 
     async def replay_idempotency(
         self,
@@ -286,6 +302,7 @@ class PostgresSearchDispatchAdapter:
         dispatch_request: DispatchRequest,
         payload: Mapping[str, Any],
         now: datetime,
+        available_at: datetime | None = None,
     ) -> SearchDispatchResolution:
         """Resolve and persist one candidate dispatch in one SQL transaction."""
 
@@ -327,6 +344,17 @@ class PostgresSearchDispatchAdapter:
         _validate_digest(reservation_id, "reservation_id")
         if now.tzinfo is None or now.utcoffset() is None:
             raise ValueError("dispatch time must be timezone-aware")
+        if available_at is None:
+            available_at = dispatch_request.created_at
+        if (
+            not isinstance(available_at, datetime)
+            or available_at.tzinfo is None
+            or available_at.utcoffset() is None
+        ):
+            raise ValueError("dispatch available_at must be timezone-aware")
+        available_at = available_at.astimezone(UTC)
+        if available_at < dispatch_request.created_at:
+            raise ValueError("dispatch available_at cannot precede its creation time")
 
         session: AsyncSessionLike = self._session_factory()
         async with session:
@@ -424,6 +452,7 @@ class PostgresSearchDispatchAdapter:
                     owner_id,
                     candidate_index=candidate_index,
                     resolution=resolution,
+                    available_at=available_at,
                 )
                 return resolution
 
@@ -434,6 +463,7 @@ class PostgresSearchDispatchAdapter:
         *,
         candidate_index: int,
         resolution: SearchDispatchResolution,
+        available_at: datetime,
     ) -> None:
         if resolution.dispatch_resolution is None or resolution.envelope is None:
             raise ValueError("enqueued search dispatch omitted dispatch evidence")
@@ -485,6 +515,7 @@ class PostgresSearchDispatchAdapter:
             resolution.search_state.experiment_fingerprint,
             candidate_index,
             resolution.envelope.request,
+            available_at=available_at,
         )
         await self._insert_outbox(session, outbox)
 
@@ -832,7 +863,10 @@ def _search_outbox_message(
     experiment_fingerprint: str,
     candidate_index: int,
     request: DispatchRequest,
+    *,
+    available_at: datetime | None = None,
 ) -> OutboxMessage:
+    scheduled_at = request.created_at if available_at is None else available_at
     event_id = content_digest(
         {
             "owner_id": owner_id,
@@ -858,7 +892,7 @@ def _search_outbox_message(
         topic=request.queue_name,
         payload_digest=request.payload_digest,
         created_at=request.created_at,
-        available_at=request.created_at,
+        available_at=scheduled_at,
     )
 
 

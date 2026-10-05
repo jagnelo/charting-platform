@@ -310,10 +310,15 @@ services:
       STRATEGY_LAB_V2_MIGRATION_TARGET: ${STRATEGY_LAB_V2_MIGRATION_TARGET:-head}
       STRATEGY_LAB_V2_QUEUE: ${STRATEGY_LAB_V2_QUEUE:-backtest}
       STRATEGY_LAB_V2_GROUP: ${STRATEGY_LAB_V2_GROUP:-strategy-lab-v2}
+      # Required when the search-dispatch callback factory is selected; recovery
+      # schedules retries through the same local authenticated preparation API.
+      STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH: ${STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH:-/run/strategy-lab-v2/preparation.sock}
+      STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN: ${STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN:-}
       STRATEGY_LAB_V2_PROCESS_TIMEOUT_SECONDS: ${STRATEGY_LAB_V2_PROCESS_TIMEOUT_SECONDS:-300}
       STRATEGY_LAB_V2_DOCKER_BINARY: ${STRATEGY_LAB_V2_DOCKER_BINARY:-docker}
     volumes:
       - strategy_lab_artifacts:/strategy-lab-artifacts
+      - strategy_lab_v2_preparation_socket:/run/strategy-lab-v2
       - type: bind
         source: ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}
         target: /var/run/docker.sock

@@ -26,6 +26,8 @@ from app.strategy_lab_v2.lease_observations import (
     LeaseObservationResolution,
     LeaseObservationState,
 )
+from app.strategy_lab_v2.lifecycle import AttemptLeaseStatus
+from app.strategy_lab_v2.recovery import RecoveryReason
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.worker_consumer import (
     RedisDispatchWorkerScheduler,
@@ -47,6 +49,8 @@ WorkerCompletionWriter = Callable[
 ]
 WorkerLeaseHeartbeatWriter = Callable[[LeaseObservation], Awaitable[LeaseObservationResolution]]
 WorkerTerminalWriter = Callable[["WorkerCompletionContext"], Awaitable[WorkerHandleResult]]
+WorkerRecoveryWriter = Callable[["WorkerRecoveryContext"], Awaitable[WorkerHandleResult]]
+WorkerLeaseStateReader = Callable[[WorkerExecutionRequest], Awaitable[LeaseObservationState | None]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +81,31 @@ class WorkerCompletionContext:
 
 
 @dataclass(frozen=True, slots=True)
+class WorkerRecoveryContext:
+    """Authenticated execution coordinates for one infrastructure recovery."""
+
+    entry: RedisStreamEntry
+    request: WorkerExecutionRequest
+    reason: RecoveryReason
+    observed_at: datetime
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.entry, RedisStreamEntry):
+            raise TypeError("entry must be a RedisStreamEntry")
+        if not isinstance(self.request, WorkerExecutionRequest):
+            raise TypeError("request must be a WorkerExecutionRequest")
+        if not isinstance(self.reason, RecoveryReason):
+            raise TypeError("reason must be a RecoveryReason")
+        if self.observed_at.tzinfo is None or self.observed_at.utcoffset() is None:
+            raise ValueError("observed_at must be timezone-aware")
+        object.__setattr__(self, "observed_at", self.observed_at.astimezone(UTC))
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
 class WorkerServiceCallbacks:
     """Application callbacks used by one dedicated worker service."""
 
@@ -84,6 +113,8 @@ class WorkerServiceCallbacks:
     completion_writer: WorkerCompletionWriter
     heartbeat_writer: WorkerLeaseHeartbeatWriter | None = None
     terminal_writer: WorkerTerminalWriter | None = None
+    recovery_writer: WorkerRecoveryWriter | None = None
+    lease_state_reader: WorkerLeaseStateReader | None = None
 
     def __post_init__(self) -> None:
         if not callable(self.materializer):
@@ -94,6 +125,10 @@ class WorkerServiceCallbacks:
             raise TypeError("heartbeat_writer must be callable")
         if self.terminal_writer is not None and not callable(self.terminal_writer):
             raise TypeError("terminal_writer must be callable")
+        if self.recovery_writer is not None and not callable(self.recovery_writer):
+            raise TypeError("recovery_writer must be callable")
+        if self.lease_state_reader is not None and not callable(self.lease_state_reader):
+            raise TypeError("lease_state_reader must be callable")
 
 
 class DedicatedStrategyWorkerService:
@@ -113,6 +148,8 @@ class DedicatedStrategyWorkerService:
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         heartbeat_sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
         terminal_writer: WorkerTerminalWriter | None = None,
+        recovery_writer: WorkerRecoveryWriter | None = None,
+        lease_state_reader: WorkerLeaseStateReader | None = None,
     ) -> None:
         if not isinstance(scheduler, RedisDispatchWorkerScheduler):
             raise TypeError("scheduler must be a RedisDispatchWorkerScheduler")
@@ -130,6 +167,10 @@ class DedicatedStrategyWorkerService:
             raise TypeError("heartbeat_writer must be callable")
         if terminal_writer is not None and not callable(terminal_writer):
             raise TypeError("terminal_writer must be callable")
+        if recovery_writer is not None and not callable(recovery_writer):
+            raise TypeError("recovery_writer must be callable")
+        if lease_state_reader is not None and not callable(lease_state_reader):
+            raise TypeError("lease_state_reader must be callable")
         for name, value in (
             ("heartbeat_interval_seconds", heartbeat_interval_seconds),
             ("heartbeat_extension_seconds", heartbeat_extension_seconds),
@@ -156,6 +197,8 @@ class DedicatedStrategyWorkerService:
         self._clock = clock
         self._heartbeat_sleep = heartbeat_sleep
         self._terminal_writer = terminal_writer
+        self._recovery_writer = recovery_writer
+        self._lease_state_reader = lease_state_reader
 
     @property
     def scheduler(self) -> RedisDispatchWorkerScheduler:
@@ -165,9 +208,7 @@ class DedicatedStrategyWorkerService:
     def process_executor(self) -> SerialWorkerProcessExecutor:
         return self._process_executor
 
-    async def handle(
-        self, entry: RedisStreamEntry, payload: DispatchPayload
-    ) -> WorkerHandleResult:
+    async def handle(self, entry: RedisStreamEntry, payload: DispatchPayload) -> WorkerHandleResult:
         """Materialize and execute one entry, then ask persistence for a receipt."""
 
         try:
@@ -184,6 +225,9 @@ class DedicatedStrategyWorkerService:
                 WorkerHandleDecision.REJECT,
                 rejection_reason="worker handoff materializer returned an invalid request",
             )
+        lease_preflight = await self._lease_preflight(entry, request)
+        if lease_preflight is not None:
+            return lease_preflight
         heartbeat_task: asyncio.Task[None] | None = None
         heartbeat_failure: list[str] = []
         if self._heartbeat_writer is not None:
@@ -206,17 +250,19 @@ class DedicatedStrategyWorkerService:
                             await execution_task
                         except asyncio.CancelledError:
                             pass
-                        return WorkerHandleResult(
-                            entry.fingerprint,
-                            WorkerHandleDecision.RETRY,
-                            rejection_reason=heartbeat_failure[0],
+                        return await self._recover_or_retry(
+                            entry,
+                            request,
+                            RecoveryReason.WORKER_CRASH,
+                            heartbeat_failure[0],
                         )
                     result = await execution_task
             except Exception as error:  # pragma: no cover - process adapter boundary
-                return WorkerHandleResult(
-                    entry.fingerprint,
-                    WorkerHandleDecision.RETRY,
-                    rejection_reason=f"worker process execution failed: {type(error).__name__}",
+                return await self._recover_or_retry(
+                    entry,
+                    request,
+                    RecoveryReason.WORKER_CRASH,
+                    f"worker process execution failed: {type(error).__name__}",
                 )
         finally:
             if not execution_task.done():
@@ -232,10 +278,18 @@ class DedicatedStrategyWorkerService:
                 except asyncio.CancelledError:
                     pass
         if heartbeat_failure:
-            return WorkerHandleResult(
-                entry.fingerprint,
-                WorkerHandleDecision.RETRY,
-                rejection_reason=heartbeat_failure[0],
+            return await self._recover_or_retry(
+                entry,
+                request,
+                RecoveryReason.WORKER_CRASH,
+                heartbeat_failure[0],
+            )
+        if result.decision.value != "completed":
+            return await self._recover_or_retry(
+                entry,
+                request,
+                RecoveryReason.WORKER_CRASH,
+                f"worker process ended with {result.decision.value}",
             )
         if self._terminal_writer is not None:
             try:
@@ -258,6 +312,115 @@ class DedicatedStrategyWorkerService:
                 rejection_reason="completion receipt references a different entry",
             )
         return receipt
+
+    async def _lease_preflight(
+        self,
+        entry: RedisStreamEntry,
+        request: WorkerExecutionRequest,
+    ) -> WorkerHandleResult | None:
+        """Prevent duplicate/stale dispatches from running under old leases."""
+
+        if self._lease_state_reader is None:
+            return None
+        try:
+            state = await self._lease_state_reader(request)
+        except Exception as error:  # pragma: no cover - persistence boundary
+            return WorkerHandleResult(
+                entry.fingerprint,
+                WorkerHandleDecision.RETRY,
+                rejection_reason=f"worker lease preflight failed: {type(error).__name__}",
+            )
+        if not isinstance(state, LeaseObservationState):
+            return WorkerHandleResult(
+                entry.fingerprint,
+                WorkerHandleDecision.RETRY,
+                rejection_reason="persisted worker lease is unavailable",
+            )
+        if (
+            state.lease.lease_id != request.lease_state.lease.lease_id
+            or state.lease.attempt_id != entry.attempt_id
+            or state.lease.worker_id != request.admission.worker_id
+        ):
+            return WorkerHandleResult(
+                entry.fingerprint,
+                WorkerHandleDecision.RETRY,
+                rejection_reason="persisted worker lease differs from its authenticated dispatch",
+            )
+        now = self._clock()
+        if now.tzinfo is None or now.utcoffset() is None:
+            return WorkerHandleResult(
+                entry.fingerprint,
+                WorkerHandleDecision.RETRY,
+                rejection_reason="worker lease preflight clock was not timezone-aware",
+            )
+        status = state.lease.status_at(now)
+        if status is AttemptLeaseStatus.EXPIRED:
+            return await self._recover_or_retry(
+                entry,
+                request,
+                RecoveryReason.LEASE_EXPIRED,
+                "persisted worker lease expired before execution",
+            )
+        if status is AttemptLeaseStatus.RELEASED:
+            return await self._recover_or_retry(
+                entry,
+                request,
+                RecoveryReason.WORKER_CRASH,
+                "persisted worker lease was already released",
+            )
+        if state != request.lease_state:
+            return WorkerHandleResult(
+                entry.fingerprint,
+                WorkerHandleDecision.RETRY,
+                rejection_reason="worker lease advanced after this dispatch was materialized",
+            )
+        return None
+
+    async def _recover_or_retry(
+        self,
+        entry: RedisStreamEntry,
+        request: WorkerExecutionRequest,
+        reason: RecoveryReason,
+        fallback_reason: str,
+    ) -> WorkerHandleResult:
+        """Use durable recovery when configured; otherwise keep the entry pending."""
+
+        if self._recovery_writer is None:
+            return WorkerHandleResult(
+                entry.fingerprint,
+                WorkerHandleDecision.RETRY,
+                rejection_reason=fallback_reason,
+            )
+        observed_at = self._clock()
+        if observed_at.tzinfo is None or observed_at.utcoffset() is None:
+            return WorkerHandleResult(
+                entry.fingerprint,
+                WorkerHandleDecision.RETRY,
+                rejection_reason="worker recovery clock was not timezone-aware",
+            )
+        try:
+            result = await self._recovery_writer(
+                WorkerRecoveryContext(entry, request, reason, observed_at)
+            )
+        except Exception as error:  # pragma: no cover - persistence boundary
+            return WorkerHandleResult(
+                entry.fingerprint,
+                WorkerHandleDecision.RETRY,
+                rejection_reason=f"worker recovery failed: {type(error).__name__}",
+            )
+        if not isinstance(result, WorkerHandleResult):
+            return WorkerHandleResult(
+                entry.fingerprint,
+                WorkerHandleDecision.RETRY,
+                rejection_reason="worker recovery returned an invalid receipt",
+            )
+        if result.entry_fingerprint != entry.fingerprint:
+            return WorkerHandleResult(
+                entry.fingerprint,
+                WorkerHandleDecision.RETRY,
+                rejection_reason="worker recovery receipt references a different entry",
+            )
+        return result
 
     async def run(
         self,
@@ -326,10 +489,7 @@ class DedicatedStrategyWorkerService:
                 LeaseObservationDecision.APPLY,
                 LeaseObservationDecision.REPLAY_EXISTING,
             }:
-                failures.append(
-                    "worker lease heartbeat rejected: "
-                    + resolution.decision.value
-                )
+                failures.append("worker lease heartbeat rejected: " + resolution.decision.value)
                 return
             if resolution.state.last_sequence < sequence:
                 failures.append("worker lease heartbeat returned stale lease state")
@@ -342,7 +502,10 @@ __all__ = [
     "WorkerCompletionWriter",
     "WorkerHandoffMaterializer",
     "WorkerLeaseHeartbeatWriter",
+    "WorkerLeaseStateReader",
     "WorkerTerminalWriter",
     "WorkerCompletionContext",
+    "WorkerRecoveryContext",
+    "WorkerRecoveryWriter",
     "WorkerServiceCallbacks",
 ]

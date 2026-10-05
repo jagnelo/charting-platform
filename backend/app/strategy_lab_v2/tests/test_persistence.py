@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 
@@ -14,6 +14,7 @@ from app.strategy_lab_v2.capability_summary import (
     CapabilitySummary,
     CapabilitySummaryDecision,
 )
+from app.strategy_lab_v2.contracts import AttemptState, RunAttempt
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.legacy import (
     LegacyCompatibilityAssessment,
@@ -41,6 +42,11 @@ from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAd
 from app.strategy_lab_v2.postgres_worker_recovery import PostgresWorkerRecoveryAdapter
 from app.strategy_lab_v2.progress import new_progress_state
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
+from app.strategy_lab_v2.storage import (
+    StorageTransactionDecision,
+    StoredAggregate,
+    resolve_storage_transaction,
+)
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
 from app.strategy_lab_v2.tests.test_result_publication import _result
 from app.strategy_lab_v2.worker_evidence import (
@@ -343,3 +349,86 @@ def test_persistence_bundle_composes_terminal_evidence_resolver() -> None:
 
     resolver = bundle.worker_terminal_evidence_resolver(artifacts)
     assert callable(resolver)
+
+
+@pytest.mark.asyncio
+async def test_retry_attempt_resource_is_owner_scoped_and_replays_after_restart() -> None:
+    class MemoryAggregateStore:
+        def __init__(self) -> None:
+            self.aggregates: dict[Any, StoredAggregate] = {}
+            self.receipts: dict[str, Any] = {}
+
+        async def get(self, key: Any) -> StoredAggregate | None:
+            return self.aggregates.get(key)
+
+        async def list_type(self, aggregate_type: str) -> tuple[StoredAggregate, ...]:
+            return tuple(
+                item
+                for item in self.aggregates.values()
+                if item.key.aggregate_type == aggregate_type
+            )
+
+        async def apply(self, request: Any) -> Any:
+            current = tuple(
+                item
+                for mutation in request.mutations
+                if (item := self.aggregates.get(mutation.key)) is not None
+            )
+            prior = self.receipts.get(request.request_id)
+            resolution = resolve_storage_transaction(
+                current,
+                request,
+                (prior,) if prior is not None else (),
+            )
+            if resolution.decision is StorageTransactionDecision.APPLY:
+                for aggregate in resolution.aggregates:
+                    self.aggregates[aggregate.key] = aggregate
+                assert resolution.receipt is not None
+                self.receipts[request.request_id] = resolution.receipt
+            return resolution
+
+    from types import SimpleNamespace
+
+    store = MemoryAggregateStore()
+    resources = PostgresResourceReader(store)
+    persistence = SimpleNamespace(aggregate_store=store)
+    attempt = RunAttempt(
+        "retry-attempt-2",
+        "scientific-trial-1",
+        2,
+        AttemptState.QUEUED,
+        NOW + timedelta(seconds=5),
+    )
+    recovery_id = content_digest("worker-recovery-receipt")
+
+    first = await PostgresStrategyLabV2Persistence.persist_retry_attempt(
+        persistence,
+        principal="owner-a",
+        attempt=attempt,
+        recovery_fingerprint=recovery_id,
+        accepted_at=NOW,
+    )
+    replay = await PostgresStrategyLabV2Persistence.persist_retry_attempt(
+        persistence,
+        principal="owner-a",
+        attempt=attempt,
+        recovery_fingerprint=recovery_id,
+        accepted_at=NOW,
+    )
+
+    assert first == replay == attempt
+    assert (
+        await resources.get_run_attempt_by_attempt_id(
+            principal="owner-a", attempt_id=attempt.attempt_id
+        )
+        == attempt
+    )
+    assert (
+        await resources.get_run_attempt_by_attempt_id(
+            principal="owner-b", attempt_id=attempt.attempt_id
+        )
+        is None
+    )
+    assert await resources.get_run_attempts_for_trial(
+        principal="owner-a", trial_id=attempt.trial_id
+    ) == (attempt,)

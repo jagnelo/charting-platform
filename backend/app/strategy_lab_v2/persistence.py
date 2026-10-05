@@ -20,6 +20,7 @@ from app.strategy_lab_v2.artifact_application import (
 )
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import RunAttempt
 from app.strategy_lab_v2.outbox_application import OutboxRelayService
 from app.strategy_lab_v2.postgres_acquisition import PostgresAcquisitionAdapter
 from app.strategy_lab_v2.postgres_artifact_commit import PostgresArtifactCommitAdapter
@@ -56,6 +57,13 @@ from app.strategy_lab_v2.postgres_worker_recovery import PostgresWorkerRecoveryA
 from app.strategy_lab_v2.postgres_worker_settlement import PostgresWorkerSettlementAdapter
 from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
+from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
+from app.strategy_lab_v2.storage import (
+    AggregateKey,
+    AggregateMutation,
+    StorageTransactionDecision,
+    StorageTransactionRequest,
+)
 from app.strategy_lab_v2.submissions import SubmissionReceipt
 from app.strategy_lab_v2.worker_evidence import (
     WorkerSubmissionBinding,
@@ -86,6 +94,16 @@ def _record_document(
         attributes=asdict(record),
         meta={"projection": "postgres", "record_fingerprint": revision_digest},
     )
+
+
+def _principal_id(principal: Any) -> str:
+    value = getattr(principal, "id", principal)
+    if value is None or isinstance(value, bool) or not isinstance(value, str | int):
+        raise ValueError("authenticated principal identity is required")
+    owner_id = str(value).strip()
+    if not owner_id:
+        raise ValueError("authenticated principal identity is required")
+    return owner_id
 
 
 SearchDispatchBindingResolver = Callable[
@@ -390,6 +408,115 @@ class PostgresStrategyLabV2Persistence:
             settlements=self.worker_settlements,
             clock=clock,
         )
+
+    async def persist_retry_attempt(
+        self,
+        *,
+        principal: Any,
+        attempt: RunAttempt,
+        recovery_fingerprint: str,
+        accepted_at: datetime,
+    ) -> RunAttempt:
+        """Persist or replay a recovery-created immutable attempt resource.
+
+        The new attempt aggregate and its owner-scoped domain-identity
+        reservation share the aggregate store's PostgreSQL transaction. The
+        storage request is derived from the durable recovery receipt so a
+        restart between attempt creation and dispatch returns the same typed
+        attempt without creating another ordinal or domain identity.
+        """
+
+        from dataclasses import asdict
+
+        from app.strategy_lab_v2.canonical import require_sha256_digest
+
+        if not isinstance(attempt, RunAttempt):
+            raise TypeError("attempt must be a RunAttempt")
+        require_sha256_digest(recovery_fingerprint, field_name="recovery_fingerprint")
+        if accepted_at.tzinfo is None or accepted_at.utcoffset() is None:
+            raise ValueError("accepted_at must be timezone-aware")
+        accepted_at = accepted_at.astimezone(UTC)
+        owner_id = _principal_id(principal)
+        attributes = asdict(attempt)
+        attributes["resource_id"] = attempt.attempt_id
+        normalized = normalize_resource_attributes(ApiResourceType.ATTEMPT, attributes)
+        domain_fingerprint = normalized.domain_fingerprint
+        if domain_fingerprint is None:
+            raise ValueError("retry attempt is missing its immutable domain identity")
+
+        resource_key = AggregateKey(ApiResourceType.ATTEMPT.value, attempt.attempt_id)
+        identity_key = AggregateKey(
+            "resource_domain_identity",
+            content_digest(
+                {
+                    "owner_id": owner_id,
+                    "resource_type": ApiResourceType.ATTEMPT.value,
+                    "domain_fingerprint": domain_fingerprint,
+                }
+            ),
+        )
+        mutation_fingerprint = content_digest(
+            {
+                "attempt": attempt,
+                "recovery_fingerprint": recovery_fingerprint,
+                "purpose": "strategy-lab-v2-worker-retry-attempt",
+            }
+        )
+        resource_state = {
+            "owner_id": owner_id,
+            "resource_type": ApiResourceType.ATTEMPT.value,
+            "resource_id": attempt.attempt_id,
+            "schema_version": 1,
+            "sort_value": attempt.attempt_id,
+            "mutation_fingerprint": mutation_fingerprint,
+            "domain_fingerprint": domain_fingerprint,
+            "mutation_accepted_at": accepted_at,
+            "attributes": normalized.attributes,
+            "relationships": {},
+            "meta": {"domain_fingerprint": domain_fingerprint},
+        }
+        identity_state = {
+            "owner_id": owner_id,
+            "resource_type": ApiResourceType.ATTEMPT.value,
+            "domain_fingerprint": domain_fingerprint,
+            "resource_id": attempt.attempt_id,
+            "schema_version": 1,
+        }
+        request = StorageTransactionRequest(
+            content_digest(
+                {
+                    "owner_id": owner_id,
+                    "recovery_fingerprint": recovery_fingerprint,
+                    "resource_type": ApiResourceType.ATTEMPT.value,
+                    "purpose": "strategy-lab-v2-worker-retry-resource",
+                }
+            ),
+            (
+                AggregateMutation(resource_key, resource_state),
+                AggregateMutation(identity_key, identity_state),
+            ),
+        )
+        resolution = await self.aggregate_store.apply(request)
+        if resolution.decision not in {
+            StorageTransactionDecision.APPLY,
+            StorageTransactionDecision.REPLAY_EXISTING,
+        }:
+            raise ValueError(
+                resolution.rejection_reason or "retry attempt persistence was rejected"
+            )
+        committed = next(
+            (item for item in resolution.aggregates if item.key == resource_key),
+            None,
+        )
+        identity = next(
+            (item for item in resolution.aggregates if item.key == identity_key),
+            None,
+        )
+        if committed is None or identity is None:
+            raise ValueError("retry attempt transaction omitted its committed identities")
+        if committed.state != resource_state or identity.state != identity_state:
+            raise ValueError("retry attempt identity is already bound to different content")
+        return attempt
 
     async def load_worker_terminal_evidence_inputs(
         self,

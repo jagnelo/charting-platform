@@ -18,6 +18,7 @@ import socket
 from collections.abc import Awaitable, Callable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import StrEnum
 from importlib import import_module
 from pathlib import Path
@@ -149,10 +150,18 @@ class WorkerEntrypointConfig:
             raise ValueError("artifact_root must be an absolute path")
         if self.callback_factory is not None:
             _text(self.callback_factory, "callback_factory")
-        for name in ("redis_namespace", "queue_name", "group_name", "consumer_name", "docker_binary"):
+        for name in (
+            "redis_namespace",
+            "queue_name",
+            "group_name",
+            "consumer_name",
+            "docker_binary",
+        ):
             _text(getattr(self, name), name)
         _text(self.migration_target, "migration_target")
-        if any(not (character.isalnum() or character in "_.-") for character in self.migration_target):
+        if any(
+            not (character.isalnum() or character in "_.-") for character in self.migration_target
+        ):
             raise ValueError("migration_target contains unsafe characters")
         _non_negative_int(self.reclaim_idle_ms, "reclaim_idle_ms")
         _positive_int(self.batch_size, "batch_size")
@@ -174,13 +183,17 @@ class WorkerEntrypointConfig:
 
         env = os.environ if environment is None else environment
         artifact_root = Path(
-            _env_text(env, "STRATEGY_LAB_V2_ARTIFACT_ROOT", "/tmp/charting-strategy-lab-v2/artifacts")
+            _env_text(
+                env, "STRATEGY_LAB_V2_ARTIFACT_ROOT", "/tmp/charting-strategy-lab-v2/artifacts"
+            )
         )
         consumer = env.get("STRATEGY_LAB_V2_CONSUMER_NAME")
         if consumer is None:
             consumer = f"{env.get('HOSTNAME', socket.gethostname())}-{os.getpid()}"
         return cls(
-            redis_url=_env_text(env, "STRATEGY_LAB_V2_REDIS_URL", env.get("REDIS_URL", "redis://localhost:6379/0")),
+            redis_url=_env_text(
+                env, "STRATEGY_LAB_V2_REDIS_URL", env.get("REDIS_URL", "redis://localhost:6379/0")
+            ),
             database_url_sync=_env_text(
                 env,
                 "STRATEGY_LAB_V2_DATABASE_URL_SYNC",
@@ -290,6 +303,7 @@ async def run_strategy_lab_v2_worker(
     signal_installer: SignalInstaller | None = None,
     stop_event: asyncio.Event | None = None,
     process_executor: SerialWorkerProcessExecutor | None = None,
+    clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     max_cycles: int | None = None,
 ) -> WorkerEntrypointResolution:
@@ -315,6 +329,8 @@ async def run_strategy_lab_v2_worker(
         _positive_int(max_cycles, "max_cycles")
     if stop_event is not None and not callable(getattr(stop_event, "is_set", None)):
         raise TypeError("stop_event must expose is_set()")
+    if not callable(clock):
+        raise TypeError("clock must be callable")
     if not callable(sleep):
         raise TypeError("sleep must be callable")
 
@@ -353,9 +369,7 @@ async def run_strategy_lab_v2_worker(
             raise TypeError("callback_factory tuple must contain callables")
         if len(callbacks) == 3 and not callable(callbacks[2]):
             raise TypeError("callback_factory heartbeat writer must be callable")
-        if len(callbacks) == 4 and (
-            not callable(callbacks[2]) or not callable(callbacks[3])
-        ):
+        if len(callbacks) == 4 and (not callable(callbacks[2]) or not callable(callbacks[3])):
             raise TypeError("callback_factory heartbeat and terminal writers must be callable")
         callback_set = WorkerServiceCallbacks(
             cast(WorkerHandoffMaterializer, callbacks[0]),
@@ -390,10 +404,13 @@ async def run_strategy_lab_v2_worker(
             or SerialWorkerProcessExecutor(
                 timeout_seconds=config.process_timeout_seconds,
             ),
+            clock=clock,
             heartbeat_writer=callback_set.heartbeat_writer,
             heartbeat_interval_seconds=config.heartbeat_interval_seconds,
             heartbeat_extension_seconds=config.heartbeat_extension_seconds,
             terminal_writer=callback_set.terminal_writer,
+            recovery_writer=callback_set.recovery_writer,
+            lease_state_reader=callback_set.lease_state_reader,
         )
         if not callable(getattr(service, "run", None)):
             raise TypeError("runtime.worker_service() must return a worker service")
@@ -439,9 +456,7 @@ def _migration_script_location() -> Path:
 
 def _load_callback_factory(spec: str | None) -> WorkerCallbackFactory:
     if spec is None:
-        raise ValueError(
-            "STRATEGY_LAB_V2_CALLBACK_FACTORY must be configured for the local worker"
-        )
+        raise ValueError("STRATEGY_LAB_V2_CALLBACK_FACTORY must be configured for the local worker")
     module_name, separator, attribute = spec.partition(":")
     if not separator or not module_name.strip() or not attribute.strip():
         raise ValueError("callback_factory must use module:attribute syntax")

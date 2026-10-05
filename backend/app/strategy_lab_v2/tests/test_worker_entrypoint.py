@@ -21,6 +21,7 @@ from app.strategy_lab_v2.worker_entrypoint import (
     _load_callback_factory,
     run_strategy_lab_v2_worker,
 )
+from app.strategy_lab_v2.worker_service import WorkerServiceCallbacks
 
 
 def _migration(decision: MigrationDecision) -> MigrationResolution:
@@ -295,4 +296,71 @@ async def test_worker_lifecycle_runs_and_cancels_transactional_outbox_scheduler(
         "limit": 3,
         "sleep": asyncio.sleep,
     }
+    assert calls["closed"] is True
+
+
+@pytest.mark.asyncio
+async def test_worker_entrypoint_passes_recovery_and_live_lease_callbacks() -> None:
+    calls: dict[str, Any] = {}
+    stop_event = asyncio.Event()
+
+    async def materializer(*_args: Any) -> Any:
+        raise AssertionError("worker should not poll in the bounded setup test")
+
+    async def completion(*_args: Any) -> Any:
+        raise AssertionError("worker should not complete in the bounded setup test")
+
+    async def recovery(*_args: Any) -> Any:
+        raise AssertionError("worker should not recover in the bounded setup test")
+
+    async def lease_reader(*_args: Any) -> Any:
+        return None
+
+    callbacks = WorkerServiceCallbacks(
+        materializer,
+        completion,
+        recovery_writer=recovery,
+        lease_state_reader=lease_reader,
+    )
+
+    class Runtime:
+        def worker(self, **kwargs: Any) -> object:
+            calls["worker"] = kwargs
+            return object()
+
+        def worker_service(self, worker: object, **kwargs: Any) -> Any:
+            calls["service"] = (worker, kwargs)
+
+            class Service:
+                async def run(self, _event: asyncio.Event, *, max_cycles: int | None = None):
+                    assert max_cycles == 1
+                    return ()
+
+            return Service()
+
+        async def aclose(self) -> None:
+            calls["closed"] = True
+
+    class Persistence:
+        submissions = object()
+
+    async def runtime_factory(*_args: Any, **_kwargs: Any) -> Runtime:
+        return Runtime()
+
+    result = await run_strategy_lab_v2_worker(
+        _config(),
+        callback_factory=lambda *_args: callbacks,
+        migration_service=_Migration(MigrationDecision.APPLIED),  # type: ignore[arg-type]
+        session_factory=lambda: object(),
+        persistence_factory=lambda _factory: Persistence(),  # type: ignore[arg-type,return-value]
+        runtime_factory=runtime_factory,
+        signal_installer=lambda _event: lambda: None,
+        stop_event=stop_event,
+        max_cycles=1,
+    )
+
+    service_kwargs = calls["service"][1]
+    assert service_kwargs["recovery_writer"] is recovery
+    assert service_kwargs["lease_state_reader"] is lease_reader
+    assert result.decision is WorkerEntrypointDecision.STOPPED
     assert calls["closed"] is True

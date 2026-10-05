@@ -108,6 +108,36 @@ class MemoryDomainReader:
             }
         )
 
+    async def get_run_attempt_by_attempt_id(
+        self,
+        *,
+        principal: Any,
+        attempt_id: str,
+    ) -> RunAttempt | None:
+        contract = await self.get_domain_contract(
+            principal=principal,
+            resource_type=ApiResourceType.ATTEMPT,
+            resource_id=attempt_id,
+        )
+        return contract if isinstance(contract, RunAttempt) else None
+
+    async def get_run_attempts_for_trial(
+        self,
+        *,
+        principal: Any,
+        trial_id: str,
+    ) -> tuple[RunAttempt, ...]:
+        if str(getattr(principal, "id", principal)) != self.owner:
+            return ()
+        attempts = (
+            contract
+            for (resource_type, _resource_id), contract in self.by_id.items()
+            if resource_type is ApiResourceType.ATTEMPT
+            and isinstance(contract, RunAttempt)
+            and contract.trial_id == trial_id
+        )
+        return tuple(sorted(attempts, key=lambda attempt: attempt.ordinal))
+
 
 @pytest.mark.asyncio
 async def test_hydrator_resolves_and_authenticates_the_attempt_domain_graph() -> None:

@@ -14,6 +14,7 @@ from app.strategy_lab_v2.nautilus_worker_terminal import (
 )
 from app.strategy_lab_v2.persistence import SearchDispatchBindingResolver
 from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
+from app.strategy_lab_v2.search_dispatch_rpc import UnixSocketSearchDispatchClient
 from app.strategy_lab_v2.search_worker_handoff import (
     create_authenticated_search_dispatch_materializer,
 )
@@ -24,7 +25,14 @@ from app.strategy_lab_v2.trial_hydration import (
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
 from app.strategy_lab_v2.worker_evidence import WorkerSubmissionBinding
 from app.strategy_lab_v2.worker_handoff import materialize_worker_handoff
-from app.strategy_lab_v2.worker_service import WorkerServiceCallbacks, WorkerTerminalWriter
+from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
+from app.strategy_lab_v2.worker_recovery_application import (
+    create_worker_recovery_application,
+)
+from app.strategy_lab_v2.worker_service import (
+    WorkerServiceCallbacks,
+    WorkerTerminalWriter,
+)
 from app.strategy_lab_v2.worker_terminal_adapter import WorkerTerminalEvidenceResolver
 
 EvidenceResolverFactory = Callable[
@@ -105,11 +113,25 @@ async def create_search_dispatch(persistence: Any, artifact_root: Path) -> Worke
         queue_name=queue_name,
         domain_hydrator=NautilusTrialDomainHydrator(cast(OwnerScopedDomainReader, resources)),
     )
+    worker_state = getattr(persistence, "worker_state", None)
+    if worker_state is None or not callable(getattr(worker_state, "load_lease", None)):
+        raise TypeError("persistence.worker_state must expose load_lease()")
+    recovery_writer = create_worker_recovery_application(
+        persistence,
+        queue_name=queue_name,
+        dispatch_client=UnixSocketSearchDispatchClient.from_environment(),
+    )
+
+    async def lease_state_reader(request: WorkerExecutionRequest):
+        return await worker_state.load_lease(request.lease_state.lease.lease_id)
+
     return WorkerServiceCallbacks(
         materializer,
         callbacks.completion_writer,
         heartbeat_writer=callbacks.heartbeat_writer,
         terminal_writer=callbacks.terminal_writer,
+        recovery_writer=recovery_writer,
+        lease_state_reader=lease_state_reader,
     )
 
 

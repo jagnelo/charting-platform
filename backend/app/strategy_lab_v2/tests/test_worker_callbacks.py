@@ -91,7 +91,37 @@ class _SearchDispatchPersistence(_Persistence):
         async def load_by_request_fingerprint(self, _request_fingerprint: str) -> None:
             return None
 
+        async def load_admission_ledger(self, **_kwargs: Any) -> None:
+            return None
+
     search_dispatch = _Store()
+
+    class _SearchState:
+        async def load(self, **_kwargs: Any) -> None:
+            return None
+
+        async def record_terminal(self, **_kwargs: Any) -> None:
+            return None
+
+    search_state = _SearchState()
+
+    class _Recoveries:
+        async def load_ledger(self, **_kwargs: Any) -> None:
+            return None
+
+        async def recover(self, **_kwargs: Any) -> None:
+            return None
+
+    worker_recoveries = _Recoveries()
+
+    class _WorkerState:
+        async def load_lease(self, _lease_id: str) -> None:
+            return None
+
+    worker_state = _WorkerState()
+
+    async def persist_retry_attempt(self, **_kwargs: Any) -> None:
+        return None
 
     class submissions:
         @staticmethod
@@ -110,6 +140,14 @@ class _SearchDispatchPersistence(_Persistence):
         @staticmethod
         async def get_domain_contracts_by_fingerprint(**_kwargs: Any) -> dict[str, Any]:
             return {}
+
+        @staticmethod
+        async def get_run_attempt_by_attempt_id(**_kwargs: Any) -> None:
+            return None
+
+        @staticmethod
+        async def get_run_attempts_for_trial(**_kwargs: Any) -> tuple[Any, ...]:
+            return ()
 
 
 class _Publisher:
@@ -171,11 +209,18 @@ async def test_search_callback_factory_binds_authenticated_dispatch_materializer
         "app.strategy_lab_v2.tests.test_worker_callbacks:search_resolver_factory",
     )
     monkeypatch.setenv("STRATEGY_LAB_V2_QUEUE", "strategy-backtest")
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH",
+        "/tmp/strategy-lab-v2-preparation.sock",
+    )
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", "x" * 48)
     callbacks = await create_search_dispatch(_SearchDispatchPersistence(), Path("/tmp/artifacts"))
 
     assert isinstance(callbacks.materializer, AuthenticatedSearchDispatchMaterializer)
     assert callbacks.materializer.queue_name == "strategy-backtest"
     assert callbacks.materializer.domain_hydrator is not None
+    assert callbacks.recovery_writer is not None
+    assert callbacks.lease_state_reader is not None
 
 
 @pytest.mark.asyncio

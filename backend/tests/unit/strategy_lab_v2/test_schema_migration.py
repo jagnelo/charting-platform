@@ -16,6 +16,9 @@ _PAYLOAD_MIGRATION_PATH = _MIGRATION_PATH.with_name(
 _RECOVERY_MIGRATION_PATH = _MIGRATION_PATH.with_name(
     "ff3a4b5c6d7e_add_strategy_lab_v2_worker_recoveries.py"
 )
+_SEARCH_RETRY_MIGRATION_PATH = _MIGRATION_PATH.with_name(
+    "ff4a5b6c7d8e_allow_search_candidate_attempt_retries.py"
+)
 
 
 def _migration() -> ModuleType:
@@ -44,6 +47,17 @@ def _recovery_migration() -> ModuleType:
     )
     if spec is None or spec.loader is None:
         raise AssertionError("could not load the Strategy Lab worker-recovery migration")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _search_retry_migration() -> ModuleType:
+    spec = importlib.util.spec_from_file_location(
+        "strategy_lab_v2_search_retry_migration", _SEARCH_RETRY_MIGRATION_PATH
+    )
+    if spec is None or spec.loader is None:
+        raise AssertionError("could not load the Strategy Lab search-retry migration")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -96,4 +110,22 @@ def test_worker_recovery_migration_is_additive_and_follows_settlement_receipts()
     downgrade_constants = tuple(str(value) for value in migration.downgrade.__code__.co_consts)
     assert any(
         "DROP TABLE strategy_lab_v2_worker_recoveries" in value for value in downgrade_constants
+    )
+
+
+def test_search_retry_migration_allows_attempt_lineage_per_candidate() -> None:
+    migration = _search_retry_migration()
+
+    assert migration.revision == "ff4a5b6c7d8e"
+    assert migration.down_revision == "ff3a4b5c6d7e"
+    upgrade_constants = tuple(str(value) for value in migration.upgrade.__code__.co_consts)
+    assert any("pg_get_constraintdef" in value for value in upgrade_constants)
+    assert any(
+        "UNIQUE (owner_id, experiment_fingerprint, candidate_index, attempt_id)" in value
+        for value in upgrade_constants
+    )
+    downgrade_constants = tuple(str(value) for value in migration.downgrade.__code__.co_consts)
+    assert any(
+        "DROP CONSTRAINT strategy_lab_v2_search_dispatch_candidate_attempt_key" in value
+        for value in downgrade_constants
     )

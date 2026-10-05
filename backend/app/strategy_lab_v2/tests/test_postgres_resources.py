@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -13,7 +14,7 @@ from app.strategy_lab_v2.api_resources import (
     ResourceIdentifier,
 )
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.contracts import StrategyVersion
+from app.strategy_lab_v2.contracts import AttemptState, RunAttempt, StrategyVersion
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
 from app.strategy_lab_v2.resource_domains import normalize_resource_attributes
 from app.strategy_lab_v2.storage import AggregateKey, StoredAggregate
@@ -83,6 +84,38 @@ def _strategy(strategy_id: str, *, owner_id: str = "alice") -> StoredAggregate:
         },
     }
     return StoredAggregate(AggregateKey(ApiResourceType.STRATEGY.value, strategy_id), 1, state)
+
+
+def _attempt(attempt_id: str, ordinal: int, *, owner_id: str, trial_id: str) -> StoredAggregate:
+    contract = RunAttempt(
+        attempt_id,
+        trial_id,
+        ordinal,
+        AttemptState.QUEUED,
+        datetime(2024, 1, ordinal, tzinfo=UTC),
+    )
+    attributes = {
+        "attempt_id": contract.attempt_id,
+        "trial_id": contract.trial_id,
+        "ordinal": contract.ordinal,
+        "state": contract.state,
+        "created_at": contract.created_at,
+        "updated_at": contract.updated_at,
+        "resource_id": contract.attempt_id,
+    }
+    normalized = normalize_resource_attributes(ApiResourceType.ATTEMPT, attributes)
+    return StoredAggregate(
+        AggregateKey(ApiResourceType.ATTEMPT.value, contract.attempt_id),
+        1,
+        {
+            "owner_id": owner_id,
+            "resource_type": ApiResourceType.ATTEMPT.value,
+            "resource_id": contract.attempt_id,
+            "schema_version": 1,
+            "attributes": normalized.attributes,
+            "meta": {"domain_fingerprint": normalized.domain_fingerprint},
+        },
+    )
 
 
 @pytest.mark.asyncio
@@ -170,6 +203,27 @@ async def test_reader_rehydrates_owner_scoped_typed_domain_contract() -> None:
     assert strategy.strategy_id == "momentum"
     assert strategy.default_parameters == {"window": 20}
     assert foreign is None
+
+
+@pytest.mark.asyncio
+async def test_reader_loads_ordered_trial_attempt_lineage_in_owner_scope() -> None:
+    reader = PostgresResourceReader(
+        MemoryStore(
+            [
+                _attempt("attempt-2", 2, owner_id="alice", trial_id="trial-1"),
+                _attempt("foreign-attempt", 1, owner_id="bob", trial_id="trial-1"),
+                _attempt("attempt-1", 1, owner_id="alice", trial_id="trial-1"),
+                _attempt("unrelated-attempt", 1, owner_id="alice", trial_id="trial-2"),
+            ]
+        )
+    )
+
+    attempts = await reader.get_run_attempts_for_trial(
+        principal=SimpleNamespace(id="alice"), trial_id="trial-1"
+    )
+
+    assert tuple(item.attempt_id for item in attempts) == ("attempt-1", "attempt-2")
+    assert tuple(item.ordinal for item in attempts) == (1, 2)
 
 
 @pytest.mark.asyncio

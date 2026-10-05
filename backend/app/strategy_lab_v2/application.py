@@ -667,6 +667,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             dispatch_request=dispatch_request,
             payload=worker_payload,
             now=evidence.now,
+            available_at=max(dispatch_intent.created_at, materialized_graph.attempt.created_at),
         )
 
     async def _validate_domain_dependencies(

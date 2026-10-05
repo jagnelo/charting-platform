@@ -247,6 +247,48 @@ class PostgresResourceReader:
             raise ValueError("persisted attempt has the wrong domain contract")
         return contract
 
+    async def get_run_attempts_for_trial(
+        self,
+        *,
+        principal: Any,
+        trial_id: str,
+    ) -> tuple[RunAttempt, ...]:
+        """Load one owner's immutable attempt lineage for a scientific trial.
+
+        Attempt API projections may be execution summaries rather than the
+        canonical domain record, so recovery and hydration use the underlying
+        aggregate rows and authenticate each typed contract before returning
+        the ordered lineage.
+        """
+
+        if not isinstance(trial_id, str) or not trial_id.strip():
+            raise ValueError("trial_id must not be empty")
+        aggregates = await self._store.list_type(ApiResourceType.ATTEMPT.value)
+        attempts: list[RunAttempt] = []
+        for aggregate in aggregates:
+            if not self._owned_by(aggregate, principal):
+                continue
+            document = self._project(aggregate, ApiResourceType.ATTEMPT)
+            if document.attributes.get("trial_id") != trial_id:
+                continue
+            expected_domain_fingerprint = document.meta.get("domain_fingerprint")
+            if expected_domain_fingerprint is not None and not isinstance(
+                expected_domain_fingerprint, str
+            ):
+                raise ValueError("persisted attempt domain fingerprint is malformed")
+            contract = rehydrate_resource_contract(
+                ApiResourceType.ATTEMPT,
+                document.attributes,
+                expected_domain_fingerprint=expected_domain_fingerprint,
+            )
+            if not isinstance(contract, RunAttempt):
+                raise ValueError("persisted attempt has the wrong domain contract")
+            attempts.append(contract)
+        ordered = tuple(sorted(attempts, key=lambda item: (item.ordinal, item.attempt_id)))
+        if len({item.ordinal for item in ordered}) != len(ordered):
+            raise ValueError("owner has duplicate run-attempt ordinals for one trial")
+        return ordered
+
     async def list_resources(
         self,
         *,

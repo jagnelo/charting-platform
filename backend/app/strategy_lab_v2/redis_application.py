@@ -45,6 +45,8 @@ from app.strategy_lab_v2.worker_service import (
     WorkerCompletionWriter,
     WorkerHandoffMaterializer,
     WorkerLeaseHeartbeatWriter,
+    WorkerLeaseStateReader,
+    WorkerRecoveryWriter,
     WorkerTerminalWriter,
 )
 from app.strategy_lab_v2.workers import WorkerProfile
@@ -183,6 +185,8 @@ class RedisDispatchRuntime:
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         heartbeat_sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
         terminal_writer: WorkerTerminalWriter | None = None,
+        recovery_writer: WorkerRecoveryWriter | None = None,
+        lease_state_reader: WorkerLeaseStateReader | None = None,
     ) -> DedicatedStrategyWorkerService:
         """Compose the dedicated Redis-to-process worker service."""
 
@@ -203,6 +207,8 @@ class RedisDispatchRuntime:
             clock=clock,
             heartbeat_sleep=heartbeat_sleep,
             terminal_writer=terminal_writer,
+            recovery_writer=recovery_writer,
+            lease_state_reader=lease_state_reader,
         )
 
     def forward_worker_service(

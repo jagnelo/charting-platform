@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, cast
 
@@ -10,7 +11,9 @@ import pytest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.lease_observations import (
+    LeaseObservation,
     LeaseObservationDecision,
+    LeaseObservationKind,
     LeaseObservationResolution,
     apply_lease_observation,
 )
@@ -35,6 +38,7 @@ from app.strategy_lab_v2.worker_process import (
 from app.strategy_lab_v2.worker_service import (
     DedicatedStrategyWorkerService,
     WorkerCompletionContext,
+    WorkerRecoveryContext,
 )
 
 
@@ -94,12 +98,16 @@ def _service(
             content_digest("durable-receipt"),
         )
 
-    return DedicatedStrategyWorkerService(
-        scheduler,
-        _Loader(payload),
-        materializer,
-        completion,
-    ), payload, entry
+    return (
+        DedicatedStrategyWorkerService(
+            scheduler,
+            _Loader(payload),
+            materializer,
+            completion,
+        ),
+        payload,
+        entry,
+    )
 
 
 async def test_service_materializes_runs_and_delegates_durable_completion(tmp_path: Path) -> None:
@@ -109,6 +117,144 @@ async def test_service_materializes_runs_and_delegates_durable_completion(tmp_pa
 
     assert result.decision is WorkerHandleDecision.COMPLETE
     assert result.entry_fingerprint == entry.fingerprint
+
+
+async def test_service_recovers_expired_persisted_lease_before_starting_process(
+    tmp_path: Path,
+) -> None:
+    service, payload, entry = _service(tmp_path)
+    request = _request(tmp_path)
+    observed_at = request.lease_state.lease.expires_at + timedelta(seconds=1)
+    recovered: list[WorkerRecoveryContext] = []
+
+    async def materializer(
+        _entry: RedisStreamEntry, _payload: DispatchPayload
+    ) -> WorkerExecutionRequest:
+        return request
+
+    async def lease_state_reader(_request: WorkerExecutionRequest):
+        return request.lease_state
+
+    async def recovery_writer(context: WorkerRecoveryContext) -> WorkerHandleResult:
+        recovered.append(context)
+        return WorkerHandleResult(
+            entry.fingerprint,
+            WorkerHandleDecision.COMPLETE,
+            content_digest("recovery-scheduled"),
+        )
+
+    guarded = DedicatedStrategyWorkerService(
+        service.scheduler,
+        _Loader(payload),
+        materializer,
+        service._completion_writer,
+        clock=lambda: observed_at,
+        recovery_writer=recovery_writer,
+        lease_state_reader=lease_state_reader,
+    )
+    result = await guarded.handle(entry, payload)
+
+    assert result.decision is WorkerHandleDecision.COMPLETE
+    assert len(recovered) == 1
+    assert recovered[0].reason.value == "lease_expired"
+    assert recovered[0].observed_at == observed_at
+
+
+async def test_service_does_not_run_a_dispatch_with_an_advanced_active_lease(
+    tmp_path: Path,
+) -> None:
+    service, payload, entry = _service(tmp_path)
+    request = _request(tmp_path)
+    heartbeat_at = NOW + timedelta(seconds=1)
+    lease = request.lease_state.lease
+    observation = LeaseObservation(
+        content_digest("another-worker-heartbeat"),
+        lease.lease_id,
+        lease.worker_id,
+        lease.attempt_id,
+        1,
+        LeaseObservationKind.HEARTBEAT,
+        heartbeat_at,
+        heartbeat_at + timedelta(seconds=30),
+    )
+    advanced = apply_lease_observation(request.lease_state, observation).state
+
+    async def materializer(
+        _entry: RedisStreamEntry, _payload: DispatchPayload
+    ) -> WorkerExecutionRequest:
+        return request
+
+    async def lease_state_reader(_request: WorkerExecutionRequest):
+        return advanced
+
+    async def recovery_writer(_context: WorkerRecoveryContext) -> WorkerHandleResult:
+        raise AssertionError("an active lease owned by another worker must not be recovered")
+
+    guarded = DedicatedStrategyWorkerService(
+        service.scheduler,
+        _Loader(payload),
+        materializer,
+        service._completion_writer,
+        clock=lambda: NOW + timedelta(seconds=2),
+        recovery_writer=recovery_writer,
+        lease_state_reader=lease_state_reader,
+    )
+    result = await guarded.handle(entry, payload)
+
+    assert result.decision is WorkerHandleDecision.RETRY
+    assert "lease advanced" in (result.rejection_reason or "")
+
+
+async def test_service_delegates_child_failure_to_durable_recovery_writer(
+    tmp_path: Path,
+) -> None:
+    service, payload, entry = _service(tmp_path)
+    request = _request(tmp_path)
+    recovered: list[WorkerRecoveryContext] = []
+
+    class FailedExecutor(SerialWorkerProcessExecutor):
+        async def run_async(
+            self,
+            received: WorkerExecutionRequest,
+            *,
+            timeout_seconds: float | None = None,
+            poll_interval_seconds: float = 0.1,
+        ) -> WorkerProcessResolution:
+            del timeout_seconds, poll_interval_seconds
+            return WorkerProcessResolution(
+                received.request_fingerprint,
+                WorkerProcessDecision.CHILD_FAILED,
+                error_digest=content_digest("child-failed"),
+            )
+
+    async def materializer(
+        _entry: RedisStreamEntry, _payload: DispatchPayload
+    ) -> WorkerExecutionRequest:
+        return request
+
+    async def recovery_writer(context: WorkerRecoveryContext) -> WorkerHandleResult:
+        recovered.append(context)
+        return WorkerHandleResult(
+            entry.fingerprint,
+            WorkerHandleDecision.COMPLETE,
+            content_digest("retry-outbox-committed"),
+        )
+
+    recovering = DedicatedStrategyWorkerService(
+        service.scheduler,
+        _Loader(payload),
+        materializer,
+        service._completion_writer,
+        process_executor=FailedExecutor(timeout_seconds=1),
+        clock=lambda: NOW + timedelta(seconds=2),
+        recovery_writer=recovery_writer,
+    )
+    result = await recovering.handle(entry, payload)
+
+    assert result.decision is WorkerHandleDecision.COMPLETE
+    assert len(recovered) == 1
+    assert recovered[0].reason.value == "worker_crash"
+    assert recovered[0].request == request
 
 
 async def test_service_rejects_invalid_materialization_without_starting_process(

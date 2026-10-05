@@ -1133,10 +1133,22 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         search_dispatch = dispatch_adapter
         submissions = submission_adapter
         resources = domain_reader
+        worker_state = worker_state_port
+        search_state = SimpleNamespace(
+            load=lambda **_kwargs: None,
+            record_terminal=lambda **_kwargs: None,
+        )
+        worker_recoveries = SimpleNamespace(
+            load_ledger=lambda **_kwargs: None,
+            recover=lambda **_kwargs: None,
+        )
 
         def __init__(self) -> None:
             self.terminal_adapter: PostgresWorkerTerminalAdapter | None = None
             self.publisher: LocalArtifactPublicationService | None = None
+
+        async def persist_retry_attempt(self, **_kwargs: Any) -> None:
+            raise AssertionError("successful terminal replay must not persist a retry attempt")
 
         def artifact_publication(self, root: Path) -> LocalArtifactPublicationService:
             self.publisher = LocalArtifactPublicationService(
@@ -1194,6 +1206,13 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         "app.strategy_lab_v2.worker_callbacks:default_evidence_resolver_factory",
     )
     monkeypatch.setenv("STRATEGY_LAB_V2_QUEUE", "backtest")
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH",
+        str(tmp_path / "unused-preparation.sock"),
+    )
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", "terminal-test-token-0123456789abcdef"
+    )
     entry = RedisStreamEntry(
         "strategy-lab:v2:stream:backtest",
         "1-0",
@@ -1256,6 +1275,10 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
     def install_signals(_stop_event: Any) -> Any:
         return lambda: timeline.append("signals-cleaned")
 
+    async def terminal_replay_callbacks(persistence: Any, artifact_root: Path):
+        callbacks = await create_search_dispatch(persistence, artifact_root)
+        return replace(callbacks, recovery_writer=None, lease_state_reader=None)
+
     async def run_worker():
         return await run_strategy_lab_v2_worker(
             WorkerEntrypointConfig(
@@ -1267,13 +1290,14 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
                 consumer_name="multi-strategy-terminal-test",
                 migration_enabled=True,
             ),
-            callback_factory=create_search_dispatch,
+            callback_factory=terminal_replay_callbacks,
             migration_service=AppliedMigration(),  # type: ignore[arg-type]
             session_factory=lambda: object(),
             persistence_factory=lambda _factory: Persistence(),  # type: ignore[arg-type]
             runtime_factory=runtime_factory,
             signal_installer=install_signals,
             process_executor=EvidenceProcessExecutor(),
+            clock=lambda: BASE + timedelta(seconds=30),
             sleep=scheduler_sleep,
             max_cycles=1,
         )
