@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Protocol
 
-from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.canonical import canonical_json, content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import ForwardInstance, ForwardState
 from app.strategy_lab_v2.forward_admission import (
     ForwardAdmissionResolution,
@@ -35,7 +35,7 @@ from app.strategy_lab_v2.forward_event_transaction import (
     ForwardEventTransactionResolution,
     resolve_forward_event_transaction,
 )
-from app.strategy_lab_v2.forward_state import ForwardStateCheckpoint
+from app.strategy_lab_v2.forward_state import ForwardCheckpointTransition, ForwardStateCheckpoint
 from app.strategy_lab_v2.forward_warmup import (
     ForwardWarmupDecision,
     ForwardWarmupReceipt,
@@ -148,6 +148,7 @@ class PostgresForwardStateSchema:
     event_table: str = "strategy_lab_v2_forward_seen_events"
     replay_table: str = "strategy_lab_v2_forward_replays"
     lifecycle_table: str = "strategy_lab_v2_forward_lifecycle_requests"
+    checkpoint_history_table: str = "strategy_lab_v2_forward_checkpoint_history"
 
     def __post_init__(self) -> None:
         for name, value in (
@@ -156,6 +157,7 @@ class PostgresForwardStateSchema:
             ("event_table", self.event_table),
             ("replay_table", self.replay_table),
             ("lifecycle_table", self.lifecycle_table),
+            ("checkpoint_history_table", self.checkpoint_history_table),
         ):
             if not isinstance(value, str) or not re.fullmatch(r"[a-z_][a-z0-9_]*", value):
                 raise ValueError(f"{name} must be a safe SQL identifier")
@@ -238,6 +240,17 @@ class PostgresForwardStateSchema:
                 accepted_at TEXT NOT NULL,
                 receipt_fingerprint TEXT NOT NULL,
                 PRIMARY KEY (owner_id, instance_id, idempotency_key_digest)
+            )
+            """,
+            f"""
+            CREATE TABLE {self.checkpoint_history_table} (
+                owner_id TEXT NOT NULL,
+                instance_id TEXT NOT NULL,
+                checkpoint_fingerprint TEXT NOT NULL,
+                previous_checkpoint_fingerprint TEXT NULL,
+                transition_json TEXT NOT NULL,
+                transition_fingerprint TEXT NOT NULL,
+                PRIMARY KEY (owner_id, instance_id, checkpoint_fingerprint)
             )
             """,
         )
@@ -478,6 +491,66 @@ class PostgresForwardStateAdapter:
         async with session:
             async with session.begin():
                 return await self._load_live_state(session, owner_id, instance_id)
+
+    async def load_checkpoint_at(
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+    ) -> ForwardStateCheckpoint | None:
+        """Load one immutable checkpoint by its exact historical fingerprint."""
+
+        _validate_instance_id(instance_id)
+        require_sha256_digest(checkpoint_fingerprint, field_name="checkpoint_fingerprint")
+        owner_id = _principal_id(principal)
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                current = await self._load_checkpoint(session, owner_id, instance_id)
+                if current is None:
+                    return None
+                archived = await self._load_archived_checkpoint(
+                    session, owner_id, instance_id, checkpoint_fingerprint
+                )
+                if archived is not None:
+                    return archived
+                # Existing rows may predate the append-only history table. Their
+                # current checkpoint is still authenticated by the instance row;
+                # older, unavailable checkpoints fail closed.
+                return current[1] if current[1].fingerprint == checkpoint_fingerprint else None
+
+    async def load_state_at_checkpoint(
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+    ) -> ForwardLiveAdmissionState | None:
+        """Resolve authenticated admission/event identities at an exact checkpoint."""
+
+        _validate_instance_id(instance_id)
+        require_sha256_digest(checkpoint_fingerprint, field_name="checkpoint_fingerprint")
+        owner_id = _principal_id(principal)
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                current = await self._load_checkpoint(session, owner_id, instance_id)
+                if current is None:
+                    return None
+                checkpoint = await self._load_archived_checkpoint(
+                    session, owner_id, instance_id, checkpoint_fingerprint
+                )
+                if checkpoint is None:
+                    if current[1].fingerprint != checkpoint_fingerprint:
+                        return None
+                    checkpoint = current[1]
+                return await self._load_live_state(
+                    session,
+                    owner_id,
+                    instance_id,
+                    checkpoint=checkpoint,
+                )
 
     async def load_replays(
         self, *, principal: Any, instance_id: str
@@ -776,12 +849,20 @@ class PostgresForwardStateAdapter:
         return receipt
 
     async def _load_live_state(
-        self, session: AsyncSessionLike, owner_id: str, instance_id: str
+        self,
+        session: AsyncSessionLike,
+        owner_id: str,
+        instance_id: str,
+        *,
+        checkpoint: ForwardStateCheckpoint | None = None,
     ) -> ForwardLiveAdmissionState | None:
         current = await self._load_checkpoint(session, owner_id, instance_id)
         if current is None:
             return None
-        instance, checkpoint = current
+        instance, current_checkpoint = current
+        checkpoint = current_checkpoint if checkpoint is None else checkpoint
+        if checkpoint.instance.instance_id != instance_id:
+            raise ValueError("PostgreSQL checkpoint history belongs to another instance")
         receipt = await self._load_warmup(session, owner_id, instance_id)
         if receipt is None:
             raise ValueError("active forward instance is missing its warm-up receipt")
@@ -808,15 +889,21 @@ class PostgresForwardStateAdapter:
             if row.get("seen_fingerprint") != content_digest(seen):
                 raise ValueError("PostgreSQL seen event fingerprint does not match bytes")
             events.append(seen)
-        ordered = tuple(sorted(events, key=lambda item: item.event_id))
-        if tuple(events) != ordered:
-            raise ValueError("PostgreSQL seen events are not deterministically ordered")
-        seen_by_id = {item.event_id: item for item in ordered}
         checkpoint_ids = (
             checkpoint.processed_event_ids
             | checkpoint.buffered_event_ids
             | checkpoint.correction_event_ids
         )
+        ordered = tuple(
+            sorted(
+                (item for item in events if item.event_id in checkpoint_ids),
+                key=lambda item: item.event_id,
+            )
+        )
+        if tuple(events) != ordered:
+            if checkpoint.fingerprint == current_checkpoint.fingerprint:
+                raise ValueError("PostgreSQL seen events are not deterministically ordered")
+        seen_by_id = {item.event_id: item for item in ordered}
         if not checkpoint_ids.issubset(seen_by_id):
             raise ValueError("PostgreSQL checkpoint references missing seen events")
         if checkpoint.instance.last_event_id is not None:
@@ -838,6 +925,161 @@ class PostgresForwardStateAdapter:
             warmup_receipt_fingerprint=receipt.fingerprint,
             seen_events=ordered,
         )
+
+    async def _load_archived_checkpoint(
+        self,
+        session: AsyncSessionLike,
+        owner_id: str,
+        instance_id: str,
+        checkpoint_fingerprint: str,
+    ) -> ForwardStateCheckpoint | None:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT owner_id, instance_id, checkpoint_fingerprint,
+                       previous_checkpoint_fingerprint, transition_json,
+                       transition_fingerprint
+                FROM {self._schema.checkpoint_history_table}
+                WHERE owner_id = :owner_id AND instance_id = :instance_id
+                ORDER BY checkpoint_fingerprint ASC
+                """
+            ),
+            {"owner_id": owner_id, "instance_id": instance_id},
+        )
+        from app.strategy_lab_v2.postgres_result_materialization import (
+            decode_canonical_contract,
+        )
+
+        transitions: dict[str, ForwardCheckpointTransition] = {}
+        for row in result.mappings():
+            transition = decode_canonical_contract(
+                row.get("transition_json"), ForwardCheckpointTransition
+            )
+            if (
+                row.get("owner_id") != owner_id
+                or row.get("instance_id") != instance_id
+                or transition.instance.instance_id != instance_id
+                or row.get("checkpoint_fingerprint") != transition.checkpoint_fingerprint
+                or row.get("previous_checkpoint_fingerprint")
+                != transition.previous_checkpoint_fingerprint
+                or row.get("transition_fingerprint") != transition.fingerprint
+            ):
+                raise ValueError("PostgreSQL checkpoint-history identity does not match bytes")
+            if transition.checkpoint_fingerprint in transitions:
+                raise ValueError("PostgreSQL checkpoint history contains duplicate fingerprints")
+            transitions[transition.checkpoint_fingerprint] = transition
+
+        target = transitions.get(checkpoint_fingerprint)
+        if target is None:
+            return None
+        reverse_chain: list[ForwardCheckpointTransition] = []
+        visited: set[str] = set()
+        cursor: ForwardCheckpointTransition | None = target
+        while cursor is not None:
+            fingerprint = cursor.checkpoint_fingerprint
+            if fingerprint in visited:
+                raise ValueError("PostgreSQL checkpoint history contains a cycle")
+            visited.add(fingerprint)
+            reverse_chain.append(cursor)
+            parent = cursor.previous_checkpoint_fingerprint
+            if parent is None:
+                break
+            cursor = transitions.get(parent)
+            if cursor is None:
+                raise ValueError("PostgreSQL checkpoint history is missing a parent")
+
+        checkpoint: ForwardStateCheckpoint | None = None
+        for transition in reversed(reverse_chain):
+            checkpoint = transition.apply(checkpoint)
+        if checkpoint is None or checkpoint.fingerprint != checkpoint_fingerprint:
+            raise ValueError("PostgreSQL checkpoint history did not resolve its target")
+        return checkpoint
+
+    async def _ensure_checkpoint_history_base(
+        self,
+        session: AsyncSessionLike,
+        owner_id: str,
+        checkpoint: ForwardStateCheckpoint,
+    ) -> None:
+        instance_id = checkpoint.instance.instance_id
+        archived = await self._load_archived_checkpoint(
+            session, owner_id, instance_id, checkpoint.fingerprint
+        )
+        if archived is not None:
+            if archived != checkpoint:
+                raise ValueError("PostgreSQL archived checkpoint differs from current state")
+            return
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT checkpoint_fingerprint
+                FROM {self._schema.checkpoint_history_table}
+                WHERE owner_id = :owner_id AND instance_id = :instance_id
+                """
+            ),
+            {"owner_id": owner_id, "instance_id": instance_id},
+        )
+        if list(result.mappings()):
+            raise ValueError("PostgreSQL checkpoint history is missing the current checkpoint")
+        await self._insert_checkpoint_transition(
+            session,
+            owner_id,
+            ForwardCheckpointTransition.between(None, checkpoint),
+        )
+
+    async def _insert_checkpoint_transition(
+        self,
+        session: AsyncSessionLike,
+        owner_id: str,
+        transition: ForwardCheckpointTransition,
+    ) -> None:
+        transition_json = canonical_json(transition)
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.checkpoint_history_table}
+                    (owner_id, instance_id, checkpoint_fingerprint,
+                     previous_checkpoint_fingerprint, transition_json,
+                     transition_fingerprint)
+                VALUES (:owner_id, :instance_id, :checkpoint_fingerprint,
+                        :previous_checkpoint_fingerprint, :transition_json,
+                        :transition_fingerprint)
+                ON CONFLICT (owner_id, instance_id, checkpoint_fingerprint) DO NOTHING
+                """
+            ),
+            {
+                "owner_id": owner_id,
+                "instance_id": transition.instance.instance_id,
+                "checkpoint_fingerprint": transition.checkpoint_fingerprint,
+                "previous_checkpoint_fingerprint": transition.previous_checkpoint_fingerprint,
+                "transition_json": transition_json,
+                "transition_fingerprint": transition.fingerprint,
+            },
+        )
+        if getattr(result, "rowcount", 0) == 1:
+            return
+        existing = await session.execute(
+            _statement(
+                f"""
+                SELECT transition_json, transition_fingerprint
+                FROM {self._schema.checkpoint_history_table}
+                WHERE owner_id = :owner_id AND instance_id = :instance_id
+                  AND checkpoint_fingerprint = :checkpoint_fingerprint
+                """
+            ),
+            {
+                "owner_id": owner_id,
+                "instance_id": transition.instance.instance_id,
+                "checkpoint_fingerprint": transition.checkpoint_fingerprint,
+            },
+        )
+        rows = list(existing.mappings())
+        if (
+            len(rows) != 1
+            or rows[0].get("transition_json") != transition_json
+            or rows[0].get("transition_fingerprint") != transition.fingerprint
+        ):
+            raise ValueError("PostgreSQL checkpoint transition insert conflicted with other bytes")
 
     async def _load_replays(
         self, session: AsyncSessionLike, owner_id: str, instance_id: str
@@ -899,6 +1141,11 @@ class PostgresForwardStateAdapter:
         )
         if getattr(result, "rowcount", 0) != 1:
             raise ValueError("PostgreSQL forward instance insert lost a uniqueness race")
+        await self._insert_checkpoint_transition(
+            session,
+            owner_id,
+            ForwardCheckpointTransition.between(None, checkpoint),
+        )
 
     async def _update_instance(
         self,
@@ -917,6 +1164,9 @@ class PostgresForwardStateAdapter:
             current.duplicate_count,
             current.out_of_order_count,
         )
+        if next_checkpoint.instance.instance_id != current.instance.instance_id:
+            raise ValueError("forward checkpoint update cannot change instance identity")
+        await self._ensure_checkpoint_history_base(session, owner_id, current)
         values = _checkpoint_values(owner_id, next_checkpoint)
         values.update(
             expected_checkpoint_fingerprint=current.fingerprint,
@@ -949,6 +1199,12 @@ class PostgresForwardStateAdapter:
         )
         if getattr(result, "rowcount", 0) != 1:
             raise ValueError("PostgreSQL forward instance compare-and-set lost a race")
+        if next_checkpoint != current:
+            await self._insert_checkpoint_transition(
+                session,
+                owner_id,
+                ForwardCheckpointTransition.between(current, next_checkpoint),
+            )
 
     async def _insert_warmup(
         self, session: AsyncSessionLike, owner_id: str, receipt: ForwardWarmupReceipt

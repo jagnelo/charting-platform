@@ -51,6 +51,7 @@ class FakeSession:
         self.events: dict[tuple[str, str, str], dict[str, Any]] = {}
         self.replays: dict[tuple[str, str, str], dict[str, Any]] = {}
         self.lifecycle_requests: dict[tuple[str, str, str], dict[str, Any]] = {}
+        self.checkpoint_history: dict[tuple[str, str, str], dict[str, Any]] = {}
 
     async def __aenter__(self):
         return self
@@ -94,6 +95,28 @@ class FakeSession:
                 (values["owner_id"], values["instance_id"], values["idempotency_key_digest"])
             )
             return FakeResult([] if row is None else [row])
+        if "FROM strategy_lab_v2_forward_checkpoint_history" in sql:
+            rows = [
+                row
+                for (owner, instance_id, _), row in self.checkpoint_history.items()
+                if owner == values["owner_id"] and instance_id == values["instance_id"]
+            ]
+            checkpoint_fingerprint = values.get("checkpoint_fingerprint")
+            if checkpoint_fingerprint is not None:
+                rows = [
+                    row for row in rows if row["checkpoint_fingerprint"] == checkpoint_fingerprint
+                ]
+            return FakeResult(sorted(rows, key=lambda row: row["checkpoint_fingerprint"]))
+        if sql.lstrip().startswith("INSERT INTO strategy_lab_v2_forward_checkpoint_history"):
+            key = (
+                values["owner_id"],
+                values["instance_id"],
+                values["checkpoint_fingerprint"],
+            )
+            if key in self.checkpoint_history:
+                return FakeResult(rowcount=0)
+            self.checkpoint_history[key] = values
+            return FakeResult(rowcount=1)
         if sql.lstrip().startswith("INSERT INTO strategy_lab_v2_forward_lifecycle_requests"):
             key = (values["owner_id"], values["instance_id"], values["idempotency_key_digest"])
             if key in self.lifecycle_requests:
@@ -298,6 +321,109 @@ async def test_forward_adapter_admits_events_idempotently_and_persists_counters(
 
 
 @pytest.mark.asyncio
+async def test_forward_adapter_reconstructs_exact_historical_checkpoint_prefix() -> None:
+    session = FakeSession()
+    adapter = PostgresForwardStateAdapter(lambda: session)
+    instance = _instance(ForwardState.WARMING_UP)
+    await adapter.ensure_instance(principal="owner-1", instance=instance)
+    await adapter.complete_warmup(principal="owner-1", receipt=_receipt(instance))
+
+    first = CanonicalForwardEvent(
+        "event-1", 0, NOW + timedelta(minutes=2), NOW + timedelta(minutes=2), DIGEST
+    )
+    first_observation = observe_forward_event(cursor=ForwardCursor(), event=first)
+    await adapter.admit(
+        principal="owner-1",
+        instance_id=instance.instance_id,
+        event=first,
+        observation=first_observation,
+    )
+    first_checkpoint = await adapter.load_state(
+        principal="owner-1", instance_id=instance.instance_id
+    )
+    assert first_checkpoint is not None
+
+    second = CanonicalForwardEvent(
+        "event-2",
+        1,
+        NOW + timedelta(minutes=3),
+        NOW + timedelta(minutes=3),
+        content_digest({"event": 2}),
+    )
+    second_observation = observe_forward_event(
+        cursor=ForwardCursor(0, first.event_id, first.event_time),
+        event=second,
+    )
+    await adapter.admit(
+        principal="owner-1",
+        instance_id=instance.instance_id,
+        event=second,
+        observation=second_observation,
+    )
+
+    historical = await adapter.load_state_at_checkpoint(
+        principal="owner-1",
+        instance_id=instance.instance_id,
+        checkpoint_fingerprint=first_checkpoint.checkpoint.fingerprint,
+    )
+    assert historical is not None
+    assert historical.checkpoint == first_checkpoint.checkpoint
+    assert tuple(item.event_id for item in historical.seen_events) == (first.event_id,)
+    assert (
+        await adapter.load_state_at_checkpoint(
+            principal="owner-2",
+            instance_id=instance.instance_id,
+            checkpoint_fingerprint=first_checkpoint.checkpoint.fingerprint,
+        )
+        is None
+    )
+    assert (
+        await adapter.load_checkpoint_at(
+            principal="owner-1",
+            instance_id=instance.instance_id,
+            checkpoint_fingerprint=content_digest("unknown-checkpoint"),
+        )
+        is None
+    )
+
+
+@pytest.mark.asyncio
+async def test_forward_adapter_seeds_checkpoint_history_for_preexisting_instances() -> None:
+    session = FakeSession()
+    adapter = PostgresForwardStateAdapter(lambda: session)
+    instance = _instance()
+    await adapter.ensure_instance(principal="owner-1", instance=instance)
+    initial_fingerprint = session.instances[("owner-1", instance.instance_id)][
+        "checkpoint_fingerprint"
+    ]
+    initial = await adapter.load_checkpoint_at(
+        principal="owner-1",
+        instance_id=instance.instance_id,
+        checkpoint_fingerprint=initial_fingerprint,
+    )
+    assert initial is not None
+
+    # Simulate an instance row created before the append-only checkpoint table.
+    session.checkpoint_history.clear()
+    transitioned = await adapter.transition(
+        principal="owner-1",
+        instance_id=instance.instance_id,
+        target=ForwardState.WARMING_UP,
+        now=NOW + timedelta(seconds=1),
+        idempotency_key="seed-history-for-legacy-instance",
+    )
+    assert transitioned.decision is ForwardStateMutationDecision.APPLIED
+    assert (
+        await adapter.load_checkpoint_at(
+            principal="owner-1",
+            instance_id=instance.instance_id,
+            checkpoint_fingerprint=initial.fingerprint,
+        )
+        == initial
+    )
+
+
+@pytest.mark.asyncio
 async def test_forward_adapter_rejects_tampered_checkpoint_and_owner_conflicts() -> None:
     session = FakeSession()
     adapter = PostgresForwardStateAdapter(lambda: session)
@@ -393,7 +519,7 @@ async def test_forward_adapter_stages_correction_replay_atomically() -> None:
 
 def test_forward_state_schema_is_explicit_and_safe() -> None:
     schema = PostgresForwardStateSchema()
-    assert len(schema.statements) == 5
+    assert len(schema.statements) == 6
     assert all("CREATE TABLE" in statement for statement in schema.statements)
     assert "PRIMARY KEY (owner_id, instance_id, event_id)" in schema.statements[2]
     assert "PRIMARY KEY (owner_id, instance_id, idempotency_key_digest)" in schema.statements[4]
