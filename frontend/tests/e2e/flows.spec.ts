@@ -5998,6 +5998,23 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8x-capabilities — authenticated Add tool menu exposes only supported workstation surfaces', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Add tool' }).click()
+
+    const menu = page.getByRole('menu', { name: 'Workstation tools' })
+    await expect(menu).toBeVisible()
+    await expect(menu.getByRole('menuitem')).toHaveText([
+      'Chart', 'WatchList', 'Notes', 'Alerts', 'EasyScan', 'Market Gauge', 'Study Lab',
+      'Study Results', 'Relative Rotation', 'Market Breadth', 'Market Map',
+      'Technical Summary', 'Coverage', 'Instrument Report', 'Python Library',
+    ])
+    await expect(menu.getByRole('menuitem', { disabled: true })).toHaveCount(0)
+    await expect(menu).not.toContainText(/coming soon|not available|requires entitlement/i)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8x-library — Python study assets support version, clone, and archive lifecycle', async ({ page, browserDiagnostics }) => {
     test.setTimeout(90_000)
     const studyName = `E2E library study ${Date.now()}`

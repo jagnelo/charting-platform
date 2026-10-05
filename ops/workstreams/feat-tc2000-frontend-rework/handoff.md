@@ -1,5 +1,49 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Exact-tip browser results and authenticated capability guard
+
+This section supersedes the pending full-browser rerun noted below. At pushed
+branch tip `9b04cee36d32d5064fc4edb3c512d98b88c38040` (product source
+`3958886632af62e0207fb02ed6961b16fd1a600c`), pinned Playwright 1.62.1 ran the
+serial functional Chromium project across 178 cases: 167 passed, 6 documented
+skips, and 5 failed. Four failures were bursts of `ERR_NETWORK_CHANGED` on
+local API requests in unrelated flows; the fifth was Market Map's Python-output
+tool failing to open. The assigned six-service Compose stack remained healthy
+with zero restarts. A six-case serial replay covering the five failures plus
+the adjacent F9j Study promotion flow passed 6/6. This narrows the failures to
+intermittent run/transport behavior, but the focused replay does not erase the
+full-run result.
+
+The correctly configured pinned four-project visual matrix ran all 104 cases:
+93 passed and 11 failed. Ten were the already-known screenshot mismatch states:
+workspace-floating at all four viewports; Study structured-result at all four;
+and Study sandbox-error at both 1080p scales. Exact pixel counts are recorded
+in `docs/tc2000-visual-parity.md` and the artifact output under
+`/tmp/tc2000-current-tip-visuals.Ca9DA4`. One other case, 1440p/125 Study
+validation-error, captured a blank page before `.workstation` appeared; the
+unchanged test passed 1/1 in isolation. No baseline, mask, threshold, skip,
+fallback, or acceptance rule changed. Artifacts for the functional run, failed
+case replays, and single visual replay remain under `/tmp/tc2000-current-tip-*`.
+
+The explicit acceptance row in `docs/tc2000-capability-stubs.md` is now covered
+at the rendered-menu boundary as well as the existing registry unit boundary.
+New flow `F8x-capabilities` opens Add Tool in an authenticated session and
+asserts the complete supported menu, zero disabled items, and no placeholder
+or entitlement shell. The focused pinned Chromium run passed 1/1. This test-only
+change followed the full 178-case run and is not included in its counts; no
+excluded product capability was added.
+
+Current direct GitHub refs are TC `9b04cee36d32d5064fc4edb3c512d98b88c38040`,
+staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`529fc81f60fcbf5f14a7afc7e9aa62461a48e855`. Provider and ETF remain outside
+staging, so R2/R3 integration and shared-path reconciliation remain deferred.
+The Buildx helper mismatch in `make validate-integration` remains separate from
+the healthy ordinary Compose/browser path. No human approval, branch takeover,
+or cross-worktree action is pending. Continue the next bounded TC-owned UI,
+Study, or Strategy gap; do not claim ready-for-review while visual and full
+integration criteria remain open.
+
 ## 2026-10-05 — V25 Boolean-column pin interaction checkpoint
 
 Product commit `3958886632af62e0207fb02ed6961b16fd1a600c`

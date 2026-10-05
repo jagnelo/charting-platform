@@ -1,5 +1,45 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-10-05 — Exact-tip full browser replay and capability-menu guard
+
+At pushed branch tip `9b04cee36d32d5064fc4edb3c512d98b88c38040` (product
+source `3958886632af62e0207fb02ed6961b16fd1a600c`), the pinned Playwright
+1.62.1 serial functional project ran `178` cases: `167` passed, `6` documented
+skips, and `5` failed. Four failures were bursts of `ERR_NETWORK_CHANGED` on
+local API requests in unrelated flows; the fifth was the Market Map Python
+output tool not opening. The exact assigned Compose stack stayed healthy with
+zero service restarts. A six-case serial replay covering all five failures plus
+the adjacent F9j promotion flow passed `6/6`; these retries diagnose the full
+run failures and do not replace its result.
+
+The corrected four-project visual-board run executed all `104` cases: `93`
+passed and `11` failed. Ten were screenshot comparisons in the already-known
+workspace-floating, Study structured-result, and 1080p Study sandbox-error
+states. Current differing-pixel counts were:
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | ---: | ---: | ---: |
+| `visual-1080p-100` | 8,995 | 109,320 | 13,300 |
+| `visual-1080p-125` | 9,825 | 105,698 | 11,188 |
+| `visual-1440p-100` | 8,995 | 22,035 | Passed |
+| `visual-1440p-125` | 9,825 | 21,352 | Passed |
+
+The eleventh visual-run failure was a blank-page startup in the 1440p/125 Study
+validation-error fixture before `.workstation` appeared. The unchanged case
+passed `1/1` when replayed alone. No screenshot, mask, threshold, skip, fallback,
+or acceptance rule changed. Artifacts are retained under
+`/tmp/tc2000-current-tip-functional.vMhtmG`,
+`/tmp/tc2000-current-tip-replay.vO3NTm`,
+`/tmp/tc2000-current-tip-visuals.Ca9DA4`, and
+`/tmp/tc2000-current-tip-visual-replay.kTVbOZ`.
+
+After those matrices, the authenticated Add Tool surface gained the focused
+`F8x-capabilities` guard: it asserts the complete supported-tool list, no
+disabled entries, and no “coming soon” or entitlement placeholder. It passed
+`1/1`; this test-only addition is not included in the full functional run above.
+The registry-level unit guard remains in place. The reference board, ten visual
+differences, and full integration gate remain open for later exact-tip review.
+
 ## 2026-10-05 — Boolean-column pinning interaction evidence
 
 The authenticated `F8u-boolean` flow now covers the V25 Boolean/tag header
