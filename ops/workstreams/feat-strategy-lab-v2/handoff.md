@@ -11077,3 +11077,40 @@ Changed paths: `backend/app/strategy_lab_v2/forward_state.py`,
 `backend/app/strategy_lab_v2/postgres_result_materialization.py`, and focused
 tests. Operational checkpoint paths: this handoff, `session.json`, and
 `validation.jsonl`.
+
+## 2026-10-05 - Forward account journal and exact-checkpoint replay
+
+Commit `ac37aa9b87b3ada8ace710b7df60c899e7424fa9` is pushed to
+`origin/feat/strategy-lab-v2`. PostgreSQL account persistence now keeps one
+account-state baseline plus an append-only event journal containing each full
+account effect and its execution receipt, linked by before/after state
+fingerprints. This preserves native account output without copying the entire
+growing orders/fills/cash state into every history row. The baseline may bind
+to the active forward admission checkpoint and warm-up receipt. The adapter can
+replay account positions/cash/orders through an exact `ForwardLiveAdmissionState`,
+verifies each transition fingerprint, and fails closed for missing receipts,
+missing events, mismatched warm-up, or a target outside the baseline prefix.
+Legacy accounts without a checkpoint-bound baseline remain readable as current
+state but cannot claim historical resolution.
+
+Validation: 17 focused account/worker/session tests passed; whole Strategy Lab
+plus schema-migration suite passed 1,428 tests, and its one sandbox-denied Unix
+socket test passed separately with scoped local socket permission. Ruff check,
+changed-file formatting, focused MyPy for the two changed production modules,
+and `git diff --check` passed. Exact implementation commit is pushed.
+
+This adds the durable account-history primitive, not the composed runtime.
+Next, connect the authenticated historical admission/account results to the
+forward context-window resolver, load declared market-data history from the
+frozen warm-up and canonical payload sources, then implement the isolated
+persistent Nautilus session and crash-safe native runtime checkpoint/output
+restore. Stable 2.x remains no gate; exact RC5 five-scope conformance already
+passes. Docker Buildx remains only a final `full_stack_browser` environment
+gate, and staging reconciliation still gates shared paths rather than owned
+package work.
+
+Changed paths: `backend/app/strategy_lab_v2/forward_account.py`,
+`backend/app/strategy_lab_v2/postgres_forward_account.py`, and
+`backend/app/strategy_lab_v2/tests/test_postgres_forward_account.py`.
+Operational checkpoint paths: this handoff, `session.json`, and
+`validation.jsonl`.
