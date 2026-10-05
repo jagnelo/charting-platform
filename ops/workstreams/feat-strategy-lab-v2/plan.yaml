@@ -847,21 +847,30 @@ progress:
     terminal commits remain pending and fail closed. The Strategy Lab package
     plus schema-migration suite passes 1,373 tests with the exact RC5 image and
     scoped local access; Ruff, formatting, focused MyPy, and diff checks pass.
-    Remaining completion work is substantial: broader worker scaling and live
-    PostgreSQL/Redis/Compose acceptance, domain-backed mutations, remaining
-    metrics, and forward-shadow event-tape parity. The required full
+    Compose 2.40.3 configuration and a dry-run with
+    --scale strategy-lab-v2-worker=3 produce three dedicated worker containers;
+    the service has no fixed container name/host port, and each replica derives
+    a distinct Redis consumer identity from HOSTNAME plus PID. Effective
+    multi-replica throughput is not yet proven: preparation still receives one
+    WorkerProfile from its host context resolver, and there is no package-owned
+    fleet registry/selector that assigns attempts across available profiles.
+    Real concurrent PostgreSQL/Redis scale acceptance remains open. Other
+    completion work includes broader recovery, domain-backed mutations,
+    remaining metrics, and forward-shadow event-tape parity. The required full
     Compose/browser profile remains environment-limited because Docker Buildx
     is absent and the default sandbox cannot access the Docker socket. Provider,
     ETF, and TC2000 contracts are staging-gated only if an owned change overlaps
     their paths. Options order admission remains fail-closed pending canonical
     event-time Greeks/delta and settlement evidence.
   next_action: >-
-    Expand worker crash/lease recovery and Compose replica scaling coverage,
-    then continue domain-backed mutations, remaining metrics, and broker-free
-    forward event-tape parity. Validate live PostgreSQL/Redis and the required
-    full Compose/browser profile. The post-terminal released-lease redelivery
-    case now closes search state and ACKs idempotently without a retry or
-    simulation rerun.
+    Implement package-owned worker-fleet profile discovery/selection so
+    prepared attempts can reserve distinct serial worker slots, then verify
+    concurrent admission and crash recovery across multiple Redis consumers
+    against PostgreSQL/Redis. Compose's three-replica dry-run is proven, but
+    actual runtime scaling remains open. Continue afterward with
+    domain-backed mutations, remaining metrics, forward event-tape parity, and
+    the full Compose/browser profile. Post-terminal released-lease redelivery
+    already closes search state and ACKs idempotently without retry or rerun.
     Exact-pinned RC5 remains eligible for authoritative local backtests after
     four checks; stable labeling is not a gate. Forward shadow needs all five
     checks; prereleases cannot connect to brokers or control real capital. Keep

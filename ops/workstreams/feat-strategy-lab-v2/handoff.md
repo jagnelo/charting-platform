@@ -10384,3 +10384,32 @@ staging gates apply only if this branch changes overlapping contracts or paths.
 Next action: expand worker recovery/scaling coverage, then continue
 domain-backed mutations, remaining metrics, and forward event-tape parity; keep
 options fail-closed pending canonical Greeks/delta and settlement evidence.
+
+## 2026-10-05 - Compose replica scale contract
+
+Made the dedicated backtest worker's scale assumptions explicit and
+test-covered. The Compose service has no fixed container name or host-port
+binding, retains one Redis consumer group, and relies on the worker entrypoint's
+default `HOSTNAME` plus PID consumer identity so separate replicas are distinct
+consumers. Added configuration and Compose-contract tests plus the documented
+local `docker compose --profile strategy-lab-v2 up --scale
+strategy-lab-v2-worker=3` operation.
+
+Validation: worker-entrypoint and Compose tests pass `9/9`; Ruff, format, and
+`git diff --check` pass. Docker Compose 2.40.3 resolves the profile and its
+three-worker `up --dry-run` plan emits three distinct worker containers. This is
+planning evidence only, not a live scaled-worker run. The Docker daemon warns
+that Buildx is absent, so image build and runtime scale acceptance remain
+unproven.
+
+The next throughput requirement is package-owned fleet profile discovery and
+selection: preparation currently receives one `WorkerProfile` from its host
+context resolver, and no platform scheduler assigns attempts across multiple
+available serial profiles. Add this selection without relaxing the invariant
+of one Nautilus node per worker process, then exercise concurrent reservation,
+Redis consumption, and crash recovery against local PostgreSQL/Redis. No other
+worktree was modified.
+
+Next action: implement and test worker-fleet profile selection and serial-slot
+reservation across replicas; afterward continue the remaining domain mutations,
+metrics, forward event-tape parity, and full Compose/browser acceptance.
