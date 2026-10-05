@@ -29,9 +29,16 @@ current_blocker: >-
   that exited 152 without a summary. The split diagnostic's isolated
   ETF-owned test-order failure remains documented, but the full ordered suite
   passes and TC must not alter ETF-owned behavior.
-  At product source f0e946000e15336d972f33f24520d72b06e5cf7e, the corrected
-  seeded functional run passed 175/177 with two documented skips and zero
-  failures; the four-profile visual matrix in the pinned Playwright 1.62.1
+  At product source f0e946000e15336d972f33f24520d72b06e5cf7e, an earlier
+  corrected seeded functional run passed 175/177 with two documented skips
+  and zero failures. The latest pinned Playwright 1.62.1 exact-source replay
+  against the assigned stack completed 171 passed, 2 documented skips, and
+  4 failures: F8m-chart-panels timed out on the Yellow menu item, F8g did not
+  find Study Lab, and F14-instance-scope/F8z recorded ERR_NETWORK_CHANGED.
+  Each of the four cases passed isolated replay; the adjacent F8m wildcard ->
+  F8m chart-panels -> F8g Study sequence passed 3/3. This is not a clean full
+  matrix receipt: retain the four failures and rerun the full suite in a stable
+  secure browser context. The four-profile visual matrix in the pinned Playwright 1.62.1
   Noble image passed 94/104. Its ten screenshot-only failures are the known
   protected set: workspace-floating at all four profiles, Study
   structured-result at all four, and Study sandbox-error at the two 1080p
@@ -50,8 +57,9 @@ current_blocker: >-
   contract, and no-provider-change probe checks pass. Isolated research-runner
   sandbox/resource probes passed at checkpoint 8e6a818: all expected denials,
   resource limits, and bounded concurrent-pressure containment were observed
-  with zero restarts. The exact disposable project was removed, but a fresh
-  Docker-socket inventory cannot be queried from this execution sandbox.
+  with zero restarts. The exact disposable project was removed. The assigned
+  six-service stack was subsequently confirmed healthy through the approved
+  host context; ordinary sandbox access to the Docker socket remains denied.
   Provider and ETF branches remain outside staging, so R2/R3 consumption and
   shared-path reconciliation are deferred.
 active_changeset_context:
@@ -73,9 +81,11 @@ active_changeset_context:
     refreshed at product source f0e946. Research-runner sandbox/resource
     probes passed at checkpoint 8e6a818; refresh only if runner configuration
     or source changes. Migration, lint, Compose contract, and provider-change
-    probe checks have been reconciled. Never invoke the generic cleanup trap
-    against the assigned stack. The current sandbox denies Docker-socket access,
-    so continue independent frontend work and non-Docker checks meanwhile.
+    probe checks have been reconciled. The latest full functional browser replay
+    has four failures, but all four passed isolated replay; rerun the complete
+    browser matrix through the pinned secure browser context without relaxing
+    diagnostics. Use the approved host Docker context and exact assigned project;
+    never invoke the generic cleanup trap against the assigned stack.
     Keep provider/ETF work out of this branch and defer R2/R3 until both
     dependencies reach staging.
 planning_state: ready
@@ -330,14 +340,17 @@ progress:
   current_blocker: >-
     Current backend unit and integration suites pass 1622/1622 and 409/409
     under coverage at 82.26%, using sys.monitoring. Isolated research-runner
-    sandbox/resource probes pass with zero restarts. Frontend seeded flows remain
-    175/177 with two documented skips and zero failures on unchanged replay;
+    sandbox/resource probes pass with zero restarts. The latest full pinned
+    functional run passed 171, skipped 2 documented cases, and failed 4; all
+    four failures passed isolated replay, but a clean full rerun remains open.
+    An earlier seeded full run passed 175/177 with 2 documented skips;
     the visual matrix is 94/104 with ten protected diffs; dense performance is
     4/4 including 10k rows. The generic helper's Buildx/cleanup path is unsafe
-    for assigned volumes; remaining browser/Compose stages need isolated
-    execution when Docker access is available. Provider and ETF remain outside
+    for assigned volumes; remaining browser/Compose stages need exact-project
+    execution in the approved host context. Provider and ETF remain outside
     staging, deferring R2/R3 and shared-path reconciliation.
 historical_implementation_records:
+  - "At documentation checkpoint df4c8d6f (product source f0e946000e15336d972f33f24520d72b06e5cf7e), the pinned Playwright 1.62.1 full seeded functional suite ran 177 cases against the assigned six-service stack: 171 passed, 2 documented skips, and 4 failed. F8m-chart-panels timed out waiting for Yellow, F8g could not find Study Lab, and F14-instance-scope plus F8z recorded ERR_NETWORK_CHANGED. All four cases passed isolated replay; the nearest F8m wildcard -> chart-panels -> F8g sequence passed 3/3. This is not recorded as a clean full-gate pass. The test source was mounted read-only, outputs were under /tmp/tc2000-functional-df4c8d6f-elevated-results, and the assigned stack stayed healthy. A separate internal-bridge attempt was stopped after proving its non-localhost URL is not a secure browser context; no product or acceptance changes were made."
   - "Product commit f0e946000e15336d972f33f24520d72b06e5cf7e bounds historical breadth and generic event occurrence lists to 100 visible rows per increment, with truthful visible/matching counts and filter/selection resets. Focused ResearchResultsTool tests passed 57/57; full serial frontend Vitest passed 129 files / 1,209 tests; Vue type-check/build, direct TC ownership guard (130 touched paths, all six self-tests), and direct workstream validation (30 records) passed. The assigned Docker socket is denied, so browser replay and the generic full integration gate remain open. This slice changes neither provider/ETF behavior nor visual reference or acceptance policy."
   - "At exact pushed checkpoint 8e6a8180672e332904014a7f59d7ecf0887b72f4, an isolated research-runner project passed all eight expected sandbox-denial probes (unshare, setns, mount, ptrace, fork, network, subprocess, root-write), memory-cgroup denial (exit 137), tmpfs-capacity denial, and bounded concurrent-pressure containment (three child failures, restart count zero). The runner config was 768 MiB, one CPU, 128 PIDs, network none, read-only root, uid 10001:10001. The exact temporary project, volumes, and local image were removed; the assigned TC stack was preserved according to the probe-run cleanup inventory. A fresh Docker-socket inventory is unavailable in this execution sandbox. Probe script behavior was unchanged; only its host temporary-log prefix was narrowed to this unique project. No product source, provider/ETF behavior, or visual acceptance policy changed."
   - "Product commit 8d1d63b7945ad94226ac02e338aac8f4ef447f2a fixes data loss in the advanced Market Map breadth editor: switching a multi-child all/any group to not now wraps the complete prior group as the sole NOT child. The regression failed against the prior editor; BreadthConditionTreeEditor and MarketMapTool suites passed 10/10 and 56/56, backend breadth service tests passed 30/30, frontend type-check/build and Ruff format check passed. No provider/ETF behavior, visual styling, or acceptance policy changed."
