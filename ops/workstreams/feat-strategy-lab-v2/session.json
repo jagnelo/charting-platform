@@ -86,12 +86,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -127,14 +122,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "973f9c6e3f0571471c0ef9e7873b710895405388",
-  "implementation_sha": "973f9c6e3f0571471c0ef9e7873b710895405388",
-  "last_checkpoint": "2026-10-05T07:19:00.644646+00:00",
-  "last_human_progress_update": "2026-10-05T07:18:07.696458+00:00",
+  "head": "e2a7a139635c6cca271d2dbc2c2e81dec188a968",
+  "implementation_sha": "e2a7a139635c6cca271d2dbc2c2e81dec188a968",
+  "last_checkpoint": "2026-10-05T08:14:10+00:00",
+  "last_human_progress_update": "2026-10-05T08:14:10+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Connect order-preserving forward parity evidence to the native callback boundary, bound to persisted warm-up/checkpoint and accepted dispatch identity; keep corrections on separately identified counterfactual replay inputs.",
+  "next_action": "Wire a concrete local forward callback factory that consumes only accepted, content-verified dispatches and rehydrates their canonical market payloads, then invokes the isolated Nautilus runtime using the pinned strategy/data identities. Persist invocation/account outputs before Redis acknowledgement. Keep corrections on the separate counterfactual path and preserve one Nautilus node per process. Consume provider-owned source contracts only after staging; no stable release label is required after scope-specific conformance.",
   "parent_branch": "staging",
-  "plan_hash": "ebf58e0187fb54f0d6e94450dc608536b2894103430cb3412f1cfd8d52e3d577",
+  "plan_hash": "6102efd966193495839a27af404da7939d4d3098512e6a1fe2a2c54cbec0c7db",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -149,14 +144,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "No external dependency blocks package-owned implementation. Docker Buildx limits final Compose/browser acceptance only. Forward parity remains branch-owned work: callback order is now checked, but native delivery is not yet bound to persisted warm-up/checkpoint and accepted dispatch identities; shared-path work remains staging-gated.",
-    "current_phase": "forward-callback-sequence-parity-v2",
-    "next_action": "Connect order-preserving forward parity evidence to the native callback boundary, bound to persisted warm-up/checkpoint and accepted dispatch identity; keep corrections on separately identified counterfactual replay inputs.",
+    "current_blocker": "No external dependency blocks package-owned implementation. Durable dispatch checkpoint, warm-up, admission, Redis-entry, and correction-replay identities are now bound to native forward input. The concrete local callback factory and isolated long-lived Nautilus forward runtime remain code-owned work. Docker Buildx limits final Compose/browser acceptance only; shared provider, ETF, and TC2000 integration is staging-gated; options remain fail-closed pending canonical Greeks/delta and settlement evidence.",
+    "current_phase": "native-forward-delivery-context",
+    "next_action": "Wire a concrete local forward callback factory that consumes only accepted, content-verified dispatches and rehydrates their canonical market payloads, then invokes the isolated Nautilus runtime using the pinned strategy/data identities. Persist invocation/account outputs before Redis acknowledgement. Keep corrections on the separate counterfactual path and preserve one Nautilus node per process. Consume provider-owned source contracts only after staging; no stable release label is required after scope-specific conformance.",
     "total": 18,
-    "updated_at": "2026-10-05T07:34:46+00:00"
+    "updated_at": "2026-10-05T08:14:10+00:00"
   },
-  "remote": "973f9c6e3f0571471c0ef9e7873b710895405388",
-  "remote_sha": "973f9c6e3f0571471c0ef9e7873b710895405388",
+  "remote": "e2a7a139635c6cca271d2dbc2c2e81dec188a968",
+  "remote_sha": "e2a7a139635c6cca271d2dbc2c2e81dec188a968",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
