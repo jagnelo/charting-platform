@@ -77,28 +77,11 @@
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-etf-holdings-constituents-fdc36fa2",
-      "charting-stack-feat-etf-holdings-constituents-fdc36fa2"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
-    "ready": true,
+    "ready": false,
     "started_desktop": false,
     "wait_seconds": 0
   },
@@ -111,13 +94,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "26d9f84b5ac35ed0fe0b31d196caae1a6ee05139",
-  "implementation_sha": "f04b0a39a60fadd6d8d21cf2bca360d8d746c88c",
-  "last_checkpoint": "2026-10-05T12:00:33+00:00",
-  "last_human_progress_update": "2026-10-05T09:35:35+00:00",
+  "head": "07b9e6f34b4fb66858662e8c05d3bf63fbb87025",
+  "implementation_sha": "07b9e6f34b4fb66858662e8c05d3bf63fbb87025",
+  "last_checkpoint": "2026-10-05T12:53:04+00:00",
+  "last_human_progress_update": "2026-10-05T12:45:14+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Exact-SHA run 37303452888 on a207ea0a801824037073de8cb5ca92b13d4c0c7d passed Backend Tests, Frontend Unit Tests, Branch-declared Tests, and hosted Playwright; protected staging/master Exhaustive Integration was skipped by design. AC7 is complete with its documented narrow local network-instability exception; the full local gate itself remains explicitly non-green at one F8w ERR_NETWORK_CHANGED timeout despite all six prior cases passing in the full rerun and exact fresh-stack F8w replay passing. Branch-owned work is ready for human review. No further ETF-branch implementation is pending before review. Await the user's notice that feat/market-data-provider-platform reached staging before any shared-platform integration; AC14 remains the post-integration 30-day observation. The overarching saved goal remains active because those external/later criteria are not complete.",
-  "plan_hash": "c4544a6f3e10f1f1372b17a3554b922d38a6552f129486a547c4e1aa213af643",
+  "next_action": "Continue independent provider audits from the highest-relevance unresolved Tier-1 symbol in provider-audit.yaml. Inspect exact-SHA push CI for 07b9e6f34b4fb66858662e8c05d3bf63fbb87025 through an authorized Actions view; the current connector exposes no push-run results or commit check-runs. Re-run the local Docker-backed full-stack gate only when Docker is normally accessible in this session. Keep DNS skips and HTTP 401 evidence distinct from route passes. Preserve free-first and budget constraints. Await the user's notice before shared-platform integration; do not integrate, promote, deploy, or modify another worktree. AC14 remains the later post-integration 30-day observation.",
+  "plan_hash": "ea790b1689d7c9a1bde914974bb229eaa6462fd6be89380caba39bd41370344e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,20 +117,19 @@
       "AC4",
       "AC5",
       "AC6",
-      "AC7",
       "AC9",
       "AC11",
       "AC12",
       "AC13"
     ],
-    "current_blocker": "15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The feature branch checkpoint a207ea0a801824037073de8cb5ca92b13d4c0c7d is pushed and exact-SHA run 37303452888 passed Backend Tests, Frontend Unit Tests, Branch-declared Tests, and hosted Playwright; the protected staging/master integration gate was skipped by design. The local full gate itself is not green: its 260 Playwright cases reported 153 passed, 106 skipped, and one F8w save-response timeout with repeated net::ERR_NETWORK_CHANGED. All six prior failures passed in that full rerun; the exact F8w case passed 1/1 on a fresh ETF-only stack. Root cause is not proven and no UI/network code changed. AC7 is satisfied via its narrow, explicitly documented environment-instability exception plus successful exact-SHA hosted validation; this is not a claim that the local full gate passed. The complete 597-case ETF adapter suite, Ruff/format checks, and workstream consistency checks pass. Local Longview DNS failure is not counted as a route pass; hosted provider matrix passed. AC8 is ready for human review, pending the human review itself. AC10 awaits feat/market-data-provider-platform reaching staging; AC14 is the later post-integration/deployment 30-day observation. No cross-worktree action occurred. The overarching goal stays active pending these external/later criteria.",
-    "current_phase": "ready_for_human_review_ac10_provider_platform_staging_and_ac14_observation_deferred",
-    "next_action": "Preserve the clean synchronized feature branch for human review. Await human feedback and the user's notice that feat/market-data-provider-platform has reached staging before any shared-platform integration; do not alter another branch or worktree. AC14 remains the later post-integration/deployment 30-day observation. Do not call the overall saved goal complete while AC10 and AC14 remain outstanding.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The Tier-0 source recheck is committed and pushed as 07b9e6f34b4fb66858662e8c05d3bf63fbb87025. Capability/adapter tests pass 691/691, three parity/narrative tests pass, and Ruff plus format checks pass. The live WisdomTree probes are DNS skips, not passes; anonymous PIMCO requests returned HTTP 401, not proof that no issuer disclosure exists. The configured GitHub connector currently returns no commit statuses and only exposes pull-request-triggered workflow runs, so exact push-triggered CI for this SHA is not yet observable through the available query. The local full-stack profile cannot connect to /var/run/docker.sock; no daemon process is visible in the session and the host service bus is inaccessible. No host permissions or credentials were changed. AC7 remains open for exact-SHA CI and the Docker-backed gate or its documented environment-outage exception. This does not block independent feature work. AC10 awaits feat/market-data-provider-platform reaching staging; AC14 is the later post-integration/deployment 30-day observation. No cross-worktree action occurred; the saved goal remains active, not blocked or complete.",
+    "current_phase": "tier0_source_recheck_published_exact_ci_observation_pending",
+    "next_action": "Continue independent provider audits from the highest-relevance unresolved Tier-1 symbol in provider-audit.yaml. Inspect exact-SHA push CI for 07b9e6f34b4fb66858662e8c05d3bf63fbb87025 through an authorized Actions view; the current connector exposes no push-run results or commit check-runs. Re-run the local Docker-backed full-stack gate only when Docker is normally accessible in this session. Keep DNS skips and HTTP 401 evidence distinct from route passes. Preserve free-first and budget constraints. Await the user's notice before shared-platform integration; do not integrate, promote, deploy, or modify another worktree. AC14 remains the later post-integration 30-day observation.",
     "total": 14,
-    "updated_at": "2026-10-05T12:00:33+00:00"
+    "updated_at": "2026-10-05T12:53:04+00:00"
   },
-  "remote": "26d9f84b5ac35ed0fe0b31d196caae1a6ee05139",
-  "remote_sha": "26d9f84b5ac35ed0fe0b31d196caae1a6ee05139",
+  "remote": "07b9e6f34b4fb66858662e8c05d3bf63fbb87025",
+  "remote_sha": "07b9e6f34b4fb66858662e8c05d3bf63fbb87025",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "2fcd05d8-12db-42ac-8cb6-83d9db9efafa",

@@ -8546,3 +8546,72 @@ on `feat/market-data-provider-platform` reaching `staging`; the human said they
 will notify when it is ready. AC14 is the later 30-day observation after its
 separate integration/deployment workflow. No parallel worktree, staging ref,
 integration, promotion, deployment, or unrelated Docker resource was changed.
+
+## 2026-10-05 12:40 UTC — Tier-0 free-first route recheck
+
+The existing active workstream was resumed in this exact ETF worktree. The
+preflight confirmed branch `feat/etf-holdings-constituents`; `make
+agent-session-start` could not reacquire the allocation lock because
+`/home/m920q/charting-platform/.ai/runtime/allocations.lock` is read-only in
+this sandbox. The pre-existing session claim remains `2fcd05d8-12db-42ac-8cb6-83d9db9efafa`.
+`make agent-session-status` did refresh the branch-local session record to the
+current synchronized starting SHA `dff3e44`; the local Docker status is now
+`permission denied` for `/var/run/docker.sock`.
+
+The current official WisdomTree DXJ and NTSX product pages show holdings dated
+2026-10-01, but each page renders only ten named rows and a `Remaining
+Portfolio` aggregate. Both bounded application canaries were retried; the
+tests skipped because the local host returned `Temporary failure in name
+resolution` for the issuer. This is not a route pass and is not evidence of a
+new issuer rejection. The last actual route response remains the
+2026-10-04 issuer challenge, so both symbols remain `degraded`.
+
+PIMCO's current ETF suite still lists MINT and BOND, with NAV/market-price
+context through 2026-10-01 and AUM as of 2026-08-31. The official sheets state
+daily holdings disclosure, but the reviewed sheets are themselves dated
+2026-03-31 and do not provide the current executable rows. Fresh anonymous
+requests to the declared MINT and BOND `topTenHoldings` fund-detail endpoints
+returned HTTP 401 JSON. Those routes remain inaccessible to this client and are
+not complete holdings artifacts; both symbols remain `unavailable`. No
+credentials, account, paid data, or activation were used.
+
+Updated the Tier-0 runtime audit, provider YAML ledger, provider-universe doc,
+implementation-plan history, and regression assertions with the same dated
+evidence and outcomes. Provider counts remain 496 registered, 421 native, and
+75 fallback. The focused capability and full deterministic adapter modules
+passed together (691/691), the three Tier-0 parity/narrative/audit checks passed
+3/3, Ruff passed, and both changed Python files pass format checking. The first
+focused run caught one outdated assertion about the old wording; it was updated
+and the complete focused suites then passed. No end-to-end gate was rerun for
+this SHA: Docker is inaccessible in this sandbox. An escalation request to
+check the authorized Docker gate was not executed because automatic approval
+review was at capacity; this was not a safety rejection and must not be
+bypassed. AC7 is reopened for exact-current-SHA CI and current-source full-stack
+validation. The workstream is active, not ready for review. AC10 still waits for
+the user's notice that the provider-platform branch reached staging; AC14
+remains the later post-integration 30-day production observation. No other
+worktree, branch, or Docker resource was changed.
+
+## 2026-10-05 12:49 UTC — source-audit commit published
+
+The validated Tier-0 source recheck is committed as
+`07b9e6f34b4fb66858662e8c05d3bf63fbb87025` (`chore(etf): refresh tier-zero
+source evidence`) and the push to `origin/feat/etf-holdings-constituents`
+completed successfully. The deterministic capability/adapter suites pass
+691/691; the Tier-0 runtime/ledger/narrative parity selection passes 3/3; Ruff
+and Ruff format pass. These checks were rerun before commit. The focused live
+WisdomTree probes remain skipped on DNS resolution failure, and PIMCO's two
+anonymous requests returned HTTP 401; neither result is a positive route test.
+
+The pushed commit is visible through the connected GitHub commit lookup. The
+available workflow-run query returns no rows because it is limited to
+pull-request-triggered runs, while the commit-status query returns no statuses;
+the exact push-triggered CI result therefore still needs an Actions view that
+exposes push runs/check-runs. The branch workflow does declare `feat/**` push
+triggers. The local Docker-backed profile remains unavailable because this
+session cannot connect to `/var/run/docker.sock` and cannot query the host
+system-service bus. The saved goal is still active and there is no general
+development blocker: proceed with independent fallback audit work. AC7 remains
+open pending the exact-CI/local-gate disposition; AC10 still depends on the
+provider-platform branch reaching staging, and AC14 remains a later production
+observation. No host permissions, other branches, or worktrees were changed.
