@@ -19,6 +19,7 @@ from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.forward_account import (
     ForwardAccountEvent,
     ForwardRuntimeExecutionReceipt,
+    apply_forward_account_event,
     initial_forward_account_state,
 )
 from app.strategy_lab_v2.forward_account_worker import ForwardAccountEventBinding
@@ -186,17 +187,30 @@ class AccountStore:
         assert principal == OWNER_ID
         self.order.append("persist")
         self.events.append(event)
-        if execution_receipt is None:
-            return self.resolution
-        self.receipts.append(execution_receipt)
-        if self.resolution.decision in {
+        if self.resolution.decision not in {
             ForwardAccountStateDecision.APPLIED,
             ForwardAccountStateDecision.REPLAY_EXISTING,
         }:
-            return replace(
-                self.resolution,
-                execution_receipt_fingerprint=execution_receipt.fingerprint,
-            )
+            return self.resolution
+        if self.resolution.state is None:
+            return self.resolution
+        if execution_receipt is not None:
+            self.receipts.append(execution_receipt)
+        applied = apply_forward_account_event(
+            self.resolution.state,
+            event,
+            execution_receipt=execution_receipt,
+        )
+        if applied.state is None:
+            return self.resolution
+        self.resolution = ForwardAccountStateResolution(
+            ForwardAccountStateDecision(applied.decision.value),
+            applied.state,
+            event.event_fingerprint,
+            execution_receipt_fingerprint=(
+                execution_receipt.fingerprint if execution_receipt is not None else None
+            ),
+        )
         return self.resolution
 
 

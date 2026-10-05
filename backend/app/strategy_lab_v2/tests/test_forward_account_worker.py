@@ -11,6 +11,7 @@ from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.forward_account import (
     ForwardAccountEvent,
     ForwardRuntimeExecutionReceipt,
+    apply_forward_account_event,
     initial_forward_account_state,
 )
 from app.strategy_lab_v2.forward_account_worker import (
@@ -100,11 +101,13 @@ def _event(
 async def test_account_worker_settles_before_returning_complete_receipt() -> None:
     entry, work_item, canonical_event = _work()
     event = _event(work_item, canonical_event)
-    state = initial_forward_account_state("forward-1", base_currency="USD")
+    initial_state = initial_forward_account_state("forward-1", base_currency="USD")
+    applied = apply_forward_account_event(initial_state, event)
+    assert applied.state is not None
     store = Store(
         ForwardAccountStateResolution(
             ForwardAccountStateDecision.APPLIED,
-            state,
+            applied.state,
             event.event_fingerprint,
         )
     )
@@ -119,6 +122,29 @@ async def test_account_worker_settles_before_returning_complete_receipt() -> Non
     assert result.decision is WorkerHandleDecision.COMPLETE
     assert store.events == [event]
     assert result.receipt_digest is not None
+
+
+@pytest.mark.asyncio
+async def test_account_worker_rejects_applied_claim_without_durable_cursor_and_history() -> None:
+    entry, work_item, canonical_event = _work()
+    event = _event(work_item, canonical_event)
+    store = Store(
+        ForwardAccountStateResolution(
+            ForwardAccountStateDecision.APPLIED,
+            initial_forward_account_state("forward-1", base_currency="USD"),
+            event.event_fingerprint,
+        )
+    )
+    handler = ForwardAccountWorkerHandler(
+        store,
+        principal="owner-1",
+        event_resolver=lambda _entry, _item: ForwardAccountEventBinding(canonical_event, event),
+    )
+
+    result = await handler(entry, work_item)
+
+    assert result.decision is WorkerHandleDecision.REJECT
+    assert result.rejection_reason == "durable forward account cursor does not match the event"
 
 
 @pytest.mark.asyncio
@@ -190,11 +216,17 @@ async def test_account_worker_does_not_complete_without_durable_execution_receip
         runtime_session_fingerprint=content_digest("runtime-session"),
         native_output_fingerprint=content_digest("native-output"),
     )
+    applied_without_receipt = apply_forward_account_event(
+        initial_forward_account_state("forward-1", base_currency="USD"),
+        event,
+    )
+    assert applied_without_receipt.state is not None
     store = Store(
         ForwardAccountStateResolution(
             ForwardAccountStateDecision.APPLIED,
-            initial_forward_account_state("forward-1", base_currency="USD"),
+            applied_without_receipt.state,
             event.event_fingerprint,
+            execution_receipt_fingerprint=receipt.fingerprint,
         )
     )
     handler = ForwardAccountWorkerHandler(
@@ -208,7 +240,7 @@ async def test_account_worker_does_not_complete_without_durable_execution_receip
     result = await handler(entry, work_item)
 
     assert result.decision is WorkerHandleDecision.REJECT
-    assert result.rejection_reason == (
-        "forward account store did not durably confirm the execution receipt"
+    assert (
+        result.rejection_reason == "durable forward account history omitted the execution receipt"
     )
     assert store.execution_receipts == [receipt]

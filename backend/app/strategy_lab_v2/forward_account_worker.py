@@ -17,6 +17,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.forward_account import (
     ForwardAccountEvent,
     ForwardAccountEventBinding,
+    ForwardAppliedAccountExecutionEvent,
     ForwardRuntimeExecutionReceipt,
 )
 from app.strategy_lab_v2.forward_worker_handoff import ForwardEventWorkItem
@@ -118,6 +119,35 @@ class ForwardAccountWorkerHandler:
             ForwardAccountStateDecision.APPLIED,
             ForwardAccountStateDecision.REPLAY_EXISTING,
         }:
+            state = resolution.state
+            if state is None:
+                return _reject(entry, "forward account store omitted its durable account state")
+            if state.instance_id != event.instance_id:
+                return _reject(entry, "forward account store returned another instance state")
+            if resolution.decision is ForwardAccountStateDecision.APPLIED and (
+                state.last_event_id != event.event_id
+                or state.last_event_sequence != event.sequence
+                or state.last_event_fingerprint != event.event_fingerprint
+            ):
+                return _reject(entry, "durable forward account cursor does not match the event")
+            applied = next(
+                (item for item in state.applied_events if item.event_id == event.event_id),
+                None,
+            )
+            if (
+                applied is None
+                or applied.event_fingerprint != event.event_fingerprint
+                or applied.event_content_fingerprint != event.fingerprint
+                or applied.sequence != event.sequence
+            ):
+                return _reject(entry, "durable forward account history does not contain the event")
+            if binding.execution_receipt is not None and (
+                not isinstance(applied, ForwardAppliedAccountExecutionEvent)
+                or applied.execution_receipt != binding.execution_receipt
+            ):
+                return _reject(
+                    entry, "durable forward account history omitted the execution receipt"
+                )
             return WorkerHandleResult(
                 entry.fingerprint,
                 WorkerHandleDecision.COMPLETE,
