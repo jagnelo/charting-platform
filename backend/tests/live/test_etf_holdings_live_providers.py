@@ -643,6 +643,10 @@ _KNOWN_ISSUER_LIVE_VARIANT_MARKERS = {
     ("vistashares", "DRKY"): "vistashares drky holdings date is in the future.",
     ("max", "JETU"): "max product page did not verify jetu identity.",
     (
+        "etf_architect",
+        "QVAL",
+    ): "etf architect issuer access challenge persisted after the httpx request was denied and requests returned no usable product-page html.",
+    (
         "mcelhenny_sheffield",
         "MSMR",
     ): "mcelhenny sheffield msmr holdings date is in the future.",
@@ -693,6 +697,16 @@ def test_wellington_vusv_empty_vanguard_response_skip_is_narrow():
         "Vanguard V055 pcf holdings endpoint returned non-JSON content "
         "(status=200, content_type=text/html; charset=utf-8, bytes=0).",
     )
+
+
+def test_etf_architect_qval_access_challenge_skip_is_narrow():
+    access_challenge = (
+        "ETF Architect issuer access challenge persisted after the httpx request was denied "
+        "and requests returned no usable product-page HTML."
+    )
+    assert _is_known_issuer_live_variant("etf_architect", "QVAL", access_challenge)
+    assert not _is_known_issuer_live_variant("etf_architect", "QVAL", "no parseable holdings rows")
+    assert not _is_known_issuer_live_variant("etf_architect", "OTHER", access_challenge)
 
 
 def test_live_provider_matrix_covers_every_registered_issuer_adapter():

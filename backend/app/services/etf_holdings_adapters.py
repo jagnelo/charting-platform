@@ -37979,6 +37979,7 @@ class ETFArchitectHoldingsAdapter(IssuerCsvHoldingsAdapter):
         """Fetch the issuer page with its narrowly required public transport fallback."""
 
         headers = _issuer_page_request_headers(accept="text/html,*/*")
+        httpx_access_refusal = False
         for attempt in range(3):
             try:
                 async with httpx.AsyncClient(
@@ -37992,6 +37993,7 @@ class ETFArchitectHoldingsAdapter(IssuerCsvHoldingsAdapter):
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code not in {403, 500, 502, 503, 504}:
                     raise
+                httpx_access_refusal = exc.response.status_code == 403
                 break
             except httpx.TimeoutException:
                 if attempt == 2:
@@ -38016,7 +38018,24 @@ class ETFArchitectHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     await asyncio.sleep(0.25 * (attempt + 1))
                     continue
                 response.raise_for_status()
-                return str(getattr(response, "url", product_page_url)), response.text
+                response_text = response.text
+                is_empty = not response_text.strip()
+                is_challenge = _looks_like_issuer_access_challenge(response_text)
+                if is_empty or is_challenge:
+                    if attempt < 2:
+                        await asyncio.sleep(0.25 * (attempt + 1))
+                        continue
+                    if is_challenge or httpx_access_refusal:
+                        raise ValueError(
+                            "ETF Architect issuer access challenge persisted after the "
+                            "httpx request was denied and requests returned no usable "
+                            "product-page HTML."
+                        )
+                    raise ValueError(
+                        "ETF Architect product page returned an empty HTTP 200 body "
+                        "after three requests."
+                    )
+                return str(getattr(response, "url", product_page_url)), response_text
             except requests.Timeout:
                 if attempt == 2:
                     raise

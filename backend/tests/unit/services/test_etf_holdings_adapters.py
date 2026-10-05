@@ -10826,6 +10826,49 @@ async def test_etf_architect_adapter_retries_issuer_page_with_requests_after_htt
 
 
 @pytest.mark.asyncio
+async def test_etf_architect_empty_requests_body_after_httpx_403_is_explicit_access_challenge(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("etf_architect")
+    assert adapter is not None
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.queue = [
+        ForbiddenResponse(
+            text="<html>Cloudflare Ray ID: challenge-platform</html>",
+            content_type="text/html",
+            url="https://funds.alphaarchitect.com/qval/",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    requests_calls: list[str] = []
+
+    def empty_success(url, **_kwargs):
+        requests_calls.append(url)
+        return FakeResponse(text="", content_type="text/html", url=url)
+
+    async def no_sleep(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", empty_success)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", no_sleep)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+
+    with pytest.raises(ValueError, match="issuer access challenge persisted"):
+        await adapter.fetch_latest(symbol="QVAL", identifiers={})
+
+    assert requests_calls == ["https://funds.alphaarchitect.com/qval/"] * 3
+
+
+@pytest.mark.asyncio
 async def test_etf_architect_adapter_retries_transient_requests_gateway_error(monkeypatch):
     adapter = get_holdings_adapter("etf_architect")
     assert adapter is not None
