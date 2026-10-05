@@ -12306,3 +12306,37 @@ fixture export, then add and run the RC5 image-backed process integration test.
 After every Docker-backed run, execute scoped resource cleanup and record the
 remaining resources. Do not close this context until all three crash windows
 are exercised with exact source/image digests and the full relevant tests pass.
+
+## 2026-10-05 - Receipt-first forward redelivery
+
+Tracing the committed-before-ACK window showed that
+`NautilusForwardSessionEventHandler` resolved context and executed the native
+runtime before asking PostgreSQL whether that canonical event already had a
+durable settlement. A worker restart could therefore rerun Nautilus even though
+the event had committed.
+
+`PostgresForwardAccountAdapter.load_event_settlement` now owner-scopes the
+lookup, verifies the account history chain against current state, and returns
+the persisted account event and execution receipt. Before context resolution,
+the session handler verifies those values against the redelivered canonical
+event, delivery binding, and pre-event checkpoint. It then confirms the
+existing settlement through the normal idempotent account handler and allows
+Redis ACK only after that succeeds. A mismatched or receipt-less row fails
+closed; an unsettled event continues through normal RC5 execution.
+
+Validation: 29 forward-session/account unit tests passed; the real
+PostgreSQL/Redis reclaim-and-replay integration passed 1/1 with `--no-cov`;
+focused MyPy passed for the four changed source/test modules; Ruff check and
+format passed. The scoped Docker cleanup found no containers, images, retained
+volumes, or Testcontainers sessions. A separate default-coverage invocation
+reached 1/1 test-body success but stalled in pytest session teardown and was
+interrupted; it is recorded as inconclusive, not a passing gate.
+
+This removes redundant native execution after a durable commit but does not
+close the main integration gap: the exact-image RC5 result and checkpoint-bound
+bootstrap are not yet composed with these production PostgreSQL/Redis
+contracts. Next, bind the RC5 fixture input to the actual authenticated
+PostgreSQL checkpoint, then exercise process loss before settlement and
+commit-before-ACK redelivery without a second native execution.
+
+Implementation commit: `4c4fc2fcf3d6c24c42696d909f5cbbef0d9e332f`.

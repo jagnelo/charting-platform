@@ -903,7 +903,17 @@ progress:
     append-only event content, and exact runtime receipt before COMPLETE; the
     PostgreSQL adapter applies account state and receipt transactionally, and
     Redis ACK follows only COMPLETE. Focused account/session/PostgreSQL tests
-    pass. Preserve canonical platform event identity and ordering; never derive
+    also exposed that the forward session handler tried Nautilus before checking
+    for a PostgreSQL settlement left by a commit-before-ACK crash. The account
+    adapter now loads an owner-scoped event settlement only after validating its
+    history chain; the session handler verifies canonical, delivery, and
+    pre-event checkpoint identities and idempotently confirms that receipt
+    before resolving context or starting Nautilus. Receipt-less or mismatched
+    journal rows fail closed. The handler/account regression set passes 29/29,
+    the production PostgreSQL/Redis replay integration passes 1/1, and focused
+    MyPy and Ruff checks pass. This closes the unnecessary re-execution gap but
+    does not yet join the exact RC5 process output/bootstrap to real PostgreSQL
+    and Redis. Preserve canonical platform event identity and ordering; never derive
     it from dependency-local frozen series rows.
     Full Compose/browser acceptance
     remains a final environment gate; provider, ETF, and TC2000 shared-path
