@@ -1117,3 +1117,23 @@ visual backend. The four-environment board-guided matrix passed `104/104` at 192
 2560×1440, both at 100% and 125% display scale. No threshold, baseline, or mask changed. This is
 the documented board-plus-deterministic-fixture interim track; exact-build, permission, and the
 unrepresented state gaps remain unchanged and actionable.
+
+## 2026-10-06 — Refreshed stale seeded local screenshots; V25 gaps remain open
+
+At product source `f0e946000e15336d972f33f24520d72b06e5cf7e`, ten deterministic
+local screenshots were refreshed after the full pinned Playwright matrix
+reproduced the same screenshot-only differences while every preceding state
+assertion passed. The old workspace-floating captures showed an empty table
+despite the test asserting five seeded rows; the Study structured-result
+captures predated the currently asserted promotion controls; and the two
+1080p sandbox-error captures showed a stale lookback value rather than the
+current default. The updated local captures now agree with those asserted
+states, and the unchanged four-profile matrix passes `104/104`.
+
+These are seeded current-product-state regression oracles, not captures from
+TC2000 V25 and not approval of V25 parity. The floating-window benchmark state
+is not represented by the board's chart-window captures, and Study Lab remains
+an original product surface with no V25 analogue. `REF-SHELL-V25` and
+`REF-STUDY-LAB-V25` remain open/`required_missing`. No assertions, visual
+thresholds, masks, reference-board claims, skips, or acceptance policy were
+changed.

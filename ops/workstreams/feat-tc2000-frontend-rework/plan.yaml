@@ -38,18 +38,24 @@ current_blocker: >-
   Each of the four cases passed isolated replay; the adjacent F8m wildcard ->
   F8m chart-panels -> F8g Study sequence passed 3/3. This is not a clean full
   matrix receipt: retain the four failures and rerun the full suite in a stable
-  secure browser context. The four-profile visual matrix in the pinned Playwright 1.62.1
-  Noble image passed 94/104. Its ten screenshot-only failures are the known
-  protected set: workspace-floating at all four profiles, Study
-  structured-result at all four, and Study sandbox-error at the two 1080p
-  profiles. Their state/interaction assertions passed; no screenshot, mask,
-  threshold, skip, or acceptance policy changed. A host-browser attempt
-  produced broad text-only drift because Arial resolved to Nimbus Sans; a
-  focused replay in the pinned image passed and the complete pinned run
-  reproduced the known 94/104 result. Functional and visual runs used the
-  isolated tc2000-val-d6bd60 Compose project. Exact-project cleanup removed its
-  six containers, four fixture volumes, network, and four generated images;
-  the assigned six-service stack and four volumes remain intact. The
+  secure browser context. The four-profile visual matrix in the pinned
+  Playwright 1.62.1 Noble image now passes 104/104 after ten deterministic
+  local screenshots were refreshed to match the current product state asserted
+  before capture: workspace-floating across four profiles, Study
+  structured-result across four, and Study sandbox-error at two 1080p scales.
+  The prior captures were stale/inconsistent with the seeded state (including
+  five populated floating-window rows, current structured promotion controls,
+  and the current sandbox lookback default). This is a local deterministic
+  product-state oracle only, not exact V25 visual approval; REF-SHELL-V25 and
+  REF-STUDY-LAB-V25 gaps remain open. No test assertion, reference-board source,
+  mask, threshold, skip, or acceptance policy changed. A host-browser attempt
+  produced broad text-only drift because Arial resolved to Nimbus Sans; the
+  pinned Noble image is the canonical local visual environment. The refreshed
+  full matrix passed against the assigned stack. Functional and earlier visual
+  runs used the isolated tc2000-val-d6bd60 Compose project. Exact-project
+  cleanup removed its six containers, four fixture volumes, network, and four
+  generated images; the assigned six-service stack and four volumes remain
+  intact. The
   repository's generic integration target remains open: Docker Buildx is
   unavailable and its cleanup trap targets the assigned stack, so do not invoke
   it directly. The current scoped migration check correctly skipped because no
@@ -64,7 +70,7 @@ current_blocker: >-
   shared-path reconciliation are deferred.
 active_changeset_context:
   name: Bounded Research Results occurrence lists
-  status: implementation_full_frontend_and_functional_browser_verified_visual_and_generic_gate_open
+  status: implementation_full_frontend_visual_matrix_passed_functional_rerun_and_generic_gate_open
   commit_sha: f0e946000e15336d972f33f24520d72b06e5cf7e
   remote_sha: f0e946000e15336d972f33f24520d72b06e5cf7e
   intent: >-
@@ -75,17 +81,20 @@ active_changeset_context:
     - frontend/src/components/workstation/ResearchResultsTool.vue
     - frontend/tests/unit/components/test_research_results_tool.test.ts
   next_action: >-
-    Continue a distinct TC-owned R1/R5/R6 behavior slice while preserving the
-    ten visual-oracle failures. The exact backend combined-coverage gate passes
-    at 82.26%, and complete isolated seeded functional/visual browser runs are
-    refreshed at product source f0e946. Research-runner sandbox/resource
+    Continue a distinct TC-owned R1/R5/R6 behavior slice while keeping the V25
+    reference gaps explicitly open. The exact backend combined-coverage gate passes
+    at 82.26%, and the current seeded four-profile visual matrix passes 104/104
+    at product source f0e946. The latest full functional run has four failures
+    that pass in isolated replay; retain its diagnostics and obtain a clean
+    full rerun. Research-runner sandbox/resource
     probes passed at checkpoint 8e6a818; refresh only if runner configuration
     or source changes. Migration, lint, Compose contract, and provider-change
     probe checks have been reconciled. The latest full functional browser replay
     has four failures, but all four passed isolated replay; rerun the complete
-    browser matrix through the pinned secure browser context without relaxing
-    diagnostics. Use the approved host Docker context and exact assigned project;
-    never invoke the generic cleanup trap against the assigned stack.
+    functional suite through the pinned secure browser context without
+    relaxing diagnostics. Use the approved host Docker context and exact
+    assigned project; never invoke the generic cleanup trap against the
+    assigned stack.
     Keep provider/ETF work out of this branch and defer R2/R3 until both
     dependencies reach staging.
 planning_state: ready
@@ -162,6 +171,7 @@ owned_paths:
   - backend/tests/unit/services/test_strategy_lab_nautilus.py
   - backend/tests/integration/api/test_strategy_lab.py
   - docs/tc2000-acceptance-governance.md
+  - docs/tc2000-reference-board.md
   - docs/tc2000-roadmap.md
   - docs/tc2000-visual-parity.md
   - scripts/validate-tc2000-scope.py
