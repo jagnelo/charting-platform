@@ -14,21 +14,22 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
-from app.strategy_lab_v2.contracts import DataSnapshot
-from app.strategy_lab_v2.event_tape_artifacts import FrozenEventTapeArtifactResolution
-from app.strategy_lab_v2.forward_execution_plan_resolution import ResolvedForwardExecutionPlan
-from app.strategy_lab_v2.forward_processed_prefix import ForwardProcessedEventPrefix
-from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
-from app.strategy_lab_v2.nautilus_engine_input import NautilusEngineInput
-from app.strategy_lab_v2.nautilus_runtime_bundle import (
-    NautilusNativeEventStreamArtifactReference,
-)
 from app.strategy_lab_v2.sdk import MarketEvent
+
+if TYPE_CHECKING:
+    from app.strategy_lab_v2.contracts import DataSnapshot
+    from app.strategy_lab_v2.event_tape_artifacts import FrozenEventTapeArtifactResolution
+    from app.strategy_lab_v2.forward_execution_plan_resolution import ResolvedForwardExecutionPlan
+    from app.strategy_lab_v2.forward_processed_prefix import ForwardProcessedEventPrefix
+    from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
+    from app.strategy_lab_v2.nautilus_engine_input import NautilusEngineInput
+    from app.strategy_lab_v2.nautilus_runtime_bundle import (
+        NautilusNativeEventStreamArtifactReference,
+    )
 
 NAUTILUS_FORWARD_BOOTSTRAP_SCHEMA = "strategy-lab.nautilus-forward-bootstrap.v1"
 MAX_NAUTILUS_FORWARD_BOOTSTRAP_BYTES = 16 * 1024 * 1024
@@ -615,6 +616,19 @@ class NautilusForwardRuntimeBootstrap:
         native_event_stream: NautilusNativeEventStreamArtifactReference,
     ) -> NautilusForwardRuntimeBootstrap:
         """Bind authenticated domain inputs and exact RC engine artifacts."""
+
+        from app.strategy_lab_v2.artifacts import artifact_content_digest
+        from app.strategy_lab_v2.contracts import DataSnapshot
+        from app.strategy_lab_v2.event_tape_artifacts import FrozenEventTapeArtifactResolution
+        from app.strategy_lab_v2.forward_execution_plan_resolution import (
+            ResolvedForwardExecutionPlan,
+        )
+        from app.strategy_lab_v2.forward_processed_prefix import ForwardProcessedEventPrefix
+        from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
+        from app.strategy_lab_v2.nautilus_engine_input import NautilusEngineInput
+        from app.strategy_lab_v2.nautilus_runtime_bundle import (
+            NautilusNativeEventStreamArtifactReference,
+        )
 
         if not isinstance(execution_plan, ResolvedForwardExecutionPlan):
             raise TypeError("execution_plan must use ResolvedForwardExecutionPlan")

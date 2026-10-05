@@ -18,6 +18,7 @@ from types import MappingProxyType
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.forward_state import ForwardStateCheckpoint
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.sdk import (
     OrderIntent,
     OrderSide,
@@ -192,6 +193,42 @@ class ForwardRuntimeExecutionReceipt:
             "native_output_fingerprint",
         ):
             require_sha256_digest(getattr(self, name), field_name=name)
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
+class ForwardAccountEventBinding:
+    """Bind native account effects and runtime receipt to a canonical event."""
+
+    canonical_event: CanonicalForwardEvent
+    account_event: ForwardAccountEvent
+    execution_receipt: ForwardRuntimeExecutionReceipt | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.canonical_event, CanonicalForwardEvent):
+            raise TypeError("canonical_event must be a CanonicalForwardEvent")
+        if not isinstance(self.account_event, ForwardAccountEvent):
+            raise TypeError("account_event must be a ForwardAccountEvent")
+        if content_digest(self.canonical_event) != self.account_event.event_fingerprint:
+            raise ValueError("account event fingerprint does not match canonical event")
+        if self.account_event.event_id != self.canonical_event.event_id:
+            raise ValueError("account event id does not match canonical event")
+        if self.account_event.sequence != self.canonical_event.sequence:
+            raise ValueError("account event sequence does not match canonical event")
+        if self.account_event.event_time != self.canonical_event.event_time:
+            raise ValueError("account event time does not match canonical event")
+        if self.execution_receipt is not None:
+            if not isinstance(self.execution_receipt, ForwardRuntimeExecutionReceipt):
+                raise TypeError("execution_receipt must use ForwardRuntimeExecutionReceipt")
+            if (
+                self.execution_receipt.instance_id != self.account_event.instance_id
+                or self.execution_receipt.event_id != self.canonical_event.event_id
+                or self.execution_receipt.event_fingerprint != content_digest(self.canonical_event)
+            ):
+                raise ValueError("execution receipt does not match the canonical account event")
 
     @property
     def fingerprint(self) -> str:
@@ -652,6 +689,7 @@ __all__ = [
     "ForwardAccountHistoryEntry",
     "ForwardAccountDecision",
     "ForwardAccountEvent",
+    "ForwardAccountEventBinding",
     "ForwardAccountResolution",
     "ForwardAccountState",
     "ForwardAppliedAccountExecutionEvent",

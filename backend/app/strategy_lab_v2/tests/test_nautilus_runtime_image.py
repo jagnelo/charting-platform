@@ -105,8 +105,20 @@ def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() ->
 
 def test_rc_runtime_context_excludes_everything_outside_the_pinned_runtime_sources() -> None:
     source = DOCKERIGNORE.read_text(encoding="utf-8")
+    dockerfile_lines = DOCKERFILE.read_text(encoding="utf-8").splitlines()
+
+    copy_sources = {
+        path
+        for line in dockerfile_lines
+        if line.lstrip().startswith("COPY ")
+        for path in line.split()[1:-1]
+    }
+    allowed_sources = {
+        line.removeprefix("!") for line in source.splitlines() if line.startswith("!")
+    }
 
     assert "**" in source
+    assert copy_sources <= allowed_sources
     assert "!app/strategy_lab_v2/strategy_validation.py" in source
     assert "!app/strategy_lab_v2/nautilus_portfolio_wire.py" in source
     assert "!app/strategy_lab_v2/nautilus_rebalance_schedule.py" in source
@@ -118,6 +130,9 @@ def test_rc_runtime_context_excludes_everything_outside_the_pinned_runtime_sourc
     assert "!app/strategy_lab_v2/nautilus_target_allocation.py" in source
     assert "!app/strategy_lab_v2/nautilus_order_routing.py" in source
     assert "!app/strategy_lab_v2/nautilus_native_event_stream.py" in source
+    assert "!app/strategy_lab_v2/forward_state.py" in source
+    assert "!app/strategy_lab_v2/forward_account.py" in source
+    assert "!app/strategy_lab_v2/nautilus_forward_result.py" in source
     assert "!strategy_runtime/protocol.py" in source
     assert "!strategy_runtime/runner.py" in source
     assert "!app/strategy_lab_v2/nautilus_runtime_image/reporting-requirements.txt" in source

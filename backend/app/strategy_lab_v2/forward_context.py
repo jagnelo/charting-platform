@@ -17,7 +17,7 @@ from typing import Any
 
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
 from app.strategy_lab_v2.nautilus_event_adapter import NautilusForwardDeliveryBinding
-from app.strategy_lab_v2.nautilus_forward_delivery import (
+from app.strategy_lab_v2.nautilus_forward_input import (
     NautilusForwardDeliveryInput,
     VerifiedForwardMarketPayload,
 )

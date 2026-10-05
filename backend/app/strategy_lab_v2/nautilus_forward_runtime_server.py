@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from app.strategy_lab_v2.canonical import require_sha256_digest
-from app.strategy_lab_v2.forward_context import (
-    ForwardPortfolioContextPreparation,
-    ForwardStrategyContextPreparation,
-)
-from app.strategy_lab_v2.nautilus_forward_delivery import NautilusForwardDeliveryInput
-from app.strategy_lab_v2.nautilus_forward_session import NautilusForwardExecutionResult
+from app.strategy_lab_v2.nautilus_forward_result import NautilusForwardExecutionResult
 
-ForwardPreparation = ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation
+if TYPE_CHECKING:
+    from app.strategy_lab_v2.forward_context import (
+        ForwardPortfolioContextPreparation,
+        ForwardStrategyContextPreparation,
+    )
+    from app.strategy_lab_v2.nautilus_forward_delivery import NautilusForwardDeliveryInput
+
+    ForwardPreparation = ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation
 
 
 class NautilusNativeForwardSession(Protocol):

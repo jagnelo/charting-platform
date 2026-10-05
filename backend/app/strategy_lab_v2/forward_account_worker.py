@@ -11,16 +11,15 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
 from typing import Any, Protocol
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.forward_account import (
     ForwardAccountEvent,
+    ForwardAccountEventBinding,
     ForwardRuntimeExecutionReceipt,
 )
 from app.strategy_lab_v2.forward_worker_handoff import ForwardEventWorkItem
-from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.postgres_forward_account import (
     ForwardAccountStateDecision,
     ForwardAccountStateResolution,
@@ -39,42 +38,6 @@ class ForwardAccountStore(Protocol):
         event: ForwardAccountEvent,
         execution_receipt: ForwardRuntimeExecutionReceipt | None = None,
     ) -> ForwardAccountStateResolution: ...
-
-
-@dataclass(frozen=True, slots=True)
-class ForwardAccountEventBinding:
-    """Bind engine-produced account effects to the canonical stream event."""
-
-    canonical_event: CanonicalForwardEvent
-    account_event: ForwardAccountEvent
-    execution_receipt: ForwardRuntimeExecutionReceipt | None = None
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.canonical_event, CanonicalForwardEvent):
-            raise TypeError("canonical_event must be a CanonicalForwardEvent")
-        if not isinstance(self.account_event, ForwardAccountEvent):
-            raise TypeError("account_event must be a ForwardAccountEvent")
-        if content_digest(self.canonical_event) != self.account_event.event_fingerprint:
-            raise ValueError("account event fingerprint does not match canonical event")
-        if self.account_event.event_id != self.canonical_event.event_id:
-            raise ValueError("account event id does not match canonical event")
-        if self.account_event.sequence != self.canonical_event.sequence:
-            raise ValueError("account event sequence does not match canonical event")
-        if self.account_event.event_time != self.canonical_event.event_time:
-            raise ValueError("account event time does not match canonical event")
-        if self.execution_receipt is not None:
-            if not isinstance(self.execution_receipt, ForwardRuntimeExecutionReceipt):
-                raise TypeError("execution_receipt must use ForwardRuntimeExecutionReceipt")
-            if (
-                self.execution_receipt.instance_id != self.account_event.instance_id
-                or self.execution_receipt.event_id != self.canonical_event.event_id
-                or self.execution_receipt.event_fingerprint != content_digest(self.canonical_event)
-            ):
-                raise ValueError("execution receipt does not match the canonical account event")
-
-    @property
-    def fingerprint(self) -> str:
-        return content_digest(self)
 
 
 ForwardAccountEventResolver = Callable[

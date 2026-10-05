@@ -40,6 +40,15 @@ COPY app/strategy_lab_v2/sdk.py app/strategy_lab_v2/sdk.py
 COPY app/strategy_lab_v2/strategy_validation.py app/strategy_lab_v2/strategy_validation.py
 COPY app/strategy_lab_v2/conformance.py app/strategy_lab_v2/conformance.py
 COPY app/strategy_lab_v2/lifecycle.py app/strategy_lab_v2/lifecycle.py
+COPY app/strategy_lab_v2/forward_state.py app/strategy_lab_v2/forward_state.py
+COPY app/strategy_lab_v2/forward_account.py app/strategy_lab_v2/forward_account.py
+COPY app/strategy_lab_v2/nautilus_forward_result.py app/strategy_lab_v2/nautilus_forward_result.py
+COPY app/strategy_lab_v2/nautilus_forward_runtime_server.py app/strategy_lab_v2/nautilus_forward_runtime_server.py
+COPY app/strategy_lab_v2/nautilus_forward_input.py app/strategy_lab_v2/nautilus_forward_input.py
+COPY app/strategy_lab_v2/nautilus_forward_bootstrap.py app/strategy_lab_v2/nautilus_forward_bootstrap.py
+COPY app/strategy_lab_v2/forward_context.py app/strategy_lab_v2/forward_context.py
+COPY app/strategy_lab_v2/nautilus_forward_wire.py app/strategy_lab_v2/nautilus_forward_wire.py
+COPY app/strategy_lab_v2/nautilus_runtime_ipc.py app/strategy_lab_v2/nautilus_runtime_ipc.py
 COPY app/strategy_lab_v2/nautilus_event_adapter.py app/strategy_lab_v2/nautilus_event_adapter.py
 COPY app/strategy_lab_v2/nautilus_runtime_data.py app/strategy_lab_v2/nautilus_runtime_data.py
 COPY app/strategy_lab_v2/nautilus_equity_trace.py app/strategy_lab_v2/nautilus_equity_trace.py
