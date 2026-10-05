@@ -11040,3 +11040,40 @@ Changed paths:
 Operational checkpoint paths: `ops/workstreams/feat-strategy-lab-v2/handoff.md`,
 `ops/workstreams/feat-strategy-lab-v2/session.json`, and
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+## 2026-10-05 - Exact-checkpoint forward history reconstruction
+
+Commit `2ad0a34a8c14c5b274fe642275f96a23990f6427` is pushed to
+`origin/feat/strategy-lab-v2`. Forward admission checkpoints now have compact,
+append-only PostgreSQL transition history, allowing the context/recovery layer
+to load event identities and state at the delivery's exact pre-event checkpoint
+rather than accidentally reading the latest instance state. Set deltas avoid
+persisting a full growing event-id set at every event; each reconstructed
+checkpoint is fingerprint-verified. Existing instances seed their current
+checkpoint as a history root on first mutation; unavailable earlier legacy
+checkpoints fail closed. The adapter now exposes `load_checkpoint_at` and
+`load_state_at_checkpoint` for the downstream runtime resolver.
+
+Validation on this implementation: the complete Strategy Lab plus schema
+migration suite passed 1,427 tests with one environment-restricted socket test
+deselected; whole-package Ruff, changed-file formatting, focused MyPy for the
+three changed production modules, and `git diff --check` passed. The focused
+two-file runner printed all 17 passing test dots but failed to exit cleanly in
+the local command session, so its result is not counted separately. The exact
+implementation commit is published and the product worktree is clean.
+
+This removes one missing recovery primitive, not the persistence/restart gap.
+Still code-owned: compose the checkpoint-specific market/account resolver,
+retain native output and checkpoint payloads durably before Redis ACK, run an
+isolated Nautilus process across forward deliveries, and prove restart/crash
+replay. Nautilus `2.0.0rc5` already passes all five scope checks; stable 2.x is
+not a gate. Docker Buildx remains necessary only for the final
+`full_stack_browser` profile. Shared-path reconciliation waits for provider,
+ETF, and TC2000 work to reach staging; neither condition prevents owned-path
+implementation now.
+
+Changed paths: `backend/app/strategy_lab_v2/forward_state.py`,
+`backend/app/strategy_lab_v2/postgres_forward_state.py`,
+`backend/app/strategy_lab_v2/postgres_result_materialization.py`, and focused
+tests. Operational checkpoint paths: this handoff, `session.json`, and
+`validation.jsonl`.
