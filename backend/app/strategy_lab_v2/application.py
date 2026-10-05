@@ -749,7 +749,13 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 contract.portfolio_fingerprint,
                 PortfolioComposition,
             )
-            require(ApiResourceType.SNAPSHOT, contract.snapshot_fingerprint, DataSnapshot)
+            snapshot = require(
+                ApiResourceType.SNAPSHOT,
+                contract.snapshot_fingerprint,
+                DataSnapshot,
+            )
+            if contract.capability_contract_digest != snapshot.capability_contract_digest:
+                raise ValueError("experiment capability contract differs from its frozen snapshot")
             portfolio_strategies = {item.strategy_fingerprint for item in portfolio.components}
             if portfolio_strategies != set(contract.strategy_fingerprints):
                 raise ValueError("experiment strategies do not match its portfolio composition")

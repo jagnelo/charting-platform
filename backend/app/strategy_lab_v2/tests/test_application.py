@@ -1257,7 +1257,9 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
                     "portfolio_fingerprint": portfolio.receipt.resource.meta["domain_fingerprint"],
                     "strategy_fingerprints": [strategy.receipt.resource.meta["domain_fingerprint"]],
                     "snapshot_fingerprint": snapshot.receipt.resource.meta["domain_fingerprint"],
-                    "capability_contract_digest": content_digest("capability-v1"),
+                    "capability_contract_digest": snapshot.receipt.resource.attributes[
+                        "preflight_report"
+                    ]["fingerprint"],
                     "seed": 42,
                     "metric_definition_version": "strategy-lab.metrics.v1",
                     "engine_contract": {"engine": "nautilus", "version": "v2"},

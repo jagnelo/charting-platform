@@ -102,15 +102,22 @@ class PostgresResourceReader:
         resource_type: ApiResourceType,
         resource_id: str,
     ) -> DomainResourceContract | None:
-        """Load an owner-scoped persisted resource as its validated domain type."""
+        """Load the owner-scoped aggregate as a typed domain contract.
 
-        document = await self.get_resource(
-            principal=principal,
-            resource_type=resource_type,
-            resource_id=resource_id,
-        )
-        if document is None:
+        API projections may replace a resource envelope with a runtime read
+        model (for example, attempt execution summaries). Domain hydration must
+        instead read the canonical aggregate so worker inputs retain immutable
+        trial and attempt bindings.
+        """
+
+        if not isinstance(resource_type, ApiResourceType):
+            raise TypeError("resource_type must be an ApiResourceType")
+        if not isinstance(resource_id, str) or not resource_id.strip():
+            raise ValueError("resource_id must not be empty")
+        aggregate = await self._store.get(AggregateKey(resource_type.value, resource_id))
+        if aggregate is None or not self._owned_by(aggregate, principal):
             return None
+        document = self._project(aggregate, resource_type)
         expected_domain_fingerprint = document.meta.get("domain_fingerprint")
         if expected_domain_fingerprint is not None and not isinstance(
             expected_domain_fingerprint, str
@@ -150,16 +157,15 @@ class PostgresResourceReader:
         if not requested:
             return MappingProxyType({})
 
-        projection = self._projections.get(resource_type)
-        if projection is not None:
-            documents = await self._load_projection(projection, principal)
-        else:
-            aggregates = await self._store.list_type(resource_type.value)
-            documents = tuple(
-                self._project(aggregate, resource_type)
-                for aggregate in aggregates
-                if self._owned_by(aggregate, principal)
-            )
+        # Domain identities are stored in canonical aggregates. In particular,
+        # ATTEMPT's API projection contains mutable execution summaries, not
+        # the immutable RunAttempt needed by worker graph hydration.
+        aggregates = await self._store.list_type(resource_type.value)
+        documents = tuple(
+            self._project(aggregate, resource_type)
+            for aggregate in aggregates
+            if self._owned_by(aggregate, principal)
+        )
 
         wanted = set(requested)
         matches: dict[str, ResourceDocument] = {}
@@ -214,23 +220,14 @@ class PostgresResourceReader:
 
         if not isinstance(attempt_id, str) or not attempt_id.strip():
             raise ValueError("attempt_id must not be empty")
-        resource_type = ApiResourceType.ATTEMPT
-        projection = self._projections.get(resource_type)
-        if projection is not None:
-            documents = await self._load_projection(projection, principal)
-        else:
-            aggregates = await self._store.list_type(resource_type.value)
-            documents = tuple(
-                self._project(aggregate, resource_type)
-                for aggregate in aggregates
-                if self._owned_by(aggregate, principal)
-            )
-
-        matches = [
-            document
-            for document in documents
-            if document.attributes.get("attempt_id") == attempt_id
-        ]
+        aggregates = await self._store.list_type(ApiResourceType.ATTEMPT.value)
+        matches: list[ResourceDocument] = []
+        for aggregate in aggregates:
+            if not self._owned_by(aggregate, principal):
+                continue
+            document = self._project(aggregate, ApiResourceType.ATTEMPT)
+            if document.attributes.get("attempt_id") == attempt_id:
+                matches.append(document)
         if len(matches) > 1:
             raise ValueError("owner has duplicate run attempts for one attempt id")
         if not matches:
@@ -242,7 +239,7 @@ class PostgresResourceReader:
         ):
             raise ValueError("persisted attempt domain fingerprint is malformed")
         contract = rehydrate_resource_contract(
-            resource_type,
+            ApiResourceType.ATTEMPT,
             document.attributes,
             expected_domain_fingerprint=expected_domain_fingerprint,
         )
