@@ -1,5 +1,20 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Exact TC browser stack cleanup
+
+After the current-tip functional and visual runs, the repository resource
+accounting attributed six containers and four fixture volumes (`178,636,039`
+known bytes) to worktree ID `feat-tc2000-frontend-rework-f63d60aebc` and the
+two exact TC projects `charting-dev-feat-tc2000-frontend-rework-f63d60ae` and
+`charting-stack-feat-tc2000-frontend-rework-f63d60ae`. The worktree-scoped
+`make agent-resource-cleanup` removed those six containers and four generated
+images, retained no volumes or Testcontainers sessions, and reported
+`host_wide_prune=false`. A follow-up `make agent-resource-status` reported zero
+containers, volumes, known bytes, and unknown components. No unscoped Docker
+resources or other worktree were touched. Local, tracking, and direct GitHub TC
+refs matched `55c029ca9eb2568c85cf9ad18c6e11684452cea1`; staging and both
+upstream dependency refs were unchanged.
+
 ## 2026-10-05 — Authenticated capability guard checkpoint pushed
 
 The browser guard and current exact-tip evidence checkpoint is commit
