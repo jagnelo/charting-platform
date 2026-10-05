@@ -90,6 +90,12 @@ class ForwardStrategyContextHistory:
     pre_event_checkpoint_fingerprint: str
     warmup_receipt_fingerprint: str
     events: tuple[VerifiedForwardMarketPayload, ...]
+    before_event_fingerprint: str | None = None
+    warmup_snapshot_fingerprint: str | None = None
+    warmup_tape_fingerprint: str | None = None
+    warmup_source_artifact_digests: tuple[str, ...] = ()
+    warmup_event_ids: frozenset[str] = frozenset()
+    processed_prefix_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.instance_id, str) or not self.instance_id.strip():
@@ -100,6 +106,27 @@ class ForwardStrategyContextHistory:
             "warmup_receipt_fingerprint",
         ):
             require_sha256_digest(getattr(self, name), field_name=name)
+        for name in (
+            "before_event_fingerprint",
+            "warmup_snapshot_fingerprint",
+            "warmup_tape_fingerprint",
+            "processed_prefix_fingerprint",
+        ):
+            value = getattr(self, name)
+            if value is not None:
+                require_sha256_digest(value, field_name=name)
+        source_digests = tuple(self.warmup_source_artifact_digests)
+        for digest in source_digests:
+            require_sha256_digest(digest, field_name="warmup_source_artifact_digest")
+        if source_digests != tuple(sorted(set(source_digests))):
+            raise ValueError("warm-up source artifact digests must be unique and ordered")
+        if self.warmup_tape_fingerprint is None and source_digests:
+            raise ValueError("warm-up source artifacts require a tape fingerprint")
+        warmup_event_ids = frozenset(self.warmup_event_ids)
+        if any(
+            not isinstance(event_id, str) or not event_id.strip() for event_id in warmup_event_ids
+        ):
+            raise ValueError("warm-up event ids must be non-empty strings")
         events = tuple(self.events)
         if any(not isinstance(item, VerifiedForwardMarketPayload) for item in events):
             raise TypeError("events must contain verified forward market payloads")
@@ -111,7 +138,11 @@ class ForwardStrategyContextHistory:
         ]
         if any(current <= previous for previous, current in zip(event_keys, event_keys[1:])):
             raise ValueError("forward context history must advance strictly by time and sequence")
+        if not warmup_event_ids.issubset({item.canonical_event.event_id for item in events}):
+            raise ValueError("warm-up event ids must be present in the context history")
         object.__setattr__(self, "events", events)
+        object.__setattr__(self, "warmup_source_artifact_digests", source_digests)
+        object.__setattr__(self, "warmup_event_ids", warmup_event_ids)
 
     @property
     def fingerprint(self) -> str:

@@ -19,8 +19,9 @@ from app.strategy_lab_v2.contracts import (
 )
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.forward_account import ForwardAccountState
-from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
+from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState, ForwardSeenEvent
 from app.strategy_lab_v2.forward_context import ForwardStrategyContextHistory
+from app.strategy_lab_v2.forward_state import ForwardStateCheckpoint
 from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt, resolve_forward_warmup
 from app.strategy_lab_v2.forward_worker_handoff import (
     ForwardEventDispatchPayload,
@@ -214,6 +215,13 @@ async def test_authenticated_resolver_composes_exact_history_recipe_and_account_
         admission.checkpoint.fingerprint,
         receipt.fingerprint,
         (warmup,),
+        before_event_fingerprint=content_digest(
+            _payload("live-6", 6, NOW + timedelta(minutes=1)).canonical_event
+        ),
+        warmup_snapshot_fingerprint=SNAPSHOT_FINGERPRINT,
+        warmup_tape_fingerprint=content_digest("warmup-tape"),
+        warmup_event_ids=frozenset({warmup.canonical_event.event_id}),
+        processed_prefix_fingerprint=content_digest("processed-prefix"),
     )
 
     def recipe_resolver(*, principal: Any, instance: ForwardInstance):
@@ -266,11 +274,79 @@ async def test_authenticated_resolver_rejects_live_history_outside_processed_che
         admission.checkpoint.fingerprint,
         receipt.fingerprint,
         (uncommitted,),
+        before_event_fingerprint=content_digest(
+            _payload("live-6", 6, NOW + timedelta(minutes=1)).canonical_event
+        ),
+        warmup_snapshot_fingerprint=SNAPSHOT_FINGERPRINT,
+        warmup_tape_fingerprint=content_digest("warmup-tape"),
+        processed_prefix_fingerprint=content_digest("processed-prefix"),
     )
     account = ForwardAccountState(INSTANCE_ID, "USD")
     resolver = AuthenticatedForwardContextWindowResolver(
         AdmissionStore(admission, receipt),
         AccountHistoryStore(account),
+        lambda *, principal, instance: ForwardStrategyContextRecipe(
+            instance.portfolio_fingerprint, "component-1", manifest, {}, 1
+        ),
+        lambda **_kwargs: history,
+        principal=OWNER_ID,
+    )
+
+    delivery = await _delivery(admission)
+    with pytest.raises(ValueError, match="outside the processed prefix"):
+        await resolver(delivery)
+
+
+@pytest.mark.anyio
+async def test_empty_warmup_does_not_admit_unprocessed_sequence_zero_as_history() -> None:
+    warming = ForwardInstance(
+        INSTANCE_ID,
+        PORTFOLIO_FINGERPRINT,
+        SNAPSHOT_FINGERPRINT,
+        CarryInMode.FLAT,
+        ForwardState.WARMING_UP,
+        None,
+        0,
+        0,
+        NOW - timedelta(minutes=1),
+        NOW - timedelta(minutes=1),
+    )
+    receipt = ForwardWarmupReceipt(
+        INSTANCE_ID,
+        SNAPSHOT_FINGERPRINT,
+        CarryInMode.FLAT,
+        content_digest("empty-warm-up-result"),
+        NOW,
+    )
+    active = resolve_forward_warmup(warming, receipt).instance
+    unprocessed = _payload("unprocessed-0", 0, NOW - timedelta(seconds=30))
+    admission = ForwardLiveAdmissionState(
+        ForwardStateCheckpoint(active),
+        receipt.fingerprint,
+        (
+            ForwardSeenEvent(
+                unprocessed.canonical_event.event_id,
+                content_digest(unprocessed.canonical_event),
+                unprocessed.canonical_event.sequence,
+            ),
+        ),
+    )
+    manifest = _manifest()
+    history = ForwardStrategyContextHistory(
+        INSTANCE_ID,
+        manifest.fingerprint,
+        admission.checkpoint.fingerprint,
+        receipt.fingerprint,
+        (unprocessed,),
+        before_event_fingerprint=content_digest(
+            _payload("live-6", 6, NOW + timedelta(minutes=1)).canonical_event
+        ),
+        warmup_snapshot_fingerprint=SNAPSHOT_FINGERPRINT,
+        processed_prefix_fingerprint=content_digest("processed-prefix"),
+    )
+    resolver = AuthenticatedForwardContextWindowResolver(
+        AdmissionStore(admission, receipt),
+        AccountHistoryStore(ForwardAccountState(INSTANCE_ID, "USD")),
         lambda *, principal, instance: ForwardStrategyContextRecipe(
             instance.portfolio_fingerprint, "component-1", manifest, {}, 1
         ),

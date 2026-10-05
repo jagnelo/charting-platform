@@ -291,6 +291,7 @@ class ForwardVerifiedHistoryResolver(Protocol):
         admission_state: ForwardLiveAdmissionState,
         warmup_receipt: ForwardWarmupReceipt,
         manifest: StrategySdkManifest,
+        before_event: CanonicalForwardEvent,
     ) -> ForwardStrategyContextHistory | Awaitable[ForwardStrategyContextHistory]: ...
 
 
@@ -391,6 +392,7 @@ class AuthenticatedForwardContextWindowResolver:
             admission_state=admission,
             warmup_receipt=receipt,
             manifest=recipe.manifest,
+            before_event=current_event,
         )
         history = (
             await history_resolution
@@ -407,6 +409,17 @@ class AuthenticatedForwardContextWindowResolver:
             raise ValueError("verified history does not match the active warm-up receipt")
         if history.manifest_fingerprint != recipe.manifest.fingerprint:
             raise ValueError("verified history does not match the resolved strategy manifest")
+        if history.before_event_fingerprint != current_event_fingerprint:
+            raise ValueError("verified history is not bound to the current event")
+        if history.warmup_snapshot_fingerprint != instance.warmup_snapshot_fingerprint:
+            raise ValueError("verified history does not identify the instance warm-up snapshot")
+        if history.processed_prefix_fingerprint is None:
+            raise ValueError("verified history is not bound to a processed-prefix receipt")
+        if receipt.final_event_id is None:
+            if history.warmup_tape_fingerprint is not None or history.warmup_event_ids:
+                raise ValueError("empty warm-up receipt cannot include frozen history")
+        elif history.warmup_tape_fingerprint is None:
+            raise ValueError("verified history is missing its frozen warm-up tape identity")
         _validate_history_prefix(history, admission, receipt, current_event)
 
         account_resolution = await self._account_store.load_at_checkpoint(
@@ -444,9 +457,12 @@ def _validate_history_prefix(
     for payload in history.events:
         canonical = payload.canonical_event
         seen = seen_by_id.get(canonical.event_id)
-        if canonical.sequence <= receipt.final_event_sequence:
+        is_frozen_warmup_event = canonical.event_id in history.warmup_event_ids
+        if is_frozen_warmup_event:
             # The immutable warm-up artifact contains historical rows that are
             # intentionally not copied into the live admission event journal.
+            if receipt.final_event_id is None or canonical.sequence > receipt.final_event_sequence:
+                raise ValueError("warm-up history extends beyond its receipt cursor")
             if seen is not None and (
                 seen.event_fingerprint != content_digest(canonical)
                 or seen.sequence != canonical.sequence
