@@ -832,36 +832,39 @@ progress:
     - nautilus-oos-session-close-intervals-v1
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
   total: 18
-  current_phase: strategy-lab-v2-rc5-terminal-persistence-idempotency-v1
+  current_phase: strategy-lab-v2-terminal-restart-recovery-v1
   current_blocker: >-
     No external release or upstream event blocks package-owned implementation.
-    Exact-pinned Nautilus RC5 has the four backtest checks and passes the
-    persisted-request process/retry, OOS result-materialization, local artifact
-    publication, and production PostgreSQL-adapter terminal-composition replay
-    paths. The terminal-adapter composition uses deterministic SQL-session
-    doubles, so live PostgreSQL/Compose acceptance remains unproven. The full
-    Strategy Lab package suite passes 1,355 tests with the exact local RC5 image
-    and scoped host access. Broker-free forward shadow still requires event-tape
+    No external release or upstream event blocks package-owned implementation.
+    Exact-pinned Nautilus RC5 has the four backtest checks and passes persisted
+    request/retry, OOS result materialization, local artifact publication, and
+    production terminal-adapter replay across injected failures before public
+    result persistence and before capacity release. Recovery reconstructs the
+    production adapters over deterministic SQL-session doubles; live PostgreSQL,
+    Redis, and Compose acceptance therefore remains unproven. The full Strategy
+    Lab package suite passes 1,355 tests with the exact local RC5 image and
+    scoped host access. Broker-free forward shadow still requires event-tape
     parity; prereleases cannot connect to a broker or control real capital. The
-    environment-limited completion gate is full Compose/browser validation:
-    Docker Buildx is absent and the default sandbox cannot access the Docker
-    socket. Provider, ETF, and TC2000 contracts are staging-gated only when an
-    owned change overlaps their shared paths. Remaining product work includes
-    worker recovery/scaling, domain-backed mutations, forward-shadow correctness,
-    and remaining metrics.
+    environment-limited completion gate is the required full Compose/browser
+    profile: Docker Buildx is absent and the default sandbox cannot access the
+    Docker socket. Provider, ETF, and TC2000 contracts are staging-gated only
+    when an owned change overlaps their shared paths. Remaining product work
+    includes broader lease-expiry/recovery and scaling, domain-backed mutations,
+    forward-shadow correctness, and remaining metrics.
     Stable-only wording retained in the accumulated remaining_gaps ledger is
     historical and superseded by this explicit scope-specific release policy.
     Options order admission remains fail-closed pending canonical event-time
     Greeks/delta and settlement evidence.
   next_action: >-
-    RC5 completion now traverses the production PostgresWorkerTerminalAdapter
-    and its runtime, public-state, result, metric, summary, worker-state, and
-    settlement adapters; exact duplicate delivery returns a stable receipt and
-    leaves one completion, settlement, and artifact-commit set with worker
-    capacity released. This uses deterministic adapter SQL-session doubles.
-    Next inject retry/crash points between terminal persistence boundaries and
-    prove restart recovery, especially after settlement receipt but before
-    capacity release. Then continue worker scaling/recovery, domain-backed
+    Terminal failure injection now covers both interruption before public
+    terminal-state persistence and interruption before capacity release. Each
+    recovery reconstructs the production adapter composition over the same
+    deterministic SQL-session state, and exact redelivery recovers a stable
+    receipt without duplicate result, metric, summary, completion, settlement,
+    or artifact-commit rows. This is not live PostgreSQL/Redis or Compose proof.
+    Next trace the durable worker lease-expiry/recovery path and extend its
+    production-adapter tests for process restart, expired lease reclamation, and
+    idempotent cancellation/terminal replay; then continue domain-backed
     mutations, remaining metrics, and broker-free forward event-tape parity.
     Exact-pinned RC5 remains eligible for authoritative local backtests after
     four checks; stable labeling is not a gate. Forward shadow needs all five

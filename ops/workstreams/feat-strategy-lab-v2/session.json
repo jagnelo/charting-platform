@@ -86,12 +86,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -110,14 +105,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "6cac49899123c44ac887635bf9c261819670c441",
-  "implementation_sha": "6cac49899123c44ac887635bf9c261819670c441",
-  "last_checkpoint": "2026-10-05T02:30:34.000000+00:00",
+  "head": "c7db6f8e748503448e11770dd282db8e2a79663e",
+  "implementation_sha": "c7db6f8e748503448e11770dd282db8e2a79663e",
+  "last_checkpoint": "2026-10-05T02:45:51.000000+00:00",
   "last_human_progress_update": "2026-10-05T02:17:50.326121+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Inject retry/crash points between production terminal persistence steps, especially after settlement receipt but before capacity release, and verify restart/replay recovery; then continue worker recovery/scaling, domain-backed mutations, remaining metrics, and broker-free forward event-tape parity.",
+  "next_action": "Trace the durable worker lease-expiry/recovery path and extend its production-adapter tests for process restart, expired-lease reclamation, and idempotent cancellation/terminal replay; then continue domain-backed mutations, remaining metrics, and broker-free forward event-tape parity.",
   "parent_branch": "staging",
-  "plan_hash": "8e8b790f5411646c135815bf9e354e519bd6e71b59a7bc096b10db4298dfa4a8",
+  "plan_hash": "76c620c9349c77afde7dd1d963e087dae9361d288093c193791b9f4bb65c13a9",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -132,14 +127,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "No external release or upstream event blocks package-owned implementation. Exact-pinned RC5 passes the backtest checks; production PostgresWorkerTerminalAdapter composition proves result, metric, artifact-commit, settlement, and capacity persistence/replay through deterministic SQL-session doubles. Live PostgreSQL/Compose acceptance remains unproven; full Compose/browser validation is limited by missing Docker Buildx and default-sandbox socket access. Forward-shadow authority still requires event-tape parity.",
-    "current_phase": "strategy-lab-v2-rc5-terminal-persistence-idempotency-v1",
-    "next_action": "Inject retry/crash points between production terminal persistence steps, especially after settlement receipt but before capacity release, and verify restart/replay recovery; then continue worker recovery/scaling, domain-backed mutations, remaining metrics, and forward event-tape parity.",
+    "current_blocker": "No external release or upstream event blocks package-owned implementation. Exact-pinned RC5 passes four local-backtest checks; terminal recovery now reconstructs production adapters over deterministic SQL-session doubles after injected failures before public result persistence and before capacity release. Live PostgreSQL/Redis/Compose acceptance remains unproven; the required full Compose/browser profile is environment-limited by absent Docker Buildx and default-sandbox Docker socket denial. Forward-shadow authority still requires event-tape parity.",
+    "current_phase": "strategy-lab-v2-terminal-restart-recovery-v1",
+    "next_action": "Trace the durable worker lease-expiry/recovery path and extend its production-adapter tests for process restart, expired-lease reclamation, and idempotent cancellation/terminal replay; then continue domain-backed mutations, remaining metrics, and broker-free forward event-tape parity.",
     "total": 18,
-    "updated_at": "2026-10-05T02:30:34.000000+00:00"
+    "updated_at": "2026-10-05T02:45:51.000000+00:00"
   },
-  "remote": "6cac49899123c44ac887635bf9c261819670c441",
-  "remote_sha": "6cac49899123c44ac887635bf9c261819670c441",
+  "remote": "c7db6f8e748503448e11770dd282db8e2a79663e",
+  "remote_sha": "c7db6f8e748503448e11770dd282db8e2a79663e",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

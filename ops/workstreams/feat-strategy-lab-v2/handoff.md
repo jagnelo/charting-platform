@@ -10186,3 +10186,48 @@ after the durable settlement receipt but before capacity release, and verify
 restart/replay recovery using the production adapters. Continue the outstanding
 worker recovery/scaling, domain-backed mutations, remaining metrics, and
 forward-shadow parity work without waiting for a stable Nautilus label.
+
+## 2026-10-05 - Terminal persistence crash and restart recovery
+
+Added a production-adapter composition regression that injects interruption at
+two durable boundaries: after execution/settlement state but before public
+terminal result persistence, and after result/metrics/completion/summary writes
+but before worker capacity/lease release. Each retry reconstructs the
+PostgresWorkerTerminalAdapter and its production PostgreSQL adapters over the
+same deterministic SQL-session state, as a process restart would. The first
+failure now returns RETRY instead of escaping when public terminal-state
+persistence raises. Recovery completes the terminal receipt, releases capacity,
+and exact redelivery leaves one durable result, metric, completion, summary,
+settlement, and artifact-commit record set. The fakes prove adapter/replay
+behavior, not live PostgreSQL or a cross-table transaction.
+
+Validation passed: terminal adapter module `7/7`; full Strategy Lab v2 package
+suite `1,355/1,355` with exact RC5 evidence/image pins and scoped local access;
+Ruff check/format, focused MyPy for the changed adapter and test, and
+`git diff --check`. The production change and regression were reviewed as the
+only staged application paths and committed as
+`c7db6f8e748503448e11770dd282db8e2a79663e`; push to
+`origin/feat/strategy-lab-v2` succeeded. Code-context closure: owned paths were
+`backend/app/strategy_lab_v2/worker_terminal_adapter.py` and
+`backend/app/strategy_lab_v2/tests/test_nautilus_worker_terminal.py`; focused
+and package validation passed; implementation commit `c7db6f8` is synchronized;
+HEAD and origin both equal `c7db6f8e748503448e11770dd282db8e2a79663e`. Only the
+branch-owned operational checkpoint is now being updated separately.
+
+There is no stable-Nautilus release blocker: branch scope explicitly accepts
+an exact-pinned v2 release candidate for local backtests after the four checks.
+The saved goal metadata still contains the superseded stable-only phrase, but
+the branch plan and active acceptance criteria say stable release labeling is
+not a gate. Forward shadow specifically still needs event-tape parity. Broader
+lease-expiry/recovery and worker scaling, remaining domain-backed mutations and
+metrics, and forward-shadow correctness are unfinished product criteria. The
+required full Compose/browser profile remains environment-limited: Docker
+Buildx is absent and default-sandbox Docker socket access is denied. This limits
+that acceptance profile but does not block package-owned implementation. Shared
+provider/ETF/TC2000 reconciliation applies only if a change overlaps their
+contracts; options stay fail-closed pending canonical Greeks/settlement.
+
+Next action: trace the durable worker lease-expiry/recovery path and extend its
+production-adapter tests for process restart, expired-lease reclamation, and
+idempotent cancellation/terminal replay. Then continue domain-backed mutations,
+remaining metrics, and forward event-tape parity.
