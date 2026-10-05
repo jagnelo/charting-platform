@@ -1,5 +1,22 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Exact branch-tip backend test refresh
+
+At branch checkpoint `8b9046b54c03e4c270d317989f95625b3adba363`, backend unit
+tests passed `1622/1622` and integration tests passed `409/409` without
+coverage instrumentation. Testcontainers cleanup left no labeled containers;
+the assigned six services and four labeled volumes remained intact. The
+coverage-instrumented current-tip unit retry ended at process code 152 without
+a pytest summary and is inconclusive. The prior complete combined coverage
+receipt is `82.26%` at `1d52ab41372b6cbf12efdf8d533e00e858b4966f`; backend
+application and migration code are unchanged since, and the sole later backend
+path change is a test that passed in the current unit run.
+
+The generic integration gate remains open because Docker Buildx is unavailable
+and the standard cleanup path risks assigned volumes. Preserve all ten visual
+oracles. Provider/ETF integration remains deferred until both branches reach
+staging.
+
 ## 2026-10-05 — Exact-product-tip dense workstation performance
 
 At pushed checkpoint `93c152dffaca7f50c078439e55c8599ba227e518` (product

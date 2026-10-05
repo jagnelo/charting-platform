@@ -20,23 +20,24 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Product commit f0e946000e15336d972f33f24520d72b06e5cf7e adds bounded,
-  truthful occurrence lists to TC Research Results. Focused component tests
-  passed 57/57; full frontend Vitest passed 129 files / 1,209 tests; frontend
-  type-check/build and direct scope/workstream validators passed. At this
-  product tip, seeded functional flows passed 175/177 with two documented
-  skips and zero failures on an unchanged full rerun; the first run's isolated
-  F8k failure passed focused replay and is retained as raw history. The exact
-  four-project visual matrix is 94/104 with the same ten protected screenshot
-  differences. The complete exact-product-tip performance file passed 4/4 in
-  an isolated temporary Compose project with the 10k fixture enabled. Its
-  four containers, four volumes, network, and two local images were removed
-  after exact-project inspection; the assigned six-service stack and its four
-  volumes remain intact. The generic integration gate remains open because
-  the standard Buildx/cleanup path cannot safely run against this assigned
-  stack. Keep every visual oracle unchanged. Provider and ETF
-  branches remain outside staging, so R2/R3 consumption and shared-path
-  reconciliation are deferred.
+  At branch checkpoint 8b9046b54c03e4c270d317989f95625b3adba363, current-tip
+  backend unit tests pass 1622/1622 and integration tests pass 409/409 without
+  coverage instrumentation. Testcontainers left no labeled containers; the
+  assigned six-service stack and four volumes remain intact. The exact-tip
+  coverage-instrumented rerun exits 152 without a pytest summary, so it is
+  inconclusive, not a test pass or product failure. The prior complete combined
+  coverage receipt remains 82.26% at 1d52ab41372b6cbf12efdf8d533e00e858b4966f;
+  backend application and migrations are unchanged since, and the only later
+  backend path change is a breadth test that passed in the current unit suite.
+  Current frontend evidence remains tied to product source
+  f0e946000e15336d972f33f24520d72b06e5cf7e: seeded flows 175/177 with two
+  documented skips and zero failures on unchanged rerun, visual matrix 94/104
+  with ten protected screenshot differences, and isolated dense performance
+  4/4 including the 10k fixture. The generic integration helper remains open:
+  Docker Buildx is unavailable and its cleanup path is unsafe for the assigned
+  stack. Keep visual oracles unchanged. Provider and ETF branches remain
+  outside staging, so R2/R3 consumption and shared-path reconciliation are
+  deferred.
 active_changeset_context:
   name: Bounded Research Results occurrence lists
   status: implementation_full_frontend_and_functional_browser_verified_visual_and_generic_gate_open
@@ -51,10 +52,11 @@ active_changeset_context:
     - frontend/tests/unit/components/test_research_results_tool.test.ts
   next_action: >-
     Continue a distinct TC-owned R1/R5/R6 behavior slice while preserving the
-    ten visual-oracle failures. Establish a safe isolated exact-tip route for
-    the generic backend/migration/integration gate. The complete dense-data
-    performance file now passes with its 10k fixture enabled.
-    Keep R2/R3 deferred until both dependencies reach staging.
+    ten visual-oracle failures. Find a safe route for exact-tip coverage and the
+    generic integration gate; record the current no-coverage backend pass and
+    prior 82.26% combined-coverage receipt without conflating them. Keep
+    provider/ETF work out of this branch and defer R2/R3 until both dependencies
+    reach staging.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -294,25 +296,28 @@ progress:
   total: 9
   current_phase: R1_R5_R6_EXACT_TIP_VALIDATION_REFRESH
   next_action: >-
-    Investigate an isolated route for the remaining generic backend/migration/
-    integration gate while preserving the assigned stack; then continue with a
-    distinct TC-owned workstation, Study, Strategy, or visual-parity defect
-    slice. Do not duplicate provider/ETF ownership or the implemented
-    recursive Python breadth-series contracts. Keep all ten protected
-    screenshot differences and acceptance rules unchanged absent authoritative
-    V25 evidence or a confirmed source defect. Refresh dependency refs
-    periodically; defer R2/R3 consumption and shared-path reconciliation until
-    both upstream branches reach staging. Stop only at ready_for_human_review.
+    Continue a distinct TC-owned workstation, Study, Strategy, or visual-parity
+    defect slice while preserving every screenshot oracle. In parallel, find a
+    safe exact-tip route for coverage and the generic integration gate; the
+    current 1622-unit and 409-integration passes were run without coverage, and
+    the latest instrumented run ended at code 152 without a summary. Do not
+    duplicate provider/ETF ownership or the implemented recursive Python
+    breadth-series contracts. Keep all ten protected screenshot differences
+    and acceptance rules unchanged absent authoritative V25 evidence or a
+    confirmed source defect. Refresh dependency refs periodically; defer R2/R3
+    consumption and shared-path reconciliation until both upstream branches
+    reach staging. Stop only at ready_for_human_review.
   current_blocker: >-
-    The latest seeded flows.spec.ts run passed 175/177 with two documented
-    skips and zero failures; the prior F8m timeout passed both focused and
-    unchanged full replay. The exact product source passed 4/4 in an isolated
-    Compose project with the opt-in 10k fixture enabled. The current visual
-    matrix is 94/104 with the same ten protected screenshot diffs. The generic
-    integration helper remains open because host Docker Buildx is unavailable
-    and its failure trap would remove assigned volumes; a safe isolated route
-    is still being established. Provider and ETF branches remain outside
-    staging, so R2/R3 consumption and shared-path reconciliation are deferred.
+    Exact branch-tip backend unit and integration suites passed without
+    coverage (1622 and 409 tests respectively). The instrumented unit rerun
+    ended at code 152 without a summary; previous combined coverage was 82.26%
+    at 1d52ab41372b6cbf12efdf8d533e00e858b4966f, with backend app/migrations
+    unchanged since. Frontend seeded flows remain 175/177 with two documented
+    skips and zero failures on unchanged replay; the visual matrix is 94/104
+    with ten protected diffs; dense performance is 4/4 including 10k rows.
+    Docker Buildx is unavailable, and the standard helper cleanup path risks
+    assigned volumes. Provider and ETF remain outside staging, deferring R2/R3
+    and shared-path reconciliation.
 historical_implementation_records:
   - "Product commit f0e946000e15336d972f33f24520d72b06e5cf7e bounds historical breadth and generic event occurrence lists to 100 visible rows per increment, with truthful visible/matching counts and filter/selection resets. Focused ResearchResultsTool tests passed 57/57; full serial frontend Vitest passed 129 files / 1,209 tests; Vue type-check/build, direct TC ownership guard (130 touched paths, all six self-tests), and direct workstream validation (30 records) passed. The assigned Docker socket is denied, so browser replay and the generic full integration gate remain open. This slice changes neither provider/ETF behavior nor visual reference or acceptance policy."
   - "Product commit 8d1d63b7945ad94226ac02e338aac8f4ef447f2a fixes data loss in the advanced Market Map breadth editor: switching a multi-child all/any group to not now wraps the complete prior group as the sole NOT child. The regression failed against the prior editor; BreadthConditionTreeEditor and MarketMapTool suites passed 10/10 and 56/56, backend breadth service tests passed 30/30, frontend type-check/build and Ruff format check passed. No provider/ETF behavior, visual styling, or acceptance policy changed."
