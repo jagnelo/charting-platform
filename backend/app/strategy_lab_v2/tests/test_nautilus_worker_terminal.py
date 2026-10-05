@@ -59,6 +59,10 @@ from app.strategy_lab_v2.nautilus_runner import (
     expected_native_equity_events,
 )
 from app.strategy_lab_v2.nautilus_runtime_bundle import load_materialized_nautilus_runtime_bundle
+from app.strategy_lab_v2.nautilus_session_equity import (
+    NAUTILUS_SESSION_EQUITY_INTERVALS_MEDIA_TYPE,
+    NautilusSessionCloseEquityObservation,
+)
 from app.strategy_lab_v2.nautilus_trial_materializer import (
     NautilusTrialMarketContext,
     NautilusTrialRuntimeInputMaterializer,
@@ -93,10 +97,15 @@ from app.strategy_lab_v2.progress_checkpoint import (
     apply_progress_checkpoint,
 )
 from app.strategy_lab_v2.rebalance import (
+    CalendarDay,
+    CalendarDayStatus,
     RebalanceExecutionPlan,
     RebalanceMisfirePolicy,
     RebalanceTrigger,
     ScheduledRebalance,
+    SessionCalendarSnapshot,
+    SessionSegment,
+    TradingSession,
 )
 from app.strategy_lab_v2.redis_application import RedisDispatchRuntime
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport, RedisStreamEntry
@@ -184,6 +193,7 @@ def _runtime_setup(
     *,
     stable: bool = True,
     multi_strategy: bool = False,
+    session_calendar: SessionCalendarSnapshot | None = None,
 ):
     engine_version = "2.0.0" if stable else NAUTILUS_V2_RC_PACKAGE_VERSION
     release_tag = "v2.0.0" if stable else NAUTILUS_V2_RC_RELEASE_TAG
@@ -204,7 +214,7 @@ def _runtime_setup(
         seed=trial.seed,
         randomization=trial.randomization,
         evaluation_window=EvaluationWindow(
-            start=BASE - timedelta(hours=1),
+            start=BASE if session_calendar is not None else BASE - timedelta(hours=1),
             end=BASE + timedelta(days=3),
             purpose="out_of_sample",
         ),
@@ -226,7 +236,12 @@ def _runtime_setup(
     )
     materialized = materializer.materialize(
         graph=graph,
-        market_context=NautilusTrialMarketContext(values["instruments"], values["venue"]),
+        market_context=NautilusTrialMarketContext(
+            values["instruments"],
+            values["venue"],
+            session_calendar,
+            252 if session_calendar is not None else None,
+        ),
     )
     profile = RuntimeIsolationProfile(
         runtime_image_digest=content_digest({"nautilus-test-image": engine_version}),
@@ -403,17 +418,54 @@ def _runtime_setup(
     return graph, source_store, request, conformance_evidence
 
 
+def _session_metrics_calendar() -> SessionCalendarSnapshot:
+    labels = tuple(BASE.date() + timedelta(days=index) for index in range(4))
+    sessions = tuple(
+        TradingSession(
+            f"terminal-session-{label.isoformat()}",
+            label,
+            (
+                SessionSegment(
+                    BASE + timedelta(days=index) - timedelta(hours=6),
+                    BASE + timedelta(days=index),
+                ),
+            ),
+        )
+        for index, label in enumerate(labels)
+    )
+    return SessionCalendarSnapshot(
+        calendar_id="TEST-TERMINAL-SESSION",
+        definition_version="terminal-session-metrics-v1",
+        timezone_name="UTC",
+        timezone_database_version="test-fixed-utc",
+        coverage_start=labels[0],
+        coverage_end=labels[-1],
+        days=tuple(
+            CalendarDay(label, CalendarDayStatus.TRADING, session)
+            for label, session in zip(labels, sessions, strict=True)
+        ),
+        source_evidence_digest=content_digest("terminal-session-metrics-calendar"),
+    )
+
+
+def _timestamp_ns(value: datetime) -> int:
+    delta = value.astimezone(UTC) - datetime(1970, 1, 1, tzinfo=UTC)
+    return (delta.days * 86_400 + delta.seconds) * 1_000_000_000 + delta.microseconds * 1_000
+
+
 def _successful_context_and_lookup(
     tmp_path: Path,
     *,
     stable: bool = True,
     multi_strategy: bool = False,
     with_graph: bool = False,
+    session_calendar: SessionCalendarSnapshot | None = None,
 ):
     graph, source_store, request, _conformance_evidence = _runtime_setup(
         tmp_path,
         stable=stable,
         multi_strategy=multi_strategy,
+        session_calendar=session_calendar,
     )
     sandbox = request.sandbox_plan
     runtime_input = request.runtime_input_artifact
@@ -474,6 +526,33 @@ def _successful_context_and_lookup(
         stdout_bytes=0,
         stderr_bytes=0,
     )
+    session_close_observations: tuple[NautilusSessionCloseEquityObservation, ...] = ()
+    session_periods_per_year = None
+    if bundle.session_calendar is not None:
+        session_by_close_ns = {
+            _timestamp_ns(day.session.close_time): day
+            for day in bundle.session_calendar.days
+            if day.session is not None
+        }
+        scoring_start_ns = engine_input["evaluation_window"]["start_ns"]
+        closes = []
+        for index, item in enumerate(expected_events):
+            event = item.get("event", item)
+            event_time_ns = event["event_time_ns"]
+            day = session_by_close_ns.get(event_time_ns)
+            if day is None or event_time_ns <= scoring_start_ns:
+                continue
+            closes.append(
+                NautilusSessionCloseEquityObservation(
+                    day.label,
+                    event_time_ns,
+                    index,
+                    Decimal("100000") + Decimal(index * 10),
+                    Decimal("100000"),
+                )
+            )
+        session_close_observations = tuple(closes)
+        session_periods_per_year = bundle.session_periods_per_year
     run_result = NautilusRunResult(
         request.execution_plan.fingerprint,
         sandbox.fingerprint,
@@ -482,6 +561,9 @@ def _successful_context_and_lookup(
         sandbox_result=sandbox_result,
         account_equity_trace=equity_reference,
         native_reports=reports_reference,
+        session_calendar=bundle.session_calendar,
+        session_close_equity_observations=session_close_observations,
+        session_periods_per_year=session_periods_per_year,
     )
     runtime_result = materialize_nautilus_result(
         request.runtime_state,
@@ -605,6 +687,57 @@ async def test_rc5_worker_receipt_materializes_authoritative_local_backtest(tmp_
         NautilusExecutionScope.BACKTEST_AUTHORITATIVE.value
     )
     assert resolution.publication is not None and resolution.publication.accepted
+
+
+@pytest.mark.asyncio
+async def test_worker_terminal_publishes_native_session_interval_artifact(tmp_path):
+    calendar = _session_metrics_calendar()
+    context, _lookup, resolver, publisher = _successful_context_and_lookup(
+        tmp_path,
+        stable=False,
+        session_calendar=calendar,
+    )
+
+    resolution = await resolver(context)
+
+    assert resolution.result is not None and resolution.publication is not None
+    assert resolution.publication.accepted
+    session_artifacts = tuple(
+        artifact
+        for artifact in resolution.result.output_artifacts
+        if artifact.media_type == NAUTILUS_SESSION_EQUITY_INTERVALS_MEDIA_TYPE
+    )
+    assert len(session_artifacts) == 1
+    payload = json.loads(publisher.store.path_for(session_artifacts[0].storage_key).read_bytes())
+    assert payload["calendar_fingerprint"] == calendar.fingerprint
+    assert payload["expected_session_labels"] == [
+        (BASE.date() + timedelta(days=1)).isoformat(),
+        (BASE.date() + timedelta(days=2)).isoformat(),
+    ]
+    assert payload["observed_session_labels"] == [(BASE.date() + timedelta(days=1)).isoformat()]
+    assert len(payload["intervals"]) == 1
+    session_metric_evidence = {
+        reference.digest
+        for metric in resolution.result.metric_set.values
+        for reference in metric.evidence_references
+        if reference.role == "session_equity_intervals"
+    }
+    assert session_metric_evidence
+    session_metrics = tuple(
+        metric
+        for metric in resolution.result.metric_set.values
+        if any(
+            reference.role == "session_equity_intervals" for reference in metric.evidence_references
+        )
+    )
+    assert session_metrics
+    assert all(metric.sample_size == 1 for metric in session_metrics)
+    assert all(metric.value is None for metric in session_metrics)
+    assert all(metric.null_reason is not None for metric in session_metrics)
+    assert all(
+        any(digest in metric.calculation_basis for digest in session_metric_evidence)
+        for metric in session_metrics
+    )
 
 
 @pytest.mark.asyncio
