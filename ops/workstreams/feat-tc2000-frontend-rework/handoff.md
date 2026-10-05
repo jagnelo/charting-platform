@@ -17495,6 +17495,31 @@ Changed ops files in this checkpoint:
 - ops/workstreams/feat-tc2000-frontend-rework/session.json
 - ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl
 
+## 2026-10-05 — Manual narrow Python Library diagnostic
+
+On the freshly rebuilt assigned Compose stack, a manual Chromium browser at
+390x800 opened the Python Library after selecting Add Tool on two fresh
+attempts. The second attempt followed a fresh chart navigation and factory
+workspace reset. Both rendered the tool and closed the menu. This is a narrow
+manual smoke, not the pinned Playwright acceptance suite; it does not explain
+or clear the latest full-run F8r-python-library-narrow failure. Preserve the
+three full-run results, the six distinct focused replays, and all ten visual
+comparisons unchanged. No source, tests, accessibility assertions, selectors,
+timeouts, or visual oracles changed.
+
+The browser CLI used the assigned stack's host-published frontend at
+390x800. A disposable UI account and its database were removed with the exact
+assigned Compose project. The browser closed successfully; post-teardown
+checks found no assigned containers, volumes, network, or generated image
+tags. No provider/ETF worktree or branch was touched.
+
+Next: inspect the pinned F8r-python-library-narrow setup and mount lifecycle
+against the full-run artifact, then run an unchanged focused reproduction on
+the assigned stack. Only make a TC-owned source change if that produces a
+deterministic product defect; otherwise preserve the open full-suite gate and
+continue a separately justified TC-owned UI slice. Provider/ETF integration
+remains deferred until both dependencies reach staging.
+
 ## 2026-10-05 — Detached-tool accessibility relationships and ID uniqueness
 
 Product commit `721b0efbea486361fa0632b2f874353ca7802127` is pushed to

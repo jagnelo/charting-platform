@@ -51,10 +51,31 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
+    "accounting_complete": true,
     "available": true,
-    "reason": null
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -100,10 +121,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "721b0efbea486361fa0632b2f874353ca7802127",
+  "head": "304b141c6cd2f6dc5dee2a366534e54a6f1d8518",
   "implementation_sha": "721b0efbea486361fa0632b2f874353ca7802127",
   "interrupted": false,
-  "last_checkpoint": "2026-10-05T12:14:18+00:00",
+  "last_checkpoint": "2026-10-05T12:43:13.195414+00:00",
   "last_human_progress_update": "2026-10-05T10:35:19+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue a bounded TC-owned workstation/Study/Strategy UI slice and diagnose the intermittent full-run browser failures (especially narrow-dock Python Library mounting and readiness interceptions) without changing assertions. Preserve the three raw full-suite outcomes and all ten protected visual comparisons. Refresh upstream refs periodically; defer R2/R3 consumer and shared-path reconciliation until provider-platform and ETF reach staging. Rerun exact integration when the host Buildx dependency is available, then stop at ready_for_human_review.",
@@ -130,24 +151,24 @@
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "721b0efbea486361fa0632b2f874353ca7802127",
+    "current_local_head": "304b141c6cd2f6dc5dee2a366534e54a6f1d8518",
     "current_pending_range": "",
     "failure_category": "",
     "head_at_product_checkpoint": "721b0efbea486361fa0632b2f874353ca7802127",
-    "last_attempted_local_head": "721b0efbea486361fa0632b2f874353ca7802127",
-    "last_attempted_range": "961d73a99cbe113045eb0aa1f2c869b9ab54d78b..721b0efbea486361fa0632b2f874353ca7802127",
+    "last_attempted_local_head": "304b141c6cd2f6dc5dee2a366534e54a6f1d8518",
+    "last_attempted_range": "d1338487446b46644c2237d59333f6aaa0aa7c72..304b141c6cd2f6dc5dee2a366534e54a6f1d8518",
     "range_at_product_checkpoint": "961d73a99cbe113045eb0aa1f2c869b9ab54d78b..721b0efbea486361fa0632b2f874353ca7802127",
     "remote": "origin",
-    "remote_tracking_sha": "721b0efbea486361fa0632b2f874353ca7802127",
+    "remote_tracking_sha": "304b141c6cd2f6dc5dee2a366534e54a6f1d8518",
     "status": "synchronized"
   },
-  "remote": "721b0efbea486361fa0632b2f874353ca7802127",
-  "remote_sha": "721b0efbea486361fa0632b2f874353ca7802127",
+  "remote": "304b141c6cd2f6dc5dee2a366534e54a6f1d8518",
+  "remote_sha": "304b141c6cd2f6dc5dee2a366534e54a6f1d8518",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "40277689-45a1-4b10-b129-2435358ad9d2",
-  "state": "active",
+  "state": "checkpointed",
   "takeover_history": [
     {
       "at": "2026-09-09T12:31:34.588751+00:00",
