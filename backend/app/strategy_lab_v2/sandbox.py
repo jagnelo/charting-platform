@@ -141,9 +141,24 @@ def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
     context_digest = _optional_argument_index(argv, _CONTEXT_STREAM_ENV_PREFIX)
     native_event_digest = _optional_argument_index(argv, _NATIVE_EVENT_STREAM_ENV_PREFIX)
     forward_bootstrap_digest = _optional_argument_index(argv, _FORWARD_BOOTSTRAP_ENV_PREFIX)
-    if (
-        (context_mount is None) != (context_digest is None)
-        or (context_mount is None) != (invocation_result_mount is None)
+    if (context_mount is None) != (context_digest is None):
+        raise ValueError("sandbox context stream mount and digest must be bound together")
+    if serves_forward:
+        if context_mount is None:
+            raise ValueError(
+                "forward runtime command requires its immutable strategy context stream"
+            )
+        if any(
+            mount is not None
+            for mount in (
+                invocation_result_mount,
+                account_equity_trace_mount,
+                native_reports_mount,
+            )
+        ):
+            raise ValueError("forward runtime must not mount backtest-only result artifacts")
+    elif (
+        (context_mount is None) != (invocation_result_mount is None)
         or (context_mount is None) != (account_equity_trace_mount is None)
         or (context_mount is None) != (native_reports_mount is None)
     ):
@@ -667,12 +682,27 @@ def build_sandbox_command(
         raise ValueError("context stream path and digest must be provided together")
     if (native_event_stream_path is None) != (native_event_stream_digest is None):
         raise ValueError("native event stream path and digest must be provided together")
-    if (context_stream_path is None) != (invocation_result_stream_path is None):
-        raise ValueError("context and invocation-result stream paths must be provided together")
-    if (context_stream_path is None) != (account_equity_trace_path is None):
-        raise ValueError("context and account-equity trace paths must be provided together")
-    if (context_stream_path is None) != (native_reports_path is None):
-        raise ValueError("context and native-report paths must be provided together")
+    serves_forward = "--serve-forward" in command_argv
+    if serves_forward:
+        if context_stream_path is None:
+            raise ValueError(
+                "forward runtime command requires its immutable strategy context stream"
+            )
+        if any(
+            value is not None
+            for value in (
+                invocation_result_stream_path,
+                account_equity_trace_path,
+                native_reports_path,
+            )
+        ):
+            raise ValueError("forward runtime must not mount backtest-only result artifacts")
+    elif (
+        (context_stream_path is None) != (invocation_result_stream_path is None)
+        or (context_stream_path is None) != (account_equity_trace_path is None)
+        or (context_stream_path is None) != (native_reports_path is None)
+    ):
+        raise ValueError("context and backtest result stream paths must be provided together")
     if (
         native_event_stream_path is not None
         and context_stream_path is None
@@ -888,6 +918,7 @@ def nautilus_forward_runtime_command(
     snapshot_fingerprint: str,
     max_input_bytes: int,
     bootstrap_fingerprint: str,
+    context_stream_digest: str,
     native_event_stream_digest: str,
 ) -> tuple[str, ...]:
     """Build the fixed CLI invocation for one persistent forward instance."""
@@ -896,6 +927,7 @@ def nautilus_forward_runtime_command(
     _safe_text(expected_version, "expected_version")
     require_sha256_digest(snapshot_fingerprint, field_name="snapshot_fingerprint")
     require_sha256_digest(bootstrap_fingerprint, field_name="bootstrap_fingerprint")
+    require_sha256_digest(context_stream_digest, field_name="context_stream_digest")
     require_sha256_digest(native_event_stream_digest, field_name="native_event_stream_digest")
     if (
         not isinstance(max_input_bytes, int)
@@ -922,6 +954,8 @@ def nautilus_forward_runtime_command(
         "/inputs/forward-bootstrap",
         "--bootstrap-fingerprint",
         bootstrap_fingerprint,
+        "--context-stream",
+        "/inputs/contexts",
         "--native-event-stream",
         "/inputs/native-events",
         "--instance-id",
@@ -937,6 +971,8 @@ def build_nautilus_forward_runtime_sandbox_command(
     input_bundle_path: str | os.PathLike[str],
     forward_bootstrap_path: str | os.PathLike[str],
     bootstrap_fingerprint: str,
+    context_stream_path: str | os.PathLike[str],
+    context_stream_digest: str,
     native_event_stream_path: str | os.PathLike[str],
     native_event_stream_digest: str,
     output_path: str | os.PathLike[str],
@@ -954,6 +990,8 @@ def build_nautilus_forward_runtime_sandbox_command(
         output_path=output_path,
         forward_bootstrap_path=forward_bootstrap_path,
         forward_bootstrap_digest=bootstrap_fingerprint,
+        context_stream_path=context_stream_path,
+        context_stream_digest=context_stream_digest,
         native_event_stream_path=native_event_stream_path,
         native_event_stream_digest=native_event_stream_digest,
         command=nautilus_forward_runtime_command(
@@ -962,6 +1000,7 @@ def build_nautilus_forward_runtime_sandbox_command(
             snapshot_fingerprint=snapshot_fingerprint,
             max_input_bytes=max(1, profile.memory_limit_bytes // 8),
             bootstrap_fingerprint=bootstrap_fingerprint,
+            context_stream_digest=context_stream_digest,
             native_event_stream_digest=native_event_stream_digest,
         ),
     )

@@ -151,6 +151,7 @@ def _verify_forward_startup(
     bootstrap_path: str,
     bootstrap_fingerprint: str,
     input_path: str,
+    context_stream_path: str,
     native_event_stream_path: str,
     expected_instance_id: str,
     expected_snapshot_fingerprint: str,
@@ -200,6 +201,35 @@ def _verify_forward_startup(
         raise ValueError("forward runtime engine input differs from its bootstrap binding")
     if engine_input.get("data_snapshot_fingerprint") != bootstrap.snapshot_fingerprint:
         raise ValueError("forward runtime bundle snapshot differs from its bootstrap")
+    context_digest, context_length, _context_count, _component_counts = _context_stream_reference(
+        bundle
+    )
+    if os.environ.get("STRATEGY_CONTEXT_STREAM_DIGEST") != context_digest:
+        raise ValueError("forward context stream digest differs from the runtime bundle")
+    context_descriptor = os.open(
+        Path(context_stream_path),
+        os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0),
+    )
+    try:
+        context_metadata = os.fstat(context_descriptor)
+        if not stat.S_ISREG(context_metadata.st_mode):
+            raise ValueError("forward strategy context input must be a regular file")
+        if context_metadata.st_size != context_length or context_metadata.st_size > max_input_bytes:
+            raise ValueError("forward strategy context input differs from its artifact length")
+        context_file_digest = hashlib.sha256()
+        context_total = 0
+        while chunk := os.read(context_descriptor, 65_536):
+            context_total += len(chunk)
+            if context_total > max_input_bytes:
+                raise ValueError("forward strategy context input exceeds its byte limit")
+            context_file_digest.update(chunk)
+    finally:
+        os.close(context_descriptor)
+    if (
+        context_total != context_length
+        or f"sha256:{context_file_digest.hexdigest()}" != context_digest
+    ):
+        raise ValueError("forward strategy context input differs from its artifact digest")
     native_digest, native_length, tape_fingerprint, adapter_version, event_count = (
         _native_event_stream_reference(bundle)
     )

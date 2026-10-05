@@ -52,6 +52,8 @@ def _plan(tmp_path: Path, *, instance_id: str = "forward-1"):
     input_path.write_text("{}", encoding="utf-8")
     forward_bootstrap_path = tmp_path / "forward-session-bootstrap.json"
     forward_bootstrap_path.write_text("{}", encoding="utf-8")
+    context_stream_path = tmp_path / "strategy-contexts.ndjson"
+    context_stream_path.write_bytes(b"strategy context artifact")
     native_event_stream_path = tmp_path / "native-events.parquet"
     native_event_stream_path.write_bytes(b"native event artifact")
     output_path = tmp_path / "result.json"
@@ -64,6 +66,8 @@ def _plan(tmp_path: Path, *, instance_id: str = "forward-1"):
         input_bundle_path=input_path,
         forward_bootstrap_path=forward_bootstrap_path,
         bootstrap_fingerprint=content_digest("forward-session-bootstrap"),
+        context_stream_path=context_stream_path,
+        context_stream_digest=artifact_content_digest(context_stream_path.read_bytes()),
         native_event_stream_path=native_event_stream_path,
         native_event_stream_digest=artifact_content_digest(native_event_stream_path.read_bytes()),
         output_path=output_path,

@@ -253,6 +253,9 @@ def test_forward_runtime_builder_binds_instance_and_persistent_cli_mode(tmp_path
     bootstrap_path = tmp_path / "forward-bootstrap.json"
     bootstrap_path.write_text("{}", encoding="utf-8")
     bootstrap_fingerprint = content_digest("forward bootstrap")
+    context_path = tmp_path / "strategy-contexts.ndjson"
+    context_path.write_bytes(b"strategy context artifact")
+    context_digest = artifact_content_digest(context_path.read_bytes())
     native_event_path = tmp_path / "native-events.parquet"
     native_event_path.write_bytes(b"native event bytes")
     native_event_digest = artifact_content_digest(native_event_path.read_bytes())
@@ -263,6 +266,8 @@ def test_forward_runtime_builder_binds_instance_and_persistent_cli_mode(tmp_path
         input_bundle_path=tmp_path / "input.json",
         forward_bootstrap_path=bootstrap_path,
         bootstrap_fingerprint=bootstrap_fingerprint,
+        context_stream_path=context_path,
+        context_stream_digest=context_digest,
         native_event_stream_path=native_event_path,
         native_event_stream_digest=native_event_digest,
         output_path=tmp_path / "output.json",
@@ -275,12 +280,15 @@ def test_forward_runtime_builder_binds_instance_and_persistent_cli_mode(tmp_path
     assert "--serve-forward" in command
     assert command[command.index("--bootstrap") + 1] == "/inputs/forward-bootstrap"
     assert command[command.index("--bootstrap-fingerprint") + 1] == bootstrap_fingerprint
+    assert command[command.index("--context-stream") + 1] == "/inputs/contexts"
     assert command[command.index("--native-event-stream") + 1] == "/inputs/native-events"
     instance_index = command.index("--instance-id")
     assert command[instance_index + 1] == "forward-instance-1"
     assert command[command.index("--expected-version") + 1] == "2.0.0rc5"
     assert sandbox_forward_bootstrap_path(plan) == bootstrap_path
     assert sandbox_forward_bootstrap_digest(plan) == bootstrap_fingerprint
+    assert sandbox_context_stream_path(plan) == context_path
+    assert sandbox_context_stream_digest(plan) == context_digest
     assert (
         f"--mount=type=bind,src={bootstrap_path},dst=/inputs/forward-bootstrap,readonly"
         in plan.argv
@@ -288,3 +296,4 @@ def test_forward_runtime_builder_binds_instance_and_persistent_cli_mode(tmp_path
     assert (
         f"--mount=type=bind,src={native_event_path},dst=/inputs/native-events,readonly" in plan.argv
     )
+    assert f"--mount=type=bind,src={context_path},dst=/inputs/contexts,readonly" in plan.argv

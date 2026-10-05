@@ -10,6 +10,7 @@ import pytest
 
 from app.strategy_lab_v2 import nautilus_runtime_cli
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
+from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
     ArtifactManifest,
@@ -45,6 +46,10 @@ from app.strategy_lab_v2.nautilus_forward_bootstrap import (
 from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketPayload
 from app.strategy_lab_v2.nautilus_runtime_bundle import (
     materialize_nautilus_native_event_stream_artifact,
+)
+from app.strategy_lab_v2.nautilus_runtime_protocol import (
+    NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
+    NAUTILUS_CONTEXT_STREAM_SCHEMA,
 )
 from app.strategy_lab_v2.sdk import MarketEvent
 from app.strategy_lab_v2.strategy_package_resolution import (
@@ -124,6 +129,21 @@ def _bootstrap() -> NautilusForwardRuntimeBootstrap:
     )
 
 
+def _context_stream_reference(encoded: bytes) -> dict[str, object]:
+    digest = artifact_content_digest(encoded)
+    return {
+        "artifact": {
+            "content_digest": digest,
+            "byte_length": len(encoded),
+            "media_type": NAUTILUS_CONTEXT_STREAM_MEDIA_TYPE,
+            "schema_version": NAUTILUS_CONTEXT_STREAM_SCHEMA,
+            "storage_key": digest,
+            "retention_class": "pinned_input",
+        },
+        "context_count": 1,
+    }
+
+
 def test_forward_bootstrap_roundtrips_immutable_replay_bindings() -> None:
     bootstrap = _bootstrap()
 
@@ -166,6 +186,9 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
 ) -> None:
     native_bytes = b"native-history-artifact"
     native_digest = f"sha256:{hashlib.sha256(native_bytes).hexdigest()}"
+    context_bytes = b"authenticated strategy context stream"
+    context_reference = _context_stream_reference(context_bytes)
+    context_digest = context_reference["artifact"]["content_digest"]
     bundle_digest = _digest("runtime-bundle")
     engine_input = {
         "data_snapshot_fingerprint": _bootstrap().snapshot_fingerprint,
@@ -179,12 +202,15 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
     )
     bootstrap_path = tmp_path / "bootstrap.json"
     bootstrap_path.write_bytes(bootstrap.to_json_bytes())
+    context_path = tmp_path / "strategy-contexts.ndjson"
+    context_path.write_bytes(context_bytes)
     native_path = tmp_path / "native-events.parquet"
     native_path.write_bytes(native_bytes)
     monkeypatch.setenv("STRATEGY_FORWARD_BOOTSTRAP_DIGEST", bootstrap.fingerprint)
     monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle_digest)
+    monkeypatch.setenv("STRATEGY_CONTEXT_STREAM_DIGEST", context_digest)
     monkeypatch.setenv("STRATEGY_NATIVE_EVENT_STREAM_DIGEST", native_digest)
-    runtime_bundle = {"engine_input": engine_input}
+    runtime_bundle = {"engine_input": engine_input, "strategy_context_stream": context_reference}
     monkeypatch.setattr(
         nautilus_runtime_cli, "_read_bundle", lambda *_args, **_kwargs: runtime_bundle
     )
@@ -204,6 +230,7 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
         bootstrap_path=str(bootstrap_path),
         bootstrap_fingerprint=bootstrap.fingerprint,
         input_path="/inputs/bundle",
+        context_stream_path=str(context_path),
         native_event_stream_path=str(native_path),
         expected_instance_id=bootstrap.instance_id,
         expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
@@ -212,6 +239,20 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
 
     assert verified_bootstrap == bootstrap
     assert verified_bundle is runtime_bundle
+
+    context_path.write_bytes(b"tampered strategy context stream")
+    with pytest.raises(ValueError, match="context input differs from its artifact length"):
+        nautilus_runtime_cli._verify_forward_startup(
+            bootstrap_path=str(bootstrap_path),
+            bootstrap_fingerprint=bootstrap.fingerprint,
+            input_path="/inputs/bundle",
+            context_stream_path=str(context_path),
+            native_event_stream_path=str(native_path),
+            expected_instance_id=bootstrap.instance_id,
+            expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
+            max_input_bytes=1024,
+        )
+    context_path.write_bytes(context_bytes)
 
     monkeypatch.setattr(
         nautilus_runtime_cli,
@@ -223,6 +264,7 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
             bootstrap_path=str(bootstrap_path),
             bootstrap_fingerprint=bootstrap.fingerprint,
             input_path="/inputs/bundle",
+            context_stream_path=str(context_path),
             native_event_stream_path=str(native_path),
             expected_instance_id=bootstrap.instance_id,
             expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
@@ -250,6 +292,7 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
             bootstrap_path=str(bootstrap_path),
             bootstrap_fingerprint=bootstrap.fingerprint,
             input_path="/inputs/bundle",
+            context_stream_path=str(context_path),
             native_event_stream_path=str(native_path),
             expected_instance_id=bootstrap.instance_id,
             expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
@@ -272,6 +315,7 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
             bootstrap_path=str(bootstrap_path),
             bootstrap_fingerprint=bootstrap.fingerprint,
             input_path="/inputs/bundle",
+            context_stream_path=str(context_path),
             native_event_stream_path=str(native_path),
             expected_instance_id=bootstrap.instance_id,
             expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
@@ -282,6 +326,9 @@ def test_runtime_cli_verifies_forward_bootstrap_and_native_artifact_bindings(
 def test_runtime_cli_rejects_tampered_forward_native_artifact(tmp_path, monkeypatch) -> None:
     native_bytes = b"native-history-artifact"
     native_digest = f"sha256:{hashlib.sha256(native_bytes).hexdigest()}"
+    context_bytes = b"authenticated strategy context stream"
+    context_reference = _context_stream_reference(context_bytes)
+    context_digest = context_reference["artifact"]["content_digest"]
     bundle_digest = _digest("runtime-bundle")
     engine_input = {
         "data_snapshot_fingerprint": _bootstrap().snapshot_fingerprint,
@@ -295,15 +342,21 @@ def test_runtime_cli_rejects_tampered_forward_native_artifact(tmp_path, monkeypa
     )
     bootstrap_path = tmp_path / "bootstrap.json"
     bootstrap_path.write_bytes(bootstrap.to_json_bytes())
+    context_path = tmp_path / "strategy-contexts.ndjson"
+    context_path.write_bytes(context_bytes)
     native_path = tmp_path / "native-events.parquet"
     native_path.write_bytes(b"tampered")
     monkeypatch.setenv("STRATEGY_FORWARD_BOOTSTRAP_DIGEST", bootstrap.fingerprint)
     monkeypatch.setenv("STRATEGY_INPUT_BUNDLE_DIGEST", bundle_digest)
+    monkeypatch.setenv("STRATEGY_CONTEXT_STREAM_DIGEST", context_digest)
     monkeypatch.setenv("STRATEGY_NATIVE_EVENT_STREAM_DIGEST", native_digest)
     monkeypatch.setattr(
         nautilus_runtime_cli,
         "_read_bundle",
-        lambda *_args, **_kwargs: {"engine_input": engine_input},
+        lambda *_args, **_kwargs: {
+            "engine_input": engine_input,
+            "strategy_context_stream": context_reference,
+        },
     )
     monkeypatch.setattr(
         nautilus_runtime_cli,
@@ -322,6 +375,7 @@ def test_runtime_cli_rejects_tampered_forward_native_artifact(tmp_path, monkeypa
             bootstrap_path=str(bootstrap_path),
             bootstrap_fingerprint=bootstrap.fingerprint,
             input_path="/inputs/bundle",
+            context_stream_path=str(context_path),
             native_event_stream_path=str(native_path),
             expected_instance_id=bootstrap.instance_id,
             expected_snapshot_fingerprint=bootstrap.snapshot_fingerprint,
