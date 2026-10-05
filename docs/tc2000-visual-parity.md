@@ -1,6 +1,33 @@
 # TC2000 Version 25 Visual-Parity Specification
 
-## 2026-10-05 — Exact current branch-tip functional and visual matrix
+## 2026-10-05 — Exact current product-tip functional and visual matrix
+
+At product commit `f0e946000e15336d972f33f24520d72b06e5cf7e` (pushed as the
+product source of branch checkpoint `b759198197c510cd794171ca6a9b8124d2841eec`),
+the seeded authenticated Playwright 1.62.1 functional suite completed 177
+cases twice. The first run passed 174, skipped two documented cases, and had
+one F8k chart plot bounding-box failure. The unchanged focused F8k replay
+passed 1/1, and the unchanged full rerun passed 175/177 with two documented
+skips and zero failures. Preserve the first failure as raw history; it did not
+reproduce and no source/assertion changed.
+
+The exact product-tip four-project visual board completed 104 cases: 94 passed
+and the same ten screenshot-only comparisons remain above the unchanged
+threshold after their state assertions passed. The identities and pixel counts
+are unchanged: workspace-floating at all four projects (8,995 / 9,825 / 8,995 /
+9,825), Study structured-result at all four (109,320 / 105,944 / 22,035 /
+21,352), and Study sandbox-error at 1080p/100 and 1080p/125 (13,360 / 11,188).
+No reference, mask, threshold, skip, fallback, or acceptance rule changed.
+
+The exact product-tip `workstation_performance.spec.ts` run passed three cases
+and skipped only the opt-in 10,000-row case because the assigned backend's
+`E2E_SEED_LARGE_UNIVERSE` flag was false. The previous complete 4/4 performance
+run remains evidence for its earlier product source, not a substitute for this
+current-tip result. All browser output was written under `/tmp`; the assigned
+frontend was rebuilt/recreated alone and its six-service stack, four volumes,
+and network were preserved.
+
+## 2026-10-05 — Earlier exact branch-tip functional and visual matrix
 
 At pushed branch checkpoint `c84ed3c7077c09085e1df740b75e7760b7545d37`
 (product source `d413d845939e68e9738b621329fa8d63a419ddf8`), the unchanged

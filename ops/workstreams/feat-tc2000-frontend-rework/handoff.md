@@ -17,16 +17,24 @@ all six scope self-tests passed; 30 workstream records validated. The branch
 wrapper emitted a worktree-runtime allocation-lock error because the runtime
 registry is outside the writable sandbox, so validation was run directly via
 the UV-managed backend interpreter using `/tmp` for its cache. Docker access is
-denied at `/var/run/docker.sock`; an authenticated browser replay and the
-generic integration gate remain open. The previous exact-tip functional and
-visual/performance results remain historical, not proof for this new UI code.
-No reference images, masks, thresholds, skips, acceptance rules, provider or
-ETF behavior, other branch, or worktree were changed.
+available through an explicitly scoped escalation. The exact product-tip
+authenticated functional suite first completed 174/177 with two documented
+skips and one F8k plot-target failure; the unchanged focused replay passed
+1/1, and the unchanged full rerun passed 175/177 with two skips and zero
+failures. The exact four-project visual board passed 94/104, retaining the ten
+known screenshot-only differences. The current performance file passed 3/4
+and skipped the 10k case because the assigned backend had its large-universe
+fixture flag disabled. The generic integration gate remains open; no generic
+cleanup ran. Browser output is under `/tmp/tc2000-occurrence-*`. The assigned
+six services, four volumes, and network remain present. No reference images,
+masks, thresholds, skips, acceptance rules, provider or ETF behavior, other
+branch, or worktree were changed.
 
 Product code and regression tests are committed locally at
 `f0e946000e15336d972f33f24520d72b06e5cf7e`. The remote push and exact-tip
 push are verified at the same SHA. Exact-tip browser/integration checks remain
-open because Docker access is denied in the current sandbox.
+partially complete: functional and visual browser results are above, while the
+generic backend/migration gate and enabled 10k performance fixture remain open.
 
 ## 2026-10-05 — Complete isolated workstation performance matrix
 

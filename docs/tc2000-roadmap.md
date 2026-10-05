@@ -19,10 +19,21 @@ visual references.
 
 The Research Results component suite passed 57/57, the complete frontend suite
 passed 129 files / 1,209 tests, and the production type-check/build passed. TC
-scope validation and all six ownership self-tests passed. The assigned Docker
-socket is unavailable in this session, so no browser replay was possible after
-this UI change; exact-tip functional/visual validation remains open. No
-provider/ETF behavior or visual acceptance policy changed.
+scope validation and all six ownership self-tests passed. At exact product
+commit `f0e946000e15336d972f33f24520d72b06e5cf7e`, the seeded functional suite
+first completed 174/177 with two documented skips and one F8k chart-target
+failure; the unchanged focused replay passed 1/1, and the unchanged full rerun
+passed 175/177 with two skips and zero failures. The four-project visual matrix
+completed 94/104 with the same ten protected screenshot-only differences. The
+current performance file passed 3/4 and skipped only the 10k case because the
+assigned backend was not seeded with the large-universe fixture. Artifacts are
+under `/tmp/tc2000-occurrence-browser-results`,
+`/tmp/tc2000-occurrence-f8k-replay`,
+`/tmp/tc2000-occurrence-full-functional-replay`,
+`/tmp/tc2000-occurrence-visual-matrix`, and
+`/tmp/tc2000-occurrence-performance`. The assigned services and volumes were
+preserved. No provider/ETF behavior, reference, or visual acceptance policy
+changed.
 
 Implementation is committed at `f0e946000e15336d972f33f24520d72b06e5cf7e`.
 The exact implementation tip is pushed and verified at origin; browser and

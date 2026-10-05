@@ -23,20 +23,21 @@ current_blocker: >-
   Product commit f0e946000e15336d972f33f24520d72b06e5cf7e adds bounded,
   truthful occurrence lists to TC Research Results. Focused component tests
   passed 57/57; full frontend Vitest passed 129 files / 1,209 tests; frontend
-  type-check/build and direct scope/workstream validators passed. Browser and
-  generic integration reruns are still required for the new product tip, but
-  this sandbox denies Docker access at /var/run/docker.sock and its worktree
-  runtime allocation registry is read-only. The last full seeded functional
-  run passed 175/177 with two documented skips; the last visual matrix passed
-  94/104 with the same ten protected screenshot-only differences; the complete
-  workstation performance file passed 4/4 with the 10k fixture enabled. Treat
-  these as prior-source evidence, not exact-tip validation. Preserve every
-  visual reference, mask, threshold, skip, and acceptance rule. Provider and
-  ETF branches remain outside staging, so R2/R3 consumption and shared-path
+  type-check/build and direct scope/workstream validators passed. At this
+  product tip, seeded functional flows passed 175/177 with two documented
+  skips and zero failures on an unchanged full rerun; the first run's isolated
+  F8k failure passed focused replay and is retained as raw history. The exact
+  four-project visual matrix is 94/104 with the same ten protected screenshot
+  differences. The exact performance file passed 3/4 and skipped the 10k case
+  because this assigned backend's large-universe fixture flag is false; the
+  prior 4/4 receipt is for an earlier source. The generic integration gate
+  remains open because its Buildx/cleanup path is not safe to invoke against
+  this assigned stack. Keep every visual oracle unchanged. Provider and ETF
+  branches remain outside staging, so R2/R3 consumption and shared-path
   reconciliation are deferred.
 active_changeset_context:
   name: Bounded Research Results occurrence lists
-  status: implementation_and_full_frontend_unit_build_verified_browser_replay_pending
+  status: implementation_full_frontend_and_functional_browser_verified_visual_and_generic_gate_open
   commit_sha: f0e946000e15336d972f33f24520d72b06e5cf7e
   remote_sha: f0e946000e15336d972f33f24520d72b06e5cf7e
   intent: >-
@@ -47,11 +48,11 @@ active_changeset_context:
     - frontend/src/components/workstation/ResearchResultsTool.vue
     - frontend/tests/unit/components/test_research_results_tool.test.ts
   next_action: >-
-    Run the focused authenticated Study Results browser replay and schedule a
-    clean exact-tip full-stack/browser validation profile when Docker access is
-    available. Then continue another distinct TC-owned R1/R5/R6 behavior slice.
-    Keep the generic integration helper, ten protected visual differences,
-    and upstream staging acceptance gates open.
+    Continue a distinct TC-owned R1/R5/R6 behavior slice while preserving the
+    ten visual-oracle failures. Complete the exact-tip generic backend/migration
+    gate via a safe isolated route, and rerun the full performance profile with
+    its 10k fixture enabled when a disposable seeded project is available.
+    Keep R2/R3 deferred until both dependencies reach staging.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
