@@ -129,7 +129,7 @@
   "head": "488293d2b116fddb925d88f2c6c7c907b1335adb",
   "implementation_sha": "46d443976f312da4beba47e37b2111f1e8631923",
   "last_checkpoint": "2026-10-05T18:07:01.153145+00:00",
-  "last_human_progress_update": "2026-10-05T18:06:31.494582+00:00",
+  "last_human_progress_update": "2026-10-05T18:21:49.467048+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -152,9 +152,9 @@
     "completed": [],
     "current_blocker": "none",
     "current_phase": "forward-native-session-implementation",
-    "next_action": "Build the concrete RC5 persistent shared-account runtime session/factory: reconstruct warm-up and processed prefix, stage accepted event/context into the native bridge, emit real account effects, checkpoint before ACK, and restore deterministically. Then wire main --serve-forward to serve_forward_runtime and execute inside the exact RC5 image.",
+    "next_action": "Build the persistent RC5 shared-account BacktestEngine session: replay immutable warm-up and processed-prefix contexts, stage each canonical event through the same engine, extract native effects, checkpoint before ACK, then wire the verified session into CLI --serve-forward.",
     "total": 18,
-    "updated_at": "2026-10-05T18:06:31.494563+00:00"
+    "updated_at": "2026-10-05T18:21:49.467027+00:00"
   },
   "remote": "488293d2b116fddb925d88f2c6c7c907b1335adb",
   "remote_sha": "46d443976f312da4beba47e37b2111f1e8631923",

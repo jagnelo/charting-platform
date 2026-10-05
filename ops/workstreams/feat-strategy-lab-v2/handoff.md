@@ -18,6 +18,32 @@ Buildx still gates only final Compose/browser validation; provider, ETF, and
 TC2000 shared paths remain gated only until their approved work reaches
 staging.
 
+## 2026-10-05 - Native forward event staging seam
+
+Source commit `e51b81ec96f6700dc8f3394f8be57f078b0dce37` adds a tested
+single-event staging API to the Nautilus component bridge. It accepts new
+component contexts only after the immutable native event/context prefix is
+fully consumed, validates the authenticated component, parameter, and seed
+bindings, checks event/context parity through the existing stream validator,
+then routes the event through the same long-lived invocation sessions and
+shared portfolio callback path. The new regression stages a post-prefix event
+and verifies both component strategy invocations.
+
+Validation: all 1,489 Strategy Lab tests passed; the full backend pytest
+command exited only after reporting 49.92% aggregate backend coverage against
+its 55% global threshold (that command covers far more than this package).
+The focused bridge suite passed 28/28, Ruff check/format and focused MyPy for
+`nautilus_strategy_bridge.py` passed, as did `git diff --check`. The source
+commit is pushed to `origin/feat/strategy-lab-v2`.
+
+This is a bridge seam, not a working forward runtime. Next construct the
+persistent RC5 shared-account `BacktestEngine`: replay immutable warm-up,
+rebuild processed-prefix contexts, stream each canonical event through the
+same engine, capture real native order/fill/cash effects, and checkpoint before
+ACK. Then wire the existing verified `serve_forward_runtime()` helper into
+the CLI and prove restore/replay in the exact RC5 image. Stable Nautilus v2 is
+not a dependency.
+
 ## 2026-10-04 - Scope-qualified Nautilus RC backtest authority
 
 Commit `0b3e2277ffc11128b52c493e14242c3387e0e02b` removes the wait-for-stable

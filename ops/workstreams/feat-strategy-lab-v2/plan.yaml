@@ -339,6 +339,7 @@ remaining_gaps:
   - Native OOS metrics v14 now expose maximum peak-to-trough loss in the account base currency alongside fractional drawdown and recovery factor for fixed-cadence and event-aligned equity paths. The amount is derived only from observed equity peaks/troughs, is bound to the native trace evidence, and remains unavailable when the OOS trace has no scored observations.
   - Native OOS metric definition v15 accepts exact attempt/portfolio-bound session equity intervals, their content-addressed calendar, and explicit sessions-per-year/risk-free/confidence parameters. Complete no-flow session coverage unlocks annualized volatility, Sharpe, Sortino, historical VaR/expected shortfall, and session-return quantiles; gaps, out-of-window closes, mixed evidence, or ambiguous flows fail closed. The native producer is now wired from the frozen runtime calendar and native close callbacks through the runner and result materializer into worker-terminal artifact publication. A package-owned worker-terminal regression verifies interval artifact publication and metric evidence, while incomplete coverage remains explicitly null. Actual Nautilus-process/Docker acceptance for calendar callbacks is still part of the full integration profile.
   - The owner-authenticated worker-terminal path now consumes exact conformance evidence, rehydrates and checks the owner-scoped trial graph, materializes versioned native OOS metrics/results, publishes verified output bytes, and builds the publication plan. A worker-terminal success/redelivery test exercises the full persistence-port coordinator with pure completion/lease state and proves stable receipt identity when the callback observation time changes; artifact completion keys bind manifest/content/length/storage identity rather than the retry-varying create/reuse action. Real PostgreSQL/Redis/Compose adapter execution and full-stack/browser acceptance remain Docker-gated.
+  - The native component strategy bridge can now stage exactly one post-prefix forward event with its authenticated component contexts, preserving the already-open StrategyInvocationSession objects and shared portfolio callback path. It rejects staging before all immutable native events and contexts have replayed, verifies component identity/parameters/random seed, and maps contexts onto the staged event through the existing native tape parity checks. A focused bridge regression proves a new event is invoked after the frozen prefix. The persistent BacktestEngine session, native account effect extraction, durable checkpoint/replay, and CLI service wiring remain open.
   - The isolated Nautilus runtime bundle now has a pinned-input content-addressed artifact contract. Durable worker handoff v2 carries its compact artifact manifest plus semantic bundle digest; the worker binds both to the attempt/request and verifies the exact mounted bytes and memory-derived size bound before Docker launch. Production assembly from frozen trial/snapshot/portfolio inputs remains open.
   - The combined backend coverage gate now collects package-owned v2 tests and passes its 75% threshold. The dedicated worker entrypoint is now exposed through an explicit opt-in `strategy-lab-v2` Compose profile with a separate artifact volume, health-gated PostgreSQL/Redis dependencies, read-only root, dropped capabilities, bounded temporary filesystem, fail-closed Docker-socket binding, and a package-owned authenticated single-output evidence resolver default; host multi-artifact policy, live activation, and scope-bound authoritative Nautilus v2 execution remain open.
   - Alembic revision `ff0a1b2c3d4e` now creates the complete additive Strategy Lab v2 adapter schema and the active-worker reservation index without touching legacy Strategy Lab tables; the FastAPI lifespan now invokes the explicit startup migration service when namespaced migration settings enable it, while remaining API projections, terminal/result callback wiring, and scope-bound authoritative Nautilus v2 execution remain open.
@@ -869,24 +870,28 @@ progress:
     canonical, size-bounded, rejects duplicate fields, and binds the decoded
     fingerprint to its artifact. The
     fixed CLI `--serve-forward` mode and concrete persistent shared-account
-    BacktestEngine session are still unimplemented. Native output/checkpoint
-    persistence before ACK and deterministic process-loss replay remain
-    code-owned. Preserve canonical platform event identity and
-    ordering; never derive them from dependency-local frozen series rows. Full
+    BacktestEngine session are still unimplemented. The bridge now exposes a
+    tested single-event staging seam after the immutable prefix, but native
+    account effect extraction, output/checkpoint persistence before ACK, and
+    deterministic process-loss replay remain code-owned. Preserve canonical
+    platform event identity and ordering; never derive them from dependency-
+    local frozen series rows. Full
     Compose/browser acceptance remains environment-limited by unavailable
     Docker Buildx and default Docker API socket access. Shared provider, ETF, and
     TC2000 contracts gate only their eventual shared-path integration; options
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Wire the immutable authenticated bootstrap into the fixed RC5 CLI
-    --serve-forward mode, verifying its mounted bytes and the referenced
-    runtime-input/native-event artifacts before opening the session. Construct
-    one persistent shared-account
-    BacktestEngine/strategy bridge. Then process only source-verified canonical
-    deliveries and persist native output plus an exact replay checkpoint before
-    Redis acknowledgement. Recover deterministically after process loss without
-    rewriting prior decisions; corrections remain on the counterfactual path.
-    Preserve provider-owned event identity and consume shared contracts only
+    Construct the concrete RC5 persistent shared-account BacktestEngine
+    session around the tested bridge staging seam. Replay the immutable
+    warm-up and processed prefix, build each replay/live component context from
+    source-verified history, and stage one accepted event before streaming it
+    through the persistent engine. Extract real native orders, fills, and cash
+    effects, then persist the event output and exact replay checkpoint before
+    Redis acknowledgement. Wire the immutable authenticated bootstrap into the
+    fixed CLI --serve-forward mode after verifying all mounted artifact bytes.
+    Recover deterministically after process loss without rewriting prior
+    decisions; corrections remain on the counterfactual path. Preserve
+    provider-owned canonical event identity and consume shared contracts only
     after their source branches reach staging. Stable release labeling is not a
     gate.
