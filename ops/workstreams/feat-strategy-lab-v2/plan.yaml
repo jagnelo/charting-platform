@@ -857,21 +857,14 @@ progress:
   total: 18
   current_phase: forward-runtime-durable-settlement
   active_changeset:
-    id: strategy-lab-v2-nautilus-forward-checkpoint-scoped-process-v1
+    id: strategy-lab-v2-nautilus-forward-checkpoint-bootstrap-gate-v1
     scope: >-
-      Bind each isolated native forward process to one exact durable admission
-      checkpoint; replace the OS process on checkpoint advance or recovery so
-      local replay state cannot grow across settled events.
+      Fail closed before process creation unless the host-resolved hardened
+      launch plan contains a canonical, digest-bound bootstrap for the exact
+      forward instance and requested durable admission checkpoint.
     owned_paths:
-      - backend/app/strategy_lab_v2/nautilus_forward_native_runtime.py
       - backend/app/strategy_lab_v2/nautilus_forward_process.py
-      - backend/app/strategy_lab_v2/nautilus_forward_runtime_server.py
-      - backend/app/strategy_lab_v2/nautilus_forward_session.py
-      - backend/app/strategy_lab_v2/nautilus_forward_wire.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_session.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_wire.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_runtime_cli.py
     status: completed
   current_blocker: >-
     No external dependency blocks package-owned implementation. Exact-pinned
@@ -900,10 +893,8 @@ progress:
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Start the image-backed forward-process recovery changeset: build a host
-    plan factory that resolves each requested checkpoint from the durable
-    admission/event ledger, then prove duplicate/crash replay across actual
-    process termination. Exercise failures before account commit, after commit
-    but before Redis ACK, and after ACK. Corrections remain counterfactual.
-    Preserve provider-owned event identity and consume shared contracts only
-    after their source branches reach staging.
+    Close the checkpoint-bootstrap guard at exact implementation commit
+    df852f75df135a3fc58dd59af087861cc3dcbcf4, then open the image-backed
+    forward process-loss recovery changeset. Resolve checkpoint-specific
+    runtime plans from durable admission/account state, then kill and relaunch
+    the exact RC5 process across pre-commit, committed-before-ACK, and post-ACK.

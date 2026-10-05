@@ -12136,3 +12136,47 @@ ledger, including pre-commit, post-commit/pre-ACK, and post-ACK failure windows.
 No stable Nautilus 2.x release is required. RC5 remains the already-qualified
 isolated pin; RC6 requalification is optional and must not interrupt package
 implementation.
+
+## 2026-10-05 - Checkpoint-bound forward bootstrap launch guard
+
+Completed changeset context: `strategy-lab-v2-nautilus-forward-checkpoint-bootstrap-gate-v1`.
+Owned implementation paths are `backend/app/strategy_lab_v2/nautilus_forward_process.py`
+and `backend/app/strategy_lab_v2/tests/test_nautilus_forward_process.py`.
+
+Intent: make the existing checkpoint-aware host plan callback fail closed at
+the process boundary unless its hardened Docker plan contains an exact,
+canonical Nautilus bootstrap for the requested instance and pre-event durable
+admission checkpoint.
+
+Current state: the previous process-lifecycle context is committed and
+synchronized; the worktree was clean at `d0502c59ca4e8ad72f7e9c5b2a17ab2801db7ab4`.
+Repository preflight classifies this as the assigned implementation worktree.
+`agent-session-start` reports it is already claimed by the active goal session
+`dfc74daa-cb29-4cd2-a09d-c3e792dd87c9`; do not take over that live claim. Stable
+Nautilus 2.x is not a gate; exact RC5 is the existing runtime pin.
+
+Implementation: `HardenedNautilusForwardSessionProcessFactory` validates the
+launch plan before starting Docker. It safely opens the bootstrap with
+`O_NOFOLLOW`/`O_NONBLOCK`, requires a regular bounded file and canonical encoding,
+verifies its logical fingerprint, and rejects instance/checkpoint mismatches.
+Stale-checkpoint, cross-instance, and symlinked-artifact regressions fail before
+process creation.
+
+Validation: the full Strategy Lab package passed 1,501 tests; focused forward
+process/session/wire/CLI tests passed 51; Ruff check/format, focused MyPy for
+`nautilus_forward_process.py`, and `git diff --check` passed. This guard does
+not provide a database-backed plan resolver or prove real process loss/relaunch
+or any ACK crash window. Those remain the next package-owned task. Stable
+Nautilus labeling is not a gate; the exact RC5 pin remains suitable.
+
+Changeset closure: implementation commit
+`df852f75df135a3fc58dd59af087861cc3dcbcf4` changes only the two owned source
+and regression-test paths. It was pushed to `origin/feat/strategy-lab-v2`; the
+remote accepted it. Local/remote equality and the final clean boundary are
+recorded in the following operational checkpoint. The next permitted work is
+the independently scoped exact-RC5 process-loss and ACK-window recovery proof.
+
+Next action: finish the separate operational checkpoint for the pushed guard,
+then start `strategy-lab-v2-nautilus-forward-process-loss-recovery-v1` to build
+exact-checkpoint host plan resolution and the RC5 image-backed actual process
+termination/restart proof for all three crash windows.
