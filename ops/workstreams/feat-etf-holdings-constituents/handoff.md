@@ -8002,3 +8002,55 @@ the resulting visual actual/diff files. AC7/AC8 remain open until local visual
 and exact-SHA hosted evidence are resolved. The parallel provider-platform
 staging milestone remains outside this worktree; AC14 remains a post-release
 shadow-observation gate.
+
+## Local full-gate pause for shared Docker contention — 2026-10-05
+
+Exact-SHA workflow run 37261715527 is on receipt commit
+5a189326f45e58a1aba00dd490c2ad2f46151d24. As of 2026-10-05T04:11Z, its
+backend unit/integration suites passed 1,500/379 and frontend unit tests passed
+945; the backend and frontend Codecov uploads again failed with TLS EPROTO,
+which skipped hosted E2E. The branch-declared provider matrix remained in
+progress.
+
+The local `make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents`
+gate started with sufficient resources, then encountered a newly active
+`feat-tc2000-frontend-rework` Compose stack and its Playwright container. Host
+available memory fell to about 2.3 GiB while this gate was in backend
+testcontainers. The gate was interrupted with Ctrl-C; its ETF-owned temporary
+Redis/Postgres containers were released, and a filtered Docker inventory then
+showed no container labelled for this ETF worktree. The other worktree's six
+Compose services and browser container were left untouched. Host memory
+recovered to about 2.9 GiB available. No generic workflow, other checkout, or
+other worktree resource was changed. Resume the full gate once that concurrent
+stack is no longer active and memory headroom is safe; the visual screenshot
+disposition remains open.
+
+Only current status fields (`current_phase`, `current_blocker`, and
+`next_action`) changed in `plan.yaml`; scope and acceptance criteria are
+unchanged. The resumed saved goal must stay active; do not create a duplicate
+goal or use initial plan-ready flow to reset it. The operational checkpoint
+is scoped to these branch-owned files:
+
+- `ops/workstreams/feat-etf-holdings-constituents/plan.yaml`
+- `ops/workstreams/feat-etf-holdings-constituents/handoff.md`
+- `ops/workstreams/feat-etf-holdings-constituents/validation.jsonl`
+- `ops/workstreams/feat-etf-holdings-constituents/session.json`
+
+## Exact-SHA branch tests green; hosted workflow still red — 2026-10-05
+
+GitHub Actions run 37261715527 completed on
+5a189326f45e58a1aba00dd490c2ad2f46151d24. Its branch-declared job passed with
+522 passed and 16 skipped; all eight branch steps completed, including Ruff,
+workstream validation, frontend type-check, ETF UI tests, and the production
+build. Backend unit/integration suites passed 1,500/379 and frontend Vitest
+passed all 945 tests. The overall workflow remains red because both Codecov
+uploads failed with TLS EPROTO; hosted Playwright E2E was skipped. The available
+branch-job log did not disclose per-case skip reasons, so I am not claiming a
+specific QVAL skip or live pass. QVAL remains unverified as an executable
+current route.
+
+The local full gate remains paused during the other worktree's active Docker
+stack to avoid competing for memory. No other worktree or its containers were
+modified. Resume the gate only when the concurrent stack exits and the host has
+safe headroom. This exact-SHA result does not satisfy the local visual or
+hosted E2E portions of AC7.

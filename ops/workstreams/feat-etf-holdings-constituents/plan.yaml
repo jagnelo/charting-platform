@@ -430,7 +430,7 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: qval_edge_challenge_classified_exact_sha_retest_pending
+current_phase: qval_fix_branch_ci_pass_local_integration_paused_for_shared_resources
 current_blocker: >-
   CURRENT CHECKPOINT 2026-10-05: 15 Tier-0 and 156 Tier-1 symbol outcomes
   remain accounted for. Exact-SHA CI run 37259854302 on
@@ -461,6 +461,30 @@ current_blocker: >-
   3.8 GiB available. The local full gate has not yet been rerun. Prior
   paragraphs below preserve historical validation evidence and are superseded
   by this checkpoint.
+  UPDATE 2026-10-05T04:11Z: GitHub run 37261715527 on receipt SHA
+  5a189326f45e58a1aba00dd490c2ad2f46151d24 has backend unit/integration
+  tests green (1,500/379) and frontend unit tests green (945), but both
+  Codecov upload steps again fail with TLS EPROTO; hosted E2E is skipped.
+  The branch-declared provider matrix is still running. The local official
+  `make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents`
+  gate was started, then safely interrupted during backend testcontainers
+  after the separate feat-tc2000-frontend-rework Compose stack and its
+  Playwright container became active; available host memory had fallen to
+  2.3 GiB. The ETF gate's Redis/Postgres testcontainers were released after
+  interruption, and filtered Docker inventory confirms no ETF-owned container
+  remains. The other worktree stack was not stopped or changed. Current host
+  memory has recovered to 2.9 GiB available. Resume the local gate only after
+  shared Docker load is safe. The goal remains active, not blocked.
+  UPDATE 2026-10-05T04:15Z: Exact-SHA CI run 37261715527 completed on
+  5a189326f45e58a1aba00dd490c2ad2f46151d24. The branch-declared job passed
+  with 522 passed and 16 skips and all eight declared branch steps completed.
+  The backend unit/integration suites passed 1,500/379 and frontend tests
+  passed 945, but both Codecov upload steps failed with TLS EPROTO and hosted
+  E2E was skipped; overall CI is red. The available branch-job log did not
+  show per-parameter skip reasons, so QVAL is not claimed as fetched or
+  supported by this run. AC7/AC8 remain open for local full/browser and hosted
+  E2E evidence. The competing Docker stack remains active; do not resume the
+  heavy local gate until shared resources are safe.
   The latest full gate on working source based on 115af366123c4e07e3a3109cc9ba19f2af136f18 again passed workstream/dependency/migration, Ruff/format/type-check, backend coverage (1,877 passed; 81.13%), frontend tests (945 passed; 82.08%), production build, Docker stack health, and research-runner probes. Playwright ran all 260 scenarios: 152 passed, 106 skipped, and two unrelated workstation scenarios failed (`F8j-conflict` expected a recovery notice but saw canonical-ready; `F8s-market-map-watchlist` timed out clicking a button detached during rerender). No visual mismatch was reported. Both failures then passed on a fresh healthy stack when replayed together (2 passed in 18.2s); additionally the adjacent `F8j` pop-out and `F8j-conflict` sequence passed (2 passed in 13.9s). Prior cross-window `ERR_NETWORK_CHANGED` cases also passed their focused replay and passed in this latest full run. The local gate exits at e2e-functional before standalone visual and branch-declared stages. These are non-reproducing test-order/load failures outside ETF behavior; no assertions or baselines were changed. ETF Docker resources were stopped and resource accounting is zero/complete. Exact-SHA CI for current working source is still not queried on its next pushed receipt. Goal remains active.
 
   The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The
@@ -660,10 +684,10 @@ current_blocker: >-
   product code changed; exact-SHA retest after the correction is pending.
 
 next_action: >-
-  Run the required local full integration/browser gate through the approved
-  Docker boundary while monitoring host memory, and monitor exact-SHA CI run
-  37261499608. Inspect actual/diff screenshots before changing any visual
-  baseline or UI behavior. Do not change generic CI workflow files from this
-  ETF-only scope. AC10 awaits provider-platform staging; AC14 remains the later
+  Wait for the competing worktree Docker stack to end, then resume the required
+  local full integration/browser gate through the approved Docker boundary.
+  Inspect actual/diff screenshots before changing any visual baseline or UI
+  behavior. Do not change generic CI workflow files from this ETF-only scope.
+  AC10 awaits provider-platform staging; AC14 remains the later
   post-integration/deployment shadow gate. Do not integrate, promote, deploy,
   or modify another worktree.
