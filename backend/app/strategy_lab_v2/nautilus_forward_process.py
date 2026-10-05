@@ -19,6 +19,7 @@ from app.strategy_lab_v2.forward_context import (
 )
 from app.strategy_lab_v2.nautilus_forward_delivery import NautilusForwardDeliveryInput
 from app.strategy_lab_v2.nautilus_forward_session import NautilusForwardExecutionResult
+from app.strategy_lab_v2.nautilus_forward_wire import NautilusForwardJsonWireCodec
 from app.strategy_lab_v2.nautilus_runtime_ipc import (
     MAX_NAUTILUS_RUNTIME_IPC_FRAME_BYTES,
     NautilusRuntimeIpcClient,
@@ -45,13 +46,23 @@ class NautilusForwardRuntimeWireCodec(Protocol):
 
     def open_payload(self, *, instance_id: str) -> Mapping[str, object]: ...
 
+    def decode_open_payload(self, payload: Mapping[str, object]) -> str: ...
+
     def execute_payload(
         self,
         delivery: NautilusForwardDeliveryInput,
         preparation: ForwardPreparation,
     ) -> Mapping[str, object]: ...
 
+    def decode_execute_payload(
+        self, payload: Mapping[str, object]
+    ) -> tuple[NautilusForwardDeliveryInput, ForwardPreparation]: ...
+
     def execution_result(self, payload: Mapping[str, object]) -> NautilusForwardExecutionResult: ...
+
+    def execution_result_payload(
+        self, result: NautilusForwardExecutionResult
+    ) -> Mapping[str, object]: ...
 
     def restore_payload(
         self,
@@ -59,6 +70,8 @@ class NautilusForwardRuntimeWireCodec(Protocol):
         instance_id: str,
         checkpoint_fingerprint: str,
     ) -> Mapping[str, object]: ...
+
+    def decode_restore_payload(self, payload: Mapping[str, object]) -> tuple[str, str]: ...
 
 
 class _TimedPipeLineReader:
@@ -289,7 +302,7 @@ class HardenedNautilusForwardSessionProcessFactory:
     def __init__(
         self,
         plan_factory: Callable[[str], SandboxCommandPlan],
-        codec: NautilusForwardRuntimeWireCodec,
+        codec: NautilusForwardRuntimeWireCodec | None = None,
         *,
         docker_binary: str = "docker",
         response_timeout_seconds: float = 30.0,
@@ -303,7 +316,7 @@ class HardenedNautilusForwardSessionProcessFactory:
         if response_timeout_seconds <= 0:
             raise ValueError("response_timeout_seconds must be positive")
         self._plan_factory = plan_factory
-        self._codec = codec
+        self._codec = NautilusForwardJsonWireCodec() if codec is None else codec
         self._docker_binary = docker_binary
         self._response_timeout_seconds = response_timeout_seconds
 
@@ -392,6 +405,7 @@ def _forward_session_argv(
 
 __all__ = [
     "NautilusForwardRuntimeWireCodec",
+    "NautilusForwardJsonWireCodec",
     "NautilusForwardSessionProcess",
     "HardenedNautilusForwardSessionProcessFactory",
     "NautilusRuntimeIpcSubprocess",

@@ -64,20 +64,6 @@ def _plan(tmp_path: Path, *, instance_id: str = "forward-1"):
     )
 
 
-class _Codec:
-    def open_payload(self, *, instance_id: str):
-        return {"instance_id": instance_id}
-
-    def execute_payload(self, delivery, preparation):
-        return {"delivery": delivery.fingerprint, "preparation": preparation.fingerprint}
-
-    def execution_result(self, payload):
-        raise AssertionError("execution result decoder is not used by this lifecycle test")
-
-    def restore_payload(self, *, instance_id: str, checkpoint_fingerprint: str):
-        return {"instance_id": instance_id, "checkpoint_fingerprint": checkpoint_fingerprint}
-
-
 def _fake_runtime_binary(tmp_path: Path) -> Path:
     backend_path = Path(__file__).resolve().parents[3]
     script = tmp_path / "docker-stub"
@@ -103,7 +89,6 @@ def test_forward_process_factory_launches_persistent_hardened_ipc(tmp_path: Path
     docker_stub = _fake_runtime_binary(tmp_path)
     factory = HardenedNautilusForwardSessionProcessFactory(
         lambda _instance_id: plan,
-        _Codec(),
         docker_binary=str(docker_stub),
         response_timeout_seconds=2.0,
     )
