@@ -11764,3 +11764,31 @@ Next: wire `main` to the authenticated bootstrap/context/history verifier and
 the bounded stdio IPC server, backed by one persistent native session built
 from the frozen warm-up and processed prefix. Preserve exact version/build
 bindings throughout replay and settlement.
+
+## 2026-10-05 - Verified forward IPC server orchestration
+
+Commit `378ab9ca068ec558a1c2dd7d4cce35349c25dd3a` adds
+`serve_forward_runtime`: it verifies the bootstrap, runtime bundle, strategy
+context sidecar, native warm-up stream, snapshot identity, instance identity,
+and exact installed Nautilus version before asking a session-factory builder to
+construct the isolated-side operation handler. The context and native-event
+files are then reopened with `O_NOFOLLOW`, rehashed through the retained file
+handles, rewound, and held open while the bounded framed IPC server runs. This
+closes the startup-verification-to-IPC orchestration seam without fabricating
+native account effects.
+
+Validation: the full Strategy Lab package passed `1,488` tests; focused Ruff
+check/format and MyPy for `nautilus_runtime_cli.py` passed, as did
+`git diff --check`. The commit is pushed to `origin/feat/strategy-lab-v2`.
+The test uses a fake native session and proves orchestration only. `main` does
+not yet dispatch `--serve-forward`, and no concrete session-factory builder
+exists. Therefore this is not native forward acceptance: persistent RC5
+shared-account execution, context/event staging, durable output/checkpoint
+before ACK, and deterministic process-loss replay remain open.
+
+Next: implement the concrete isolated-side builder and persistent native
+session, including warm-up/prefix reconstruction, per-delivery event staging,
+native account-effect capture, checkpoint settlement, and exact restore; then
+wire the fixed `--serve-forward` command to this verified server path. Use the
+exact RC5 image for native runtime evidence, not the host backend's unrelated
+Nautilus `1.226.0` installation.
