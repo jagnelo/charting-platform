@@ -610,10 +610,9 @@ class PostgresForwardAccountAdapter:
         owner_id: str,
         state: ForwardAccountState,
         *,
-        expected_fingerprint: str | None = None,
+        expected_fingerprint: str,
     ) -> None:
-        if expected_fingerprint is not None:
-            require_sha256_digest(expected_fingerprint, field_name="expected_fingerprint")
+        require_sha256_digest(expected_fingerprint, field_name="expected_fingerprint")
         payload = canonical_json(state)
         result = await session.execute(
             _statement(
@@ -621,7 +620,7 @@ class PostgresForwardAccountAdapter:
                 UPDATE {self._schema.account_table}
                 SET state_json = :state_json, state_fingerprint = :state_fingerprint
                 WHERE owner_id = :owner_id AND instance_id = :instance_id
-                  AND (:expected_fingerprint IS NULL OR state_fingerprint = :expected_fingerprint)
+                  AND state_fingerprint = :expected_fingerprint
                 """
             ),
             {
