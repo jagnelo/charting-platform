@@ -5723,6 +5723,16 @@ test.describe('TC2000 workstation', () => {
     await expect(promotedHeader).toHaveAttribute('aria-label', 'Sort by RSI Boolean column')
     await expect(promotedHeader.locator('.workstation-glyph--pin')).toHaveCount(0)
     await expect(promotedHeader).toHaveAttribute('aria-pressed', 'false')
+
+    await promotedHeader.press('Shift+F10')
+    await expect(promotedHeader).toHaveAttribute('aria-expanded', 'true')
+    const keyboardPinMenu = page.getByRole('menu', { name: 'Column actions for RSI Boolean column' })
+    await expect(keyboardPinMenu).toBeVisible()
+    await keyboardPinMenu.getByRole('menuitem', { name: 'Pin to Top (ctrl-click)' }).click()
+    await expect(promotedHeader).toHaveAttribute('aria-expanded', 'false')
+    await expect(promotedHeader).toHaveAttribute('aria-label', /pinned to top/)
+    await expect(promotedHeader.locator('.workstation-glyph--pin')).toBeVisible()
+    await expect(promotedHeader).toHaveAttribute('aria-pressed', 'false')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

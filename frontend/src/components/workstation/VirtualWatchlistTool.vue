@@ -56,9 +56,9 @@
         <template v-for="item in columnRenderItems" :key="item.column.key">
         <div class="watchlist__header-cell" :style="columnCellStyle(item)" @mousedown.capture="handleColumnMouseDown($event, item)">
           <div v-if="item.column.key === stackedColumnKey" class="watchlist__stack-header">
-            <button v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" type="button" :aria-label="sortButtonLabel(stackedColumn.key, stackedColumn.label)" :aria-pressed="sortKey === stackedColumn.key ? 'true' : 'false'" :aria-haspopup="stackedColumn.kind === 'boolean' ? 'menu' : undefined" :aria-expanded="stackedColumn.kind === 'boolean' ? (pinContextMenu?.key === stackedColumn.key ? 'true' : 'false') : undefined" @click="handleColumnHeaderClick($event, stackedColumn)" @contextmenu="openColumnPinContextMenu($event, stackedColumn)"><em v-if="columnGroups[stackedColumn.key]">{{ columnGroups[stackedColumn.key] }}</em>{{ stackedColumn.label }}<WorkstationGlyph v-if="isBooleanColumnPinned(stackedColumn.key)" kind="pin" title="Pinned to top" /><small v-if="sortKey === stackedColumn.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small></button>
+            <button v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" type="button" :aria-label="sortButtonLabel(stackedColumn.key, stackedColumn.label)" :aria-pressed="sortKey === stackedColumn.key ? 'true' : 'false'" :aria-haspopup="stackedColumn.kind === 'boolean' ? 'menu' : undefined" :aria-expanded="stackedColumn.kind === 'boolean' ? (pinContextMenu?.key === stackedColumn.key ? 'true' : 'false') : undefined" @click="handleColumnHeaderClick($event, stackedColumn)" @contextmenu="openColumnPinContextMenu($event, stackedColumn)" @keydown="handleColumnPinMenuKeydown($event, stackedColumn)"><em v-if="columnGroups[stackedColumn.key]">{{ columnGroups[stackedColumn.key] }}</em>{{ stackedColumn.label }}<WorkstationGlyph v-if="isBooleanColumnPinned(stackedColumn.key)" kind="pin" title="Pinned to top" /><small v-if="sortKey === stackedColumn.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small></button>
           </div>
-          <button v-else type="button" :aria-label="sortButtonLabel(item.column.key, item.column.label)" :aria-pressed="sortKey === item.column.key ? 'true' : 'false'" :aria-haspopup="item.column.kind === 'boolean' ? 'menu' : undefined" :aria-expanded="item.column.kind === 'boolean' ? (pinContextMenu?.key === item.column.key ? 'true' : 'false') : undefined" @click="handleColumnHeaderClick($event, item.column)" @contextmenu="openColumnPinContextMenu($event, item.column)">
+          <button v-else type="button" :aria-label="sortButtonLabel(item.column.key, item.column.label)" :aria-pressed="sortKey === item.column.key ? 'true' : 'false'" :aria-haspopup="item.column.kind === 'boolean' ? 'menu' : undefined" :aria-expanded="item.column.kind === 'boolean' ? (pinContextMenu?.key === item.column.key ? 'true' : 'false') : undefined" @click="handleColumnHeaderClick($event, item.column)" @contextmenu="openColumnPinContextMenu($event, item.column)" @keydown="handleColumnPinMenuKeydown($event, item.column)">
             <em v-if="columnGroups[item.column.key]">{{ columnGroups[item.column.key] }}</em>{{ item.column.label }}<WorkstationGlyph v-if="isBooleanColumnPinned(item.column.key)" kind="pin" title="Pinned to top" /><small v-if="sortKey === item.column.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small>
           </button>
           <span v-if="item.column.key !== stackedColumnKey" class="watchlist__column-resize-handle" role="separator" tabindex="0" aria-orientation="horizontal" :aria-valuemin="48" :aria-valuemax="600" :aria-valuenow="columnWidths[item.index]" :aria-valuetext="`${columnWidths[item.index]} pixels`" :aria-label="`Resize ${item.column.label} column`" @mousedown.prevent.stop="beginColumnMouseResize($event, item)" @keydown.stop="handleColumnResizeKeydown($event, item)" />
@@ -1441,15 +1441,25 @@ function openContextMenu(event: MouseEvent | KeyboardEvent, row: WatchlistRow) {
   void nextTick(() => focusContextMenuItem(0))
 }
 
-function openColumnPinContextMenu(event: MouseEvent, column: WatchlistColumn) {
+function handleColumnPinMenuKeydown(event: KeyboardEvent, column: WatchlistColumn) {
+  if (column.kind !== 'boolean') return
+  if (event.key !== 'ContextMenu' && event.code !== 'ContextMenu' && !(event.key === 'F10' && event.shiftKey)) return
+  event.preventDefault()
+  event.stopPropagation()
+  openColumnPinContextMenu(event, column)
+}
+
+function openColumnPinContextMenu(event: MouseEvent | KeyboardEvent, column: WatchlistColumn) {
   if (column.kind !== 'boolean') return
   event.preventDefault()
   event.stopPropagation()
   const trigger = event.currentTarget as HTMLButtonElement
   const bounds = trigger.closest('.watchlist')?.getBoundingClientRect()
   const triggerBounds = trigger.getBoundingClientRect()
-  const left = event.clientX || triggerBounds.left
-  const top = event.clientY || triggerBounds.bottom
+  const clientX = event.type === 'keydown' ? 0 : (event as MouseEvent).clientX
+  const clientY = event.type === 'keydown' ? 0 : (event as MouseEvent).clientY
+  const left = clientX || triggerBounds.left
+  const top = clientY || triggerBounds.bottom
   contextMenu.value = null
   pinMenuTriggerElement.value = trigger
   pinContextMenu.value = {

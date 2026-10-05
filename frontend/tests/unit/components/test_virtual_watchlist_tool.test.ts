@@ -1131,6 +1131,35 @@ describe('VirtualWatchlistTool', () => {
     wrapper.unmount()
   })
 
+  it('opens the Boolean column pin menu from keyboard context-menu commands', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      attachTo: document.body,
+      props: {
+        label: 'Sectors', rows,
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'signal', label: 'Signal', kind: 'boolean' }],
+      },
+    })
+    const header = wrapper.get('button[aria-label="Sort by Signal"]')
+
+    await header.trigger('keydown', { key: 'F10', shiftKey: true })
+    const menu = wrapper.get('[role="menu"][aria-label="Column actions for Signal"]')
+    expect(header.attributes('aria-expanded')).toBe('true')
+    expect(menu.get('[role="menuitem"]').text()).toBe('Pin to Top (ctrl-click)')
+    expect(menu.get('[role="menuitem"]').element).toBe(document.activeElement)
+
+    await menu.get('[role="menuitem"]').trigger('keydown', { key: 'Escape' })
+    expect(wrapper.find('[role="menu"][aria-label="Column actions for Signal"]').exists()).toBe(false)
+    expect(header.attributes('aria-expanded')).toBe('false')
+    expect(header.element).toBe(document.activeElement)
+
+    await header.trigger('keydown', { key: 'ContextMenu', code: 'ContextMenu' })
+    expect(wrapper.find('[role="menu"][aria-label="Column actions for Signal"]').exists()).toBe(true)
+    await wrapper.get('[role="menuitem"]').trigger('click')
+    expect(wrapper.emitted('update:pinnedBooleanKeys')?.at(-1)).toEqual([['signal']])
+    expect(header.attributes('aria-expanded')).toBe('false')
+    wrapper.unmount()
+  })
+
   it('persists column grouping without changing virtualized canonical row identity', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {
