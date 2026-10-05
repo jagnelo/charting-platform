@@ -2,6 +2,21 @@
 
 ## 2026-10-05 — Pinned exact-tip functional and visual reconciliation
 
+The evidence checkpoint is commit `68b1900526e7f11cf702947465f2f87d99e15a5b`
+(`docs(tc2000): record pinned exact-tip results`), and the push completed
+successfully. Local `HEAD` and `origin/feat/tc2000-frontend-rework` both resolve
+to that SHA and the worktree was clean afterward. A subsequent read-only
+`git ls-remote` could not resolve `github.com` twice, so direct ref enumeration
+is temporarily unavailable; the successful push and updated tracking ref are
+the synchronization evidence. Staging/provider/ETF dependency tips were last
+directly verified before this DNS interruption and should be refreshed before
+consumer integration.
+
+This workstream checkpoint records `68b1900526e7f11cf702947465f2f87d99e15a5b`
+as the last known pre-record SHA. Its enclosing commit cannot contain its own
+hash; verify that commit externally with `git rev-parse HEAD` and the matching
+`git rev-parse origin/feat/tc2000-frontend-rework` after pushing it.
+
 At exact product source `be55d1af2de8037671d65e33d5b1d5120e11f38c`, the full
 authenticated functional run in the pinned Playwright 1.62.1 Noble image
 completed all 174 cases: 172 passed, 2 documented cases were skipped, and zero
