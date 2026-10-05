@@ -22,6 +22,9 @@ _SEARCH_RETRY_MIGRATION_PATH = _MIGRATION_PATH.with_name(
 _FORWARD_LIFECYCLE_MIGRATION_PATH = _MIGRATION_PATH.with_name(
     "ff5a6b7c8d9e_strategy_lab_forward_lifecycle_idempotency.py"
 )
+_FORWARD_DISPATCH_CONTEXT_MIGRATION_PATH = _MIGRATION_PATH.with_name(
+    "ff6a7b8c9d0e_bind_forward_dispatch_checkpoint.py"
+)
 
 
 def _migration() -> ModuleType:
@@ -73,6 +76,18 @@ def _forward_lifecycle_migration() -> ModuleType:
     )
     if spec is None or spec.loader is None:
         raise AssertionError("could not load the forward lifecycle migration")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _forward_dispatch_context_migration() -> ModuleType:
+    spec = importlib.util.spec_from_file_location(
+        "strategy_lab_v2_forward_dispatch_context_migration",
+        _FORWARD_DISPATCH_CONTEXT_MIGRATION_PATH,
+    )
+    if spec is None or spec.loader is None:
+        raise AssertionError("could not load the forward dispatch context migration")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -161,4 +176,22 @@ def test_forward_lifecycle_idempotency_migration_is_additive_and_receipt_scoped(
     assert any(
         "DROP TABLE strategy_lab_v2_forward_lifecycle_requests" in value
         for value in downgrade_constants
+    )
+
+
+def test_forward_dispatch_migration_binds_admission_checkpoint_and_warmup() -> None:
+    migration = _forward_dispatch_context_migration()
+
+    assert migration.revision == "ff6a7b8c9d0e"
+    assert migration.down_revision == "ff5a6b7c8d9e"
+    upgrade_constants = tuple(str(value) for value in migration.upgrade.__code__.co_consts)
+    assert any("pre_event_checkpoint_fingerprint TEXT NULL" in value for value in upgrade_constants)
+    assert any("warmup_receipt_fingerprint TEXT NULL" in value for value in upgrade_constants)
+    assert any(
+        "admission_decision IN ('enqueue', 'buffered', 'correction_enqueue')" in value
+        for value in upgrade_constants
+    )
+    downgrade_constants = tuple(str(value) for value in migration.downgrade.__code__.co_consts)
+    assert any(
+        "DROP COLUMN pre_event_checkpoint_fingerprint" in value for value in downgrade_constants
     )

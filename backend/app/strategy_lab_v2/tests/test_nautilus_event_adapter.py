@@ -9,11 +9,13 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capabilities import CapabilityCell, Degradation, preflight_capabilities
 from app.strategy_lab_v2.contracts import AdjustmentMode, EventGranularity, ProductClass
 from app.strategy_lab_v2.event_tape import FrozenEventTape
+from app.strategy_lab_v2.forward_corrections import CounterfactualReplayPlan
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NAUTILUS_FORWARD_PARITY_VERSION,
     NautilusEventRecord,
     NautilusEventTape,
+    NautilusForwardDeliveryBinding,
     NautilusForwardEventEnvelope,
     NautilusForwardEventParityReceipt,
     NautilusForwardEventTape,
@@ -24,6 +26,7 @@ from app.strategy_lab_v2.nautilus_event_adapter import (
     verify_nautilus_event_tape_parity,
     verify_nautilus_forward_event_tape_parity,
 )
+from app.strategy_lab_v2.nautilus_forward_delivery import NautilusForwardCorrectionReplayInput
 from app.strategy_lab_v2.sdk import MarketEvent
 from app.strategy_lab_v2.tests.test_event_tape import _binding_inputs
 
@@ -51,6 +54,26 @@ def _event(
             "close": 101.0,
             "volume": 1200,
         },
+    )
+
+
+def _delivery_binding(
+    event: CanonicalForwardEvent,
+    *,
+    admission_decision: str = "enqueue",
+    replay_plan_fingerprint: str | None = None,
+) -> NautilusForwardDeliveryBinding:
+    return NautilusForwardDeliveryBinding(
+        instance_id="forward-instance-1",
+        event_fingerprint=content_digest(event),
+        redis_stream_id=f"{event.sequence}-0",
+        redis_entry_fingerprint=content_digest({"entry": event.event_id}),
+        dispatch_record_fingerprint=content_digest({"dispatch": event.event_id}),
+        request_fingerprint=content_digest({"request": event.event_id}),
+        pre_event_checkpoint_fingerprint=content_digest({"checkpoint": event.sequence}),
+        warmup_receipt_fingerprint=content_digest("forward-warmup"),
+        admission_decision=admission_decision,
+        replay_plan_fingerprint=replay_plan_fingerprint,
     )
 
 
@@ -292,12 +315,20 @@ def test_forward_event_tape_orders_envelopes_for_host_callback() -> None:
         (second_canonical, first_canonical),
         (second_market, first_market),
         event_type_by_dependency={"daily-bars": "ohlcv"},
+        delivery_bindings=(
+            _delivery_binding(second_canonical),
+            _delivery_binding(first_canonical),
+        ),
     )
     equivalent = materialize_nautilus_forward_tape(
         "forward-instance-1",
         (first_canonical, second_canonical),
         (first_market, second_market),
         event_type_by_dependency={"daily-bars": "ohlcv"},
+        delivery_bindings=(
+            _delivery_binding(first_canonical),
+            _delivery_binding(second_canonical),
+        ),
     )
 
     assert isinstance(tape, NautilusForwardEventTape)
@@ -321,7 +352,85 @@ def test_forward_event_tape_rejects_dependency_mapping_drift() -> None:
             (canonical_event,),
             (market_event,),
             event_type_by_dependency={"daily-bars": "ohlcv", "unused": "quote"},
+            delivery_bindings=(_delivery_binding(canonical_event),),
         )
+
+
+def test_forward_event_tape_rejects_correction_dispatch_from_live_input() -> None:
+    market_event = _event("bar-correction", sequence=2)
+    canonical_event = CanonicalForwardEvent(
+        market_event.event_id,
+        market_event.sequence,
+        market_event.event_time,
+        market_event.event_time + timedelta(seconds=1),
+        content_digest("correction-source"),
+        correction_of="bar-original",
+    )
+    correction_binding = _delivery_binding(
+        canonical_event,
+        admission_decision="correction_enqueue",
+        replay_plan_fingerprint=content_digest("replay-plan"),
+    )
+
+    with pytest.raises(ValueError, match="only accepted non-correction"):
+        materialize_nautilus_forward_tape(
+            "forward-instance-1",
+            (canonical_event,),
+            (market_event,),
+            event_type_by_dependency={"daily-bars": "ohlcv"},
+            delivery_bindings=(correction_binding,),
+        )
+
+
+def test_forward_correction_replay_input_binds_plan_checkpoint_and_target() -> None:
+    market_event = _event("bar-correction", sequence=2)
+    canonical_event = CanonicalForwardEvent(
+        market_event.event_id,
+        market_event.sequence,
+        market_event.event_time,
+        market_event.event_time + timedelta(seconds=1),
+        content_digest("correction-source"),
+        correction_of="bar-original",
+    )
+    checkpoint_fingerprint = content_digest("checkpoint")
+    warmup_fingerprint = content_digest("warmup")
+    replay_plan = CounterfactualReplayPlan(
+        content_digest("replay-id"),
+        "forward-instance-1",
+        canonical_event.event_id,
+        "bar-original",
+        checkpoint_fingerprint,
+        warmup_fingerprint,
+        BASE + timedelta(minutes=1),
+    )
+    binding = NautilusForwardDeliveryBinding(
+        instance_id="forward-instance-1",
+        event_fingerprint=content_digest(canonical_event),
+        redis_stream_id="1704205800000-0",
+        redis_entry_fingerprint=content_digest("redis-entry"),
+        dispatch_record_fingerprint=content_digest("dispatch-record"),
+        request_fingerprint=content_digest("dispatch-request"),
+        pre_event_checkpoint_fingerprint=checkpoint_fingerprint,
+        warmup_receipt_fingerprint=warmup_fingerprint,
+        admission_decision="correction_enqueue",
+        replay_plan_fingerprint=replay_plan.fingerprint,
+    )
+    envelope = materialize_nautilus_forward_event(
+        canonical_event,
+        market_event,
+        event_type="ohlcv",
+    )
+
+    replay_input = NautilusForwardCorrectionReplayInput(
+        binding,
+        replay_plan,
+        canonical_event,
+        envelope,
+    )
+
+    assert replay_input.replay_plan.fingerprint == binding.replay_plan_fingerprint
+    assert replay_input.delivery_binding.admission_decision == "correction_enqueue"
+    assert replay_input.fingerprint == content_digest(replay_input)
 
 
 def test_forward_event_tape_parity_rejects_reordered_wire_records() -> None:
@@ -435,4 +544,8 @@ def _forward_tape_for_parity() -> NautilusForwardEventTape:
         (first_canonical, second_canonical),
         (first_market, second_market),
         event_type_by_dependency={"daily-bars": "ohlcv"},
+        delivery_bindings=(
+            _delivery_binding(first_canonical),
+            _delivery_binding(second_canonical),
+        ),
     )

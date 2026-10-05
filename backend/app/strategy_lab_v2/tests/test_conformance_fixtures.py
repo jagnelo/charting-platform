@@ -40,6 +40,7 @@ from app.strategy_lab_v2.local_conformance_source import (
 )
 from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusEventTape,
+    NautilusForwardDeliveryBinding,
     materialize_nautilus_event,
     materialize_nautilus_forward_tape,
     verify_nautilus_event_tape_parity,
@@ -325,6 +326,19 @@ def test_forward_event_tape_parity_receipt_projects_into_conformance_observation
         (canonical,),
         (event,),
         event_type_by_dependency={"daily-bars": "ohlcv"},
+        delivery_bindings=(
+            NautilusForwardDeliveryBinding(
+                instance_id="forward-instance-1",
+                event_fingerprint=content_digest(canonical),
+                redis_stream_id="1704067200000-0",
+                redis_entry_fingerprint=content_digest("redis-entry"),
+                dispatch_record_fingerprint=content_digest("dispatch-record"),
+                request_fingerprint=content_digest("dispatch-request"),
+                pre_event_checkpoint_fingerprint=content_digest("checkpoint"),
+                warmup_receipt_fingerprint=content_digest("warmup"),
+                admission_decision="enqueue",
+            ),
+        ),
     )
     observed = (
         {

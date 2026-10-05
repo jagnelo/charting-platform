@@ -613,8 +613,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   materialization. It deliberately imports neither Nautilus nor any provider;
   host callback/Rust implementation and forward-parity evidence remain gated.
   `materialize_nautilus_forward_tape(...)` additionally binds a deterministic
-  instance-scoped batch of admitted canonical events to payload records for
-  that future callback, rejecting pair, dependency-map, and identity drift.
+  instance-scoped batch of admitted canonical events to payload records and
+  requires exact persisted delivery identities for each event. Only accepted
+  non-correction dispatches may enter the live tape; buffered events and
+  corrections remain outside that input path.
   `verify_nautilus_event_tape_parity(...)` provides the strict observed-wire
   schema and non-authoritative pass/fail receipt for that future adapter, with
   canonical ordering and field-level mismatch evidence.
@@ -623,6 +625,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   parity definition v2 rejects callback reordering rather than sorting the
   observed batch, and retains instance/tape identity in a separate
   non-authoritative forward-parity receipt.
+- `nautilus_forward_delivery.py` authenticates a Redis entry and rehydrated
+  PostgreSQL dispatch against the persisted pre-event checkpoint, warm-up
+  receipt, event, and admission decision. Correction dispatches become a
+  separate typed replay input bound to the correction plan and original event;
+  they cannot enter the ordinary live tape. The concrete native callback
+  factory and isolated forward-runtime integration remain outstanding.
 - `resolve_nautilus_forward_parity(...)` composes that strict verifier with
   the `FORWARD_EVENT_TAPE_PARITY` conformance projection, returning one typed
   resolution that binds the tape, receipt, and observation for the eventual

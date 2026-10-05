@@ -26,7 +26,7 @@ from app.strategy_lab_v2.sdk import MarketEvent, StrategySdkManifest
 
 NAUTILUS_EVENT_ADAPTER_VERSION = "strategy-lab.nautilus-event-adapter.v1"
 NAUTILUS_EVENT_PARITY_VERSION = "strategy-lab.nautilus-event-parity.v1"
-NAUTILUS_FORWARD_TAPE_VERSION = "strategy-lab.nautilus-forward-tape.v1"
+NAUTILUS_FORWARD_TAPE_VERSION = "strategy-lab.nautilus-forward-tape.v2"
 NAUTILUS_FORWARD_PARITY_VERSION = "strategy-lab.nautilus-forward-parity.v2"
 
 _WIRE_FIELDS = frozenset(
@@ -288,11 +288,61 @@ class NautilusForwardEventEnvelope:
 
 
 @dataclass(frozen=True, slots=True)
+class NautilusForwardDeliveryBinding:
+    """Persisted identities tying one accepted event to its native delivery."""
+
+    instance_id: str
+    event_fingerprint: str
+    redis_stream_id: str
+    redis_entry_fingerprint: str
+    dispatch_record_fingerprint: str
+    request_fingerprint: str
+    pre_event_checkpoint_fingerprint: str
+    warmup_receipt_fingerprint: str
+    admission_decision: str
+    replay_plan_fingerprint: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.instance_id, str) or not self.instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        if not isinstance(self.redis_stream_id, str) or not self.redis_stream_id.strip():
+            raise ValueError("redis_stream_id must not be empty")
+        for name in (
+            "event_fingerprint",
+            "redis_entry_fingerprint",
+            "dispatch_record_fingerprint",
+            "request_fingerprint",
+            "pre_event_checkpoint_fingerprint",
+            "warmup_receipt_fingerprint",
+        ):
+            require_sha256_digest(getattr(self, name), field_name=name)
+        if self.admission_decision not in {"enqueue", "buffered", "correction_enqueue"}:
+            raise ValueError("forward delivery admission decision is unsupported")
+        if self.replay_plan_fingerprint is not None:
+            require_sha256_digest(
+                self.replay_plan_fingerprint,
+                field_name="replay_plan_fingerprint",
+            )
+        if self.admission_decision == "correction_enqueue" and self.replay_plan_fingerprint is None:
+            raise ValueError("correction delivery requires a replay-plan fingerprint")
+        if (
+            self.admission_decision != "correction_enqueue"
+            and self.replay_plan_fingerprint is not None
+        ):
+            raise ValueError("only correction delivery may reference a replay plan")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
 class NautilusForwardEventTape:
     """Ordered forward envelopes ready for a future host/Rust callback."""
 
     instance_id: str
     envelopes: tuple[NautilusForwardEventEnvelope, ...]
+    delivery_bindings: tuple[NautilusForwardDeliveryBinding, ...]
     definition_version: str = NAUTILUS_FORWARD_TAPE_VERSION
 
     def __post_init__(self) -> None:
@@ -305,26 +355,48 @@ class NautilusForwardEventTape:
             raise ValueError("Nautilus forward tapes require envelopes")
         if any(not isinstance(item, NautilusForwardEventEnvelope) for item in envelopes):
             raise TypeError("envelopes must contain NautilusForwardEventEnvelope values")
+        bindings = tuple(self.delivery_bindings)
+        if len(bindings) != len(envelopes):
+            raise ValueError("forward event tapes require one persisted delivery binding per event")
+        if any(not isinstance(item, NautilusForwardDeliveryBinding) for item in bindings):
+            raise TypeError("delivery_bindings must contain NautilusForwardDeliveryBinding values")
         event_ids = [item.record.event_id for item in envelopes]
         if len(event_ids) != len(set(event_ids)):
             raise ValueError("Nautilus forward event ids must be unique")
         sequences = [item.record.sequence for item in envelopes]
         if len(sequences) != len(set(sequences)):
             raise ValueError("Nautilus forward event sequences must be unique")
-        object.__setattr__(
-            self,
-            "envelopes",
-            tuple(
-                sorted(
-                    envelopes,
-                    key=lambda item: (
-                        item.record.sequence,
-                        item.record.event_time_ns,
-                        item.record.event_id,
-                    ),
-                )
-            ),
+        ordered_envelopes = tuple(
+            sorted(
+                envelopes,
+                key=lambda item: (
+                    item.record.sequence,
+                    item.record.event_time_ns,
+                    item.record.event_id,
+                ),
+            )
         )
+        bindings_by_event = {item.event_fingerprint: item for item in bindings}
+        if len(bindings_by_event) != len(bindings):
+            raise ValueError("forward delivery event fingerprints must be unique")
+        ordered_bindings: list[NautilusForwardDeliveryBinding] = []
+        for envelope in ordered_envelopes:
+            event_fingerprint = content_digest(envelope.canonical_event)
+            binding = bindings_by_event.get(event_fingerprint)
+            if binding is None:
+                raise ValueError("forward event tape is missing its persisted delivery binding")
+            if binding.instance_id != self.instance_id:
+                raise ValueError("forward delivery binding instance does not match the tape")
+            if (
+                binding.admission_decision != "enqueue"
+                or binding.replay_plan_fingerprint is not None
+            ):
+                raise ValueError(
+                    "only accepted non-correction dispatches may enter the live forward tape"
+                )
+            ordered_bindings.append(binding)
+        object.__setattr__(self, "envelopes", ordered_envelopes)
+        object.__setattr__(self, "delivery_bindings", tuple(ordered_bindings))
 
     @property
     def fingerprint(self) -> str:
@@ -383,6 +455,7 @@ def materialize_nautilus_forward_tape(
     market_events: Sequence[MarketEvent],
     *,
     event_type_by_dependency: Mapping[str, str],
+    delivery_bindings: Sequence[NautilusForwardDeliveryBinding],
 ) -> NautilusForwardEventTape:
     """Materialize an admitted forward batch without provider or engine I/O."""
 
@@ -392,8 +465,12 @@ def materialize_nautilus_forward_tape(
         raise TypeError("canonical_events must be a sequence")
     if not isinstance(market_events, Sequence) or isinstance(market_events, str | bytes):
         raise TypeError("market_events must be a sequence")
+    if not isinstance(delivery_bindings, Sequence) or isinstance(delivery_bindings, str | bytes):
+        raise TypeError("delivery_bindings must be a sequence")
     if len(canonical_events) != len(market_events):
         raise ValueError("canonical and market event batches must have equal length")
+    if len(canonical_events) != len(delivery_bindings):
+        raise ValueError("canonical events and persisted delivery bindings must have equal length")
     if not isinstance(event_type_by_dependency, Mapping):
         raise TypeError("event_type_by_dependency must be a mapping")
     if not event_type_by_dependency:
@@ -421,7 +498,7 @@ def materialize_nautilus_forward_tape(
         )
     if set(event_type_by_dependency) != observed_dependencies:
         raise ValueError("event_type_by_dependency contains an unused dependency")
-    return NautilusForwardEventTape(instance_id, tuple(envelopes))
+    return NautilusForwardEventTape(instance_id, tuple(envelopes), tuple(delivery_bindings))
 
 
 def materialize_nautilus_event_tape(
@@ -700,6 +777,7 @@ __all__ = [
     "NautilusEventParityReceipt",
     "NautilusEventRecord",
     "NautilusEventTape",
+    "NautilusForwardDeliveryBinding",
     "NautilusForwardEventEnvelope",
     "NautilusForwardEventParityReceipt",
     "NautilusForwardEventTape",

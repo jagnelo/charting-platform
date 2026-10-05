@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -8,17 +9,26 @@ import pytest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ForwardState
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.forward_event_dispatch import ForwardEventDispatchDecision
+from app.strategy_lab_v2.forward_worker_handoff import (
+    ForwardEventDispatchPayload,
+    ForwardEventWorkItem,
+)
 from app.strategy_lab_v2.lifecycle import (
     CanonicalForwardEvent,
     ForwardCursor,
     observe_forward_event,
+)
+from app.strategy_lab_v2.nautilus_forward_delivery import (
+    materialize_nautilus_forward_delivery_binding,
 )
 from app.strategy_lab_v2.postgres_forward_dispatch import (
     PostgresForwardEventDispatchAdapter,
     PostgresForwardEventDispatchSchema,
 )
 from app.strategy_lab_v2.postgres_forward_state import PostgresForwardStateAdapter
+from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.tests.test_postgres_forward_state import (
     FakeResult,
     FakeSession,
@@ -98,6 +108,12 @@ async def test_forward_dispatch_persists_payload_dispatch_and_outbox_then_replay
     session = DispatchSession()
     await _active_state(session)
     adapter = PostgresForwardEventDispatchAdapter(lambda: session)
+    state_store = PostgresForwardStateAdapter(lambda: session)
+    pre_event_state = await state_store.load_state(
+        principal="owner-1",
+        instance_id="instance-1",
+    )
+    assert pre_event_state is not None
     event = CanonicalForwardEvent(
         "live-0",
         0,
@@ -133,6 +149,62 @@ async def test_forward_dispatch_persists_payload_dispatch_and_outbox_then_replay
     loaded = await adapter.load_by_request_fingerprint(request.fingerprint)
     assert loaded is not None
     assert loaded.request == request
+    assert loaded.pre_event_checkpoint_fingerprint == pre_event_state.checkpoint.fingerprint
+    assert loaded.warmup_receipt_fingerprint == pre_event_state.warmup_receipt_fingerprint
+    assert loaded.admission_decision == "enqueue"
+    persisted_dispatch = next(iter(session.dispatches.values()))
+    assert persisted_dispatch["pre_event_checkpoint_fingerprint"] == (
+        pre_event_state.checkpoint.fingerprint
+    )
+    assert persisted_dispatch["warmup_receipt_fingerprint"] == (
+        pre_event_state.warmup_receipt_fingerprint
+    )
+    original_warmup_fingerprint = persisted_dispatch["warmup_receipt_fingerprint"]
+    persisted_dispatch["warmup_receipt_fingerprint"] = content_digest("forged-warmup")
+    with pytest.raises(ValueError, match="dispatch fingerprint"):
+        await adapter.load_by_request_fingerprint(request.fingerprint)
+    persisted_dispatch["warmup_receipt_fingerprint"] = original_warmup_fingerprint
+    entry = RedisStreamEntry(
+        "strategy-lab:v2:forward-events",
+        "1704067200000-0",
+        request.fingerprint,
+        request.attempt_id,
+        request.payload_digest,
+        request.fingerprint,
+    )
+    work_item = ForwardEventWorkItem(
+        loaded,
+        ForwardEventDispatchPayload(
+            loaded.event_fingerprint,
+            loaded.replay_plan_fingerprint,
+        ),
+    )
+    delivery_binding = materialize_nautilus_forward_delivery_binding(entry, work_item)
+    assert delivery_binding.event_fingerprint == content_digest(event)
+    assert delivery_binding.redis_entry_fingerprint == entry.fingerprint
+    assert delivery_binding.dispatch_record_fingerprint == loaded.fingerprint
+    assert (
+        delivery_binding.pre_event_checkpoint_fingerprint == pre_event_state.checkpoint.fingerprint
+    )
+    assert delivery_binding.warmup_receipt_fingerprint == pre_event_state.warmup_receipt_fingerprint
+    payload_record = DispatchPayload.from_mapping(payload)
+    assert payload_record.payload_digest == entry.payload_digest
+    with pytest.raises(ValueError, match="request identity"):
+        materialize_nautilus_forward_delivery_binding(
+            replace(entry, request_fingerprint=content_digest("different-request")),
+            work_item,
+        )
+    legacy_record = replace(
+        loaded,
+        pre_event_checkpoint_fingerprint=None,
+        warmup_receipt_fingerprint=None,
+        admission_decision=None,
+    )
+    with pytest.raises(ValueError, match="lacks persisted admission checkpoint"):
+        materialize_nautilus_forward_delivery_binding(
+            entry,
+            ForwardEventWorkItem(legacy_record, work_item.payload),
+        )
     loaded_payload = await adapter.load_payload(request.payload_digest)
     assert loaded_payload is not None
     assert loaded_payload.payload_digest == request.payload_digest

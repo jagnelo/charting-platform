@@ -10685,3 +10685,41 @@ shadow, or modify another worktree.
 Checkpoint records updated with this slice: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
 `ops/workstreams/feat-strategy-lab-v2/session.json`,
 `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`, and this handoff.
+
+## 2026-10-05 - Durable native forward-delivery context
+
+Forward dispatch admission now persists the pre-event checkpoint fingerprint,
+warm-up receipt fingerprint, and admission decision alongside the request and
+event identities. The dispatch-record fingerprint covers those fields, so
+worker rehydration detects context drift. Alembic revision
+`ff6a7b8c9d0e` adds nullable, legacy-compatible columns with an all-or-none
+constraint; legacy rows remain inspectable but cannot be upgraded to native
+inputs because they lack the required context.
+
+Forward tape definition v2 now requires one delivery binding per event. Each
+binding includes the exact Redis stream entry, durable dispatch record/request,
+pre-event checkpoint, warm-up receipt, and canonical event fingerprints. A
+live tape accepts only `enqueue` decisions; buffered events and corrections
+fail closed. Corrections have a separate typed replay input that verifies the
+replay-plan fingerprint, original event target, checkpoint, and warm-up receipt.
+The callback parity receipt inherits these identities through the tape
+fingerprint. This is now an authenticated handoff contract, but a concrete
+native callback factory/runtime is still absent; no forward shadow is yet
+authoritative.
+
+Validation: 56 focused adapter, conformance, dispatch, and migration tests
+passed; the full Strategy Lab plus schema-migration suite passed 1,395 tests.
+The new migration ran against a disposable PostgreSQL container, accepted both
+legacy-null and complete new rows, rejected partial admission evidence, and
+successfully downgraded. Ruff check/format, targeted MyPy across three
+production modules, and `git diff --check` passed. The disposable PostgreSQL
+container exited with its test fixture; the other worktree's Compose containers
+were not targeted.
+
+The next code-owned gap is a concrete local callback factory and isolated
+Nautilus forward runtime that rehydrates only accepted content-addressed market
+events, uses the persisted strategy/data identities, and persists outputs
+before acknowledging Redis. Provider-owned event-source contracts remain
+staging-gated; no other worktree was changed. Stable release labeling remains
+unnecessary after exact scope-specific conformance. Preserve this feature
+worktree boundary and stop at `ready_for_human_review`.

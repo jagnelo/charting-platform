@@ -19,6 +19,7 @@ from typing import Any, Protocol
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
+from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
 from app.strategy_lab_v2.forward_corrections import ForwardCorrectionCommand
 from app.strategy_lab_v2.forward_event_dispatch import (
     ForwardEventDispatchDecision,
@@ -81,6 +82,9 @@ class PostgresForwardEventDispatchSchema:
                 queue_name TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 replay_plan_fingerprint TEXT NULL,
+                pre_event_checkpoint_fingerprint TEXT NULL,
+                warmup_receipt_fingerprint TEXT NULL,
+                admission_decision TEXT NULL,
                 dispatch_fingerprint TEXT NOT NULL,
                 PRIMARY KEY (owner_id, idempotency_key),
                 UNIQUE (owner_id, instance_id, event_fingerprint),
@@ -97,6 +101,9 @@ class ForwardEventDispatchRecord:
     event_fingerprint: str
     request: DispatchRequest
     replay_plan_fingerprint: str | None = None
+    pre_event_checkpoint_fingerprint: str | None = None
+    warmup_receipt_fingerprint: str | None = None
+    admission_decision: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.owner_id, str) or not self.owner_id.strip():
@@ -112,6 +119,28 @@ class ForwardEventDispatchRecord:
             require_sha256_digest(
                 self.replay_plan_fingerprint, field_name="replay_plan_fingerprint"
             )
+        admission_evidence = (
+            self.pre_event_checkpoint_fingerprint,
+            self.warmup_receipt_fingerprint,
+            self.admission_decision,
+        )
+        if any(value is None for value in admission_evidence) and any(
+            value is not None for value in admission_evidence
+        ):
+            raise ValueError("forward dispatch admission evidence must be complete")
+        if self.pre_event_checkpoint_fingerprint is not None:
+            if self.warmup_receipt_fingerprint is None or self.admission_decision is None:
+                raise ValueError("forward dispatch admission evidence must be complete")
+            require_sha256_digest(
+                self.pre_event_checkpoint_fingerprint,
+                field_name="pre_event_checkpoint_fingerprint",
+            )
+            require_sha256_digest(
+                self.warmup_receipt_fingerprint,
+                field_name="warmup_receipt_fingerprint",
+            )
+            if self.admission_decision not in {"enqueue", "buffered", "correction_enqueue"}:
+                raise ValueError("forward dispatch admission decision is unsupported")
 
     @property
     def fingerprint(self) -> str:
@@ -182,7 +211,9 @@ class PostgresForwardEventDispatchAdapter:
                 if correction_command is not None:
                     replay_id = _replay_id(state, correction_command)
                     plans = await self._forward_state._load_replays(session, owner_id, instance_id)
-                    existing_plan = next((plan for plan in plans if plan.replay_id == replay_id), None)
+                    existing_plan = next(
+                        (plan for plan in plans if plan.replay_id == replay_id), None
+                    )
                 resolution = resolve_forward_event_dispatch(
                     state,
                     event,
@@ -205,7 +236,9 @@ class PostgresForwardEventDispatchAdapter:
                     raise ValueError("forward dispatch resolution omitted dispatch evidence")
                 prior_payload = await self._load_payload(session, payload_record.payload_digest)
                 if prior_payload is not None and prior_payload != payload_record:
-                    raise ValueError("forward dispatch payload identity is already bound to different content")
+                    raise ValueError(
+                        "forward dispatch payload identity is already bound to different content"
+                    )
                 if resolution.state != state:
                     await self._persist_state(session, owner_id, state, resolution)
                 if prior_payload is None:
@@ -214,6 +247,7 @@ class PostgresForwardEventDispatchAdapter:
                     session,
                     owner_id,
                     instance_id,
+                    state,
                     resolution,
                 )
                 await self._insert_outbox(
@@ -236,7 +270,9 @@ class PostgresForwardEventDispatchAdapter:
                         f"""
                         SELECT owner_id, instance_id, event_fingerprint, idempotency_key,
                                request_fingerprint, attempt_id, payload_digest, queue_name,
-                               created_at, replay_plan_fingerprint, dispatch_fingerprint
+                               created_at, replay_plan_fingerprint,
+                               pre_event_checkpoint_fingerprint, warmup_receipt_fingerprint,
+                               admission_decision, dispatch_fingerprint
                         FROM {self._schema.dispatch_table}
                         WHERE request_fingerprint = :request_fingerprint
                         ORDER BY owner_id ASC, instance_id ASC
@@ -290,9 +326,12 @@ class PostgresForwardEventDispatchAdapter:
         if (
             resolution.event_transaction.replay_plan is not None
             and resolution.event_transaction.replay_plan.fingerprint
-            not in {item.fingerprint for item in await self._forward_state._load_replays(
-                session, owner_id, current.checkpoint.instance.instance_id
-            )}
+            not in {
+                item.fingerprint
+                for item in await self._forward_state._load_replays(
+                    session, owner_id, current.checkpoint.instance.instance_id
+                )
+            }
         ):
             await self._forward_state._insert_replay(
                 session, owner_id, resolution.event_transaction.replay_plan
@@ -306,7 +345,9 @@ class PostgresForwardEventDispatchAdapter:
                 f"""
                 SELECT owner_id, instance_id, event_fingerprint, idempotency_key,
                        request_fingerprint, attempt_id, payload_digest, queue_name,
-                       created_at, replay_plan_fingerprint, dispatch_fingerprint
+                       created_at, replay_plan_fingerprint,
+                       pre_event_checkpoint_fingerprint, warmup_receipt_fingerprint,
+                       admission_decision, dispatch_fingerprint
                 FROM {self._schema.dispatch_table}
                 WHERE owner_id = :owner_id AND instance_id = :instance_id
                 ORDER BY request_fingerprint ASC
@@ -340,7 +381,9 @@ class PostgresForwardEventDispatchAdapter:
         if len(rows) != 1:
             raise ValueError("forward dispatch payload query returned duplicate rows")
         row = rows[0]
-        payload = DispatchPayload(row["payload_digest"], row["payload_json"], int(row["byte_length"]))
+        payload = DispatchPayload(
+            row["payload_digest"], row["payload_json"], int(row["byte_length"])
+        )
         if row.get("payload_fingerprint") not in (None, payload.fingerprint):
             raise ValueError("forward dispatch payload fingerprint does not match bytes")
         return payload
@@ -370,21 +413,36 @@ class PostgresForwardEventDispatchAdapter:
         session: AsyncSessionLike,
         owner_id: str,
         instance_id: str,
+        state: ForwardLiveAdmissionState,
         resolution: ForwardEventDispatchResolution,
     ) -> None:
         assert resolution.envelope is not None
         request = resolution.envelope.request
         replay_plan = resolution.event_transaction.replay_plan
+        record = ForwardEventDispatchRecord(
+            owner_id=owner_id,
+            instance_id=instance_id,
+            event_fingerprint=resolution.event_transaction.event_fingerprint,
+            request=request,
+            replay_plan_fingerprint=replay_plan.fingerprint if replay_plan else None,
+            pre_event_checkpoint_fingerprint=state.checkpoint.fingerprint,
+            warmup_receipt_fingerprint=state.warmup_receipt_fingerprint,
+            admission_decision=resolution.decision.value,
+        )
         result = await session.execute(
             _statement(
                 f"""
                 INSERT INTO {self._schema.dispatch_table}
                     (owner_id, instance_id, event_fingerprint, idempotency_key,
                      request_fingerprint, attempt_id, payload_digest, queue_name,
-                     created_at, replay_plan_fingerprint, dispatch_fingerprint)
+                     created_at, replay_plan_fingerprint,
+                     pre_event_checkpoint_fingerprint, warmup_receipt_fingerprint,
+                     admission_decision, dispatch_fingerprint)
                 VALUES (:owner_id, :instance_id, :event_fingerprint, :idempotency_key,
                         :request_fingerprint, :attempt_id, :payload_digest, :queue_name,
-                        :created_at, :replay_plan_fingerprint, :dispatch_fingerprint)
+                        :created_at, :replay_plan_fingerprint,
+                        :pre_event_checkpoint_fingerprint, :warmup_receipt_fingerprint,
+                        :admission_decision, :dispatch_fingerprint)
                 ON CONFLICT (owner_id, idempotency_key) DO NOTHING
                 """
             ),
@@ -399,7 +457,10 @@ class PostgresForwardEventDispatchAdapter:
                 "queue_name": request.queue_name,
                 "created_at": _encode_datetime(request.created_at),
                 "replay_plan_fingerprint": replay_plan.fingerprint if replay_plan else None,
-                "dispatch_fingerprint": request.fingerprint,
+                "pre_event_checkpoint_fingerprint": state.checkpoint.fingerprint,
+                "warmup_receipt_fingerprint": state.warmup_receipt_fingerprint,
+                "admission_decision": resolution.decision.value,
+                "dispatch_fingerprint": record.fingerprint,
             },
         )
         if getattr(result, "rowcount", 0) != 1:
@@ -499,12 +560,20 @@ def _decode_dispatch_record(row: Mapping[str, Any]) -> ForwardEventDispatchRecor
             row["event_fingerprint"],
             request,
             row.get("replay_plan_fingerprint"),
+            row.get("pre_event_checkpoint_fingerprint"),
+            row.get("warmup_receipt_fingerprint"),
+            row.get("admission_decision"),
         )
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError("PostgreSQL forward dispatch row is malformed") from error
     if row.get("request_fingerprint") != request.fingerprint:
         raise ValueError("forward dispatch request fingerprint does not match bytes")
-    if row.get("dispatch_fingerprint") != request.fingerprint:
+    expected_dispatch_fingerprint = (
+        record.fingerprint
+        if record.pre_event_checkpoint_fingerprint is not None
+        else request.fingerprint
+    )
+    if row.get("dispatch_fingerprint") != expected_dispatch_fingerprint:
         raise ValueError("forward dispatch fingerprint does not match bytes")
     return record
 

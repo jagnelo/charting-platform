@@ -840,24 +840,26 @@ progress:
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
     - strategy-lab-v2-forward-lifecycle-idempotency-v1
   total: 18
-  current_phase: forward-callback-sequence-parity-v2
+  current_phase: native-forward-delivery-context
   current_blocker: >-
     No external dependency blocks package-owned implementation. The exact RC5
     source/image built from this worktree passed the four backtest conformance
     checks; stable release labeling is not a gate. Metric v17 now includes
     trace-bound event-time gross/net native exposure without margin inference.
-    Forward-shadow authority still requires event-tape parity. The current
-    verifier now preserves callback order, but end-to-end delivery is not yet
-    joined to persisted warm-up/checkpoint and Redis dispatch identities. Full
-    Compose/browser acceptance remains environment-limited by unavailable
+    Forward-shadow authority still requires event-tape parity. Forward dispatches
+    now persist admission checkpoint, warm-up receipt, and disposition identity;
+    the v2 native tape requires accepted Redis/dispatch bindings and isolates
+    correction replay inputs. A production native callback factory and runtime
+    are still not wired. Full Compose/browser acceptance remains environment-limited by unavailable
     Docker Buildx. Shared provider, ETF, and TC2000 contracts gate only their
     eventual shared-path integration; options admission remains fail-closed
     pending canonical Greeks/delta and settlement evidence.
   next_action: >-
-    Connect order-preserving forward parity evidence to the actual native
-    callback boundary. Bind each batch to the persisted warm-up receipt and
-    checkpoint plus accepted dispatch identity; represent corrections only as
-    separately identified counterfactual replay inputs. Keep provider/ETF/
-    TC2000 ownership boundaries intact, then continue full acceptance coverage.
-    No stable Nautilus release label is required for local backtesting or
-    broker-free forward qualification after all five checks.
+    Wire a concrete local forward callback factory that consumes only accepted,
+    content-verified dispatches and rehydrates their canonical market payloads,
+    then invokes the isolated Nautilus runtime using the pinned strategy/data
+    identities. Persist invocation/account outputs before Redis acknowledgement.
+    Keep corrections on the separate counterfactual path and preserve one
+    Nautilus node per process. Consume provider-owned source contracts only
+    after staging; no stable release label is required after scope-specific
+    conformance.
