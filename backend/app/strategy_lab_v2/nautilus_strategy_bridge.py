@@ -880,6 +880,7 @@ class NativeStrategyBridge:
     account_equity_trace_output: Any
     session_close_equity_output: Any
     rebalance_schedule_output: Any
+    stage_forward_event: Any
     input_fingerprint: str
     input_protocol: str
 
@@ -1221,6 +1222,7 @@ def build_native_strategy_bridge(
     max_invocation_result_bytes: int | None = None,
     account_equity_trace_writer: NautilusAccountEquityTraceWriter | None = None,
     session_calendar: SessionCalendarSnapshot | None = None,
+    allow_forward_event_staging: bool = False,
 ) -> NativeStrategyBridge:
     """Bind invocation inputs to callbacks and optionally stream callback results."""
 
@@ -1246,6 +1248,12 @@ def build_native_strategy_bridge(
             "native event streaming requires the authenticated strategy context stream"
         )
     component_context_stream = expected_component_context_counts is not None
+    if not isinstance(allow_forward_event_staging, bool):
+        raise TypeError("allow_forward_event_staging must be a boolean")
+    if allow_forward_event_staging and not component_context_stream:
+        raise NautilusRuntimeDataError(
+            "forward event staging requires authenticated component context bindings"
+        )
     if component_context_stream and native_event_stream is None:
         raise NautilusRuntimeDataError(
             "component context streaming requires the authenticated native event stream"
@@ -1665,6 +1673,9 @@ def build_native_strategy_bridge(
         nonlocal next_native_event_record
         current = next_native_event_record
         if current is None:
+            if forward_event_records:
+                current = forward_event_records.popleft()
+                return current, forward_event_records[0] if forward_event_records else None
             return None, None
         if not isinstance(current, Mapping):
             raise NautilusRuntimeDataError("native event record is invalid")
@@ -1677,7 +1688,87 @@ def build_native_strategy_bridge(
     component_trigger_stream = context_trigger_groups
     current_trigger = next(component_trigger_stream, None)
     callback_index = 0
+    forward_event_records: deque[Mapping[str, Any]] = deque()
+    forward_context_groups: dict[int, tuple[ComponentContextTrigger, ...]] = {}
     fill_ledger = NautilusComponentFillLedger(portfolio)
+
+    def stage_forward_event(
+        event_record: Mapping[str, Any],
+        component_contexts: Mapping[str, StrategyContext],
+        *,
+        native_init_time_ns: int,
+    ) -> None:
+        """Queue exactly one authenticated event/context group before engine input."""
+
+        nonlocal expected_contexts, expected_event_count
+        if not allow_forward_event_staging:
+            raise NautilusRuntimeDataError("native bridge does not allow forward event staging")
+        if not isinstance(event_record, Mapping) or not isinstance(component_contexts, Mapping):
+            raise NautilusRuntimeDataError("forward event or context input is invalid")
+        if not isinstance(native_init_time_ns, int) or isinstance(native_init_time_ns, bool):
+            raise NautilusRuntimeDataError("forward native init time must be an integer")
+        if (
+            next_native_event_record is not None
+            or current_trigger is not None
+            or callback_index != expected_event_count
+            or invocation_result_count != expected_contexts
+        ):
+            raise NautilusRuntimeDataError(
+                "forward events can only be staged after the immutable replay prefix"
+            )
+        if forward_event_records or forward_context_groups:
+            raise NautilusRuntimeDataError("a forward event is already staged")
+        if set(component_contexts) - set(strategy_bindings):
+            raise NautilusRuntimeDataError(
+                "forward context contains an unauthenticated portfolio component"
+            )
+        for component_id, context in component_contexts.items():
+            if not isinstance(context, StrategyContext):
+                raise NautilusRuntimeDataError(
+                    "forward context contains an invalid strategy context"
+                )
+            binding = strategy_bindings[component_id]
+            if content_digest(context.parameters) != binding.get("parameters_digest"):
+                raise NautilusRuntimeDataError(
+                    "forward strategy context parameters differ from component binding"
+                )
+            if context.random_seed != engine_input["random_seed"]:
+                raise NautilusRuntimeDataError(
+                    "forward strategy context seed differs from component binding"
+                )
+        event = dict(event_record)
+        event["native_init_time_ns"] = native_init_time_ns
+        if not isinstance(event.get("event_type"), str) or not isinstance(
+            event.get("instrument_id"), str
+        ):
+            raise NautilusRuntimeDataError("forward event identity fields are invalid")
+        event_time_ns = event.get("event_time_ns")
+        if not isinstance(event_time_ns, int) or isinstance(event_time_ns, bool):
+            raise NautilusRuntimeDataError("forward event time is invalid")
+        ordered_contexts = tuple(
+            (component_id, context)
+            for component_id, context in sorted(
+                component_contexts.items(),
+                key=lambda item: (component_priorities.get(item[0], 0), item[0]),
+            )
+        )
+        groups = tuple(
+            _iter_stream_component_context_trigger_groups(
+                ordered_contexts,
+                (event,),
+                component_context_bindings,
+                component_priorities,
+            )
+        )
+        if len(groups) > 1:
+            raise NautilusRuntimeDataError(
+                "one forward event produced multiple component callback groups"
+            )
+        contexts = () if not groups else groups[0].contexts
+        forward_event_records.append(event)
+        forward_context_groups[callback_index] = contexts
+        expected_event_count += 1
+        expected_contexts += len(contexts)
 
     invocation_sessions = {
         component_id: StrategyInvocationSession(
@@ -2288,6 +2379,8 @@ def build_native_strategy_bridge(
                 if current_trigger.trigger_index == callback_index:
                     contexts = current_trigger.contexts
                     current_trigger = next(component_trigger_stream, None)
+            elif allow_forward_event_staging:
+                contexts = forward_context_groups.pop(callback_index, ())
             native_event_index = callback_index
             callback_index += 1
             latest_marks[str(instrument_id)] = (
@@ -2532,6 +2625,7 @@ def build_native_strategy_bridge(
         account_equity_trace_output=account_equity_trace_output,
         session_close_equity_output=session_close_equity_output,
         rebalance_schedule_output=rebalance_schedule_output,
+        stage_forward_event=stage_forward_event,
         input_fingerprint=input_fingerprint,
         input_protocol=input_protocol,
     )

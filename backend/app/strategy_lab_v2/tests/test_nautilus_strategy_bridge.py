@@ -316,6 +316,7 @@ def test_stream_component_context_groups_reject_manifest_history_mismatch() -> N
 
 def test_native_bridge_invokes_component_contexts_by_portfolio_priority(monkeypatch) -> None:
     import sys
+    from dataclasses import replace
     from io import BytesIO
     from types import ModuleType, SimpleNamespace
     from typing import Any
@@ -496,21 +497,55 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(monkeypa
     instrument_definitions = payload["instruments"]
     assert isinstance(instrument_definitions, list)
 
+    last_record = event_records[-1]
+    assert isinstance(last_record, dict)
+    live_event_time_ns = int(last_record["event_time_ns"]) + 1_000_000_000
+    live_sequence = int(last_record["sequence"]) + 1
+    live_event_id = "forward-live-event"
+    live_record = {
+        **last_record,
+        "event_id": live_event_id,
+        "event_time_ns": live_event_time_ns,
+        "sequence": live_sequence,
+    }
+    live_event_time = datetime.fromtimestamp(live_event_time_ns / 1_000_000_000, UTC)
+    live_market_event = MarketEvent(
+        str(live_record["dependency_id"]),
+        live_event_id,
+        str(live_record["instrument_id"]),
+        live_event_time,
+        live_sequence,
+        live_record["values"],
+    )
+    live_contexts = {
+        "alpha": replace(
+            contexts[0],
+            event_time=live_event_time,
+            event_sequence=live_sequence,
+            market_events={live_market_event.dependency_id: (live_market_event,)},
+        ),
+        "beta": replace(
+            contexts[0],
+            event_time=live_event_time,
+            event_sequence=live_sequence,
+            market_events={live_market_event.dependency_id: (live_market_event,)},
+        ),
+    }
     bridge = build_native_strategy_bridge(
         payload,
         instrument_definitions,
         (),
-        invocation_context_stream=context_stream,
-        native_event_stream=native_event_stream,
+        invocation_context_stream=BytesIO(context_stream.getvalue()),
+        native_event_stream=BytesIO(native_event_stream.getvalue()),
         expected_context_count=sum(context_counts.values()),
         expected_component_context_counts=context_counts,
+        allow_forward_event_staging=True,
     )
     bridge.strategy.on_start()
     prior_native_init_time_ns = -1
-    for index, record in enumerate(event_records):
+    for record in event_records:
         assert isinstance(record, dict)
-        event_time_ns = record["event_time_ns"]
-        assert isinstance(event_time_ns, int)
+        event_time_ns = int(record["event_time_ns"])
         prior_native_init_time_ns = max(event_time_ns + 1, prior_native_init_time_ns + 1)
         bridge.strategy.on_quote(
             SimpleNamespace(
@@ -521,9 +556,31 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(monkeypa
                 ask_price=Decimal(record["values"]["ask"]),
             )
         )
+    # The immutable bootstrap must be fully consumed before a live event is admitted.
+    bridge.result_output()
+    live_native_init_time_ns = max(live_event_time_ns + 1, prior_native_init_time_ns + 1)
+    bridge.stage_forward_event(
+        live_record,
+        live_contexts,
+        native_init_time_ns=live_native_init_time_ns,
+    )
+    bridge.strategy.on_quote(
+        SimpleNamespace(
+            instrument_id=live_record["instrument_id"],
+            ts_event=live_event_time_ns,
+            ts_init=live_native_init_time_ns,
+            bid_price=Decimal(live_record["values"]["bid"]),
+            ask_price=Decimal(live_record["values"]["ask"]),
+        )
+    )
 
     results = deserialize_invocation_batch_result(bridge.result_output())
-    assert [result.status.value for result in results] == ["failed", "succeeded"]
+    assert [result.status.value for result in results] == [
+        "failed",
+        "succeeded",
+        "failed",
+        "succeeded",
+    ]
 
 
 @pytest.mark.parametrize(
