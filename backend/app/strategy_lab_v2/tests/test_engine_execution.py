@@ -529,6 +529,10 @@ def test_parsed_rc_receipt_can_feed_backtest_execution_scope() -> None:
             "forward_native_session": {
                 "account_event_fingerprint": content_digest("forward-account-event"),
                 "authoritative": False,
+                "non_empty_prefix_process_loss_replay": True,
+                "post_restart_account_event_fingerprint": content_digest(
+                    "forward-account-event-after-restart"
+                ),
                 "passed": True,
                 "result_fingerprint": content_digest("forward-native-result"),
                 "runtime_session_fingerprint": content_digest("forward-native-session"),

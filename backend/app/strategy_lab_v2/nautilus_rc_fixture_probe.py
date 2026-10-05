@@ -14,6 +14,7 @@ import argparse
 import hashlib
 import json
 from contextlib import nullcontext
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
@@ -63,6 +64,7 @@ from app.strategy_lab_v2.nautilus_event_adapter import (
 )
 from app.strategy_lab_v2.nautilus_forward_bootstrap import (
     NautilusForwardBootstrapComponent,
+    NautilusForwardBootstrapEvent,
     NautilusForwardRuntimeBootstrap,
 )
 from app.strategy_lab_v2.nautilus_forward_input import NautilusForwardDeliveryInput
@@ -479,10 +481,113 @@ def run_native_forward_session_fixture() -> dict[str, Any]:
         replayed = session.execute(delivery, preparation)
         if replayed.fingerprint != first.fingerprint:
             raise RuntimeError("forward session restore changed native account effects")
+
+        # Model process loss after the first event has been durably settled.
+        # A fresh runtime receives a new authenticated bootstrap with that
+        # event in its processed prefix, rather than relying on the old
+        # process-local replay list.
+        host_window.commit(preparation)
+        next_checkpoint = content_digest("forward-native-session-checkpoint-after-event-3")
+        processed_event = NautilusForwardBootstrapEvent(
+            canonical,
+            market_event,
+            source_digest,
+        )
+        next_canonical = CanonicalForwardEvent(
+            "adapter-event-4",
+            4,
+            event_time + timedelta(minutes=1),
+            event_time + timedelta(minutes=1, seconds=1),
+            content_digest("live-source-event-4"),
+        )
+        next_market_event = MarketEvent(
+            "prices",
+            next_canonical.event_id,
+            "EURUSD.SIM",
+            next_canonical.event_time,
+            next_canonical.sequence,
+            {
+                "bid": Decimal("1.1003"),
+                "ask": Decimal("1.1005"),
+                "bid_size": Decimal("100000"),
+                "ask_size": Decimal("100000"),
+            },
+        )
+        next_bootstrap = replace(
+            bootstrap,
+            processed_checkpoint_fingerprint=next_checkpoint,
+            processed_prefix_fingerprint=content_digest(
+                {"prior_checkpoint": checkpoint, "events": [processed_event]}
+            ),
+            before_event_fingerprint=content_digest(next_canonical),
+            processed_events=(processed_event,),
+        )
+        next_factory = build_native_forward_session_factory(
+            next_bootstrap,
+            bundle,
+            open_context_stream=lambda: nullcontext(BytesIO(context_bytes)),
+            open_native_event_stream=lambda: nullcontext(BytesIO(native_bytes)),
+        )
+        next_binding = NautilusForwardDeliveryBinding(
+            instance_id=instance_id,
+            event_fingerprint=content_digest(next_canonical),
+            redis_stream_id="1704205802000-0",
+            redis_entry_fingerprint=content_digest("live-redis-entry-4"),
+            dispatch_record_fingerprint=content_digest("live-dispatch-4"),
+            request_fingerprint=content_digest("live-request-4"),
+            pre_event_checkpoint_fingerprint=next_checkpoint,
+            warmup_receipt_fingerprint=bootstrap.warmup_receipt_fingerprint,
+            admission_decision="enqueue",
+        )
+        next_tape = materialize_nautilus_forward_tape(
+            instance_id,
+            (next_canonical,),
+            (next_market_event,),
+            event_type_by_dependency={"prices": "quote"},
+            delivery_bindings=(next_binding,),
+        )
+        next_delivery = NautilusForwardDeliveryInput(
+            next_binding,
+            next_tape,
+            next_market_event,
+            next_canonical.source_digest,
+        )
+        next_preparation = host_window.prepare_delivery(next_delivery)
+        restored_session = next_factory(instance_id)
+        try:
+            after_process_loss = restored_session.execute(next_delivery, next_preparation)
+            restored_session.restore(checkpoint_fingerprint=next_checkpoint)
+            replayed_after_restart = restored_session.execute(next_delivery, next_preparation)
+            if (
+                replayed_after_restart.account_event_binding.fingerprint
+                != after_process_loss.account_event_binding.fingerprint
+            ):
+                raise RuntimeError("non-empty-prefix restore changed native account effects")
+        finally:
+            restored_session.close()
+        repeated_session = next_factory(instance_id)
+        try:
+            repeated_after_process_loss = repeated_session.execute(
+                next_delivery,
+                next_preparation,
+            )
+            if (
+                repeated_after_process_loss.account_event_binding.fingerprint
+                != after_process_loss.account_event_binding.fingerprint
+            ):
+                raise RuntimeError(
+                    "fresh-process replay from a non-empty prefix is not deterministic"
+                )
+        finally:
+            repeated_session.close()
         return {
             "passed": True,
             "authoritative": False,
+            "non_empty_prefix_process_loss_replay": True,
             "account_event_fingerprint": first.account_event_binding.fingerprint,
+            "post_restart_account_event_fingerprint": (
+                after_process_loss.account_event_binding.fingerprint
+            ),
             "runtime_session_fingerprint": first.runtime_session_fingerprint,
             "result_fingerprint": first.fingerprint,
         }

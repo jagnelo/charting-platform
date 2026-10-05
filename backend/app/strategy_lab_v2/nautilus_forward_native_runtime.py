@@ -567,8 +567,6 @@ def build_native_forward_session_factory(
                 engine.dispose()
                 raise
 
-    initial_state = rebuild_state()
-
     def session_factory(instance_id: str) -> NautilusBacktestForwardSession:
         if instance_id != bootstrap.instance_id:
             raise NautilusRuntimeDataError("forward session factory received another instance")
@@ -577,7 +575,7 @@ def build_native_forward_session_factory(
             runtime_session_fingerprint=runtime_fingerprint,
             bootstrap=bootstrap,
             rebuild_state=rebuild_state,
-            initial_state=initial_state,
+            initial_state=rebuild_state(),
         )
 
     return session_factory

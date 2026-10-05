@@ -689,6 +689,8 @@ def _require_native_forward_session(value: Any) -> None:
     fields = {
         "account_event_fingerprint",
         "authoritative",
+        "non_empty_prefix_process_loss_replay",
+        "post_restart_account_event_fingerprint",
         "passed",
         "result_fingerprint",
         "runtime_session_fingerprint",
@@ -697,11 +699,16 @@ def _require_native_forward_session(value: Any) -> None:
         raise ValueError("native forward session fixture fields are invalid")
     for name in (
         "account_event_fingerprint",
+        "post_restart_account_event_fingerprint",
         "result_fingerprint",
         "runtime_session_fingerprint",
     ):
         require_sha256_digest(value[name], field_name=f"native forward session {name}")
-    if value["authoritative"] is not False or value["passed"] is not True:
+    if (
+        value["authoritative"] is not False
+        or value["passed"] is not True
+        or value["non_empty_prefix_process_loss_replay"] is not True
+    ):
         raise ValueError("native forward session fixture did not pass as a non-authoritative probe")
 
 
