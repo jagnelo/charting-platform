@@ -11415,3 +11415,40 @@ available and found no worktree-owned containers or volumes. The checkpoint
 helper dropped the first character of its own dirty session path in its summary;
 `session.json` was corrected to the exact `ops/workstreams/feat-strategy-lab-v2/session.json`
 path before this operational record was committed.
+
+## 2026-10-05 - Per-instance persistent forward process supervisor
+
+Implementation commit `aa74c797c99ed55b270ca688040d22e766018ee2` is pushed to
+`origin/feat/strategy-lab-v2`. `PersistentNautilusForwardSessionRuntime` now
+owns one isolated-process handle per forward instance, serializes calls so all
+portfolio components share the same native node/account, validates each
+preparation against its authenticated delivery, deduplicates a replay of the
+latest delivery, restores exact pre-event checkpoints, and exposes explicit
+close/close-all lifecycle hooks. The forward event handler regression now runs
+the multi-component account path through this supervisor.
+
+Validation on this source: 16 focused forward-session tests; full Strategy Lab
+plus schema-migration suite 1,465 passed; package Ruff, changed-file format,
+focused MyPy for `nautilus_forward_session.py`, and `git diff --check` passed.
+This evidence is appended in
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
+
+This is the host-side per-instance supervisor and process contract, not yet the
+Docker-backed process factory or the durable replay reader. Still code-owned:
+implement the hardened process factory and streaming request/reply protocol
+inside the exact-pinned RC5 image, load the authenticated canonical event log to
+restore after process loss, and prove native output/checkpoint persistence
+before Redis ACK. The RC5 fixture already proves Nautilus can retain account and
+strategy state across streamed batches; no stable 2.x release is needed. The
+Buildx absence remains isolated to final full-stack acceptance.
+
+Next: implement the isolated RC5 process factory and bounded streaming IPC,
+then bind its restore path to durable event receipts before advancing the
+forward worker to acknowledge delivery.
+
+The existing saved goal remains active. Its required session checkpoint passed
+at synchronized source tip `aa74c797c99ed55b270ca688040d22e766018ee2`; the scoped
+Docker probe was available and found no worktree-owned containers or volumes.
+The checkpoint helper truncated the leading `o` from the first dirty path in
+its summary; `session.json` was corrected to the exact handoff path before this
+operational record was committed.

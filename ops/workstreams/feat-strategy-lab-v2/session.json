@@ -87,7 +87,9 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/session.json"
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -124,10 +126,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "204efd3451463b09df6fee280e190149197f6acc",
+  "head": "aa74c797c99ed55b270ca688040d22e766018ee2",
   "implementation_sha": "204efd3451463b09df6fee280e190149197f6acc",
-  "last_checkpoint": "2026-10-05T14:13:24.055898+00:00",
-  "last_human_progress_update": "2026-10-05T14:09:38.817662+00:00",
+  "last_checkpoint": "2026-10-05T14:29:01.861100+00:00",
+  "last_human_progress_update": "2026-10-05T14:28:06.945546+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -147,12 +149,12 @@
   "progress": {
     "completed": [],
     "current_blocker": "none",
-    "current_phase": "forward-portfolio-context",
-    "next_action": "Implement the concrete isolated Nautilus session using one shared account; persist native output and checkpoint before Redis ACK, then add deterministic restore and replay after process loss.",
+    "current_phase": "forward-session-supervisor",
+    "next_action": "Implement the hardened RC5 process factory and bounded streaming IPC, then bind exact checkpoint restore to durable canonical event receipts before Redis ACK.",
     "total": 18,
-    "updated_at": "2026-10-05T14:09:38.817643+00:00"
+    "updated_at": "2026-10-05T14:28:06.945528+00:00"
   },
-  "remote": "204efd3451463b09df6fee280e190149197f6acc",
+  "remote": "aa74c797c99ed55b270ca688040d22e766018ee2",
   "remote_sha": "204efd3451463b09df6fee280e190149197f6acc",
   "remote_synchronized": true,
   "retained_docker_resources": [],
