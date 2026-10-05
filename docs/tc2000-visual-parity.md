@@ -1,5 +1,18 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-10-05 — Boolean-column pinning interaction evidence
+
+The authenticated `F8u-boolean` flow now covers the V25 Boolean/tag header
+pinning gestures: right-click opens the pin/unpin action, Ctrl-click toggles
+pinning, the header announces pinned state, and the existing sort state remains
+unchanged. The flow passed `1/1` against the rebuilt current worktree bundle.
+The reference board includes behavior evidence for pinned Boolean results but
+no authoritative screenshot of this header menu or pinned-header marker. This
+is functional evidence only: no screenshot baseline, mask, threshold, skip, or
+visual-acceptance rule changed. The complete four-viewport board is still
+`94/104` at its previously recorded product source and must be rerun at current
+tip; the ten existing screenshot differences remain open for review.
+
 The latest complete board run used product source
 `05aac7f816aab492c7b2aadb1adb9ffc6e76f02a` at pushed branch tip
 `049267cee5301f2e33c8857305c48f2f3fd77521`. It passed `94/104`; ten

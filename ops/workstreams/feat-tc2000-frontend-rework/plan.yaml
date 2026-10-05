@@ -285,31 +285,41 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_R4_read_side_lineage_presentation
+  current_phase: R1_V25_BOOLEAN_PIN_INTERACTION_AND_VALIDATION
   next_action: >-
-    Select and implement the next bounded TC-owned workstation, Study, or
-    Strategy gap after checking it against the upstream ownership boundary.
-    Add focused regressions and rerun the relevant frontend/browser checks. Keep
-    the unchanged screenshot oracles and 0.5% threshold intact. Defer provider
-    and ETF consumer integration and shared-path reconciliation until both
-    dependencies reach staging; never consume their branch tips directly or
-    mutate another worktree.
+    Run a clean current-tip serial full functional Playwright suite and all four
+    pinned visual-board projects. Preserve the three prior ERR_NETWORK_CHANGED
+    failures and ten screenshot-only differences until these exact-tip results
+    are recorded; do not alter any oracle, threshold, skip, or acceptance rule.
+    Then continue with the next bounded TC-owned workstation, Study, or
+    Strategy gap. Defer provider/ETF consumption and shared-path reconciliation
+    until both dependency tips reach staging; do not mutate another worktree.
   current_blocker: >-
-    Product source 05aac7f816aab492c7b2aadb1adb9ffc6e76f02a passes frontend
-    coverage (129 files / 1,200 tests), type-check/build, and backend
-    unit/integration suites (1,621/409; 82.26% combined). The old exit 152 did
-    not recur. Aggregate validation stops at stack-up because the helper's
-    Buildx `create --name` command is rejected as `unknown flag: --name`; normal
-    Compose successfully built and ran the assigned healthy stack, and runner
-    probes passed. The latest pinned functional browser run was 172 passed,
-    107 documented skips, and three `ERR_NETWORK_CHANGED` failures; all 11
-    focused retries passed, but the full result remains non-green. A previous
-    full run on the same app/test source passed 175 with 107 skips and zero
-    failures. The separate pinned visual gate remains 94/104 with the same ten
-    screenshot-only differences. Do not change screenshots, masks, thresholds,
-    skips, fallbacks, or acceptance rules. Provider/ETF consumer integration
-    and semantic overlap reconciliation remain deferred until both branches
-    reach staging; independent TC-owned work continues.
+    Product commit 3958886632af62e0207fb02ed6961b16fd1a600c adds V25 Boolean
+    watchlist-header pin/unpin gestures and fixes the detached Golden Layout
+    configuration read. Focused watchlist tests passed 79/79; serial frontend
+    coverage passed 129 files / 1,201 tests at 85.13%; type-check and production
+    build passed; the rebuilt authenticated F8u-boolean flow passed 1/1. The
+    repeated dense-range timing miss (1,225-1,288 ms) was traced to the test
+    measuring Vitest mock-call recording. Lightweight stubs preserve the
+    original 1,000 ms limit and exact 199,999 line-segment count; after this
+    harness-only correction the full frontend coverage suite passed.
+    `make validate-integration` still stops before stack startup because its
+    Buildx helper passes an unsupported `--name` option. This is not a Docker
+    availability blocker: ordinary Compose built and ran all six assigned
+    services, the focused browser flow passed, and scoped cleanup left zero
+    attributable TC containers, volumes, or images. The latest complete
+    functional matrix predates this product slice (172 passed, 107 documented
+    skips, three ERR_NETWORK_CHANGED failures); the latest visual matrix also
+    predates it (94/104 with the same ten screenshot-only differences). Both
+    exact-current-tip browser matrices remain required. Direct GitHub refs are
+    TC 3958886632af62e0207fb02ed6961b16fd1a600c, staging
+    8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider platform
+    88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF holdings
+    529fc81f60fcbf5f14a7afc7e9aa62461a48e855. Neither dependency tip is in
+    staging, so R2/R3 integration and shared-path reconciliation remain
+    deferred. No human approval or Docker availability blocks independent
+    TC-owned work.
 historical_implementation_records:
   - "Test commit 435c5b9ad58a1889b040febcadab9a202cfbfc48 adds F9e-plot-library-search against unchanged product source 05aac7f816aab492c7b2aadb1adb9ffc6e76f02a. Authenticated Chromium confirmed full-name filtering, visible RSI selection, and live no-match status; the browser case passed 1/1. The focused component suite passed 45/45, full frontend coverage passed 129 files / 1,200 tests, and type-check/build passed. A current-app screenshot was inspected at /tmp/tc2000-chart-open-rsi-dropdown.png, but the branch reference pack has no authoritative V25 capture of this state; keep the screenshot parity gap open and do not add or change a visual oracle. The only assigned TC Compose project and its fixture resources/images were removed after use. No provider/ETF behavior changed."
   - "Product commit c038aafc6fe8378cdf11d4b76006100488c75556 adds compact requested/eligible/excluded/coverage counts and a collapsible generic-breadth evidence view for universe identity/role, membership version, member observation dates, sampling semantics, source provenance, freshness and details, calculation version, definition hash, and grouped exclusion reasons. Python-backed breadth now preserves reported calculation/provenance and no longer invents a freshness state. Full frontend Vitest passed 128 files / 1,197 tests; vue-tsc/type-check and Vite production build passed; the rebuilt authenticated Chromium F8s-breadth-family-ratio flow passed 1/1 with evidence assertions. The assigned Compose stack was removed and resource audit reported zero containers, volumes, test sessions, unknown components, or known bytes. The full branch-wide browser/visual gate was not rerun at this product tip; preserve every oracle and the ten screenshot-only differences last recorded at a78812d. No provider/ETF ownership or data acquisition changed."
@@ -608,6 +618,7 @@ historical_implementation_records_continued:
   - "Product commit 7e927a1f03d7 converts the Chart Templates popup from a menu to a named dialog because it contains a text field and dropdown. The trigger announces aria-haspopup=dialog; ArrowDown focuses the name field, ArrowUp focuses Import, and Escape restores trigger focus. Focused tests passed 15/15; the full serial frontend suite passed 128 files and 1,168/1,168 tests; type-check/build passed with the existing chunk warning. Authenticated Firefox browser verification confirmed dialog semantics and focus recovery."
   - "Product commit eddce5b9d988 adds editable indicator parameters, line styling, and timeframe applicability to the primary workstation Chart Plot Library; chart edit requests now open the same accessible settings dialog, which validates inputs, retains custom parameters, saves against the active instrument, and restores focus. Focused ChartPlotLibrary tests passed 37/37; the clean exact-commit serial frontend suite passed 128/128 files and 1,173/1,173 tests; vue-tsc/Vite build, TC scope guard (118 changed paths), six scope self-tests, workstream validation, and git diff --check passed. An authenticated local Chromium interaction changed SMA(20) to SMA(50). The branch-scoped six-service Compose stack was removed with its temporary volumes and generated images; resource accounting found zero remaining containers, volumes, images, test sessions, or unknown resources. No provider/ETF behavior, screenshot oracle, baseline, mask, threshold, skip, fallback, or acceptance policy changed."
   - "Product commit 816fd82ac351770deb455e767a59f28e68c2dde9 persists each concrete symbol-link group's symbol and canonical instrument id, Yellow's last received symbol and timeframe, and restores that state before workstation tools mount. Workspace revision conflicts now merge only the known link settings per group, preferring the current local group selection; unrelated setting conflicts retain the recovery-copy path. Full frontend Vitest passed 128 files / 1,188 tests; workspace-store tests passed 75/75; type-check and production build passed; the exact-commit authenticated Chromium F8m wildcard save/reload flow passed 1/1; TC scope validation passed for 122 changed paths and all six self-tests. No provider/ETF-owned behavior or visual reference, threshold, mask, skip, fallback, or acceptance policy changed. The Docker Buildx plugin is absent on this host, so the normal stack target stopped before building; the same worktree-scoped Compose project built successfully with the default builder and its six containers, four volumes, network, and four generated images were removed after the browser check."
+  - "Product commit 3958886632af62e0207fb02ed6961b16fd1a600c adds the V25 Boolean watchlist-header pin menu, Ctrl/Meta-click pin toggle, pinned marker, and accessible pinned-state announcement without changing sort state. It also reads pin settings from the canonical live workspace configuration so detached Golden Layout tool roots reflect promotion-time updates. Focused watchlist tests passed 79/79; the 100k range-band benchmark harness now uses lightweight coordinate/canvas stubs while retaining its 1,000 ms limit and exact 199,999 lineTo count; complete serial frontend coverage passed 129/129 files and 1,201/1,201 tests at 85.13%; type-check/build passed; authenticated pinned-browser F8u-boolean passed 1/1 with no critical browser diagnostics. The first F8u attempt exposed stale detached-root state; the unchanged flow passed after rebuilding the exact worktree bundle and fixing the live-config read. Service logs showed only one frontend health probe racing backend startup; all six services were healthy. Scoped cleanup removed the six assigned containers and four images and resource accounting found zero attributable resources. Two older branch-named Docker images carry the `unscoped` label, predate this run, and have no container references; they were preserved because their ownership is not attributable to this worktree. No visual oracle, baseline, mask, threshold, skip, fallback, acceptance policy, provider ownership, or ETF ownership changed. Current exact-tip full functional and four-viewport visual reruns remain pending."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."

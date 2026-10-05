@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-05
 
+## 2026-10-05 — Boolean watchlist-column pin interaction
+
+The V25 pinning reference shows Boolean/tag results pinned to the top while
+sorting numeric columns, with header right-click or Ctrl-click as direct
+gestures. Product commit `3958886632af62e0207fb02ed6961b16fd1a600c` adds the
+Boolean-header context action, Ctrl/Meta-click toggle, pinned marker, and
+accessible pinned-state announcement while preserving the existing sort state
+and persisted pin configuration. The authenticated `F8u-boolean` flow now
+verifies pin/unpin without altering sorting. A Golden Layout detached-root bug
+was fixed by reading pin state from the canonical live workspace configuration.
+
+Focused watchlist coverage passed `79/79`; the complete serial frontend
+coverage suite passed `129/129` files and `1,201/1,201` tests at `85.13%`
+statement coverage. The 100k range-band performance test keeps its original
+1-second limit and `199,999` segment assertion; its harness now uses lightweight
+counting stubs instead of recording 500,000 Vitest mock calls. Type-check and
+production build passed, and the rebuilt pinned Chromium `F8u-boolean` flow
+passed `1/1` with no critical browser diagnostics. The initial browser attempt
+exposed the detached-root state bug; the unchanged flow passed after the fix.
+
+No visual baselines, masks, thresholds, skips, or acceptance policies changed.
+The last complete visual matrix remains `94/104` at the prior product source,
+with the same ten screenshot-only differences; a current-tip visual rerun is
+still required. The latest complete functional matrix likewise predates this
+slice (`172` passed, `107` documented skips, three `ERR_NETWORK_CHANGED`
+failures), so refresh it at current tip. Both parallel provider/ETF tips remain
+outside `staging`; do not consume or reconcile them yet.
+
 ## 2026-10-05 — Aggregate gate and browser evidence refreshed
 
 The serial aggregate run passed workstream/dependency/migration, lint/format,

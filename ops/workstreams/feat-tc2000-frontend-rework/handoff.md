@@ -1,5 +1,63 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — V25 Boolean-column pin interaction checkpoint
+
+Product commit `3958886632af62e0207fb02ed6961b16fd1a600c`
+(`feat(tc2000): add boolean column pin gestures`) implements the V25 Boolean
+watchlist-header interaction from the local reference board: right-click opens
+a pin/unpin menu, Ctrl/Meta-click toggles pinning without invoking sort, pinned
+headers show a marker and accessible state, and sort state remains unchanged.
+The list now reads pin settings through the canonical live workspace
+configuration so Golden Layout's detached tool root reflects pin updates after
+a newly promoted column is created. The existing persisted `pinned_boolean_keys`
+contract and row prioritization remain unchanged.
+
+The first real-browser F8u attempt exposed the stale detached-root state: the
+pin action saved but the visible header remained unpinned. After switching that
+read to the live configuration, rebuilding/recreating only this worktree's
+frontend service, and verifying the served hashed entry changed, the unchanged
+authenticated pinned Chromium F8u-boolean flow passed `1/1`. It checked right-
+click menu, marker/accessible state, Control-click unpin, and unchanged sort
+state; browser diagnostics reported no critical issues. The focused
+VirtualWatchlistTool suite passed `79/79`.
+
+The full serial frontend coverage suite passed `129/129` files and `1,201/1,201`
+tests at `85.13%` statement coverage. During the first two runs the 100k
+range-band test measured `1,288 ms` and `1,225 ms` against its `1,000 ms`
+limit. The benchmark itself was recording 500,000 calls through Vitest mocks;
+the harness now uses lightweight deterministic stubs and a plain counter while
+retaining the same timing limit and exact `199,999` line-segment assertion. The
+test and full suite then passed. Frontend type-check and production build passed
+after the live-config code change.
+
+All six assigned Compose services started; backend, frontend, Postgres, and
+Redis reported healthy, while the worker and research runner were running
+without health-check statuses. The only filtered backend/worker/frontend log
+match was one initial Nginx `/health` connection-refused probe while the
+backend was starting; it was transient and the application services later
+reported healthy. Repository cleanup removed the six assigned containers and
+four images; the resource audit found zero TC-attributable containers, volumes,
+or images. Two older `feat-tc2000-frontend-rework-*` Docker tags inspected
+outside that attribution carry Compose project `feat-tc2000-frontend-rework`
+and the explicit `unscoped` worktree label; they predate this run and no
+containers reference them, so they were preserved.
+
+The TC scope guard passed for all `129` changed paths and all six ownership
+self-tests passed. No visual baseline/oracle/policy changed. The most recent
+complete functional result remains the prior-tip `172` passed / `107`
+documented skips / three `ERR_NETWORK_CHANGED` failures; the most recent visual
+board remains prior-tip `94/104` with ten screenshot-only differences. Refresh
+both at current tip before human review. Direct GitHub refs after the product
+push are TC `3958886632af62e0207fb02ed6961b16fd1a600c`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`529fc81f60fcbf5f14a7afc7e9aa62461a48e855`. Both dependency tips remain
+outside staging; do not integrate either branch directly.
+
+Paths in this implementation checkpoint: `frontend/src/components/workstation/VirtualWatchlistTool.vue`, `frontend/src/components/workstation/WorkstationGlyph.vue`, `frontend/src/components/workstation/WorkstationToolContent.vue`, `frontend/tests/e2e/flows.spec.ts`, `frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts`, and `frontend/tests/unit/components/test_conditional_uplot_lifecycles.test.ts`. The product commit was pushed to `origin/feat/tc2000-frontend-rework`; direct GitHub lookup matched local HEAD. The one permitted next action is a serial current-tip full functional Playwright run, followed by all four pinned visual-board projects. Preserve every existing screenshot oracle and acceptance rule.
+
+The accompanying roadmap/reconciliation checkpoint changes `docs/tc2000-roadmap.md`, `docs/tc2000-visual-parity.md`, `ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`, `ops/workstreams/feat-tc2000-frontend-rework/handoff.md`, `ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`, and `ops/workstreams/feat-tc2000-frontend-rework/session.json`. These files record the new product SHA, exact focused/full frontend results, pinned-browser evidence, resource cleanup, and remaining exact-tip gates.
+
 ## 2026-10-05 — Gate checkpoint published
 
 Workstream-only commit `0e5d80b74f4614a375118a3ff88f08834b171b43`
