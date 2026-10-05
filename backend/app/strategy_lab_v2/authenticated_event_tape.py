@@ -13,6 +13,7 @@ from app.strategy_lab_v2.contracts import DataSnapshot
 from app.strategy_lab_v2.event_tape_artifacts import (
     FrozenEventTapeArtifactResolver,
     FrozenEventTapeStreamResolution,
+    FrozenEventTapeWindowResolution,
 )
 from app.strategy_lab_v2.sdk import StrategySdkManifest
 
@@ -70,6 +71,56 @@ class AuthenticatedFrozenEventTapeResolver:
     ) -> FrozenEventTapeStreamResolution:
         """Load exactly one owner's snapshot and verify its required source tape."""
 
+        snapshot = await self._load_snapshot(snapshot_fingerprint, manifest)
+
+        offloaded = self._offloader(
+            self._artifact_resolver.resolve,
+            snapshot,
+            manifest,
+        )
+        resolution = await offloaded if inspect.isawaitable(offloaded) else offloaded
+        if not isinstance(resolution, FrozenEventTapeStreamResolution):
+            raise TypeError("frozen tape resolver returned an invalid stream resolution")
+        if (
+            resolution.snapshot_fingerprint != snapshot_fingerprint
+            or resolution.manifest_fingerprint != manifest.fingerprint
+        ):
+            raise ValueError("verified frozen event tape differs from its requested inputs")
+        return resolution
+
+    async def resolve_bounded_window(
+        self,
+        snapshot_fingerprint: str,
+        manifest: StrategySdkManifest,
+        *,
+        through_event_id: str | None = None,
+    ) -> FrozenEventTapeWindowResolution:
+        """Resolve one owner's frozen snapshot to its bounded SDK history tail."""
+
+        snapshot = await self._load_snapshot(snapshot_fingerprint, manifest)
+        offloaded = self._offloader(
+            lambda: self._artifact_resolver.resolve_bounded_window(
+                snapshot,
+                manifest,
+                through_event_id=through_event_id,
+            )
+        )
+        resolution = await offloaded if inspect.isawaitable(offloaded) else offloaded
+        if not isinstance(resolution, FrozenEventTapeWindowResolution):
+            raise TypeError("frozen tape resolver returned an invalid bounded window")
+        if (
+            resolution.snapshot_fingerprint != snapshot_fingerprint
+            or resolution.manifest_fingerprint != manifest.fingerprint
+            or resolution.through_event_id != through_event_id
+        ):
+            raise ValueError("bounded frozen history differs from its requested inputs")
+        return resolution
+
+    async def _load_snapshot(
+        self,
+        snapshot_fingerprint: str,
+        manifest: StrategySdkManifest,
+    ) -> DataSnapshot:
         require_sha256_digest(snapshot_fingerprint, field_name="snapshot_fingerprint")
         if not isinstance(manifest, StrategySdkManifest):
             raise TypeError("manifest must use StrategySdkManifest")
@@ -87,21 +138,7 @@ class AuthenticatedFrozenEventTapeResolver:
             raise TypeError("snapshot reader returned an invalid DataSnapshot")
         if snapshot.fingerprint != snapshot_fingerprint:
             raise ValueError("owner-scoped frozen snapshot fingerprint does not match its key")
-
-        offloaded = self._offloader(
-            self._artifact_resolver.resolve,
-            snapshot,
-            manifest,
-        )
-        resolution = await offloaded if inspect.isawaitable(offloaded) else offloaded
-        if not isinstance(resolution, FrozenEventTapeStreamResolution):
-            raise TypeError("frozen tape resolver returned an invalid stream resolution")
-        if (
-            resolution.snapshot_fingerprint != snapshot_fingerprint
-            or resolution.manifest_fingerprint != manifest.fingerprint
-        ):
-            raise ValueError("verified frozen event tape differs from its requested inputs")
-        return resolution
+        return snapshot
 
 
 __all__ = ["AuthenticatedFrozenEventTapeResolver", "FrozenSnapshotDomainReader"]

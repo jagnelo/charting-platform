@@ -55,7 +55,12 @@ class JsonSeriesDecoder:
             )
 
 
-def _inputs(*, fields: tuple[str, ...] = ("close",), row_count: int = 2):
+def _inputs(
+    *,
+    fields: tuple[str, ...] = ("close",),
+    row_count: int = 2,
+    lookback_periods: int = 0,
+):
     rows = [
         {
             "event_id": f"bar-{sequence}",
@@ -122,7 +127,7 @@ def _inputs(*, fields: tuple[str, ...] = ("close",), row_count: int = 2):
     )
     manifest = StrategySdkManifest(
         StrategyVersion("strategy-1", "v1", "2.0.0", content_digest("source")),
-        (StrategyDataDependency("daily-bars", requirement, fields),),
+        (StrategyDataDependency("daily-bars", requirement, fields, lookback_periods),),
     )
     return snapshot, manifest, series, payload
 
@@ -172,6 +177,58 @@ def test_streaming_resolution_preserves_tape_identity_without_retaining_events(t
     assert streamed.event_count == materialized.tape.event_count
     assert tuple(iter_verified_event_tape_stream(streamed, store)) == materialized.tape.events
     assert store.path_for(streamed.artifact.storage_key).read_bytes().count(b"\n") == 2
+
+
+def test_bounded_window_selects_lookback_tail_through_exact_warmup_event(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs(row_count=4, lookback_periods=1)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+
+    class GeneratedHistoryDecoder:
+        def iter_rows(self, series: DataSeriesManifest, source: BinaryIO):
+            del source
+            for sequence in range(series.row_count):
+                yield FrozenSeriesRow(
+                    f"bar-{sequence}",
+                    BASE + timedelta(days=sequence),
+                    sequence,
+                    {"close": Decimal(100 + sequence)},
+                )
+
+    resolver = FrozenEventTapeArtifactResolver(store, GeneratedHistoryDecoder())
+    through_event_id = content_digest({"dependency_id": "daily-bars", "source_event_id": "bar-2"})
+
+    window = resolver.resolve_bounded_window(
+        snapshot,
+        manifest,
+        through_event_id=through_event_id,
+    )
+
+    assert window.through_event_id == through_event_id
+    assert window.dependency_event_limits == (("daily-bars", 2),)
+    assert [event.values["close"] for event in window.events] == [Decimal(101), Decimal(102)]
+    assert [event.sequence for event in window.events] == [1, 2]
+    assert window.source_artifact_digests == (series.content_digest,)
+    assert tuple(window.events_by_dependency) == ("daily-bars",)
+    assert window.fingerprint.startswith("sha256:")
+
+    latest = resolver.resolve_bounded_window(snapshot, manifest)
+    assert latest.through_event_id is None
+    assert [event.sequence for event in latest.events] == [2, 3]
+
+
+def test_bounded_window_rejects_a_warmup_cursor_not_in_the_frozen_tape(tmp_path) -> None:
+    snapshot, manifest, series, payload = _inputs(lookback_periods=1)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    _publish(store, series, payload)
+    resolver = FrozenEventTapeArtifactResolver(store, JsonSeriesDecoder())
+
+    with pytest.raises(ValueError, match="warm-up cursor event is absent"):
+        resolver.resolve_bounded_window(
+            snapshot,
+            manifest,
+            through_event_id=content_digest("not-in-tape"),
+        )
 
 
 def test_streaming_tape_can_feed_the_nautilus_event_adapter_incrementally(tmp_path) -> None:
@@ -389,12 +446,22 @@ async def test_authenticated_tape_resolver_loads_owner_snapshot_and_verifies_art
     )
 
     result = await resolver.resolve(snapshot.fingerprint, manifest)
+    bounded = await resolver.resolve_bounded_window(
+        snapshot.fingerprint,
+        manifest,
+        through_event_id=content_digest(
+            {"dependency_id": "daily-bars", "source_event_id": "bar-0"}
+        ),
+    )
 
     assert result.snapshot_fingerprint == snapshot.fingerprint
     assert result.manifest_fingerprint == manifest.fingerprint
     assert result.event_count == 2
     assert result.source_artifact_digests == (series.content_digest,)
-    assert len(offload_calls) == 1
+    assert bounded.snapshot_fingerprint == snapshot.fingerprint
+    assert len(bounded.events) == 1
+    assert bounded.events[0].sequence == 0
+    assert len(offload_calls) == 2
 
 
 @pytest.mark.anyio

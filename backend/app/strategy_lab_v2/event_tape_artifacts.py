@@ -13,6 +13,7 @@ import json
 import os
 import sqlite3
 import tempfile
+from collections import deque
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -261,6 +262,97 @@ class FrozenEventTapeStreamResolution:
         return content_digest(self)
 
 
+@dataclass(frozen=True, slots=True)
+class FrozenEventTapeWindowResolution:
+    """A bounded, verified per-dependency tail of one frozen event tape.
+
+    This is the history slice needed to seed declared SDK context windows; it
+    is deliberately distinct from the full tape required for Nautilus replay.
+    ``through_event_id`` lets a caller bind the slice to an exact completed
+    warm-up cursor instead of implicitly using the latest snapshot row.
+    """
+
+    snapshot_fingerprint: str
+    manifest_fingerprint: str
+    tape_fingerprint: str
+    source_artifact_digests: tuple[str, ...]
+    dependency_event_limits: tuple[tuple[str, int], ...]
+    events: tuple[MarketEvent, ...]
+    through_event_id: str | None = None
+
+    def __post_init__(self) -> None:
+        for name in ("snapshot_fingerprint", "manifest_fingerprint", "tape_fingerprint"):
+            require_sha256_digest(getattr(self, name), field_name=name)
+        source_digests = tuple(self.source_artifact_digests)
+        for digest in source_digests:
+            require_sha256_digest(digest, field_name="source_artifact_digest")
+        if source_digests != tuple(sorted(set(source_digests))):
+            raise ValueError("source artifact digests must be unique and ordered")
+        limits = tuple(self.dependency_event_limits)
+        if not limits or limits != tuple(sorted(limits)):
+            raise ValueError("dependency event limits must be non-empty and ordered")
+        if len({dependency_id for dependency_id, _limit in limits}) != len(limits):
+            raise ValueError("dependency event limits must have unique dependency ids")
+        if any(
+            not isinstance(dependency_id, str)
+            or not dependency_id.strip()
+            or not isinstance(limit, int)
+            or isinstance(limit, bool)
+            or limit < 1
+            for dependency_id, limit in limits
+        ):
+            raise ValueError("dependency event limits must be positive keyed values")
+        if self.through_event_id is not None and (
+            not isinstance(self.through_event_id, str) or not self.through_event_id.strip()
+        ):
+            raise ValueError("through_event_id must be non-empty when provided")
+        events = tuple(self.events)
+        if not events or any(not isinstance(event, MarketEvent) for event in events):
+            raise ValueError("bounded event window must contain MarketEvent values")
+        if events != tuple(
+            sorted(
+                events,
+                key=lambda event: (
+                    event.event_time,
+                    event.sequence,
+                    event.dependency_id,
+                    event.event_id,
+                ),
+            )
+        ):
+            raise ValueError("bounded event window must preserve canonical tape ordering")
+        limits_by_dependency = dict(limits)
+        counts: dict[str, int] = {}
+        event_ids: set[str] = set()
+        for event in events:
+            if event.event_id in event_ids:
+                raise ValueError("bounded event window event ids must be unique")
+            event_ids.add(event.event_id)
+            if event.dependency_id not in limits_by_dependency:
+                raise ValueError("bounded event window contains an undeclared dependency")
+            counts[event.dependency_id] = counts.get(event.dependency_id, 0) + 1
+            if counts[event.dependency_id] > limits_by_dependency[event.dependency_id]:
+                raise ValueError("bounded event window exceeds a dependency lookback")
+        if set(counts) != set(limits_by_dependency):
+            raise ValueError("bounded event window is missing a declared dependency")
+        object.__setattr__(self, "source_artifact_digests", source_digests)
+        object.__setattr__(self, "dependency_event_limits", limits)
+        object.__setattr__(self, "events", events)
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+    @property
+    def events_by_dependency(self) -> Mapping[str, tuple[MarketEvent, ...]]:
+        grouped: dict[str, list[MarketEvent]] = {
+            dependency_id: [] for dependency_id, _limit in self.dependency_event_limits
+        }
+        for event in self.events:
+            grouped[event.dependency_id].append(event)
+        return {dependency_id: tuple(events) for dependency_id, events in grouped.items()}
+
+
 def _validate_stream_limits(max_event_bytes: int) -> None:
     if (
         not isinstance(max_event_bytes, int)
@@ -360,6 +452,89 @@ def iter_verified_event_tape_stream(
         raise TypeError("store must be a LocalArtifactStore")
     _verify_stream_semantics(resolution, store, max_event_bytes=max_event_bytes)
     return _iter_artifact_events(resolution, store, max_event_bytes=max_event_bytes)
+
+
+def select_bounded_verified_event_tape_window(
+    resolution: FrozenEventTapeStreamResolution,
+    store: LocalArtifactStore,
+    manifest: StrategySdkManifest,
+    *,
+    through_event_id: str | None = None,
+    max_event_bytes: int = _DEFAULT_STREAM_EVENT_BYTES,
+) -> FrozenEventTapeWindowResolution:
+    """Select each dependency's bounded verified tail without retaining its tape.
+
+    The content-addressed stream is fully verified before iteration. Selection
+    then retains at most ``lookback_periods + 1`` events per manifest
+    dependency, optionally stopping at the exact frozen event that completed
+    warm-up. A missing cursor or dependency fails closed.
+    """
+
+    if not isinstance(resolution, FrozenEventTapeStreamResolution):
+        raise TypeError("resolution must be a FrozenEventTapeStreamResolution")
+    if not isinstance(store, LocalArtifactStore):
+        raise TypeError("store must be a LocalArtifactStore")
+    if not isinstance(manifest, StrategySdkManifest):
+        raise TypeError("manifest must be a StrategySdkManifest")
+    if resolution.manifest_fingerprint != manifest.fingerprint:
+        raise ValueError("frozen event-tape stream belongs to a different SDK manifest")
+    if through_event_id is not None and (
+        not isinstance(through_event_id, str) or not through_event_id.strip()
+    ):
+        raise ValueError("through_event_id must be non-empty when provided")
+
+    dependencies = {
+        dependency.dependency_id: dependency for dependency in manifest.data_dependencies
+    }
+    if tuple(sorted(dependencies)) != tuple(
+        dependency_id for dependency_id, _count in resolution.binding.dependency_event_counts
+    ):
+        raise ValueError("frozen event tape does not cover the requested SDK dependencies")
+    limits = {
+        dependency_id: dependency.lookback_periods + 1
+        for dependency_id, dependency in dependencies.items()
+    }
+    tails: dict[str, deque[MarketEvent]] = {
+        dependency_id: deque(maxlen=limit) for dependency_id, limit in limits.items()
+    }
+    cursor_found = through_event_id is None
+    for event in iter_verified_event_tape_stream(
+        resolution,
+        store,
+        max_event_bytes=max_event_bytes,
+    ):
+        if through_event_id is not None and cursor_found:
+            break
+        if event.dependency_id not in tails:
+            raise ValueError("frozen event tape contains an undeclared dependency")
+        tails[event.dependency_id].append(event)
+        if through_event_id is not None and event.event_id == through_event_id:
+            cursor_found = True
+
+    if not cursor_found:
+        raise ValueError("warm-up cursor event is absent from the verified frozen tape")
+    if any(not events for events in tails.values()):
+        raise ValueError("verified frozen history is missing a declared dependency")
+    selected = tuple(
+        sorted(
+            (event for events in tails.values() for event in events),
+            key=lambda event: (
+                event.event_time,
+                event.sequence,
+                event.dependency_id,
+                event.event_id,
+            ),
+        )
+    )
+    return FrozenEventTapeWindowResolution(
+        snapshot_fingerprint=resolution.snapshot_fingerprint,
+        manifest_fingerprint=resolution.manifest_fingerprint,
+        tape_fingerprint=resolution.tape_fingerprint,
+        source_artifact_digests=resolution.source_artifact_digests,
+        dependency_event_limits=tuple(sorted(limits.items())),
+        events=selected,
+        through_event_id=through_event_id,
+    )
 
 
 class FrozenEventTapeArtifactResolver:
@@ -464,6 +639,29 @@ class FrozenEventTapeArtifactResolver:
             tape=tape,
             binding=binding,
             source_artifact_digests=tuple(sorted(source_digests)),
+        )
+
+    def resolve_bounded_window(
+        self,
+        snapshot: DataSnapshot,
+        manifest: StrategySdkManifest,
+        *,
+        through_event_id: str | None = None,
+        max_event_bytes: int = _DEFAULT_STREAM_EVENT_BYTES,
+    ) -> FrozenEventTapeWindowResolution:
+        """Resolve only the bounded SDK history tail from a frozen snapshot."""
+
+        resolution = self.resolve_streaming(
+            snapshot,
+            manifest,
+            max_event_bytes=max_event_bytes,
+        )
+        return select_bounded_verified_event_tape_window(
+            resolution,
+            self._artifact_store,
+            manifest,
+            through_event_id=through_event_id,
+            max_event_bytes=max_event_bytes,
         )
 
     def resolve_streaming(
@@ -736,7 +934,9 @@ __all__ = [
     "FrozenEventTapeArtifactResolution",
     "FrozenEventTapeArtifactResolver",
     "FrozenEventTapeStreamResolution",
+    "FrozenEventTapeWindowResolution",
     "FrozenSeriesDecoder",
     "FrozenSeriesRow",
     "iter_verified_event_tape_stream",
+    "select_bounded_verified_event_tape_window",
 ]
