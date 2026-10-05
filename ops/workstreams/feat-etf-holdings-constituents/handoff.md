@@ -7747,4 +7747,59 @@ zero known bytes, no unknown components, and no over-budget resources. No
 host-wide prune was used, and the unrelated running `stremio-server` was left
 untouched. The session narrative is corrected; next, commit/push this
 workstream-only repair and rerun the full gate on that clean exact branch tip.
+
+## CI-image browser replay and current blockers — 2026-10-05
+
+The first manual browser replay was not counted: I started the ETF stack with
+`E2E_SEED_MARKET_DATA=false`, while the repository's full-integration target
+requires `true`. The apparent missing-chart failures from that attempt were
+setup-induced. The exact branch stack was stopped and its four disposable
+volumes removed before recreating it with the required seed flag.
+
+The host's standard `make test-stack-up` cannot use its configured Docker
+Buildx path because the Buildx CLI plugin is absent. No host packages were
+installed. For this validation only, the four branch images were built using
+Docker Compose's daemon-integrated BuildKit (`COMPOSE_BAKE=false` and
+`DOCKER_BUILDKIT=1`), then started under the exact ETF Compose project. All six
+services became healthy. The browser used the already-cached
+`mcr.microsoft.com/playwright:v1.62.1-noble` image, avoiding host package and
+font changes.
+
+With the full-integration seed setting, the complete Playwright run finished
+with 150 passed, 109 skipped, and one `F8s-market-map-watchlist` case that
+passed on Playwright's retry. The F8j geometry and persistent-conflict tests
+both passed in that run, exercising the test-harness repair in
+`frontend/tests/e2e/flows.spec.ts`. The standalone visual command finished with
+100 passed and three stable failures above the 0.5% threshold: Study Lab
+structured-result at `visual-1080p-100` (about 1% pixels), and Study Lab
+sandbox-error at `visual-1080p-100` and `visual-1080p-125` (about 1% each).
+One top-down visual membership-count check saw zero instead of eleven after
+`ERR_NETWORK_CHANGED`; it passed on retry. The visual mismatches persisted in
+the CI-matching image, so missing host fonts are not a sufficient explanation.
+They are generic Study Lab snapshots outside `owned_paths`; I did not refresh
+snapshots or relax tolerances. The full local integration gate remains red at
+visual parity, and exact-SHA hosted status still needs checking.
+
+After both browser runs, `make test-stack-down` plus branch resource accounting
+confirmed zero ETF containers, volumes, testcontainer sessions, known bytes,
+and unknown components. No other project or worktree was cleaned. The
+session-progress helper could not write its locks under shared `.ai` runtime
+and claims directories (read-only from this worktree); no shared registry was
+changed. The branch-owned session receipt is updated directly instead.
+
+The isolated F8s replay is now complete: on a fresh, correctly seeded ETF
+stack in the cached CI image, it passed 1/1 with retries disabled in 11.7
+seconds. This confirms it is order/load-sensitive rather than consistently
+reproducible in isolation. The stack was stopped and branch-scoped resource
+accounting again showed zero containers, volumes, test sessions, known bytes,
+and unknown components.
+
+Next: run the branch/workstream validation, commit and push only this feature
+branch, then inspect hosted checks for that exact SHA. Keep AC7/AC8 open until
+exact-SHA CI is evidenced and the reproducible generic visual mismatch has a
+valid disposition; do not change unrelated UI behavior or snapshots without
+establishing the intended visual change. AC10 still waits for the separate
+provider-platform branch to reach staging, and AC14 remains
+post-integration/deployment.
+*** End of File
 *** End of File

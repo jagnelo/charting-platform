@@ -71,6 +71,7 @@
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "dirty_paths": [
+    "frontend/tests/e2e/flows.spec.ts",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -94,13 +95,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b4da289de0d18f620ccef1d9c9db3f89337e8376",
+  "head": "529fc81f60fcbf5f14a7afc7e9aa62461a48e855",
   "implementation_sha": "594864f69bfa5b016fc2eb4015509de6dbd7d8d6",
-  "last_checkpoint": "2026-10-04T19:19:03.922067+00:00",
+  "last_checkpoint": "2026-10-05T02:13:55.000000+00:00",
   "last_human_progress_update": "2026-10-04T23:07:40.093556+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit and push the corrected session/workstream receipt, then rerun the full Docker/browser gate on the exact published ETF branch tip.",
-  "plan_hash": "638d2c2a0ac56604a7ae7ebf0e5f03bc0dde2d5b8134bfe71703ca4cc51585fe",
+  "next_action": "Commit and push only this ETF branch after branch validation, then inspect hosted CI for that exact SHA. Keep AC7/AC8 open while the generic Study Lab visual mismatches remain unexplained.",
+  "plan_hash": "f194da5ce374bc9303cd91618f41ee5d37c1d1c5fb1238fe22095a9352c1061c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -121,14 +122,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. AC7 and AC8 still require the Docker/browser full-integration gate and exact-SHA hosted CI. AC10 depends on feat/market-data-provider-platform reaching staging; AC14 follows later authorized integration/deployment.",
-    "current_phase": "gate_narrative_invariant_repaired_retry_pending",
-    "next_action": "Commit and push the corrected session/workstream receipt, then rerun the full Docker/browser gate on the exact published ETF branch tip.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The correctly seeded CI-image functional Playwright run completed with 150 passed, 109 skipped, and one F8s flake passed on retry. Its isolated fresh-stack replay with retries disabled passed 1/1 in 11.7 seconds. Standalone visual parity had 100 passed and three stable Study Lab screenshot mismatches at about 1 percent; one top-down membership test hit ERR_NETWORK_CHANGED and passed on retry. AC7 still needs exact-SHA hosted CI and resolution or proper disposition of the generic visual drift. AC8 remains open. AC10 awaits provider-platform staging; AC14 follows later integration and deployment.",
+    "current_phase": "ci_image_functional_green_visual_gate_repeatable_diffs_and_hosted_status_pending",
+    "next_action": "Commit and push only this ETF branch after branch validation, then inspect hosted CI for that exact SHA. Keep AC7/AC8 open while the generic Study Lab visual mismatches remain unexplained.",
     "total": 14,
-    "updated_at": "2026-10-04T23:07:40.093535+00:00"
+    "updated_at": "2026-10-05T02:13:55.000000+00:00"
   },
-  "remote": "b4da289de0d18f620ccef1d9c9db3f89337e8376",
-  "remote_sha": "b4da289de0d18f620ccef1d9c9db3f89337e8376",
+  "remote": "529fc81f60fcbf5f14a7afc7e9aa62461a48e855",
+  "remote_sha": "529fc81f60fcbf5f14a7afc7e9aa62461a48e855",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "70226446-14cf-41f6-828c-abe83c833146",

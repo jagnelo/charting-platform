@@ -1452,9 +1452,7 @@ test.describe('TC2000 workstation', () => {
     }), { timeout: 10_000, intervals: [250, 500, 1_000] }).toEqual(expect.objectContaining({ left: expect.any(Number), top: expect.any(Number), width: expect.any(Number), height: expect.any(Number) }))
 
     if (!popup.isClosed()) {
-      const closed = popup.waitForEvent('close')
-      await popup.locator('button[title="Close"]').click()
-      await closed
+      await closePopupWhenOpen(popup)
     }
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -1470,19 +1468,22 @@ test.describe('TC2000 workstation', () => {
       return await response.json() as Record<string, unknown>
     })
 
-    let conflictPending = true
+    let conflictResponses = 0
     const baselineWindowKeys = new Set(
       (baseline.tabs as Array<{ windows?: Array<{ instance_key?: string }> }>).flatMap(tab =>
         (tab.windows ?? []).map(window => window.instance_key).filter((key): key is string => Boolean(key)),
       ),
     )
     await page.route(/\/api\/v1\/workspaces\/\d+\/snapshot$/, async route => {
-      if (route.request().method() !== 'PUT' || !conflictPending) return route.continue()
+      if (route.request().method() !== 'PUT') return route.continue()
       // A previous pop-out can still be finishing a legitimate geometry
       // snapshot when this page starts. Inject the conflict only for the
       // mutation under test: the newly added Notes window. Otherwise the
       // setup races a bootstrap/cleanup write and the actual user mutation
-      // never exercises the recovery branch.
+      // never exercises the recovery branch. Keep returning the conflict for
+      // this addition: a real optimistic-lock conflict remains until the
+      // client reconciles the remote revision, even if a layout event queues a
+      // newer local snapshot while the first request is in flight.
       const payload = route.request().postDataJSON() as {
         tabs?: Array<{ windows?: Array<{ instance_key?: string; tool_type?: string; title?: string }> }>
       }
@@ -1494,7 +1495,7 @@ test.describe('TC2000 workstation', () => {
         }),
       )
       if (!hasLocalWindowAddition) return route.continue()
-      conflictPending = false
+      conflictResponses += 1
       await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ detail: { code: 'workspace_revision_conflict', message: 'conflict' } }) })
     })
     await page.route(/\/api\/v1\/workspaces\/\d+$/, async route => {
@@ -1516,6 +1517,7 @@ test.describe('TC2000 workstation', () => {
     await expect(notes.last()).toBeVisible({ timeout: 10_000 })
     await expect(page.locator('.workstation__footer')).toContainText(/recovery/i, { timeout: 15_000 })
     await expect(page.locator('.workstation__footer')).toContainText('local changes were preserved', { timeout: 15_000 })
+    expect(conflictResponses).toBeGreaterThan(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

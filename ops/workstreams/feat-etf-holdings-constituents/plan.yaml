@@ -430,7 +430,7 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: toolbar_blocker_fixed_pushed_full_gate_flakes_and_hosted_status_unresolved
+current_phase: ci_image_functional_green_visual_gate_repeatable_diffs_and_hosted_status_pending
 current_blocker: >-
   The latest full gate on working source based on 115af366123c4e07e3a3109cc9ba19f2af136f18 again passed workstream/dependency/migration, Ruff/format/type-check, backend coverage (1,877 passed; 81.13%), frontend tests (945 passed; 82.08%), production build, Docker stack health, and research-runner probes. Playwright ran all 260 scenarios: 152 passed, 106 skipped, and two unrelated workstation scenarios failed (`F8j-conflict` expected a recovery notice but saw canonical-ready; `F8s-market-map-watchlist` timed out clicking a button detached during rerender). No visual mismatch was reported. Both failures then passed on a fresh healthy stack when replayed together (2 passed in 18.2s); additionally the adjacent `F8j` pop-out and `F8j-conflict` sequence passed (2 passed in 13.9s). Prior cross-window `ERR_NETWORK_CHANGED` cases also passed their focused replay and passed in this latest full run. The local gate exits at e2e-functional before standalone visual and branch-declared stages. These are non-reproducing test-order/load failures outside ETF behavior; no assertions or baselines were changed. ETF Docker resources were stopped and resource accounting is zero/complete. Exact-SHA CI for current working source is still not queried on its next pushed receipt. Goal remains active.
 
@@ -535,19 +535,35 @@ current_blocker: >-
   opt-in provider matrix passed 509 with 28 classified external/source-data
   skips. Ruff/format, workstream validation, and diff-check passed. AC7/AC8
   remain open pending Docker/browser full integration and exact-SHA CI.
+
+  Current checkpoint on 2026-10-05 supersedes the earlier gate summaries above.
+  The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. A correctly
+  seeded run of the complete functional Playwright suite in the cached
+  Playwright 1.62.1 Noble image completed with 150 passed, 109 skipped, and one
+  F8s-market-map-watchlist test that passed on its configured retry. The
+  standalone visual stage completed with 100 passed, three stable Study Lab
+  screenshot mismatches at about 1 percent (structured-result at 1080p-100;
+  sandbox-error at 1080p-100 and 1080p-125), and one top-down membership-count
+  failure caused by ERR_NETWORK_CHANGED that passed on retry. These generic
+  visual snapshots are outside owned_paths; do not refresh them or relax the
+  threshold without establishing and authorizing the intended visual change.
+  The retry-resolved F8s test was then replayed alone on a fresh correctly
+  seeded ETF stack with retries disabled; it passed 1/1 in 11.7 seconds,
+  confirming the full-suite failure is order/load-sensitive rather than
+  consistently reproducible in isolation.
+  The first manual run used the wrong seed flag and is explicitly not counted.
+  The exact ETF stack was torn down; resource accounting is zero and complete.
+  AC7 remains open until exact-SHA hosted CI and the local visual discrepancy
+  are resolved or properly dispositioned; AC8 remains open. AC10 awaits
+  feat/market-data-provider-platform reaching staging; AC14 remains the later
+  post-integration/deployment 30-day shadow observation. The goal is active.
+
 next_action: >-
-  Keep the goal active. The Dimensional date-scoped fallback is implemented,
-  identity/date validated, committed, and pushed at
-  `594864f69bfa5b016fc2eb4015509de6dbd7d8d6`; the exact feature ref was
-  confirmed remotely. Its complete adapter unit suite passed 595/595, the DFAC
-  live case passed its 1,000-row minimum, and the full opt-in provider matrix
-  passed 509 with 28 classified skips. The first full-gate attempt stopped in
-  backend coverage because a session progress update dropped the required
-  `15 Tier-0 and 156 Tier-1` narrative phrase; it is restored and its focused
-  invariant test passes. Commit/push that receipt correction, then rerun the
-  Docker/browser full gate on the exact branch tip and continue exact-SHA CI
-  verification. Do not alter unrelated workstation behavior, assertions, or
-  snapshots without a reproduced cause. AC10 remains dependent on
-  `feat/market-data-provider-platform` reaching staging; AC14 remains the
-  post-integration/deployment 30-day shadow gate. Do not integrate, promote,
-  deploy, or modify another worktree.
+  Run branch/workstream validation, commit and push only
+  feat/etf-holdings-constituents, and inspect hosted CI for that exact SHA.
+  Keep the goal active and AC7/AC8 open while the generic Study Lab visual
+  mismatches remain unexplained; do not change unrelated UI behavior or
+  snapshots without establishing the intended visual change. AC10 still
+  depends on the provider-platform branch reaching staging, and AC14 is
+  post-integration/deployment. Do not integrate, promote, deploy, or modify
+  another worktree.
