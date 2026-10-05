@@ -861,18 +861,21 @@ progress:
     parameters, and seeds, and activation requires a valid owner-scoped plan.
     The plan resolver authenticates the portfolio and every strategy/package
     reference and verifies exact package artifacts. The persistent isolated
-    Nautilus session, frozen/canonical history readers, durable output/checkpoint
-    restore, and deterministic crash replay remain code-owned work. Full
+    Nautilus session, bounded warm-up context window, canonical processed-prefix
+    reader, durable output/checkpoint restore, and deterministic crash replay
+    remain code-owned work. Frozen DataSnapshot identity and source bytes now
+    resolve through an owner-scoped adapter into the existing verified streaming
+    event-tape artifact resolver, with no provider fallback. Full
     Compose/browser acceptance remains environment-limited by unavailable
     Docker Buildx and default Docker API socket access. Shared provider, ETF, and
     TC2000 contracts gate only their eventual shared-path integration; options
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Connect the authenticated portfolio-wide execution-plan resolver to the
-    persistent isolated Nautilus runtime, then implement platform-owned frozen
-    warm-up/canonical event readers. Retain native invocation/account outputs
-    and runtime checkpoints before Redis acknowledgement; restore one shared
+    Implement bounded owner-scoped warm-up context and canonical processed-prefix
+    readers for every resolved component, then compose their contexts into one
+    persistent shared-account Nautilus runtime. Retain native invocation/account
+    outputs and runtime checkpoints before Redis acknowledgement; restore the
     BacktestEngine/trader deterministically after process loss, preserving
     correction events on the counterfactual path. Consume provider-owned source
     contracts only after staging; stable release labeling is not a gate.

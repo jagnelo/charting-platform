@@ -11249,3 +11249,33 @@ was available and the worktree owned no containers or volumes. The checkpoint
 helper's dirty-path summary omitted the first character of its first porcelain
 path; the branch-owned `session.json` entry was corrected to the exact path.
 The shared workflow helper was left unchanged to preserve feature-branch scope.
+
+## 2026-10-05 - Owner-scoped frozen snapshot tape resolution
+
+Added `AuthenticatedFrozenEventTapeResolver` as the local simulation boundary
+between an authenticated Strategy Lab snapshot identity and the existing
+content-addressed `FrozenEventTapeArtifactResolver`. It loads exactly one
+owner-visible `DataSnapshot` by its domain fingerprint, rejects aliases or
+missing/cross-owner records, and resolves only the frozen series bytes named by
+that snapshot and the exact component SDK manifest. There is no provider fetch
+or current-data fallback. The potentially large local decode/tape publication
+uses the injected offloader, defaulting to Python's local async thread offload.
+
+Focused resolver plus frozen artifact tests pass (4/4); Ruff, formatting on the
+two changed files, focused MyPy, and `git diff --check` pass. Commit
+`5481c080decb667f6168979c7509c9cb35779fe1` is pushed. The full artifact-test
+file's long-history cases ran before reaching the new default thread offload,
+which the default sandbox did not dispatch; the targeted tests use a deterministic
+inline offloader, and the default standard-library thread offload probe passed
+with scoped local execution access. No product behavior was changed to bypass
+offloading.
+
+This resolves authenticated frozen snapshot bytes, not a bounded warm-up
+context or canonical live-event suffix. Those per-component readers, portfolio
+context composition, persistent isolated Nautilus session, durable native
+checkpoint/output restoration, and deterministic crash replay remain open.
+
+Changed paths: `backend/app/strategy_lab_v2/authenticated_event_tape.py` and
+`backend/app/strategy_lab_v2/tests/test_event_tape_artifacts.py`.
+Next: select bounded snapshot warm-up events and load only the exact processed
+canonical prefix for each authenticated component before one shared runtime.
