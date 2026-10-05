@@ -9,6 +9,7 @@ and before allowing the Redis worker to acknowledge the event.
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 from collections.abc import Awaitable, Mapping
 from dataclasses import dataclass, field
@@ -97,6 +98,171 @@ class NautilusForwardSessionRuntime(Protocol):
     def restore(
         self, *, instance_id: str, checkpoint_fingerprint: str
     ) -> Awaitable[None] | None: ...
+
+
+class NautilusForwardSessionProcess(Protocol):
+    """One isolated native process owning one persistent Nautilus node/account."""
+
+    instance_id: str
+
+    def execute(
+        self,
+        delivery: NautilusForwardDeliveryInput,
+        preparation: ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation,
+    ) -> ForwardExecutionResolution: ...
+
+    def restore(
+        self, *, instance_id: str, checkpoint_fingerprint: str
+    ) -> Awaitable[None] | None: ...
+
+    def close(self) -> Awaitable[None] | None: ...
+
+
+class NautilusForwardSessionProcessFactory(Protocol):
+    """Launch one pinned, network-disabled process for a forward instance."""
+
+    def start(
+        self, *, instance_id: str
+    ) -> NautilusForwardSessionProcess | Awaitable[NautilusForwardSessionProcess]: ...
+
+
+@dataclass(slots=True)
+class _ManagedNautilusForwardSession:
+    process: NautilusForwardSessionProcess
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    closing: bool = False
+    last_delivery_fingerprint: str | None = None
+    last_preparation_fingerprint: str | None = None
+    last_execution: NautilusForwardExecutionResult | None = None
+
+
+class PersistentNautilusForwardSessionRuntime:
+    """Serialize a persistent isolated native process per forward instance.
+
+    The process factory owns the hardened container/process boundary and exact
+    runtime pin. This coordinator owns its lifecycle: components of one
+    portfolio share the same process and account, only one event can enter the
+    engine at a time, duplicate delivery of the latest input is idempotent, and
+    recovery restores the requested durable pre-event checkpoint before retry.
+    """
+
+    def __init__(self, process_factory: NautilusForwardSessionProcessFactory) -> None:
+        if not callable(getattr(process_factory, "start", None)):
+            raise TypeError("process_factory must expose start(instance_id=...)")
+        self._process_factory = process_factory
+        self._sessions: dict[str, _ManagedNautilusForwardSession] = {}
+        self._sessions_lock = asyncio.Lock()
+
+    async def execute(
+        self,
+        delivery: NautilusForwardDeliveryInput,
+        preparation: ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation,
+    ) -> NautilusForwardExecutionResult:
+        _validate_preparation_binding(delivery, preparation)
+        instance_id = delivery.delivery_binding.instance_id
+        session = await self._session_for(instance_id)
+        async with session.lock:
+            if session.closing:
+                raise RuntimeError("forward native session is closing")
+            delivery_fingerprint = delivery.delivery_binding.fingerprint
+            preparation_fingerprint = preparation.fingerprint
+            if session.last_delivery_fingerprint == delivery_fingerprint:
+                if session.last_preparation_fingerprint != preparation_fingerprint:
+                    raise ValueError(
+                        "replayed forward delivery has a different context preparation"
+                    )
+                assert session.last_execution is not None
+                return session.last_execution
+            result_resolution = session.process.execute(delivery, preparation)
+            result = (
+                await result_resolution
+                if inspect.isawaitable(result_resolution)
+                else result_resolution
+            )
+            if not isinstance(result, NautilusForwardExecutionResult):
+                raise TypeError("isolated Nautilus process returned an invalid execution result")
+            _validate_execution(delivery, preparation, result)
+            session.last_delivery_fingerprint = delivery_fingerprint
+            session.last_preparation_fingerprint = preparation_fingerprint
+            session.last_execution = result
+            return result
+
+    async def restore(self, *, instance_id: str, checkpoint_fingerprint: str) -> None:
+        if not isinstance(instance_id, str) or not instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        require_sha256_digest(checkpoint_fingerprint, field_name="checkpoint_fingerprint")
+        session = await self._session_for(instance_id)
+        async with session.lock:
+            if session.closing:
+                raise RuntimeError("forward native session is closing")
+            restored = session.process.restore(
+                instance_id=instance_id,
+                checkpoint_fingerprint=checkpoint_fingerprint,
+            )
+            if inspect.isawaitable(restored):
+                await restored
+            session.last_delivery_fingerprint = None
+            session.last_preparation_fingerprint = None
+            session.last_execution = None
+
+    async def close(self, *, instance_id: str) -> None:
+        if not isinstance(instance_id, str) or not instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        async with self._sessions_lock:
+            session = self._sessions.get(instance_id)
+            if session is None:
+                return
+            session.closing = True
+        async with session.lock:
+            closed = session.process.close()
+            if inspect.isawaitable(closed):
+                await closed
+        async with self._sessions_lock:
+            if self._sessions.get(instance_id) is session:
+                del self._sessions[instance_id]
+
+    async def close_all(self) -> None:
+        async with self._sessions_lock:
+            instance_ids = tuple(sorted(self._sessions))
+        for instance_id in instance_ids:
+            await self.close(instance_id=instance_id)
+
+    async def _session_for(self, instance_id: str) -> _ManagedNautilusForwardSession:
+        async with self._sessions_lock:
+            current = self._sessions.get(instance_id)
+            if current is not None:
+                if current.closing:
+                    raise RuntimeError("forward native session is closing")
+                return current
+            process_resolution = self._process_factory.start(instance_id=instance_id)
+            process = (
+                await process_resolution
+                if inspect.isawaitable(process_resolution)
+                else process_resolution
+            )
+            if not isinstance(getattr(process, "instance_id", None), str) or (
+                process.instance_id != instance_id
+            ):
+                close = getattr(process, "close", None)
+                if callable(close):
+                    result = close()
+                    if inspect.isawaitable(result):
+                        await result
+                raise ValueError("process factory returned a session for another instance")
+            if (
+                not callable(getattr(process, "execute", None))
+                or not callable(getattr(process, "restore", None))
+                or not callable(getattr(process, "close", None))
+            ):
+                close = getattr(process, "close", None)
+                if callable(close):
+                    result = close()
+                    if inspect.isawaitable(result):
+                        await result
+                raise TypeError("isolated Nautilus process does not implement the session contract")
+            managed = _ManagedNautilusForwardSession(process)
+            self._sessions[instance_id] = managed
+            return managed
 
 
 @dataclass(frozen=True, slots=True)
@@ -923,6 +1089,31 @@ def _validate_execution(
         raise ValueError("native account effects reference a different forward instance")
 
 
+def _validate_preparation_binding(
+    delivery: NautilusForwardDeliveryInput,
+    preparation: ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation,
+) -> None:
+    if not isinstance(delivery, NautilusForwardDeliveryInput):
+        raise TypeError("delivery must use NautilusForwardDeliveryInput")
+    if not isinstance(
+        preparation,
+        ForwardStrategyContextPreparation | ForwardPortfolioContextPreparation,
+    ):
+        raise TypeError("preparation must use an authenticated forward context")
+    binding = delivery.delivery_binding
+    expected = {
+        "instance_id": binding.instance_id,
+        "payload_fingerprint": delivery.verified_market_payload.fingerprint,
+        "delivery_binding_fingerprint": binding.fingerprint,
+        "dispatch_fingerprint": binding.dispatch_record_fingerprint,
+        "pre_event_checkpoint_fingerprint": binding.pre_event_checkpoint_fingerprint,
+        "warmup_receipt_fingerprint": binding.warmup_receipt_fingerprint,
+    }
+    for name, value in expected.items():
+        if getattr(preparation, name) != value:
+            raise ValueError(f"forward context {name} differs from its accepted delivery")
+
+
 def _retry(entry: RedisStreamEntry, reason: str) -> WorkerHandleResult:
     return WorkerHandleResult(
         entry.fingerprint,
@@ -949,8 +1140,11 @@ __all__ = [
     "ForwardStrategyContextRecipe",
     "ForwardVerifiedHistoryResolver",
     "NautilusForwardExecutionResult",
+    "NautilusForwardSessionProcess",
+    "NautilusForwardSessionProcessFactory",
     "NautilusForwardSessionEventHandler",
     "NautilusForwardSessionRuntime",
+    "PersistentNautilusForwardSessionRuntime",
     "ResolvedForwardContextWindow",
     "ResolvedForwardPortfolioContextWindows",
     "ResolvedForwardExecutionPlanRecipeResolver",

@@ -39,6 +39,7 @@ from app.strategy_lab_v2.nautilus_forward_session import (
     AuthenticatedForwardPortfolioContextWindowResolver,
     NautilusForwardExecutionResult,
     NautilusForwardSessionEventHandler,
+    PersistentNautilusForwardSessionRuntime,
     ResolvedForwardContextWindow,
     ResolvedForwardPortfolioContextWindows,
 )
@@ -90,10 +91,12 @@ def _payload(canonical: CanonicalForwardEvent) -> VerifiedForwardMarketPayload:
 
 def _dispatch(
     canonical: CanonicalForwardEvent,
+    *,
+    pre_event_checkpoint_fingerprint: str | None = None,
 ) -> tuple[RedisStreamEntry, ForwardEventWorkItem]:
     event_fingerprint = content_digest(canonical)
     request = DispatchRequest(
-        "event-key-1",
+        f"event-key-{canonical.sequence}",
         INSTANCE_ID,
         content_digest({"event_fingerprint": event_fingerprint, "replay_plan_fingerprint": None}),
         "strategy-lab:v2:forward-events",
@@ -104,7 +107,11 @@ def _dispatch(
         INSTANCE_ID,
         event_fingerprint,
         request,
-        pre_event_checkpoint_fingerprint=content_digest("account-before-event"),
+        pre_event_checkpoint_fingerprint=(
+            content_digest("account-before-event")
+            if pre_event_checkpoint_fingerprint is None
+            else pre_event_checkpoint_fingerprint
+        ),
         warmup_receipt_fingerprint=content_digest("warmup"),
         admission_decision="enqueue",
     )
@@ -229,6 +236,32 @@ class Runtime:
         self.restore_calls.append((instance_id, checkpoint_fingerprint))
 
 
+class PersistentProcess(Runtime):
+    def __init__(self, instance_id: str, order: list[str]) -> None:
+        super().__init__(order)
+        self.instance_id = instance_id
+        self.close_calls = 0
+
+    async def close(self) -> None:
+        self.close_calls += 1
+        self.order.append("close")
+
+
+class PersistentProcessFactory:
+    def __init__(self, order: list[str]) -> None:
+        self.order = order
+        self.processes: dict[str, PersistentProcess] = {}
+        self.start_calls: list[str] = []
+        self.fail_execution = False
+
+    async def start(self, *, instance_id: str) -> PersistentProcess:
+        self.start_calls.append(instance_id)
+        process = PersistentProcess(instance_id, self.order)
+        process.fail_execution = self.fail_execution
+        self.processes[instance_id] = process
+        return process
+
+
 def _window(
     manifest: StrategySdkManifest | None = None,
 ) -> ForwardStrategyContextWindow:
@@ -339,12 +372,96 @@ async def test_forward_session_persists_native_effects_before_context_commit_and
 
 
 @pytest.mark.asyncio
+async def test_persistent_native_runtime_reuses_one_process_and_deduplicates_latest_delivery() -> (
+    None
+):
+    canonical = _canonical()
+    entry, work_item = _dispatch(canonical)
+    delivery_factory = create_nautilus_forward_delivery_callback_factory(
+        PayloadResolver(_payload(canonical)),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+    )
+    delivery = await delivery_factory(entry, work_item)
+    window = _window()
+    preparation = window.prepare_delivery(delivery)
+    order: list[str] = []
+    factory = PersistentProcessFactory(order)
+    runtime = PersistentNautilusForwardSessionRuntime(factory)
+
+    first = await runtime.execute(delivery, preparation)
+    replay = await runtime.execute(delivery, preparation)
+
+    next_canonical = replace(
+        canonical,
+        event_id="bar-2",
+        sequence=2,
+        event_time=canonical.event_time + timedelta(seconds=1),
+        arrived_at=canonical.arrived_at + timedelta(seconds=1),
+    )
+    next_checkpoint = content_digest("account-after-first-event")
+    next_entry, next_work_item = _dispatch(
+        next_canonical,
+        pre_event_checkpoint_fingerprint=next_checkpoint,
+    )
+    next_delivery_factory = create_nautilus_forward_delivery_callback_factory(
+        PayloadResolver(_payload(next_canonical)),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+    )
+    next_delivery = await next_delivery_factory(next_entry, next_work_item)
+    window.commit(preparation)
+    next_preparation = window.prepare_delivery(next_delivery)
+    await runtime.execute(next_delivery, next_preparation)
+
+    assert first == replay
+    assert factory.start_calls == [INSTANCE_ID]
+    assert len(factory.processes[INSTANCE_ID].preparations) == 2
+    assert order == ["execute", "execute"]
+
+    await runtime.close(instance_id=INSTANCE_ID)
+
+    assert factory.processes[INSTANCE_ID].close_calls == 1
+    assert order == ["execute", "execute", "close"]
+
+
+@pytest.mark.asyncio
+async def test_persistent_native_runtime_restore_clears_only_volatile_idempotency_cache() -> None:
+    canonical = _canonical()
+    entry, work_item = _dispatch(canonical)
+    delivery_factory = create_nautilus_forward_delivery_callback_factory(
+        PayloadResolver(_payload(canonical)),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+    )
+    delivery = await delivery_factory(entry, work_item)
+    preparation = _window().prepare_delivery(delivery)
+    order: list[str] = []
+    factory = PersistentProcessFactory(order)
+    runtime = PersistentNautilusForwardSessionRuntime(factory)
+
+    first = await runtime.execute(delivery, preparation)
+    await runtime.restore(
+        instance_id=INSTANCE_ID,
+        checkpoint_fingerprint=work_item.dispatch.pre_event_checkpoint_fingerprint,
+    )
+    replayed = await runtime.execute(delivery, preparation)
+
+    process = factory.processes[INSTANCE_ID]
+    assert replayed == first
+    assert process.restore_calls == [
+        (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint)
+    ]
+    assert len(process.preparations) == 2
+    assert order == ["execute", "restore", "execute"]
+    await runtime.close_all()
+
+
+@pytest.mark.asyncio
 async def test_portfolio_components_share_one_native_event_and_commit_together() -> None:
     canonical = _canonical()
     entry, work_item = _dispatch(canonical)
     order: list[str] = []
     windows = {"alpha": _window(), "beta": _window()}
-    runtime = Runtime(order)
+    process_factory = PersistentProcessFactory(order)
+    runtime = PersistentNautilusForwardSessionRuntime(process_factory)
     store = AccountStore(
         ForwardAccountStateResolution(
             ForwardAccountStateDecision.APPLIED,
@@ -359,11 +476,15 @@ async def test_portfolio_components_share_one_native_event_and_commit_together()
     assert result.decision is WorkerHandleDecision.COMPLETE
     assert order == ["execute", "persist"]
     assert len(store.events) == 1
-    preparation = runtime.preparations[0]
+    assert process_factory.start_calls == [INSTANCE_ID]
+    process = process_factory.processes[INSTANCE_ID]
+    assert len(process.preparations) == 1
+    preparation = process.preparations[0]
     assert isinstance(preparation, ForwardPortfolioContextPreparation)
     assert set(preparation.component_preparations) == {"alpha", "beta"}
     assert windows["alpha"].last_event_key == (canonical.event_time, canonical.sequence)
     assert windows["beta"].last_event_key == (canonical.event_time, canonical.sequence)
+    await runtime.close_all()
 
 
 @pytest.mark.asyncio
@@ -398,8 +519,9 @@ async def test_portfolio_runtime_failure_restores_once_and_discards_every_compon
     entry, work_item = _dispatch(canonical)
     order: list[str] = []
     windows = {"alpha": _window(), "beta": _window()}
-    runtime = Runtime(order)
-    runtime.fail_execution = True
+    process_factory = PersistentProcessFactory(order)
+    process_factory.fail_execution = True
+    runtime = PersistentNautilusForwardSessionRuntime(process_factory)
     store = AccountStore(
         ForwardAccountStateResolution(
             ForwardAccountStateDecision.APPLIED,
@@ -413,11 +535,13 @@ async def test_portfolio_runtime_failure_restores_once_and_discards_every_compon
 
     assert result.decision is WorkerHandleDecision.RETRY
     assert order == ["execute", "restore"]
-    assert runtime.restore_calls == [
+    process = process_factory.processes[INSTANCE_ID]
+    assert process.restore_calls == [
         (INSTANCE_ID, work_item.dispatch.pre_event_checkpoint_fingerprint)
     ]
     assert all(window.last_event_key is None for window in windows.values())
     assert store.events == []
+    await runtime.close_all()
 
 
 def test_resolved_portfolio_context_rejects_component_account_divergence() -> None:
