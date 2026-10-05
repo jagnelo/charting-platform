@@ -10,9 +10,9 @@ and before allowing the Redis worker to acknowledge the event.
 from __future__ import annotations
 
 import inspect
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Mapping
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.forward_account_worker import (
@@ -21,6 +21,7 @@ from app.strategy_lab_v2.forward_account_worker import (
     ForwardAccountWorkerHandler,
 )
 from app.strategy_lab_v2.forward_context import (
+    ForwardStrategyContextHistory,
     ForwardStrategyContextPreparation,
     ForwardStrategyContextWindow,
 )
@@ -30,6 +31,7 @@ from app.strategy_lab_v2.nautilus_forward_delivery import (
     NautilusForwardDeliveryInput,
 )
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
+from app.strategy_lab_v2.sdk import StrategySdkManifest
 from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
 
 
@@ -107,6 +109,33 @@ class ResolvedForwardContextWindow:
         require_sha256_digest(
             self.warmup_receipt_fingerprint,
             field_name="warmup_receipt_fingerprint",
+        )
+
+    @classmethod
+    def replay_verified_history(
+        cls,
+        history: ForwardStrategyContextHistory,
+        manifest: StrategySdkManifest,
+        *,
+        parameters: Mapping[str, Any],
+        random_seed: int,
+    ) -> ResolvedForwardContextWindow:
+        """Resolve one window from an authenticated durable event prefix."""
+
+        if not isinstance(history, ForwardStrategyContextHistory):
+            raise TypeError("history must use ForwardStrategyContextHistory")
+        window = ForwardStrategyContextWindow.replay_verified_history(
+            history,
+            manifest,
+            parameters=parameters,
+            random_seed=random_seed,
+            expected_pre_event_checkpoint_fingerprint=(history.pre_event_checkpoint_fingerprint),
+            expected_warmup_receipt_fingerprint=history.warmup_receipt_fingerprint,
+        )
+        return cls(
+            window,
+            history.pre_event_checkpoint_fingerprint,
+            history.warmup_receipt_fingerprint,
         )
 
 

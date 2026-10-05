@@ -76,6 +76,48 @@ class ForwardStrategyContextPreparation:
         return content_digest(self)
 
 
+@dataclass(frozen=True, slots=True)
+class ForwardStrategyContextHistory:
+    """Bounded verified event window loaded at one durable pre-event checkpoint.
+
+    The persistence resolver supplies only the last ``lookback + current``
+    inputs for each dependency; strategy-local state and native account state
+    are reconstructed separately by replaying their durable execution tape.
+    """
+
+    instance_id: str
+    manifest_fingerprint: str
+    pre_event_checkpoint_fingerprint: str
+    warmup_receipt_fingerprint: str
+    events: tuple[VerifiedForwardMarketPayload, ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.instance_id, str) or not self.instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        for name in (
+            "manifest_fingerprint",
+            "pre_event_checkpoint_fingerprint",
+            "warmup_receipt_fingerprint",
+        ):
+            require_sha256_digest(getattr(self, name), field_name=name)
+        events = tuple(self.events)
+        if any(not isinstance(item, VerifiedForwardMarketPayload) for item in events):
+            raise TypeError("events must contain verified forward market payloads")
+        event_ids = [item.canonical_event.event_id for item in events]
+        if len(event_ids) != len(set(event_ids)):
+            raise ValueError("forward context history event ids must be unique")
+        event_keys = [
+            (item.canonical_event.event_time, item.canonical_event.sequence) for item in events
+        ]
+        if any(current <= previous for previous, current in zip(event_keys, event_keys[1:])):
+            raise ValueError("forward context history must advance strictly by time and sequence")
+        object.__setattr__(self, "events", events)
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
 class ForwardStrategyContextWindow:
     """Maintain a deterministic rolling SDK history for one component."""
 
@@ -348,6 +390,55 @@ class ForwardStrategyContextWindow:
         self.commit(preparation)
         return preparation.context
 
+    @classmethod
+    def replay_verified_history(
+        cls,
+        history: ForwardStrategyContextHistory,
+        manifest: StrategySdkManifest,
+        *,
+        parameters: Mapping[str, Any],
+        random_seed: int,
+        expected_pre_event_checkpoint_fingerprint: str,
+        expected_warmup_receipt_fingerprint: str,
+    ) -> ForwardStrategyContextWindow:
+        """Rebuild bounded SDK history from the exact durable event prefix."""
+
+        if not isinstance(history, ForwardStrategyContextHistory):
+            raise TypeError("history must use ForwardStrategyContextHistory")
+        if not isinstance(manifest, StrategySdkManifest):
+            raise TypeError("manifest must use StrategySdkManifest")
+        require_sha256_digest(
+            expected_pre_event_checkpoint_fingerprint,
+            field_name="expected_pre_event_checkpoint_fingerprint",
+        )
+        require_sha256_digest(
+            expected_warmup_receipt_fingerprint,
+            field_name="expected_warmup_receipt_fingerprint",
+        )
+        if history.manifest_fingerprint != manifest.fingerprint:
+            raise ValueError("forward context history belongs to a different strategy manifest")
+        if history.pre_event_checkpoint_fingerprint != expected_pre_event_checkpoint_fingerprint:
+            raise ValueError("forward context history is not at the requested pre-event checkpoint")
+        if history.warmup_receipt_fingerprint != expected_warmup_receipt_fingerprint:
+            raise ValueError("forward context history belongs to a different warm-up receipt")
+
+        window = cls(
+            history.instance_id,
+            manifest,
+            parameters=parameters,
+            random_seed=random_seed,
+        )
+        counts: dict[str, int] = {}
+        for payload in history.events:
+            dependency = window._dependencies.get(payload.market_event.dependency_id)
+            if dependency is None:
+                raise ValueError("forward context history contains an undeclared dependency")
+            counts[dependency.dependency_id] = counts.get(dependency.dependency_id, 0) + 1
+            if counts[dependency.dependency_id] > dependency.lookback_periods + 1:
+                raise ValueError("forward context history exceeds a dependency lookback window")
+            window.append(payload, instance_id=history.instance_id)
+        return window
+
 
 def _same_delivery_binding(
     preparation: ForwardStrategyContextPreparation,
@@ -363,4 +454,8 @@ def _same_delivery_binding(
     )
 
 
-__all__ = ["ForwardStrategyContextPreparation", "ForwardStrategyContextWindow"]
+__all__ = [
+    "ForwardStrategyContextHistory",
+    "ForwardStrategyContextPreparation",
+    "ForwardStrategyContextWindow",
+]

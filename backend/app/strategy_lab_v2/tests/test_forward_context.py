@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import canonical_json, content_digest
 from app.strategy_lab_v2.capabilities import CapabilityRequirement
 from app.strategy_lab_v2.contracts import (
     AdjustmentMode,
@@ -13,9 +13,13 @@ from app.strategy_lab_v2.contracts import (
     ProductClass,
     StrategyVersion,
 )
-from app.strategy_lab_v2.forward_context import ForwardStrategyContextWindow
+from app.strategy_lab_v2.forward_context import (
+    ForwardStrategyContextHistory,
+    ForwardStrategyContextWindow,
+)
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketPayload
+from app.strategy_lab_v2.postgres_result_materialization import decode_canonical_contract
 from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
 
 NOW = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
@@ -147,6 +151,134 @@ def test_context_window_trims_to_lookback_plus_current_event() -> None:
             },
         }
     )
+
+
+def test_verified_history_replay_rebuilds_the_same_bounded_context_window() -> None:
+    manifest = _manifest()
+    payloads = (
+        _payload(event_id="aapl-1", sequence=1, event_time=NOW),
+        _payload(
+            event_id="spy-2",
+            sequence=2,
+            event_time=NOW + timedelta(minutes=1),
+            dependency_id="benchmark-bars",
+            instrument_id="US.SPY",
+        ),
+        _payload(
+            event_id="aapl-3",
+            sequence=3,
+            event_time=NOW + timedelta(minutes=2),
+        ),
+    )
+    original = ForwardStrategyContextWindow(
+        "forward-1",
+        manifest,
+        parameters={"threshold": Decimal("1.5")},
+        random_seed=17,
+    )
+    for payload in payloads:
+        original.append(payload, instance_id="forward-1")
+    history = ForwardStrategyContextHistory(
+        "forward-1",
+        manifest.fingerprint,
+        content_digest("checkpoint-3"),
+        content_digest("warmup-receipt"),
+        payloads,
+    )
+
+    restored = ForwardStrategyContextWindow.replay_verified_history(
+        history,
+        manifest,
+        parameters={"threshold": Decimal("1.5")},
+        random_seed=17,
+        expected_pre_event_checkpoint_fingerprint=content_digest("checkpoint-3"),
+        expected_warmup_receipt_fingerprint=content_digest("warmup-receipt"),
+    )
+
+    assert restored.window_fingerprint == original.window_fingerprint
+    assert restored.last_event_key == original.last_event_key
+    next_event = _payload(
+        event_id="aapl-4",
+        sequence=4,
+        event_time=NOW + timedelta(minutes=3),
+    )
+    preparation = restored.prepare(next_event, instance_id="forward-1")
+    assert tuple(event.event_id for event in preparation.context.market_events["daily-bars"]) == (
+        "aapl-3",
+        "aapl-4",
+    )
+    assert preparation.context.market_events["benchmark-bars"] == (payloads[1].market_event,)
+
+
+def test_verified_forward_history_round_trips_through_canonical_persistence_wire() -> None:
+    manifest = _manifest()
+    history = ForwardStrategyContextHistory(
+        "forward-1",
+        manifest.fingerprint,
+        content_digest("checkpoint"),
+        content_digest("warmup-receipt"),
+        (_payload(event_id="event-1", sequence=1, event_time=NOW),),
+    )
+
+    encoded = canonical_json(history)
+    restored = decode_canonical_contract(encoded, ForwardStrategyContextHistory)
+
+    assert restored == history
+    assert restored.fingerprint == history.fingerprint
+
+
+@pytest.mark.parametrize(
+    ("checkpoint", "warmup", "expected_error"),
+    [
+        (content_digest("wrong-checkpoint"), content_digest("warmup-receipt"), "checkpoint"),
+        (content_digest("checkpoint-1"), content_digest("wrong-warmup"), "warm-up"),
+    ],
+)
+def test_verified_history_replay_rejects_other_durable_checkpoints(
+    checkpoint: str,
+    warmup: str,
+    expected_error: str,
+) -> None:
+    manifest = _manifest()
+    history = ForwardStrategyContextHistory(
+        "forward-1",
+        manifest.fingerprint,
+        content_digest("checkpoint-1"),
+        content_digest("warmup-receipt"),
+        (),
+    )
+
+    with pytest.raises(ValueError, match=expected_error):
+        ForwardStrategyContextWindow.replay_verified_history(
+            history,
+            manifest,
+            parameters={},
+            random_seed=17,
+            expected_pre_event_checkpoint_fingerprint=checkpoint,
+            expected_warmup_receipt_fingerprint=warmup,
+        )
+
+
+def test_verified_history_rejects_duplicate_or_non_monotonic_event_tape() -> None:
+    manifest = _manifest()
+    first = _payload(event_id="event-1", sequence=1, event_time=NOW)
+    second = _payload(event_id="event-2", sequence=2, event_time=NOW + timedelta(minutes=1))
+    with pytest.raises(ValueError, match="strictly by time"):
+        ForwardStrategyContextHistory(
+            "forward-1",
+            manifest.fingerprint,
+            content_digest("checkpoint"),
+            content_digest("warmup"),
+            (second, first),
+        )
+    with pytest.raises(ValueError, match="ids must be unique"):
+        ForwardStrategyContextHistory(
+            "forward-1",
+            manifest.fingerprint,
+            content_digest("checkpoint"),
+            content_digest("warmup"),
+            (first, first),
+        )
 
 
 def test_invalid_or_out_of_order_event_does_not_mutate_context_window() -> None:
