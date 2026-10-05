@@ -18,36 +18,38 @@ Buildx still gates only final Compose/browser validation; provider, ETF, and
 TC2000 shared paths remain gated only until their approved work reaches
 staging.
 
-## 2026-10-05 - Non-empty-prefix fresh-process forward replay
+## 2026-10-05 - Non-empty-prefix forward runtime reconstruction
 
 The exact RC5 image fixture now advances beyond an empty bootstrap: after a
 canonical event is represented in the authenticated processed prefix, a newly
 constructed runtime rebuilds that prefix, executes the next canonical event,
 restores the exact pre-event checkpoint, and reproduces identical native
 account effects. A second independently constructed runtime verifies the same
-post-restart account-effect fingerprint. The fixture receipt schema requires
-this non-empty-prefix process-loss evidence. The runtime factory now builds a
-fresh BacktestEngine for every session-factory call instead of sharing one
-initial engine across instances.
+reconstructed account-effect fingerprint. The fixture receipt schema requires
+this runtime-reconstruction evidence. The runtime factory now builds a fresh
+BacktestEngine for every session-factory call instead of sharing one initial
+engine across instances. Both reconstructions run in one probe process; this
+does not prove OS-process termination/relaunch or supervisor recovery.
 
 Exact-source RC5 qualification passed with source digest
-`sha256:16a18e071c8d77cd270374a2a40748b058a492af1890deac2c0a3f438e049638`,
+`sha256:fc2a1dc73e1aaba66d36087da6003f2ed764d9b422a4e8542fdb911eb8ac4f5b`,
 image digest
-`sha256:0aa45f95c7a0d0a9ac7810c841dd4a4bce925900301a5b35b11129a532de142c`,
+`sha256:6c290754fd85dd56e4ab9f6051aa6d08ea379030a5c28aff9b3baecf9f65682a`,
 artifact digest
-`sha256:85d2c221500d142de76e16c6703b070e564d040cf54eae9c5327ee6845718cc0`,
+`sha256:82c8e3d01f5a7887ef8c3491a357f1ad992449b375e6bf6e2abd6cccfe9004e3`,
 and conformance fingerprint
-`sha256:0d269d3bfbd0757587024101414a39491c088fda9af2a62b6293a2f142b99436`.
+`sha256:a6c525cc762cf971d43a8f24acf9b54fbad981e16daff4511cbd531ff95b010c`.
 The 67 directly affected runtime, engine-execution, and conformance tests
 passed; Ruff and focused MyPy for both changed production modules passed.
 The attempted full package run was interrupted after stalling in forward
 process tests, so it is not claimed as passing for this increment.
 
 This proves native state reconstruction from an authenticated non-empty prefix;
-it does not yet prove that host persistence atomically binds native output and
-the next admission/account checkpoint before Redis ACK, nor bounded replay
-memory under long-lived load. Next: wire and test that durable settlement and
-acknowledgement boundary. Stable release labeling remains no gate.
+it does not prove OS-process-loss recovery, that host persistence atomically
+binds native output and the next admission/account checkpoint before Redis ACK,
+or bounded replay memory under long-lived load. Next: wire and test durable
+settlement/acknowledgement and process-supervisor restart boundaries. Stable
+release labeling remains no gate.
 
 ## 2026-10-05 - Native forward account-effect capture
 

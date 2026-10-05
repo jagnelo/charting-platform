@@ -860,12 +860,14 @@ progress:
     No external dependency blocks package-owned implementation. Exact-pinned
     Nautilus RC5 remains acceptable for locally controlled testing; stable
     release labeling is not a gate and RC6 requalification is optional. The
-    exact-source RC5 image now proves a fresh runtime can rebuild a non-empty
-    authenticated processed prefix and deterministically execute/replay the
-    next event. Each factory invocation now creates an independent native
-    engine state. This does not yet prove the host transaction that persists
-    native output and advances the exact admission/account checkpoint before
-    Redis ACK, nor bounded process-local replay memory under long-lived load.
+    exact-source RC5 image now proves an independently constructed runtime can
+    rebuild a non-empty authenticated processed prefix and deterministically
+    execute/replay the next event. Both reconstructions run within one probe
+    process, so OS-process termination/relaunch is not yet proven. Each factory
+    invocation creates an independent native engine state. This also does not
+    prove the host transaction that persists native output and advances the
+    exact admission/account checkpoint before Redis ACK, nor bounded
+    process-local replay memory under long-lived load.
     Preserve canonical platform event identity and ordering; never derive it
     from dependency-local frozen series rows. Full Compose/browser acceptance
     remains a final environment gate; provider, ETF, and TC2000 shared-path
@@ -876,6 +878,7 @@ progress:
     Bind native result persistence and the resulting exact checkpoint
     transition to the host settlement path before Redis ACK. Then bound
     process-local replay state and prove duplicate/crash replay against the
-    durable account/admission ledger without rewriting prior decisions.
+    durable account/admission ledger across actual worker-process termination
+    and restart, without rewriting prior decisions.
     Corrections remain counterfactual. Preserve provider-owned event identity
     and consume shared contracts only after their source branches reach staging.
