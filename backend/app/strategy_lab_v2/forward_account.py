@@ -17,6 +17,7 @@ from enum import StrEnum
 from types import MappingProxyType
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.forward_state import ForwardStateCheckpoint
 from app.strategy_lab_v2.sdk import (
     OrderIntent,
     OrderSide,
@@ -345,6 +346,81 @@ class ForwardAccountState:
         return content_digest(self)
 
 
+@dataclass(frozen=True, slots=True)
+class ForwardAccountHistoryEntry:
+    """One immutable account-history root or replayable event transition."""
+
+    revision: int
+    previous_state_fingerprint: str | None
+    state_fingerprint: str
+    snapshot: ForwardAccountState | None = None
+    event: ForwardAccountEvent | None = None
+    execution_receipt: ForwardRuntimeExecutionReceipt | None = None
+    baseline_checkpoint: ForwardStateCheckpoint | None = None
+    baseline_warmup_receipt_fingerprint: str | None = None
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.revision, int)
+            or isinstance(self.revision, bool)
+            or self.revision < 0
+        ):
+            raise ValueError("revision must be a non-negative integer")
+        require_sha256_digest(self.state_fingerprint, field_name="state_fingerprint")
+        if self.revision == 0:
+            if self.previous_state_fingerprint is not None:
+                raise ValueError("account history root cannot have a previous state")
+            if not isinstance(self.snapshot, ForwardAccountState):
+                raise TypeError("account history root requires a ForwardAccountState snapshot")
+            if self.event is not None or self.execution_receipt is not None:
+                raise ValueError("account history root cannot contain an event")
+            if self.state_fingerprint != self.snapshot.fingerprint:
+                raise ValueError("account history root fingerprint differs from its snapshot")
+            if self.baseline_checkpoint is not None:
+                if not isinstance(self.baseline_checkpoint, ForwardStateCheckpoint):
+                    raise TypeError("baseline_checkpoint must use ForwardStateCheckpoint")
+                if self.baseline_checkpoint.instance.instance_id != self.snapshot.instance_id:
+                    raise ValueError("account history checkpoint belongs to another instance")
+            if self.baseline_warmup_receipt_fingerprint is not None:
+                require_sha256_digest(
+                    self.baseline_warmup_receipt_fingerprint,
+                    field_name="baseline_warmup_receipt_fingerprint",
+                )
+            if (self.baseline_checkpoint is None) != (
+                self.baseline_warmup_receipt_fingerprint is None
+            ):
+                raise ValueError(
+                    "account history baseline checkpoint and warm-up receipt are paired"
+                )
+            return
+
+        if self.previous_state_fingerprint is None:
+            raise ValueError("account history transition requires its previous state fingerprint")
+        require_sha256_digest(
+            self.previous_state_fingerprint,
+            field_name="previous_state_fingerprint",
+        )
+        if not isinstance(self.event, ForwardAccountEvent):
+            raise TypeError("account history transition requires a ForwardAccountEvent")
+        if self.snapshot is not None or self.baseline_checkpoint is not None:
+            raise ValueError("account history transitions cannot contain a snapshot")
+        if self.baseline_warmup_receipt_fingerprint is not None:
+            raise ValueError("account history transitions cannot replace their baseline")
+        if self.execution_receipt is not None:
+            if not isinstance(self.execution_receipt, ForwardRuntimeExecutionReceipt):
+                raise TypeError("execution_receipt must use ForwardRuntimeExecutionReceipt")
+            if (
+                self.execution_receipt.instance_id != self.event.instance_id
+                or self.execution_receipt.event_id != self.event.event_id
+                or self.execution_receipt.event_fingerprint != self.event.event_fingerprint
+            ):
+                raise ValueError("account history receipt does not match its event")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
 class ForwardAccountDecision(StrEnum):
     APPLIED = "applied"
     REPLAY_EXISTING = "replay_existing"
@@ -573,6 +649,7 @@ def _reject(
 
 
 __all__ = [
+    "ForwardAccountHistoryEntry",
     "ForwardAccountDecision",
     "ForwardAccountEvent",
     "ForwardAccountResolution",
