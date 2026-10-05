@@ -10581,19 +10581,42 @@ remains fail-closed pending canonical event-time Greeks/delta and settlement
 evidence; shared provider, ETF, and TC2000 paths remain staging-gated only when
 an owned change overlaps them.
 
-## In progress - forward lifecycle idempotency
+## 2026-10-05 - Forward lifecycle idempotency
 
-Audit finding: `POST /forward-instances/{instance_id}/lifecycle` currently has
-no required `Idempotency-Key`. The PostgreSQL adapter treats an already-equal
-target state as `REPLAY_EXISTING`, but does not bind a key to the original
-target/time or preserve that request's result snapshot. In addition, the route
-currently serializes a `CONFLICT` resolution with an instance as HTTP 202.
+Commit `485e2b1c20c80fcaf62cbe491df2edcaf3a35d3a` is pushed to
+`origin/feat/strategy-lab-v2`. The forward lifecycle route now requires
+`Idempotency-Key`; PostgreSQL atomically binds its owner/instance/key to the
+target, normalized request time, and immutable result snapshot. Exact retries
+replay the original instance after later state changes, changed intent returns
+a typed conflict, and cross-owner lookup remains indistinguishable from missing.
+Rejected transitions and key conflicts now return HTTP 409.
 
-Implement a durable owner/instance/key-scoped receipt, atomically stored with
-the lifecycle compare-and-set. Exact retries should replay the receipt's
-original `ForwardInstance`; changed intent under the same key must conflict.
-Map both state-transition and idempotency conflicts to typed HTTP 409, and keep
-cross-owner lookups indistinguishable from missing instances. Owned paths are
-`api_router.py`, `application.py`, `postgres_forward_state.py`, one additive
-Alembic migration, focused router/PostgreSQL/migration tests, this documentation,
-and the branch workstream record.
+Validation at that exact source commit: 86 focused tests passed; the complete
+Strategy Lab and schema-migration suite had 1,386 passes, with its sole default
+sandbox Unix-socket denial passing separately under scoped local access. All six
+Strategy Lab PostgreSQL/Redis integration tests passed, including the new real
+PostgreSQL restart/replay test. Ruff check/format, focused MyPy for three
+production modules, additive Alembic-head validation (`ff5a6b7c8d9e` is the
+single head), and `git diff --check` passed. Worktree-scoped Docker cleanup
+found no retained containers, images, volumes, or Testcontainers sessions.
+
+## Current continuation - domain/API lifecycle audit
+
+There is no external dependency blocking package-owned implementation. The
+isolated exact-pinned Nautilus 2.0.0rc5 runtime is eligible for authoritative
+local backtests after its four backtest checks; stable release labeling is not
+a gate. Broker-free forward-shadow authority still requires the fifth
+event-tape-parity check. Full Compose/browser acceptance remains environment-
+limited because Docker Buildx is unavailable. Provider, ETF, and TC2000
+contracts are gated only at shared-path integration until their owner branches
+reach staging and are reconciled; that does not block current package-owned
+work.
+
+Next: continue the owner-scoped domain/API mutation audit and implement the
+next concrete lifecycle/persistence gap. Keep backtest/metrics work ahead of
+forward-shadow parity where the package boundary permits. Then complete broader
+exposure metrics and event-tape parity, and run the exact-tip full validation
+profile when Buildx is available. Options admission stays fail-closed pending
+canonical event-time Greeks/delta and settlement evidence. Stop at
+`ready_for_human_review`; do not integrate, promote, deploy, activate a live
+shadow, or modify another worktree.
