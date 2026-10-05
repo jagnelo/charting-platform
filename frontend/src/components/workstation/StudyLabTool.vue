@@ -71,24 +71,24 @@
       <div v-if="promotableKind || artifactPromotions.length" class="study-lab-tool__promotions" aria-label="Promote study result">
         <button v-if="promotableKind === 'scalar'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as column' }}</button>
         <div v-if="promotableKind === 'scalar' && scalarObservation != null" class="study-lab-tool__series-condition" role="group" aria-label="Study scalar threshold condition">
-          <label>When <select v-model="seriesConditionOperator" aria-label="Study scalar condition operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
-          <label>Value <input v-model.number="seriesConditionThreshold" type="number" step="any" aria-label="Study scalar condition threshold" /></label>
-          <button type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteScalarCondition('column')">{{ promotionBusy ? 'Promoting…' : 'Save Boolean column' }}</button>
-          <button v-for="target in seriesConditionTargets" :key="`scalar-condition-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteScalarCondition(target)">{{ promotionBusy ? 'Promoting…' : seriesConditionLabel(target) }}</button>
+          <label>When <select v-model="activeConditionDraft.operator" aria-label="Study scalar condition operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
+          <label>Value <input v-model.number="activeConditionDraft.threshold" type="number" step="any" aria-label="Study scalar condition threshold" /></label>
+          <button type="button" :disabled="promotionBusy || !Number.isFinite(activeConditionDraft.threshold)" @click="promoteScalarCondition('column')">{{ promotionBusy ? 'Promoting…' : 'Save Boolean column' }}</button>
+          <button v-for="target in seriesConditionTargets" :key="`scalar-condition-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(activeConditionDraft.threshold)" @click="promoteScalarCondition(target)">{{ promotionBusy ? 'Promoting…' : seriesConditionLabel(target) }}</button>
         </div>
         <button v-if="promotableKind === 'series' && promotableSeriesCanBePlotted" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
         <button v-if="promotableKind === 'series' && latestSeriesObservation != null" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save latest column' }}</button>
         <div v-if="promotableKind === 'series' && latestSeriesObservation != null" class="study-lab-tool__series-condition" role="group" aria-label="Study series threshold condition">
-          <label>When <select v-model="seriesConditionOperator" aria-label="Study series condition operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
-          <label>Value <input v-model.number="seriesConditionThreshold" type="number" step="any" aria-label="Study series condition threshold" /></label>
-          <button type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteSeriesCondition('column')">{{ promotionBusy ? 'Promoting…' : 'Save Boolean column' }}</button>
-          <button v-for="target in seriesConditionTargets" :key="`series-condition-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteSeriesCondition(target)">{{ promotionBusy ? 'Promoting…' : seriesConditionLabel(target) }}</button>
+          <label>When <select v-model="activeConditionDraft.operator" aria-label="Study series condition operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
+          <label>Value <input v-model.number="activeConditionDraft.threshold" type="number" step="any" aria-label="Study series condition threshold" /></label>
+          <button type="button" :disabled="promotionBusy || !Number.isFinite(activeConditionDraft.threshold)" @click="promoteSeriesCondition('column')">{{ promotionBusy ? 'Promoting…' : 'Save Boolean column' }}</button>
+          <button v-for="target in seriesConditionTargets" :key="`series-condition-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(activeConditionDraft.threshold)" @click="promoteSeriesCondition(target)">{{ promotionBusy ? 'Promoting…' : seriesConditionLabel(target) }}</button>
         </div>
         <div v-if="latestRangeCenterObservation != null" class="study-lab-tool__series-condition" role="group" aria-label="Study range center threshold condition">
-          <label>Center when <select v-model="seriesConditionOperator" aria-label="Study range center condition operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
-          <label>Value <input v-model.number="seriesConditionThreshold" type="number" step="any" aria-label="Study range center condition threshold" /></label>
-          <button type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteRangeCenterCondition('column')">{{ promotionBusy ? 'Promoting…' : 'Save Boolean column' }}</button>
-          <button v-for="target in seriesConditionTargets" :key="`range-center-condition-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteRangeCenterCondition(target)">{{ promotionBusy ? 'Promoting…' : seriesConditionLabel(target) }}</button>
+          <label>Center when <select v-model="activeConditionDraft.operator" aria-label="Study range center condition operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
+          <label>Value <input v-model.number="activeConditionDraft.threshold" type="number" step="any" aria-label="Study range center condition threshold" /></label>
+          <button type="button" :disabled="promotionBusy || !Number.isFinite(activeConditionDraft.threshold)" @click="promoteRangeCenterCondition('column')">{{ promotionBusy ? 'Promoting…' : 'Save Boolean column' }}</button>
+          <button v-for="target in seriesConditionTargets" :key="`range-center-condition-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(activeConditionDraft.threshold)" @click="promoteRangeCenterCondition(target)">{{ promotionBusy ? 'Promoting…' : seriesConditionLabel(target) }}</button>
         </div>
         <button v-if="promotableKind === 'range'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save center as chart plot' }}</button>
         <button v-if="promotableKind === 'range' && latestRangeCenterObservation != null" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save latest center column' }}</button>
@@ -110,12 +110,12 @@
       <details v-if="run.warnings?.length" class="study-lab-tool__run-details"><summary>Warnings ({{ run.warnings.length }})</summary><pre>{{ formatMessages(run.warnings) }}</pre></details>
       <details v-if="run.logs" class="study-lab-tool__run-details"><summary>Execution log</summary><pre>{{ run.logs }}</pre></details>
       <details v-if="Object.keys(run.resource_usage ?? {}).length" class="study-lab-tool__run-details"><summary>Resource usage</summary><pre>{{ formatObject(run.resource_usage) }}</pre></details>
-      <div v-if="metricArtifacts.length" class="study-lab-tool__metrics" aria-label="Study metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" role="status" aria-live="polite" aria-atomic="true" :aria-label="`${artifact.name} metric`" :aria-describedby="artifactSummaryId(artifact.id)" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><span :id="artifactSummaryId(artifact.id)" class="sr-only">{{ describeStudyArtifact(artifact) }}</span><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button><div v-if="structuredThresholdType(artifact) === 'scalar'" class="study-lab-tool__artifact-threshold" role="group" :aria-label="`${artifact.name} threshold condition`"><label>When <select v-model="seriesConditionOperator" :aria-label="`Structured scalar condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label><input v-model.number="seriesConditionThreshold" type="number" step="any" :aria-label="`Structured scalar condition threshold: ${artifact.name}`" /><button type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, 'column')">Save Boolean column</button><button v-for="target in seriesConditionTargets" :key="`${artifact.id}-scalar-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" :aria-label="`${seriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, target)">{{ seriesConditionLabel(target) }}</button></div></article></div>
+      <div v-if="metricArtifacts.length" class="study-lab-tool__metrics" aria-label="Study metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" role="status" aria-live="polite" aria-atomic="true" :aria-label="`${artifact.name} metric`" :aria-describedby="artifactSummaryId(artifact.id)" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><span :id="artifactSummaryId(artifact.id)" class="sr-only">{{ describeStudyArtifact(artifact) }}</span><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button><div v-if="structuredThresholdType(artifact) === 'scalar'" class="study-lab-tool__artifact-threshold" role="group" :aria-label="`${artifact.name} threshold condition`"><label>When <select v-model="conditionDraft(artifact).operator" :aria-label="`Structured scalar condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label><input v-model.number="conditionDraft(artifact).threshold" type="number" step="any" :aria-label="`Structured scalar condition threshold: ${artifact.name}`" /><button type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, 'column')">Save Boolean column</button><button v-for="target in seriesConditionTargets" :key="`${artifact.id}-scalar-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`${seriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, target)">{{ seriesConditionLabel(target) }}</button></div></article></div>
       <article v-for="artifact in nonScalarArtifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`" :aria-describedby="artifactSummaryId(artifact.id)">
         <span :id="artifactSummaryId(artifact.id)" class="sr-only">{{ describeStudyArtifact(artifact) }}</span>
         <div class="study-lab-tool__artifact-header"><strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button></div>
         <small v-if="seriesCapabilityNote(artifact)" role="note">{{ seriesCapabilityNote(artifact) }}</small>
-        <div v-if="structuredThresholdType(artifact) === 'series' || structuredThresholdType(artifact) === 'range'" class="study-lab-tool__artifact-threshold" role="group" :aria-label="`${artifact.name} threshold condition`"><label>When <select v-model="seriesConditionOperator" :aria-label="`Structured ${structuredThresholdType(artifact)} condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label><input v-model.number="seriesConditionThreshold" type="number" step="any" :aria-label="`Structured ${structuredThresholdType(artifact)} condition threshold: ${artifact.name}`" /><button type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, 'column')">Save Boolean column</button><button v-for="target in seriesConditionTargets" :key="`${artifact.id}-${structuredThresholdType(artifact)}-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" :aria-label="`${seriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, target)">{{ seriesConditionLabel(target) }}</button></div>
+        <div v-if="structuredThresholdType(artifact) === 'series' || structuredThresholdType(artifact) === 'range'" class="study-lab-tool__artifact-threshold" role="group" :aria-label="`${artifact.name} threshold condition`"><label>When <select v-model="conditionDraft(artifact).operator" :aria-label="`Structured ${structuredThresholdType(artifact)} condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label><input v-model.number="conditionDraft(artifact).threshold" type="number" step="any" :aria-label="`Structured ${structuredThresholdType(artifact)} condition threshold: ${artifact.name}`" /><button type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, 'column')">Save Boolean column</button><button v-for="target in seriesConditionTargets" :key="`${artifact.id}-${structuredThresholdType(artifact)}-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`${seriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, target)">{{ seriesConditionLabel(target) }}</button></div>
         <table v-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
         <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
         <StudyBarsUPlot v-else-if="artifact.artifact_type === 'bar' && barData(artifact)" :name="artifact.name" :labels="barData(artifact)!.labels" :values="barData(artifact)!.values" />
@@ -287,8 +287,9 @@ const sourceValidationInvalid = computed(() => validationMatchesSource.value && 
 const sourceValidationDescriptionId = computed(() => validation.value && (!validationMatchesSource.value || !validation.value.valid) ? sourceValidationFeedbackId : '')
 const promotedScanId = ref<number | null>(null)
 const promotedSeriesConditionScans = ref<Record<string, { id?: number; codeVersionId?: number; columnCodeVersionId?: number }>>({})
-const seriesConditionOperator = ref<'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'ne'>('gte')
-const seriesConditionThreshold = ref(0)
+type ConditionOperator = 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'ne'
+type ConditionDraft = { operator: ConditionOperator; threshold: number }
+const conditionDrafts = ref<Record<string, ConditionDraft>>({})
 const cacheKey = props.toolKey ? `study:${props.toolKey}` : null
 const cachedRun = cacheKey ? studyRunCache.get(cacheKey) : null
 const run = ref<Run | null>(cachedRun?.run ?? null)
@@ -434,6 +435,12 @@ const promotableKind = computed<'scalar' | 'boolean' | 'series' | 'events' | 'ra
     ? runContract.value
     : null
 })
+const activeConditionArtifact = computed(() => {
+  const artifactType = runContract.value
+  if (artifactType !== 'scalar' && artifactType !== 'series' && artifactType !== 'range') return undefined
+  return run.value?.artifacts?.find(item => item.artifact_type === artifactType)
+})
+const activeConditionDraft = computed(() => conditionDraft(activeConditionArtifact.value))
 const promotableSeriesCanBePlotted = computed(() => {
   if (runContract.value !== 'series') return false
   const series = run.value?.artifacts?.find(item => item.artifact_type === 'series')
@@ -470,9 +477,13 @@ const seriesConditionTargets: SeriesConditionTarget[] = ['filter', 'scan', 'gaug
 function seriesConditionLabel(target: SeriesConditionTarget) {
   return target === 'column' ? 'Save Boolean column' : target === 'filter' ? 'Save watchlist filter' : target === 'scan' ? 'Promote scan' : target === 'gauge' ? 'Use as Market Gauge' : target === 'alert' ? 'Promote alert' : 'Save as Strategy signal'
 }
-function seriesConditionKey(artifact?: Artifact, adapter = 'series_target_to_boolean') {
-  const selected = artifact ?? run.value?.artifacts?.find(item => item.artifact_type === 'series')
-  return `${run.value?.id ?? 'run'}:${selected?.id ?? 'series'}:${selected?.name ?? 'series'}:${adapter}:${seriesConditionOperator.value}:${seriesConditionThreshold.value}`
+function conditionDraft(artifact?: Artifact, sourceRun = run.value): ConditionDraft {
+  if (!artifact || !sourceRun) return { operator: 'gte', threshold: 0 }
+  const key = `${sourceRun.id}:${artifact.id}:${artifact.name}:${artifact.artifact_type}`
+  return conditionDrafts.value[key] ?? (conditionDrafts.value[key] = { operator: 'gte', threshold: 0 })
+}
+function seriesConditionKey(artifact: Artifact, adapter: string, draft: ConditionDraft) {
+  return `${run.value?.id ?? 'run'}:${artifact.id}:${artifact.name}:${adapter}:${draft.operator}:${draft.threshold}`
 }
 function declaredStudyInstrumentIds() {
   const manifest = run.value?.dataset_manifest ?? {}
@@ -1221,7 +1232,8 @@ async function promoteSeriesCondition(target: SeriesConditionTarget, selectedArt
   const studyRun = run.value
   const artifact = selectedArtifact ?? studyRun?.artifacts?.find(item => item.artifact_type === 'series')
   if (!studyRun || studyRun.status !== 'completed' || (!selectedArtifact && runContract.value !== 'series') || (selectedArtifact != null && selectedArtifact.artifact_type !== 'series') || !artifact || latestSeriesValue(artifact) == null || promotionBusy.value) return
-  if (!Number.isFinite(seriesConditionThreshold.value)) {
+  const draft = conditionDraft(artifact, studyRun)
+  if (!Number.isFinite(draft.threshold)) {
     promotionStatus.value = 'Enter a finite numeric threshold before promoting the series.'
     return
   }
@@ -1237,9 +1249,9 @@ async function promoteSeriesCondition(target: SeriesConditionTarget, selectedArt
   promotionBusy.value = true
   promotionStatus.value = ''
   try {
-    const key = seriesConditionKey()
+    const key = seriesConditionKey(artifact, 'series_target_to_boolean', draft)
     const cached = promotedSeriesConditionScans.value[key] ?? {}
-    const seriesTarget = { operator: seriesConditionOperator.value, threshold: Number(seriesConditionThreshold.value) }
+    const seriesTarget = { operator: draft.operator, threshold: Number(draft.threshold) }
     const sourceManifest = studyRun.dataset_manifest ?? {}
     const sourceRunConfig = studyRun.run_config ?? {}
     const lineage = {
@@ -1273,7 +1285,7 @@ async function promoteSeriesCondition(target: SeriesConditionTarget, selectedArt
     if (typeof codeVersionId !== 'number') {
       const kind = target === 'column' ? 'column' : 'condition'
       const promoted = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
-        stable_key: `${stableKey(name.value)}-series-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${seriesConditionOperator.value}-${seriesConditionThreshold.value}`,
+        stable_key: `${stableKey(name.value)}-series-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${draft.operator}-${draft.threshold}`,
         name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
         kind,
         initial_version: {
@@ -1300,7 +1312,7 @@ async function promoteSeriesCondition(target: SeriesConditionTarget, selectedArt
     if (typeof scanId !== 'number') {
       const configuredTimeframe = studyRun.run_config?.timeframe ?? sourceManifest.timeframe
       const screener = await api.post<{ id: number }>(`/screeners/from-python-condition/${codeVersionId}`, {
-        name: `${artifact.name} ${seriesConditionOperator.value} ${seriesConditionThreshold.value} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
+        name: `${artifact.name} ${draft.operator} ${draft.threshold} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
         description: `Current-data thresholded Boolean target promoted from Study Lab run #${studyRun.id}; source series, threshold, membership, and dataset lineage are retained.`,
         universe_type: 'custom',
         universe_instrument_ids: declaredInstrumentIds,
@@ -1327,7 +1339,8 @@ async function promoteScalarCondition(target: ScalarConditionTarget, selectedArt
   const artifact = selectedArtifact ?? studyRun?.artifacts?.find(item => item.artifact_type === 'scalar')
   const scalarValue = artifact?.artifact_type === 'scalar' && typeof artifact.payload.value === 'number' && Number.isFinite(artifact.payload.value) ? artifact.payload.value : null
   if (!studyRun || studyRun.status !== 'completed' || (!selectedArtifact && runContract.value !== 'scalar') || (selectedArtifact != null && selectedArtifact.artifact_type !== 'scalar') || !artifact || scalarValue == null || promotionBusy.value) return
-  if (!Number.isFinite(seriesConditionThreshold.value)) {
+  const draft = conditionDraft(artifact, studyRun)
+  if (!Number.isFinite(draft.threshold)) {
     promotionStatus.value = 'Enter a finite numeric threshold before promoting the scalar.'
     return
   }
@@ -1343,9 +1356,9 @@ async function promoteScalarCondition(target: ScalarConditionTarget, selectedArt
   promotionBusy.value = true
   promotionStatus.value = ''
   try {
-    const key = seriesConditionKey(artifact, 'scalar_target_to_boolean')
+    const key = seriesConditionKey(artifact, 'scalar_target_to_boolean', draft)
     const cached = promotedSeriesConditionScans.value[key] ?? {}
-    const scalarTarget = { operator: seriesConditionOperator.value, threshold: Number(seriesConditionThreshold.value) }
+    const scalarTarget = { operator: draft.operator, threshold: Number(draft.threshold) }
     const sourceManifest = studyRun.dataset_manifest ?? {}
     const sourceRunConfig = studyRun.run_config ?? {}
     const lineage = {
@@ -1379,7 +1392,7 @@ async function promoteScalarCondition(target: ScalarConditionTarget, selectedArt
     let codeVersionId = target === 'column' ? cached.columnCodeVersionId : cached.codeVersionId
     if (typeof codeVersionId !== 'number') {
       const promoted = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
-        stable_key: `${stableKey(name.value)}-scalar-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${seriesConditionOperator.value}-${seriesConditionThreshold.value}`,
+        stable_key: `${stableKey(name.value)}-scalar-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${draft.operator}-${draft.threshold}`,
         name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
         kind,
         initial_version: {
@@ -1406,7 +1419,7 @@ async function promoteScalarCondition(target: ScalarConditionTarget, selectedArt
     if (typeof scanId !== 'number') {
       const configuredTimeframe = studyRun.run_config?.timeframe ?? sourceManifest.timeframe
       const screener = await api.post<{ id: number }>(`/screeners/from-python-condition/${codeVersionId}`, {
-        name: `${artifact.name} ${seriesConditionOperator.value} ${seriesConditionThreshold.value} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
+        name: `${artifact.name} ${draft.operator} ${draft.threshold} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
         description: `Current-data thresholded Boolean target promoted from Study Lab run #${studyRun.id}; source scalar, threshold, membership, and dataset lineage are retained.`,
         universe_type: 'custom',
         universe_instrument_ids: declaredInstrumentIds,
@@ -1431,7 +1444,8 @@ async function promoteRangeCenterCondition(target: SeriesConditionTarget, select
   const studyRun = run.value
   const artifact = selectedArtifact ?? studyRun?.artifacts?.find(item => item.artifact_type === 'range')
   if (!studyRun || studyRun.status !== 'completed' || (selectedArtifact != null && selectedArtifact.artifact_type !== 'range') || !artifact || latestRangeCenterValue(artifact) == null || promotionBusy.value) return
-  if (!Number.isFinite(seriesConditionThreshold.value)) {
+  const draft = conditionDraft(artifact, studyRun)
+  if (!Number.isFinite(draft.threshold)) {
     promotionStatus.value = 'Enter a finite numeric threshold before promoting the range center.'
     return
   }
@@ -1447,9 +1461,9 @@ async function promoteRangeCenterCondition(target: SeriesConditionTarget, select
   promotionBusy.value = true
   promotionStatus.value = ''
   try {
-    const key = seriesConditionKey(artifact, 'range_center_target_to_boolean')
+    const key = seriesConditionKey(artifact, 'range_center_target_to_boolean', draft)
     const cached = promotedSeriesConditionScans.value[key] ?? {}
-    const seriesTarget = { operator: seriesConditionOperator.value, threshold: Number(seriesConditionThreshold.value) }
+    const seriesTarget = { operator: draft.operator, threshold: Number(draft.threshold) }
     const sourceManifest = studyRun.dataset_manifest ?? {}
     const sourceRunConfig = studyRun.run_config ?? {}
     const lineage = {
@@ -1483,7 +1497,7 @@ async function promoteRangeCenterCondition(target: SeriesConditionTarget, select
     let codeVersionId = target === 'column' ? cached.columnCodeVersionId : cached.codeVersionId
     if (typeof codeVersionId !== 'number') {
       const promoted = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
-        stable_key: `${stableKey(name.value)}-range-center-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${seriesConditionOperator.value}-${seriesConditionThreshold.value}`,
+        stable_key: `${stableKey(name.value)}-range-center-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${draft.operator}-${draft.threshold}`,
         name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
         kind,
         initial_version: {
@@ -1510,7 +1524,7 @@ async function promoteRangeCenterCondition(target: SeriesConditionTarget, select
     if (typeof scanId !== 'number') {
       const configuredTimeframe = studyRun.run_config?.timeframe ?? sourceManifest.timeframe
       const screener = await api.post<{ id: number }>(`/screeners/from-python-condition/${codeVersionId}`, {
-        name: `${artifact.name} ${seriesConditionOperator.value} ${seriesConditionThreshold.value} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
+        name: `${artifact.name} ${draft.operator} ${draft.threshold} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
         description: `Current-data thresholded Boolean target promoted from Study Lab run #${studyRun.id}; range center, threshold, membership, and dataset lineage are retained.`,
         universe_type: 'custom',
         universe_instrument_ids: declaredInstrumentIds,

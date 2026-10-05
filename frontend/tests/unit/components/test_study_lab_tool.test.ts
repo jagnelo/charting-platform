@@ -734,6 +734,63 @@ describe('StudyLabTool', () => {
     }))
   })
 
+  it('keeps structured output threshold drafts independent per artifact', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: 1, output_contracts: ['scalar', 'series'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 301 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 302,
+        code_version_id: 301,
+        status: 'completed',
+        run_config: { symbol: 'SPY', timeframe: 'D1' },
+        dataset_manifest: { datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        artifacts: [
+          { id: 1, name: 'score', artifact_type: 'scalar', payload: { value: 12 } },
+          { id: 2, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01'], values: [0.7] } } },
+        ],
+      })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.scalar('score', market.close()[-1])\noutput.series('trend', market.close())")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #302'))
+
+    const scoreCondition = wrapper.get('[aria-label="score threshold condition"]')
+    const trendCondition = wrapper.get('[aria-label="trend threshold condition"]')
+    await scoreCondition.get('[aria-label="Structured scalar condition operator: score"]').setValue('gt')
+    await scoreCondition.get('[aria-label="Structured scalar condition threshold: score"]').setValue('10')
+    await trendCondition.get('[aria-label="Structured series condition operator: trend"]').setValue('lt')
+    await trendCondition.get('[aria-label="Structured series condition threshold: trend"]').setValue('0.5')
+
+    expect(scoreCondition.get('[aria-label="Structured scalar condition operator: score"]').element).toHaveProperty('value', 'gt')
+    expect(scoreCondition.get('[aria-label="Structured scalar condition threshold: score"]').element).toHaveProperty('value', '10')
+    expect(trendCondition.get('[aria-label="Structured series condition operator: trend"]').element).toHaveProperty('value', 'lt')
+    expect(trendCondition.get('[aria-label="Structured series condition threshold: trend"]').element).toHaveProperty('value', '0.5')
+
+    await scoreCondition.get('[aria-label="Save Boolean column: score"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved scalar artifact “score” as a thresholded Boolean column.'))
+    await trendCondition.get('[aria-label="Save Boolean column: trend"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved series artifact “trend” as a thresholded Boolean column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_name: 'score',
+        lineage: expect.objectContaining({ series_target: { operator: 'gt', threshold: 10 } }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_name: 'trend',
+        lineage: expect.objectContaining({ series_target: { operator: 'lt', threshold: 0.5 } }),
+      }),
+    }))
+    wrapper.unmount()
+  })
+
   it('renders schema-defined parameter controls and sends typed values to the immutable run', async () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })

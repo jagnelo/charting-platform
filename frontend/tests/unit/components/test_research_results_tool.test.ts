@@ -922,6 +922,55 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Saved scalar artifact “score” as a thresholded watchlist filter.')
   })
 
+  it('keeps threshold drafts and promotion payloads independent for each structured output', async () => {
+    const source = "output.scalar('score', market.close()[-1])\noutput.scalar('risk', market.open()[-1])"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 39, status: 'completed', code_version_id: 83, output_contract: 'study', run_config: { timeframe: 'D1' }, dataset_manifest: { source: 'canonical_local_database', datasets: [{ instrument_id: 7, symbol: 'SPY' }] }, reproducibility_hash: 'hash-39', diagnostics: [], artifacts: [
+        { id: 31, name: 'score', artifact_type: 'scalar', payload: { value: 12 } },
+        { id: 32, name: 'risk', artifact_type: 'scalar', payload: { value: 4 } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 39', versions: [{ id: 83, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => path === '/code/assets'
+      ? Promise.resolve({ id: 103, name: 'condition', versions: [{ id: 103 }] })
+      : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const scoreCondition = wrapper.get('[aria-label="score scalar thresholded condition"]')
+    const riskCondition = wrapper.get('[aria-label="risk scalar thresholded condition"]')
+    await scoreCondition.get('[aria-label="Scalar condition operator: score"]').setValue('gt')
+    await scoreCondition.get('[aria-label="Scalar condition threshold: score"]').setValue('10')
+    await riskCondition.get('[aria-label="Scalar condition operator: risk"]').setValue('lt')
+    await riskCondition.get('[aria-label="Scalar condition threshold: risk"]').setValue('5')
+
+    expect(scoreCondition.get('[aria-label="Scalar condition operator: score"]').element).toHaveProperty('value', 'gt')
+    expect(scoreCondition.get('[aria-label="Scalar condition threshold: score"]').element).toHaveProperty('value', '10')
+    expect(riskCondition.get('[aria-label="Scalar condition operator: risk"]').element).toHaveProperty('value', 'lt')
+    expect(riskCondition.get('[aria-label="Scalar condition threshold: risk"]').element).toHaveProperty('value', '5')
+
+    await scoreCondition.get('[aria-label="Save Boolean column: score"]').trigger('click')
+    await flushPromises()
+    await riskCondition.get('[aria-label="Save Boolean column: risk"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_name: 'score',
+        lineage: expect.objectContaining({ series_target: { operator: 'gt', threshold: 10 } }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_name: 'risk',
+        lineage: expect.objectContaining({ series_target: { operator: 'lt', threshold: 5 } }),
+      }),
+    }))
+    wrapper.unmount()
+  })
+
   it('promotes a structured range center through an explicit chart-series adapter', async () => {
     const source = "output.range('confidence', [1, 2], [3, 4], [2, 3])"
     apiGet.mockImplementation((path: string) => {
