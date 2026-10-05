@@ -17526,11 +17526,64 @@ contiguous F8r context. A broader full-suite state/timing interaction remains
 possible; no product cause is established, and these focused passes do not
 clear the full-suite gate.
 
-Next: reset only the assigned project volumes and run the unchanged complete
-`182`-case serial functional suite in the pinned browser image through the same
-localhost network-namespace path. Preserve every failure and the protected
-visual comparisons. Provider/ETF integration remains deferred until both
-dependencies reach staging.
+The subsequent unchanged full `182`-case serial run passed `168`, skipped `6`,
+and failed `8` at product source `721b0efbea486361fa0632b2f874353ca7802127`.
+`F8r-python-library-narrow` passed in this run. Failures were `F9c-transform`,
+`F9c-template-transform`, `F9c3-keyboard`, `F9g-python-plot`, `F8n-crosshair`,
+`F8n-cross-window`, `F8s-breadth-family-ratio`, and the workstation performance
+case `initializes multiple chart windows and recovers without canvas or tool
+growth`. This run used `E2E_SEED_MARKET_DATA=false`; the repository's full
+integration target requires `E2E_SEED_MARKET_DATA=true`. Therefore this is
+preserved diagnostic evidence only, not a valid full-gate result and not a basis
+for attributing the failures to product regressions. Raw artifacts and browser
+error contexts are retained under
+`/tmp/tc2000-full-functional-bridge.eMpJ3r`. No tests, fixtures, selectors,
+timeouts, retries, skips, or visual oracles were changed.
+
+The unchanged full `182`-case functional suite was then rerun serially against
+a fresh assigned stack with `E2E_SEED_MARKET_DATA=true`, matching the repository
+integration target. It completed successfully: `179 passed`, `3 skipped`, `0
+failed` (exit 0; Playwright reported 17.7 minutes). All eight cases that failed
+in the unseeded diagnostic run passed here, including the workstation
+multi-window performance guard. The pinned `mcr.microsoft.com/playwright:v1.62.1-noble`
+browser used the assigned frontend container's network namespace and
+`STACK_URL=http://localhost`; source remained
+`721b0efbea486361fa0632b2f874353ca7802127`. No tests, fixtures, selectors,
+timeouts, retries, skips, or visual oracles changed. The successful run emitted
+no failure artifacts; the `/tmp/tc2000-full-functional-correct-seed.K0NNZS`
+output directory is empty. This clears the functional full-suite gate for this
+profile, not the separate visual matrix or overall workstream.
+
+The unchanged protected `104`-case visual matrix was then run on this same
+freshly seeded assigned stack and exact product source. `94` passed and `10`
+failed screenshot comparisons, with all preceding state assertions passing.
+The mismatches were limited to three states: workspace floating at all four
+viewports (`8995`, `9825`, `8995`, `9825` pixels for 1080p/100, 1080p/125,
+1440p/100, 1440p/125); Study Lab structured result at all four (`109320`,
+`105698`, `22035`, `21331`); and Study Lab sandbox-error at 1080p/100 (`13360`)
+and 1080p/125 (`11188`), while its two 1440p comparisons passed. The same ten
+failure identities were present in the earlier matrix; these are still open
+visual-parity findings, not accepted deltas. Actual, diff, video, and error
+context artifacts are retained under
+`/tmp/tc2000-exact-tip-visual-seeded.jAQwFm`. No screenshot baseline, mask,
+threshold, skip, fallback, or acceptance rule changed.
+
+The documented visual-parity disposition and current artifacts confirm that
+these are local product-state oracle mismatches: the floating screenshot is
+empty although the current deterministic test requires five populated rows,
+and the structured-result screenshot predates the current output/promotion
+controls. The external V25 pack supplies relevant interaction guidance but no
+exact approved capture for those populated states; the two sandbox-error
+1080p differences remain pixel-only after semantic assertions. No source fix
+or screenshot-policy change is justified by available authority. Keep all ten
+diffs open and retain the artifacts; do not treat them as accepted or overwrite
+the protected images.
+
+Next: continue the next bounded TC-owned R1/R5 workstation, Study, or Strategy
+slice while preserving these R6 findings and the correct seeded functional
+receipt. Keep the complete integration-target receipt open, and defer R2/R3
+consumer integration and shared-path reconciliation until both dependencies
+reach staging.
 
 Diagnostic checkpoint commit `7f2d5b89bb9a0b5ef85fa3b68e49f1cf6783457b`
 was pushed to `origin/feat/tc2000-frontend-rework`; direct remote lookup

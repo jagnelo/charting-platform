@@ -52,7 +52,10 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
+    "docs/tc2000-roadmap.md",
+    "docs/tc2000-visual-parity.md",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
@@ -69,7 +72,7 @@
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 131701311,
+    "known_bytes": 172208711,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -80,7 +83,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 129100351,
+    "volume_bytes": 169607751,
     "volume_count": 4,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -128,14 +131,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "704bdfefe72c009360935139403c6234046752e3",
+  "head": "332b578c287b2afb8ccc16999fe1a30afb77125b",
   "implementation_sha": "721b0efbea486361fa0632b2f874353ca7802127",
   "interrupted": false,
-  "last_checkpoint": "2026-10-05T12:59:38.480504+00:00",
+  "last_checkpoint": "2026-10-05T14:02:30.176278+00:00",
   "last_human_progress_update": "2026-10-05T10:35:19+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue a bounded TC-owned workstation/Study/Strategy UI slice and diagnose the intermittent full-run browser failures (especially narrow-dock Python Library mounting and readiness interceptions) without changing assertions. Preserve the three raw full-suite outcomes and all ten protected visual comparisons. Refresh upstream refs periodically; defer R2/R3 consumer and shared-path reconciliation until provider-platform and ETF reach staging. Rerun exact integration when the host Buildx dependency is available, then stop at ready_for_human_review.",
-  "plan_hash": "cd4d44203d496e6fa35fbe0d66299d3aa7f05e6f24618cad5aae3c752ede871e",
+  "next_action": "Continue the next bounded TC-owned R1/R5 workstation, Study, or Strategy slice. The fresh-stack functional suite passed 179/182 with three documented skips when E2E_SEED_MARKET_DATA=true; retain the false-seed 168/182 run as diagnostic only, and do not repeat its F8r triage. Preserve all ten open protected visual differences without changing snapshots, masks, thresholds, skips, or acceptance policy absent valid V25 authority or a confirmed source defect. Keep the generic make validate-integration receipt open; use an available builder path when feasible. Refresh upstream refs periodically and defer R2/R3 consumer integration and shared-path reconciliation until provider-platform and ETF reach staging. Stop at ready_for_human_review.",
+  "plan_hash": "59686d2626c40858da0c4df21eb37fb525b563eea7258c183216cbd7ec0bc56a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -149,11 +152,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "At product source 721b0ef, the latest full authenticated Chromium run was 178/182 with three documented skips and one intermittent narrow Python Library mount failure; two earlier runs had different intermittent failures. All six distinct failures passed unchanged focused replays, but the full functional gate is not green. The visual matrix is 94/104 with ten protected screenshot differences and unchanged exact pixel counts. The generic integration helper cannot use this host's missing Docker Buildx plugin, though scoped Compose/browser validation passed. Provider/ETF tips dff3e44 and 88132e9 are not in staging; defer consumer integration and shared-path reconciliation until promotion. Preserve all acceptance and ownership rules.",
-    "current_phase": "R1_R6_KEYBOARD_ACCESSIBILITY_AND_EXACT_TIP_REPLAY",
-    "next_action": "Continue a bounded TC-owned workstation/Study/Strategy UI slice and diagnose the intermittent full-run browser failures (especially narrow-dock Python Library mounting and readiness interceptions) without changing assertions. Preserve the three raw full-suite outcomes and all ten protected visual comparisons. Refresh upstream refs periodically; defer R2/R3 consumer and shared-path reconciliation until provider-platform and ETF reach staging. Rerun exact integration when the host Buildx dependency is available, then stop at ready_for_human_review.",
+    "current_blocker": "At product source 721b0efbea486361fa0632b2f874353ca7802127, the fresh-stack full functional suite passed 179/182 with 3 documented skips and zero failures under E2E_SEED_MARKET_DATA=true. The 168/182, 8-failure run used the wrong false seed profile and all eight passed with the required true profile. The visual matrix remains 94/104 with 10 protected screenshot-only differences in three local-oracle states; the test state assertions pass, the captured images are stale/inconsistent with their fixtures, and no source or oracle change is justified by available V25 authority. The generic full integration receipt remains open because this host lacks the Buildx plugin; scoped Compose/browser runs succeeded. Provider-platform and ETF remain outside staging; defer R2/R3 consumer integration and overlap reconciliation until coordinator promotion. Preserve acceptance and ownership rules.",
+    "current_phase": "R1_R5_INDEPENDENT_FRONTEND_WORK_AND_R6_VISUAL_ORACLE_REVIEW",
+    "next_action": "Continue the next bounded TC-owned R1/R5 workstation, Study, or Strategy slice. The fresh-stack functional suite passed 179/182 with three documented skips when E2E_SEED_MARKET_DATA=true; retain the false-seed 168/182 run as diagnostic only, and do not repeat its F8r triage. Preserve all ten open protected visual differences without changing snapshots, masks, thresholds, skips, or acceptance policy absent valid V25 authority or a confirmed source defect. Keep the generic make validate-integration receipt open; use an available builder path when feasible. Refresh upstream refs periodically and defer R2/R3 consumer integration and shared-path reconciliation until provider-platform and ETF reach staging. Stop at ready_for_human_review.",
     "total": 9,
-    "updated_at": "2026-10-05T12:14:18+00:00"
+    "updated_at": "2026-10-05T14:01:28+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -169,7 +172,7 @@
     "remote_tracking_sha": "704bdfefe72c009360935139403c6234046752e3",
     "status": "synchronized"
   },
-  "remote": "704bdfefe72c009360935139403c6234046752e3",
+  "remote": "332b578c287b2afb8ccc16999fe1a30afb77125b",
   "remote_sha": "704bdfefe72c009360935139403c6234046752e3",
   "remote_synchronized": true,
   "retained_docker_resources": [],

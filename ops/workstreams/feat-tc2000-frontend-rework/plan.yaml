@@ -20,21 +20,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  At product source 721b0efbea486361fa0632b2f874353ca7802127, the complete
-  serial frontend suite passed (129 files / 1,206 tests), production
-  type-check/build passed, focused watchlist and Code Library suites passed
-  81/81 and 12/12, and authenticated F8u-boolean passed. Three full serial
-  authenticated Chromium runs at this source produced 177/182 (3 documented
-  skips, 2 failures), 176/182 (3 skips, 3 failures), and 178/182 (3 skips, 1
-  failure). All six distinct failing cases passed unchanged focused replay, but
-  the full exact-tip functional suite is not green; preserve all raw runs and
-  diagnose the intermittent tool-mount/readiness behavior without weakening
-  assertions. The exact-tip visual board completed 94/104 with the same ten
-  protected comparisons and pixel counts as the prior run. The generic full
-  integration helper still cannot use Docker Buildx on this host; ordinary
-  scoped Compose builds, health checks, and browser tests succeeded. Docker
-  resources were fully cleaned. Provider-platform and ETF remain outside
-  staging, so R2/R3 reconciliation is deferred until coordinator promotion.
+  At product source 721b0efbea486361fa0632b2f874353ca7802127, the fresh-stack
+  serial functional suite passed 179/182 with three documented skips and zero
+  failures when E2E_SEED_MARKET_DATA=true, matching the repository integration
+  target. The prior 168/182 run used E2E_SEED_MARKET_DATA=false and is preserved
+  as a wrong-profile diagnostic only; all eight failures from that run passed
+  with the correct seed. The exact four-project visual matrix completed 94/104
+  with ten screenshot-only differences across workspace-floating, Study
+  structured-result, and two 1080p Study sandbox-error states. The local
+  screenshots are stale/inconsistent with their present seeded test states and
+  are not exact V25 authority; existing governance does not justify a source,
+  baseline, mask, threshold, or acceptance-policy change. The full
+  make validate-integration receipt remains open; the host's generic Buildx
+  plugin is unavailable, though scoped Compose and pinned browser validation
+  succeeded. Provider-platform and ETF remain outside staging, so R2/R3
+  consumption and shared-path reconciliation wait for coordinator promotion.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."

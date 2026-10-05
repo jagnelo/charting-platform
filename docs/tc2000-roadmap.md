@@ -9,21 +9,25 @@ Last reconciled: 2026-10-05
 
 At product source `721b0efbea486361fa0632b2f874353ca7802127`, the full serial
 frontend suite passed 129 files / 1,206 tests and production type-check/build
-passed. Three full 182-case pinned Chromium runs yielded 177 passed / 3
-documented skips / 2 failures; 176 / 3 / 3 on fresh volumes; and 178 / 3 / 1
-on a second fresh-volume run. The six distinct failed cases all passed
-unchanged focused replays (readiness pair 2/2); preserve the raw full-run
-failures and keep exact-tip full functional acceptance open. No assertion or
-acceptance policy changed.
+passed. Three earlier full 182-case pinned Chromium runs had intermittent
+failures (177/182 with 3 skips, 176/182 with 3 skips, and 178/182 with 3
+skips); preserve those raw outcomes. A fresh-volume rerun using the integration
+target's required `E2E_SEED_MARKET_DATA=true` then passed `179/182`, with 3
+documented skips and zero failures. The later `168/182` result with 6 skips and
+8 failures used `E2E_SEED_MARKET_DATA=false`, so it is a wrong-profile
+diagnostic; all eight cases passed in the correctly seeded run. No assertion
+or acceptance policy changed.
 
-The current four-project visual matrix passed 94/104; its ten failures are the
-same protected local-reference differences, after each state assertion passed:
-workspace-floating at four viewports, Study structured-result at four, and
-Study sandbox-error at the two 1080p scales. Pixel counts are unchanged from
-the prior matrix. No reference, mask, threshold, skip, fallback, or acceptance
-policy changed. Scoped Docker Compose worked without Buildx and final resource
-accounting was clean. The branch remains frontend-led; provider/ETF consumption
-and shared-path reconciliation remain gated on those branches reaching staging.
+The current correctly seeded four-project visual matrix passed 94/104; its ten
+failures are the same protected local-reference differences, after each state
+assertion passed: workspace-floating at four viewports, Study structured-result
+at four, and Study sandbox-error at the two 1080p scales. Small pixel-count
+variation exists in the Study comparisons; failure identities are unchanged.
+No reference, mask, threshold, skip, fallback, or acceptance policy changed.
+Scoped Docker Compose and pinned browser validation worked without Buildx; the
+generic `make validate-integration` receipt remains open. The branch remains
+frontend-led; provider/ETF consumption and shared-path reconciliation remain
+gated on those branches reaching staging.
 
 ## 2026-10-05 — Detached tool accessibility and ID collision correction
 

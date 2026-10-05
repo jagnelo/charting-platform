@@ -14,11 +14,14 @@ assertions passed:
 | `visual-1440p-100` | 8,995 pixels | 22,035 pixels | Passed |
 | `visual-1440p-125` | 9,825 pixels | 21,352 pixels | Passed |
 
-These are the same protected categories and exact pixel counts as the previous
-complete matrix. No reference, mask, threshold, skip, fallback, or acceptance
-policy changed. Keep them open pending current V25 visual authority or a
-confirmed source defect; do not convert test-local images into authoritative
-product references.
+The same ten protected failure identities recur, although a few Study pixel
+counts vary slightly between clean seeded runs. A separate fresh-stack
+functional run with `E2E_SEED_MARKET_DATA=true` passed `179/182`, with 3
+documented skips and zero failures; the `168/182` run with eight failures used
+the wrong `false` seed profile and is diagnostic only. No reference, mask,
+threshold, skip, fallback, or acceptance policy changed. Keep the visual
+differences open pending current V25 authority or a confirmed source defect;
+do not convert test-local images into authoritative product references.
 
 ## 2026-10-05 — Protected screenshot-diff review disposition
 
