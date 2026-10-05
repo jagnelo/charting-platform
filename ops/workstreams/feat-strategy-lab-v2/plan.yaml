@@ -867,11 +867,13 @@ progress:
       - backend/app/strategy_lab_v2/nautilus_rc_fixture_probe.py
       - backend/app/strategy_lab_v2/nautilus_runtime_image/evidence_build.py
       - backend/app/strategy_lab_v2/nautilus_forward_process.py
+      - backend/app/strategy_lab_v2/postgres_forward_account.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_recovery.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process_integration.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_session.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_runtime_image.py
+      - backend/tests/integration/strategy_lab_v2/test_forward_recovery_postgres_redis.py
     status: in_progress
   current_blocker: >-
     No external dependency blocks package-owned implementation. Exact-pinned
@@ -883,13 +885,15 @@ progress:
     proves isolated-process kill/relaunch with deterministic native account
     effects across pre-settlement replay, durable settlement before ACK, and
     restart from the acknowledged next checkpoint. This test currently uses a
-    SQLite checkpoint/settlement harness. A new authenticated recovery
-    resolver now composes the existing exact-checkpoint PostgreSQL admission
-    and account-history adapter contracts, verifies processed event identity,
-    durable cursor, and native execution receipts, and rejects unsettled state.
-    The resolver and application exact-checkpoint route pass focused tests, but
-    wiring recovery plus ACK windows through production PostgreSQL and Redis
-    remains open. The host runtime starts each isolated process from
+    SQLite checkpoint/settlement harness. A production PostgreSQL/Redis
+    integration now exercises the authenticated recovery resolver, persisted
+    account history/native receipt, Redis consumer reclaim, and replay-before-ACK
+    across settlement crash windows. It exposed and fixed an asyncpg ambiguity
+    in the account compare-and-set parameter; the update now requires the exact
+    prior fingerprint. The integration still uses a synthetic execution
+    binding: composing the exact-image RC5 native process result and its real
+    bootstrap with the production PostgreSQL/Redis path remains open. The host
+    runtime starts each isolated process from
     one exact requested admission checkpoint, verifies it in the open request
     and response, and replaces the process on checkpoint advance or recovery.
     The native session rejects later checkpoints instead of retaining an
@@ -907,9 +911,10 @@ progress:
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Replace the test-only SQLite checkpoint/settlement path with a production
-    integration using persisted forward admission/account history and the
-    actual Redis worker ACK/replay contract. Inject the authenticated recovery
-    resolver into the RC5 subprocess bootstrap, persist image/receipt
-    provenance, and prove PostgreSQL settlement plus Redis replay across the
-    process-loss windows. Stable release labeling remains unnecessary.
+    Compose the exact-source RC5 subprocess recovery with real PostgreSQL
+    admission/account checkpoint resolution and the Redis worker ACK/replay
+    contract. Bind the RC5 native output and receipt to durable domain event
+    identities, then prove that a process killed before settlement re-executes
+    deterministically and a process killed after PostgreSQL commit but before
+    Redis ACK replays the stored receipt without executing Nautilus twice.
+    Stable release labeling remains unnecessary.

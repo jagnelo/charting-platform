@@ -18,6 +18,37 @@ Buildx still gates only final Compose/browser validation; provider, ETF, and
 TC2000 shared paths remain gated only until their approved work reaches
 staging.
 
+## 2026-10-05 - PostgreSQL plus Redis forward recovery integration
+
+The new integration test under `backend/tests/integration/strategy_lab_v2/`
+uses real PostgreSQL and Redis containers with the production
+`PostgresForwardStateAdapter`, `PostgresForwardAccountAdapter`, authenticated
+checkpoint resolver, `ForwardAccountWorkerHandler`, and Redis worker. It
+exercises a delivery reclaimed before settlement, settlement committed before
+ACK, a second consumer replaying that durable account receipt, and ACK only
+after successful replay. The resolver then reloads the exact durable admission
+and account checkpoint and verifies the native execution receipt.
+
+The first real-PostgreSQL run exposed an asyncpg `AmbiguousParameterError` in
+the account compare-and-set update: a nullable bind was used in
+`(:expected IS NULL OR fingerprint = :expected)`. Since updates always carry an
+expected state hash, the adapter now requires and compares that hash directly.
+The real integration passed after the fix.
+
+Validation: full Strategy Lab package passed 1,505 tests with one opt-in exact
+RC5 image test skipped; all five forward process unit tests and the sandboxed
+Unix-socket RPC case passed under scoped local execution permission. The new
+PostgreSQL/Redis integration passed 1/1. Focused account/recovery/application
+and worker tests passed 41/41; Ruff and MyPy passed for all five changed Python
+files; worktree Docker cleanup reported no retained resources.
+
+This closes the production persistence/Redis contract as a standalone test,
+not the full native-to-production path: this integration uses a synthetic
+execution binding, while the exact RC5 subprocess crash-window test still uses
+SQLite. Next, make the RC5 fixture consume a real domain checkpoint and wire
+its native output into this PostgreSQL/Redis flow. Stable Nautilus 2.x remains
+unnecessary.
+
 ## 2026-10-05 - Exact durable forward checkpoint resolver
 
 Commit `870c17268f89403b7faf18b64fada5c897934cc1` adds an authenticated
