@@ -12428,3 +12428,45 @@ remains in progress. Next is production composition of the dedicated forward
 worker from owner-scoped immutable execution plans through authenticated
 checkpoint resolution, the RC5 process runtime, receipt-first settlement, and
 Redis ACK; shared-provider, ETF, and TC2000 ownership boundaries remain intact.
+
+## 2026-10-06 - Owner-isolated forward worker callback boundary
+
+Added `OwnerScopedForwardEventHandler` and the production callback assembler in
+`forward_worker_composition.py`. It obtains the owner identity from the
+authenticated PostgreSQL dispatch handoff, builds that owner's
+`AuthenticatedForwardWorkerRuntimeInputResolver` over PostgreSQL resource,
+forward-admission, and account stores plus the local immutable-package
+resolver, and gives the resolver to that owner's handler factory. It retains a
+distinct handler and persistent runtime per owner, rejects a handler factory
+result pinned to another owner, and closes cached owner runtimes during
+shutdown. The worker callback contract now supports an async close hook,
+including cleanup when Redis runtime startup fails. The Nautilus session
+handler exposes its bound principal and runtime for composition checks and
+controlled disposal. The runtime-input resolver first loads the instance
+inside the owner boundary, then resolves its immutable execution plan and
+requested exact admission/account checkpoint; missing or mismatched evidence
+fails closed.
+
+This is a bounded implementation increment, not completion of the active
+runtime-assembly changeset: the owner-handler factory still needs to compose
+the authenticated immutable execution-plan resolver, exact admission/account
+checkpoint resolver, context-history/artifact readers, and hardened RC5
+process-plan builder. Canonical live and frozen payload readers remain explicit
+platform-owned adapters; this branch must not derive canonical identities or
+sequence ordering from dependency-local frozen rows.
+
+Validation: adjacent execution-plan, checkpoint-recovery, history, session,
+worker-composition, and entrypoint suites passed 41/41; Strategy Lab package
+Ruff passed; package-wide MyPy passed across 407 files; focused formatting and
+`git diff --check` passed. A broader package pytest run was interrupted while
+progressing through the Nautilus forward process tests, so it is not counted as
+a passing run. The ordinary repository UV cache is read-only in this sandbox;
+the same UV-managed environment ran via an isolated `/tmp` cache. No
+Docker-backed run was needed for this callback boundary.
+
+Next: build the authenticated context-history and warm-up bootstrap from the
+resolved runtime inputs, and bind it to the hardened RC5 sandbox plan and
+persistent session. Then add application/entrypoint evidence for missing and
+cross-owner bindings before proceeding to the broader
+backtest/search/API/security/Compose criteria. Stable Nautilus 2.x is not a
+gate; retain exact RC5 unless a deliberate pin change triggers requalification.

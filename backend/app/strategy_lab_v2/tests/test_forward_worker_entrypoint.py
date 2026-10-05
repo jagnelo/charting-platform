@@ -7,6 +7,7 @@ import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.forward_worker_entrypoint import (
+    ForwardWorkerCallbacks,
     ForwardWorkerEntrypointConfig,
     ForwardWorkerEntrypointDecision,
     ForwardWorkerEntrypointStartupError,
@@ -133,7 +134,11 @@ async def test_forward_worker_composes_dedicated_queue_and_closes_runtime() -> N
 
     result = await run_forward_strategy_lab_v2_worker(
         _config(reclaim_idle_ms=11, batch_size=2, block_ms=7, interval_seconds=2),
-        callback_factory=lambda _persistence: (lambda *_a: None, lambda *_a: None),  # type: ignore[arg-type,return-value]
+        callback_factory=lambda _persistence: ForwardWorkerCallbacks(
+            lambda *_a: None,  # type: ignore[arg-type]
+            lambda *_a: None,  # type: ignore[arg-type]
+            close=lambda: calls.update(callbacks_closed=True),
+        ),  # type: ignore[arg-type]
         migration_service=_Migration(MigrationDecision.APPLIED),  # type: ignore[arg-type]
         session_factory=lambda: object(),
         persistence_factory=lambda _factory: Persistence(),  # type: ignore[arg-type,return-value]
@@ -158,3 +163,4 @@ async def test_forward_worker_composes_dedicated_queue_and_closes_runtime() -> N
     assert calls["service"][1]["payload_loader"] is Persistence.forward_dispatch
     assert calls["service"][1]["interval_seconds"] == 2
     assert calls["closed"] is True
+    assert calls["callbacks_closed"] is True

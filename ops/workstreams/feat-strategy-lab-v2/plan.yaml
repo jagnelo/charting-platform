@@ -868,6 +868,7 @@ progress:
       - backend/app/strategy_lab_v2/application.py
       - backend/app/strategy_lab_v2/forward_execution_plan_resolution.py
       - backend/app/strategy_lab_v2/forward_worker_entrypoint.py
+      - backend/app/strategy_lab_v2/forward_worker_composition.py
       - backend/app/strategy_lab_v2/forward_worker_service.py
       - backend/app/strategy_lab_v2/nautilus_forward_bootstrap.py
       - backend/app/strategy_lab_v2/nautilus_forward_process.py
@@ -876,6 +877,7 @@ progress:
       - backend/app/strategy_lab_v2/worker_callbacks.py
       - backend/app/strategy_lab_v2/tests/test_application.py
       - backend/app/strategy_lab_v2/tests/test_forward_worker_entrypoint.py
+      - backend/app/strategy_lab_v2/tests/test_forward_worker_composition.py
       - backend/app/strategy_lab_v2/tests/test_forward_worker_service.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_process.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_recovery.py
@@ -890,22 +892,24 @@ progress:
     evidence sha256:5ed875d94c2242fcc302dec2f70df67832249c8f1aabbf3a112f671a969f4132,
     conformance sha256:0f3c976fc0d11d4fe65a0bd2a2db0e338a975ba4abecf3f77ec7f97505eca51f).
     Exact-image process-loss, production PostgreSQL/Redis settlement/ACK, and
-    post-ACK checkpoint continuation passed 3/3; the package passes 1,508
-    tests with one unrelated opt-in test skipped. The declared package-wide
-    MyPy gate now passes all 405 files, and package Ruff passes. Overall ACs
-    remain incomplete: the dedicated forward worker still lacks production
-    callback/runtime composition, and backtest/search/API/security/Compose
-    integration plus full exact-tip validation remain. Provider-platform, ETF,
+    post-ACK checkpoint continuation passed 3/3; the prior complete package
+    suite passed 1,508 tests with one unrelated opt-in test skipped. The new
+    forward-worker slice passes 41 adjacent tests, and package Ruff plus MyPy
+    pass across 407 files. Overall ACs remain incomplete: the dedicated
+    forward worker still lacks full warm-up/context/bootstrap and RC5 process
+    composition, and backtest/search/API/security/Compose integration plus full
+    exact-tip validation remain. Provider-platform, ETF,
     and TC2000 contracts stay within their owning branches; options remain
     fail-closed pending canonical Greeks/delta/settlement evidence. Preserve
     canonical platform event identity and ordering; never derive it from
     dependency-local frozen series rows.
   next_action: >-
-    Trace the current dedicated worker callback assembly end to end. Replace
-    test-only runtime injection with production owner-scoped loading of the
-    immutable forward execution plan, warm-up/context artifacts, and exact
-    admission/account checkpoint; wire those into the authenticated resolver,
-    hardened RC5 process factory, receipt-first session handler, and Redis
-    materializer. Add application/entrypoint integration proving missing or
-    cross-owner bindings fail closed. Then continue the open ACs and full
+    Owner-scoped dispatch routing, callback lifecycle, and a persistence-backed
+    resolver for immutable plans and exact admission/account checkpoints are
+    now composed. The owner-handler builder still must bind warm-up/context
+    artifacts to the hardened RC5 process factory and receipt-first session.
+    Keep canonical live/frozen payload readers as explicit platform-owned
+    adapters; do not synthesize event identity or ordering. Add
+    application/entrypoint integration proving missing or cross-owner bindings
+    fail closed. Then continue the open ACs and full
     exact-tip integration gate.

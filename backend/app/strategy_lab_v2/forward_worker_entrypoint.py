@@ -53,12 +53,15 @@ class ForwardWorkerCallbacks:
 
     materializer: ForwardEventMaterializer
     handler: ForwardEventHandler
+    close: Callable[[], Awaitable[None] | None] | None = None
 
     def __post_init__(self) -> None:
         if not callable(self.materializer):
             raise TypeError("materializer must be callable")
         if not callable(self.handler):
             raise TypeError("handler must be callable")
+        if self.close is not None and not callable(self.close):
+            raise TypeError("close must be callable or None")
 
 
 @dataclass(frozen=True, slots=True)
@@ -251,7 +254,14 @@ async def run_forward_strategy_lab_v2_worker(
         callbacks = await callbacks
     callback_set = _coerce_callbacks(callbacks)
 
-    runtime = await runtime_factory(config.redis_url, namespace=config.redis_namespace)
+    try:
+        runtime = await runtime_factory(config.redis_url, namespace=config.redis_namespace)
+    except BaseException:
+        if callback_set.close is not None:
+            close_result = callback_set.close()
+            if inspect.isawaitable(close_result):
+                await close_result
+        raise
     try:
         worker = runtime.worker(
             queue_name=config.queue_name,
@@ -297,7 +307,13 @@ async def run_forward_strategy_lab_v2_worker(
                     await relay_task
             cleanup()
     finally:
-        await runtime.aclose()
+        try:
+            await runtime.aclose()
+        finally:
+            if callback_set.close is not None:
+                close_result = callback_set.close()
+                if inspect.isawaitable(close_result):
+                    await close_result
     return ForwardWorkerEntrypointResolution(
         ForwardWorkerEntrypointDecision.STOPPED,
         migration_resolution,

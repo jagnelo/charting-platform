@@ -829,6 +829,18 @@ class NautilusForwardSessionEventHandler:
         self._account_store = account_store
         self._principal = principal
 
+    @property
+    def principal(self) -> object:
+        """Owner identity whose durable forward state this handler may access."""
+
+        return self._principal
+
+    @property
+    def runtime(self) -> NautilusForwardSessionRuntime:
+        """Persistent runtime owned by this principal-scoped handler."""
+
+        return self._runtime
+
     async def __call__(
         self, entry: RedisStreamEntry, work_item: ForwardEventWorkItem
     ) -> WorkerHandleResult:
