@@ -840,7 +840,7 @@ progress:
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
     - strategy-lab-v2-forward-lifecycle-idempotency-v1
   total: 18
-  current_phase: native-forward-delivery-input
+  current_phase: native-forward-context-window
   current_blocker: >-
     No external dependency blocks package-owned implementation. The exact RC5
     source/image built from this worktree passed the four backtest conformance
@@ -852,18 +852,20 @@ progress:
     correction replay inputs. A host callback factory now authenticates one
     accepted Redis/PostgreSQL dispatch and its verified market payload into a
     single-event Nautilus input; correction and buffered events remain excluded.
-    The stateful exact-pinned Nautilus session, SDK context assembly, and
-    durable output-before-ack path remain code-owned work. Full Compose/browser
+    A bounded SDK context window now validates frozen declared dependencies,
+    binds event contexts to accepted delivery/checkpoint identities, and stages
+    history updates until durable settlement. The stateful exact-pinned Nautilus
+    session and its durable output-before-ack/recovery path remain code-owned
+    work. Full Compose/browser
     acceptance remains environment-limited by unavailable Docker Buildx. Shared
     provider, ETF, and TC2000 contracts gate only their eventual shared-path
     integration; options admission remains fail-closed pending canonical
     Greeks/delta and settlement evidence.
   next_action: >-
-    Implement the long-lived isolated Nautilus session that consumes sequential
-    authenticated one-event inputs on one BacktestEngine/trader instance,
-    constructs strategy contexts from declared frozen dependencies, and binds
-    native invocation/account outputs to the pre-event checkpoint and accepted
-    delivery before Redis acknowledgement. Preserve replay/recovery semantics,
-    keep corrections on the counterfactual path, and qualify event-tape parity
-    against the exact runtime image. Consume provider-owned source contracts
-    only after staging; stable release labeling is not a gate.
+    Integrate the staged context window with a long-lived isolated Nautilus
+    session consuming authenticated one-event inputs on one BacktestEngine and
+    trader. Persist native invocation/account outputs and the resulting
+    checkpoint before Redis acknowledgement; make replay/recovery deterministic,
+    preserve corrections on the counterfactual path, and qualify event-tape
+    parity against the exact runtime image. Consume provider-owned source
+    contracts only after staging; stable release labeling is not a gate.

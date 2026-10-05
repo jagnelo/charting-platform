@@ -10801,3 +10801,36 @@ Changed paths in the current implementation slice:
 these authenticated inputs to the long-lived engine/trader, strategy callback
 context, persistence, and acknowledgement/recovery boundary; then qualify
 forward event-tape parity on the exact runtime image.
+
+## 2026-10-05 - Staged forward SDK context window
+
+Added `ForwardStrategyContextWindow` for one portfolio component. It accepts
+only source-verified canonical/SDK event pairs, checks exact declared fields,
+instrument and dependency interval, enforces strictly advancing event time and
+sequence, retains only each dependency's declared lookback plus its current
+event, and constructs engine-neutral SDK contexts with no future events.
+Parameters, random seed, positions, and the component manifest are carried
+through the existing `build_strategy_context` contract.
+
+For live dispatches, `prepare_delivery` binds the staged context to the complete
+authenticated delivery, dispatch record, pre-event account checkpoint, and
+warm-up receipt. The rolling history does not advance until explicit `commit`
+after settlement; identical pending deliveries are idempotent, conflicting
+inputs cannot overtake them, and a failed execution can discard its staged
+window after the runtime is reset. This is the host context/commit seam, not a
+Nautilus process session or durable cross-process checkpoint implementation.
+
+Validation: the full Strategy Lab package plus schema-migration suite passed
+1,409 tests. Ruff check/format and focused MyPy for the new context and delivery
+modules passed. A full package MyPy invocation reports 12 errors in six
+untouched test files; no reported error is in this slice. `git diff --check`
+passed. The persistent same-engine strategy session, durable runtime/account
+receipt recovery protocol, and fifth forward event-tape parity check remain
+code-owned work. RC5 backtest conformance remains valid only for its recorded
+exact image and verified scope; no stable release label is required.
+
+Changed paths:
+`backend/app/strategy_lab_v2/forward_context.py`,
+`backend/app/strategy_lab_v2/tests/test_forward_context.py`,
+`backend/app/strategy_lab_v2/nautilus_forward_delivery.py`, and
+`backend/app/strategy_lab_v2/tests/test_nautilus_forward_delivery.py`.
