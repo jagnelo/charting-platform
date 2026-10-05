@@ -8094,6 +8094,26 @@ AC10 still awaits the separately developed provider-platform branch reaching
 staging, and AC14 is the post-integration/deployment 30-day shadow gate. The
 saved goal remains active; it is not marked blocked or complete.
 
+## ETF workstation capability fail-closed correction — 2026-10-05
+
+The ETF capability helper previously treated a missing or unrecognized
+availability value as `available`. Generic and legacy non-ETF descriptors may
+still omit this metadata, but an `etf_holdings` source must now have an explicit
+recognized state: current data is selectable only when
+`usable_for_current_analysis` is explicitly true; an explicit historical
+`available` state remains selectable; pending membership/snapshot states remain
+followable; and `not_applicable`, unknown, missing, and future/unrecognized
+states fail closed and render as not current. Added source-kind-aware regression
+coverage without changing generic source behavior.
+
+The focused source-capability tests passed 12/12 and the Market Map component
+suite passed 34/34. The shared Docker inventory confirmed the separate
+`feat-tc2000-frontend-rework` Compose stack and browser are still active, with
+about 2.9 GiB available memory. No competing browser gate was started and no
+other-worktree resource was changed. Frontend type-check and the required local
+full gate remain pending safe stack availability. AC7/AC8 remain open; AC10
+awaits provider-platform staging; AC14 remains post-integration/deployment.
+
 ## Local full integration gate — 2026-10-05 05:48 UTC
 
 I reran the required `make validate-integration

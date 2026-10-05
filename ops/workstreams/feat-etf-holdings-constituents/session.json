@@ -70,7 +70,14 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "frontend/src/lib/workstation/sourceCapability.ts",
+    "frontend/tests/unit/lib/workstation_source_capability.test.ts",
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -106,13 +113,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7c14feb2780a0c4e3283ef76fdf81bb95e16eece",
+  "head": "a094335ef6453a6898e0eea2eddefb94d82bc41b",
   "implementation_sha": "f04b0a39a60fadd6d8d21cf2bca360d8d746c88c",
   "last_checkpoint": "2026-10-05T04:01:03.000000+00:00",
-  "last_human_progress_update": "2026-10-05T05:51:50.873339+00:00",
+  "last_human_progress_update": "2026-10-05T06:34:22.894760+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Wait for the feat-tc2000-frontend-rework Docker/browser stack to exit, then replay the four exact failing browser cases on a fresh ETF stack using the temporary Buildx plugin. If they pass, rerun the official full gate; if any reproduces, diagnose only the directly causal ETF-owned code and preserve generic assertions/baselines. Do not stop or alter another worktree. Exact-SHA branch tests passed, but Codecov uploads remain TLS-failing and the GitHub retry endpoint returned 403. AC7/AC8 remain open; AC10 awaits provider-platform staging; AC14 remains the post-integration/deployment shadow gate.",
-  "plan_hash": "a18d859140ce1d6e3cbf342ea179f23082cddd966382e5e0ccb298221f036cfb",
+  "plan_hash": "4018974fec3e51fd6ff45a71c4bb2b0ce94ee1d14b300b7d87e7b96644c21e98",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -133,13 +140,13 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The full local gate on 37d32c6 passed through stack health and research-runner probes, then the 260-test browser stage recorded four workstation failures. A temporary Buildx plugin resolved the Docker setup issue. GitHub run 37265943225 branch tests passed; Codecov TLS EPROTO failed uploads and retry returned 403. Parallel worktree stack active; do not compete. AC7/AC8 open, AC10 waits provider-platform staging, AC14 post-release.",
-    "current_phase": "local_full_gate_e2e_failures_waiting_for_shared_stack",
-    "next_action": "Wait for the other stack to exit, replay four exact failed Playwright cases using temporary Buildx; if they pass rerun full integration, otherwise trace only directly causal ETF-owned code. Do not stop another stack or alter generic tests/baselines.",
+    "current_blocker": "15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. ETF source capability metadata now fails closed for missing, unknown, not_applicable, and current-without-explicit-usability states; focused helper and Market Map tests pass. The required local browser gate still needs a safe fresh ETF stack, but the separate feat-tc2000-frontend-rework Compose/browser stack is active and available memory is about 2.9 GiB, so do not compete with or stop it. Exact-SHA branch tests passed, but hosted E2E was skipped after repeated Codecov TLS EPROTO upload failures and the GitHub retry API returned 403. AC7/AC8 remain open; AC10 awaits provider-platform staging; AC14 is post-integration/deployment observation.",
+    "current_phase": "etf_source_capability_fail_closed_fix_done_browser_replay_waits_for_shared_stack",
+    "next_action": "Wait for the separate Docker/browser stack to exit and memory headroom to recover, then replay the four exact failing Playwright cases on a fresh ETF stack using the temporary Buildx plugin. If they pass, rerun the official full gate; if any reproduces, diagnose only directly causal ETF-owned paths and preserve generic assertions/baselines. Do not stop or alter another worktree.",
     "total": 14,
-    "updated_at": "2026-10-05T05:51:50.873303+00:00"
+    "updated_at": "2026-10-05T06:34:22.894735+00:00"
   },
-  "remote": "7c14feb2780a0c4e3283ef76fdf81bb95e16eece",
+  "remote": "a094335ef6453a6898e0eea2eddefb94d82bc41b",
   "remote_sha": "7c14feb2780a0c4e3283ef76fdf81bb95e16eece",
   "remote_synchronized": true,
   "schema": 2,

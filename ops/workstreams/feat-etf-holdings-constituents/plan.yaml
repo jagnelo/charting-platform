@@ -58,6 +58,8 @@ owned_paths:
   - frontend/src/views/ETFHoldingsView.vue
   - frontend/src/components/etf/ETFHoldingsPanel.vue
   - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/lib/workstation/sourceCapability.ts
+  - frontend/tests/unit/lib/workstation_source_capability.test.ts
   - frontend/src/stores/workspace.ts
   - backend/tests/unit/services/test_etf_holdings_adapters.py
   - backend/tests/unit/services/test_etf_holdings_capability.py
@@ -430,7 +432,7 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: local_full_gate_four_browser_failures_waiting_for_shared_stack
+current_phase: etf_source_capability_fail_closed_fix_done_browser_replay_waits_for_shared_stack
 current_blocker: >-
   QVAL implementation checkpoint (2026-10-05; superseded by the updates below):
   15 Tier-0 and 156 Tier-1 symbol outcomes
@@ -740,6 +742,17 @@ current_blocker: >-
   E2E was skipped, and the available GitHub retry API returned 403. AC7/AC8
   remain open. AC10 awaits provider-platform staging; AC14 remains the later
   post-integration/deployment shadow observation. Goal remains active.
+
+  UPDATE 2026-10-05T06:29Z: An ETF-specific workstation fail-open gap is fixed:
+  source capability descriptors with missing/unrecognized state, `not_applicable`,
+  or `current` without explicit `usable_for_current_analysis=true` now fail
+  closed. Explicit historical `available` and pending/followable states remain
+  supported, and generic non-ETF compatibility is unchanged. The new source
+  helper suite passed 12/12 and Market Map component suite passed 34/34. A
+  read-only Docker/memory check confirms the separate
+  feat-tc2000-frontend-rework stack and browser are active, with 2.9 GiB
+  available; the full browser gate and frontend type-check were not started to
+  avoid competing with that stack. No other-worktree resources were changed.
 
 next_action: >-
   Wait for the feat-tc2000-frontend-rework Docker/browser stack to exit, then

@@ -1,4 +1,5 @@
 export type SourceCapabilityDescriptor = {
+  source_kind?: string
   provenance?: Record<string, unknown> | null
 }
 
@@ -17,11 +18,20 @@ export function sourceAvailability(source: SourceCapabilityDescriptor): SourceAv
   const availability = String(source.provenance?.availability ?? '')
   if (PENDING_AVAILABILITIES.has(availability)) return 'pending'
   if (NON_CURRENT_AVAILABILITIES.has(availability)) return 'unavailable'
+  if (source.source_kind === 'etf_holdings') {
+    const usable = source.provenance?.usable_for_current_analysis
+    if (availability === 'current') return usable === true ? 'available' : 'unavailable'
+    if (availability === 'available' && usable !== false) return 'available'
+    return 'unavailable'
+  }
   return 'available'
 }
 
 export function sourceIsNotCurrent(source: SourceCapabilityDescriptor): boolean {
   const availability = String(source.provenance?.availability ?? '')
+  if (source.source_kind === 'etf_holdings') {
+    return sourceAvailability(source) === 'unavailable'
+  }
   return source.provenance?.usable_for_current_analysis === false
     || NON_CURRENT_AVAILABILITIES.has(availability)
 }
@@ -38,6 +48,7 @@ export function formatSourceFailureClass(value: unknown): string {
 
 export function sourceAvailabilitySuffix(source: SourceCapabilityDescriptor): string {
   const rawAvailability = String(source.provenance?.availability ?? '')
+    || (source.source_kind === 'etf_holdings' ? 'unknown' : '')
   const availability = sourceAvailability(source)
   const failureClass = source.provenance?.failure_class
   const failureSuffix = failureClass ? ` · ${formatSourceFailureClass(failureClass)}` : ''
