@@ -482,10 +482,9 @@ def run_native_forward_session_fixture() -> dict[str, Any]:
         if replayed.fingerprint != first.fingerprint:
             raise RuntimeError("forward session restore changed native account effects")
 
-        # Model process loss after the first event has been durably settled.
-        # A fresh runtime receives a new authenticated bootstrap with that
-        # event in its processed prefix, rather than relying on the old
-        # process-local replay list.
+        # Model the state supplied after restart without claiming an OS
+        # process boundary: a new runtime receives an authenticated bootstrap
+        # with the event in its processed prefix, not the old replay list.
         host_window.commit(preparation)
         next_checkpoint = content_digest("forward-native-session-checkpoint-after-event-3")
         processed_event = NautilusForwardBootstrapEvent(
@@ -583,9 +582,9 @@ def run_native_forward_session_fixture() -> dict[str, Any]:
         return {
             "passed": True,
             "authoritative": False,
-            "non_empty_prefix_process_loss_replay": True,
+            "non_empty_prefix_runtime_reconstruction": True,
             "account_event_fingerprint": first.account_event_binding.fingerprint,
-            "post_restart_account_event_fingerprint": (
+            "reconstructed_account_event_fingerprint": (
                 after_process_loss.account_event_binding.fingerprint
             ),
             "runtime_session_fingerprint": first.runtime_session_fingerprint,

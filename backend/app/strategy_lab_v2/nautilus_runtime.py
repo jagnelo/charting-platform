@@ -689,8 +689,8 @@ def _require_native_forward_session(value: Any) -> None:
     fields = {
         "account_event_fingerprint",
         "authoritative",
-        "non_empty_prefix_process_loss_replay",
-        "post_restart_account_event_fingerprint",
+        "non_empty_prefix_runtime_reconstruction",
+        "reconstructed_account_event_fingerprint",
         "passed",
         "result_fingerprint",
         "runtime_session_fingerprint",
@@ -699,7 +699,7 @@ def _require_native_forward_session(value: Any) -> None:
         raise ValueError("native forward session fixture fields are invalid")
     for name in (
         "account_event_fingerprint",
-        "post_restart_account_event_fingerprint",
+        "reconstructed_account_event_fingerprint",
         "result_fingerprint",
         "runtime_session_fingerprint",
     ):
@@ -707,7 +707,7 @@ def _require_native_forward_session(value: Any) -> None:
     if (
         value["authoritative"] is not False
         or value["passed"] is not True
-        or value["non_empty_prefix_process_loss_replay"] is not True
+        or value["non_empty_prefix_runtime_reconstruction"] is not True
     ):
         raise ValueError("native forward session fixture did not pass as a non-authoritative probe")
 
