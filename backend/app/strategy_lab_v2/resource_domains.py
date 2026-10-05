@@ -57,6 +57,10 @@ from app.strategy_lab_v2.contracts import (
     TrialRandomization,
     TrialSeedPolicy,
 )
+from app.strategy_lab_v2.forward_execution_plan import (
+    ForwardComponentExecutionPlan,
+    ForwardExecutionPlan,
+)
 from app.strategy_lab_v2.rebalance import (
     CalendarRebalancePolicy,
     RebalanceCadence,
@@ -75,6 +79,7 @@ DomainResourceContract = (
     | ScientificTrial
     | MetricSet
     | ForwardInstance
+    | ForwardExecutionPlan
 )
 
 _DOMAIN_RESOURCE_CONTRACT_TYPES = (
@@ -87,6 +92,7 @@ _DOMAIN_RESOURCE_CONTRACT_TYPES = (
     ScientificTrial,
     MetricSet,
     ForwardInstance,
+    ForwardExecutionPlan,
 )
 
 
@@ -146,6 +152,8 @@ def normalize_resource_attributes(
         return _normalize_metric_set(attributes)
     if resource_type is ApiResourceType.FORWARD_INSTANCE:
         return _normalize_forward_instance(attributes)
+    if resource_type is ApiResourceType.FORWARD_EXECUTION_PLAN:
+        return _normalize_forward_execution_plan(attributes)
     return ResourceDomainNormalization(attributes)
 
 
@@ -945,6 +953,8 @@ def _normalize_forward_instance(attributes: Mapping[str, Any]) -> ResourceDomain
         raise ValueError(f"forward_instance attribute is required: {error.args[0]}") from error
     except (AttributeError, TypeError, ValueError) as error:
         raise ValueError(f"forward_instance attributes are invalid: {error}") from error
+    if api_ids and any(resource_id != instance.instance_id for resource_id in api_ids):
+        raise ValueError("forward_instance resource id must equal its instance id")
 
     normalized: dict[str, Any] = {
         "instance_id": instance.instance_id,
@@ -957,10 +967,97 @@ def _normalize_forward_instance(attributes: Mapping[str, Any]) -> ResourceDomain
         "correction_count": instance.correction_count,
         "created_at": instance.created_at,
         "updated_at": instance.updated_at,
+        "resource_id": instance.instance_id,
     }
-    if api_ids:
-        normalized["resource_id"] = api_ids[0]
     return ResourceDomainNormalization(normalized, content_digest(instance), instance)
+
+
+def _normalize_forward_execution_plan(
+    attributes: Mapping[str, Any],
+) -> ResourceDomainNormalization:
+    allowed = {
+        "instance_id",
+        "portfolio_fingerprint",
+        "components",
+        "resource_id",
+        "id",
+    }
+    unknown = sorted(set(attributes) - allowed)
+    if unknown:
+        raise ValueError(
+            "forward_execution_plan attributes contain unsupported fields: " f"{', '.join(unknown)}"
+        )
+    api_ids = [attributes[name] for name in ("resource_id", "id") if name in attributes]
+    if any(not isinstance(value, str) or not value.strip() for value in api_ids):
+        raise ValueError("forward_execution_plan resource_id/id must be non-empty strings")
+    if len(api_ids) == 2 and api_ids[0] != api_ids[1]:
+        raise ValueError("forward_execution_plan resource_id and id must agree")
+
+    components_raw = attributes.get("components")
+    if not isinstance(components_raw, Sequence) or isinstance(components_raw, str | bytes):
+        raise ValueError("forward_execution_plan components must be a sequence")
+    components: list[ForwardComponentExecutionPlan] = []
+    required_component_fields = {
+        "component_id",
+        "strategy_fingerprint",
+        "package_fingerprint",
+        "parameters",
+        "random_seed",
+    }
+    for item in components_raw:
+        if not isinstance(item, Mapping) or set(item) != required_component_fields:
+            raise ValueError(
+                "forward execution plan components require component_id, "
+                "strategy_fingerprint, package_fingerprint, parameters, and random_seed"
+            )
+        if not isinstance(item["parameters"], Mapping):
+            raise ValueError("forward execution plan component parameters must be a mapping")
+        try:
+            components.append(
+                ForwardComponentExecutionPlan(
+                    component_id=item["component_id"],
+                    strategy_fingerprint=item["strategy_fingerprint"],
+                    package_fingerprint=item["package_fingerprint"],
+                    parameters=item["parameters"],
+                    random_seed=item["random_seed"],
+                )
+            )
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"forward execution plan component is invalid: {error}") from error
+
+    try:
+        plan = ForwardExecutionPlan(
+            instance_id=attributes["instance_id"],
+            portfolio_fingerprint=attributes["portfolio_fingerprint"],
+            components=tuple(components),
+        )
+    except KeyError as error:
+        raise ValueError(
+            f"forward execution plan attribute is required: {error.args[0]}"
+        ) from error
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"forward execution plan attributes are invalid: {error}") from error
+    if api_ids and any(resource_id != plan.instance_id for resource_id in api_ids):
+        raise ValueError("forward execution plan resource id must equal its instance id")
+
+    normalized: dict[str, Any] = {
+        "instance_id": plan.instance_id,
+        "portfolio_fingerprint": plan.portfolio_fingerprint,
+        "components": tuple(
+            {
+                "component_id": item.component_id,
+                "strategy_fingerprint": item.strategy_fingerprint,
+                "package_fingerprint": item.package_fingerprint,
+                "parameters": item.parameters,
+                "random_seed": item.random_seed,
+            }
+            for item in plan.components
+        ),
+        # A plan is owner-scoped by the same immutable id as the instance; this
+        # makes lookup deterministic and prevents an unreferenced plan alias.
+        "resource_id": plan.instance_id,
+    }
+    return ResourceDomainNormalization(normalized, plan.fingerprint, plan)
 
 
 def _preflight_report(value: Any) -> PreflightReport:

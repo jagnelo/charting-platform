@@ -61,6 +61,7 @@ from app.strategy_lab_v2.forward_corrections import (
 )
 from app.strategy_lab_v2.forward_event_dispatch import ForwardEventDispatchResolution
 from app.strategy_lab_v2.forward_event_transaction import ForwardEventTransactionResolution
+from app.strategy_lab_v2.forward_execution_plan import ForwardExecutionPlan
 from app.strategy_lab_v2.forward_warmup import (
     ForwardWarmupReceipt,
     ForwardWarmupResolution,
@@ -707,6 +708,20 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         elif isinstance(contract, ForwardInstance):
             add(ApiResourceType.PORTFOLIO, contract.portfolio_fingerprint)
             add(ApiResourceType.SNAPSHOT, contract.warmup_snapshot_fingerprint)
+        elif isinstance(contract, ForwardExecutionPlan):
+            instance = await self._resources.get_domain_contract(
+                principal=principal,
+                resource_type=ApiResourceType.FORWARD_INSTANCE,
+                resource_id=contract.instance_id,
+            )
+            if not isinstance(instance, ForwardInstance):
+                raise ValueError("forward execution plan instance is unavailable")
+            if instance.portfolio_fingerprint != contract.portfolio_fingerprint:
+                raise ValueError("forward execution plan differs from its instance portfolio")
+            add(ApiResourceType.PORTFOLIO, contract.portfolio_fingerprint)
+            for plan_component in contract.components:
+                add(ApiResourceType.STRATEGY, plan_component.strategy_fingerprint)
+                add(ApiResourceType.PACKAGE, plan_component.package_fingerprint)
         else:
             return
 
@@ -805,6 +820,39 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 contract.warmup_snapshot_fingerprint,
                 DataSnapshot,
             )
+        elif isinstance(contract, ForwardExecutionPlan):
+            instance = await self._resources.get_domain_contract(
+                principal=principal,
+                resource_type=ApiResourceType.FORWARD_INSTANCE,
+                resource_id=contract.instance_id,
+            )
+            portfolio = require(
+                ApiResourceType.PORTFOLIO,
+                contract.portfolio_fingerprint,
+                PortfolioComposition,
+            )
+            if not isinstance(instance, ForwardInstance):
+                raise ValueError("forward execution plan instance is unavailable")
+            contract.validate_bindings(instance=instance, portfolio=portfolio)
+            for plan_component in contract.components:
+                strategy = require(
+                    ApiResourceType.STRATEGY,
+                    plan_component.strategy_fingerprint,
+                    StrategyVersion,
+                )
+                package = require(
+                    ApiResourceType.PACKAGE,
+                    plan_component.package_fingerprint,
+                    StrategyPackage,
+                )
+                if package.fingerprint != plan_component.package_fingerprint:
+                    raise ValueError(
+                        "forward execution plan package pin does not match its package"
+                    )
+                if package.strategy_fingerprint != strategy.fingerprint:
+                    raise ValueError("forward execution plan package differs from its strategy")
+                if package.sdk_version != strategy.sdk_version:
+                    raise ValueError("forward execution plan package SDK differs from its strategy")
 
     async def create_resource(
         self,
@@ -1171,8 +1219,32 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise TypeError("target must be a ForwardState")
         if not isinstance(now, datetime) or now.tzinfo is None or now.utcoffset() is None:
             raise ValueError("now must be a timezone-aware datetime")
+        owner = _principal_identity(principal)
+        if target is ForwardState.WARMING_UP:
+            instance = await self._persistence.forward_state.load_instance(
+                principal=owner,
+                instance_id=instance_id,
+            )
+            if instance is not None:
+                plan = await self._resources.get_domain_contract(
+                    principal=owner,
+                    resource_type=ApiResourceType.FORWARD_EXECUTION_PLAN,
+                    resource_id=instance_id,
+                )
+                portfolio = await self._resources.get_domain_contract_by_fingerprint(
+                    principal=owner,
+                    resource_type=ApiResourceType.PORTFOLIO,
+                    fingerprint=instance.portfolio_fingerprint,
+                )
+                if not isinstance(plan, ForwardExecutionPlan) or not isinstance(
+                    portfolio, PortfolioComposition
+                ):
+                    raise ValueError(
+                        "an exact forward execution plan must exist before warm-up activation"
+                    )
+                plan.validate_bindings(instance=instance, portfolio=portfolio)
         return await self._persistence.forward_state.transition(
-            principal=_principal_identity(principal),
+            principal=owner,
             instance_id=instance_id,
             target=target,
             now=now.astimezone(UTC),

@@ -1,5 +1,6 @@
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -24,13 +25,26 @@ from app.strategy_lab_v2.artifact_commit import ArtifactCommitLedger
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capability_summary import CapabilitySummary, CapabilitySummaryDecision
 from app.strategy_lab_v2.conformance import EngineReleaseChannel
-from app.strategy_lab_v2.contracts import ForwardState
+from app.strategy_lab_v2.contracts import (
+    CarryInMode,
+    ForwardInstance,
+    ForwardState,
+    PortfolioComponent,
+    PortfolioComposition,
+    StrategyPackage,
+    StrategyPackageFormat,
+    StrategyVersion,
+)
 from app.strategy_lab_v2.dispatch import SearchDispatchIntent
 from app.strategy_lab_v2.dispatch_payload import DispatchPayload
 from app.strategy_lab_v2.engine_execution import (
     NautilusExecutionScope,
 )
 from app.strategy_lab_v2.execution import ExecutionAuthorization
+from app.strategy_lab_v2.forward_execution_plan import (
+    ForwardComponentExecutionPlan,
+    ForwardExecutionPlan,
+)
 from app.strategy_lab_v2.forward_worker_authorization import ForwardWorkerAuthorization
 from app.strategy_lab_v2.lease_observations import LeaseObservationState
 from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease
@@ -187,6 +201,10 @@ async def test_application_forward_lifecycle_is_owner_scoped_and_utc_normalized(
             observed["transition"] = kwargs
             return SimpleNamespace(instance=instance)
 
+        async def load_instance(self, **kwargs: Any) -> Any:
+            observed["load_instance"] = kwargs
+            return None
+
         async def complete_warmup(self, **kwargs: Any) -> Any:
             observed["warmup"] = kwargs
             return SimpleNamespace(receipt=kwargs["receipt"])
@@ -208,6 +226,108 @@ async def test_application_forward_lifecycle_is_owner_scoped_and_utc_normalized(
     assert observed["transition"]["now"].tzinfo is UTC
     assert observed["transition"]["idempotency_key"] == "application-forward-lifecycle-key"
     assert observed["warmup"]["principal"].id == "42"
+
+
+@pytest.mark.asyncio
+async def test_application_requires_forward_execution_plan_before_warmup() -> None:
+    instance = _instance()
+
+    class ForwardStore:
+        async def load_instance(self, **_kwargs: Any) -> Any:
+            return instance
+
+        async def transition(self, **_kwargs: Any) -> Any:  # pragma: no cover - must not run
+            raise AssertionError("warming-up transition must fail before persistence")
+
+    class ResourceReader:
+        async def get_domain_contract(self, **_kwargs: Any) -> Any:
+            return None
+
+        async def get_domain_contract_by_fingerprint(self, **_kwargs: Any) -> Any:
+            return None
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._persistence = SimpleNamespace(forward_state=ForwardStore())
+    adapter._resources = ResourceReader()
+
+    with pytest.raises(ValueError, match="exact forward execution plan"):
+        await adapter.transition_forward_instance(
+            principal=_User(42),
+            instance_id=instance.instance_id,
+            target=ForwardState.WARMING_UP,
+            now=datetime(2024, 1, 2, 13, 0, tzinfo=UTC),
+            idempotency_key="application-forward-plan-required",
+        )
+
+
+@pytest.mark.asyncio
+async def test_application_authenticates_forward_plan_component_references() -> None:
+    strategy = StrategyVersion("momentum", "v1", "sdk.v2", content_digest("strategy-source"))
+    package = StrategyPackage(
+        "momentum-package",
+        strategy.fingerprint,
+        StrategyPackageFormat.SOURCE_ARCHIVE,
+        content_digest("archive"),
+        content_digest("manifest"),
+        content_digest("dependency-lock"),
+        128,
+        "strategy.main:Strategy",
+        strategy.sdk_version,
+        "cp312-linux-x86_64-v1",
+    )
+    portfolio = PortfolioComposition(
+        "portfolio-1",
+        "v1",
+        Decimal("10000"),
+        "USD",
+        (PortfolioComponent("momentum", strategy.fingerprint, ("US.ABC",), Decimal(1)),),
+    )
+    instance = ForwardInstance(
+        "forward-1",
+        portfolio.fingerprint,
+        content_digest("snapshot"),
+        CarryInMode.FLAT,
+        ForwardState.CREATED,
+        None,
+        0,
+        0,
+        NOW,
+        NOW,
+    )
+    plan = ForwardExecutionPlan(
+        instance.instance_id,
+        portfolio.fingerprint,
+        (
+            ForwardComponentExecutionPlan(
+                "momentum",
+                strategy.fingerprint,
+                package.fingerprint,
+                {"threshold": 0.5},
+                7,
+            ),
+        ),
+    )
+
+    class Reader:
+        async def get_domain_contract(self, **kwargs: Any) -> Any:
+            assert kwargs["principal"].id == "42"
+            assert kwargs["resource_type"] is ApiResourceType.FORWARD_INSTANCE
+            assert kwargs["resource_id"] == instance.instance_id
+            return instance
+
+        async def get_domain_contracts_by_fingerprint(self, **kwargs: Any) -> Any:
+            assert kwargs["principal"].id == "42"
+            available = {
+                ApiResourceType.PORTFOLIO: {portfolio.fingerprint: portfolio},
+                ApiResourceType.STRATEGY: {strategy.fingerprint: strategy},
+                ApiResourceType.PACKAGE: {package.fingerprint: package},
+            }
+            values = available[kwargs["resource_type"]]
+            return {fingerprint: values[fingerprint] for fingerprint in kwargs["fingerprints"]}
+
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._resources = Reader()
+    await adapter._validate_domain_dependencies(_principal_identity(_User(42)), plan)
 
 
 @pytest.mark.asyncio

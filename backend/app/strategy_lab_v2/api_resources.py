@@ -33,6 +33,7 @@ class ApiResourceType(StrEnum):
     METRIC_SET = "metric-sets"
     ARTIFACT = "artifacts"
     FORWARD_INSTANCE = "forward-instances"
+    FORWARD_EXECUTION_PLAN = "forward-execution-plans"
     CAPABILITY_SUMMARY = "capability-summaries"
     LEGACY_IMPORT = "legacy-imports"
 

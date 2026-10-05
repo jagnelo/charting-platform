@@ -116,6 +116,7 @@ _MUTABLE_RESOURCE_TYPES = frozenset(
         ApiResourceType.TRIAL,
         ApiResourceType.ATTEMPT,
         ApiResourceType.FORWARD_INSTANCE,
+        ApiResourceType.FORWARD_EXECUTION_PLAN,
     }
 )
 

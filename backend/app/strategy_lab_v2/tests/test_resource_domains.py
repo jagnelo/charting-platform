@@ -21,6 +21,7 @@ from app.strategy_lab_v2.contracts import (
     ProductClass,
     StrategyVersion,
 )
+from app.strategy_lab_v2.forward_execution_plan import ForwardExecutionPlan
 from app.strategy_lab_v2.resource_domains import (
     normalize_resource_attributes,
     rehydrate_resource_contract,
@@ -618,6 +619,16 @@ def test_forward_instance_attributes_are_normalized_as_typed_state() -> None:
     assert result.attributes["state"] == "active"
     assert result.attributes["last_event_sequence"] == 42
     assert result.attributes["created_at"].isoformat() == "2026-09-17T11:00:00+00:00"
+    without_api_ids = {
+        key: value for key, value in result.attributes.items() if key not in {"resource_id", "id"}
+    }
+    assert (
+        normalize_resource_attributes(
+            ApiResourceType.FORWARD_INSTANCE,
+            without_api_ids,
+        ).attributes["resource_id"]
+        == "forward-1"
+    )
 
 
 def test_forward_instance_rejects_invalid_progress_and_identity_fields() -> None:
@@ -646,3 +657,61 @@ def test_forward_instance_rejects_invalid_progress_and_identity_fields() -> None
     attributes["id"] = "different-id"
     with pytest.raises(ValueError, match="must agree"):
         normalize_resource_attributes(ApiResourceType.FORWARD_INSTANCE, attributes)
+
+    attributes.pop("id")
+    attributes["resource_id"] = "another-instance"
+    with pytest.raises(ValueError, match="must equal its instance id"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_INSTANCE, attributes)
+
+
+def _forward_execution_plan_attributes() -> dict[str, Any]:
+    return {
+        "instance_id": "forward-1",
+        "portfolio_fingerprint": content_digest("portfolio-v1"),
+        "components": [
+            {
+                "component_id": "momentum",
+                "strategy_fingerprint": content_digest("strategy-v1"),
+                "package_fingerprint": content_digest("package-v1"),
+                "parameters": {"lookback": 20},
+                "random_seed": 42,
+            }
+        ],
+    }
+
+
+def test_forward_execution_plan_is_a_typed_instance_keyed_resource() -> None:
+    attributes = _forward_execution_plan_attributes()
+    attributes["resource_id"] = "forward-1"
+
+    normalized = normalize_resource_attributes(
+        ApiResourceType.FORWARD_EXECUTION_PLAN,
+        attributes,
+    )
+    restored = rehydrate_resource_contract(
+        ApiResourceType.FORWARD_EXECUTION_PLAN,
+        normalized.attributes,
+        expected_domain_fingerprint=normalized.domain_fingerprint,
+    )
+
+    assert isinstance(normalized.typed_contract, ForwardExecutionPlan)
+    assert normalized.attributes["resource_id"] == "forward-1"
+    assert isinstance(restored, ForwardExecutionPlan)
+    assert restored.fingerprint == normalized.typed_contract.fingerprint
+
+
+def test_forward_execution_plan_rejects_ambiguous_resource_and_component_fields() -> None:
+    mismatched_id = _forward_execution_plan_attributes()
+    mismatched_id["resource_id"] = "another-instance"
+    with pytest.raises(ValueError, match="resource id must equal its instance id"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_EXECUTION_PLAN, mismatched_id)
+
+    malformed = _forward_execution_plan_attributes()
+    malformed["components"] = [{"component_id": "momentum"}]
+    with pytest.raises(ValueError, match="require component_id"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_EXECUTION_PLAN, malformed)
+
+    unknown = _forward_execution_plan_attributes()
+    unknown["broker"] = "disabled"
+    with pytest.raises(ValueError, match="unsupported fields"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_EXECUTION_PLAN, unknown)
