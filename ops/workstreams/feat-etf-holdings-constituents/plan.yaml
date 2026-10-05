@@ -430,7 +430,7 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: exact_sha_branch_tests_green_codecov_visual_gate_and_shared_provider_dependency_pending
+current_phase: narrative_invariant_restored_exact_sha_retest_pending
 current_blocker: >-
   The latest full gate on working source based on 115af366123c4e07e3a3109cc9ba19f2af136f18 again passed workstream/dependency/migration, Ruff/format/type-check, backend coverage (1,877 passed; 81.13%), frontend tests (945 passed; 82.08%), production build, Docker stack health, and research-runner probes. Playwright ran all 260 scenarios: 152 passed, 106 skipped, and two unrelated workstation scenarios failed (`F8j-conflict` expected a recovery notice but saw canonical-ready; `F8s-market-map-watchlist` timed out clicking a button detached during rerender). No visual mismatch was reported. Both failures then passed on a fresh healthy stack when replayed together (2 passed in 18.2s); additionally the adjacent `F8j` pop-out and `F8j-conflict` sequence passed (2 passed in 13.9s). Prior cross-window `ERR_NETWORK_CHANGED` cases also passed their focused replay and passed in this latest full run. The local gate exits at e2e-functional before standalone visual and branch-declared stages. These are non-reproducing test-order/load failures outside ETF behavior; no assertions or baselines were changed. ETF Docker resources were stopped and resource accounting is zero/complete. Exact-SHA CI for current working source is still not queried on its next pushed receipt. Goal remains active.
 
@@ -619,13 +619,26 @@ current_blocker: >-
   staging; AC14 requires the post-integration/deployment observation and human
   review.
 
+  Exact-SHA run 37259392395 on 1187b964e6f60bbfd7b477e0da442fb3428a3866
+  caught one branch and backend unit test failure: the session
+  progress.current_blocker note omitted the invariant phrase 15 Tier-0 and
+  156 Tier-1. The failing narrative test caused 594/595 branch adapter tests
+  and 1,499/1,500 backend unit tests to pass; the frontend's 945 tests passed,
+  but its Codecov upload failed with TLS EPROTO and hosted E2E was skipped.
+  The exact failure is fixed locally by restoring the required phrase.
+  The focused assertion passes 1/1, the complete deterministic adapter suite
+  passes 595/595, workstream validation passes, and diff-check passes. No
+  product code changed; exact-SHA retest after the correction is pending.
+
 next_action: >-
-  When the shared Docker host has safe memory headroom and no competing
-  worktree stack, run the targeted Study Lab visual cases in this ETF worktree,
-  inspect actual/diff artifacts including the adjacent chart toolbar, and make
-  only a demonstrated in-scope correction. Then rerun the full local browser
-  gate. The exact-SHA application tests pass; Codecov's external TLS failure
-  cannot be retried through the current GitHub integration (HTTP 403), and the
-  generic workflow must not be changed from this ETF-only scope. AC10 still
-  awaits provider-platform staging, and AC14 remains post-integration/
-  deployment. Do not integrate, promote, deploy, or modify another worktree.
+  Commit and push the restored session narrative invariant, then verify the
+  branch-declared suite on the new exact SHA. After that, when the shared Docker
+  host has safe memory headroom and no competing worktree stack, run the
+  targeted Study Lab visual cases in this ETF worktree, inspect actual/diff
+  artifacts including the adjacent chart toolbar, and make only a demonstrated
+  in-scope correction before rerunning the full local browser gate. Codecov's
+  external TLS failure cannot be retried through the current GitHub integration
+  (HTTP 403), and the generic workflow must not be changed from this ETF-only
+  scope. AC10 still awaits provider-platform staging; AC14 remains
+  post-integration/deployment. Do not integrate, promote, deploy, or modify
+  another worktree.

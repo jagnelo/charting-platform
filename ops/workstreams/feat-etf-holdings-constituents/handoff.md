@@ -7927,3 +7927,25 @@ acceptance. AC10 still waits for the user-reported provider-platform staging
 milestone; do not inspect or mutate that worktree. AC14 remains open until its
 documented post-integration/deployment 30-day production gate is observed and
 human-reviewed.
+
+## Receipt narrative regression caught and repaired — 2026-10-05
+
+The receipt commit at exact SHA 1187b964e6f60bbfd7b477e0da442fb3428a3866
+triggered run 37259392395. Its branch-declared suite and backend unit job both
+found the same single failure: the test
+test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers
+requires session progress.current_blocker to retain the exact current inventory
+phrase, 15 Tier-0 and 156 Tier-1. My prior progress update had omitted it.
+The branch suite had 594 other adapter tests pass; the backend unit suite had
+1,499 other tests pass. Frontend Vitest passed all 945 tests, but its Codecov
+upload again failed with TLS EPROTO. Hosted E2E was skipped because backend
+tests failed. The run tested the pre-fix SHA and remains a failure; no result is
+misrepresented as green.
+
+The session progress note now restores the required inventory phrase. The
+focused narrative assertion passes 1/1, the complete deterministic ETF adapter
+suite passes 595/595, workstream validation passes, and git diff-check passes.
+No application code changed. The corrected workstream receipt is being
+committed and pushed so a new exact-SHA workflow can verify the repair. The
+Study Lab screenshot attribution and later staging/production gates remain
+open as recorded above.
