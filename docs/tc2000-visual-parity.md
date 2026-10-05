@@ -9,9 +9,12 @@ seeded Playwright 1.62.1 `flows.spec.ts` rerun completed 177 cases: 175 passed,
 source had one 60-second F8m chart-panel link-menu timeout after 174 passes and
 2 skips; both its focused replay and the unchanged full rerun passed, with no
 product or test assertion changes. Keep the first outcome as raw history; the
-functional flow gate is currently green. The separate performance suite passed
-3/4, with the 10,000-row watchlist case skipped because its opt-in
-`E2E_SEED_LARGE_UNIVERSE` fixture was not enabled.
+functional flow gate is currently green. The default workstation performance
+suite passed 3/4; its opt-in 10,000-row watchlist case was skipped there, then
+passed unchanged 1/1 in an isolated seeded Compose project with
+`E2E_SEED_LARGE_UNIVERSE=true`. Treat that as focused coverage, not a single
+4/4 suite run. The temporary project and its volumes/images were removed; the
+assigned stack remained healthy and intact.
 
 The four-project board-guided visual matrix completed all 104 cases: 94 passed
 and 10 screenshot comparisons remained above the unchanged `0.005` threshold

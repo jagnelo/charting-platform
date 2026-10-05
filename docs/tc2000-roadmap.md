@@ -14,9 +14,12 @@ seeded `flows.spec.ts` run passed 174/177 with two documented skips and one
 F8m chart-panel menu timeout. The unchanged focused F8m replay passed 1/1, and
 a second unchanged full run passed 175/177 with two documented skips and zero
 failures. Preserve the first timeout as raw history; it is not a current
-functional blocker. The workstation performance suite passed 3/4; its
-10,000-row test was skipped because the opt-in large-universe fixture was not
-enabled.
+functional blocker. The default workstation performance suite passed 3/4; its
+opt-in 10,000-row test was skipped in that run, then passed unchanged 1/1 in a
+dedicated seeded Compose project using the ordinary Docker builder. This is
+focused evidence for the fourth case, not a single 4/4 suite run. Its temporary
+containers, network, four volumes, and local images were removed; the assigned
+six-service stack and its four volumes remained healthy and intact.
 
 The pinned four-project visual matrix completed 94/104. Its ten screenshot-only
 differences are unchanged: workspace-floating across all four viewports, Study

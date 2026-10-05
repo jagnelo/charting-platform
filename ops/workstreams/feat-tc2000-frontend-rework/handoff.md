@@ -32,6 +32,17 @@ outcome, not a current functional blocker. Workstation performance checks
 passed 3/4; the 10,000-row watchlist case was skipped because its explicit
 `E2E_SEED_LARGE_UNIVERSE=true` fixture was not enabled.
 
+At later branch checkpoint `732f278cec6dd8df2d3fcef93f7e355505311418` (same
+product source), that exact opt-in test passed `1/1` in 17 seconds against an
+isolated temporary Compose project seeded with 10,000 rows. Backend/frontend
+images built through Compose's ordinary Docker driver; only frontend, backend,
+Postgres, and Redis were started. The test verified the 10,000-row watchlist
+and under-100 rendered rows. Its four containers, network, four volumes, and
+two generated images were removed after exact-project inspection. The assigned
+six-service stack and four volumes remained healthy and intact. This focused
+pass complements the default 3/4 run; it is not a single 4/4 performance-suite
+result.
+
 The pinned four-project visual matrix completed 94/104, with the same ten
 protected screenshot-only differences after their state assertions passed:
 workspace-floating at all four scales, Study structured-result at all four,

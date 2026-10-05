@@ -137,7 +137,7 @@
   "last_checkpoint": "2026-10-05T17:42:50.712311+00:00",
   "last_human_progress_update": "2026-10-05T14:43:46+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit and push this evidence-only checkpoint for product source d413d845939e68e9738b621329fa8d63a419ddf8; verify clean worktree and exact remote equality, then continue a distinct TC-owned workstation, Study, Strategy, or visual-parity slice. Keep the protected visual differences, generic integration gate, opt-in 10k performance case, and upstream staging acceptance gates open; do not duplicate provider/ETF ownership. Stop only at ready_for_human_review.",
+  "next_action": "Commit and push this evidence-only checkpoint for product source d413d845939e68e9738b621329fa8d63a419ddf8; verify clean worktree and exact remote equality, then continue a distinct TC-owned workstation, Study, Strategy, or visual-parity slice. Keep the protected visual differences, generic integration gate, and upstream staging acceptance gates open; do not duplicate provider/ETF ownership. Stop only at ready_for_human_review.",
   "plan_hash": "6faf5f951a9a118dcd80f86db2f5eae083da5b2bf9594a5c0081bb910d27557c",
   "planning_required": false,
   "planning_state": "ready",
@@ -154,7 +154,7 @@
     ],
     "current_blocker": "At branch checkpoint 14031175efa97b639d7fd6d6829b5998f9f2b673, the corrected seeded functional suite passed 179/182 with 3 documented skips and zero failures; the exact-tip visual matrix passed 94/104 with the ten established protected screenshot differences. The earlier selector timeout was test-only and did not recur. Visual references, masks, thresholds, skips, and acceptance policy are unchanged. Docker Buildx is still unavailable, leaving make validate-integration open. Provider and ETF remain outside staging, so R2/R3 integration and shared-path reconciliation are deferred.",
     "current_phase": "R1_R4_EXACT_TIP_FUNCTIONAL_VISUAL_MATRIX_COMPLETE",
-    "next_action": "Commit and push this evidence-only checkpoint for product source d413d845939e68e9738b621329fa8d63a419ddf8; verify clean worktree and exact remote equality, then continue a distinct TC-owned workstation, Study, Strategy, or visual-parity slice. Keep the protected visual differences, generic integration gate, opt-in 10k performance case, and upstream staging acceptance gates open; do not duplicate provider/ETF ownership. Stop only at ready_for_human_review.",
+    "next_action": "Commit and push this evidence-only checkpoint for product source d413d845939e68e9738b621329fa8d63a419ddf8; verify clean worktree and exact remote equality, then continue a distinct TC-owned workstation, Study, Strategy, or visual-parity slice. Keep the protected visual differences, generic integration gate, and upstream staging acceptance gates open; do not duplicate provider/ETF ownership. Stop only at ready_for_human_review.",
     "total": 9,
     "updated_at": "2026-10-05T15:53:22+00:00"
   },
