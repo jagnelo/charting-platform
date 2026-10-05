@@ -983,7 +983,7 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="westwood",
-    investigated_at=date(2026, 10, 2),
+    investigated_at=date(2026, 10, 5),
     evidence_refs=(
         "web:westwood-mdst-current-holdings-2026-09-03",
         "web:westwood-mdst-current-holdings-2026-09-05",
@@ -993,10 +993,15 @@ _register_non_tier_0_audits(
         "web:westwood-mdst-product-page-indexed-2026-10-01",
         "live:westwood-mdst-product-page-2026-10-02-403-cloudflare",
         "live:westwood-mdst-current-holdings-csv-2026-10-02-403-cloudflare",
+        "web:westwood-mdst-official-product-page-2026-10-05",
+        "live:westwood-mdst-current-holdings-csv-2026-10-05-403",
     ),
     next_action=(
-        "Periodically re-test the official MDST page and declared CSV; promote only after "
-        "complete rows, mapping, parser fixtures, and bounded live evidence are available."
+        "Keep MDST unavailable: the current official page shows 23 holdings but only renders ten "
+        "named rows dated 2026-10-01; its declared CSV returned HTTP 403 text/html to the "
+        "application-equivalent client. Re-test the page and CSV after the issuer route is "
+        "accessible, and promote only after complete rows, mapping, strict parser fixtures, and "
+        "bounded live evidence are available."
     ),
 )
 _register_non_tier_0_audits(
@@ -1004,7 +1009,7 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="advisors_asset_management",
-    investigated_at=date(2026, 10, 2),
+    investigated_at=date(2026, 10, 5),
     evidence_refs=(
         "web:aam-etf-detail-empty-backend-response-2026-09-02",
         "web:aam-spdv-current-paginated-holdings-2026-09-05",
@@ -1014,11 +1019,19 @@ _register_non_tier_0_audits(
         "live:aam-spdv-direct-open-403-2026-09-25",
         "web:aam-spdv-indexed-top-holdings-2026-10-02",
         "live:aam-symbol-routes-2026-10-02-403-or-ssl-eof",
+        "web:aam-spdv-indexed-top-holdings-2026-10-05",
+        "web:aam-trfm-indexed-top-holdings-2026-10-05",
+        "live:aam-spdv-route-2026-10-05-empty-reply",
+        "live:aam-bdiv-route-2026-10-05-empty-reply",
+        "live:aam-trfm-route-2026-10-05-403",
+        "live:aam-pfld-route-2026-10-05-empty-reply",
     ),
     next_action=(
-        "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote "
-        "only after capturing a complete artifact, mapping symbols, and adding parser plus "
-        "bounded live coverage."
+        "Keep SPDV, BDIV, TRFM, and PFLD unavailable: current indexed SPDV/TRFM pages show only "
+        "top-holdings slices (as of 2026-09-25/2026-09-28); direct detail GETs returned empty "
+        "replies for SPDV/BDIV/PFLD and HTTP 403 text/html for TRFM. Re-test after the issuer "
+        "route is executable and promote only after a complete symbol-bound export, parser "
+        "coverage, and bounded live proof."
     ),
 )
 _register_non_tier_0_audits(

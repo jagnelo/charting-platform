@@ -3731,3 +3731,65 @@ substitute for executable retrieval.
 Evidence refs: `web:q3-qvoy-official-etf-page-2026-10-05-complete-html`,
 `web:q3-qvoy-official-csv-download-timeout-2026-10-05`, and
 `live:q3-qvoy-worker-dns-failure-2026-10-05`.
+
+## Westwood MDST current-route recheck — 2026-10-05
+
+The official Westwood product page was re-read today. It confirms 23 total
+holdings and renders ten named holdings dated `2026-10-01`; it also declares a
+CSV download. The displayed top ten and total count are not a complete
+constituent artifact. A bounded application-equivalent GET to the exact declared
+CSV URL returned HTTP 403 `text/html` (5,570 bytes), not CSV. This confirms the
+issuer route remains inaccessible to the application client, so MDST remains
+`unavailable` and Westwood remains `issuer_access_blocked` with no adapter or
+SEC-derived promotion. Updated the runtime symbol outcome, provider ledger,
+provider-universe documentation, and a deterministic assertion in one audit
+slice. Evidence refs: `web:westwood-mdst-official-product-page-2026-10-05` and
+`live:westwood-mdst-current-holdings-csv-2026-10-05-403`.
+
+## AAM SPDV/BDIV/TRFM/PFLD current-route recheck — 2026-10-05
+
+Current indexed first-party SPDV and TRFM pages show top-holdings slices dated
+`2026-09-25` and `2026-09-28` with an Export to Excel affordance; the complete
+export itself was not captured. Bounded application-equivalent GETs to the
+official SPDV, BDIV, TRFM, and PFLD detail routes returned empty server replies
+for SPDV/BDIV/PFLD and HTTP 403 `text/html` for TRFM. None supplies an
+executable complete holdings artifact from the application boundary.
+
+All four symbol outcomes remain `unavailable` and AAM remains
+`issuer_access_blocked`; no provider route, SEC reconstruction, or paid source
+was promoted. Updated the grouped runtime symbol audit, each Tier-1 ledger
+entry, the provider attempt history, public provider-universe record, and a
+deterministic assertion. Evidence refs: `web:aam-spdv-indexed-top-holdings-2026-10-05`,
+`web:aam-trfm-indexed-top-holdings-2026-10-05`, and the four
+`live:aam-*-route-2026-10-05-*` transport observations.
+
+## Eventide ESUM exact-SHA CI failure and route repair — 2026-10-05
+
+Exact push run `37315769814` for `c2c1ad785f09322bd99e81ab8e13c27b241a670d`
+completed with Backend Tests, Frontend Unit Tests, and hosted Playwright
+passing. Branch-declared Tests failed only the Eventide ESUM case after 512
+passed and 25 classified skips: `Eventide holdings CSV did not expose holdings
+rows for ESUM`. The protected Exhaustive Integration Gate was skipped by
+design on the feature branch.
+
+The current first-party ESUM page states that a full holdings list is available
+as both PDF and CSV, dated `2026-09-30`, with 197 positions; its visible download
+link resolves to the issuer-hosted `/assets/.../ESUM_etfHoldingsCsv.csv` URL.
+The existing adapter resolved the generic `/etfs` index, discovered only a
+Contentful-hosted asset, and did not recognize Eventide's current `Holding`
+column as a row name. The repair points default requests to the symbol-specific
+`/etfs/{symbol_lower}` product page, recognizes and prioritizes same-host
+`/assets/` CSV links while retaining the allow-listed Contentful fallback, and
+adds `holding` as a generic header alias. The fixture mirrors the official CSV
+schema with date, CUSIP, weight, market value, and cash rows; it does not
+loosen row completeness or identity checks.
+
+Verification after the repair: two focused Eventide unit cases pass; the full
+ETF adapter and capability unit suites pass `699/699`; Ruff check, Ruff format
+check, and `git diff --check` pass. The local opt-in ESUM route probe skipped on
+temporary DNS resolution failure, so executable live support has not yet been
+confirmed from this worker. Publish the repair and require the next exact-SHA
+hosted branch matrix to pass the live Eventide case before calling it repaired
+operationally. Evidence refs: `web:eventide-esum-product-holdings-2026-10-05`,
+`web:eventide-esum-csv-download-link-2026-10-05`, and
+`ci:37315769814-eventide-esum-empty-parser`.

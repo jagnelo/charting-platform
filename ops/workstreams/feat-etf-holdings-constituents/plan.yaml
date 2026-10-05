@@ -128,7 +128,7 @@ remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, and Baillie Gifford/BGGG-BGIA-BGEG-BGUS, current code and provider-universe documentation report 496/421/75 and future counts must remain derived."
   - "The 140 starting fallback providers have a baseline ledger snapshot; all verified native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, and VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY are recorded explicitly. The ledger has zero queued records, and the 17 legacy entries were refreshed with dated issuer-specific route, identity, or access evidence on 2026-09-03. The current code-derived status split is recorded in the latest synchronized implementation checkpoint below; the ledger preserves more specific evidence-backed classifications."
   - "Historical validation checkpoint: the full opt-in live matrix then passed 500 cases with 6 narrowly evidenced external skips: Vident/MM VAM Cloudflare 403, Zacks transport closure, Morgan Stanley's advertised MSLC workbook 404, Thrivent TSCV 403 with SEC identity-mismatch fallback failure, and Redwood's empty official download. The earlier local Docker gate passed its then-current deterministic, dependency, migration, lint, coverage, frontend, build, compose, provider-probe, stack-health, research-runner, functional E2E (154 passed/106 skipped), and visual E2E (104 passed) stages. Later 2026-10-02 full-gate evidence supersedes that historical result."
-  - "Latest synchronized implementation checkpoint: Baillie Gifford BGGG, BGIA, BGEG, and BGUS use the strict official fund-ID complete workbook adapter, with dated live evidence and deterministic coverage. Current state is 496 registered / 421 native / 75 fallback, with zero queued records; runtime FALLBACK_ISSUER_AUDITS statuses are 8 issuer-access-blocked, 54 route-discovery, 3 non-executable, 8 non-portfolio-publisher, and 2 inactive-or-successor-disposition."
+  - "Latest synchronized implementation checkpoint before the 2026-10-05 Tier-1 issuer rechecks: current state is 496 registered / 421 native / 75 fallback, with zero queued records; runtime FALLBACK_ISSUER_AUDITS statuses are 7 issuer-access-blocked, 54 route-discovery, 3 non-executable, 8 non-portfolio-publisher, and 3 inactive-or-successor-disposition. The separate provider audit ledger retains more specific evidence-backed dispositions."
   - "The 2026-10-02 Baillie Gifford promotion fetched all four official fund-ID workbooks: BGGG 45 rows, BGIA 93, BGEG 86, and BGUS 48, each dated 2026-10-01. A strict second-worksheet parser validates identifiers, quantities, weights, currency, cash/derivative rows, and completeness; deterministic coverage and the opt-in live route test are registered. The four symbols leave the fallback ledger and are native-promoted without SEC reconstruction or paid activation."
   - "The 2026-10-02 Discipline Funds recheck sent bounded requests to the official DDV, DDX, and DDXX data pages; all three returned HTTP 403 Cloudflare HTML. No current rows or stable complete export was retrieved, so the provider remains non_executable_public_source and no promotion, SEC reconstruction, or paid activation occurred."
   - "The 2026-10-02 First Manhattan recheck confirmed through current indexed first-party pages that FMCX/FMCE remain non-transparent and disclose assets sixty days after quarter-end; the declared download is a prospectus PDF rather than a holdings export. Direct application-equivalent requests failed DNS resolution in this worker, so no executable rows were retrieved and the provider remains non_executable_public_source."
@@ -320,6 +320,8 @@ remaining_gaps:
   - "The 2026-09-07 Ridgeline/ACVF recheck returned HTTP 403 again and confirmed Ridgeline remains an adviser while ACV owns the holdings publisher route. ACVF remains under the existing ACV mapping; no duplicate adapter or promotion was made."
   - "The 2026-09-07 Westwood/MDST recheck returned HTTP 403 Cloudflare HTML from both the official page and declared CSV route. MDST remains unavailable and issuer-access-blocked; no complete artifact, promotion, or paid activation was found."
   - "The 2026-10-02 Westwood/MDST recheck found current indexed official material describing a 23-holding portfolio and quarterly schedule resources, but the bounded product-page and declared CSV requests both returned HTTP 403 Cloudflare challenge HTML. MDST remains unavailable and issuer-access-blocked; no executable complete artifact, parser promotion, or paid activation was found."
+  - "The 2026-10-05 Westwood/MDST recheck found the current official page confirms 23 holdings but renders only ten named rows dated 2026-10-01; its declared exact CSV route returned HTTP 403 text/html to an application-equivalent GET. MDST remains unavailable and Westwood issuer-access-blocked; no complete artifact or promotion was proven."
+  - "The 2026-10-05 AAM recheck found current indexed SPDV/TRFM pages with only dated top-holdings slices (2026-09-25/2026-09-28); bounded application-equivalent detail GETs returned empty replies for SPDV/BDIV/PFLD and HTTP 403 text/html for TRFM. All four symbols remain unavailable and AAM issuer-access-blocked; no complete export or promotion was proven."
   - "The 2026-10-02 AAM recheck found current indexed SPDV material with top holdings as of 2026-09-30 and an Export to Excel affordance, but bounded symbol-scoped requests returned HTTP 403 for SPDV and TLS EOF/empty responses for BDIV, TRFM, and PFLD. All four remain unavailable and issuer-access-blocked; no complete executable artifact, promotion, or paid activation was found."
   - "The 2026-10-02 Arin/ATTR recheck found current indexed issuer material with a complete 26-row holdings table effective 2026-09-28, but the bounded direct request returned HTTP 403 Cloudflare HTML. ATTR remains unavailable and issuer-access-blocked; no indexed table, SEC reconstruction, parser promotion, or paid activation was used."
   - "The 2026-10-02 AVOS recheck found current indexed issuer material with a complete holdings table effective 2026-09-29, but the bounded direct request returned HTTP 403 Cloudflare HTML. AVOS remains unavailable and issuer-access-blocked; no indexed table, SEC reconstruction, parser promotion, or paid activation was used."
@@ -432,31 +434,33 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: tier0_source_recheck_published_exact_ci_observation_pending
+current_phase: eventide_current_route_fix_exact_sha_ci_pending
 current_blocker: >-
-  Checkpoint 2026-10-05T12:49Z: the Tier-0 source recheck is committed and
-  pushed as 07b9e6f34b4fb66858662e8c05d3bf63fbb87025 on this feature branch.
-  The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for.
-  The capability/audit/doc records agree for DXJ/NTSX/MINT/BOND; provider counts
-  remain 496/421/75 and no paid source was activated. The complete deterministic
-  capability/adapter tests pass 691/691, three Tier-0 parity/narrative checks
-  pass, and Ruff plus format checks pass. The bounded DXJ/NTSX live canaries
-  remain DNS skips (not passes); PIMCO MINT/BOND anonymous routes returned HTTP
-  401 (not proof that no issuer disclosure exists), so their outcomes remain
-  degraded/unavailable as recorded. The branch push succeeded. The GitHub
-  connector currently returns no commit statuses and its workflow-run lookup
-  only exposes PR-triggered runs, so exact-SHA push-run results are not yet
-  observable through the available query. The local full-stack profile cannot
-  run because this session receives permission denied on /var/run/docker.sock;
-  no dockerd/containerd process is visible in this session and the system
-  service bus is inaccessible. No host-wide permission or credential change
-  was made. AC7 stays open until hosted exact-SHA results can be inspected and
-  the Docker-backed gate is green or covered by its narrowly documented
-  environment-outage exception. AC8 remains open for the final clean,
-  synchronized review checkpoint. This does not prevent independent branch
-  development: continue remaining fallback remediation in relevance order.
-  AC10 awaits the user-notified provider-platform staging dependency; AC14 is
-  the later post-integration/deployment 30-day observation. The saved goal is
+  Current checkpoint 2026-10-05: 15 Tier-0 and 156 Tier-1 symbol outcomes
+  remain accounted for; provider totals remain 496 registered / 421 native /
+  75 fallback. Westwood MDST and AAM SPDV/BDIV/TRFM/PFLD remain explicitly
+  unavailable after current source checks. Exact-SHA Actions run 37315769814
+  for c2c1ad785f09322bd99e81ab8e13c27b241a670d completed with Backend Tests,
+  Frontend Unit Tests, and hosted Playwright passing; Branch-declared Tests
+  failed only the Eventide ESUM live case after 512 passed and 25 classified
+  skips, because the previous Eventide route yielded no parseable rows. The
+  protected Exhaustive Integration Gate was skipped by design on this feature
+  branch. The official Eventide ESUM product page exposes the full 197-holding
+  table dated 2026-09-30 and a first-party CSV download. The adapter now uses
+  the symbol-specific product page, prefers the current first-party download,
+  retains the legacy Contentful route, and parses the published `Holding`
+  column. The deterministic capability/adapter suites pass 699/699; Ruff
+  check, Ruff format-check, and diff-check pass. The local opt-in ESUM probe
+  skipped on temporary DNS failure and is not a route pass. The fix needs
+  publication and exact-SHA hosted matrix validation.
+  The local Docker-backed full-stack gate remains open because this sandbox
+  cannot connect to `/var/run/docker.sock`; other worktree services must not be
+  stopped or disturbed. No credentials, Docker resources, or other worktree
+  were changed. AC7 remains open pending exact-SHA validation of the route fix
+  and a safe full-stack disposition. This does not block independent
+  development. AC8 awaits human review of a clean synchronized branch. AC10
+  awaits `feat/market-data-provider-platform` reaching staging, and AC14
+  remains the post-integration/deployment 30-day observation. The goal remains
   active, not blocked or complete.
   Previous ready-for-review checkpoint 2026-10-05T11:58Z: 15 Tier-0 and 156
   Tier-1 symbol
@@ -925,15 +929,16 @@ current_blocker: >-
   saved goal is active, not blocked or complete.
 
 next_action: >-
-  Continue independent provider audits from the deterministic fallback priority
-  ledger, beginning with the next highest-relevance unresolved Tier-1 symbol.
-  Keep exact-SHA push CI on 07b9e6f34b4fb66858662e8c05d3bf63fbb87025 as an
-  explicit validation item and retrieve its job result through an available
-  authorized Actions view; the configured connector currently exposes neither
-  push runs nor commit check-runs. Re-run the local Docker-backed full-stack
-  gate only when Docker is normally accessible in this session. Keep DNS skips
-  and HTTP 401 evidence distinct from route passes. Continue free/zero-cost
-  sources first, preserve current per-symbol outcomes and budget constraints,
-  and await the user's notice before shared-platform integration. Do not
-  integrate, promote, deploy, or change another worktree. AC14 remains the
-  later 30-day production observation after its separate workflow.
+  Publish the validated Westwood/AAM audit records and Eventide ESUM route repair
+  to this feature branch, then inspect exact-SHA push CI. Verify the hosted live
+  matrix resolves ESUM through the issuer's symbol-specific page and current
+  first-party CSV; do not treat the local DNS skip as a pass. Then continue the
+  highest-ranked unresolved symbol audit (Arin ATTR) using free/first-party
+  evidence and keep it unavailable until executable route, identity, date, and
+  completeness checks pass. Re-run the local Docker-backed gate only when this
+  session can access the daemon and a safe noninterfering window is verified;
+  never stop or alter another worktree's stack. Preserve DNS, 401/403,
+  incomplete-snapshot, and route-pass distinctions and the 20-unit monthly
+  budget. Await the user's notice before shared-platform integration. Do not
+  integrate, promote, deploy, or modify another worktree. AC14 remains the
+  later 30-day production observation.

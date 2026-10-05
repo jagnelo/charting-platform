@@ -24238,13 +24238,29 @@ def test_anfield_remains_explicitly_audited_fallback_only_after_route_404():
 def test_westwood_remains_explicitly_audited_fallback_only_after_official_route_403():
     """Do not promote search-indexed Westwood tables without an executable issuer artifact."""
     audit = FALLBACK_ISSUER_AUDITS["westwood"]
+    mdst = _NON_TIER_0_SYMBOL_AUDITS["MDST"]
 
     assert audit.status == "issuer_access_blocked"
     assert "issuer-owned" in audit.next_action
+    assert mdst.investigated_at == date(2026, 10, 5)
+    assert mdst.outcome == "unavailable"
+    assert "live:westwood-mdst-current-holdings-csv-2026-10-05-403" in mdst.evidence_refs
     assert ISSUER_ADAPTER_CONFIGS["westwood"].live_tested_default_route is False
     assert type(get_holdings_adapter("westwood")).__name__ == (
         "WestwoodAuditedFallbackHoldingsAdapter"
     )
+
+
+def test_aam_symbol_routes_remain_unavailable_without_complete_executable_exports():
+    """Indexed top-holdings snippets do not prove current application support."""
+    evidence_ref = "live:aam-trfm-route-2026-10-05-403"
+
+    for symbol in ("SPDV", "BDIV", "TRFM", "PFLD"):
+        audit = _NON_TIER_0_SYMBOL_AUDITS[symbol]
+        assert audit.investigated_at == date(2026, 10, 5)
+        assert audit.outcome == "unavailable"
+        assert evidence_ref in audit.evidence_refs
+        assert "complete symbol-bound export" in audit.next_action
 
 
 def test_all_issuer_access_blocked_adapters_remain_non_native():
@@ -27223,7 +27239,7 @@ async def test_eventide_adapter_discovers_contentful_holdings_csv(monkeypatch):
                 f'<script>{{"etfHoldingsCsv":{{"url":"{csv_url}"}}}}</script>'
             ),
             content_type="text/html",
-            url="https://www.eventideinvestments.com/etfs",
+            url="https://www.eventideinvestments.com/etfs/esum",
         ),
         FakeResponse(
             text="\n".join(
@@ -27246,7 +27262,7 @@ async def test_eventide_adapter_discovers_contentful_holdings_csv(monkeypatch):
 
     result = await adapter.fetch_latest(symbol="ESUM")
 
-    assert FakeAsyncClient.requested[0][0] == "https://www.eventideinvestments.com/etfs"
+    assert FakeAsyncClient.requested[0][0] == "https://www.eventideinvestments.com/etfs/esum"
     assert FakeAsyncClient.requested[1][0] == csv_url
     assert len(result.rows) == 3
     assert result.rows[0].symbol == "NVDA"
@@ -27264,6 +27280,65 @@ async def test_eventide_adapter_discovers_contentful_holdings_csv(monkeypatch):
     )
     assert result.legal_metadata["composition_date"] == "2026-06-26"
     assert result.legal_metadata["product_name"] == "Eventide US Market ETF"
+
+
+@pytest.mark.asyncio
+async def test_eventide_adapter_discovers_current_first_party_csv_download(monkeypatch):
+    adapter = get_holdings_adapter("eventide")
+    assert adapter is not None
+
+    csv_url = (
+        "https://www.eventideinvestments.com/assets/4IYE4vPqDpYNlrGE3NHg7r/"
+        "ESUM_etfHoldingsCsv.csv"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<a href="//assets.ctfassets.net/tiol9r5yvqqu/60EaH1oFwn5cSTkB0g5KSV/'
+                '07376e153b4b7ebc75d13adabccddb05/ESIM_etfHoldingsCsv.csv">other</a>'
+                '<a href="/assets/4IYE4vPqDpYNlrGE3NHg7r/ESUM_etfHoldingsCsv.csv">CSV</a>'
+            ),
+            content_type="text/html",
+            url="https://www.eventideinvestments.com/etfs/esum",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    'Product,"Eventide US Market ETF"',
+                    "Ticker,ESUM",
+                    '"As-of Date",2026-09-30',
+                    ",",
+                    "Ticker,Holding,CUSIP,Market Value ($),Weight",
+                    'NVDA,"NVIDIA CORP",67066G104,"$15,461,097.62",7.92%',
+                    'AVGO,"BROADCOM INC.",11135F101,"$4,932,814.74",2.53%',
+                    ',"CASH AND CASH EQUIVALENTS",,"$75,000.00",0.04%',
+                ]
+            ),
+            content_type="text/csv",
+            url=csv_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ESUM")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        "https://www.eventideinvestments.com/etfs/esum",
+        csv_url,
+    ]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].name == "NVIDIA CORP"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].market_value == Decimal("15461097.62")
+    assert result.rows[0].weight == Decimal("0.0792")
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].symbol is None
+    assert (
+        result.legal_metadata["route_resolution"] == "issuer_product_page_first_party_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-30"
 
 
 @pytest.mark.asyncio

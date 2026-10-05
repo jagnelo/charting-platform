@@ -8615,3 +8615,106 @@ development blocker: proceed with independent fallback audit work. AC7 remains
 open pending the exact-CI/local-gate disposition; AC10 still depends on the
 provider-platform branch reaching staging, and AC14 remains a later production
 observation. No host permissions, other branches, or worktrees were changed.
+
+## 2026-10-05 — continue independently; Westwood/MDST recheck
+
+The saved ETF goal remains active. There is no general feature-development
+blocker: the next ranked Tier-1 issuer audit has progressed independently while
+the full-stack gate and exact-SHA CI are tracked as separate acceptance work.
+Both the plan and this handoff continue to account for 15 Tier-0 and 156 Tier-1
+symbol outcomes.
+
+Westwood's current first-party MDST page confirms 23 holdings but renders only
+ten named rows dated 2026-10-01 and declares a CSV download. A bounded
+application-equivalent GET to that exact issuer CSV returned HTTP 403
+`text/html` (5,570-byte challenge response), not the complete artifact. MDST
+therefore remains `unavailable`; Westwood remains `issuer_access_blocked`, and
+no adapter, SEC reconstruction, paid source, or current-support claim was
+added. The runtime capability map, symbol/provider ledgers, provider-universe
+documentation, implementation plan, and regression assertion now contain the
+same dated evidence.
+
+Exact-SHA push run `37315769814` on `c2c1ad785f09322bd99e81ab8e13c27b241a670d`
+is accessible through the authorized Actions API query. At this checkpoint,
+Frontend Unit Tests passed; Backend Tests (including its integration-test
+stage) and Branch-declared Tests were still running, so neither is claimed
+green or failed. The local Docker-backed gate is not being run while six
+services from another worktree and an unrelated Stremio container are active.
+The default sandbox cannot access `/var/run/docker.sock`; a read-only elevated
+check confirms Docker itself is active. No host permissions, credentials,
+containers, unrelated worktrees, or branches were changed. AC7 remains open
+until CI concludes and the full-stack gate is safely validated or narrowly
+dispositioned; AC8 awaits final human review. AC10 still waits for the user's
+notice that the provider-platform branch reached staging, and AC14 remains a
+later 30-day production observation.
+
+## 2026-10-05 — AAM symbol cohort and predecessor CI update
+
+The next ranked AAM cohort (SPDV, BDIV, TRFM, PFLD) was rechecked. Current
+indexed first-party SPDV/TRFM pages show only top-holdings slices dated
+2026-09-25 and 2026-09-28 with export controls; no complete file was captured.
+Bounded application-equivalent detail requests returned empty server replies
+for SPDV/BDIV/PFLD and HTTP 403 `text/html` for TRFM. All four remain
+`unavailable`, with AAM `issuer_access_blocked`. Runtime symbol audits, all four
+YAML symbol records, provider history, docs, tests, and this handoff reflect the
+same disposition; provider totals remain 496/421/75 and no source was promoted.
+
+The complete deterministic capability/adapter suite now passes 698 tests,
+including the new Westwood/AAM status checks and runtime/ledger parity. Ruff,
+Ruff format-check, and `git diff --check` also pass. One initial test pass
+identified two string-parity mismatches between runtime next actions and YAML;
+those records were aligned and the full 698-test rerun passed. This is focused
+deterministic evidence only, not Docker-backed full-gate acceptance.
+
+For predecessor SHA `c2c1ad785f09322bd99e81ab8e13c27b241a670d`, exact push CI
+run `37315769814` now has Backend Tests and Frontend Unit Tests green;
+Branch-declared Tests and hosted Playwright are still running. The protected
+Exhaustive Integration Gate is skipped on this feature-branch push by design.
+The current local full gate remains unrun because another worktree's services
+are active and this session's ordinary sandbox cannot connect to Docker; the
+host daemon is confirmed active by read-only elevated inspection. No Docker
+resource or unrelated worktree was changed. Continue with the next ranked
+symbol audit while exact-SHA CI and safe full-gate validation remain separate
+AC7 items.
+
+## 2026-10-05 — Eventide ESUM exact-CI failure and route repair
+
+The exact-SHA result is now available, correcting the earlier checkpoint that
+said Branch-declared Tests and hosted Playwright were still running. Run
+`37315769814` on `c2c1ad785f09322bd99e81ab8e13c27b241a670d` completed with
+Backend Tests, Frontend Unit Tests, and hosted Playwright passing. The live
+provider matrix failed only Eventide ESUM after 512 passes and 25 classified
+skips: the adapter fetched a CSV response but extracted no holdings rows. The
+protected Exhaustive Integration Gate was skipped as designed on a feature
+branch.
+
+The official ESUM product page currently declares a full holdings list in CSV
+and PDF form and shows 197 positions dated `2026-09-30`. Its CSV download is a
+first-party `/assets/.../ESUM_etfHoldingsCsv.csv` route on
+`www.eventideinvestments.com`; the adapter still used the generic `/etfs`
+listing and only discovered the older Contentful-hosted asset. The adapter now
+uses the symbol-specific `/etfs/{symbol}` page, prefers that current official
+download while retaining the legacy Contentful route, and recognizes the
+current `Holding` table header. A deterministic fixture covers the current
+download URL, date, identifiers, weights, market values, and cash row.
+
+The focused capability and adapter suites pass `699/699`; Ruff check, Ruff
+format-check, and `git diff --check` pass. A local opt-in ESUM replay skipped
+because this session could not resolve the issuer hostname; that is not a route
+pass. The fix is not yet published or validated by hosted CI. Next: commit and
+push this worktree-only change, inspect exact-SHA Actions for the new head, then
+continue the next unresolved issuer audit (Arin ATTR). The Docker-backed local
+gate remains separately open because this sandbox cannot access Docker and
+other worktree containers must not be touched. No paid source, SEC
+reconstruction, other branch, or other worktree was changed.
+
+Files included in this checkpoint: `backend/app/services/etf_holdings_adapters.py`,
+`backend/app/services/etf_holdings_capability.py`,
+`backend/tests/unit/services/test_etf_holdings_adapters.py`,
+`docs/etf-provider-universe.md`,
+`ops/workstreams/feat-etf-holdings-constituents/handoff.md`,
+`ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md`,
+`ops/workstreams/feat-etf-holdings-constituents/plan.yaml`,
+`ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml`,
+`ops/workstreams/feat-etf-holdings-constituents/session.json`, and
+`ops/workstreams/feat-etf-holdings-constituents/validation.jsonl`.

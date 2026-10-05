@@ -419,6 +419,7 @@ def _looks_like_holdings_header(row: list[Any]) -> bool:
         },
         {
             "name",
+            "holding",
             "holding name",
             "security name",
             "securityname",
@@ -554,6 +555,7 @@ def parse_holdings_table(
                 raw,
                 [
                     "name",
+                    "holding",
                     "holding name",
                     "security name",
                     "securityname",
@@ -39114,7 +39116,7 @@ class DistillateHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class EventideHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """Fetch Eventide ETF holdings from issuer-linked Contentful CSV files."""
+    """Fetch Eventide ETF holdings from issuer-linked product-page CSV files."""
 
     def resolve_product_page_url(
         self,
@@ -39193,7 +39195,11 @@ class EventideHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "csv",
-                "route_resolution": "issuer_listing_page_contentful_holdings_csv",
+                "route_resolution": (
+                    "issuer_product_page_first_party_holdings_csv"
+                    if urlparse(holdings_url).hostname == "www.eventideinvestments.com"
+                    else "issuer_listing_page_contentful_holdings_csv"
+                ),
                 "product_page_url": product_page_url,
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
@@ -39217,22 +39223,29 @@ class EventideHoldingsAdapter(IssuerCsvHoldingsAdapter):
         base_url: str,
     ) -> str | None:
         unescaped = html.unescape(raw_html).replace("\\/", "/")
-        candidates = sorted(
-            set(
-                re.findall(
-                    r"(?:https:)?//assets\.ctfassets\.net/[^\"'<>\\\s]+?\.csv",
-                    unescaped,
-                    flags=re.IGNORECASE,
-                )
-            )
+        first_party_candidates = re.findall(
+            r"(?:(?:https:)?//www\.eventideinvestments\.com)?(/assets/[^\"'<>\\\s]+?\.csv)",
+            unescaped,
+            flags=re.IGNORECASE,
         )
+        contentful_candidates = re.findall(
+            r"(?:https:)?//assets\.ctfassets\.net/[^\"'<>\\\s]+?\.csv",
+            unescaped,
+            flags=re.IGNORECASE,
+        )
+        candidates = [*first_party_candidates, *contentful_candidates]
         expected_file_name = f"{symbol.upper()}_etfholdingscsv.csv".lower()
         for candidate in candidates:
             url = candidate
             if url.startswith("//"):
                 url = f"https:{url}"
             resolved = urljoin(base_url, url)
-            if resolved.rsplit("/", 1)[-1].lower() == expected_file_name:
+            parsed = urlparse(resolved)
+            if (
+                parsed.scheme == "https"
+                and parsed.hostname in {"www.eventideinvestments.com", "assets.ctfassets.net"}
+                and parsed.path.rsplit("/", 1)[-1].lower() == expected_file_name
+            ):
                 return resolved
         return None
 
@@ -68659,10 +68672,10 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "eventide": IssuerCsvAdapterConfig(
         adapter_key="eventide",
         source_provider="eventide",
-        source_access="issuer_public_listing_page_contentful_holdings_csv",
-        product_page_templates=("https://www.eventideinvestments.com/etfs",),
+        source_access="issuer_public_product_page_holdings_csv",
+        product_page_templates=("https://www.eventideinvestments.com/etfs/{symbol_lower}",),
         live_tested_default_route=True,
-        terms_note="Eventide public ETF pages and Contentful-hosted holdings CSV files may be subject to issuer terms.",
+        terms_note="Eventide public ETF product pages and linked holdings CSV files may be subject to issuer terms.",
     ),
     "etf_architect": IssuerCsvAdapterConfig(
         adapter_key="etf_architect",

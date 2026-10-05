@@ -115,11 +115,11 @@ Vident issuer route returns a Cloudflare challenge to the application client.
 
 Current fallback status counts are:
 
-- `issuer_access_blocked`: `8`
+- `issuer_access_blocked`: `7`
 - `needs_first_party_route_discovery`: `54`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `8`
-- `inactive_or_successor_disposition`: `2`
+- `inactive_or_successor_disposition`: `3`
 
 Provider identity is not the same as symbol-level usability. The branch now
 exposes a per-symbol capability contract that labels current, degraded, stale,
@@ -387,7 +387,7 @@ separate SNTQ live-green claim is made yet.
 
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 415/81 split.
+that baseline record while tracking the current 421/75 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at provider-repair implementation checkpoint
@@ -401,11 +401,11 @@ remain fallback-only; Elm is now native-promoted through the same declared route
 as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
-- `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `56`
+- `issuer_access_blocked`: `7`
+- `needs_first_party_route_discovery`: `54`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `8`
-- `inactive_or_successor_disposition`: `2`
+- `inactive_or_successor_disposition`: `3`
 
 The status counts describe the current fallback set. The starting 140-provider
 snapshot is preserved in the branch-owned audit ledger. These counts are not a
@@ -2311,6 +2311,44 @@ Both the official MDST product page and declared CSV route returned HTTP 403
 Cloudflare HTML again. No complete executable artifact was retrieved, so MDST
 remains unavailable and Westwood remains issuer-access-blocked; no promotion
 or paid activation was made.
+
+## Westwood MDST source recheck — 2026-10-05
+
+The current official product page confirms 23 total holdings, but the rendered
+table contains only ten named rows, dated 2026-10-01, and declares a Download
+CSV control. A bounded application-equivalent GET to the exact CSV URL returned
+HTTP 403 `text/html` (a challenge response), not a holdings artifact. The
+official page's visible top-ten content and total-count metadata do not prove
+complete constituents.
+
+MDST remains `unavailable` and Westwood remains `issuer_access_blocked`; no
+adapter, SEC reconstruction, paid source, or current-support claim was added.
+Re-test the first-party route after access permits and require complete
+identity-bound rows, strict parser fixtures, and bounded live proof before
+promotion. Evidence refs: `web:westwood-mdst-official-product-page-2026-10-05`
+and `live:westwood-mdst-current-holdings-csv-2026-10-05-403`.
+
+## AAM SPDV/BDIV/TRFM/PFLD route recheck — 2026-10-05
+
+Current indexed first-party SPDV and TRFM pages expose only top-holdings
+slices, dated 2026-09-25 and 2026-09-28 respectively, with an Export to Excel
+affordance. They do not provide a captured complete downloadable artifact in
+this client. Bounded application-equivalent GETs to the official symbol detail
+routes returned empty server replies for SPDV, BDIV, and PFLD, and HTTP 403
+`text/html` for TRFM. No complete, executable export was retrieved for any of
+the four symbols.
+
+SPDV, BDIV, TRFM, and PFLD remain `unavailable`; AAM remains
+`issuer_access_blocked`. Indexed top-holdings snippets are not promoted to
+current support, and no SEC reconstruction or paid source was added. Re-test
+the symbol-scoped route/export when application access permits, then require a
+complete identity-bound artifact, parser fixtures, and bounded live proof.
+Evidence refs: `web:aam-spdv-indexed-top-holdings-2026-10-05`,
+`web:aam-trfm-indexed-top-holdings-2026-10-05`, and
+`live:aam-spdv-route-2026-10-05-empty-reply`,
+`live:aam-bdiv-route-2026-10-05-empty-reply`,
+`live:aam-trfm-route-2026-10-05-403`,
+`live:aam-pfld-route-2026-10-05-empty-reply`.
 
 ## Argent HTML holdings recheck — 2026-09-07
 

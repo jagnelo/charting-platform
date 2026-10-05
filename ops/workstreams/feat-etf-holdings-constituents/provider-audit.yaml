@@ -413,41 +413,41 @@ symbol_audit_ledger:
       provider_identity: westwood
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-10-02
-      evidence_refs: [web:westwood-mdst-current-holdings-2026-09-03, web:westwood-mdst-current-holdings-2026-09-05, live:westwood-mdst-current-holdings-page-2026-09-05-403, live:westwood-mdst-current-holdings-csv-2026-09-05-403, live:westwood-mdst-route-recheck-2026-09-07-403, web:westwood-mdst-product-page-indexed-2026-10-01, live:westwood-mdst-product-page-2026-10-02-403-cloudflare, live:westwood-mdst-current-holdings-csv-2026-10-02-403-cloudflare]
-      next_action: "Periodically re-test the official MDST page and declared CSV; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
+      investigated_at: 2026-10-05
+      evidence_refs: [web:westwood-mdst-current-holdings-2026-09-03, web:westwood-mdst-current-holdings-2026-09-05, live:westwood-mdst-current-holdings-page-2026-09-05-403, live:westwood-mdst-current-holdings-csv-2026-09-05-403, live:westwood-mdst-route-recheck-2026-09-07-403, web:westwood-mdst-product-page-indexed-2026-10-01, live:westwood-mdst-product-page-2026-10-02-403-cloudflare, live:westwood-mdst-current-holdings-csv-2026-10-02-403-cloudflare, web:westwood-mdst-official-product-page-2026-10-05, live:westwood-mdst-current-holdings-csv-2026-10-05-403]
+      next_action: "Keep MDST unavailable: the current official page shows 23 holdings but only renders ten named rows dated 2026-10-01; its declared CSV returned HTTP 403 text/html to the application-equivalent client. Re-test the page and CSV after the issuer route is accessible, and promote only after complete rows, mapping, strict parser fixtures, and bounded live evidence are available."
     - symbol: SPDV
       tier: 1
       provider_identity: advisors_asset_management
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-10-02
-      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25, web:aam-spdv-indexed-top-holdings-2026-10-02, live:aam-symbol-routes-2026-10-02-403-or-ssl-eof]
-      next_action: "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
+      investigated_at: 2026-10-05
+      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25, web:aam-spdv-indexed-top-holdings-2026-10-02, live:aam-symbol-routes-2026-10-02-403-or-ssl-eof, web:aam-spdv-indexed-top-holdings-2026-10-05, web:aam-trfm-indexed-top-holdings-2026-10-05, live:aam-spdv-route-2026-10-05-empty-reply, live:aam-bdiv-route-2026-10-05-empty-reply, live:aam-trfm-route-2026-10-05-403, live:aam-pfld-route-2026-10-05-empty-reply]
+      next_action: "Keep SPDV, BDIV, TRFM, and PFLD unavailable: current indexed SPDV/TRFM pages show only top-holdings slices (as of 2026-09-25/2026-09-28); direct detail GETs returned empty replies for SPDV/BDIV/PFLD and HTTP 403 text/html for TRFM. Re-test after the issuer route is executable and promote only after a complete symbol-bound export, parser coverage, and bounded live proof."
     - symbol: BDIV
       tier: 1
       provider_identity: advisors_asset_management
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-10-02
-      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25, web:aam-spdv-indexed-top-holdings-2026-10-02, live:aam-symbol-routes-2026-10-02-403-or-ssl-eof]
-      next_action: "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
+      investigated_at: 2026-10-05
+      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25, web:aam-spdv-indexed-top-holdings-2026-10-02, live:aam-symbol-routes-2026-10-02-403-or-ssl-eof, web:aam-spdv-indexed-top-holdings-2026-10-05, web:aam-trfm-indexed-top-holdings-2026-10-05, live:aam-spdv-route-2026-10-05-empty-reply, live:aam-bdiv-route-2026-10-05-empty-reply, live:aam-trfm-route-2026-10-05-403, live:aam-pfld-route-2026-10-05-empty-reply]
+      next_action: "Keep SPDV, BDIV, TRFM, and PFLD unavailable: current indexed SPDV/TRFM pages show only top-holdings slices (as of 2026-09-25/2026-09-28); direct detail GETs returned empty replies for SPDV/BDIV/PFLD and HTTP 403 text/html for TRFM. Re-test after the issuer route is executable and promote only after a complete symbol-bound export, parser coverage, and bounded live proof."
     - symbol: TRFM
       tier: 1
       provider_identity: advisors_asset_management
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-10-02
-      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25, web:aam-spdv-indexed-top-holdings-2026-10-02, live:aam-symbol-routes-2026-10-02-403-or-ssl-eof]
-      next_action: "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
+      investigated_at: 2026-10-05
+      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25, web:aam-spdv-indexed-top-holdings-2026-10-02, live:aam-symbol-routes-2026-10-02-403-or-ssl-eof, web:aam-spdv-indexed-top-holdings-2026-10-05, web:aam-trfm-indexed-top-holdings-2026-10-05, live:aam-spdv-route-2026-10-05-empty-reply, live:aam-bdiv-route-2026-10-05-empty-reply, live:aam-trfm-route-2026-10-05-403, live:aam-pfld-route-2026-10-05-empty-reply]
+      next_action: "Keep SPDV, BDIV, TRFM, and PFLD unavailable: current indexed SPDV/TRFM pages show only top-holdings slices (as of 2026-09-25/2026-09-28); direct detail GETs returned empty replies for SPDV/BDIV/PFLD and HTTP 403 text/html for TRFM. Re-test after the issuer route is executable and promote only after a complete symbol-bound export, parser coverage, and bounded live proof."
     - symbol: PFLD
       tier: 1
       provider_identity: advisors_asset_management
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-10-02
-      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25, web:aam-spdv-indexed-top-holdings-2026-10-02, live:aam-symbol-routes-2026-10-02-403-or-ssl-eof]
-      next_action: "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
+      investigated_at: 2026-10-05
+      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02, web:aam-spdv-current-paginated-holdings-2026-09-05, web:aam-spdv-indexed-top-holdings-2026-09-25, live:aam-spdv-application-empty-reply-2026-09-05, live:aam-symbol-routes-2026-09-07-blocked-or-empty, live:aam-spdv-direct-open-403-2026-09-25, web:aam-spdv-indexed-top-holdings-2026-10-02, live:aam-symbol-routes-2026-10-02-403-or-ssl-eof, web:aam-spdv-indexed-top-holdings-2026-10-05, web:aam-trfm-indexed-top-holdings-2026-10-05, live:aam-spdv-route-2026-10-05-empty-reply, live:aam-bdiv-route-2026-10-05-empty-reply, live:aam-trfm-route-2026-10-05-403, live:aam-pfld-route-2026-10-05-empty-reply]
+      next_action: "Keep SPDV, BDIV, TRFM, and PFLD unavailable: current indexed SPDV/TRFM pages show only top-holdings slices (as of 2026-09-25/2026-09-28); direct detail GETs returned empty replies for SPDV/BDIV/PFLD and HTTP 403 text/html for TRFM. Re-test after the issuer route is executable and promote only after a complete symbol-bound export, parser coverage, and bounded live proof."
     - symbol: ALFA
       tier: 1
       provider_identity: alphaclone
@@ -1902,7 +1902,7 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-10-02
+    last_checked: 2026-10-05
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [MDST]
     estimated_us_etf_count: null
@@ -1922,6 +1922,8 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.westwood"
       - "runtime:ISSUER_ADAPTER_CONFIGS.westwood"
+      - "web:westwood-mdst-official-product-page-2026-10-05"
+      - "live:westwood-mdst-current-holdings-csv-2026-10-05-403"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -1959,8 +1961,16 @@ providers:
         source: "https://westwoodgroup.com/wp-content/themes/westwood/data/ultimus/1471-MDST/1471-Holdings.csv"
         result: "The declared machine-readable route returned HTTP 403 Cloudflare challenge HTML rather than CSV; no executable artifact was retrieved."
         evidence_ref: "live:westwood-mdst-current-holdings-csv-2026-10-02-403-cloudflare"
-    disposition_reason: "westwood: The current official MDST page documents a 23-holding portfolio and dated top holdings, but both product and exact CSV requests remain HTTP 403 text/html to the application client; no stable executable route is proven."
-    next_action: "westwood: Periodically re-test the official MDST page and declared CSV; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
+      - date: 2026-10-05
+        source: "https://westwoodgroup.com/product/westwood-salient-enhanced-midstream-income/"
+        result: "The current official page confirms 23 holdings and renders ten named rows dated 2026-10-01, with a declared Download CSV control; this is not a complete constituent artifact."
+        evidence_ref: "web:westwood-mdst-official-product-page-2026-10-05"
+      - date: 2026-10-05
+        source: "https://westwoodgroup.com/wp-content/themes/westwood/data/ultimus/1471-MDST/1471-Holdings.csv"
+        result: "Application-equivalent GET returned HTTP 403 text/html (5,570-byte challenge response), not CSV; no executable complete artifact was retrieved."
+        evidence_ref: "live:westwood-mdst-current-holdings-csv-2026-10-05-403"
+    disposition_reason: "westwood: On 2026-10-05 the official MDST page confirms 23 holdings but renders only ten named rows dated 2026-10-01; its declared exact CSV route returns HTTP 403 text/html to the application-equivalent client. No complete executable route is proven."
+    next_action: "westwood: Re-test the official MDST page and CSV after issuer access permits; promote only after complete rows, mapping, strict parser fixtures, and bounded live evidence are available."
     implementation_sha: null
     validation_refs: []
   - adapter_key: wisdomtree
@@ -2085,7 +2095,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-10-02
+    last_checked: 2026-10-05
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - SPDV
@@ -2110,6 +2120,9 @@ providers:
       - "runtime:FALLBACK_ISSUER_AUDITS.advisors_asset_management"
       - "runtime:ISSUER_ADAPTER_CONFIGS.advisors_asset_management"
       - "live:aam-symbol-routes-2026-09-07-blocked-or-empty"
+      - "web:aam-spdv-indexed-top-holdings-2026-10-05"
+      - "web:aam-trfm-indexed-top-holdings-2026-10-05"
+      - "live:aam-symbol-routes-2026-10-05-mixed-empty-and-403"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2143,8 +2156,16 @@ providers:
         source: "https://www.aamlive.com/ETF/Detail/{symbol_upper}"
         result: "Application-equivalent requests returned HTTP 403 for SPDV and OpenSSL TLS unexpected EOF/empty responses for BDIV, TRFM, and PFLD."
         evidence_ref: "live:aam-symbol-routes-2026-10-02-403-or-ssl-eof"
-    disposition_reason: "advisors_asset_management: AAM publishes current symbol-scoped pages with a paginated 52-item SPDV holdings grid and Export to Excel affordance, but application-equivalent requests end in empty server replies and no complete executable artifact is proven for the four representatives."
-    next_action: "advisors_asset_management: Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
+      - date: 2026-10-05
+        source: "https://www.aamlive.com/ETF/Detail/SPDV and https://www.aamlive.com/ETF/detail/TRFM"
+        result: "Current indexed first-party pages expose top-holdings tables dated 2026-09-25 (SPDV) and 2026-09-28 (TRFM) with export affordances; these are not the complete downloadable artifacts."
+        evidence_ref: "web:aam-spdv-indexed-top-holdings-2026-10-05; web:aam-trfm-indexed-top-holdings-2026-10-05"
+      - date: 2026-10-05
+        source: "https://www.aamlive.com/ETF/Detail/{SPDV,BDIV,TRFM,PFLD}"
+        result: "Bounded application-equivalent GETs returned empty server replies for SPDV, BDIV, and PFLD, and HTTP 403 text/html for TRFM; no complete export or stable executable holdings response was captured."
+        evidence_ref: "live:aam-spdv-route-2026-10-05-empty-reply; live:aam-bdiv-route-2026-10-05-empty-reply; live:aam-trfm-route-2026-10-05-403; live:aam-pfld-route-2026-10-05-empty-reply"
+    disposition_reason: "advisors_asset_management: The official indexed SPDV and TRFM pages expose top-holdings tables dated 2026-09-25/2026-09-28 with export affordances, but application-equivalent detail requests returned empty replies for SPDV/BDIV/PFLD and HTTP 403 text/html for TRFM. No complete executable artifact is proven for the four representatives."
+    next_action: "advisors_asset_management: Re-test the four symbol-scoped detail/export routes when application access permits; promote only after complete symbol-bound exports, mapping, parser coverage, and bounded live proof."
     implementation_sha: null
     validation_refs: []
   - adapter_key: alphaclone

@@ -57,24 +57,29 @@
       "text": "A 30-day production shadow gate is documented as a post-integration/deployment acceptance step, targeting at least 95% eligible Tier 0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations."
     }
   ],
-  "active_session_id": "2fcd05d8-12db-42ac-8cb6-83d9db9efafa",
+  "active_session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",
   "branch": "feat/etf-holdings-constituents",
   "claim": {
     "branch": "feat/etf-holdings-constituents",
-    "displaced_session_id": "70226446-14cf-41f6-828c-abe83c833146",
+    "displaced_session_id": "2fcd05d8-12db-42ac-8cb6-83d9db9efafa",
     "host": "m920q",
-    "session_id": "2fcd05d8-12db-42ac-8cb6-83d9db9efafa",
+    "session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",
     "started_at": "2026-09-24T22:32:53.705278+00:00",
-    "taken_over_at": "2026-10-05T08:29:22.956684+00:00",
-    "takeover_request": "Human instruction: Resume the existing saved goal now and continue autonomously in its assigned ETF worktree.",
+    "taken_over_at": "2026-10-05T13:42:28.184977+00:00",
+    "takeover_request": "Human authorization: resume the existing ETF holdings goal in this assigned worktree and continue autonomously.",
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "dirty_paths": [
+    "ackend/app/services/etf_holdings_adapters.py",
+    "backend/app/services/etf_holdings_capability.py",
+    "backend/tests/unit/services/test_etf_holdings_adapters.py",
+    "docs/etf-provider-universe.md",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+    "ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json"
   ],
   "docker": {
     "available": false,
@@ -92,22 +97,23 @@
     "objective": "Advance feat/etf-holdings-constituents: Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support.. Acceptance criteria: AC1: Durable ETF workstream state is current and internally consistent: the plan, handoff, provider-universe document, registry counts, audit counts, and next action agree at every checkpoint.; AC2: A complete provider-audit ledger accounts for every current fallback-only adapter key exactly once, uses the approved deterministic ranking, and records issuer-specific dated source evidence, disposition, and next action.; AC3: Every provider counted as native has a concrete provider-owned holdings route, provider-specific fetch entry point, strict parsing/mapping, truthful provenance and freshness, deterministic tests, and concrete opt-in live coverage.; AC4: Every provider remaining fallback-only has a current issuer-specific audit disposition; no fallback is silently promoted through SEC data and no generic unattempted discovery note is accepted as final evidence.; AC5: All 140 providers in the starting fallback population have been processed to either a verified native promotion or a defensible dated terminal/blocked disposition, with no missing, duplicate, or stale ledger entries.; AC6: ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, native/fallback counts, native adapter ownership, deterministic tests, live-provider coverage, documentation, and the provider-audit ledger satisfy exhaustive matrix invariants.; AC7: Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation.; AC8: The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation.; AC9: Every tracked ETF symbol exposes an additive capability outcome; only complete, fresh, identity-verified current or successor-native data is marked usable_for_current_analysis, while SEC, stale, partial, failed, unreviewed, and unknown routes are explicit.; AC10: ETF holdings consumes the shared provider-platform entitlement, quota, health, availability, and aggregate 20 EUR/USD-equivalent monthly budget contracts; no duplicate generic provider runtime or unapproved paid activation exists.; AC11: The 75 current fallback identities are reassessed at symbol level in relevance order, with Tier 0 US ETFs receiving a completed free/zero-cost/cheap-source investigation and an explicit current, degraded, stale, unavailable, successor, or not-applicable outcome.; AC12: Bounded opt-in ETF canaries persist source, transport, schema, completeness, freshness, latency, failure-streak, circuit, and recovery evidence; route drift and stale data cannot silently serve as current holdings.; AC13: ETF API and UI surfaces distinguish current, degraded, stale, unavailable, not-applicable, and unknown holdings; historical snapshots remain inspectable with provenance and current-analysis flows reject non-current data unless a user explicitly selects historical evidence.; AC14: A 30-day production shadow gate is documented as a post-integration/deployment acceptance step, targeting at least 95% eligible Tier 0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
-  "goal_state": "active",
+  "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "07b9e6f34b4fb66858662e8c05d3bf63fbb87025",
+  "head": "c2c1ad785f09322bd99e81ab8e13c27b241a670d",
   "implementation_sha": "07b9e6f34b4fb66858662e8c05d3bf63fbb87025",
   "last_checkpoint": "2026-10-05T12:53:04+00:00",
-  "last_human_progress_update": "2026-10-05T12:45:14+00:00",
+  "last_human_progress_update": "2026-10-05T13:55:51.162194+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue independent provider audits from the highest-relevance unresolved Tier-1 symbol in provider-audit.yaml. Inspect exact-SHA push CI for 07b9e6f34b4fb66858662e8c05d3bf63fbb87025 through an authorized Actions view; the current connector exposes no push-run results or commit check-runs. Re-run the local Docker-backed full-stack gate only when Docker is normally accessible in this session. Keep DNS skips and HTTP 401 evidence distinct from route passes. Preserve free-first and budget constraints. Await the user's notice before shared-platform integration; do not integrate, promote, deploy, or modify another worktree. AC14 remains the later post-integration 30-day observation.",
-  "plan_hash": "ea790b1689d7c9a1bde914974bb229eaa6462fd6be89380caba39bd41370344e",
+  "next_action": "resume from the durable handoff and inspect displaced session state",
+  "plan_hash": "290e535ecbe33ff06d3c134d9f7cb626d87f28d4b89202376d9fb750e73698a0",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
     "197b239d-3322-4fc6-bf4b-0d0aecebf5e0",
     "5b434602-fc78-40c5-8f0a-0960badecb67",
     "e83b4e4f-2c58-4ace-949e-cbd7155927e5",
-    "70226446-14cf-41f6-828c-abe83c833146"
+    "70226446-14cf-41f6-828c-abe83c833146",
+    "2fcd05d8-12db-42ac-8cb6-83d9db9efafa"
   ],
   "progress": {
     "completed": [
@@ -122,17 +128,17 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The Tier-0 source recheck is committed and pushed as 07b9e6f34b4fb66858662e8c05d3bf63fbb87025. Capability/adapter tests pass 691/691, three parity/narrative tests pass, and Ruff plus format checks pass. The live WisdomTree probes are DNS skips, not passes; anonymous PIMCO requests returned HTTP 401, not proof that no issuer disclosure exists. The configured GitHub connector currently returns no commit statuses and only exposes pull-request-triggered workflow runs, so exact push-triggered CI for this SHA is not yet observable through the available query. The local full-stack profile cannot connect to /var/run/docker.sock; no daemon process is visible in the session and the host service bus is inaccessible. No host permissions or credentials were changed. AC7 remains open for exact-SHA CI and the Docker-backed gate or its documented environment-outage exception. This does not block independent feature work. AC10 awaits feat/market-data-provider-platform reaching staging; AC14 is the later post-integration/deployment 30-day observation. No cross-worktree action occurred; the saved goal remains active, not blocked or complete.",
-    "current_phase": "tier0_source_recheck_published_exact_ci_observation_pending",
-    "next_action": "Continue independent provider audits from the highest-relevance unresolved Tier-1 symbol in provider-audit.yaml. Inspect exact-SHA push CI for 07b9e6f34b4fb66858662e8c05d3bf63fbb87025 through an authorized Actions view; the current connector exposes no push-run results or commit check-runs. Re-run the local Docker-backed full-stack gate only when Docker is normally accessible in this session. Keep DNS skips and HTTP 401 evidence distinct from route passes. Preserve free-first and budget constraints. Await the user's notice before shared-platform integration; do not integrate, promote, deploy, or modify another worktree. AC14 remains the later post-integration 30-day observation.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Exact-SHA CI run 37315769814 failed only the Eventide ESUM live matrix case; backend, frontend, and hosted Playwright passed. A current first-party ESUM route repair passes 699 deterministic tests, but local live replay is DNS-skipped and hosted exact-SHA validation of the fix is pending. Local Docker full-stack validation is also pending because the session cannot access the Docker socket without disturbing other active worktree services. AC10 still depends on provider-platform reaching staging and AC14 is post-integration.",
+    "current_phase": "eventide_current_route_fix_exact_sha_ci_pending",
+    "next_action": "Publish the Eventide route repair and source-audit checkpoint to this feature branch, inspect exact-SHA CI for the new head, then continue the Arin ATTR audit. Revisit Docker full-stack validation only when daemon access and a safe noninterfering window are available. Do not touch another worktree, staging, deployment, or paid-source activation.",
     "total": 14,
-    "updated_at": "2026-10-05T12:53:04+00:00"
+    "updated_at": "2026-10-05T13:55:51.162176+00:00"
   },
-  "remote": "07b9e6f34b4fb66858662e8c05d3bf63fbb87025",
+  "remote": "c2c1ad785f09322bd99e81ab8e13c27b241a670d",
   "remote_sha": "07b9e6f34b4fb66858662e8c05d3bf63fbb87025",
   "remote_synchronized": true,
   "schema": 2,
-  "session_id": "2fcd05d8-12db-42ac-8cb6-83d9db9efafa",
+  "session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",
   "state": "checkpointed",
   "takeover_history": [
     {
@@ -152,6 +158,12 @@
       "displaced_session_id": "70226446-14cf-41f6-828c-abe83c833146",
       "new_session_id": "2fcd05d8-12db-42ac-8cb6-83d9db9efafa",
       "reason": "Human instruction: Resume the existing saved goal now and continue autonomously in its assigned ETF worktree."
+    },
+    {
+      "at": "2026-10-05T13:42:28.184977+00:00",
+      "displaced_session_id": "2fcd05d8-12db-42ac-8cb6-83d9db9efafa",
+      "new_session_id": "2adafcab-638d-45ad-ab31-e3c6c7ef135a",
+      "reason": "Human authorization: resume the existing ETF holdings goal in this assigned worktree and continue autonomously."
     }
   ],
   "validation_tier": "full_integration",
