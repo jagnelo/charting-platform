@@ -837,7 +837,7 @@ progress:
     - nautilus-oos-session-close-intervals-v1
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
   total: 18
-  current_phase: strategy-lab-v2-native-oos-cash-capital-metrics-v1
+  current_phase: strategy-lab-v2-domain-api-lifecycle-v1
   current_blocker: >-
     No external Nautilus release or upstream event blocks package-owned
     implementation. Exact-pinned Nautilus 2.0.0rc5 has the four backtest checks;
@@ -860,22 +860,21 @@ progress:
     package-owned implementation. Full Compose/browser validation remains
     environment-limited by absent Docker Buildx; scoped socket access is
     available for focused local tests. Stable Nautilus labeling is not a gate.
+    Native OOS account-cash metrics now preserve verified trace values and
+    publish v16 equal-event cash/equity ratios in the official MetricSet.
     Remaining product work includes broader domain/API lifecycle coverage,
-    official account-capital metric wiring, and forward-shadow event-tape parity.
+    exposure/metric breadth, and forward-shadow event-tape parity.
     Provider, ETF, and TC2000
     contracts are staging-gated only if an owned change overlaps their paths.
     Options order admission remains fail-closed pending canonical event-time
     Greeks/delta and settlement evidence.
   next_action: >-
-    Native OOS account-cash metric integration: retain the already verified
-    cash-balance column through trace rehydration, calculate explicitly
-    versioned event-sampled cash/equity summaries, and persist them in the
-    official MetricSet. Owned paths: observations.py, metrics.py,
-    nautilus_equity_trace.py, nautilus_result_metrics.py,
-    nautilus_result_materialization.py, their focused tests,
-    docs/strategy-lab-v2.md, and this workstream. Then continue domain/API
-    lifecycle and broader exposure metrics, forward-shadow event-tape parity,
-    and full exact-tip acceptance.
+    Continue the AC-DOMAIN/AC-API lifecycle audit in owner-scoped resource
+    mutation and router paths. Identify and implement the next concrete missing
+    typed lifecycle transition, preserving immutable identities, idempotent
+    replay, owner isolation, and existing route compatibility. Then continue
+    broader exposure metrics, forward-shadow event-tape parity, and full
+    exact-tip acceptance.
     Exact-pinned RC5 remains eligible for authoritative local backtests after
     four checks; stable labeling is not a gate. Forward shadow requires all five
     checks. Keep options fail-closed pending canonical event-time Greeks/delta
