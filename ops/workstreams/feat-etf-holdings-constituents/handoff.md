@@ -8094,6 +8094,59 @@ AC10 still awaits the separately developed provider-platform branch reaching
 staging, and AC14 is the post-integration/deployment 30-day shadow gate. The
 saved goal remains active; it is not marked blocked or complete.
 
+## Local full integration gate — 2026-10-05 05:48 UTC
+
+I reran the required `make validate-integration
+INTEGRATION_BRANCH=feat/etf-holdings-constituents` gate on source SHA
+`37d32c633b4633bfaebb1259c44374fd107b79ae`. The original `unknown flag:
+--name` setup failure was explained by the host Docker CLI having no Buildx
+plugin. I fetched Ubuntu's `docker-buildx` 0.30.1 package, extracted it under
+`/tmp`, and exposed it only via a temporary `DOCKER_CONFIG`; no system package
+was installed. The gate then passed workstream validation, backend coverage,
+frontend tests and build, image build, stack startup/health checks, and the
+research-runner sandbox/resource probes.
+
+The functional Playwright command completed its 260-test run and recorded four
+failures:
+
+- `F8s-market-map-watchlist`: the test could not find the locked-source summary
+  in the rendered Market Map.
+- `F8s-family-matrix` and `F8s-breadth`: Chrome reported `ERR_NETWORK_CHANGED`
+  for requests to the local API on port 28089.
+- `F8s-breadth-family-ratio`: the expected linked-chart timestamp element was
+  absent.
+
+These are shared workstation flows, not ETF-specific assertions. The ETF
+branch does change Market Map source-capability behavior, so the Market Map
+failure must be replayed before being dismissed as unrelated. No assertion,
+generic UI, or screenshot baseline was changed. Because the gate stopped at
+`e2e-functional`, the dedicated visual stage and trailing branch-declared
+stage did not run in this local attempt. Its failure trap removed only this
+worktree's stack, volumes, and four stack images; it did not touch another
+project.
+
+After cleanup, a read-only Docker inventory showed the separate
+`feat-tc2000-frontend-rework` Compose/browser stack active again. I will not
+compete with or stop it. Once it exits, replay the four exact failing cases on
+a fresh ETF stack; if they pass, rerun the official full gate. If the Market
+Map failure reproduces, trace it against the ETF capability change and repair
+only a causally implicated in-scope path. Preserve generic assertions and
+visual baselines absent separate authorization.
+
+Exact-SHA run `37265943225` on `37d32c633b4633bfaebb1259c44374fd107b79ae`
+passed the branch-declared job (596 deterministic adapter tests; default live
+contracts 3 passed/535 skipped; opt-in provider matrix 508 passed/30 skipped),
+backend unit/integration (1,501/379), and frontend Vitest (945). Both Codecov
+uploads failed TLS `EPROTO`, so hosted E2E was skipped. The GitHub integration
+again denied the failed-job retry with HTTP 403. No provider-specific meaning
+is inferred from the 30 matrix skips.
+
+The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. AC7/AC8
+remain open pending the local gate and hosted E2E evidence. AC10 still awaits
+`feat/market-data-provider-platform` reaching staging. AC14 remains the
+post-integration/deployment 30-day shadow observation. The goal is active, not
+blocked or complete.
+
 ## Exact-SHA run 37264499974 — 2026-10-05
 
 The pushed workstream checkpoint `8105d9695fa4f265e1069b18b5dec439b16dadc4`

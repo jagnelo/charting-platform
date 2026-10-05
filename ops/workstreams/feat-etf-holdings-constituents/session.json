@@ -116,7 +116,7 @@
   "head": "8105d9695fa4f265e1069b18b5dec439b16dadc4",
   "implementation_sha": "f04b0a39a60fadd6d8d21cf2bca360d8d746c88c",
   "last_checkpoint": "2026-10-05T04:01:03.000000+00:00",
-  "last_human_progress_update": "2026-10-05T04:57:55.094425+00:00",
+  "last_human_progress_update": "2026-10-05T05:51:50.873339+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Wait for the other worktree Docker/browser stack to exit and host memory headroom to recover, then run make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents through the approved Docker boundary and inspect visual actual/diff artifacts before changing baselines or UI. Avoid further documentation-only CI churn until the local full gate yields new evidence. Do not change generic CI, stop or alter another worktree, integrate, promote, or deploy. AC10 still awaits provider-platform staging; AC14 remains post-release.",
   "plan_hash": "c936a128bfb04bd1c35ebb18e3e3d41a5d85273c1364600a5bd2f817e74f098a",
@@ -140,11 +140,11 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Exact-SHA run 37264499974 on 8105d9695fa4f265e1069b18b5dec439b16dadc4 passed backend unit/integration 1,501/379 and frontend 945; the branch-declared job passed with 596 deterministic adapter tests, default live contracts 3/535 opt-in skipped, opt-in provider matrix 508 passed/30 skipped, Ruff, workstream validation, frontend type-check, 17 ETF UI tests, and production build. No provider-specific breakdown for the 30 skips was exposed. Both Codecov uploads again failed TLS EPROTO, so hosted E2E was skipped. GitHub rerun API returned 403 and gh CLI is unavailable. The local full browser gate remains deferred while feat-tc2000-frontend-rework Docker/browser services are active and host memory is about 2.9 GiB; do not stop or alter them. AC7/AC8 remain open; AC10 awaits provider-platform staging; AC14 is the later post-integration/deployment observation. Goal remains active.",
-    "current_phase": "exact_sha_tests_pass_codecov_tls_recurrent_local_full_gate_waiting_other_stack",
-    "next_action": "Wait for the other worktree Docker/browser stack to exit and host memory headroom to recover, then run make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents through the approved Docker boundary and inspect visual actual/diff artifacts before changing baselines or UI. Avoid further documentation-only CI churn until the local full gate yields new evidence. Do not change generic CI, stop or alter another worktree, integrate, promote, or deploy. AC10 still awaits provider-platform staging; AC14 remains post-release.",
+    "current_blocker": "15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The full local gate on 37d32c6 passed through stack health and research-runner probes, then the 260-test browser stage recorded four workstation failures. A temporary Buildx plugin resolved the Docker setup issue. GitHub run 37265943225 branch tests passed; Codecov TLS EPROTO failed uploads and retry returned 403. Parallel worktree stack active; do not compete. AC7/AC8 open, AC10 waits provider-platform staging, AC14 post-release.",
+    "current_phase": "local_full_gate_e2e_failures_waiting_for_shared_stack",
+    "next_action": "Wait for the other stack to exit, replay four exact failed Playwright cases using temporary Buildx; if they pass rerun full integration, otherwise trace only directly causal ETF-owned code. Do not stop another stack or alter generic tests/baselines.",
     "total": 14,
-    "updated_at": "2026-10-05T04:57:55.094405+00:00"
+    "updated_at": "2026-10-05T05:51:50.873303+00:00"
   },
   "remote": "8105d9695fa4f265e1069b18b5dec439b16dadc4",
   "remote_sha": "8105d9695fa4f265e1069b18b5dec439b16dadc4",

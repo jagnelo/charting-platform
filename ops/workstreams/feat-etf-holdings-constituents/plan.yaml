@@ -430,7 +430,7 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: exact_sha_branch_tests_green_codecov_failure_local_full_gate_waiting_shared_docker
+current_phase: local_full_gate_four_browser_failures_waiting_for_shared_stack
 current_blocker: >-
   QVAL implementation checkpoint (2026-10-05; superseded by the updates below):
   15 Tier-0 and 156 Tier-1 symbol outcomes
@@ -719,15 +719,34 @@ current_blocker: >-
   or failed. The current run confirms application/branch tests pass while the
   Codecov transport blocks hosted E2E. The goal remains active.
 
+  UPDATE 2026-10-05T05:48Z: The exact-SHA local gate was rerun on
+  37d32c633b4633bfaebb1259c44374fd107b79ae. The installed Docker CLI had no
+  Buildx plugin; the official Ubuntu docker-buildx 0.30.1 package was extracted
+  under /tmp and exposed only through a temporary DOCKER_CONFIG, without a
+  system install. This resolved the earlier stack-up failure: workstream,
+  backend coverage, frontend tests/build, image build, stack health, and
+  research-runner probes passed. The 260-test Playwright stage completed with
+  four failures: F8s-market-map-watchlist did not render its locked-source map
+  summary; F8s-family-matrix and F8s-breadth reported local API
+  ERR_NETWORK_CHANGED; F8s-breadth-family-ratio did not render the expected
+  linked-chart timestamp. The gate stopped before its dedicated visual and
+  branch-declared stages and cleaned only the ETF stack, its volumes, and its
+  four images. A post-run read-only Docker check found the separate
+  feat-tc2000-frontend-rework stack active again; no targeted replay was started
+  under the no-competing-heavy-stack rule. Exact-SHA CI run 37265943225 on this
+  source SHA passed the branch-declared tests (596 deterministic; default live
+  3 passed/535 skipped; opt-in matrix 508 passed/30 skipped) plus backend
+  1,501/379 and frontend 945. Both Codecov uploads failed TLS EPROTO, hosted
+  E2E was skipped, and the available GitHub retry API returned 403. AC7/AC8
+  remain open. AC10 awaits provider-platform staging; AC14 remains the later
+  post-integration/deployment shadow observation. Goal remains active.
+
 next_action: >-
-  Wait for the competing worktree Docker/browser stack to exit and host memory
-  headroom to recover, then run
-  `make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents`
-  through the approved Docker boundary. Inspect actual/diff artifacts from
-  that run before changing visual baselines or UI. The exact-SHA branch, unit,
-  and integration tests passed on 8105d9695fa4f265e1069b18b5dec439b16dadc4;
-  Codecov TLS EPROTO has recurred and GitHub's retry API is unavailable to
-  this integration. Avoid further documentation-only CI churn until the local
-  full gate yields new evidence. Do not change generic CI, stop or modify
-  another worktree, integrate, promote, or deploy. AC10 awaits provider-platform
-  staging; AC14 remains the post-integration/deployment shadow gate.
+  Wait for the feat-tc2000-frontend-rework Docker/browser stack to exit, then
+  replay the four exact failing browser cases on a fresh ETF stack using the
+  temporary Buildx plugin. If they pass, rerun the official full gate; if any
+  reproduces, diagnose only the directly causal ETF-owned code and preserve
+  generic assertions/baselines. Do not stop or alter another worktree. Exact-SHA
+  branch tests passed, but Codecov uploads remain TLS-failing and the GitHub
+  retry endpoint returned 403. AC7/AC8 remain open; AC10 awaits provider-
+  platform staging; AC14 remains the post-integration/deployment shadow gate.
