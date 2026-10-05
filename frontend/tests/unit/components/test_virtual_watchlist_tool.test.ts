@@ -1144,12 +1144,15 @@ describe('VirtualWatchlistTool', () => {
     await header.trigger('keydown', { key: 'F10', shiftKey: true })
     const menu = wrapper.get('[role="menu"][aria-label="Column actions for Signal"]')
     expect(header.attributes('aria-expanded')).toBe('true')
+    expect(header.attributes('aria-controls')).toBe(menu.attributes('id'))
+    expect(document.getElementById(header.attributes('aria-controls')!)).toBe(menu.element)
     expect(menu.get('[role="menuitem"]').text()).toBe('Pin to Top (ctrl-click)')
     expect(menu.get('[role="menuitem"]').element).toBe(document.activeElement)
 
     await menu.get('[role="menuitem"]').trigger('keydown', { key: 'Escape' })
     expect(wrapper.find('[role="menu"][aria-label="Column actions for Signal"]').exists()).toBe(false)
     expect(header.attributes('aria-expanded')).toBe('false')
+    expect(header.attributes('aria-controls')).toBeUndefined()
     expect(header.element).toBe(document.activeElement)
 
     await header.trigger('keydown', { key: 'ContextMenu', code: 'ContextMenu' })
@@ -1157,6 +1160,32 @@ describe('VirtualWatchlistTool', () => {
     await wrapper.get('[role="menuitem"]').trigger('click')
     expect(wrapper.emitted('update:pinnedBooleanKeys')?.at(-1)).toEqual([['signal']])
     expect(header.attributes('aria-expanded')).toBe('false')
+    wrapper.unmount()
+  })
+
+  it('associates a Boolean pin menu with only its stacked-column trigger', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      attachTo: document.body,
+      props: {
+        label: 'Sectors', rows,
+        columns: [
+          { key: 'symbol', label: 'Symbol' },
+          { key: 'signal', label: 'Signal', kind: 'boolean' },
+          { key: 'confirmed', label: 'Confirmed', kind: 'boolean' },
+        ],
+        stackedColumnKeys: ['signal', 'confirmed'],
+      },
+    })
+    const signalHeader = wrapper.get('button[aria-label="Sort by Signal"]')
+    const confirmedHeader = wrapper.get('button[aria-label="Sort by Confirmed"]')
+
+    await signalHeader.trigger('keydown', { key: 'F10', shiftKey: true })
+    const menu = wrapper.get('[role="menu"][aria-label="Column actions for Signal"]')
+    expect(signalHeader.attributes('aria-controls')).toBe(menu.attributes('id'))
+    expect(document.getElementById(signalHeader.attributes('aria-controls')!)).toBe(menu.element)
+    expect(confirmedHeader.attributes('aria-expanded')).toBe('false')
+    expect(confirmedHeader.attributes('aria-controls')).toBeUndefined()
+
     wrapper.unmount()
   })
 

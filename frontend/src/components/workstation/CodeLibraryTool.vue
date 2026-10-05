@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, useId } from 'vue'
+import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
@@ -118,7 +118,9 @@ const filter = ref('')
 const loading = ref(false)
 const error = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
-const createFormId = `code-library-create-${useId()}`
+// Golden Layout may mount separate Code Library tools in detached Vue roots;
+// useId() can restart at v-0 in each root, so use the globally unique instance UID.
+const createFormId = `code-library-create-${getCurrentInstance()?.uid ?? 0}`
 const drafts = ref<Record<number, string>>({})
 const selectedVersions = ref<Record<number, number>>({})
 const savingVersion = ref<number | null>(null)

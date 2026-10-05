@@ -140,6 +140,21 @@ describe('CodeLibraryTool', () => {
     expect(wrapper.text()).toContain('Breadth study')
   })
 
+  it('keeps create-form control IDs unique across detached Code Library roots', async () => {
+    const first = mount(CodeLibraryTool)
+    const second = mount(CodeLibraryTool)
+    await flushPromises()
+
+    const firstId = first.get('button[aria-controls^="code-library-create-"]').attributes('aria-controls')
+    const secondId = second.get('button[aria-controls^="code-library-create-"]').attributes('aria-controls')
+    expect(firstId).toBeTruthy()
+    expect(secondId).toBeTruthy()
+    expect(firstId).not.toBe(secondId)
+
+    first.unmount()
+    second.unmount()
+  })
+
   it('creates a numeric-series condition asset for isolated breadth targets', async () => {
     apiPost.mockImplementation((path: string) => path === '/code/validate'
       ? Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['series'] })
