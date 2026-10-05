@@ -3793,3 +3793,91 @@ hosted branch matrix to pass the live Eventide case before calling it repaired
 operationally. Evidence refs: `web:eventide-esum-product-holdings-2026-10-05`,
 `web:eventide-esum-csv-download-link-2026-10-05`, and
 `ci:37315769814-eventide-esum-empty-parser`.
+
+## Arin ATTR native route and VistaShares hosted identity failures — 2026-10-05
+
+### Arin ATTR
+
+The official `https://arinetfs.com/` page now returns the product identity and
+full holdings table in its HTML. A bounded direct GET returned HTTP 200, and the
+production ETF Architect parser extracted 26 rows with effective date
+`2026-10-05`; rounded row weights sum to `100.01%`. The page's legal disclosure
+identifies Empowered Funds/ETF Architect as adviser and Arin Risk Advisors as
+sub-adviser, so source provenance and provider audit text make that distinction
+explicit.
+
+`ArinHoldingsAdapter` is registered only for ATTR, inherits the reviewed
+ETF-Architect HTML transport, validates the exact fund title and holdings
+section, requires the effective date and complete ticker/name/shares/weight/
+market-value fields, enforces a conservative 20-row completeness floor (the
+observed page has 26 rows and the live test uses the same floor), converts
+issuer market value in millions to USD, and classifies options/funds/cash
+without passing those rows off as common-equity symbols. Unsupported symbols
+remain non-native unless SEC fallback is present.
+Runtime capability, registry config, provider ledger, deterministic fixture,
+and the opt-in live matrix now agree. Focused Arin unit and sixth-provider
+cohort tests pass. The local app-level live test skipped on DNS failure, so the
+promotion still requires exact-SHA hosted live evidence; the direct HTTP fetch
+and production parser result are recorded separately from that test.
+
+### VistaShares
+
+Exact push run `37320874525` for SHA `79d83a28fd44ea24a2f745790d0e9e260d861042`
+passed backend and frontend unit jobs but failed seven VistaShares live cases
+after receiving HTTP 200 product-page bodies that omitted the requested symbol.
+Each failure occurred before the holdings CSV fetch. The response payloads were
+not retained by the workflow, so this does not identify whether the cause was
+a bot challenge, transport variance, or actual issuer page drift. Current
+official RTOO and QUSA pages still expose fund identity, holding count, dated
+top-ten information, and a Download All Holdings control; that browser view is
+not complete application-route proof.
+
+The adapter makes one bounded retry to the same allow-listed product URL via
+`requests` if `httpx` errors or the returned page fails strict identity,
+account-form, or declared-count validation. The requests retry is transport
+resilience only: full CSV rows must still match account and date, meet declared
+position count, and pass existing completeness and derivative rules. A
+recognized WAF response is narrowly classified as external access failure;
+unrecognized no-identity content remains a hard test failure. New unit tests
+cover the retry and skip boundary without permitting a generic parser bypass.
+
+### Validation and release state
+
+The focused Arin/VistaShares/registry checks passed 9 selected tests; 8 live
+cases were skipped by default network gating. A separate opt-in Arin run
+skipped due to local DNS failure. The previous exact-SHA workflow's hosted
+Playwright job was still in progress at checkpoint; its protected exhaustive
+integration job was skipped by branch design. The next push must validate the
+alternate VistaShares transport, all seven identity-bound full CSV routes, and
+the Arin live route. Provider totals are 496 registered / 422 native-live-
+backed / 74 fallback-only. No staging integration, purchase, deployment, or
+cross-worktree action is authorized or performed here.
+
+### Follow-up diagnosis after exact-SHA CI — 2026-10-05
+
+Run `37320874525` is complete: backend, frontend-unit, and hosted Playwright
+jobs passed; the branch-declared live matrix failed only the seven VistaShares
+cases before CSV retrieval because each returned product-page body lacked its
+requested ticker. The bodies were not retained, so challenge versus route or
+transport drift is unresolved. VistaShares now makes one same-URL `requests`
+retry without weakening identity, declared-count, account, date, or
+completeness rules.
+
+The Arin adapter's non-ATTR path previously reported an SEC-backed probe as
+ready while rejecting the corresponding fetch. That mismatch is fixed: an
+unsupported symbol with SEC identifiers now uses the explicit SEC filing
+fallback and preserves its SEC provenance. The ATTR runtime, provider audit,
+and symbol ledger now all agree on a dated current issuer route. Runtime totals
+are 496 registered / 422 native / 74 fallback. The canonical deterministic ETF
+adapter/capability/refresh/task suite passed 732 tests. Ruff check and
+format-check passed, as did the default live contracts (4 passed, 536
+opt-in network cases skipped). The bounded eight-route local live run
+was interrupted after over five minutes without completion, so it remains
+inconclusive. Docker readiness passed via the approved elevated boundary, but
+the local browser gate is deferred while another worktree's Compose stack is
+active. No Docker resources or other worktree were changed.
+
+Next validation: refresh session and workstream plan-hash parity, run default
+live contracts and workstream invariants, commit and push this worktree-only
+changeset, inspect exact-SHA CI, then resume the Docker browser gate after the
+other stack exits. AC10 and AC14 remain as described in the acceptance plan.

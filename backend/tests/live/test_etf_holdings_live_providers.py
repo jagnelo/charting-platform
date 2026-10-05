@@ -14,6 +14,7 @@ from app.services.etf_holdings_adapters import (
 
 LIVE_BACKED_ISSUER_ADAPTERS = {
     "baillie_gifford",
+    "arin",
     "amplius",
     "argent",
     "m_d_sass",
@@ -459,6 +460,7 @@ _NON_NETWORK_CONTRACT_TESTS = {
     "test_live_provider_matrix_covers_every_registered_issuer_adapter",
     "test_live_backed_providers_each_have_a_concrete_live_route_test",
     "test_donoghue_forlines_access_variant_skip_is_scoped_to_dftt",
+    "test_vistashares_access_challenge_skip_is_narrow",
 }
 
 
@@ -534,6 +536,7 @@ def _is_external_live_access_failure(exc: Exception) -> bool:
             # The issuer edge can also return an access-limited 503 HTML response
             # instead of rows from the declared export endpoint.
             "donoghue forlines holdings csv did not expose rows",
+            "vistashares official product page returned an issuer access challenge",
         )
     )
 
@@ -549,6 +552,15 @@ def test_donoghue_forlines_access_variant_skip_is_scoped_to_dftt():
             "Donoghue Forlines product page did not expose a complete holdings "
             "CSV for another symbol."
         )
+    )
+
+
+def test_vistashares_access_challenge_skip_is_narrow():
+    assert _is_external_live_access_failure(
+        ValueError("VistaShares official product page returned an issuer access challenge.")
+    )
+    assert not _is_external_live_access_failure(
+        ValueError("VistaShares product page did not declare the RTOO holdings form.")
     )
 
 
@@ -756,6 +768,7 @@ async def test_live_m_d_sass_issuer_csv_route_preserves_dated_rows():
     ("adapter_key", "symbol", "issuer_product_id", "identifiers", "min_rows"),
     [
         ("amplius", "AAAA", None, {}, 20),
+        ("arin", "ATTR", None, {}, 20),
         ("argent", "AMID", None, {}, 20),
         ("argent", "ABIG", None, {}, 20),
         ("argent", "ALIL", None, {}, 20),
@@ -2677,6 +2690,11 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
         assert result.legal_metadata["route_resolution"] == (
             "bufferlabs_public_complete_current_holdings_table"
         )
+        assert result.legal_metadata["composition_date"]
+        assert any(row.holding_type == "derivative" for row in result.rows)
+        assert any(row.row_type == "cash" for row in result.rows)
+    if adapter_key == "arin":
+        assert result.legal_metadata["source_provider"] == "etf_architect"
         assert result.legal_metadata["composition_date"]
         assert any(row.holding_type == "derivative" for row in result.rows)
         assert any(row.row_type == "cash" for row in result.rows)

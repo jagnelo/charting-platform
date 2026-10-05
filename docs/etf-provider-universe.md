@@ -102,12 +102,13 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `421`
-- Audited fallback-only providers: `75`
+- Native/live-backed providers: `422`
+- Audited fallback-only providers: `74`
 
 This is the current branch-derived split after the VistaShares RTOO, AIS, AMMO,
 QUSA, OMAH, ACKY, and DRKY official product-page-declared complete CSV routes,
-and the Warren WCAP request-profile,
+the Arin ATTR dated complete HTML table route (published through ETF Architect,
+with Arin Risk Advisors as sub-adviser), and the Warren WCAP request-profile,
 Inspire ETF Engine, Fidelity named-zero-weight-row, Anydrus NDOW
 page-declared FilePoint JSON, and WisdomTree DXJ/NTSX HTTP/1.1 transport repairs.
 The remaining Vident and MM VAM aliases stay fallback-only because the shared
@@ -2397,6 +2398,45 @@ The current code-derived split is 496 registered / 419 native-live-backed / 77
 fallback-only providers; runtime fallback statuses are 8 issuer-access-blocked,
 56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.
+
+## Current audit checkpoint — Arin ATTR route and VistaShares CI recheck — 2026-10-05
+
+A bounded direct request to Arin's official ATTR page returned HTTP 200 HTML
+with all 26 holdings dated `2026-10-05`. The production ETF Architect page
+parser extracted all 26 rows; rounded weights total `100.01%`, and equity,
+fund, option, and cash positions were retained/classified. The dedicated Arin
+adapter is limited to ATTR, validates the fund identity and effective date,
+and records ETF Architect as page publisher with Arin Risk Advisors as
+sub-adviser. The app-level live probe skipped on local DNS failure, so that
+skip is not recorded as a route pass; hosted exact-SHA validation remains
+pending. The adapter also requires at least 20 complete rows, matching the
+bounded live-test floor and guarding against a future top-ten-only page variant.
+
+Exact-SHA run `37320874525` passed Backend Tests and Frontend Unit Tests but
+failed all seven VistaShares live product cases before fetching CSV because
+HTTP 200 product-page responses did not contain the requested ticker. The CI
+job did not preserve those response bodies, so this does not yet distinguish
+issuer edge challenge from page/transport drift. Current official VistaShares
+browser-visible RTOO/QUSA pages still expose issuer identity, holdings counts,
+dated top-ten data, and a Download All Holdings control, but those views are
+not substitutes for application-executable full holdings. The adapter now
+retries the same official product URL once with the standard requests client;
+it keeps identity, form, count, account, date, and completeness checks strict
+and permits an external skip only for recognized issuer WAF markers. Native
+operational status remains under exact-SHA revalidation.
+
+The current code-derived provider split is 496 registered / 422 native-live-
+backed / 74 fallback-only. The remaining route validation and local
+Docker-backed full-stack gate are still open; no provider-platform integration,
+paid data source, or cross-worktree change occurred.
+
+After the Arin promotion, the current runtime fallback dispositions are:
+
+- `issuer_access_blocked`: `6`
+- `needs_first_party_route_discovery`: `54`
+- `non_executable_public_source`: `3`
+- `provider_not_a_portfolio_publisher`: `8`
+- `inactive_or_successor_disposition`: `3`
 
 ## QVOY official source recheck — 2026-10-05
 

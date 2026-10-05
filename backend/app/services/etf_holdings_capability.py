@@ -1106,10 +1106,10 @@ _register_non_tier_0_audits(
 )
 _register_non_tier_0_audits(
     ("ATTR",),
-    outcome=UNAVAILABLE,
-    evidence_state="issuer_route_access_blocked",
+    outcome=CURRENT,
+    evidence_state="current_issuer_route",
     provider_identity="arin",
-    investigated_at=date(2026, 10, 2),
+    investigated_at=date(2026, 10, 5),
     evidence_refs=(
         "web:arin-attr-holdings-cloudflare-2026-09-02",
         "live:arin-attr-html-holdings-future-effective-date-2026-09-07",
@@ -1117,11 +1117,12 @@ _register_non_tier_0_audits(
         "live:arin-attr-direct-open-timeout-2026-09-25",
         "web:arin-attr-current-holdings-2026-10-02",
         "live:arin-attr-direct-open-403-2026-10-02",
+        "live:arin-attr-official-page-complete-26-rows-2026-10-05",
     ),
     next_action=(
-        "Re-test the official ATTR route from an allowed network path or identify an "
-        "issuer-published machine-readable export; promote only after parser, identity, "
-        "freshness, and bounded live evidence pass."
+        "Monitor the official ATTR page through ETF Architect and retain current status only "
+        "while its issuer identity, effective date, complete holdings table, and bounded live "
+        "route remain valid; keep Arin Risk Advisors attributed as sub-adviser."
     ),
 )
 _register_non_tier_0_audits(

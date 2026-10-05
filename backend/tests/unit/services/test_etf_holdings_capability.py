@@ -1316,7 +1316,7 @@ def test_all_symbolless_fallback_identities_remain_non_current_at_capability_bou
 
 def test_every_fallback_identity_rejects_unreviewed_synthetic_symbols():
     """A complete snapshot cannot turn an unreviewed fallback identity current."""
-    assert len(FALLBACK_ISSUER_AUDITS) == 75
+    assert len(FALLBACK_ISSUER_AUDITS) == 74
 
     for adapter_key in sorted(FALLBACK_ISSUER_AUDITS):
         profile_value = profile_with_symbol(f"SYNTHETIC_{adapter_key}", adapter_key)

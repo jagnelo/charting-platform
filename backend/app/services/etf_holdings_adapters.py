@@ -68688,6 +68688,18 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "may be subject to issuer terms."
         ),
     ),
+    "arin": IssuerCsvAdapterConfig(
+        adapter_key="arin",
+        source_provider="etf_architect",
+        source_access="issuer_public_product_page_wpdatatables_holdings_table",
+        expected_cadence="daily",
+        product_page_templates=("https://arinetfs.com/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "The official ATTR page is published through ETF Architect and identifies Arin Risk "
+            "Advisors as sub-adviser; public holdings may be subject to issuer terms."
+        ),
+    ),
     "faith_investor_services": IssuerCsvAdapterConfig(
         adapter_key="faith_investor_services",
         source_provider="faith_investor_services",
@@ -71289,7 +71301,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
     "issuer_access_blocked": (
         "aegon",
         "anfield",
-        "arin",
         "manulife",
         "ridgeline",
         "westwood",
@@ -73592,30 +73603,10 @@ class VistaSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "VistaShares holdings must use the matching official product or CSV route."
             )
 
-        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            product_response = await client.get(
-                product_page_url,
-                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
-                follow_redirects=True,
-            )
-        product_response.raise_for_status()
-        page_text = html.unescape(product_response.text)
-        normalized_page = re.sub(r"\s+", " ", page_text)
-        if normalized_symbol not in normalized_page:
-            raise ValueError(f"VistaShares product page did not identify {normalized_symbol}.")
-        account_match = self._ACCOUNT_INPUT_PATTERN.search(page_text)
-        if account_match is None or account_match.group("symbol").upper() != normalized_symbol:
-            raise ValueError(
-                f"VistaShares product page did not declare the {normalized_symbol} holdings form."
-            )
-        declared_match = self._DECLARED_COUNT_PATTERN.search(normalized_page)
-        declared_count = (
-            int(declared_match.group("count").replace(",", "")) if declared_match else None
+        product_response, page_text, declared_count = await self._fetch_verified_product_page(
+            product_page_url,
+            symbol=normalized_symbol,
         )
-        if declared_count is None or declared_count < 1:
-            raise ValueError(
-                f"VistaShares product page did not declare a positive holdings count for {normalized_symbol}."
-            )
 
         holdings_url = f"{self.HOLDINGS_ENDPOINT}?etf={normalized_symbol}"
         result = await self._fetch_explicit_issuer_csv(
@@ -73699,6 +73690,72 @@ class VistaSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             "terms_note": self.config.terms_note,
         }
         return result
+
+    @classmethod
+    async def _fetch_verified_product_page(
+        cls,
+        product_page_url: str,
+        *,
+        symbol: str,
+    ) -> tuple[Any, str, int]:
+        """Retry the same public page once with requests if httpx gets an unusable 200 body."""
+
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(
+                    product_page_url,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+            page_text = html.unescape(response.text)
+            declared_count = cls._declared_holdings_count(page_text, symbol=symbol)
+        except (httpx.HTTPError, ValueError):
+            # VistaShares' product pages are public HTML routes. A single retry
+            # through requests handles edge responses that return a non-page
+            # HTTP 200 body to httpx, without weakening identity or completeness.
+            response = await asyncio.to_thread(
+                requests.get,
+                product_page_url,
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+            response.raise_for_status()
+            page_text = html.unescape(response.text)
+            declared_count = cls._declared_holdings_count(page_text, symbol=symbol)
+
+        final_url = urlparse(str(getattr(response, "url", product_page_url)))
+        if not final_url.hostname or not _domain_matches(final_url.hostname, "vistashares.com"):
+            raise ValueError("VistaShares product page redirected outside its official domain.")
+        return response, page_text, declared_count
+
+    @classmethod
+    def _declared_holdings_count(cls, page_text: str, *, symbol: str) -> int:
+        normalized_page = re.sub(r"\s+", " ", page_text)
+        if _looks_like_issuer_access_challenge(page_text):
+            raise ValueError(
+                "VistaShares official product page returned an issuer access challenge."
+            )
+        if not re.search(rf"(?<![A-Z0-9]){re.escape(symbol)}(?![A-Z0-9])", normalized_page, re.I):
+            raise ValueError(f"VistaShares product page did not identify {symbol}.")
+        account_match = cls._ACCOUNT_INPUT_PATTERN.search(page_text)
+        if account_match is None or account_match.group("symbol").upper() != symbol:
+            raise ValueError(
+                f"VistaShares product page did not declare the {symbol} holdings form."
+            )
+        declared_match = cls._DECLARED_COUNT_PATTERN.search(normalized_page)
+        declared_count = (
+            int(declared_match.group("count").replace(",", "")) if declared_match else None
+        )
+        if declared_count is None or declared_count < 1:
+            raise ValueError(
+                f"VistaShares product page did not declare a positive holdings count for {symbol}."
+            )
+        return declared_count
 
     @classmethod
     def _is_official_route(cls, source_url: str, symbol: str) -> bool:
@@ -75941,8 +75998,147 @@ class CapForceHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
-class ArinReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Arin discovery."""
+class ArinHoldingsAdapter(ETFArchitectHoldingsAdapter):
+    """Fetch ATTR from its official ETF Architect page with Arin sub-adviser identity checks."""
+
+    SUPPORTED_SYMBOL = "ATTR"
+    MINIMUM_HOLDINGS_ROWS = 20
+    PRODUCT_PAGE_URL = "https://arinetfs.com/"
+    EXPECTED_IDENTITY = "Arin Tactical Tail Risk ETF"
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del issuer_product_id, identifiers
+        return self.PRODUCT_PAGE_URL if symbol.strip().upper() == self.SUPPORTED_SYMBOL else None
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        sec_cik = _identifier(identifiers, "sec_cik", "cik")
+        if normalized_symbol == self.SUPPORTED_SYMBOL:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9600"),
+                status="ready",
+                reason=(
+                    "The official ATTR product page publishes the complete dated holdings table; "
+                    "ETF Architect is the page publisher and Arin Risk Advisors is the sub-adviser."
+                ),
+                source_url=self.PRODUCT_PAGE_URL,
+                issuer_product_id=normalized_symbol,
+            )
+        if sec_cik:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.7800"),
+                status="ready",
+                reason="No Arin-native route is configured for this symbol; SEC EDGAR remains a fallback.",
+                source_url=f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json",
+                issuer_product_id=normalized_symbol or None,
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.3000"),
+            status="needs_issuer_route",
+            reason=f"No verified Arin native holdings route is configured for {normalized_symbol or 'this symbol'}.",
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            sec_result = None
+            if self.config.supports_sec_filing_fallback:
+                sec_result = await self._fetch_latest_sec_filing_holdings(
+                    symbol=normalized_symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers or {},
+                )
+            if sec_result is not None:
+                return sec_result
+            raise ValueError(
+                f"Arin's verified native holdings route supports {self.SUPPORTED_SYMBOL} only; "
+                "other symbols require SEC fallback identifiers or their own verified route."
+            )
+        if source_url and source_url.rstrip("/") != self.PRODUCT_PAGE_URL.rstrip("/"):
+            raise ValueError(
+                "ATTR holdings must use its verified official Arin/ETF Architect page."
+            )
+        return await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=self.PRODUCT_PAGE_URL,
+            identifiers=identifiers,
+        )
+
+    @classmethod
+    def _parse_product_page(cls, raw_html: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        page = html.unescape(raw_html)
+        if not re.search(re.escape(cls.EXPECTED_IDENTITY), page, re.IGNORECASE):
+            raise ValueError("Arin product page identity did not match ATTR.")
+        if not re.search(r"\bATTR\b", page, re.IGNORECASE) or "fund-holdings" not in page:
+            raise ValueError("Arin product page did not expose ATTR's official holdings section.")
+
+        rows, composition_date = super()._parse_product_page(page)
+        if not rows:
+            raise ValueError("Arin product page did not expose complete holdings rows for ATTR.")
+        if len(rows) < cls.MINIMUM_HOLDINGS_ROWS:
+            raise ValueError(
+                f"Arin ATTR holdings table returned {len(rows)} rows, below the verified "
+                f"{cls.MINIMUM_HOLDINGS_ROWS}-row completeness floor."
+            )
+        if composition_date is None:
+            raise ValueError("Arin ATTR holdings table did not expose an effective date.")
+        if any(
+            not row.symbol
+            or not row.name
+            or row.shares is None
+            or row.weight is None
+            or row.market_value is None
+            for row in rows
+        ):
+            raise ValueError("Arin ATTR holdings table contained incomplete position rows.")
+
+        for index, row in enumerate(rows, start=1):
+            raw_symbol = _clean(_first(row.extra_data, ["ticker"]))
+            raw_name = _clean(_first(row.extra_data, ["name"])) or row.name
+            row_type, holding_type = CapForceHoldingsAdapter._classify_row(
+                raw_symbol=raw_symbol,
+                name=raw_name,
+            )
+            row.row_type = row_type
+            row.holding_type = holding_type
+            if row_type in {"cash", "other"}:
+                row.symbol = None
+                row.cusip = None
+            row.currency = row.currency or "USD"
+            row.source_row_id = f"ATTR:{composition_date.isoformat()}:{index}"
+            row.extra_data = {**row.extra_data, "source": "arin_attr_official_holdings_table"}
+        return rows, composition_date
+
+    @staticmethod
+    def _extract_as_of_date(raw_html: str) -> date | None:
+        parser = _HTMLTablesParser()
+        parser.feed(html.unescape(raw_html))
+        for table in parser.tables:
+            for index, row in enumerate(table[:30]):
+                normalized = [str(value).strip().casefold() for value in row]
+                if normalized == ["effective date"] and index + 1 < len(table):
+                    date_value = _clean(table[index + 1][0] if table[index + 1] else None)
+                    return _parse_issuer_date(date_value)
+        return None
 
 
 class MatrixReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -76256,7 +76452,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "amplius": AmpliusHoldingsAdapter,
         "american_beacon": AmericanBeaconHoldingsAdapter,
         "anydrus": AnydrusHoldingsAdapter,
-        "arin": ArinReconciledFallbackHoldingsAdapter,
+        "arin": ArinHoldingsAdapter,
         "ars": ArtemisHoldingsAdapter,
         "argent": ArgentHoldingsAdapter,
         "avantis": AvantisHoldingsAdapter,

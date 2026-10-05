@@ -10785,6 +10785,133 @@ async def test_etf_architect_adapter_parses_alpha_architect_holdings_table(monke
 
 
 @pytest.mark.asyncio
+async def test_arin_adapter_parses_identity_bound_effective_dated_holdings(monkeypatch):
+    adapter = get_holdings_adapter("arin")
+    assert adapter is not None
+
+    additional_rows = "\n".join(
+        f"<tr><td>TEST{index}</td><td>Fixture Security {index}</td><td></td>"
+        "<td>0</td><td>0.00</td><td>0.00</td><td>0.00</td></tr>"
+        for index in range(1, 18)
+    )
+    fixture = f"""
+    <html><h1>ATTR</h1><h2>Arin Tactical Tail Risk ETF</h2>
+    <section id="fund-holdings">
+      <table><thead><tr><th>Effective Date</th></tr></thead>
+        <tbody><tr><td>10/05/2026</td></tr></tbody></table>
+      <table><thead><tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th>
+        <th>Price (Local)</th><th>Market Value ($mm)</th><th>% of Net Assets</th></tr></thead>
+        <tbody>
+          <tr><td>CAOS</td><td>Alpha Architect Tail Risk ETF</td><td>02072L516</td>
+            <td>387,146</td><td>90.64</td><td>35.09</td><td>30.41</td></tr>
+          <tr><td>2SPY 261218C00010010</td><td>SPY 12/18/2026 10.01 C</td><td></td>
+            <td>73</td><td>757.84</td><td>5.53</td><td>4.79</td></tr>
+          <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td>
+            <td>-38,387</td><td>1.00</td><td>-0.04</td><td>-0.03</td></tr>
+          {additional_rows}
+        </tbody>
+      </table>
+    </section></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=fixture,
+            content_type="text/html",
+            url="https://arinetfs.com/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    probe = adapter.probe(symbol="ATTR", name="Arin Tactical Tail Risk ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://arinetfs.com/"
+
+    result = await adapter.fetch_latest(symbol="ATTR", source_url=probe.source_url)
+
+    assert FakeAsyncClient.requested[0][0] == "https://arinetfs.com/"
+    assert len(result.rows) == 20
+    assert result.rows[0].symbol == "CAOS"
+    assert result.rows[0].cusip == "02072L516"
+    assert result.rows[0].weight == Decimal("0.3041")
+    assert result.rows[0].market_value == Decimal("35090000")
+    assert result.rows[1].row_type == "other"
+    assert result.rows[1].holding_type == "derivative"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].extra_data["Ticker"] == "2SPY 261218C00010010"
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].symbol is None
+    assert result.legal_metadata["source_provider"] == "etf_architect"
+    assert result.legal_metadata["adapter_key"] == "arin"
+    assert result.legal_metadata["composition_date"] == "2026-10-05"
+
+
+def test_arin_adapter_fails_closed_for_unverified_symbols_routes_and_identity():
+    adapter = get_holdings_adapter("arin")
+    assert adapter is not None
+
+    assert adapter.probe(symbol="OTHER", name="", identifiers={}).status == "needs_issuer_route"
+    with pytest.raises(ValueError, match="supports ATTR only"):
+        import asyncio
+
+        asyncio.run(adapter.fetch_latest(symbol="OTHER"))
+    with pytest.raises(ValueError, match="official Arin/ETF Architect page"):
+        import asyncio
+
+        asyncio.run(adapter.fetch_latest(symbol="ATTR", source_url="https://example.com/"))
+    with pytest.raises(ValueError, match="identity did not match ATTR"):
+        adapter._parse_product_page("<html><h1>Different ETF</h1></html>")
+    with pytest.raises(ValueError, match="below the verified 20-row completeness floor"):
+        adapter._parse_product_page(
+            """
+            <html><h1>ATTR</h1><h2>Arin Tactical Tail Risk ETF</h2>
+            <section id="fund-holdings">
+              <table><tr><th>Effective Date</th></tr><tr><td>10/05/2026</td></tr></table>
+              <table><thead><tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th>
+                <th>Price (Local)</th><th>Market Value ($mm)</th><th>% of Net Assets</th>
+              </tr></thead><tbody><tr><td>CAOS</td><td>Alpha Architect Tail Risk ETF</td>
+                <td>02072L516</td><td>387,146</td><td>90.64</td><td>35.09</td><td>30.41</td>
+              </tr></tbody></table>
+            </section></html>
+            """
+        )
+
+
+@pytest.mark.asyncio
+async def test_arin_adapter_routes_unverified_symbols_to_explicit_sec_fallback(monkeypatch):
+    adapter = get_holdings_adapter("arin")
+    assert adapter is not None
+    sec_result = HoldingsFetchResult(
+        source_url="https://www.sec.gov/Archives/edgar/data/",
+        source_identifier="OTHER",
+        rows=[],
+        raw_text="<informationTable />",
+        raw_json=None,
+        legal_metadata={"source_provider": "sec", "route_resolution": "sec_edgar_filing_fallback"},
+    )
+    calls = []
+
+    async def fake_sec_fallback(**kwargs):
+        calls.append(kwargs)
+        return sec_result
+
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fallback)
+    identifiers = {"sec_cik": "1234"}
+    probe = adapter.probe(symbol="OTHER", name="", identifiers=identifiers)
+
+    result = await adapter.fetch_latest(
+        symbol="OTHER",
+        source_url=probe.source_url,
+        identifiers=identifiers,
+    )
+
+    assert probe.status == "ready"
+    assert probe.source_url == "https://data.sec.gov/submissions/CIK0000001234.json"
+    assert result is sec_result
+    assert calls == [{"symbol": "OTHER", "issuer_product_id": None, "identifiers": identifiers}]
+
+
+@pytest.mark.asyncio
 async def test_etf_architect_adapter_retries_issuer_page_with_requests_after_httpx_403(monkeypatch):
     adapter = get_holdings_adapter("etf_architect")
     assert adapter is not None
@@ -15970,6 +16097,51 @@ async def test_vistashares_adapter_rejects_incomplete_and_cross_account_csv(monk
     ]
     with pytest.raises(ValueError, match="holdings date is in the future"):
         await adapter.fetch_latest(symbol="QUSA")
+
+
+@pytest.mark.asyncio
+async def test_vistashares_product_page_retries_non_page_http_200_once(monkeypatch):
+    adapter = get_holdings_adapter("vistashares")
+    assert adapter is not None
+    page_url = "https://www.vistashares.com/etf/qusa/"
+    csv_url = "https://www.vistashares.com/csv/top-holdings/?etf=QUSA"
+    page_html = """
+    <h1>VistaShares QUSA ETF (QUSA)</h1>
+    <table><tr><td>Number of Holdings</td><td>1</td></tr></table>
+    <form method="GET" action="https://www.vistashares.com/csv/top-holdings">
+      <input type="hidden" name="etf" value="QUSA">
+    </form>
+    """
+    csv_text = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+09/24/2026,QUSA,MSFT,594918104,Microsoft Corp,100,500.00,50000,0.6000,8333333,100000,1,
+"""
+    retry_calls = []
+
+    def fake_requests_get(url, **kwargs):
+        retry_calls.append((url, kwargs))
+        return FakeResponse(text=page_html, content_type="text/html", url=page_url)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><title>Just a moment...</title><div id='cf-chl-widget'></div></html>",
+            content_type="text/html",
+            url=page_url,
+        ),
+        FakeResponse(text=csv_text, content_type="text/csv", url=csv_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+
+    result = await adapter.fetch_latest(symbol="QUSA")
+
+    assert FakeAsyncClient.requested[0][0] == page_url
+    assert [call[0] for call in retry_calls] == [page_url]
+    assert retry_calls[0][1]["allow_redirects"] is True
+    assert FakeAsyncClient.requested[-1][0] == csv_url
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "MSFT"
+    assert result.legal_metadata["composition_date"] == "2026-09-24"
 
 
 async def test_capforce_adapter_parses_complete_current_holdings_tables(monkeypatch):
@@ -24337,8 +24509,8 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         "anydrus",
     }
 
-    terminal_dispositions = {"arin"}
-    expected -= terminal_dispositions
+    native_promotions = {"arin"}
+    expected -= native_promotions
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -24360,12 +24532,13 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
-    for adapter_key in terminal_dispositions:
-        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
-        assert audit.status == "issuer_access_blocked"
+    for adapter_key in native_promotions:
+        assert adapter_key not in FALLBACK_ISSUER_AUDITS
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
-        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+        assert type(adapter).__name__ == "ArinHoldingsAdapter"
+        assert adapter.config.live_tested_default_route is True
+        assert adapter.source_provider == "etf_architect"
     assert "avory" not in FALLBACK_ISSUER_AUDITS
     assert "bufferlabs" not in FALLBACK_ISSUER_AUDITS
     assert "bushido" not in FALLBACK_ISSUER_AUDITS
@@ -24376,6 +24549,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
     assert "fitzgerald" not in FALLBACK_ISSUER_AUDITS
     assert "max" not in FALLBACK_ISSUER_AUDITS
     assert "sammons_enterprises" not in FALLBACK_ISSUER_AUDITS
+    assert "arin" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["max"].live_tested_default_route is True
     assert type(get_holdings_adapter("max")).__name__ == "MaxHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
@@ -29260,14 +29434,15 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 421
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 75
+    assert ledger["current_native_count"] == 422
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 74
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
         record["adapter_key"] for record in records if record["disposition"] == "native_promoted"
     }
     assert native_promoted == {
+        "arin",
         "baillie_gifford",
         "ars",
         "avory",
