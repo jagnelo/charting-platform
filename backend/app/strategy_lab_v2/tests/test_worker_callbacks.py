@@ -114,7 +114,22 @@ class _SearchDispatchPersistence(_Persistence):
 
     worker_recoveries = _Recoveries()
 
+    class _ResultCompletion:
+        async def load_completion_ledger(self, **_kwargs: Any) -> None:
+            return None
+
+    result_completion = _ResultCompletion()
+
+    class _WorkerSettlements:
+        async def load_ledger(self, **_kwargs: Any) -> None:
+            return None
+
+    worker_settlements = _WorkerSettlements()
+
     class _WorkerState:
+        async def load_pool(self, _profile: Any) -> None:
+            return None
+
         async def load_lease(self, _lease_id: str) -> None:
             return None
 

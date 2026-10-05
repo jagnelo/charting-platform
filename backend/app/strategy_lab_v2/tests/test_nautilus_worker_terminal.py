@@ -142,6 +142,13 @@ from app.strategy_lab_v2.sandbox import (
     sandbox_native_reports_path,
 )
 from app.strategy_lab_v2.sandbox_execution import SandboxRunResult, SandboxRunStatus
+from app.strategy_lab_v2.search_state import (
+    SearchCandidatePhase,
+    SearchStateDecision,
+    new_search_execution_state,
+    record_search_candidate_terminal,
+    start_search_candidate,
+)
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import (
@@ -1005,6 +1012,10 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
             self.artifact_commits = resolution.artifact_commit_ledger
             return resolution
 
+        async def load_completion_ledger(self, *, principal):
+            assert principal == "owner-terminal-test"
+            return self.completions
+
     class EnsurePort:
         async def ensure(self, **kwargs):
             return SimpleNamespace(**kwargs)
@@ -1039,6 +1050,41 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         0,
         dispatch_request,
     )
+    search_state = new_search_execution_state(
+        dispatch_record.experiment_fingerprint,
+        (graph.trial.trial_id,),
+        now=BASE,
+    )
+    search_state = start_search_candidate(
+        search_state,
+        dispatch_record.candidate_index,
+        attempt_id=dispatch_request.attempt_id,
+        now=BASE,
+    ).state
+
+    class SearchStatePort:
+        def __init__(self) -> None:
+            self.state = search_state
+
+        async def load(self, *, principal, experiment_fingerprint):
+            assert principal == "owner-terminal-test"
+            assert experiment_fingerprint == dispatch_record.experiment_fingerprint
+            return self.state
+
+        async def record_terminal(self, **kwargs):
+            resolution = record_search_candidate_terminal(
+                self.state,
+                kwargs["candidate_index"],
+                attempt_id=kwargs["attempt_id"],
+                phase=kwargs["phase"],
+                now=kwargs["now"],
+                result_fingerprint=kwargs.get("result_fingerprint"),
+            )
+            if resolution.decision is SearchStateDecision.APPLY:
+                self.state = resolution.state
+            return resolution
+
+    search_state_port = SearchStatePort()
 
     class QueryResult:
         def __init__(self, rows: tuple[dict[str, Any], ...]) -> None:
@@ -1134,10 +1180,9 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         submissions = submission_adapter
         resources = domain_reader
         worker_state = worker_state_port
-        search_state = SimpleNamespace(
-            load=lambda **_kwargs: None,
-            record_terminal=lambda **_kwargs: None,
-        )
+        search_state = search_state_port
+        result_completion = completion_port
+        worker_settlements = settlement_port
         worker_recoveries = SimpleNamespace(
             load_ledger=lambda **_kwargs: None,
             recover=lambda **_kwargs: None,
@@ -1275,10 +1320,6 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
     def install_signals(_stop_event: Any) -> Any:
         return lambda: timeline.append("signals-cleaned")
 
-    async def terminal_replay_callbacks(persistence: Any, artifact_root: Path):
-        callbacks = await create_search_dispatch(persistence, artifact_root)
-        return replace(callbacks, recovery_writer=None, lease_state_reader=None)
-
     async def run_worker():
         return await run_strategy_lab_v2_worker(
             WorkerEntrypointConfig(
@@ -1290,14 +1331,16 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
                 consumer_name="multi-strategy-terminal-test",
                 migration_enabled=True,
             ),
-            callback_factory=terminal_replay_callbacks,
+            callback_factory=create_search_dispatch,
             migration_service=AppliedMigration(),  # type: ignore[arg-type]
             session_factory=lambda: object(),
             persistence_factory=lambda _factory: Persistence(),  # type: ignore[arg-type]
             runtime_factory=runtime_factory,
             signal_installer=install_signals,
             process_executor=EvidenceProcessExecutor(),
-            clock=lambda: BASE + timedelta(seconds=30),
+            # The retry clock must be at or after the process's persisted
+            # terminal timestamp; the lease release uses that immutable time.
+            clock=lambda: context.observed_at,
             sleep=scheduler_sleep,
             max_cycles=1,
         )
@@ -1315,6 +1358,7 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
     assert failed_resolution.handler.rejection_reason == (
         "worker terminal completion failed: TimeoutError"
     )
+    assert worker_state_port.lease.lease.released_at is not None
     assert timeline == [
         "terminal-commit-response-lost",
         "signals-cleaned",
@@ -1338,7 +1382,6 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         "terminal-commit-response-lost",
         "signals-cleaned",
         "runtime-closed",
-        "terminal-persisted",
         "ack",
         "signals-cleaned",
         "runtime-closed",
@@ -1355,13 +1398,24 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
     duplicate_resolution = duplicate_cycle.entries[0]
     assert duplicate_resolution.decision.value == "acknowledged"
     redelivered = duplicate_resolution.handler
+    assert timeline == [
+        "terminal-commit-response-lost",
+        "signals-cleaned",
+        "runtime-closed",
+        "ack",
+        "signals-cleaned",
+        "runtime-closed",
+        "ack",
+        "signals-cleaned",
+        "runtime-closed",
+    ]
 
     assert first.decision is WorkerHandleDecision.COMPLETE
     assert redelivered.decision is WorkerHandleDecision.COMPLETE
     assert redelivered.receipt_digest == first.receipt_digest
-    assert len(runtime_port.observed_at) == 3
-    assert len(worker_state_port.release_times) == 3
-    assert len(completion_port.completed_at) == 3
+    assert len(runtime_port.observed_at) == 1
+    assert len(worker_state_port.release_times) == 1
+    assert len(completion_port.completed_at) == 1
     assert len(settlement_port.ledger.records) == 1
     assert len(completion_port.completions.records) == 1
     assert not worker_state_port.pool.active_reservations
@@ -1369,19 +1423,17 @@ async def test_multi_strategy_terminal_persistence_replays_success_with_stable_r
         item.action is ArtifactPublicationAction.CREATE_IF_ABSENT
         for item in completion_port.inputs[0]["artifact_plans"]
     )
-    assert all(
-        item.action is ArtifactPublicationAction.REUSE_EXISTING
-        for item in completion_port.inputs[1]["artifact_plans"]
-    )
+    candidate = search_state_port.state.candidates[dispatch_record.candidate_index]
+    assert candidate.phase is SearchCandidatePhase.SUCCEEDED
+    assert candidate.attempt_id == dispatch_request.attempt_id
+    assert candidate.result_fingerprint == completion_port.completions.records[0].result_fingerprint
     assert timeline == [
         "terminal-commit-response-lost",
         "signals-cleaned",
         "runtime-closed",
-        "terminal-persisted",
         "ack",
         "signals-cleaned",
         "runtime-closed",
-        "terminal-persisted",
         "ack",
         "signals-cleaned",
         "runtime-closed",

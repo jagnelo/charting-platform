@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -14,9 +15,18 @@ from app.strategy_lab_v2.dispatch import (
     DispatchResolution,
     build_dispatch_envelope,
 )
+from app.strategy_lab_v2.lease_observations import (
+    LeaseObservation,
+    LeaseObservationKind,
+    apply_lease_observation,
+)
 from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.recovery import RecoveryReason
 from app.strategy_lab_v2.redis_transport import RedisStreamEntry
+from app.strategy_lab_v2.result_completion import (
+    ResultCompletionLedger,
+    ResultCompletionRecord,
+)
 from app.strategy_lab_v2.search_dispatch import (
     SearchDispatchDecision,
     SearchDispatchResolution,
@@ -38,6 +48,11 @@ from app.strategy_lab_v2.worker_recovery import (
 )
 from app.strategy_lab_v2.worker_recovery_application import WorkerRecoveryApplication
 from app.strategy_lab_v2.worker_service import WorkerRecoveryContext
+from app.strategy_lab_v2.worker_settlement import (
+    WorkerSettlementLedger,
+    WorkerSettlementRecord,
+)
+from app.strategy_lab_v2.workers import release_worker_slot
 
 
 class _DispatchStore:
@@ -92,6 +107,7 @@ class _SearchState:
             attempt_id=kwargs["attempt_id"],
             phase=kwargs["phase"],
             now=kwargs["now"],
+            result_fingerprint=kwargs.get("result_fingerprint"),
         )
         if resolution.decision is SearchStateDecision.APPLY:
             self.state = resolution.state
@@ -131,6 +147,36 @@ class _RecoveryStore:
         return resolution
 
 
+class _TerminalCompletionStore:
+    def __init__(self) -> None:
+        self.ledger = ResultCompletionLedger()
+
+    async def load_completion_ledger(self, *, principal: Any) -> ResultCompletionLedger:
+        assert principal == "owner-1"
+        return self.ledger
+
+
+class _SettlementStore:
+    def __init__(self) -> None:
+        self.ledger = WorkerSettlementLedger()
+
+    async def load_ledger(self, *, principal: Any) -> WorkerSettlementLedger:
+        assert principal == "owner-1"
+        return self.ledger
+
+
+class _WorkerState:
+    def __init__(self, request: Any) -> None:
+        self.pool = request.worker_pool
+        self.lease = request.lease_state
+
+    async def load_pool(self, _profile: Any) -> Any:
+        return self.pool
+
+    async def load_lease(self, _lease_id: str) -> Any:
+        return self.lease
+
+
 class _Persistence:
     def __init__(self, request: Any, record: SearchDispatchRecord, state: Any) -> None:
         self.search_dispatch = _DispatchStore(
@@ -150,7 +196,9 @@ class _Persistence:
         )
         self.search_state = _SearchState(state)
         self.worker_recoveries = _RecoveryStore(request)
-        self.worker_state = object()
+        self.result_completion = _TerminalCompletionStore()
+        self.worker_settlements = _SettlementStore()
+        self.worker_state = _WorkerState(request)
 
     async def persist_retry_attempt(
         self,
@@ -261,6 +309,64 @@ def _setup(
     return app, context, persistence, calls
 
 
+def _persist_terminal_success(
+    context: WorkerRecoveryContext,
+    persistence: _Persistence,
+    *,
+    released_at: datetime,
+    release_capacity: bool,
+) -> ResultCompletionRecord:
+    request = context.request
+    attempt_id = context.entry.attempt_id
+    completion = ResultCompletionRecord(
+        content_digest("terminal-completion"),
+        content_digest("terminal-result"),
+        attempt_id,
+        content_digest("terminal-runtime"),
+        content_digest("terminal-outcome"),
+        content_digest("terminal-progress"),
+        content_digest("terminal-publication"),
+        (),
+        released_at,
+    )
+    persistence.result_completion.ledger = ResultCompletionLedger((completion,))
+    observation = LeaseObservation(
+        content_digest("terminal-release-observation"),
+        request.lease_state.lease.lease_id,
+        request.lease_state.lease.worker_id,
+        attempt_id,
+        1,
+        LeaseObservationKind.RELEASE,
+        released_at,
+    )
+    persistence.worker_settlements.ledger = WorkerSettlementLedger(
+        (
+            WorkerSettlementRecord(
+                content_digest("terminal-settlement"),
+                request.admission.fingerprint,
+                content_digest("terminal-worker-execution"),
+                attempt_id,
+                request.admission.reservation_id,
+                request.admission.worker_id,
+                observation.fingerprint,
+                released_at,
+            ),
+        )
+    )
+    if release_capacity:
+        lease_resolution = apply_lease_observation(
+            persistence.worker_state.lease,
+            observation,
+        )
+        persistence.worker_state.lease = lease_resolution.state
+        persistence.worker_state.pool = release_worker_slot(
+            persistence.worker_state.pool,
+            reservation_id=request.admission.reservation_id,
+            released_at=released_at,
+        )
+    return completion
+
+
 @pytest.mark.asyncio
 async def test_retry_replay_recovers_crash_between_attempt_persistence_and_dispatch(
     tmp_path: Any,
@@ -309,3 +415,52 @@ async def test_terminal_recovery_receipt_replays_and_acknowledges_cancelled_cand
     candidate = persistence.search_state.state.candidates[0]
     assert candidate.phase is SearchCandidatePhase.CANCELLED
     assert candidate.attempt_id == context.entry.attempt_id
+
+
+@pytest.mark.asyncio
+async def test_committed_terminal_result_redelivery_closes_candidate_without_retry(
+    tmp_path: Any,
+) -> None:
+    app, context, persistence, calls = _setup(tmp_path)
+    released_at = NOW + timedelta(seconds=2)
+    completion = _persist_terminal_success(
+        context,
+        persistence,
+        released_at=released_at,
+        release_capacity=True,
+    )
+    observed = replace(context, observed_at=released_at + timedelta(seconds=1))
+
+    result = await app(observed)
+    replay = await app(replace(observed, observed_at=released_at + timedelta(seconds=10)))
+
+    assert result.decision is WorkerHandleDecision.COMPLETE
+    assert replay.decision is WorkerHandleDecision.COMPLETE
+    assert result.receipt_digest == replay.receipt_digest
+    assert calls == []
+    assert len(persistence.resources.attempts) == 1
+    candidate = persistence.search_state.state.candidates[0]
+    assert candidate.phase is SearchCandidatePhase.SUCCEEDED
+    assert candidate.attempt_id == context.entry.attempt_id
+    assert candidate.result_fingerprint == completion.result_fingerprint
+
+
+@pytest.mark.asyncio
+async def test_partial_terminal_completion_stays_pending_without_scheduling_retry(
+    tmp_path: Any,
+) -> None:
+    app, context, persistence, calls = _setup(tmp_path)
+    _persist_terminal_success(
+        context,
+        persistence,
+        released_at=NOW + timedelta(seconds=2),
+        release_capacity=False,
+    )
+
+    result = await app(replace(context, observed_at=NOW + timedelta(seconds=3)))
+
+    assert result.decision is WorkerHandleDecision.RETRY
+    assert "capacity release" in (result.rejection_reason or "")
+    assert calls == []
+    assert len(persistence.resources.attempts) == 1
+    assert persistence.search_state.state.candidates[0].phase is SearchCandidatePhase.RUNNING

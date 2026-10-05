@@ -10,8 +10,14 @@ from typing import Any
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import AttemptState, RunAttempt
 from app.strategy_lab_v2.dispatch import SearchDispatchIntent
+from app.strategy_lab_v2.lease_observations import (
+    LeaseObservationKind,
+    LeaseObservationState,
+)
+from app.strategy_lab_v2.lifecycle import AttemptLeaseStatus
 from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
 from app.strategy_lab_v2.recovery import RecoveryDisposition, RecoveryReason
+from app.strategy_lab_v2.result_completion import ResultCompletionLedger
 from app.strategy_lab_v2.search_dispatch import SearchDispatchDecision, SearchDispatchResolution
 from app.strategy_lab_v2.search_state import (
     SearchCandidatePhase,
@@ -24,6 +30,7 @@ from app.strategy_lab_v2.worker_recovery import (
     WorkerRecoveryResolution,
 )
 from app.strategy_lab_v2.worker_service import WorkerRecoveryContext
+from app.strategy_lab_v2.worker_settlement import WorkerSettlementLedger
 
 SearchDispatchClient = Callable[..., Awaitable[SearchDispatchResolution]]
 
@@ -67,6 +74,15 @@ class WorkerRecoveryApplication:
             return _retry(context, "authenticated worker dispatch was not found")
         if dispatch.request.attempt_id != attempt_id:
             return _retry(context, "authenticated dispatch references a different attempt")
+
+        completed = await self._complete_committed_terminal(
+            entry=context.entry,
+            request=request,
+            observed_at=context.observed_at,
+            dispatch=dispatch,
+        )
+        if completed is not None:
+            return completed
 
         attempt = await self._persistence.resources.get_run_attempt_by_attempt_id(
             principal=dispatch.owner_id,
@@ -234,6 +250,172 @@ class WorkerRecoveryApplication:
             return _retry(context, "retry dispatch has not been durably accepted")
         return _complete(context, receipt, retry_attempt.attempt_id, dispatch_resolution)
 
+    async def complete_terminal_if_persisted(
+        self,
+        *,
+        entry: Any,
+        request: Any,
+        observed_at: datetime,
+    ) -> WorkerHandleResult | None:
+        """Finalize search state from a fully committed successful terminal result.
+
+        The normal terminal callback invokes this before Redis acknowledgement;
+        the recovery callback invokes the same idempotent operation when an
+        acknowledged terminal write is later redelivered under its released
+        lease. A completion record without its terminal settlement/release is
+        deliberately left pending rather than being mistaken for a retryable
+        infrastructure failure.
+        """
+
+        attempt_id = getattr(entry, "attempt_id", None)
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise TypeError("entry must expose an attempt_id")
+        if getattr(getattr(request, "runtime_request", None), "attempt_id", None) != attempt_id:
+            return _retry_entry(entry, "terminal search receipt attempt differs from its dispatch")
+        dispatch = await self._persistence.search_dispatch.load_by_request_fingerprint(
+            entry.request_fingerprint
+        )
+        if not isinstance(dispatch, SearchDispatchRecord):
+            return _retry_entry(entry, "authenticated worker dispatch was not found")
+        if dispatch.request.attempt_id != attempt_id:
+            return _retry_entry(entry, "authenticated dispatch references a different attempt")
+        return await self._complete_committed_terminal(
+            entry=entry,
+            request=request,
+            observed_at=observed_at,
+            dispatch=dispatch,
+        )
+
+    async def _complete_committed_terminal(
+        self,
+        *,
+        entry: Any,
+        request: Any,
+        observed_at: datetime,
+        dispatch: SearchDispatchRecord,
+    ) -> WorkerHandleResult | None:
+        owner_id = dispatch.owner_id
+        attempt_id = dispatch.request.attempt_id
+        completion_ledger = await self._persistence.result_completion.load_completion_ledger(
+            principal=owner_id
+        )
+        if not isinstance(completion_ledger, ResultCompletionLedger):
+            return _retry_entry(entry, "terminal completion ledger is unavailable")
+        completion = next(
+            (record for record in completion_ledger.records if record.attempt_id == attempt_id),
+            None,
+        )
+        if completion is None:
+            return None
+        if completion.completed_at > observed_at:
+            return _retry_entry(entry, "terminal completion is newer than the worker observation")
+
+        settlement_ledger = await self._persistence.worker_settlements.load_ledger(
+            principal=owner_id
+        )
+        if not isinstance(settlement_ledger, WorkerSettlementLedger):
+            return _retry_entry(entry, "terminal settlement ledger is unavailable")
+        settlement = next(
+            (record for record in settlement_ledger.records if record.attempt_id == attempt_id),
+            None,
+        )
+        if (
+            settlement is None
+            or settlement.reservation_id != request.admission.reservation_id
+            or settlement.worker_id != request.admission.worker_id
+        ):
+            return _retry_entry(entry, "terminal result has no matching worker settlement")
+
+        worker_state = self._persistence.worker_state
+        pool = await worker_state.load_pool(request.worker_pool.profile)
+        reservation = next(
+            (
+                item
+                for item in pool.reservations
+                if item.reservation_id == settlement.reservation_id
+            ),
+            None,
+        )
+        if (
+            reservation is None
+            or reservation.active
+            or reservation.released_at != settlement.released_at
+        ):
+            return _retry_entry(entry, "terminal result capacity release is not durable")
+        lease_state = await worker_state.load_lease(request.lease_state.lease.lease_id)
+        if not isinstance(lease_state, LeaseObservationState):
+            return _retry_entry(entry, "terminal result lease release is unavailable")
+        if (
+            lease_state.lease.attempt_id != attempt_id
+            or lease_state.lease.worker_id != request.admission.worker_id
+            or lease_state.lease.released_at != settlement.released_at
+            or lease_state.lease.status_at(observed_at) is not AttemptLeaseStatus.RELEASED
+        ):
+            return _retry_entry(
+                entry, "terminal result lease release does not match its settlement"
+            )
+        release_observation = next(
+            (
+                observation
+                for observation in lease_state.applied_observations
+                if observation.fingerprint == settlement.lease_observation_fingerprint
+            ),
+            None,
+        )
+        if (
+            release_observation is None
+            or release_observation.kind is not LeaseObservationKind.RELEASE
+            or release_observation.observed_at != settlement.released_at
+        ):
+            return _retry_entry(entry, "terminal settlement release observation is unavailable")
+
+        search_state = await self._persistence.search_state.load(
+            principal=owner_id,
+            experiment_fingerprint=dispatch.experiment_fingerprint,
+        )
+        if search_state is None or dispatch.candidate_index >= len(search_state.candidates):
+            return _retry_entry(entry, "terminal search candidate state is unavailable")
+        candidate = search_state.candidates[dispatch.candidate_index]
+        if candidate.phase is SearchCandidatePhase.SUCCEEDED:
+            if (
+                candidate.attempt_id != attempt_id
+                or candidate.result_fingerprint != completion.result_fingerprint
+            ):
+                return _retry_entry(entry, "terminal search receipt conflicts with its completion")
+        elif candidate.phase is SearchCandidatePhase.RUNNING and candidate.attempt_id == attempt_id:
+            resolution = await self._persistence.search_state.record_terminal(
+                principal=owner_id,
+                experiment_fingerprint=dispatch.experiment_fingerprint,
+                candidate_index=dispatch.candidate_index,
+                attempt_id=attempt_id,
+                phase=SearchCandidatePhase.SUCCEEDED,
+                result_fingerprint=completion.result_fingerprint,
+                now=completion.completed_at,
+            )
+            if resolution.decision not in {
+                SearchStateDecision.APPLY,
+                SearchStateDecision.REPLAY_EXISTING,
+            }:
+                return _retry_entry(entry, "terminal result could not close its search candidate")
+            search_state = resolution.state
+        else:
+            return _retry_entry(entry, "terminal result no longer owns its search candidate")
+
+        return WorkerHandleResult(
+            entry.fingerprint,
+            WorkerHandleDecision.COMPLETE,
+            content_digest(
+                {
+                    "completion_fingerprint": completion.fingerprint,
+                    "dispatch_fingerprint": dispatch.request.fingerprint,
+                    "entry_fingerprint": entry.fingerprint,
+                    "search_state_fingerprint": search_state.fingerprint,
+                    "settlement_fingerprint": settlement.fingerprint,
+                    "terminal_release_observation": release_observation.fingerprint,
+                }
+            ),
+        )
+
     async def _record_prior_terminal(
         self,
         *,
@@ -305,6 +487,9 @@ def create_worker_recovery_application(
         "search_dispatch": ("load_by_request_fingerprint", "load_admission_ledger"),
         "search_state": ("load", "record_terminal"),
         "worker_recoveries": ("load_ledger", "recover"),
+        "result_completion": ("load_completion_ledger",),
+        "worker_settlements": ("load_ledger",),
+        "worker_state": ("load_pool", "load_lease"),
         "resources": ("get_run_attempt_by_attempt_id", "get_run_attempts_for_trial"),
     }
     for adapter_name, methods in required.items():
@@ -388,8 +573,12 @@ def _retry_request_id(recovery_fingerprint: str) -> str:
 
 
 def _retry(context: WorkerRecoveryContext, reason: str) -> WorkerHandleResult:
+    return _retry_entry(context.entry, reason)
+
+
+def _retry_entry(entry: Any, reason: str) -> WorkerHandleResult:
     return WorkerHandleResult(
-        context.entry.fingerprint,
+        entry.fingerprint,
         WorkerHandleDecision.RETRY,
         rejection_reason=reason,
     )

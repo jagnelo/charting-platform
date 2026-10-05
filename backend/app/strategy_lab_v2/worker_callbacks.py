@@ -116,11 +116,25 @@ async def create_search_dispatch(persistence: Any, artifact_root: Path) -> Worke
     worker_state = getattr(persistence, "worker_state", None)
     if worker_state is None or not callable(getattr(worker_state, "load_lease", None)):
         raise TypeError("persistence.worker_state must expose load_lease()")
-    recovery_writer = create_worker_recovery_application(
+    recovery_application = create_worker_recovery_application(
         persistence,
         queue_name=queue_name,
         dispatch_client=UnixSocketSearchDispatchClient.from_environment(),
     )
+    terminal_writer = callbacks.terminal_writer
+    if terminal_writer is None:
+        raise TypeError("search dispatch workers require a terminal writer")
+
+    async def terminal_dispatch_writer(context: Any) -> WorkerHandleResult:
+        result = await terminal_writer(context)
+        if result.decision is not WorkerHandleDecision.COMPLETE:
+            return result
+        search_receipt = await recovery_application.complete_terminal_if_persisted(
+            entry=context.entry,
+            request=context.request,
+            observed_at=context.observed_at,
+        )
+        return result if search_receipt is None else search_receipt
 
     async def lease_state_reader(request: WorkerExecutionRequest):
         return await worker_state.load_lease(request.lease_state.lease.lease_id)
@@ -129,8 +143,8 @@ async def create_search_dispatch(persistence: Any, artifact_root: Path) -> Worke
         materializer,
         callbacks.completion_writer,
         heartbeat_writer=callbacks.heartbeat_writer,
-        terminal_writer=callbacks.terminal_writer,
-        recovery_writer=recovery_writer,
+        terminal_writer=terminal_dispatch_writer,
+        recovery_writer=recovery_application,
         lease_state_reader=lease_state_reader,
     )
 
