@@ -768,6 +768,9 @@ def test_forward_runtime_verifies_mounts_before_building_and_serving_session(
 ) -> None:
     import io
 
+    from app.strategy_lab_v2 import nautilus_runtime_ipc
+    from app.strategy_lab_v2.nautilus_forward_wire import NautilusForwardJsonWireCodec
+
     bootstrap = object()
     bundle = {"engine_input": {"attempt_id": "attempt-1"}}
     context_bytes = b"verified-context"
@@ -820,12 +823,12 @@ def test_forward_runtime_verifies_mounts_before_building_and_serving_session(
         return lambda _instance_id: FakeSession()
 
     def serve(_input, _output, handler):
-        codec = nautilus_runtime_cli.NautilusForwardJsonWireCodec()
+        codec = NautilusForwardJsonWireCodec()
         serve_calls.append(handler.open(codec.open_payload(instance_id="instance-1")))
         serve_calls.append(handler.close({}))
         return 0
 
-    monkeypatch.setattr(nautilus_runtime_cli, "serve_nautilus_runtime_ipc", serve)
+    monkeypatch.setattr(nautilus_runtime_ipc, "serve_nautilus_runtime_ipc", serve)
     assert (
         nautilus_runtime_cli.serve_forward_runtime(
             bootstrap_path="/inputs/bootstrap.json",
@@ -871,3 +874,30 @@ def test_open_verified_context_stream_checks_digest_and_rewinds(tmp_path) -> Non
             byte_length=len(payload),
             max_bytes=len(payload),
         )
+
+
+def test_probe_does_not_eagerly_import_forward_only_runtime_modules(monkeypatch, capsys) -> None:
+    import builtins
+
+    forward_modules = {
+        "app.strategy_lab_v2.nautilus_forward_bootstrap",
+        "app.strategy_lab_v2.nautilus_forward_runtime_server",
+        "app.strategy_lab_v2.nautilus_forward_wire",
+        "app.strategy_lab_v2.nautilus_runtime_ipc",
+    }
+    original_import = builtins.__import__
+
+    def reject_forward_imports(name, *args, **kwargs):
+        if name in forward_modules:
+            raise AssertionError(f"probe mode imported forward-only module {name}")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", reject_forward_imports)
+    monkeypatch.setattr(
+        nautilus_runtime_cli,
+        "probe_nautilus_runtime",
+        lambda *, expected_version: {"engine_version": expected_version},
+    )
+
+    assert nautilus_runtime_cli.main(["--probe", "--expected-version", "2.0.0rc5"]) == 0
+    assert capsys.readouterr().out == '{"engine_version":"2.0.0rc5"}\n'

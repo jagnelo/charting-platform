@@ -9,19 +9,10 @@ import os
 import stat
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, BinaryIO, Protocol
+from typing import TYPE_CHECKING, Any, BinaryIO, Protocol
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.nautilus_calendar_wire import session_calendar_from_wire
-from app.strategy_lab_v2.nautilus_forward_bootstrap import (
-    MAX_NAUTILUS_FORWARD_BOOTSTRAP_BYTES,
-    NautilusForwardRuntimeBootstrap,
-)
-from app.strategy_lab_v2.nautilus_forward_runtime_server import (
-    NativeForwardSessionFactory,
-    NautilusForwardRuntimeOperationHandler,
-)
-from app.strategy_lab_v2.nautilus_forward_wire import NautilusForwardJsonWireCodec
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     MAX_NAUTILUS_NATIVE_EVENT_STREAM_BYTES,
 )
@@ -29,7 +20,6 @@ from app.strategy_lab_v2.nautilus_runtime_adapter import (
     run_native_backtest,
     runtime_package_version,
 )
-from app.strategy_lab_v2.nautilus_runtime_ipc import serve_nautilus_runtime_ipc
 from app.strategy_lab_v2.nautilus_runtime_probe import probe_nautilus_runtime
 from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_COMPONENT_CONTEXT_STREAM_MEDIA_TYPE,
@@ -44,6 +34,10 @@ from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V4,
     NAUTILUS_RUNTIME_BUNDLE_SCHEMA_V5,
 )
+
+if TYPE_CHECKING:
+    from app.strategy_lab_v2.nautilus_forward_bootstrap import NautilusForwardRuntimeBootstrap
+    from app.strategy_lab_v2.nautilus_forward_runtime_server import NativeForwardSessionFactory
 
 _LEGACY_BUNDLE_FIELDS = frozenset(
     {"schema", "engine_input", "serialized_strategy_invocation_batch"}
@@ -165,6 +159,11 @@ def _verify_forward_startup(
     max_input_bytes: int,
 ) -> tuple[NautilusForwardRuntimeBootstrap, Mapping[str, Any]]:
     """Verify all immutable artifacts needed before opening a forward process."""
+
+    from app.strategy_lab_v2.nautilus_forward_bootstrap import (
+        MAX_NAUTILUS_FORWARD_BOOTSTRAP_BYTES,
+        NautilusForwardRuntimeBootstrap,
+    )
 
     require_sha256_digest(bootstrap_fingerprint, field_name="bootstrap_fingerprint")
     if os.environ.get("STRATEGY_FORWARD_BOOTSTRAP_DIGEST") != bootstrap_fingerprint:
@@ -522,6 +521,12 @@ def serve_forward_runtime(
     lifetime of the IPC session so the native session can replay warm-up state
     without reopening mutable paths.
     """
+
+    from app.strategy_lab_v2.nautilus_forward_runtime_server import (
+        NautilusForwardRuntimeOperationHandler,
+    )
+    from app.strategy_lab_v2.nautilus_forward_wire import NautilusForwardJsonWireCodec
+    from app.strategy_lab_v2.nautilus_runtime_ipc import serve_nautilus_runtime_ipc
 
     if not callable(session_factory_builder):
         raise TypeError("session_factory_builder must be callable")
