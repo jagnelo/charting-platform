@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import os
 import signal
+import stat
 import subprocess
 import threading
 import time
@@ -85,11 +86,15 @@ class SandboxRunResult:
             raise ValueError("successful sandbox runs require exit_code 0")
         if self.status is SandboxRunStatus.FAILED and self.exit_code in {None, 0}:
             raise ValueError("failed sandbox runs require a non-zero exit_code")
-        if self.status in {
-            SandboxRunStatus.TIMED_OUT,
-            SandboxRunStatus.OUTPUT_LIMIT_EXCEEDED,
-            SandboxRunStatus.START_FAILED,
-        } and self.error_digest is None:
+        if (
+            self.status
+            in {
+                SandboxRunStatus.TIMED_OUT,
+                SandboxRunStatus.OUTPUT_LIMIT_EXCEEDED,
+                SandboxRunStatus.START_FAILED,
+            }
+            and self.error_digest is None
+        ):
             raise ValueError("bounded or start failures require an error digest")
 
     @property
@@ -131,6 +136,21 @@ def run_sandbox_command(
         raise ValueError("docker_binary must not be empty")
     if any(character in docker_binary for character in "\x00\r\n"):
         raise ValueError("docker_binary must not contain control characters")
+    try:
+        _prepare_writable_output_mounts(
+            plan,
+            require_private_parent=os.path.basename(docker_binary) == "docker",
+            allow_existing_sources=os.path.basename(docker_binary) != "docker",
+        )
+    except OSError as error:
+        return _result(
+            plan,
+            SandboxRunStatus.START_FAILED,
+            None,
+            bytearray(),
+            bytearray(),
+            error_digest=_error_digest(error),
+        )
     argv = (docker_binary, *plan.argv[1:])
     environment = {
         "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
@@ -215,6 +235,97 @@ def run_sandbox_command(
         result_digest=result_digest,
         result_bytes=result_bytes,
     )
+
+
+def _prepare_writable_output_mounts(
+    plan: SandboxCommandPlan,
+    *,
+    require_private_parent: bool,
+    allow_existing_sources: bool,
+) -> None:
+    """Create private, writable file sources for Docker's output bind mounts.
+
+    Docker's ``--mount`` form requires each bind source to exist before the
+    container starts. The sandbox runs as UID/GID 65532, so its output files
+    need read/write permission for that identity. Requiring an owner-only
+    parent directory keeps those writable files private from other host users.
+    """
+
+    created: list[str] = []
+    observed_sources: set[str] = set()
+    try:
+        for argument in plan.argv:
+            prefix = "--mount=type=bind,src="
+            if not argument.startswith(prefix) or argument.endswith(",readonly"):
+                continue
+            source_and_destination = argument.removeprefix(prefix)
+            source, marker, destination = source_and_destination.partition(",dst=")
+            if not marker:
+                continue
+            destination_path = destination.split(",", maxsplit=1)[0]
+            if not destination_path.startswith("/outputs/"):
+                continue
+            if source in observed_sources:
+                continue
+            observed_sources.add(source)
+
+            if require_private_parent:
+                parent = os.path.dirname(source)
+                parent_stat = os.stat(parent, follow_symlinks=False)
+                if (
+                    not stat.S_ISDIR(parent_stat.st_mode)
+                    or parent_stat.st_uid != os.getuid()
+                    or stat.S_IMODE(parent_stat.st_mode) & 0o077
+                ):
+                    raise PermissionError("sandbox output parent must be a private owned directory")
+
+            flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+            flags |= getattr(os, "O_NOFOLLOW", 0)
+            try:
+                descriptor = os.open(source, flags, 0o666)
+            except FileExistsError:
+                existing_flags = os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0)
+                descriptor = os.open(source, existing_flags)
+                try:
+                    existing_stat = os.fstat(descriptor)
+                    if (
+                        not stat.S_ISREG(existing_stat.st_mode)
+                        or existing_stat.st_nlink != 1
+                        or (not allow_existing_sources and existing_stat.st_uid != os.getuid())
+                    ):
+                        raise PermissionError(
+                            "sandbox output source must be a regular, singly linked owned file"
+                        )
+                    if not allow_existing_sources:
+                        path_stat = os.stat(source, follow_symlinks=False)
+                        if (path_stat.st_dev, path_stat.st_ino) != (
+                            existing_stat.st_dev,
+                            existing_stat.st_ino,
+                        ):
+                            raise PermissionError(
+                                "sandbox output source changed during retry setup"
+                            )
+                finally:
+                    os.close(descriptor)
+                if allow_existing_sources:
+                    continue
+                os.unlink(source)
+                descriptor = os.open(source, flags, 0o666)
+            created.append(source)
+            try:
+                output_stat = os.fstat(descriptor)
+                if not stat.S_ISREG(output_stat.st_mode) or output_stat.st_nlink != 1:
+                    raise PermissionError("sandbox output source must be a new regular file")
+                os.fchmod(descriptor, 0o666)
+            finally:
+                os.close(descriptor)
+    except OSError:
+        for source in reversed(created):
+            try:
+                os.unlink(source)
+            except OSError:
+                pass
+        raise
 
 
 def _result(

@@ -28,7 +28,9 @@ NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
 
 def _request(tmp_path: Path, *, body: str = "printf 'ok'") -> WorkerExecutionRequest:
-    mutable_values = list(_fixtures())
+    mutable_values = list(
+        _fixtures(sandbox_output_path=os.fspath(tmp_path / "sandbox-result.json"))
+    )
     input_path = tmp_path / "runtime-input.json"
     input_bytes = b"worker-process-fixture"
     input_path.write_bytes(input_bytes)

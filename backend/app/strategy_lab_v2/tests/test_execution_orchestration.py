@@ -26,7 +26,7 @@ from app.strategy_lab_v2.workers import WorkerKind
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
 
-def _fixtures() -> tuple:
+def _fixtures(*, sandbox_output_path: str = "/tmp/strategy-output") -> tuple:
     profile = RuntimeIsolationProfile(
         content_digest("runtime-image"),
         "python-3.12",
@@ -70,7 +70,7 @@ def _fixtures() -> tuple:
             "--pids-limit=256",
             "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864",
             "--mount=type=bind,src=/tmp/strategy-input,dst=/inputs/bundle,readonly",
-            "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result",
+            f"--mount=type=bind,src={sandbox_output_path},dst=/outputs/result",
             "--env=STRATEGY_ATTEMPT_ID=attempt-1",
             f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
             "--env=STRATEGY_ENGINE_ID=nautilus",

@@ -38,7 +38,7 @@ def _execution(values: tuple, tmp_path: Path):
 
 
 def test_worker_terminal_commits_public_state_and_worker_release(tmp_path: Path) -> None:
-    values = _fixtures()
+    values = _fixtures(sandbox_output_path=str(tmp_path / "result.json"))
     execution = _execution(values, tmp_path)
     _, admission, *_ = values
     result, *_ = result_fixture()
@@ -81,8 +81,9 @@ def test_worker_terminal_commits_public_state_and_worker_release(tmp_path: Path)
     assert replay.pool == resolved.pool
     assert replay.lease_state == resolved.lease_state
 
+
 def test_worker_terminal_rejects_without_result_or_when_settlement_fails(tmp_path: Path) -> None:
-    values = _fixtures()
+    values = _fixtures(sandbox_output_path=str(tmp_path / "result.json"))
     execution = _execution(values, tmp_path)
     _, admission, *_ = values
     rejected = materialize_worker_terminal(
@@ -133,7 +134,7 @@ def test_worker_terminal_rejects_without_result_or_when_settlement_fails(tmp_pat
 
 
 def test_worker_terminal_failed_runtime_requires_typed_error(tmp_path: Path) -> None:
-    values = _fixtures()
+    values = _fixtures(sandbox_output_path=str(tmp_path / "result.json"))
     execution = execute_worker_handoff(
         _plan(values),
         *values,
@@ -163,7 +164,7 @@ def test_worker_terminal_failed_runtime_requires_typed_error(tmp_path: Path) -> 
 
 
 def test_worker_terminal_rejects_release_before_terminal_observation(tmp_path: Path) -> None:
-    values = _fixtures()
+    values = _fixtures(sandbox_output_path=str(tmp_path / "result.json"))
     execution = _execution(values, tmp_path)
     _, admission, *_ = values
     result, *_ = result_fixture()

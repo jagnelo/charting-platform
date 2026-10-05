@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Mapping
 from dataclasses import fields, is_dataclass, replace
 from datetime import timedelta
@@ -13,9 +14,17 @@ import pytest
 from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.application import PostgresStrategyLabV2Adapter
+from app.strategy_lab_v2.artifact_application import LocalArtifactPublicationService
+from app.strategy_lab_v2.artifact_commit import ArtifactCommitLedger, finalize_artifact_commit
+from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.conformance_fixtures import resolve_nautilus_rc_conformance
-from app.strategy_lab_v2.contracts import AttemptState, ProductClass
+from app.strategy_lab_v2.contracts import (
+    AttemptState,
+    EvaluationWindow,
+    ProductClass,
+    ScientificTrial,
+)
 from app.strategy_lab_v2.dispatch import SearchDispatchIntent
 from app.strategy_lab_v2.lease_observations import LeaseObservationState
 from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease, transition_attempt
@@ -28,7 +37,14 @@ from app.strategy_lab_v2.nautilus_trial_materializer import (
     NautilusTrialMarketContext,
     NautilusTrialRuntimeInputMaterializer,
 )
+from app.strategy_lab_v2.nautilus_worker_terminal import (
+    create_nautilus_oos_worker_terminal_evidence_resolver,
+)
+from app.strategy_lab_v2.outcomes import new_execution_outcome
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
+from app.strategy_lab_v2.postgres_commands import ExecutionCommandContext
+from app.strategy_lab_v2.progress import new_progress_state
+from app.strategy_lab_v2.redis_transport import RedisStreamEntry
 from app.strategy_lab_v2.resource_mutations import (
     ResourceMutationDecision,
     ResourceMutationRequest,
@@ -40,6 +56,7 @@ from app.strategy_lab_v2.search_dispatch_preparation import (
     SearchDispatchPreparationRequest,
 )
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
+from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
 from app.strategy_lab_v2.tests.test_conformance_fixtures import (
     _rc_evidence_artifact,
     _rc_probe,
@@ -62,6 +79,13 @@ from app.strategy_lab_v2.trial_hydration import (
     NautilusTrialDomainHydrator,
     TrialDomainHydrationError,
 )
+from app.strategy_lab_v2.worker_evidence import (
+    WorkerSubmissionBinding,
+    WorkerTerminalEvidenceInputs,
+    WorkerTerminalEvidenceLookup,
+)
+from app.strategy_lab_v2.worker_process import SerialWorkerProcessExecutor, WorkerProcessDecision
+from app.strategy_lab_v2.worker_service import WorkerCompletionContext
 from app.strategy_lab_v2.workers import WorkerKind, WorkerPoolState, WorkerProfile
 
 PREPARED_AT = BASE + timedelta(seconds=4)
@@ -309,10 +333,26 @@ async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_req
     tmp_path: Path,
 ) -> None:
     values, graph, store = _build_inputs(tmp_path)
+    prior_trial = graph.trial
+    trial = ScientificTrial.create(
+        experiment_fingerprint=prior_trial.experiment_fingerprint,
+        snapshot_fingerprint=prior_trial.snapshot_fingerprint,
+        preflight_report=prior_trial.preflight_report,
+        parameter_set=prior_trial.parameter_set,
+        scenario=prior_trial.scenario,
+        seed=prior_trial.seed,
+        randomization=prior_trial.randomization,
+        evaluation_window=EvaluationWindow(
+            start=BASE,
+            end=BASE + timedelta(days=2),
+            purpose="out_of_sample",
+        ),
+    )
     graph = replace(
         graph,
+        trial=trial,
         attempt=transition_attempt(
-            graph.attempt,
+            replace(graph.attempt, trial_id=trial.trial_id),
             target=AttemptState.RUNNING,
             now=BASE + timedelta(seconds=1),
         ),
@@ -324,8 +364,30 @@ async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_req
         series_decoder=JsonFrozenSeriesDecoder(),
     )
     runtime = _rc_runtime()
+    evidence_source = LocalNautilusRcConformanceEvidenceSource.from_environment()
+    image_name = os.environ.get("STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_NAME", "").strip()
+    if evidence_source is not None and not image_name:
+        raise ValueError("the exact local Nautilus RC image name must be configured with evidence")
+    if evidence_source is None and image_name:
+        raise ValueError("the local Nautilus RC image name requires pinned conformance evidence")
+    conformance_resolution = (
+        evidence_source.load()
+        if evidence_source is not None
+        else resolve_nautilus_rc_conformance(
+            runtime,
+            _rc_probe(runtime),
+            _rc_receipt(runtime),
+            build_digest=content_digest("nautilus-v2-rc5-build"),
+            tested_at=BASE,
+        )
+    )
+    runtime_image_digest = (
+        evidence_source.expected_runtime_image_digest
+        if evidence_source is not None
+        else runtime.runtime_image_digest
+    )
     runtime_profile = RuntimeIsolationProfile(
-        runtime_image_digest=runtime.runtime_image_digest,
+        runtime_image_digest=runtime_image_digest,
         runtime_abi=RUNTIME_ABI,
         allowed_dependency_digests=frozenset(
             dependency.artifact_digest for dependency in graph.strategies[0].dependencies
@@ -347,13 +409,7 @@ async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_req
         BASE + timedelta(hours=1),
     )
     worker_state_reader = _WorkerStateReader(worker_pool, LeaseObservationState(lease))
-    conformance_resolution = resolve_nautilus_rc_conformance(
-        runtime,
-        _rc_probe(runtime),
-        _rc_receipt(runtime),
-        build_digest=content_digest("nautilus-v2-rc5-build"),
-        tested_at=BASE,
-    )
+    output_path = tmp_path / "persisted-dispatch-result.json"
     context = NautilusTrialPreparationContext.from_authoritative_backtest_conformance(
         conformance_resolution=conformance_resolution,
         product_classes=frozenset({ProductClass.EQUITY}),
@@ -365,8 +421,8 @@ async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_req
         admission_ledger=ExecutionAdmissionLedger(),
         reservation_id=content_digest("persisted-dispatch-reservation"),
         lease_id=lease.lease_id,
-        image_name="nautilus-runtime",
-        output_path=tmp_path / "persisted-dispatch-result.json",
+        image_name=image_name or "nautilus-runtime",
+        output_path=output_path,
         now=PREPARED_AT,
     )
 
@@ -467,6 +523,128 @@ async def test_persisted_owner_graph_composes_exact_authoritative_rc5_worker_req
     assert worker_request.execution_plan.authoritative
     assert worker_request.execution_plan.execution_scope.value == "backtest_authoritative"
     assert worker_request.execution_plan.engine_version == "2.0.0rc5"
+    if evidence_source is not None:
+        process_executor = SerialWorkerProcessExecutor(timeout_seconds=180)
+        first_process_result = process_executor.run(worker_request)
+        assert first_process_result.decision is WorkerProcessDecision.COMPLETED
+        assert first_process_result.execution is not None
+        assert (
+            first_process_result.execution.decision.value == "succeeded"
+        ), first_process_result.execution
+        process_result = process_executor.run(worker_request)
+        assert process_result.decision is WorkerProcessDecision.COMPLETED
+        assert process_result.execution is not None
+        assert process_result.execution.decision.value == "succeeded", process_result.execution
+        assert output_path.is_file()
+
+        attempt_id = graph.attempt.attempt_id
+        submission_request = SubmissionRequest(
+            "persisted-rc5-terminal-publication",
+            "backtest",
+            attempt_id,
+            content_digest({"attempt_id": attempt_id, "trial_id": graph.trial.trial_id}),
+            PREPARED_AT,
+        )
+        submission = SubmissionReceipt(submission_request, PREPARED_AT)
+        terminal_inputs = WorkerTerminalEvidenceInputs(
+            attempt_id,
+            submission,
+            ExecutionCommandContext(
+                new_execution_outcome(
+                    submission.submission_id,
+                    attempt_id,
+                    accepted_at=PREPARED_AT,
+                ),
+                new_progress_state(attempt_id, total_units=1, now=PREPARED_AT),
+            ),
+            None,
+        )
+        terminal_lookup = WorkerTerminalEvidenceLookup(
+            WorkerSubmissionBinding("persisted-owner", submission),
+            terminal_inputs,
+        )
+        completion_entry = RedisStreamEntry(
+            "strategy-lab:v2:stream:backtest",
+            "1-0",
+            content_digest("persisted-rc5-terminal-message"),
+            attempt_id,
+            content_digest({"attempt_id": attempt_id}),
+            worker_request.request_fingerprint,
+        )
+        completion_context = WorkerCompletionContext(
+            completion_entry,
+            worker_request,
+            process_result,
+            PREPARED_AT + timedelta(seconds=1),
+        )
+
+        class ArtifactCommitter:
+            def __init__(self) -> None:
+                self.ledger = ArtifactCommitLedger()
+
+            async def load_ledger(self) -> ArtifactCommitLedger:
+                return self.ledger
+
+            async def finalize(self, plan, *, committed_at):
+                resolution = finalize_artifact_commit(
+                    self.ledger,
+                    plan,
+                    committed_at=committed_at,
+                )
+                self.ledger = resolution.ledger
+                return resolution
+
+        artifact_committer = ArtifactCommitter()
+        artifact_publisher = LocalArtifactPublicationService(
+            LocalArtifactStore(tmp_path / "published-rc5-results"),
+            artifact_committer,
+        )
+
+        async def load_terminal_lookup(*, request_fingerprint: str, attempt_id: str):
+            if (
+                request_fingerprint != worker_request.request_fingerprint
+                or attempt_id != graph.attempt.attempt_id
+            ):
+                return None
+            return terminal_lookup
+
+        terminal_resolver = create_nautilus_oos_worker_terminal_evidence_resolver(
+            load_terminal_lookup,
+            artifact_publisher,
+            NautilusTrialDomainHydrator(persistence.resources),
+        )
+        terminal_evidence = await terminal_resolver(completion_context)
+
+        assert terminal_evidence.result is not None
+        assert terminal_evidence.result.attempt_id == attempt_id
+        assert terminal_evidence.result.engine_provenance is not None
+        assert terminal_evidence.result.engine_provenance.release_channel.value == (
+            "release_candidate"
+        )
+        assert trial.evaluation_window is not None
+        evaluation_window_fingerprint = trial.evaluation_window.fingerprint
+        assert process_result.execution.nautilus_result is not None
+        assert process_result.execution.nautilus_result.account_equity_trace is not None
+        assert (
+            process_result.execution.nautilus_result.account_equity_trace.evaluation_window_fingerprint
+            == evaluation_window_fingerprint
+        )
+        assert process_result.execution.nautilus_result.native_reports is not None
+        assert (
+            process_result.execution.nautilus_result.native_reports.evaluation_window_fingerprint
+            == evaluation_window_fingerprint
+        )
+        assert terminal_evidence.result.metric_set.values
+        assert terminal_evidence.publication is not None
+        assert terminal_evidence.publication.accepted
+        assert len(terminal_evidence.artifact_plans) == len(
+            terminal_evidence.result.output_artifacts
+        )
+        assert len(artifact_committer.ledger.records) == len(terminal_evidence.artifact_plans)
+        assert all(
+            artifact_publisher.store.path_for(artifact.storage_key).is_file()
+            for artifact in terminal_evidence.result.output_artifacts
+        )
 
 
 @pytest.mark.asyncio

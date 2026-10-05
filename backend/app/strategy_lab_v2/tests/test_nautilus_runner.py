@@ -50,7 +50,7 @@ from strategy_runtime import (
 )
 
 
-def _sandbox() -> SandboxCommandPlan:
+def _sandbox(output_path: Path | None = None) -> SandboxCommandPlan:
     return SandboxCommandPlan(
         content_digest("request"),
         content_digest("profile"),
@@ -71,7 +71,7 @@ def _sandbox() -> SandboxCommandPlan:
             "--pids-limit=256",
             "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864",
             "--mount=type=bind,src=/tmp/strategy-input,dst=/inputs/bundle,readonly",
-            "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result",
+            f"--mount=type=bind,src={output_path or Path('/tmp/strategy-output')},dst=/outputs/result",
             "--env=STRATEGY_ATTEMPT_ID=attempt-1",
             f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
             "--env=STRATEGY_ENGINE_ID=nautilus",
@@ -144,7 +144,7 @@ def test_rejected_or_mismatched_plans_never_spawn_a_process(tmp_path: Path) -> N
 
 
 def test_ready_plan_maps_sandbox_success_and_preserves_authority(tmp_path: Path) -> None:
-    sandbox = _sandbox()
+    sandbox = _sandbox(tmp_path / "result.json")
     result = run_nautilus_plan(
         _engine_plan(sandbox, authoritative=True),
         sandbox,
@@ -165,7 +165,11 @@ def test_ready_plan_preserves_non_success_sandbox_status(
     tmp_path: Path, body: str, status: NautilusRunStatus
 ) -> None:
     request_digest = content_digest("request")
-    sandbox = replace(_sandbox(), request_fingerprint=request_digest, wall_timeout_seconds=1)
+    sandbox = replace(
+        _sandbox(tmp_path / "result.json"),
+        request_fingerprint=request_digest,
+        wall_timeout_seconds=1,
+    )
     result = run_nautilus_plan(
         _engine_plan(sandbox, authoritative=True),
         sandbox,

@@ -101,7 +101,7 @@ class JsonFrozenSeriesDecoder:
 
 def _inputs(*, scenario=None, evaluation_window=None):
     requirement = CapabilityRequirement(
-        instrument_id="US.AAPL",
+        instrument_id="AAPL.SIM",
         product_class=ProductClass.EQUITY,
         event_granularity=EventGranularity.BAR,
         event_type="ohlcv",
@@ -116,7 +116,7 @@ def _inputs(*, scenario=None, evaluation_window=None):
         corporate_action_semantics="split-adjusted-v1",
     )
     cell = CapabilityCell(
-        instrument_id="US.AAPL",
+        instrument_id="AAPL.SIM",
         product_class=ProductClass.EQUITY,
         event_granularities=frozenset({EventGranularity.BAR}),
         event_types=frozenset({"ohlcv"}),
@@ -138,7 +138,7 @@ def _inputs(*, scenario=None, evaluation_window=None):
         report,
         (
             DataSeriesManifest(
-                instrument_id="US.AAPL",
+                instrument_id="AAPL.SIM",
                 event_type="ohlcv",
                 event_granularity=EventGranularity.BAR,
                 timeframe="1d",
@@ -173,7 +173,7 @@ def _inputs(*, scenario=None, evaluation_window=None):
             MarketEvent(
                 "daily-bars",
                 f"bar-{sequence}",
-                "US.AAPL",
+                "AAPL.SIM",
                 BASE + timedelta(days=sequence - 1),
                 sequence,
                 {
@@ -187,7 +187,7 @@ def _inputs(*, scenario=None, evaluation_window=None):
             for sequence in (1, 2)
         ),
     )
-    component = PortfolioComponent("component-1", strategy.fingerprint, ("US.AAPL",), Decimal("1"))
+    component = PortfolioComponent("component-1", strategy.fingerprint, ("AAPL.SIM",), Decimal("1"))
     portfolio = PortfolioComposition(
         "portfolio-1",
         "v1",
@@ -228,7 +228,7 @@ def _inputs(*, scenario=None, evaluation_window=None):
     )
     attempt = RunAttempt("attempt-1", trial.trial_id, 1, AttemptState.QUEUED, BASE)
     instrument = NautilusInstrumentDefinition(
-        "US.AAPL",
+        "AAPL.SIM",
         "AAPL",
         "SIM",
         ProductClass.EQUITY,
@@ -237,7 +237,7 @@ def _inputs(*, scenario=None, evaluation_window=None):
         0,
         Decimal("0.01"),
         Decimal("1"),
-        bar_type="AAPL.SIM-1-DAY-LAST",
+        bar_type="AAPL.SIM-1-DAY-LAST-EXTERNAL",
     )
     venue = NautilusVenueDefinition(
         "SIM",

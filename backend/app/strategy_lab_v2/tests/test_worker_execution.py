@@ -69,7 +69,7 @@ def _lease(values: tuple) -> LeaseObservationState:
 
 
 def test_worker_handoff_revalidates_then_runs_gated_nautilus(tmp_path: Path) -> None:
-    values = _fixtures()
+    values = _fixtures(sandbox_output_path=str(tmp_path / "result.json"))
     orchestration = _plan(values)
     result = execute_worker_handoff(
         orchestration,
@@ -91,7 +91,7 @@ def test_worker_handoff_revalidates_then_runs_gated_nautilus(tmp_path: Path) -> 
 
 
 def test_worker_handoff_returns_typed_failure_evidence(tmp_path: Path) -> None:
-    values = _fixtures()
+    values = _fixtures(sandbox_output_path=str(tmp_path / "result.json"))
     result = execute_worker_handoff(
         _plan(values),
         *values,
@@ -187,7 +187,7 @@ def test_worker_handoff_rejects_expired_lease_before_spawn(tmp_path: Path) -> No
 
 
 def test_worker_handoff_does_not_materialize_after_lease_expiry(tmp_path: Path) -> None:
-    values = _fixtures()
+    values = _fixtures(sandbox_output_path=str(tmp_path / "result.json"))
     _, admission, *_ = values
     lease = LeaseObservationState(
         ExecutionAttemptLease(
