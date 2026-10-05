@@ -397,9 +397,9 @@ symbol_audit_ledger:
       provider_identity: q3
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-10-01
-      evidence_refs: [web:q3-qvoy-official-etf-page-2026-09-03, web:q3-qvoy-official-etf-page-2026-09-05, live:q3-qvoy-official-etf-page-2026-09-05-application-503, live:q3-qvoy-download-route-2026-09-05-application-503, live:q3-qvoy-route-recheck-2026-09-07-503, web:q3-qvoy-official-etf-page-2026-10-01, live:q3-qvoy-official-etf-page-2026-10-01-application-503, live:q3-qvoy-download-route-2026-10-01-application-503]
-      next_action: "Re-test the QVOY page and declared holdings route after the issuer throttle clears; promote only after complete rows, mapping, parser fixtures, and live evidence are available."
+      investigated_at: 2026-10-05
+      evidence_refs: [web:q3-qvoy-official-etf-page-2026-09-03, web:q3-qvoy-official-etf-page-2026-09-05, live:q3-qvoy-official-etf-page-2026-09-05-application-503, live:q3-qvoy-download-route-2026-09-05-application-503, live:q3-qvoy-route-recheck-2026-09-07-503, web:q3-qvoy-official-etf-page-2026-10-01, live:q3-qvoy-official-etf-page-2026-10-01-application-503, live:q3-qvoy-download-route-2026-10-01-application-503, web:q3-qvoy-official-etf-page-2026-10-05-complete-html, web:q3-qvoy-official-csv-download-timeout-2026-10-05, live:q3-qvoy-worker-dns-failure-2026-10-05]
+      next_action: "Keep QVOY unavailable until the declared source is executable from the application boundary. The official page currently renders a complete 14-position table dated 2026-10-01 and declares a CSV download, but the browser CSV retrieval timed out; the last application-equivalent response was HTTP 503 and this worker's direct probe failed temporary DNS resolution. Retry the issuer page and CSV when network access recovers, then require strict identity/date/schema parsing and bounded live proof."
     - symbol: ACVF
       tier: 1
       provider_identity: ridgeline
@@ -1791,7 +1791,7 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-10-01
+    last_checked: 2026-10-05
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [QVOY]
     estimated_us_etf_count: null
@@ -1810,6 +1810,9 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.q3"
       - "runtime:ISSUER_ADAPTER_CONFIGS.q3"
+      - "web:q3-qvoy-official-etf-page-2026-10-05-complete-html"
+      - "web:q3-qvoy-official-csv-download-timeout-2026-10-05"
+      - "live:q3-qvoy-worker-dns-failure-2026-10-05"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -1843,8 +1846,12 @@ providers:
         source: "https://www.q3allseasonfunds.com/GetHoldingsCSV1_v3aLIVE.php"
         result: "The declared holdings-download route returned HTTP 503 text/html site-owner access-limited content to the application client; no complete executable artifact was retrieved."
         evidence_ref: "live:q3-qvoy-download-route-2026-10-01-application-503"
-    disposition_reason: "q3: The current official QVOY page documents a complete dated 15-position table as of 2026-09-30 and a declared CSV link, but both the product and download routes return HTTP 503 site-owner access-limited content to the application client; no complete executable artifact is proven."
-    next_action: "q3: Re-test the QVOY page and declared holdings route after the issuer throttle clears; promote only after complete rows, mapping, parser fixtures, and live evidence are available."
+      - date: 2026-10-05
+        source: "https://www.q3allseasonfunds.com/etf/; https://www.q3allseasonfunds.com/GetHoldingsCSV1_v3aLIVE.php"
+        result: "Current official browser retrieval renders a complete 14-position QVOY holdings table dated 2026-10-01 and declares a CSV download. The browser connector timed out fetching the CSV, and the worker's bounded direct page/download requests failed with temporary DNS resolution rather than a provider response; the last application-equivalent HTTP result remains 503 from 2026-10-01. A complete-looking indexed page is not treated as proof that the application can execute the route, so QVOY remains unavailable."
+        evidence_ref: "web:q3-qvoy-official-etf-page-2026-10-05-complete-html; web:q3-qvoy-official-csv-download-timeout-2026-10-05; live:q3-qvoy-worker-dns-failure-2026-10-05"
+    disposition_reason: "q3: The official page renders a complete 14-position table dated 2026-10-01 and declares a downloadable CSV, but the CSV fetch timed out, the last application-equivalent route result was HTTP 503, and the 2026-10-05 worker probe could not resolve the issuer host. QVOY remains unavailable until complete current content is proven executable through the application boundary."
+    next_action: "q3: Retry the official product and declared CSV routes when worker DNS and issuer access permit. Then validate full rows, strict QVOY identity, composition date, schema and live evidence before promotion; do not treat indexed HTML or SEC documents as current support."
     implementation_sha: null
     validation_refs: []
   - adapter_key: ridgeline

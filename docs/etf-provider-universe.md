@@ -2360,6 +2360,22 @@ fallback-only providers; runtime fallback statuses are 8 issuer-access-blocked,
 56 needs-first-party-route-discovery, 3 non-executable-public-source, 8
 non-portfolio-publisher, and 2 inactive-or-successor-disposition.
 
+## QVOY official source recheck — 2026-10-05
+
+The current official Q3 product page renders all 14 QVOY portfolio rows dated
+`2026-10-01`, including security identifiers and non-security sweep/receivable
+rows, and declares a CSV download. The browser connector timed out retrieving
+that CSV; the last application-equivalent requests returned HTTP 503, and this
+worker's bounded direct page/download probes failed temporary DNS resolution.
+That DNS failure is local worker evidence, not a new Q3 rejection. Because the
+complete-looking issuer page is not yet proven executable at the application
+boundary, QVOY stays unavailable. Do not promote indexed page content, an SEC
+report, or an unverified CSV guess as a native route.
+
+Evidence refs: `web:q3-qvoy-official-etf-page-2026-10-05-complete-html`,
+`web:q3-qvoy-official-csv-download-timeout-2026-10-05`, and
+`live:q3-qvoy-worker-dns-failure-2026-10-05`.
+
 ## Manulife UDIV/UDEF/GEDG free-source recheck — 2026-10-05
 
 The current first-party Manulife ETF catalogue lists UDIV (including unit

@@ -670,6 +670,17 @@ def test_manulife_symbols_remain_unavailable_without_complete_current_artifact(s
     assert "top-ten" in result.next_action
 
 
+def test_qvoy_stays_unavailable_when_official_csv_is_not_executable():
+    result = symbol_audit_for_profile(profile_with_symbol("QVOY", "q3"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.investigated_at == date(2026, 10, 5)
+    assert "web:q3-qvoy-official-etf-page-2026-10-05-complete-html" in result.evidence_refs
+    assert "complete 14-position table" in result.next_action
+
+
 @pytest.mark.parametrize("symbol", ["GAUD", "GAID"])
 def test_guinness_atkinson_liquidated_etfs_are_not_applicable(symbol):
     result = symbol_audit_for_profile(profile_with_symbol(symbol, "guinness_atkinson"))

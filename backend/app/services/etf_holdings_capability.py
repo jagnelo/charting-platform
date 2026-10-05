@@ -940,7 +940,7 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="q3",
-    investigated_at=date(2026, 10, 1),
+    investigated_at=date(2026, 10, 5),
     evidence_refs=(
         "web:q3-qvoy-official-etf-page-2026-09-03",
         "web:q3-qvoy-official-etf-page-2026-09-05",
@@ -950,10 +950,17 @@ _register_non_tier_0_audits(
         "web:q3-qvoy-official-etf-page-2026-10-01",
         "live:q3-qvoy-official-etf-page-2026-10-01-application-503",
         "live:q3-qvoy-download-route-2026-10-01-application-503",
+        "web:q3-qvoy-official-etf-page-2026-10-05-complete-html",
+        "web:q3-qvoy-official-csv-download-timeout-2026-10-05",
+        "live:q3-qvoy-worker-dns-failure-2026-10-05",
     ),
     next_action=(
-        "Re-test the QVOY page and declared holdings route after the issuer throttle clears; "
-        "promote only after complete rows, mapping, parser fixtures, and live evidence are available."
+        "Keep QVOY unavailable until the declared source is executable from the application "
+        "boundary. The official page currently renders a complete 14-position table dated "
+        "2026-10-01 and declares a CSV download, but the browser CSV retrieval timed out; "
+        "the last application-equivalent response was HTTP 503 and this worker's direct "
+        "probe failed temporary DNS resolution. Retry the issuer page and CSV when network "
+        "access recovers, then require strict identity/date/schema parsing and bounded live proof."
     ),
 )
 _register_non_tier_0_audits(

@@ -3714,3 +3714,20 @@ outcomes; no SEC, third-party, or paid source was promoted.
 
 Evidence refs: `web:manulife-current-etf-catalogue-2026-10-05` and
 `web:manulife-udiv-udef-latest-product-factsheet-top-ten-2026-10-05`.
+
+## QVOY complete-page evidence, route still unverified — 2026-10-05
+
+The Q3 official product page now renders the full 14-position QVOY table dated
+`2026-10-01`, including identifiers and cash/sweep/receivable rows, and links a
+declared CSV download. However, the browser connector timed out fetching the
+CSV, the last application-equivalent request on `2026-10-01` returned HTTP 503,
+and this worker's current bounded direct page/download probes fail temporary
+DNS resolution. This is not a new provider failure, but it is also not live
+route success. Keep QVOY unavailable until the exact issuer artifact can be
+fetched by the application and pass identity/date/schema/parser/live checks;
+do not reconstruct a current basket from SEC filings or use indexed HTML as a
+substitute for executable retrieval.
+
+Evidence refs: `web:q3-qvoy-official-etf-page-2026-10-05-complete-html`,
+`web:q3-qvoy-official-csv-download-timeout-2026-10-05`, and
+`live:q3-qvoy-worker-dns-failure-2026-10-05`.
