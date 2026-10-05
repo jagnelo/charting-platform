@@ -11517,3 +11517,31 @@ release dependency or external service is needed to continue that work.
 Next: implement the concrete process factory and runtime handler, then wire
 authenticated context/event payload references through this protocol without
 embedding unbounded history.
+
+## 2026-10-05 - Hardened forward process launcher
+
+Added a fixed Nautilus forward sandbox-command builder bound to the instance id,
+expected engine version, snapshot fingerprint, and exact-pinned image. The new
+host factory revalidates the hardened command plan, starts one interactive
+no-network process per instance without a shell or inherited secrets, performs
+bounded/correlated IPC with response deadlines, drains stderr under the plan's
+output cap, and terminates the process group on protocol/timeout/output failure.
+The typed adapter implements the existing forward-session process contract via
+an explicit DTO codec boundary.
+
+Validation on the implementation tree: 1,469 Strategy Lab tests and 6 schema
+migration tests pass; package Ruff, changed-file format, focused MyPy, and
+`git diff --check` pass. Two subprocess lifecycle tests use a local IPC stand-in;
+they do not claim the RC5 image or Nautilus engine was exercised.
+
+Important remaining gap: the isolated CLI does not yet implement
+`--serve-forward`, and the DTO codec has no production implementation, so the
+new launcher is not yet a runnable RC5 forward session. Code-owned next work is
+to add the RC5 CLI handler and persistent engine/strategy bridge, implement the
+authenticated delivery/context/result codec, then persist output and checkpoint
+receipts before Redis ACK and prove restart replay. No stable release wait is
+needed.
+
+Next: implement the matching RC5 `--serve-forward` handler and typed codec over
+one persistent Nautilus engine session; then connect durable receipts and
+process-loss replay.

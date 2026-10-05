@@ -62,13 +62,23 @@ class NautilusRuntimeIpcOperationHandler(Protocol):
     def close(self, payload: Mapping[str, object]) -> Mapping[str, object]: ...
 
 
+class _FrameLineReader(Protocol):
+    def readline(self, size: int = -1) -> bytes: ...
+
+
+class _FrameWriter(Protocol):
+    def write(self, data: bytes) -> object: ...
+
+    def flush(self) -> None: ...
+
+
 class NautilusRuntimeIpcClient:
     """Synchronous serialized request/reply client for one process stream pair."""
 
     def __init__(
         self,
-        input_stream: BinaryIO,
-        output_stream: BinaryIO,
+        input_stream: _FrameLineReader,
+        output_stream: _FrameWriter,
         *,
         max_frame_bytes: int = MAX_NAUTILUS_RUNTIME_IPC_FRAME_BYTES,
     ) -> None:
@@ -282,7 +292,7 @@ def decode_nautilus_runtime_ipc_frame(
 
 
 def read_nautilus_runtime_ipc_frame(
-    stream: BinaryIO,
+    stream: _FrameLineReader,
     *,
     max_frame_bytes: int = MAX_NAUTILUS_RUNTIME_IPC_FRAME_BYTES,
 ) -> NautilusRuntimeIpcFrame | None:
@@ -410,7 +420,7 @@ def _response(
 
 
 def _write_frame(
-    output_stream: BinaryIO,
+    output_stream: _FrameWriter,
     frame: NautilusRuntimeIpcFrame,
     *,
     max_frame_bytes: int,

@@ -801,13 +801,81 @@ def build_nautilus_runtime_sandbox_command(
     )
 
 
+def nautilus_forward_runtime_command(
+    *,
+    instance_id: str,
+    expected_version: str,
+    snapshot_fingerprint: str,
+    max_input_bytes: int,
+) -> tuple[str, ...]:
+    """Build the fixed CLI invocation for one persistent forward instance."""
+
+    _safe_text(instance_id, "instance_id")
+    _safe_text(expected_version, "expected_version")
+    require_sha256_digest(snapshot_fingerprint, field_name="snapshot_fingerprint")
+    if (
+        not isinstance(max_input_bytes, int)
+        or isinstance(max_input_bytes, bool)
+        or max_input_bytes <= 0
+    ):
+        raise ValueError("max_input_bytes must be a positive integer")
+    return (
+        "python",
+        "-m",
+        NAUTILUS_RUNTIME_CLI_MODULE,
+        "--input",
+        "/inputs/bundle",
+        "--output",
+        "/outputs/result",
+        "--expected-version",
+        expected_version,
+        "--snapshot-fingerprint",
+        snapshot_fingerprint,
+        "--max-input-bytes",
+        str(max_input_bytes),
+        "--serve-forward",
+        "--instance-id",
+        instance_id,
+    )
+
+
+def build_nautilus_forward_runtime_sandbox_command(
+    request: StrategyRuntimeRequest,
+    profile: RuntimeIsolationProfile,
+    *,
+    image_name: str,
+    input_bundle_path: str | os.PathLike[str],
+    output_path: str | os.PathLike[str],
+    instance_id: str,
+    expected_version: str,
+    snapshot_fingerprint: str,
+) -> SandboxCommandPlan:
+    """Build a hardened exact-image command for a persistent forward session."""
+
+    return build_nautilus_sandbox_command(
+        request,
+        profile,
+        image_name=image_name,
+        input_bundle_path=input_bundle_path,
+        output_path=output_path,
+        command=nautilus_forward_runtime_command(
+            instance_id=instance_id,
+            expected_version=expected_version,
+            snapshot_fingerprint=snapshot_fingerprint,
+            max_input_bytes=max(1, profile.memory_limit_bytes // 8),
+        ),
+    )
+
+
 __all__ = [
     "NAUTILUS_RUNTIME_CLI_MODULE",
     "SandboxCommandPlan",
     "build_nautilus_runtime_sandbox_command",
+    "build_nautilus_forward_runtime_sandbox_command",
     "build_nautilus_sandbox_command",
     "build_sandbox_command",
     "nautilus_runtime_command",
+    "nautilus_forward_runtime_command",
     "sandbox_attempt_id",
     "sandbox_account_equity_trace_path",
     "sandbox_context_stream_digest",

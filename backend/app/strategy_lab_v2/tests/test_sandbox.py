@@ -9,6 +9,7 @@ from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolatio
 from app.strategy_lab_v2.runtime_execution import StrategyRuntimeRequest
 from app.strategy_lab_v2.sandbox import (
     SandboxCommandPlan,
+    build_nautilus_forward_runtime_sandbox_command,
     build_nautilus_runtime_sandbox_command,
     build_nautilus_sandbox_command,
     build_sandbox_command,
@@ -242,3 +243,23 @@ def test_sandbox_command_plan_rejects_malformed_values() -> None:
         SandboxCommandPlan(content_digest("request"), content_digest("profile"), ("sh",), 1, 1)
     with pytest.raises(ValueError, match="positive integer"):
         SandboxCommandPlan(content_digest("request"), content_digest("profile"), ("docker",), 0, 1)
+
+
+def test_forward_runtime_builder_binds_instance_and_persistent_cli_mode(tmp_path) -> None:
+    profile = _profile()
+    plan = build_nautilus_forward_runtime_sandbox_command(
+        _request(profile),
+        profile,
+        image_name="nautilus-runtime",
+        input_bundle_path=tmp_path / "input.json",
+        output_path=tmp_path / "output.json",
+        instance_id="forward-instance-1",
+        expected_version="2.0.0rc5",
+        snapshot_fingerprint=content_digest("snapshot"),
+    )
+
+    command = sandbox_runtime_command(plan)
+    assert "--serve-forward" in command
+    instance_index = command.index("--instance-id")
+    assert command[instance_index + 1] == "forward-instance-1"
+    assert command[command.index("--expected-version") + 1] == "2.0.0rc5"
