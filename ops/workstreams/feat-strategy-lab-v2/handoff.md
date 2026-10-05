@@ -10071,13 +10071,19 @@ focused MyPy, and `git diff --check` passed for the changed test.
 There is no release blocker: current branch policy permits exact-pinned RC5 for
 authoritative local backtests after its four recorded checks. The fifth
 event-tape-parity check remains a distinct gate for broker-free forward shadow.
-Full Compose/browser acceptance remains limited by missing Docker Buildx and
-default-sandbox Docker-socket access. Provider/ETF/TC2000 shared-contract work
-remains staging-gated only when that integration is reached; options admission
-still fails closed pending canonical event-time Greeks/delta and settlement
-evidence.
+Full Compose/browser acceptance remains limited by the missing Docker Buildx
+plugin and default-sandbox Docker-socket access. Docker Compose 2.40.3 is
+installed, and scoped host access reaches the daemon, but `docker buildx`
+returns “unknown command.” Provider/ETF/TC2000 shared-contract work remains
+staging-gated only when that integration is reached; options admission still
+fails closed pending canonical event-time Greeks/delta and settlement evidence.
 
 Next: exercise the persisted authoritative request through the isolated
 RC5 process/result-publication path where the local runtime permits; continue
 worker recovery/scaling and broker-free event-tape parity, preserving the
 Compose/browser host gate separately.
+
+The current human/agent handoff is `ops/workstreams/feat-strategy-lab-v2/handoff.md`;
+the session plan hash, active goal state, and exact next action are recorded in
+`ops/workstreams/feat-strategy-lab-v2/session.json`; validation evidence remains
+append-only in `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`.
