@@ -10549,3 +10549,20 @@ metric gaps, then complete forward-shadow event-tape parity. Keep shared-path
 integration behind the provider, ETF, and TC2000 staging gates, and keep the
 final Compose/browser profile open as acceptance work rather than a blocker to
 package implementation.
+
+## In progress - native OOS cash-capital metrics
+
+Intent: preserve the native account-cash balance that is already present in the
+byte-verified event-level equity trace and publish versioned, event-sampled
+cash-to-equity summaries in the authoritative OOS `MetricSet`. Zero-equity
+samples must withhold ratios with an explicit null reason; no margin, leverage,
+or profitability inference is allowed.
+
+Owned paths: `backend/app/strategy_lab_v2/observations.py`, `metrics.py`,
+`nautilus_equity_trace.py`, `nautilus_result_metrics.py`,
+`nautilus_result_materialization.py`, focused tests under
+`backend/app/strategy_lab_v2/tests/`, `docs/strategy-lab-v2.md`, and this
+workstream. The existing `NautilusAccountEquityTraceWriter` already stores
+`account_cash_balance`; the current verifier validates but drops it before
+OOS metric construction. Next: carry the verified value through the typed
+observation and materialization, then validate the exact OOS result path.
