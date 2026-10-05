@@ -11929,3 +11929,73 @@ dynamic accepted-event/context staging, real native account-effect capture,
 checkpoint-before-ACK settlement and deterministic restore. Then make `main`
 consume the fixed sandbox `--serve-forward` command through
 `serve_forward_runtime`; exercise it inside the built exact-pinned image.
+
+## 2026-10-05 - Persistent forward session and fixed CLI dispatch
+
+The isolated runtime now has a concrete `NautilusBacktestForwardSession` and
+session factory. It binds the exact RC5 package, runtime bundle, bootstrap,
+context artifact, and native warm-up tape; seeds bounded per-component SDK
+windows from authenticated contexts; replays warm-up and the immutable
+processed-event prefix through one shared `BacktestEngine` and component
+bridge; and stages each accepted canonical delivery through that same engine.
+Native order/fill/cash effects are returned as the typed account-event binding.
+An in-process restore rebuilds the engine and checks deterministic result
+fingerprints while replaying its settled delivery history; duplicate delivery
+returns its prior result, and a failed native event rebuilds to the settled
+prefix before retry.
+
+The fixed `--serve-forward` CLI dispatch is now wired to the verified startup
+helper. The helper passes digest-verifying stream reopeners so the session can
+construct fresh bridges during rebuild instead of retaining exhausted stream
+iterators. The new runtime module is included in the exact-source Dockerfile
+allowlist.
+
+Validation: all `1,493` Strategy Lab package tests passed with coverage
+reporting disabled; focused runtime-CLI, context, and forward-wire tests passed;
+Ruff check/format, focused MyPy for the native session and runtime CLI, and
+`git diff --check` passed. The ordinary focused pytest invocation ran its tests
+successfully but exited nonzero because the repository-wide 55% backend
+coverage threshold is inapplicable to that narrow selection. The new session
+has not yet been executed inside the exact RC5 image.
+
+This is not the durable settlement/recovery finish: runtime replay history is
+still in memory, outputs/checkpoint transitions are not yet proven durable
+before Redis ACK, and process-loss recovery from the host's durable event log
+remains open. The exact-source RC5 image has now been rebuilt and its runtime
+probe/fixture qualification passed using scoped Docker access; the new forward
+session still needs an image-backed execution fixture. Full Compose/browser
+acceptance remains pending but does not block more package-owned code.
+Stable Nautilus release labeling is not a gate; retain the already-qualified
+RC5 pin unless a deliberate runtime-pin change triggers fresh conformance.
+
+Updated durable records: `ops/workstreams/feat-strategy-lab-v2/plan.yaml`,
+`ops/workstreams/feat-strategy-lab-v2/handoff.md`,
+`ops/workstreams/feat-strategy-lab-v2/validation.jsonl`, and
+`ops/workstreams/feat-strategy-lab-v2/session.json`.
+
+Next: complete host-settlement/output checkpoint-before-ACK wiring, bound
+replay history using the durable checkpoint/event log, prove a real process-loss
+restore, then add an image-backed fixture that exercises this session in the
+exact RC5 image. Continue broader branch ACs after this forward runtime phase.
+
+## 2026-10-05 - Exact-source RC5 image requalification
+
+The isolated runtime image was rebuilt from the exact-source allowlist after
+commit `897e0805304c02a3abbb1f68242798c4f538634f`. The existing hardened RC5
+runtime probe and simulator fixture qualification completed successfully, and
+the content-addressed evidence artifact was published to the existing ignored
+operator store `.ai/runtime/strategy-lab-v2/nautilus-rc-evidence/`.
+
+Receipt: source digest
+`sha256:9cb0140cf3840785d54d743e27f90bd028de8e74240e9ab2bc4e563dcdbc540d`,
+image digest
+`sha256:ca37c8cd3d7bf277cec4be74e260d8c1ead8232655bce2d2510bf99c1868f8b9`,
+artifact digest
+`sha256:8a6e57d32c381f9a0424dd5a14f0cdf898547b1340d4a81c51827b8250e4f926`,
+conformance fingerprint
+`sha256:79ec14628b653038bac7a6bd1073dbed4593a2fdadc164083f0c8b2498872c72`.
+
+This proves the changed source closes and qualifies in the isolated RC5 image;
+it does not yet invoke the new forward session. The exact-image forward fixture,
+durable output/checkpoint-before-ACK, bounded persistent replay history, and
+process-loss restore remain open. Stable release labeling is not a gate.

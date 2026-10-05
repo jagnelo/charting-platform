@@ -87,7 +87,10 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/session.json"
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -124,14 +127,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "80df5f004656a5f0fa1125a0d4ad765006089ea5",
-  "implementation_sha": "80df5f004656a5f0fa1125a0d4ad765006089ea5",
-  "last_checkpoint": "2026-10-05T18:53:44.672960+00:00",
-  "last_human_progress_update": "2026-10-05T18:51:39.599051+00:00",
+  "head": "897e0805304c02a3abbb1f68242798c4f538634f",
+  "implementation_sha": "897e0805304c02a3abbb1f68242798c4f538634f",
+  "last_checkpoint": "2026-10-05T19:24:13.426402+00:00",
+  "last_human_progress_update": "2026-10-05T19:15:05.233053+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "d5798a8e7978271314da4ee959c20d34945c225d3dae403c6594c7c914cdec70",
+  "plan_hash": "f6667d4d8e440591f8e9d7f3f6710e7479f017c5060deccb21a502362f6d9e84",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -150,12 +153,12 @@
     "completed": [],
     "current_blocker": "none",
     "current_phase": "forward-runtime-session-bootstrap",
-    "next_action": "Construct the exact-RC5 persistent shared-account BacktestEngine session around the authenticated bootstrap and bridge account effects; replay warm-up and processed prefix with bounded contexts, then add durable per-event checkpoint restore and wire CLI --serve-forward.",
+    "next_action": "Complete durable host settlement/output checkpoint-before-ACK wiring, bound replay history from durable state, prove process-loss restore, then run the concrete forward session in the exact RC5 image.",
     "total": 18,
-    "updated_at": "2026-10-05T18:51:39.599031+00:00"
+    "updated_at": "2026-10-05T19:15:05.233030+00:00"
   },
-  "remote": "80df5f004656a5f0fa1125a0d4ad765006089ea5",
-  "remote_sha": "80df5f004656a5f0fa1125a0d4ad765006089ea5",
+  "remote": "897e0805304c02a3abbb1f68242798c4f538634f",
+  "remote_sha": "897e0805304c02a3abbb1f68242798c4f538634f",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

@@ -868,30 +868,32 @@ progress:
     codec, isolated-process supervisor, strict operation handler, and immutable
     authenticated bootstrap contract now exist. Bootstrap JSON parsing is
     canonical, size-bounded, rejects duplicate fields, and binds the decoded
-    fingerprint to its artifact. The
-    fixed CLI `--serve-forward` mode and concrete persistent shared-account
-    BacktestEngine session are still unimplemented. The bridge exposes tested
+    fingerprint to its artifact. A concrete persistent shared-account
+    BacktestEngine session and fixed CLI `--serve-forward` dispatch now exist;
+    the factory seeds bounded component contexts, replays warm-up plus the
+    authenticated processed prefix, stages accepted events through the same
+    engine, and returns typed native account effects. Focused retry/replay
+    behavior and full package regressions pass. The bridge exposes tested
     single-event staging and native-effect capture seams after the immutable
     prefix, including canonical identity binding, deterministic shadow
-    orders/fills, and all-currency cash deltas. Their use inside a persistent
-    shared-account session, output/checkpoint persistence before ACK, and
-    deterministic process-loss replay remain code-owned. Preserve canonical
+    orders/fills, and all-currency cash deltas. Exact RC5 image execution,
+    output/checkpoint persistence before ACK, bounded durable replay history,
+    and deterministic process-loss recovery remain code-owned. Preserve canonical
     platform event identity and ordering; never derive them from dependency-
-    local frozen series rows. Full
-    Compose/browser acceptance remains environment-limited by unavailable
-    Docker Buildx and default Docker API socket access. Shared provider, ETF, and
+    local frozen series rows. The new exact-source RC5 image has since been
+    rebuilt and its pinned runtime probe/fixture qualification passed; running
+    the new forward-session path inside that image remains open. Full
+    Compose/browser acceptance is still pending and may require the same scoped
+    Docker access. Shared provider, ETF, and
     TC2000 contracts gate only their eventual shared-path integration; options
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Construct the concrete RC5 persistent shared-account BacktestEngine
-    session around the authenticated bootstrap and tested bridge effects.
-    Replay the immutable warm-up and processed prefix with bounded component
-    context windows, then stage each accepted canonical delivery through the
-    same long-lived engine. Return native account effects with deterministic
-    runtime-session identity; persist outputs and exact replay checkpoints
-    before Redis acknowledgement. Wire the verified builder into fixed CLI
-    --serve-forward and prove restore/replay after process loss without
-    rewriting prior decisions; corrections remain counterfactual. Preserve
+    Exercise the concrete builder and persistent BacktestEngine session inside
+    the exact RC5 image, including warm-up, processed-prefix replay, and live
+    native account-effect capture. Then bind result persistence and exact
+    checkpoint transitions to the host settlement path before Redis ACK; bound
+    replay memory and prove process-loss restore from durable history without
+    rewriting prior decisions. Corrections remain counterfactual. Preserve
     provider-owned event identity and consume shared contracts only after their
     source branches reach staging. Stable release labeling is not a gate.
