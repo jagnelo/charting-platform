@@ -71,7 +71,10 @@
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-etf-holdings-constituents/session.json"
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -108,13 +111,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "0868e1e878c876be0cb9c33e405f4d1aa85a5797",
+  "head": "16f181c798bc067b0e623e6445c03319d6664ad9",
   "implementation_sha": "f04b0a39a60fadd6d8d21cf2bca360d8d746c88c",
   "last_checkpoint": "2026-10-05T06:39:17.724970+00:00",
-  "last_human_progress_update": "2026-10-05T06:34:22.894760+00:00",
+  "last_human_progress_update": "2026-10-05T07:49:05.243399+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Wait for the feat-tc2000-frontend-rework Docker/browser stack to exit, then replay the four exact failing browser cases on a fresh ETF stack using the temporary Buildx plugin. If they pass, rerun the official full gate; if any reproduces, diagnose only the directly causal ETF-owned code and preserve generic assertions/baselines. Do not stop or alter another worktree. Exact-SHA branch tests passed, but Codecov uploads remain TLS-failing and the GitHub retry endpoint returned 403. AC7/AC8 remain open; AC10 awaits provider-platform staging; AC14 remains the post-integration/deployment shadow gate.",
-  "plan_hash": "4018974fec3e51fd6ff45a71c4bb2b0ce94ee1d14b300b7d87e7b96644c21e98",
+  "next_action": "The four exact browser failures already passed on a fresh ETF-only stack (4/4), and the full-suite-only Market Map case passed twice in isolation (2/2). Do not repeat targeted tests or change generic UI/tests without new causal evidence. When the separate Docker/browser stack and unowned container exit and memory headroom is safe, rerun the official full integration gate. Refresh exact-SHA CI evidence through an available supported run/status source when the current branch checkpoint is published. Do not stop or alter another worktree, merge, promote, or deploy. AC10 awaits feat/market-data-provider-platform reaching staging; AC14 is a later post-integration/deployment observation.",
+  "plan_hash": "5af429e83fc5f62f085968132ce0b438a913496bb5c6066c1f54c5424cdabb41",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -135,13 +138,13 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. ETF source capability metadata now fails closed for missing, unknown, not_applicable, and current-without-explicit-usability states; focused helper and Market Map tests pass. The required local browser gate still needs a safe fresh ETF stack, but the separate feat-tc2000-frontend-rework Compose/browser stack is active and available memory is about 2.9 GiB, so do not compete with or stop it. Exact-SHA branch tests passed, but hosted E2E was skipped after repeated Codecov TLS EPROTO upload failures and the GitHub retry API returned 403. AC7/AC8 remain open; AC10 awaits provider-platform staging; AC14 is post-integration/deployment observation.",
-    "current_phase": "etf_source_capability_fail_closed_fix_done_browser_replay_waits_for_shared_stack",
-    "next_action": "Wait for the separate Docker/browser stack to exit and memory headroom to recover, then replay the four exact failing Playwright cases on a fresh ETF stack using the temporary Buildx plugin. If they pass, rerun the official full gate; if any reproduces, diagnose only directly causal ETF-owned paths and preserve generic assertions/baselines. Do not stop or alter another worktree.",
+    "current_blocker": "15 Tier-0 and 156 Tier-1 outcomes remain accounted for. The official local integration gate passed all pre-browser stages, including backend 1880 tests at 81.14 percent and frontend 947 tests, but functional Playwright finished 260 tests with 150 passed, 106 skipped, and four failures: three ERR_NETWORK_CHANGED requests to the local API and one full-suite Market Map-to-Study-Lab handoff timeout. The four exact cases passed 4/4 on a fresh ETF-only stack and Market Map passed 2/2 alone; this is not proof of root cause and does not establish a reproducible ETF-owned defect. Current shared Docker load is six feat-tc2000 services plus another container of unverified ownership with 2.6 GiB RAM available, so defer another heavy gate and do not stop or alter those resources. Exact-SHA CI for HEAD 16f181c798bc067b0e623e6445c03319d6664ad9 is unverified: combined status and workflow-run lookup returned empty, and direct SSH ref lookup failed temporary github.com DNS. GitHub comparison confirms provider-platform is 1856 commits ahead of staging. AC7 and AC8 remain open; AC10 is externally dependency-gated; AC14 is post-integration/deployment.",
+    "current_phase": "etf_capability_fix_verified_full_gate_has_nonreproducing_browser_failures",
+    "next_action": "When the other Docker/browser stack and unowned container have exited and memory headroom is safe, rerun the official full integration gate on this ETF branch and inspect its new traces. Do not repeat the already-passing focused cases or modify generic tests/UI without new causal evidence. Refresh exact-SHA CI through an available supported run/status source when the next branch checkpoint is published. Do not alter another worktree, merge, promote, or deploy. AC10 can proceed only after provider-platform reaches staging; AC14 follows later integration/deployment.",
     "total": 14,
-    "updated_at": "2026-10-05T06:34:22.894735+00:00"
+    "updated_at": "2026-10-05T07:49:05.243379+00:00"
   },
-  "remote": "0868e1e878c876be0cb9c33e405f4d1aa85a5797",
+  "remote": "16f181c798bc067b0e623e6445c03319d6664ad9",
   "remote_sha": "7c14feb2780a0c4e3283ef76fdf81bb95e16eece",
   "remote_synchronized": true,
   "schema": 2,

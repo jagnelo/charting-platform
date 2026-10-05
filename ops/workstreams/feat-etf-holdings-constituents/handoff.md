@@ -8094,6 +8094,33 @@ AC10 still awaits the separately developed provider-platform branch reaching
 staging, and AC14 is the post-integration/deployment 30-day shadow gate. The
 saved goal remains active; it is not marked blocked or complete.
 
+## Fresh gate-artifact and dependency recheck — 2026-10-05
+
+The saved Playwright artifacts from the 2026-10-05 full-gate attempt were
+inspected rather than inferred from the summary. `F8s-family-matrix` and
+`F8s-breadth` each recorded multiple `net::ERR_NETWORK_CHANGED` failures on
+requests to the local API at `127.0.0.1:28089`; the family test had no API 404s.
+The Market Map and family-ratio snapshots showed `Failed to fetch` before the
+locked-source summary and linked-chart timestamp assertions failed. Together,
+these artifacts support a local transport interruption during the run; they do
+not identify an ETF-data or source-capability defect, and no assertion or visual
+baseline should be changed on that evidence alone.
+
+A read-only poll of the exact competing container handles still found the six
+`feat-tc2000-frontend-rework` services running, with about 3.7 GiB available
+memory. No ETF browser rerun is safe yet, and no other-worktree resource was
+stopped or altered. Current remote refs are provider-platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1` and staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; an ancestry check confirms the
+provider-platform tip is not in staging, so AC10 remains dependency-gated.
+
+The repository CI workflow includes feature-branch pushes, but the connected
+workflow-run lookup only exposes pull-request-triggered runs. No combined
+status was returned for the latest receipt SHA, so its exact-SHA CI remains
+unverified rather than being called absent or green. The next safe product
+validation step remains replaying the four exact browser cases after the other
+stack exits, then rerunning the full gate if they pass.
+
 ## ETF workstation capability fail-closed correction — 2026-10-05
 
 The ETF capability helper previously treated a missing or unrecognized
@@ -8257,3 +8284,44 @@ changed. AC7/AC8 remain open for local full/browser evidence and hosted E2E.
 AC10 still awaits the separately developed provider-platform branch reaching
 staging, and AC14 is the post-integration/deployment 30-day shadow gate. The
 saved goal remains active; it is not marked blocked or complete.
+
+## Local full-gate replay and blocker reconciliation — 2026-10-05 07:44 UTC
+
+The official `make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents`
+run completed its pre-browser stages successfully: workstream/dependency/migration
+checks, Ruff/format/type-check, backend coverage (1,880 passed; 81.14%), frontend
+unit tests (947 passed), production build, Compose/health checks, and research
+runner probes. The functional Playwright stage completed 260 tests with 150
+passed, 106 skipped, and four failed, so the full gate is not green. Three
+failures logged `net::ERR_NETWORK_CHANGED` on requests to this worktree's local
+API at `127.0.0.1:28089`; the remaining failure was a full-suite timeout while
+clicking the Market Map-to-Study-Lab handoff button.
+
+On a fresh ETF-only stack, the four exact failed cases
+(`F8s-market-map-watchlist`, `F8s-family-matrix`, `F8s-breadth`, and
+`F8s-breadth-family-ratio`) passed 4/4 in 56.9 seconds. The Market Map case
+then passed by itself twice (2/2 in 24.5 seconds). Its fixture uses index,
+personal-watchlist, and combo sources, not ETF holdings. This is evidence that
+the failures did not reproduce in those focused runs, but it does not prove the
+underlying cause. No generic test assertion, unrelated product path, or visual
+baseline was changed. Scoped cleanup removed this worktree's stack, volumes,
+network, and images successfully.
+
+The exact-SHA combined-status and workflow-run lookups for current branch HEAD
+`16f181c798bc067b0e623e6445c03319d6664ad9` returned empty lists; the connected
+workflow-run lookup only exposes PR-triggered runs, so exact-SHA CI is
+unverified. A direct SSH ref read failed because `github.com` DNS did not
+resolve, although local HEAD equals its cached `origin/feat/etf-holdings-constituents`
+tracking ref. GitHub's read-only branch comparison confirms
+`feat/market-data-provider-platform` is 1,856 commits ahead of `staging` with
+staging as merge base; AC10 therefore remains an external dependency.
+
+At the latest read-only Docker/memory check, the six-service
+`feat-tc2000-frontend-rework` stack and an additional container not proven to
+belong to this worktree were active, with 2.6 GiB RAM available. They were left
+untouched. Do not start another resource-heavy full gate until the other stack
+and unowned container have exited and memory headroom is safe. The next local
+action is to rerun the official full gate under that safe condition, inspecting
+new traces before considering any change. AC7/AC8 remain open; AC14 is still
+the post-integration/deployment observation. The goal is active, not blocked or
+complete.

@@ -432,7 +432,7 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: etf_source_capability_fail_closed_fix_done_browser_replay_waits_for_shared_stack
+current_phase: etf_source_capability_fix_validated_local_full_gate_has_nonreproducing_browser_failures
 current_blocker: >-
   QVAL implementation checkpoint (2026-10-05; superseded by the updates below):
   15 Tier-0 and 156 Tier-1 symbol outcomes
@@ -754,12 +754,47 @@ current_blocker: >-
   available; the full browser gate and frontend type-check were not started to
   avoid competing with that stack. No other-worktree resources were changed.
 
+  UPDATE 2026-10-05T07:44Z: The exact four failures from the official local
+  browser gate were replayed on a fresh, ETF-only stack and all four passed in
+  56.9 seconds. The Market Map case that failed only in the full suite then
+  passed twice more when run alone (2/2, 24.5 seconds). Its fixtures are index,
+  personal-watchlist, and combo sources, not ETF holdings. The full gate had
+  already passed workstream/dependency/migration checks, Ruff/format/type-check,
+  backend coverage (1,880 passed; 81.14%), frontend tests (947 passed),
+  production build, stack health, and research-runner probes. Its functional
+  browser stage finished 260 tests with 150 passed, 106 skipped, and four
+  failures: three reported ERR_NETWORK_CHANGED for requests to the local API
+  at 127.0.0.1:28089; the fourth was a full-suite Market Map-to-Study-Lab
+  handoff locator timeout. The focused replays show these failures did not
+  reproduce in isolation, but do not prove their underlying cause. No generic
+  assertion, visual baseline, or non-ETF product path was changed. The gate
+  cleanup completed for ETF-owned containers, volumes, network, and images.
+
+  The current shared Docker host is again under a separate
+  feat-tc2000-frontend-rework stack (six services) plus another active
+  testcontainer; available RAM is 2.6 GiB. Do not stop or alter those resources
+  and do not start another resource-heavy full gate until they exit and memory
+  headroom is safe. Exact-SHA status and workflow-run lookups for current HEAD
+  16f181c798bc067b0e623e6445c03319d6664ad9 returned empty results; the
+  connected run lookup only exposes PR-triggered runs, so exact-SHA CI remains
+  unverified. A direct SSH remote read failed because github.com DNS did not
+  resolve in this worker; local HEAD still equals its cached origin tracking
+  ref. GitHub's read-only compare confirms
+  feat/market-data-provider-platform is 1,856 commits ahead of staging and
+  staging is its merge base, so AC10 remains externally dependency-gated.
+  AC7/AC8 remain open; AC14 remains a post-integration/deployment observation.
+  The saved goal remains active, not blocked or complete.
+
 next_action: >-
-  Wait for the feat-tc2000-frontend-rework Docker/browser stack to exit, then
-  replay the four exact failing browser cases on a fresh ETF stack using the
-  temporary Buildx plugin. If they pass, rerun the official full gate; if any
-  reproduces, diagnose only the directly causal ETF-owned code and preserve
-  generic assertions/baselines. Do not stop or alter another worktree. Exact-SHA
-  branch tests passed, but Codecov uploads remain TLS-failing and the GitHub
-  retry endpoint returned 403. AC7/AC8 remain open; AC10 awaits provider-
-  platform staging; AC14 remains the post-integration/deployment shadow gate.
+  The four exact browser failures have already passed on a fresh ETF-only stack
+  (4/4), and the full-suite-only Market Map case passed twice in isolation. Do
+  not repeat targeted tests or change generic tests/assertions without new
+  causal evidence. When the current separate Docker/browser stack and its
+  testcontainer have exited and safe memory headroom is available, rerun the
+  official full integration gate on this branch. If it fails again, inspect
+  that run's traces and repair only a directly implicated ETF-owned path; keep
+  the full-gate failure visible until it passes or a genuine external outage is
+  narrowly evidenced. Refresh exact-SHA CI evidence when the branch checkpoint
+  can be published and checked. Do not stop or alter another worktree. AC10
+  awaits feat/market-data-provider-platform reaching staging; AC14 is a later
+  post-integration/deployment observation.
