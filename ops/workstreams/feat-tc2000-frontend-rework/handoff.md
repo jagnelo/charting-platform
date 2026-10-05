@@ -1,5 +1,21 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Refreshed staging and dependency refs
+
+After the synchronized workstream checkpoint, a read-only GitHub ref refresh
+confirmed TC `6ffeee9e46fcf5475df370da962e74ad6d6fa59a`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`37d32c633b4633bfaebb1259c44374fd107b79ae`. Provider and ETF remain outside
+staging. Do not consume their direct branch tips or reconcile their shared
+paths in TC.
+
+The next context is exact-tip browser validation at product source
+`7f586db35c0ce9425cda07bcd67832517612ada2`: run the full serial authenticated
+Chromium functional suite and unchanged four-project visual matrix on the
+assigned TC stack, preserve the known screenshot-only differences, then tear
+down and audit that exact stack.
+
 ## 2026-10-05 — Completed: keyboard navigation for Relative Rotation
 
 The self-contained implementation commit
