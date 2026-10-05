@@ -432,9 +432,34 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: longview_ebi_schema_variant_fixed_locally_hosted_exact_sha_retest_pending
+current_phase: longview_parser_hosted_ci_green_local_full_gate_network_flake_f8w_replay_passed
 current_blocker: >-
-  Current checkpoint 2026-10-05T09:33Z: 15 Tier-0 and 156 Tier-1 symbol
+  Current checkpoint 2026-10-05T11:27Z: 15 Tier-0 and 156 Tier-1 symbol
+  outcomes remain accounted for. Exact-SHA push run 37291546362 on
+  26d9f84b5ac35ed0fe0b31d196caae1a6ee05139 passed all feature-branch
+  applicable jobs: Branch-declared Tests (519 passed, 19 classified skips),
+  Backend Tests, Frontend Unit Tests, and hosted Playwright. The protected
+  staging/master-only Exhaustive Integration Gate was skipped by design.
+  The official local `make validate-integration` rerun passed workstream and
+  dependency checks, backend tests (1,881 passed; 81.14% coverage), frontend
+  unit tests (947 passed; 82.08% statement coverage), both builds, stack health,
+  and research-runner containment probes. Its 260-test Playwright bundle ended
+  with 153 passed, 106 skipped, and one failure: F8w timed out waiting for the
+  EasyScan condition save response while the browser logged repeated
+  `net::ERR_NETWORK_CHANGED`. The six previously failing browser cases all
+  passed in that same full serial run. After rebuilding a fresh ETF-only stack,
+  the exact F8w test passed 1/1 in 11.5 seconds. This is evidence of a
+  non-reproducible local network failure, not proof of its root cause; the full
+  gate remains non-green and no generic UI or network code was changed. The
+  complete deterministic ETF adapter module passes 597/597 after formatting;
+  Ruff check and format checks pass. A local live Longview replay was DNS
+  blocked and is not a route pass. AC7 remains open for a green full local gate
+  or narrowly evidenced external instability plus the exact current-SHA CI
+  check after this checkpoint. AC8 awaits human review, AC10 awaits
+  `feat/market-data-provider-platform` reaching staging, and AC14 remains the
+  post-integration/deployment observation. The goal remains active and the
+  branch boundary is unchanged.
+  Previous checkpoint 2026-10-05T09:33Z: 15 Tier-0 and 156 Tier-1 symbol
   outcomes remain accounted for. Exact-SHA run 37288223783 on
   c4932d049b73be8bd6893d04eebd512c65ceda02 passed Backend Tests, Frontend Unit
   Tests, and hosted Playwright. Branch-declared tests failed only the live
@@ -451,7 +476,7 @@ current_blocker: >-
   are running with 2.6 GiB available memory; leave them untouched. AC8 awaits
   human review, AC10 awaits provider-platform staging, and AC14 remains the
   post-integration/deployment shadow observation.
-  Current checkpoint 2026-10-05T09:00Z: 15 Tier-0 and 156 Tier-1 symbol
+  Previous checkpoint 2026-10-05T09:00Z: 15 Tier-0 and 156 Tier-1 symbol
   outcomes remain accounted for. Exact-SHA push run 37286594960 on
   876302bad211a75213e893f22f76abb6186ec241 found the same session narrative
   invariant failure in the branch-declared and backend unit jobs: this session's
@@ -850,13 +875,14 @@ current_blocker: >-
   saved goal is active, not blocked or complete.
 
 next_action: >-
-  Finish workstream validation and record the Longview EBI table-schema failure
-  and parser correction. Commit and push only the ETF product parser, its
-  deterministic regression, and the workstream checkpoint; query Actions for
-  the exact new SHA and fix any remaining ETF-owned failure. Run the official
-  full integration gate only after the other worktree's services and separate
-  Playwright container have exited and safe headroom remains; do not stop or
-  alter them. Do not repeat unrelated provider routes or isolated browser cases
-  without new evidence. AC8 awaits human review, AC10 awaits
-  feat/market-data-provider-platform reaching staging, and AC14 is the later
+  Commit and push the Ruff formatting normalization and validated ETF-owned
+  workstream checkpoint to feat/etf-holdings-constituents, then inspect the
+  exact-SHA Actions run. Preserve the official local full-gate outcome as
+  non-green: its sole E2E failure was F8w with repeated ERR_NETWORK_CHANGED,
+  while the exact fresh-stack replay passed and all six prior cases passed in
+  the full rerun. Do not alter generic UI/network code without new causal
+  evidence or repeat another resource-heavy full gate absent a meaningful
+  environmental change. Once the checkpoint SHA's hosted jobs pass, stop at
+  ready_for_human_review without integrating or deploying; AC10 awaits
+  feat/market-data-provider-platform reaching staging and AC14 is the later
   30-day post-integration/deployment observation.

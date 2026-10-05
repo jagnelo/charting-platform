@@ -55281,9 +55281,7 @@ class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
             dates: list[date] = []
             for position, row in enumerate(table[1:], start=1):
                 raw_item = _row_dict(header, row)
-                item = {
-                    canonical_header(key): value for key, value in raw_item.items()
-                }
+                item = {canonical_header(key): value for key, value in raw_item.items()}
                 if (_clean(item.get("account")) or "").upper() != cls.LONGVIEW_SYMBOL:
                     continue
                 composition_date = _parse_issuer_date(item.get("date"))

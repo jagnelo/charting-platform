@@ -8467,3 +8467,50 @@ about 90% CPU, and 2.6 GiB available host memory. No shared resource was
 stopped or changed. AC7 remains open; AC8 awaits human review, AC10 awaits
 provider-platform staging, and AC14 remains the post-integration/deployment
 shadow observation. Goal status remains active.
+
+## 2026-10-05 11:27 UTC — hosted repair green; local full gate has one non-reproducible network failure
+
+The parser fix and its deterministic regression are on the feature branch at
+`26d9f84b5ac35ed0fe0b31d196caae1a6ee05139`. Exact-SHA Actions run
+`37291546362` passed all feature-branch-applicable jobs: Branch-declared Tests
+reported 519 passed and 19 classified skips; Backend Tests, Frontend Unit
+Tests, and hosted Playwright passed. The staging/master-only Exhaustive
+Integration Gate was skipped by design on this feature branch. The run is at
+https://github.com/jagnelo/charting-platform/actions/runs/37291546362.
+
+The official local `make validate-integration
+INTEGRATION_BRANCH=feat/etf-holdings-constituents` rerun passed repository
+preflight/workstream validation, backend coverage (1,881 passed; 81.14%),
+frontend unit coverage (947 passed; 82.08% statements), both production builds,
+container health checks, and research-runner containment/resource probes. The
+Playwright bundle completed 260 cases with 153 passed, 106 skipped, and one
+failure. F8w (EasyScan result to Market Gauge) timed out waiting for a saved
+condition response; its browser log contained repeated
+`net::ERR_NETWORK_CHANGED`. All six cases that had failed in the earlier full
+run passed during this full serial rerun.
+
+After the gate's branch-scoped cleanup, a fresh ETF-only stack was rebuilt and
+all services reached healthy. Replaying only F8w passed 1/1 in 11.5 seconds.
+The failure is therefore non-reproducible in isolation and consistent with the
+observed local network-change errors; this does not establish the underlying
+cause. The full local gate is not recorded as green. No unrelated UI tests,
+assertions, network configuration, worktrees, containers, or branches were
+changed. The later fresh-stack replay was stopped with `make test-stack-down`,
+which removed only the ETF worktree's containers, images, volumes, and network.
+
+On the current formatted source tree, all 597 deterministic ETF adapter tests
+pass, Ruff passes, and `ruff format --check` passes. The local live Longview
+probe previously failed at DNS resolution and remains explicitly not a route
+pass. The only uncommitted product-code diff is Ruff's formatting-only change
+in `backend/app/services/etf_holdings_adapters.py`; this checkpoint also
+changes `ops/workstreams/feat-etf-holdings-constituents/plan.yaml`,
+`handoff.md`, `session.json`, and `validation.jsonl`.
+
+AC7 remains open: the hosted exact-SHA workflow is green on `26d9f84`, but the
+local full gate reported one network-associated E2E timeout and the next
+checkpoint SHA still needs its exact Actions run inspected. AC8 awaits human
+review of a clean, synchronized branch. AC10 awaits the separate
+`feat/market-data-provider-platform` branch reaching staging; no integration or
+cross-worktree action was performed. AC14 is the later 30-day production
+shadow-observation gate. The saved goal remains active, not blocked or
+complete.
