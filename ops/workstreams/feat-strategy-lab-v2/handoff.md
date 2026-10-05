@@ -10871,3 +10871,40 @@ Changed paths:
 `backend/app/strategy_lab_v2/forward_context.py`,
 `backend/app/strategy_lab_v2/nautilus_forward_session.py`, and
 `backend/app/strategy_lab_v2/tests/test_nautilus_forward_session.py`.
+
+## 2026-10-05 - Bounded forward-context reconstruction
+
+Added `ForwardStrategyContextHistory`, an immutable recovery input binding one
+forward instance, strategy manifest, pre-event checkpoint, warm-up receipt, and
+source-verified market payloads. `ForwardStrategyContextWindow.replay_verified_history`
+rebuilds the same rolling SDK context fingerprint from that input and fails
+closed on identity mismatch, non-monotonic/duplicate events, undeclared data,
+or history exceeding each dependency's declared lookback. The reconstructed
+window is exposed through `ResolvedForwardContextWindow.replay_verified_history`
+so the event handler continues to compare its checkpoint/warm-up pair with the
+authenticated dispatch.
+
+The history value is a bounded context-window recovery contract, not the
+authoritative event store: a future persistence resolver must load the complete
+accepted prefix for the requested checkpoint and prove that association. This
+slice reconstructs only SDK market context; strategy-local state and native
+account/engine state still require isolated-runtime replay. The canonical
+contract decoder now allowlists the nested history payload types for durable
+encoding.
+
+Validation on commit `bc2188a7bfb8456310928f89352d160d94527b42`: 17 focused
+forward context/session tests and the full Strategy Lab plus migration suite
+passed (`1,419` tests). Ruff check/format, focused MyPy for four production
+modules, and `git diff --check` passed. The implementation commit is published
+to `origin/feat/strategy-lab-v2`.
+
+Next: implement the concrete isolated persistent Nautilus process and its
+durable event/result replay boundary, compose it into the forward worker, then
+qualify event-tape parity on the exact runtime image. The context history
+contract does not itself prove native runtime recovery or forward authority.
+
+Changed paths:
+`backend/app/strategy_lab_v2/forward_context.py`,
+`backend/app/strategy_lab_v2/nautilus_forward_session.py`,
+`backend/app/strategy_lab_v2/postgres_result_materialization.py`, and
+`backend/app/strategy_lab_v2/tests/test_forward_context.py`.

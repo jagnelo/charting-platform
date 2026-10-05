@@ -86,7 +86,11 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -122,10 +126,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "f1d8c80e4cadc80711e01aaca6c0b448a80d92d8",
-  "implementation_sha": "53829858fcdf17f706aef91fdf5f0827b6f769e1",
-  "last_checkpoint": "2026-10-05T09:38:45.026435+00:00",
-  "last_human_progress_update": "2026-10-05T09:36:10.857232+00:00",
+  "head": "bc2188a7bfb8456310928f89352d160d94527b42",
+  "implementation_sha": "bc2188a7bfb8456310928f89352d160d94527b42",
+  "last_checkpoint": "2026-10-05T09:47:17.579266+00:00",
+  "last_human_progress_update": "2026-10-05T09:46:49.358693+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Integrate staged strategy contexts with one persistent isolated Nautilus session, then atomically persist native account/runtime receipts before Redis ACK and qualify exact-image forward event-tape parity.",
   "parent_branch": "staging",
@@ -144,14 +148,14 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "No external blocker; the concrete native runtime, durable recovery, and parity are code-owned. Docker Buildx limits only final Compose/browser acceptance.",
-    "current_phase": "native-forward-session-settlement",
-    "next_action": "Implement a concrete isolated persistent Nautilus session with durable output/checkpoint recovery, compose it through the forward worker, then qualify exact-image event-tape parity.",
+    "current_blocker": "No external blocker to package work; concrete Nautilus session/recovery/parity remain code-owned. Docker Buildx limits only final Compose/browser acceptance.",
+    "current_phase": "native-forward-context-recovery",
+    "next_action": "Build a concrete isolated persistent Nautilus process that consumes authenticated forward deliveries and SDK contexts, persists native output/checkpoint receipts before ACK, recovers by durable replay, and then passes exact-image event-tape parity.",
     "total": 18,
-    "updated_at": "2026-10-05T09:36:10.857195+00:00"
+    "updated_at": "2026-10-05T09:46:49.358673+00:00"
   },
-  "remote": "f1d8c80e4cadc80711e01aaca6c0b448a80d92d8",
-  "remote_sha": "f1d8c80e4cadc80711e01aaca6c0b448a80d92d8",
+  "remote": "bc2188a7bfb8456310928f89352d160d94527b42",
+  "remote_sha": "bc2188a7bfb8456310928f89352d160d94527b42",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
