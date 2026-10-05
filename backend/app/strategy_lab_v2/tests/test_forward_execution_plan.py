@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -20,6 +21,9 @@ from app.strategy_lab_v2.forward_execution_plan import (
 )
 from app.strategy_lab_v2.forward_execution_plan_resolution import (
     AuthenticatedForwardExecutionPlanResolver,
+)
+from app.strategy_lab_v2.nautilus_forward_session import (
+    ResolvedForwardExecutionPlanRecipeResolver,
 )
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.tests.test_strategy_package_resolution import (
@@ -175,7 +179,12 @@ async def test_authenticated_resolver_reads_every_pinned_package_and_archive(tmp
         "v1",
         Decimal("10000"),
         "USD",
-        (PortfolioComponent("momentum", strategy.fingerprint, ("US.AAPL",), Decimal("1")),),
+        (
+            PortfolioComponent("momentum", strategy.fingerprint, ("US.AAPL",), Decimal("0.6")),
+            PortfolioComponent(
+                "mean-reversion", strategy.fingerprint, ("US.MSFT",), Decimal("0.4")
+            ),
+        ),
     )
     instance = _instance(portfolio)
     binding = ForwardComponentExecutionPlan(
@@ -185,10 +194,17 @@ async def test_authenticated_resolver_reads_every_pinned_package_and_archive(tmp
         {"lookback": 20},
         1337,
     )
+    second_binding = ForwardComponentExecutionPlan(
+        "mean-reversion",
+        strategy.fingerprint,
+        package.fingerprint,
+        {"lookback": 8},
+        7,
+    )
     plan = ForwardExecutionPlan(
         instance.instance_id,
         portfolio.fingerprint,
-        (binding,),
+        (binding, second_binding),
     )
 
     class Reader:
@@ -229,6 +245,40 @@ async def test_authenticated_resolver_reads_every_pinned_package_and_archive(tmp
     assert resolved.components["momentum"].package == package
     assert resolved.components["momentum"].strategy == strategy
     assert resolved.components["momentum"].resolved_package.manifest == manifest
+    assert resolved.components["mean-reversion"].binding == second_binding
+
+    recipe_resolver = ResolvedForwardExecutionPlanRecipeResolver(
+        resolved,
+        component_id="momentum",
+        principal="owner",
+    )
+    recipe = recipe_resolver(principal="owner", instance=instance)
+    assert recipe.portfolio_fingerprint == portfolio.fingerprint
+    assert recipe.component_id == "momentum"
+    assert recipe.manifest == manifest
+    assert recipe.parameters == binding.parameters
+    assert recipe.random_seed == binding.random_seed
+    with pytest.raises(ValueError, match="another principal"):
+        recipe_resolver(principal="other-owner", instance=instance)
+    with pytest.raises(ValueError, match="another instance revision"):
+        recipe_resolver(
+            principal="owner",
+            instance=replace(instance, updated_at=NOW.replace(day=6)),
+        )
+    with pytest.raises(ValueError, match="not present in the resolved forward plan"):
+        ResolvedForwardExecutionPlanRecipeResolver(
+            resolved,
+            component_id="missing-component",
+            principal="owner",
+        )
+    second_recipe = ResolvedForwardExecutionPlanRecipeResolver(
+        resolved,
+        component_id="mean-reversion",
+        principal="owner",
+    )(principal="owner", instance=instance)
+    assert second_recipe.manifest == recipe.manifest
+    assert second_recipe.parameters == second_binding.parameters
+    assert second_recipe.random_seed == second_binding.random_seed
 
 
 @pytest.mark.asyncio

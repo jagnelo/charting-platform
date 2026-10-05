@@ -29,6 +29,7 @@ from app.strategy_lab_v2.forward_context import (
     ForwardStrategyContextPreparation,
     ForwardStrategyContextWindow,
 )
+from app.strategy_lab_v2.forward_execution_plan_resolution import ResolvedForwardExecutionPlan
 from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
 from app.strategy_lab_v2.forward_worker_handoff import ForwardEventWorkItem
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
@@ -195,6 +196,51 @@ class ForwardStrategyContextRecipe:
         if not isinstance(frozen, Mapping):
             raise TypeError("parameters must freeze to a mapping")
         object.__setattr__(self, "parameters", frozen)
+
+
+class ResolvedForwardExecutionPlanRecipeResolver:
+    """Expose one already-authenticated plan component to the SDK context path.
+
+    Resolve the whole execution plan once when the isolated instance session is
+    prepared, then construct one resolver per component. Event processing only
+    reads this immutable in-memory result; it does not repeat owner-scoped DB or
+    artifact I/O for every market event.
+    """
+
+    def __init__(
+        self,
+        execution_plan: ResolvedForwardExecutionPlan,
+        *,
+        component_id: str,
+        principal: Any,
+    ) -> None:
+        if not isinstance(execution_plan, ResolvedForwardExecutionPlan):
+            raise TypeError("execution_plan must use ResolvedForwardExecutionPlan")
+        if not isinstance(component_id, str) or not component_id.strip():
+            raise ValueError("component_id must not be empty")
+        if component_id not in execution_plan.components:
+            raise ValueError("component_id is not present in the resolved forward plan")
+        self._execution_plan = execution_plan
+        self._component_id = component_id
+        self._principal = principal
+
+    def __call__(
+        self, *, principal: Any, instance: ForwardInstance
+    ) -> ForwardStrategyContextRecipe:
+        if principal != self._principal:
+            raise ValueError("forward execution recipe belongs to another principal")
+        if not isinstance(instance, ForwardInstance):
+            raise TypeError("instance must use ForwardInstance")
+        if instance != self._execution_plan.instance:
+            raise ValueError("forward execution recipe belongs to another instance revision")
+        component = self._execution_plan.components[self._component_id]
+        return ForwardStrategyContextRecipe(
+            portfolio_fingerprint=self._execution_plan.portfolio.fingerprint,
+            component_id=self._component_id,
+            manifest=component.resolved_package.manifest,
+            parameters=component.binding.parameters,
+            random_seed=component.binding.random_seed,
+        )
 
 
 class ForwardContextAdmissionStore(Protocol):
@@ -664,4 +710,5 @@ __all__ = [
     "NautilusForwardSessionEventHandler",
     "NautilusForwardSessionRuntime",
     "ResolvedForwardContextWindow",
+    "ResolvedForwardExecutionPlanRecipeResolver",
 ]
