@@ -10281,3 +10281,71 @@ attempt and schedule dispatch/outbox work idempotently. Test restart boundaries
 between retry-attempt persistence, dispatch, and acknowledgement before moving
 to broader worker scaling, domain-backed mutations, remaining metrics, and
 forward event-tape parity.
+
+## 2026-10-05 - Worker lifecycle retry persistence and scheduling
+
+Connected dedicated-worker process/lease failures to the owner-scoped recovery
+application. It authenticates the persisted dispatch and attempt lineage,
+replays durable recovery receipts, persists deterministic retry attempts on the
+same immutable trial, closes the prior search candidate, and schedules the
+replacement through the authenticated local preparation RPC using stable
+request/idempotency identities. Retry attempts are now part of the PostgreSQL
+dispatch uniqueness identity, and outbox availability respects the retry
+attempt creation time. The worker entrypoint composes the recovery writer and
+lease-state reader; Compose shares the preparation socket and token with the
+dedicated worker. Restart between retry persistence and dispatch scheduling is
+covered, along with lease-expiry recovery and active-lease duplicate prevention.
+
+Changed paths: `backend/app/strategy_lab_v2/application.py`,
+`backend/app/strategy_lab_v2/persistence.py`,
+`backend/app/strategy_lab_v2/postgres_resources.py`,
+`backend/app/strategy_lab_v2/postgres_search_dispatch.py`,
+`backend/app/strategy_lab_v2/redis_application.py`,
+`backend/app/strategy_lab_v2/worker_callbacks.py`,
+`backend/app/strategy_lab_v2/worker_entrypoint.py`,
+`backend/app/strategy_lab_v2/worker_service.py`,
+`backend/app/strategy_lab_v2/worker_recovery_application.py`,
+`backend/app/strategy_lab_v2/tests/test_nautilus_worker_terminal.py`,
+`backend/app/strategy_lab_v2/tests/test_persistence.py`,
+`backend/app/strategy_lab_v2/tests/test_postgres_resources.py`,
+`backend/app/strategy_lab_v2/tests/test_trial_hydration.py`,
+`backend/app/strategy_lab_v2/tests/test_worker_callbacks.py`,
+`backend/app/strategy_lab_v2/tests/test_worker_entrypoint.py`,
+`backend/app/strategy_lab_v2/tests/test_worker_service.py`,
+`backend/app/strategy_lab_v2/tests/test_worker_recovery_application.py`,
+`backend/alembic/versions/ff4a5b6c7d8e_allow_search_candidate_attempt_retries.py`,
+`backend/tests/unit/strategy_lab_v2/test_schema_migration.py`, and
+`docker-compose.yml`.
+
+Validation passed: Strategy Lab package plus schema-migration suite `1,371/1,371`
+with exact RC5 evidence/image pins and scoped local Docker/Unix-socket access;
+Ruff, Ruff format, focused MyPy, and `git diff --check`. Without scoped host
+access the exact Docker/Unix-socket tests are blocked by the default command
+sandbox, not by a Nautilus release requirement. The configured
+`full_stack_browser` profile remains unproven: Docker Buildx is absent and the
+default sandbox cannot access the Docker socket.
+
+The 20 implementation/test/migration/Compose paths listed above were committed
+as `d5cc20f63` (`feat(strategy-lab-v2): wire durable worker retries`) and pushed
+successfully to `origin/feat/strategy-lab-v2`. No other worktree or branch was
+modified.
+
+There is no stable-Nautilus blocker. `goal_request` and the active acceptance
+criteria allow exact-pinned RC5 for local backtests after the four checks, with
+stable labeling explicitly not required. The live saved-goal objective still
+contains its superseded stable-only wording, and an old `remaining_gaps` summary
+in `plan.yaml` repeats it; both conflict with the canonical AC-NAUTILUS text.
+The fifth event-tape-parity check remains required for forward shadow only.
+
+The current terminal receipt replay regression isolates the terminal writer's
+idempotency path; dedicated recovery tests separately cover expiry and retry
+scheduling. The composition case where terminal persistence committed and the
+lease was released before Redis acknowledgement still needs an explicit
+production recovery/replay reconciliation test. Other unfinished product work
+includes broader worker scaling, domain-backed mutations, remaining metrics,
+and forward event-tape parity. No provider, ETF, or TC2000 worktree was touched.
+
+Next action: reconcile post-terminal released-lease redelivery through the
+production recovery composition without rerunning completed simulation or
+scheduling a duplicate retry, then continue the remaining worker scaling,
+domain mutation, metrics, forward-parity, and full Compose/browser criteria.
