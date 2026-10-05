@@ -272,31 +272,32 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_R6_KEYBOARD_ACCESSIBILITY_AND_EXACT_TIP_REPLAY
+  current_phase: R1_R4_ADVANCED_BREADTH_CONDITION_PRESERVATION
   next_action: >-
-    Continue bounded TC-owned workstation and Study/Strategy UI behavior work,
-    preserving the branch boundary and visual acceptance policy. Diagnose the
-    six intermittent full-run browser failures, especially narrow-dock Python
-    Library mounting and the readiness response interceptions; retain the
-    full-run receipts and never relax assertions. Continue only source changes
-    with a TC-owned product justification. Refresh upstream refs periodically
-    and defer R2/R3 consumer/shared-path reconciliation until provider-platform
-    and ETF reach staging. Rerun exact integration after host Buildx is
-    available, then checkpoint exact-tip evidence and stop at
-    ready_for_human_review.
+    Continue the next distinct TC-owned workstation, Study, or Strategy slice;
+    do not repeat the resolved compound-breadth editor fix. The correctly
+    seeded full browser run passed 179/182 with three documented skips and no
+    failures; keep earlier intermittent runs and the false-seed diagnostic as
+    separate evidence. Preserve all ten protected screenshot differences
+    without changing references, masks, thresholds, skips, or acceptance
+    policy. Keep the full make validate-integration receipt open while the
+    host's Buildx plugin is unavailable. Refresh dependency refs periodically;
+    defer R2/R3 consumption and shared-path reconciliation until both upstream
+    branches reach staging. Stop only at ready_for_human_review.
   current_blocker: >-
-    The latest visual matrix at source 721b0ef is 94/104 with ten protected
-    local-reference differences; the latest full authenticated run is 178/182
-    with three documented skips and one intermittent narrow Python Library
-    mount failure, which passed unchanged focused replay 1/1. Two earlier full
-    runs had different intermittent failures; all six distinct cases passed
-    focused replay. This is not a green full functional gate. Preserve the raw
-    results and diagnose the flakiness without reducing assertions. The generic
-    integration helper cannot use this host's missing Docker Buildx plugin,
-    though ordinary assigned-stack Compose/browser runs work. Provider/ETF
-    staging promotion remains required before R2/R3 integration. Preserve
-    visual acceptance and branch-ownership boundaries.
+    At product source 721b0ef, the fresh correctly seeded serial browser suite
+    passed 179/182 with three documented skips and zero failures. The earlier
+    168/182 result used E2E_SEED_MARKET_DATA=false and remains diagnostic only;
+    all eight cases passed under the required true-seed profile. The exact
+    four-project visual matrix is 94/104 with ten protected local-reference
+    differences after state assertions passed; do not change visual oracles or
+    policy absent valid V25 authority or a confirmed source defect. The generic
+    make validate-integration receipt remains open because host Docker Buildx
+    is unavailable, although scoped Compose/browser validation succeeded.
+    Provider and ETF branches remain outside staging, so R2/R3 consumption and
+    shared-path reconciliation are deferred.
 historical_implementation_records:
+  - "Product commit 8d1d63b7945ad94226ac02e338aac8f4ef447f2a fixes data loss in the advanced Market Map breadth editor: switching a multi-child all/any group to not now wraps the complete prior group as the sole NOT child. The regression failed against the prior editor; BreadthConditionTreeEditor and MarketMapTool suites passed 10/10 and 56/56, backend breadth service tests passed 30/30, frontend type-check/build and Ruff format check passed. No provider/ETF behavior, visual styling, or acceptance policy changed."
   - "Exact product-tip pinned validation at be55d1af completed the 174-case functional suite with 172 passed, 2 documented skips, and zero failures. The four-project visual matrix completed all 104 cases: 93 passed, ten protected screenshot differences remain (workspace-floating all four viewports; Study structured-result all four; Study sandbox-error at the two 1080p scales), and one column-editor diagnostic failure from ERR_NETWORK_CHANGED passed unchanged replay 4/4. A separate four-project pinned shell smoke passed 4/4; host-only shell rendering failed glyph pixels with host Arial resolving to Nimbus Sans versus pinned Noble resolving Liberation Sans, consistent with environment/font rendering rather than geometry. Full matrix artifacts: /tmp/tc2000-pinned-visual-full-3t8qbk; functional artifacts: /tmp/tc2000-pinned-functional-full-9Iq2rG. Scoped Docker cleanup left zero resources. No visual acceptance policy changed."
   - "Product commit be55d1af2de8037671d65e33d5b1d5120e11f38c adds keyboard invocation for the TC-owned Virtual Watchlist Boolean header pin menu using Shift+F10 and the Context Menu key, while preserving right-click and Ctrl/Meta-click behavior and anchoring the menu at the header for keyboard use. Focused VirtualWatchlistTool coverage passed 80/80; full serial frontend Vitest passed 129 files / 1,202 tests; the Docker production build (including vue-tsc and Vite build) passed; and authenticated F8u-boolean passed 1/1. The exact-tip 174-case functional run passed 171, skipped 2 documented cases, and failed one F8s-family-matrix diagnostic because unrelated local API requests reported ERR_NETWORK_CHANGED after assertions; unchanged focused replay passed 1/1. The completed prior-tip 104-case visual matrix was 93/104 with ten protected screenshot differences; a post-change full visual attempt was stopped after broad deltas, and a fresh seeded-database shell smoke differed at all four viewports by 42,759 / 44,586 / 50,854 / 53,003 pixels. No screenshot oracle, mask, threshold, skip, or acceptance policy changed. The exact branch commit is pushed and direct GitHub refs verified; staging remains 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider is 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF is 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5. Both dependencies remain outside staging."
   - "Test commit 435c5b9ad58a1889b040febcadab9a202cfbfc48 adds F9e-plot-library-search against unchanged product source 05aac7f816aab492c7b2aadb1adb9ffc6e76f02a. Authenticated Chromium confirmed full-name filtering, visible RSI selection, and live no-match status; the browser case passed 1/1. The focused component suite passed 45/45, full frontend coverage passed 129 files / 1,200 tests, and type-check/build passed. A current-app screenshot was inspected at /tmp/tc2000-chart-open-rsi-dropdown.png, but the branch reference pack has no authoritative V25 capture of this state; keep the screenshot parity gap open and do not add or change a visual oracle. The only assigned TC Compose project and its fixture resources/images were removed after use. No provider/ETF behavior changed."

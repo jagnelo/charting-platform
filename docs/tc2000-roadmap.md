@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-05
 
+## 2026-10-05 — Preserve composite breadth predicates when switching to NOT
+
+Product commit `8d1d63b7945ad94226ac02e338aac8f4ef447f2a` fixes data loss in
+the advanced Market Map breadth editor. Switching a multi-condition `all` or
+`any` group to `not` now wraps the existing group as the single NOT child,
+preserving every predicate and the prior group's logic. The breadth evaluator
+already supports this nested shape; no provider/ETF behavior, visual styling,
+or acceptance policy changed.
+
+The regression first failed against the old editor, then the focused condition
+tree suite passed `10/10`, the Market Map suite passed `56/56`, the backend
+breadth service suite passed `30/30`, frontend type-check and production build
+passed, and Ruff format check passed. This is a bounded workstation behavior
+fix; the full functional/visual/integration gates and upstream staging
+dependencies remain open as recorded below.
+
+Read-only GitHub refs refreshed during this checkpoint: TC
+`b78e465c165402a6b56aee865aa7863834ddd3a1`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`79d83a28fd44ea24a2f745790d0e9e260d861042`. Neither dependency has reached
+staging; consumer integration and shared-path reconciliation remain deferred.
+
 ## 2026-10-05 — Exact current-product browser and visual evidence
 
 At product source `721b0efbea486361fa0632b2f874353ca7802127`, the full serial

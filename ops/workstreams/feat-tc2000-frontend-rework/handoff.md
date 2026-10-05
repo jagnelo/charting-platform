@@ -1,5 +1,26 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Preserve compound breadth conditions when selecting NOT
+
+Product commit `8d1d63b7945ad94226ac02e338aac8f4ef447f2a` fixes the advanced
+Market Map breadth editor dropping predicates when an `all`/`any` group is
+changed to `not`. The editor now nests the complete prior group as the single
+NOT child, preserving both the predicates and their original AND/OR meaning.
+The backend evaluator already accepts and evaluates this shape; no provider,
+ETF, or data-acquisition behavior changed.
+
+Verification: the regression failed before the fix; BreadthConditionTreeEditor
+and MarketMapTool suites passed `10/10` and `56/56`; backend breadth service
+tests passed `30/30`; frontend type-check, production build, and Ruff format
+check passed. This bounded fix does not close the broader TC2000 objective.
+
+Read-only GitHub refs at this checkpoint: TC
+`b78e465c165402a6b56aee865aa7863834ddd3a1`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`79d83a28fd44ea24a2f745790d0e9e260d861042`. Neither provider-platform nor
+ETF has reached staging; do not integrate or mutate either upstream worktree.
+
 ## 2026-10-05 — Preserve linked-timeframe intent during workspace hydration
 
 Product commit `1d52ab41372b6cbf12efdf8d533e00e858b4966f` closes a workstation
