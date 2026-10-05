@@ -28,14 +28,19 @@ current_blocker: >-
   remaining failure was Python Library dock content missing after this burst.
   All ten exact failures passed unchanged focused replay (10/10 in 1.8 minutes)
   when Chromium connected directly to the assigned Compose bridge via
-  `http://frontend`. This makes the host-published port/host-network path the
-  leading explanation, but a full clean-volume suite on bridge networking is
-  still needed to verify it. The third host-network full-run artifacts are at
-  `/tmp/tc2000-functional-final-rerun-uEfRP9`; separate bridge replay artifacts
-  are at `/tmp/tc2000-bridge-focused-w4uSsV`. Earlier fresh-volume full runs
-  passed 169/175 and 167/175 with one and three failures respectively; their
-  focused replays also passed. The unchanged visual matrix remains 94/104 with
-  ten protected screenshot comparisons after successful state assertions; no
+  `http://frontend`, but that origin is not a secure context: the initial full
+  bridge attempt failed F9c with `crypto.randomUUID is not a function` and was
+  stopped as invalid test setup. A follow-up smoke sharing only the assigned
+  frontend container's network namespace and using trusted `http://localhost`
+  passed F9c 1/1 in 16.6 seconds. Run the full clean-volume suite using that
+  exact route before attributing the host-port failures conclusively. Artifacts:
+  host-network full `/tmp/tc2000-functional-final-rerun-uEfRP9`, insecure bridge
+  attempt `/tmp/tc2000-functional-compose-bridge-E92SP2`, focused bridge
+  `/tmp/tc2000-bridge-focused-w4uSsV`, secure localhost smoke
+  `/tmp/tc2000-shared-netns-smoke-83woqs`. Earlier fresh-volume host-network
+  full runs passed 169/175 and 167/175 with one and three failures; focused
+  replays also passed. The unchanged visual matrix remains 94/104 with ten
+  protected screenshot comparisons after successful state assertions; no
   visual oracle or policy changed. Last refreshed direct refs: staging
   `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
   `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
@@ -286,23 +291,23 @@ progress:
     Tear down only the exact assigned TC stack and its generated test volumes,
     recreate the seeded stack with the existing exact-tip images, and run the
     unchanged full serial authenticated Chromium suite over the assigned
-    Compose bridge (`--network charting-stack-feat-tc2000-frontend-rework-f63d60ae_charting`,
-    `STACK_URL=http://frontend`) at product source
+    assigned frontend container's network namespace
+    (`--network container:charting-stack-feat-tc2000-frontend-rework-f63d60ae-frontend-1`,
+    `STACK_URL=http://localhost`) at product source
     7f586db35c0ce9425cda07bcd67832517612ada2. Preserve the full-run output
     separately; then tear down and audit only assigned resources.
   current_blocker: >-
     Full exact-tip functional acceptance remains open after three host-network
-    full runs. At product source 7f586db35c0ce9425cda07bcd67832517612ada2, the
-    third fresh-volume run passed 160/175, skipped five documented cases, and
-    failed ten. Nine failures had ERR_NETWORK_CHANGED browser diagnostics; the
-    remaining Python Library window-visibility failure followed that error
-    burst. All ten exact failures passed unchanged focused replay (10/10 in
-    1.8 minutes) with Playwright attached directly to the assigned Compose
-    bridge at http://frontend. This makes host-network/host-published-port
-    instability the leading explanation, not yet full-suite proof. The full
-    run is retained at /tmp/tc2000-functional-final-rerun-uEfRP9; bridge replay
-    at /tmp/tc2000-bridge-focused-w4uSsV. Earlier full runs passed 169/175 and
-    167/175, with focused replays also passing. The unchanged visual matrix
+    full runs. The third fresh-volume run passed 160/175, skipped five
+    documented cases, and failed ten, mostly with ERR_NETWORK_CHANGED; all ten
+    passed unchanged focused replay over the assigned Compose bridge. That
+    direct service hostname was insecure for browser crypto, and an initial
+    bridge full attempt was stopped after F9c reported
+    `crypto.randomUUID is not a function`; do not count it as a suite result.
+    The exact same F9c flow passed 1/1 when the runner shared only the assigned
+    frontend container's network namespace and used `http://localhost`. Run the
+    full suite on this verified secure route. All earlier full/replay artifacts
+    are retained and described in the handoff. The unchanged visual matrix
     remains 94/104 with ten screenshot-only differences and no oracle/policy
     changes. Staging is 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider
     88132e9145a08d1c935a0111b3dba0fbd88bdff1, ETF

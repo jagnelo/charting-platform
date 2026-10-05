@@ -1,5 +1,31 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Secure localhost path for the full bridge run
+
+The ten host-network full-run failures passed focused replay through the
+assigned Compose bridge at `http://frontend`, but that hostname is not a secure
+browser context. A full-suite experiment on that origin failed F9c while
+saving a chart template because `crypto.randomUUID` was unavailable; the
+temporary runner was stopped immediately after this invalid-environment
+failure. Its partial artifacts remain at
+`/tmp/tc2000-functional-compose-bridge-E92SP2`. A `frontend.localhost` host
+mapping also returned `ERR_CONNECTION_REFUSED` and is discarded.
+
+The exact F9c flow then passed `1/1` in 16.6 seconds when the pinned Playwright
+container shared only the assigned frontend service's Docker network namespace
+and used `STACK_URL=http://localhost`. This path reaches the frontend's
+internal port 80 without traversing the host-published port, while retaining
+the browser's trusted localhost origin. Smoke artifacts are under
+`/tmp/tc2000-shared-netns-smoke-83woqs`. The ten-flow bridge replay at
+`/tmp/tc2000-bridge-focused-w4uSsV` remains diagnostic, not full-suite
+acceptance.
+
+Next: remove/recreate only the exact assigned stack and generated volumes,
+then run the unchanged full serial suite with
+`--network container:charting-stack-feat-tc2000-frontend-rework-f63d60ae-frontend-1`
+and `STACK_URL=http://localhost`. No source, test, diagnostic, timeout, skip,
+or screenshot policy changes are part of this environment adjustment.
+
 ## 2026-10-05 — Isolating full-run browser network errors
 
 At product source `7f586db35c0ce9425cda07bcd67832517612ada2`, a third full
