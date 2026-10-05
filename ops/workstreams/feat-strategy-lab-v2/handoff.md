@@ -9846,3 +9846,34 @@ path through `run_strategy_lab_v2_worker` and prove startup/migration gating,
 runtime closure, and bounded restart behavior before moving on to the
 domain-backed mutation flows. RC5 remains permitted for four-check local
 backtests; there is no stable-release wait condition.
+
+## 2026-10-05 - Worker recovery through the production entrypoint
+
+The persisted multi-strategy worker regression now drives three independent
+`run_strategy_lab_v2_worker` lifecycles with the production search-dispatch
+callback factory and `RedisDispatchRuntime`. The first lifecycle commits the
+terminal result but loses its response, so the entry stays pending. The next
+startup replays the migration, reclaims the entry, returns the stable terminal
+receipt, and only then ACKs it. A third startup/redelivery replays without
+duplicating completion or settlement state. Assertions also cover signal
+cleanup and runtime closure on every lifecycle. The migration decision is
+`APPLIED` once and `REPLAY_EXISTING` on both restarts.
+
+This is a deterministic integration across the production entrypoint,
+callback composition, Redis worker/runtime, and terminal persistence adapter;
+the SQL, Redis client, terminal persistence ports, and Nautilus process remain
+test doubles. It does not claim live PostgreSQL/Redis/container validation.
+Commit `163fbecf99da7648a18a9651c5004802b75c3a90` contains the regression.
+The focused test passed, the full Strategy Lab v2 package passed `1,346/1,346`
+tests in 27.58 seconds, Ruff check/format passed, focused MyPy passed, and
+`git diff --check` passed. The implementation commit was pushed to
+`origin/feat/strategy-lab-v2`.
+
+Next: audit the package-owned domain mutation/API persistence path against
+AC-DOMAIN and AC-API, select an uncovered owner-scoped lifecycle, and implement
+it through the existing engine-neutral contract and persistence seams. Keep
+router registration and shared backend integration behind the existing staging
+reconciliation gates. RC5 remains permitted for four-check local backtests;
+forward shadow still needs event-tape parity, and final Compose/browser/live
+service acceptance remains environment-limited by missing Docker Buildx/socket
+access.
