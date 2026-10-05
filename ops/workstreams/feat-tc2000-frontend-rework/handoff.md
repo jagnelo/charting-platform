@@ -71,6 +71,14 @@ temporary console diagnostics also passed 3/3, but those diagnostics were
 removed; neither focused repetition substitutes for a full acceptance rerun.
 No application or test-source changes remain from diagnosis.
 
+The operational retry checkpoint `45bdac00c5247b55fe46e4e4d6f1bcb049cf50d6`
+was pushed to `origin/feat/tc2000-frontend-rework`. Local HEAD, the tracking
+ref, and direct GitHub lookup matched that SHA. Staging remains
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; provider platform remains
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`; ETF holdings remains
+`529fc81f60fcbf5f14a7afc7e9aa62461a48e855`. Both dependency tips remain
+outside staging; no other branch or worktree changed.
+
 All six services in the assigned TC Compose project became healthy. The latest
 frontend image is rebuilt from the exact clean worktree source. Next: rerun the
 complete serial functional suite and all four pinned visual-board projects,
