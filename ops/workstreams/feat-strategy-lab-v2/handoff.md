@@ -11695,3 +11695,28 @@ build one persistent BacktestEngine/strategy bridge that processes forward
 deliveries in that account. Then make native output plus an exact engine
 checkpoint durable before Redis ACK and prove deterministic process-loss
 replay. Keep all work inside the existing package/runtime boundary.
+
+## 2026-10-05 - Forward bootstrap engine/tape binding
+
+Implementation `85c2fa0b84500c206d87efa8519d1668d17c7a9f` strengthens isolated
+forward startup verification. In addition to the outer runtime-bundle digest,
+instance/snapshot identity, and mounted native artifact digest/length, startup
+now checks the bundle's engine-input fingerprint against the bootstrap and
+checks the native event reference's frozen warm-up tape fingerprint, adapter
+version, and event count against that same bootstrap. Regression assertions
+reject tampered engine input, a different warm-up tape, and a mismatched event
+count before a session can be constructed.
+
+Validation at that source: all 8 focused forward-bootstrap tests passed; Ruff
+check and formatting, focused MyPy for `nautilus_runtime_cli.py`, and
+`git diff --check` passed. The source commit is pushed to
+`origin/feat/strategy-lab-v2`. This closes an integrity gap only: the fixed CLI
+still does not serve `--serve-forward`, and the persistent shared-account
+Nautilus session, durable output/checkpoint-before-ACK, and deterministic
+process-loss replay remain unfinished. Continue those code-owned tasks; no
+stable Nautilus release is required.
+
+Next: implement the concrete RC5 runtime session from verified bootstrap and
+mounted context/native-event artifacts, wire it into the fixed CLI IPC lifecycle,
+then persist native decisions and exact checkpoints before ACK and test replay
+after process loss.
