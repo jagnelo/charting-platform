@@ -876,24 +876,30 @@ progress:
     behavior and full package regressions pass. The bridge exposes tested
     single-event staging and native-effect capture seams after the immutable
     prefix, including canonical identity binding, deterministic shadow
-    orders/fills, and all-currency cash deltas. Exact RC5 image execution,
-    output/checkpoint persistence before ACK, bounded durable replay history,
-    and deterministic process-loss recovery remain code-owned. Preserve canonical
-    platform event identity and ordering; never derive them from dependency-
-    local frozen series rows. The new exact-source RC5 image has since been
-    rebuilt and its pinned runtime probe/fixture qualification passed; running
-    the new forward-session path inside that image remains open. Full
+    orders/fills, and all-currency cash deltas. The concrete session now passes
+    an exact-source RC5 image fixture covering warm-up, a staged canonical live
+    event, account-effect capture, duplicate idempotency, and deterministic
+    in-process restore/replay. Its native-session fingerprints are validated and
+    bound into the RC fixture receipt. The bridge carries only the authenticated
+    bounded prefix history into staged-context validation and rejects event
+    timestamps whose native initialization time is not strictly later. It also
+    disposes the previous RC5 BacktestEngine before rebuilding its replacement;
+    the image fixture otherwise observed that the replacement missed the staged
+    callback. Durable output/checkpoint persistence before ACK, bounded durable
+    replay history, and true process-loss recovery remain code-owned. Preserve
+    canonical platform event identity and ordering; never derive them from
+    dependency-local frozen series rows. Full
     Compose/browser acceptance is still pending and may require the same scoped
     Docker access. Shared provider, ETF, and
     TC2000 contracts gate only their eventual shared-path integration; options
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Exercise the concrete builder and persistent BacktestEngine session inside
-    the exact RC5 image, including warm-up, processed-prefix replay, and live
-    native account-effect capture. Then bind result persistence and exact
-    checkpoint transitions to the host settlement path before Redis ACK; bound
-    replay memory and prove process-loss restore from durable history without
-    rewriting prior decisions. Corrections remain counterfactual. Preserve
-    provider-owned event identity and consume shared contracts only after their
-    source branches reach staging. Stable release labeling is not a gate.
+    Bind native result persistence and exact checkpoint transitions to the host
+    settlement path before Redis ACK; bound replay memory from durable state and
+    prove process-loss restore from durable history without rewriting prior
+    decisions. Extend the image fixture to include a non-empty processed prefix
+    and a fresh-process recovery case. Corrections remain counterfactual.
+    Preserve provider-owned event identity and consume shared contracts only
+    after their source branches reach staging. Stable release labeling is not a
+    gate.

@@ -11999,3 +11999,49 @@ This proves the changed source closes and qualifies in the isolated RC5 image;
 it does not yet invoke the new forward session. The exact-image forward fixture,
 durable output/checkpoint-before-ACK, bounded persistent replay history, and
 process-loss restore remain open. Stable release labeling is not a gate.
+
+## 2026-10-05 - Exact-image native forward-session fixture
+
+Implementation commit `323c25f03ec5e6ae61c6d74f020a07ec5f2000ed` contains the
+runtime, bridge, fixture-receipt, and regression changes below.
+
+The exact-source Nautilus `2.0.0rc5` fixture now constructs the concrete
+persistent forward session inside the isolated runtime, replays its synthetic
+warm-up tape, processes one newly staged canonical event, captures native
+account effects, confirms duplicate-delivery idempotency, and restores/replays
+the in-process checkpoint with an identical result fingerprint. The fixture
+result is part of the strict RC receipt schema and therefore contributes to the
+content-addressed fixture digest. All results remain explicitly
+`authoritative: false`.
+
+The image run exposed and fixed two runtime issues: live bridge validation now
+continues from the bounded history authenticated by the replay prefix instead
+of comparing the live context to an empty history; and both live events and
+processed-prefix events now set native initialization time strictly after event
+time. The exact RC5 fixture also showed that the previous BacktestEngine must be
+disposed before constructing its replacement during restore, or the replacement
+can miss the staged callback. A regression checks that disposal order and that
+a failed rebuild leaves the session closed.
+
+Validation: all `1,496` Strategy Lab package tests passed with `--no-cov`; the
+focused runtime/bridge/session/receipt selection passed `112/112`; Ruff,
+focused MyPy for the three changed production modules, and `git diff --check`
+passed. The exact-source RC5 image qualification passed, including native
+forward-session execution and the existing five scope checks.
+
+Exact-source evidence: source digest
+`sha256:dee1bdc95f633dc4b95f670885ddbceefa8b1e554c89dd5361ddebfda079a2df`,
+image digest
+`sha256:6b7ce367bcb9464e8aa61f60c438f09dff5b5d9ae8e1878c54f5f9c1f52f3d87`,
+artifact digest
+`sha256:0972282fa6618ec740ce1960669f8238bcbdb0e5fe83205902559b170e21e77d`,
+and conformance fingerprint
+`sha256:d0ac7934115fb492a9847d3fb0fafb3a89c5ef984b135213690357b26ea2ce16`.
+The evidence artifact is in the existing ignored operator store
+`.ai/runtime/strategy-lab-v2/nautilus-rc-evidence/`.
+
+This does not prove host output/checkpoint durability before Redis ACK, bounded
+replay from durable state, a non-empty processed-prefix restore, or actual
+process-loss recovery. Those remain the immediate package-owned tasks. Full
+Compose/browser acceptance and broader branch ACs also remain open; stable
+Nautilus release labeling is not a blocker.
