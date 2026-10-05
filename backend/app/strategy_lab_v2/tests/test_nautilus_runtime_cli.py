@@ -761,3 +761,113 @@ def test_cli_streams_component_context_reference_with_counts_to_adapter(
     assert calls[0][4] == dict(bundle.context_stream.component_counts)
     assert calls[0][5] == 1024
     assert result_stream_path.read_bytes() == b"component-results"
+
+
+def test_forward_runtime_verifies_mounts_before_building_and_serving_session(
+    monkeypatch,
+) -> None:
+    import io
+
+    bootstrap = object()
+    bundle = {"engine_input": {"attempt_id": "attempt-1"}}
+    context_bytes = b"verified-context"
+    native_bytes = b"verified-native-history"
+    builder_calls = []
+    serve_calls = []
+
+    monkeypatch.setattr(
+        nautilus_runtime_cli,
+        "_verify_forward_startup",
+        lambda **kwargs: (bootstrap, bundle),
+    )
+    monkeypatch.setattr(
+        nautilus_runtime_cli,
+        "_context_stream_reference",
+        lambda _bundle: ("sha256:" + "a" * 64, len(context_bytes), 1, None),
+    )
+    monkeypatch.setattr(
+        nautilus_runtime_cli,
+        "_native_event_stream_reference",
+        lambda _bundle: ("sha256:" + "b" * 64, len(native_bytes), "sha256:" + "c" * 64, "v1", 1),
+    )
+    monkeypatch.setattr(
+        nautilus_runtime_cli,
+        "_open_verified_context_stream",
+        lambda *_args, **_kwargs: io.BytesIO(context_bytes),
+    )
+    monkeypatch.setattr(
+        nautilus_runtime_cli,
+        "_open_verified_native_event_stream",
+        lambda *_args, **_kwargs: io.BytesIO(native_bytes),
+    )
+
+    class FakeSession:
+        instance_id = "instance-1"
+        runtime_session_fingerprint = "sha256:" + "d" * 64
+
+        def close(self) -> None:
+            pass
+
+    def build_factory(received_bootstrap, received_bundle, contexts, native_events):
+        builder_calls.append(
+            (
+                received_bootstrap,
+                received_bundle,
+                contexts.read(),
+                native_events.read(),
+            )
+        )
+        return lambda _instance_id: FakeSession()
+
+    def serve(_input, _output, handler):
+        codec = nautilus_runtime_cli.NautilusForwardJsonWireCodec()
+        serve_calls.append(handler.open(codec.open_payload(instance_id="instance-1")))
+        serve_calls.append(handler.close({}))
+        return 0
+
+    monkeypatch.setattr(nautilus_runtime_cli, "serve_nautilus_runtime_ipc", serve)
+    assert (
+        nautilus_runtime_cli.serve_forward_runtime(
+            bootstrap_path="/inputs/bootstrap.json",
+            bootstrap_fingerprint="sha256:" + "1" * 64,
+            input_path="/inputs/bundle.json",
+            context_stream_path="/inputs/contexts.ndjson",
+            native_event_stream_path="/inputs/native-events.ndjson",
+            expected_version="2.0.0rc5",
+            instance_id="instance-1",
+            snapshot_fingerprint="sha256:" + "2" * 64,
+            max_input_bytes=1024,
+            session_factory_builder=build_factory,
+            input_stream=io.BytesIO(),
+            output_stream=io.BytesIO(),
+        )
+        == 0
+    )
+    assert builder_calls == [(bootstrap, bundle, context_bytes, native_bytes)]
+    assert len(serve_calls) == 2
+
+
+def test_open_verified_context_stream_checks_digest_and_rewinds(tmp_path) -> None:
+    import hashlib
+
+    payload = b"immutable-context-input"
+    context_path = tmp_path / "contexts.ndjson"
+    context_path.write_bytes(payload)
+    digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+
+    with nautilus_runtime_cli._open_verified_context_stream(
+        str(context_path),
+        expected_digest=digest,
+        byte_length=len(payload),
+        max_bytes=len(payload),
+    ) as stream:
+        assert stream.tell() == 0
+        assert stream.read() == payload
+
+    with pytest.raises(ValueError, match="digest differs"):
+        nautilus_runtime_cli._open_verified_context_stream(
+            str(context_path),
+            expected_digest="sha256:" + "0" * 64,
+            byte_length=len(payload),
+            max_bytes=len(payload),
+        )

@@ -9,7 +9,7 @@ import os
 import stat
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, Protocol
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.nautilus_calendar_wire import session_calendar_from_wire
@@ -17,6 +17,11 @@ from app.strategy_lab_v2.nautilus_forward_bootstrap import (
     MAX_NAUTILUS_FORWARD_BOOTSTRAP_BYTES,
     NautilusForwardRuntimeBootstrap,
 )
+from app.strategy_lab_v2.nautilus_forward_runtime_server import (
+    NativeForwardSessionFactory,
+    NautilusForwardRuntimeOperationHandler,
+)
+from app.strategy_lab_v2.nautilus_forward_wire import NautilusForwardJsonWireCodec
 from app.strategy_lab_v2.nautilus_native_event_stream import (
     MAX_NAUTILUS_NATIVE_EVENT_STREAM_BYTES,
 )
@@ -24,6 +29,7 @@ from app.strategy_lab_v2.nautilus_runtime_adapter import (
     run_native_backtest,
     runtime_package_version,
 )
+from app.strategy_lab_v2.nautilus_runtime_ipc import serve_nautilus_runtime_ipc
 from app.strategy_lab_v2.nautilus_runtime_probe import probe_nautilus_runtime
 from app.strategy_lab_v2.nautilus_runtime_protocol import (
     NAUTILUS_COMPONENT_CONTEXT_STREAM_MEDIA_TYPE,
@@ -441,6 +447,126 @@ def _open_verified_native_event_stream(
             os.close(descriptor)
 
 
+def _open_verified_context_stream(
+    path_value: str,
+    *,
+    expected_digest: str,
+    byte_length: int,
+    max_bytes: int,
+) -> BinaryIO:
+    """Open and verify the immutable strategy context sidecar without following links."""
+
+    descriptor = os.open(
+        path_value,
+        os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0),
+    )
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise ValueError("runtime strategy context stream must be a regular file")
+        if metadata.st_size != byte_length or metadata.st_size > max_bytes:
+            raise ValueError("runtime strategy context stream byte length differs")
+        stream = os.fdopen(descriptor, "rb")
+        descriptor = -1
+        try:
+            digest = hashlib.sha256()
+            total = 0
+            while chunk := stream.read(65_536):
+                total += len(chunk)
+                if total > max_bytes:
+                    raise ValueError("runtime strategy context stream exceeds its byte limit")
+                digest.update(chunk)
+            if total != byte_length or f"sha256:{digest.hexdigest()}" != expected_digest:
+                raise ValueError("runtime strategy context stream artifact digest differs")
+            stream.seek(0)
+            return stream
+        except BaseException:
+            stream.close()
+            raise
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+
+class ForwardSessionFactoryBuilder(Protocol):
+    """Build one per-instance native session factory from verified read-only inputs."""
+
+    def __call__(
+        self,
+        bootstrap: NautilusForwardRuntimeBootstrap,
+        bundle: Mapping[str, Any],
+        context_stream: BinaryIO,
+        native_event_stream: BinaryIO,
+    ) -> NativeForwardSessionFactory: ...
+
+
+def serve_forward_runtime(
+    *,
+    bootstrap_path: str,
+    bootstrap_fingerprint: str,
+    input_path: str,
+    context_stream_path: str,
+    native_event_stream_path: str,
+    expected_version: str,
+    instance_id: str,
+    snapshot_fingerprint: str,
+    max_input_bytes: int,
+    session_factory_builder: ForwardSessionFactoryBuilder,
+    input_stream: BinaryIO,
+    output_stream: BinaryIO,
+) -> int:
+    """Verify mounted state, then serve the bounded IPC protocol for one instance.
+
+    The builder runs only after every immutable input and the exact Nautilus
+    package version have been verified. Its file handles remain open for the
+    lifetime of the IPC session so the native session can replay warm-up state
+    without reopening mutable paths.
+    """
+
+    if not callable(session_factory_builder):
+        raise TypeError("session_factory_builder must be callable")
+    bootstrap, bundle = _verify_forward_startup(
+        bootstrap_path=bootstrap_path,
+        bootstrap_fingerprint=bootstrap_fingerprint,
+        input_path=input_path,
+        context_stream_path=context_stream_path,
+        native_event_stream_path=native_event_stream_path,
+        expected_version=expected_version,
+        expected_instance_id=instance_id,
+        expected_snapshot_fingerprint=snapshot_fingerprint,
+        max_input_bytes=max_input_bytes,
+    )
+    context_digest, context_length, _context_count, _component_counts = _context_stream_reference(
+        bundle
+    )
+    native_digest, native_length, *_ = _native_event_stream_reference(bundle)
+    with (
+        _open_verified_context_stream(
+            context_stream_path,
+            expected_digest=context_digest,
+            byte_length=context_length,
+            max_bytes=max_input_bytes,
+        ) as context_stream,
+        _open_verified_native_event_stream(
+            native_event_stream_path,
+            expected_digest=native_digest,
+            byte_length=native_length,
+        ) as native_event_stream,
+    ):
+        session_factory = session_factory_builder(
+            bootstrap,
+            bundle,
+            context_stream,
+            native_event_stream,
+        )
+        handler = NautilusForwardRuntimeOperationHandler(
+            instance_id=instance_id,
+            session_factory=session_factory,
+            codec=NautilusForwardJsonWireCodec(),
+        )
+        return serve_nautilus_runtime_ipc(input_stream, output_stream, handler)
+
+
 def _write_result(path_value: str, result: Mapping[str, Any]) -> None:
     path = Path(path_value)
     flags = os.O_WRONLY | os.O_TRUNC | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0)
@@ -814,4 +940,4 @@ if __name__ == "__main__":  # pragma: no cover - isolated image entrypoint
     raise SystemExit(main())
 
 
-__all__ = ["main", "run_bundle"]
+__all__ = ["main", "run_bundle", "serve_forward_runtime"]
