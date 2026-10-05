@@ -41,8 +41,11 @@ describe('RelativeRotationTool', () => {
     await nextTick()
     expect(wrapper.text()).toContain('improving->leading')
     expect(wrapper.text()).toContain('63°')
-    expect(wrapper.get('.rotation-tool__plot').attributes('role')).toBe('img')
+    expect(wrapper.get('.rotation-tool__plot').attributes('role')).toBe('group')
+    expect(wrapper.get('.rotation-tool__plot').attributes('tabindex')).toBe('0')
     expect(wrapper.get('.rotation-tool__plot').attributes('aria-label')).toBe('Relative rotation trend and momentum plane')
+    expect(wrapper.get('.rotation-tool__plot').attributes('aria-describedby')).toBe(wrapper.get('.rotation-tool__sr-only').attributes('id'))
+    expect(wrapper.get('.rotation-tool__plot').attributes('aria-keyshortcuts')).toContain('ArrowRight')
     expect(observedHost).toBe(wrapper.get('.rotation-tool__plot').element)
     resize?.()
     expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1)
@@ -139,6 +142,37 @@ describe('RelativeRotationTool', () => {
     expect(wrapper.text()).toContain('2026-01-02')
     await plot.trigger('click')
     expect(wrapper.emitted('select')).toEqual([['XLK', 1]])
+  })
+
+  it('lets keyboard users inspect and select the latest points in the rotation plot', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
+      { instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, distance: 0.22, coverage: 1, tail: [
+        { timestamp: '2026-01-01', trend: 0.09, momentum: 0.18 },
+        { timestamp: '2026-01-02', trend: 0.1, momentum: 0.2 },
+      ] },
+      { instrument_id: 2, symbol: 'XLE', state: 'lagging', trend: -0.1, momentum: -0.2, distance: 0.22, coverage: 1, tail: [
+        { timestamp: '2026-01-02', trend: -0.1, momentum: -0.2 },
+      ] },
+    ] })
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLE'))
+    await nextTick()
+    resize?.()
+
+    const plot = wrapper.get('.rotation-tool__plot')
+    await plot.trigger('focus')
+    const tooltip = wrapper.get('.rotation-tool__tooltip')
+    expect(tooltip.text()).toContain('XLK')
+    expect(tooltip.text()).toContain('2026-01-02')
+
+    await plot.trigger('keydown', { key: 'ArrowRight' })
+    expect(tooltip.text()).toContain('XLE')
+    await plot.trigger('keydown', { key: 'Home' })
+    expect(tooltip.text()).toContain('XLK')
+    await plot.trigger('keydown', { key: 'End' })
+    expect(tooltip.text()).toContain('XLE')
+    await plot.trigger('keydown', { key: 'Enter' })
+    expect(wrapper.emitted('select')).toEqual([['XLE', 2]])
   })
 
   it('deduplicates identical rotation requests across linked windows', async () => {

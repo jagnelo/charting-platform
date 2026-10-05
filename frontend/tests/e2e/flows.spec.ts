@@ -5585,6 +5585,38 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8s-rotation-keyboard — Relative Rotation plot supports keyboard point inspection and selection', async ({ page, browserDiagnostics }) => {
+    await page.route('**/api/v1/analysis/groups/sp500-sectors/relative-rotation*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ benchmark: 'SPY', freshness: 'current', rows: [
+          { instrument_id: 101, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.03, distance: 0.12, coverage: 1, tail: [{ timestamp: '2026-09-29T00:00:00Z', trend: 0.09, momentum: 0.02 }, { timestamp: '2026-09-30T00:00:00Z', trend: 0.1, momentum: 0.03 }] },
+          { instrument_id: 102, symbol: 'XLE', state: 'lagging', trend: -0.1, momentum: -0.03, distance: 0.12, coverage: 1, tail: [{ timestamp: '2026-09-30T00:00:00Z', trend: -0.1, momentum: -0.03 }] },
+        ] }),
+      })
+    })
+    await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    await page.getByRole('menuitem', { name: 'Relative Rotation', exact: true }).click()
+    const rotation = page.locator('.tool-window:visible').filter({ has: page.locator('.rotation-tool') }).last()
+    const region = rotation.locator('[role="region"][aria-label="Relative rotation vs SPY"]')
+    await expect(region).toBeVisible({ timeout: 10_000 })
+    await expect(region).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
+
+    const plot = region.getByRole('group', { name: 'Relative rotation trend and momentum plane' })
+    await plot.focus()
+    const tooltip = region.locator('.rotation-tool__tooltip')
+    await expect(tooltip).toContainText('XLK')
+    await expect(tooltip).toContainText('2026-09-30')
+    await plot.press('ArrowRight')
+    await expect(tooltip).toContainText('XLE')
+    await plot.press('Enter')
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('XLE', { timeout: 10_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8s-rotation-family — Relative Rotation exposes family cap/equal/style legs', async ({ page, browserDiagnostics }) => {
     let historyRequested = false
     await page.route('**/api/v1/analysis/benchmark-families/sp400/relative-rotation*', async route => {
