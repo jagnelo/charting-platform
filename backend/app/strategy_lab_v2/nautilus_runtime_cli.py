@@ -153,6 +153,7 @@ def _verify_forward_startup(
     input_path: str,
     context_stream_path: str,
     native_event_stream_path: str,
+    expected_version: str,
     expected_instance_id: str,
     expected_snapshot_fingerprint: str,
     max_input_bytes: int,
@@ -183,6 +184,8 @@ def _verify_forward_startup(
         bytes(encoded),
         expected_fingerprint=bootstrap_fingerprint,
     )
+    if runtime_package_version() != expected_version:
+        raise ValueError("Nautilus package version differs from the forward runtime plan")
     if bootstrap.instance_id != expected_instance_id:
         raise ValueError("forward bootstrap belongs to another instance")
     require_sha256_digest(
