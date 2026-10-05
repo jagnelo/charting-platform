@@ -17585,6 +17585,12 @@ receipt. Keep the complete integration-target receipt open, and defer R2/R3
 consumer integration and shared-path reconciliation until both dependencies
 reach staging.
 
+Workstream reconciliation commit `e4ba7b2c7809cd02a854b953275cec194342bfbc`
+was pushed to `origin/feat/tc2000-frontend-rework`. Direct GitHub lookup and
+local `HEAD` matched that exact SHA; the worktree was clean before this push
+receipt was appended. It updates documentation and operational state only;
+product source remains `721b0efbea486361fa0632b2f874353ca7802127`.
+
 Diagnostic checkpoint commit `7f2d5b89bb9a0b5ef85fa3b68e49f1cf6783457b`
 was pushed to `origin/feat/tc2000-frontend-rework`; direct remote lookup
 matched that exact SHA and the assigned worktree was clean. This commit records
