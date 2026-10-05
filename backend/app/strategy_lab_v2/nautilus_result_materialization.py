@@ -30,7 +30,11 @@ from app.strategy_lab_v2.nautilus_session_equity import (
     NautilusSessionEquityIntervalsArtifact,
     build_nautilus_session_equity_intervals_artifact,
 )
-from app.strategy_lab_v2.observations import AccountCashBalanceObservation, ObservationPoint
+from app.strategy_lab_v2.observations import (
+    AccountCashBalanceObservation,
+    AccountExposureObservation,
+    ObservationPoint,
+)
 from app.strategy_lab_v2.rebalance import SessionCalendarSnapshot
 from app.strategy_lab_v2.result_materialization import (
     EngineResultEvidence,
@@ -140,9 +144,10 @@ def materialize_nautilus_oos_run_result(
         event_time_observations,
         session_observations,
         cash_observations_source,
+        exposure_observations_source,
     ) = tee(
         verified_observations,
-        4,
+        5,
     )
     equity_marks = (item.account_equity for item in equity_observations)
     event_time_ns = (item.event_time_ns for item in event_time_observations)
@@ -160,6 +165,22 @@ def materialize_nautilus_oos_run_result(
             valuation_evidence_digest=equity_reference.artifact.content_digest,
         )
         for item in cash_observations_source
+    )
+    account_exposure_observations = (
+        AccountExposureObservation(
+            portfolio_fingerprint=equity_reference.portfolio_fingerprint,
+            run_attempt_id=equity_reference.attempt_id,
+            point=ObservationPoint(
+                _event_time_from_unix_nanoseconds(item.event_time_ns),
+                item.event_index,
+            ),
+            account_equity=item.account_equity,
+            gross_base_exposure=item.gross_base_exposure,
+            signed_net_base_exposure=item.signed_net_base_exposure,
+            base_currency=equity_reference.base_currency,
+            valuation_evidence_digest=equity_reference.artifact.content_digest,
+        )
+        for item in exposure_observations_source
     )
     session_intervals_artifact: NautilusSessionEquityIntervalsArtifact | None = None
     close_observations = tuple(session_close_observations or ())
@@ -215,6 +236,7 @@ def materialize_nautilus_oos_run_result(
         native_reports_path,
         event_time_ns=event_time_ns,
         account_cash_observations=account_cash_observations,
+        account_exposure_observations=account_exposure_observations,
         created_at=created_at,
         portfolio=portfolio,
         session_equity_intervals=(

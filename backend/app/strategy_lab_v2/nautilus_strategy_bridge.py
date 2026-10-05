@@ -1757,6 +1757,7 @@ def build_native_strategy_bridge(
         event_time: datetime,
         required_mark_ids: Sequence[str],
         allow_asof_marks: bool = False,
+        include_margin_state: bool = True,
     ) -> dict[str, Any]:
         account_type = str(venue_definition["account_type"]).upper()
         if account_type not in {"CASH", "MARGIN"}:
@@ -1879,7 +1880,7 @@ def build_native_strategy_bridge(
             raise NautilusRuntimeDataError("native account type differs from its venue definition")
         native_margin_instruments: dict[str, Any] = {}
         margin_prices: dict[str, Decimal] = {}
-        if account_type == "MARGIN":
+        if account_type == "MARGIN" and include_margin_state:
             cache = getattr(strategy, "cache", None)
             get_instrument = getattr(cache, "instrument", None)
             for sdk_instrument_id in declared_instruments:
@@ -2307,6 +2308,26 @@ def build_native_strategy_bridge(
                 account_base = getattr(native_account, "base_currency", None)
                 if getattr(account_base, "code", str(account_base)) != portfolio.base_currency:
                     raise NautilusRuntimeDataError("native cash account base currency differs")
+                gross_base_exposure: Decimal | None = None
+                signed_net_base_exposure: Decimal | None = None
+                try:
+                    exposure_state = native_risk_state(
+                        self,
+                        event_time=_datetime_from_unix_nanos(int(ts_event)),
+                        required_mark_ids=(),
+                        allow_asof_marks=True,
+                        include_margin_state=False,
+                    )
+                except NautilusRuntimeDataError as error:
+                    if str(error) not in {
+                        "open component holdings require event-aligned or prior native marks",
+                        "native portfolio could not value an open holding for allocation",
+                    }:
+                        raise
+                else:
+                    base_exposures = tuple(exposure_state["current_base_exposures"].values())
+                    gross_base_exposure = sum((abs(value) for value in base_exposures), Decimal(0))
+                    signed_net_base_exposure = sum(base_exposures, Decimal(0))
                 account_equity_trace_writer.write(
                     event_id=expected_record["event_id"],
                     event_time_ns=int(ts_event),
@@ -2322,6 +2343,8 @@ def build_native_strategy_bridge(
                         portfolio.base_currency,
                         "account cash balance",
                     ),
+                    gross_base_exposure=gross_base_exposure,
+                    signed_net_base_exposure=signed_net_base_exposure,
                 )
             if not contexts:
                 self._after_event_group(int(ts_event), following_record)

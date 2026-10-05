@@ -266,6 +266,8 @@ def _nautilus_oos_references(
             source_sequence=sequence,
             account_equity=Decimal(resolved_equity_values[index]),
             account_cash_balance=Decimal("1000"),
+            gross_base_exposure=Decimal("500"),
+            signed_net_base_exposure=Decimal("200"),
         )
         expected_events.append({"index": index, "event": event})
     trace_reference = equity_writer.finish()
@@ -339,6 +341,10 @@ def test_nautilus_oos_result_materialization_binds_metrics_and_native_artifacts(
     assert metrics["oos_fill_count"].value == Decimal(1)
     assert metrics["oos_reported_commission:USD"].value == Decimal("2.00")
     assert metrics["maximum_drawdown_duration_seconds"].value == Decimal("0.000000049")
+    assert metrics["average_gross_notional_to_equity"].value is not None
+    assert metrics["maximum_gross_notional_to_equity"].value is not None
+    assert metrics["average_net_notional_to_equity"].value is not None
+    assert metrics["maximum_absolute_net_notional_to_equity"].value is not None
     cash_ratio = metrics["average_account_cash_to_equity"]
     assert cash_ratio.value is not None
     assert cash_ratio.sample_size == trace_reference.observation_count

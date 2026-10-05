@@ -43,7 +43,15 @@ def _event(event_id: str, timestamp: int, sequence: int) -> dict[str, object]:
     }
 
 
-def _write_mark(writer, event, index: int, equity: str) -> None:
+def _write_mark(
+    writer,
+    event,
+    index: int,
+    equity: str,
+    *,
+    gross: str | None = None,
+    signed_net: str | None = None,
+) -> None:
     writer.write(
         event_id=event["event_id"],
         event_time_ns=event["event_time_ns"],
@@ -51,6 +59,8 @@ def _write_mark(writer, event, index: int, equity: str) -> None:
         source_sequence=event["sequence"],
         account_equity=Decimal(equity),
         account_cash_balance=Decimal("1000.00"),
+        gross_base_exposure=None if gross is None else Decimal(gross),
+        signed_net_base_exposure=None if signed_net is None else Decimal(signed_net),
     )
 
 
@@ -63,8 +73,8 @@ def test_native_equity_trace_is_bounded_oos_and_bound_to_tape(tmp_path) -> None:
         _event("scoring-2", 150, 3),
     )
     _write_mark(writer, events[0], 0, "1000")
-    _write_mark(writer, events[1], 1, "1001.25")
-    _write_mark(writer, events[2], 2, "998.75")
+    _write_mark(writer, events[1], 1, "1001.25", gross="500", signed_net="-250")
+    _write_mark(writer, events[2], 2, "998.75", gross="800", signed_net="400")
 
     reference = writer.finish()
 
@@ -85,8 +95,8 @@ def test_verified_equity_observations_preserve_canonical_event_times(tmp_path) -
     path = tmp_path / "account-equity.parquet"
     writer = _writer(path)
     events = (_event("scoring-1", 100, 1), _event("scoring-2", 150, 2))
-    _write_mark(writer, events[0], 0, "1000")
-    _write_mark(writer, events[1], 1, "999.5")
+    _write_mark(writer, events[0], 0, "1000", gross="500", signed_net="-250")
+    _write_mark(writer, events[1], 1, "999.5", gross="800", signed_net="400")
     reference = writer.finish()
 
     observations = tuple(
@@ -108,6 +118,33 @@ def test_verified_equity_observations_preserve_canonical_event_times(tmp_path) -
         Decimal("1000.00"),
         Decimal("1000.00"),
     )
+    assert tuple(item.gross_base_exposure for item in observations) == (
+        Decimal("500.000000000000000000"),
+        Decimal("800.000000000000000000"),
+    )
+    assert tuple(item.signed_net_base_exposure for item in observations) == (
+        Decimal("-250.000000000000000000"),
+        Decimal("400.000000000000000000"),
+    )
+
+
+def test_native_equity_trace_requires_exposure_fields_as_a_valid_pair(tmp_path) -> None:
+    writer = _writer(tmp_path / "account-equity.parquet")
+    event = _event("scoring-1", 100, 1)
+
+    with pytest.raises(ValueError, match="both be present or unavailable"):
+        writer.write(
+            event_id=event["event_id"],
+            event_time_ns=event["event_time_ns"],
+            event_index=0,
+            source_sequence=event["sequence"],
+            account_equity=Decimal("1000"),
+            account_cash_balance=Decimal("1000"),
+            gross_base_exposure=Decimal("100"),
+        )
+
+    with pytest.raises(ValueError, match="absolute net exposure cannot exceed gross"):
+        _write_mark(writer, event, 0, "1000", gross="100", signed_net="101")
 
 
 def test_native_equity_trace_rejects_omitted_scoring_marks(tmp_path) -> None:

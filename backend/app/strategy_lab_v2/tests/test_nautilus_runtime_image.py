@@ -45,6 +45,10 @@ def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() ->
         in source
     )
     assert (
+        "COPY app/strategy_lab_v2/nautilus_session_equity.py app/strategy_lab_v2/nautilus_session_equity.py"
+        in source
+    )
+    assert (
         "COPY app/strategy_lab_v2/nautilus_rc_fixture_probe.py app/strategy_lab_v2/nautilus_rc_fixture_probe.py"
         in source
     )
@@ -90,6 +94,10 @@ def test_rc_runtime_image_requires_explicit_base_and_wheel_integrity_inputs() ->
         in source
     )
     assert (
+        "COPY app/strategy_lab_v2/nautilus_calendar_wire.py app/strategy_lab_v2/nautilus_calendar_wire.py"
+        in source
+    )
+    assert (
         "COPY app/strategy_lab_v2/nautilus_native_event_stream.py app/strategy_lab_v2/nautilus_native_event_stream.py"
         in source
     )
@@ -102,6 +110,8 @@ def test_rc_runtime_context_excludes_everything_outside_the_pinned_runtime_sourc
     assert "!app/strategy_lab_v2/strategy_validation.py" in source
     assert "!app/strategy_lab_v2/nautilus_portfolio_wire.py" in source
     assert "!app/strategy_lab_v2/nautilus_rebalance_schedule.py" in source
+    assert "!app/strategy_lab_v2/nautilus_session_equity.py" in source
+    assert "!app/strategy_lab_v2/nautilus_calendar_wire.py" in source
     assert "!app/strategy_lab_v2/allocation.py" in source
     assert "!app/strategy_lab_v2/risk_models.py" in source
     assert "!app/strategy_lab_v2/order_routing.py" in source

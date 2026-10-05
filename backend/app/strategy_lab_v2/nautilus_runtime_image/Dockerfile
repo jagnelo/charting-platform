@@ -41,6 +41,7 @@ COPY app/strategy_lab_v2/strategy_validation.py app/strategy_lab_v2/strategy_val
 COPY app/strategy_lab_v2/conformance.py app/strategy_lab_v2/conformance.py
 COPY app/strategy_lab_v2/nautilus_runtime_data.py app/strategy_lab_v2/nautilus_runtime_data.py
 COPY app/strategy_lab_v2/nautilus_equity_trace.py app/strategy_lab_v2/nautilus_equity_trace.py
+COPY app/strategy_lab_v2/nautilus_session_equity.py app/strategy_lab_v2/nautilus_session_equity.py
 COPY app/strategy_lab_v2/nautilus_native_reports.py app/strategy_lab_v2/nautilus_native_reports.py
 COPY app/strategy_lab_v2/nautilus_portfolio_wire.py app/strategy_lab_v2/nautilus_portfolio_wire.py
 COPY app/strategy_lab_v2/nautilus_rebalance_wire.py app/strategy_lab_v2/nautilus_rebalance_wire.py
@@ -57,6 +58,7 @@ COPY app/strategy_lab_v2/nautilus_strategy_bridge.py app/strategy_lab_v2/nautilu
 COPY app/strategy_lab_v2/nautilus_runtime_adapter_probe.py app/strategy_lab_v2/nautilus_runtime_adapter_probe.py
 COPY app/strategy_lab_v2/nautilus_runtime_probe.py app/strategy_lab_v2/nautilus_runtime_probe.py
 COPY app/strategy_lab_v2/nautilus_runtime_protocol.py app/strategy_lab_v2/nautilus_runtime_protocol.py
+COPY app/strategy_lab_v2/nautilus_calendar_wire.py app/strategy_lab_v2/nautilus_calendar_wire.py
 COPY app/strategy_lab_v2/nautilus_native_event_stream.py app/strategy_lab_v2/nautilus_native_event_stream.py
 COPY app/strategy_lab_v2/nautilus_runtime_cli.py app/strategy_lab_v2/nautilus_runtime_cli.py
 COPY app/strategy_lab_v2/nautilus_rc_fixture_probe.py app/strategy_lab_v2/nautilus_rc_fixture_probe.py

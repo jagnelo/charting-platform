@@ -26,6 +26,7 @@ from app.strategy_lab_v2.observations import (
     AccountCapitalMarginObservation,
     AccountCashBalanceObservation,
     AccountEquityIntervalObservation,
+    AccountExposureObservation,
     ComponentPnlObservation,
     CostReportStatus,
     ExecutionCostKind,
@@ -53,7 +54,7 @@ from app.strategy_lab_v2.rebalance import (
     require_complete_calendar_period_coverage,
 )
 
-METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v16"
+METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v17"
 DEFAULT_SESSION_RETURN_QUANTILE_PROBABILITIES = (
     Decimal("0.05"),
     Decimal("0.25"),
@@ -102,6 +103,10 @@ _METRIC_FORMULAS = {
     "maximum_initial_margin_requirement_to_equity": "maximum observed initial margin requirement divided by contemporaneous account equity",
     "average_maintenance_margin_requirement_to_equity": "equally sample-weighted mean of maintenance margin requirement divided by contemporaneous account equity",
     "maximum_maintenance_margin_requirement_to_equity": "maximum observed maintenance margin requirement divided by contemporaneous account equity",
+    "average_gross_notional_to_equity": "equally sample-weighted mean of native gross signed-base exposure divided by contemporaneous account equity; not margin usage",
+    "maximum_gross_notional_to_equity": "maximum native gross signed-base exposure divided by contemporaneous account equity; not margin usage",
+    "average_net_notional_to_equity": "equally sample-weighted mean of native signed net base exposure divided by contemporaneous account equity",
+    "maximum_absolute_net_notional_to_equity": "maximum absolute native signed net base exposure divided by contemporaneous account equity",
     "financing_event_count": "count of engine-reported financing cash-effect events",
     "complete_financing_report_count": "count of financing reports explicitly marked complete",
     "partial_financing_report_count": "count of financing reports explicitly marked partial",
@@ -1564,6 +1569,126 @@ def calculate_account_cash_balance_metrics(
             "maximum_account_cash_to_equity",
             None if has_zero_equity else max(ratios),
             "maximum observed ratio",
+        ),
+    )
+
+
+@deterministic_decimal_math
+def calculate_account_exposure_metrics(
+    observations: Sequence[AccountExposureObservation],
+) -> tuple[MetricValue, ...]:
+    """Summarize native signed-base exposure over verified event marks.
+
+    Samples are equally weighted by canonical OOS event. If any exposure mark
+    is unavailable or equity is zero, the full family is withheld; neither
+    stale values nor inferred margin/leverage are substituted.
+    """
+
+    marks = tuple(observations)
+    if not marks:
+        raise ValueError("at least one account exposure observation is required")
+    if any(not isinstance(item, AccountExposureObservation) for item in marks):
+        raise TypeError("observations must contain AccountExposureObservation values")
+    portfolio_fingerprint = marks[0].portfolio_fingerprint
+    run_attempt_id = marks[0].run_attempt_id
+    base_currency = marks[0].base_currency
+    evidence_digest = marks[0].valuation_evidence_digest
+    points = tuple(item.point for item in marks)
+    if any(item.portfolio_fingerprint != portfolio_fingerprint for item in marks):
+        raise ValueError("all account exposure observations must use the same portfolio version")
+    if any(item.run_attempt_id != run_attempt_id for item in marks):
+        raise ValueError("all account exposure observations must belong to the same run attempt")
+    if any(item.base_currency != base_currency for item in marks):
+        raise ValueError("all account exposure observations must use the same base currency")
+    if any(item.valuation_evidence_digest != evidence_digest for item in marks):
+        raise ValueError("all account exposure observations must use the same valuation evidence")
+    if any(current <= previous for previous, current in zip(points, points[1:])):
+        raise ValueError("account exposure observations must be strictly ordered by event time")
+
+    observation_digest = content_digest(marks)
+    has_zero_equity = any(item.account_equity == 0 for item in marks)
+    has_unavailable_exposure = any(item.gross_base_exposure is None for item in marks)
+    unavailable_reasons = []
+    if has_zero_equity:
+        unavailable_reasons.append("account equity is zero at one or more observed events")
+    if has_unavailable_exposure:
+        unavailable_reasons.append("native exposure is unavailable at one or more observed events")
+    null_reason = (
+        "; ".join(unavailable_reasons) + "; all exposure/equity ratios withheld"
+        if unavailable_reasons
+        else None
+    )
+    ratios: list[tuple[Decimal, Decimal]] = []
+    if null_reason is None:
+        for item in marks:
+            assert item.gross_base_exposure is not None
+            assert item.signed_net_base_exposure is not None
+            ratios.append(
+                (
+                    item.gross_base_exposure / item.account_equity,
+                    item.signed_net_base_exposure / item.account_equity,
+                )
+            )
+    gross_ratios = tuple(item[0] for item in ratios)
+    net_ratios = tuple(item[1] for item in ratios)
+    sample_size = len(marks)
+    parameters = {
+        "valuation_basis": "native_portfolio_signed_base_exposure_over_account_equity",
+        "sample_weighting": "equal_verified_oos_event_marks",
+        "unavailable_exposure_policy": "withhold_entire_metric_family",
+        "zero_equity_policy": "withhold_entire_metric_family",
+        "notional_or_margin_inference": "forbidden",
+        "base_currency": base_currency,
+    }
+
+    def metric(
+        name: str,
+        value: Decimal | None,
+        basis: MetricBasis,
+        aggregation: str,
+    ) -> MetricValue:
+        return _value(
+            name,
+            value,
+            unit="ratio",
+            basis=basis,
+            sample_size=sample_size,
+            calculation_basis=(
+                f"{aggregation} of native account exposure divided by contemporaneous "
+                f"equity across verified OOS event marks; observations {observation_digest}"
+            ),
+            null_reason=null_reason,
+            calculation_parameters=parameters,
+            evidence_references=(
+                MetricEvidenceReference("native_account_exposure_observations", observation_digest),
+                MetricEvidenceReference("native_account_exposure_trace", evidence_digest),
+            ),
+        )
+
+    return (
+        metric(
+            "average_gross_notional_to_equity",
+            None if null_reason else sum(gross_ratios, Decimal(0)) / Decimal(sample_size),
+            MetricBasis.GROSS,
+            "arithmetic mean gross exposure",
+        ),
+        metric(
+            "maximum_gross_notional_to_equity",
+            None if null_reason else max(gross_ratios),
+            MetricBasis.GROSS,
+            "maximum gross exposure",
+        ),
+        metric(
+            "average_net_notional_to_equity",
+            None if null_reason else sum(net_ratios, Decimal(0)) / Decimal(sample_size),
+            MetricBasis.NET,
+            "arithmetic mean signed net exposure",
+        ),
+        metric(
+            "maximum_absolute_net_notional_to_equity",
+            None if null_reason else max(abs(value) for value in net_ratios),
+            MetricBasis.NET,
+            "maximum absolute signed net exposure",
         ),
     )
 

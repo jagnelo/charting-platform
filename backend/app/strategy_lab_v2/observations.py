@@ -401,6 +401,60 @@ class AccountCashBalanceObservation:
 
 
 @dataclass(frozen=True, slots=True)
+class AccountExposureObservation:
+    """One native gross/net base exposure mark at a verified engine event.
+
+    Exposure values are optional as a pair: a valuation gap is recorded as
+    unavailable instead of carrying a stale mark forward or dropping the event.
+    This observation does not represent margin, buying power, or leverage.
+    """
+
+    portfolio_fingerprint: str
+    run_attempt_id: str
+    point: ObservationPoint
+    account_equity: Decimal
+    gross_base_exposure: Decimal | None
+    signed_net_base_exposure: Decimal | None
+    base_currency: str
+    valuation_evidence_digest: str
+
+    @deterministic_decimal_math
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
+        if not isinstance(self.run_attempt_id, str) or not self.run_attempt_id.strip():
+            raise ValueError("run_attempt_id must not be empty")
+        if not isinstance(self.point, ObservationPoint):
+            raise TypeError("point must be an ObservationPoint")
+        if not isinstance(self.account_equity, Decimal) or not self.account_equity.is_finite():
+            raise ValueError("account_equity must be a finite Decimal")
+        if self.account_equity < 0:
+            raise ValueError("account_equity must be non-negative")
+        if (self.gross_base_exposure is None) != (self.signed_net_base_exposure is None):
+            raise ValueError("gross and signed net exposure must both be present or unavailable")
+        if self.gross_base_exposure is not None:
+            assert self.signed_net_base_exposure is not None
+            if (
+                not isinstance(self.gross_base_exposure, Decimal)
+                or not self.gross_base_exposure.is_finite()
+                or self.gross_base_exposure < 0
+            ):
+                raise ValueError("gross_base_exposure must be a finite non-negative Decimal")
+            if (
+                not isinstance(self.signed_net_base_exposure, Decimal)
+                or not self.signed_net_base_exposure.is_finite()
+            ):
+                raise ValueError("signed_net_base_exposure must be a finite Decimal")
+            if abs(self.signed_net_base_exposure) > self.gross_base_exposure:
+                raise ValueError("absolute net exposure cannot exceed gross exposure")
+        object.__setattr__(
+            self, "base_currency", _currency_code(self.base_currency, "base_currency")
+        )
+        require_sha256_digest(
+            self.valuation_evidence_digest, field_name="valuation_evidence_digest"
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class StressScenarioObservation:
     """One engine-reported equity result under an explicit stress scenario."""
 

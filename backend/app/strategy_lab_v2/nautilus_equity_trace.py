@@ -1,4 +1,4 @@
-"""Content-addressed Arrow trace of native Nautilus account equity marks.
+"""Content-addressed Arrow trace of native Nautilus account and exposure marks.
 
 The trace records the simulator's account valuation at canonical market-event
 callbacks. When an evaluation window is present, warm-up rows are omitted and
@@ -23,8 +23,9 @@ from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
 NAUTILUS_ACCOUNT_EQUITY_TRACE_MEDIA_TYPE = (
     "application/vnd.charting.strategy-lab.nautilus-account-equity+parquet"
 )
-NAUTILUS_ACCOUNT_EQUITY_TRACE_SCHEMA = "strategy-lab.nautilus.account-equity-trace.v1"
-NAUTILUS_ACCOUNT_EQUITY_TRACE_PROTOCOL = "strategy-lab.nautilus.account-equity-trace.v1"
+NAUTILUS_ACCOUNT_EQUITY_TRACE_SCHEMA = "strategy-lab.nautilus.account-equity-trace.v2"
+NAUTILUS_ACCOUNT_EQUITY_TRACE_PROTOCOL = "strategy-lab.nautilus.account-equity-trace.v2"
+_EXPOSURE_BASIS = "native_portfolio_net_exposure:v1"
 MAX_NAUTILUS_ACCOUNT_EQUITY_TRACE_BYTES = 1_099_511_627_776  # 1 TiB hard ceiling
 _ROW_GROUP_SIZE = 8_192
 _DECIMAL_TYPE = "decimal128(38, 18)"
@@ -35,6 +36,8 @@ _SCHEMA_FIELDS = (
     "source_sequence",
     "account_equity",
     "account_cash_balance",
+    "gross_base_exposure",
+    "signed_net_base_exposure",
 )
 
 
@@ -157,6 +160,7 @@ class NautilusAccountEquityTraceReference:
             "scoring_end_ns": "" if self.scoring_end_ns is None else str(self.scoring_end_ns),
             "base_currency": self.base_currency.upper(),
             "initial_capital": format(self.initial_capital, "f"),
+            "event_exposure_basis": _EXPOSURE_BASIS,
         }
 
     def to_wire(self) -> dict[str, Any]:
@@ -241,12 +245,14 @@ class NautilusAccountEquityTraceReference:
 
 @dataclass(frozen=True, slots=True)
 class NautilusAccountEquityObservation:
-    """One verified native cash/equity mark and its canonical event timestamp."""
+    """One verified native account mark and its canonical event timestamp."""
 
     event_time_ns: int
     account_equity: Decimal
     event_index: int
     account_cash_balance: Decimal
+    gross_base_exposure: Decimal | None = None
+    signed_net_base_exposure: Decimal | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -263,6 +269,14 @@ class NautilusAccountEquityObservation:
             raise ValueError("event_index must be a non-negative integer")
         _decimal(self.account_equity, "account_equity", non_negative=True)
         _decimal(self.account_cash_balance, "account_cash_balance", non_negative=False)
+        if (self.gross_base_exposure is None) != (self.signed_net_base_exposure is None):
+            raise ValueError("gross and signed net exposure must both be present or unavailable")
+        if self.gross_base_exposure is not None:
+            assert self.signed_net_base_exposure is not None
+            _decimal(self.gross_base_exposure, "gross_base_exposure", non_negative=True)
+            _decimal(self.signed_net_base_exposure, "signed_net_base_exposure")
+            if abs(self.signed_net_base_exposure) > self.gross_base_exposure:
+                raise ValueError("absolute net exposure cannot exceed gross exposure")
 
 
 class NautilusAccountEquityTraceWriter:
@@ -379,6 +393,8 @@ class NautilusAccountEquityTraceWriter:
                 pa.field("source_sequence", pa.int64(), nullable=False),
                 pa.field("account_equity", pa.decimal128(38, 18), nullable=False),
                 pa.field("account_cash_balance", pa.decimal128(38, 18), nullable=False),
+                pa.field("gross_base_exposure", pa.decimal128(38, 18), nullable=True),
+                pa.field("signed_net_base_exposure", pa.decimal128(38, 18), nullable=True),
             ],
             metadata={key.encode(): value.encode() for key, value in self._metadata().items()},
         )
@@ -411,6 +427,7 @@ class NautilusAccountEquityTraceWriter:
             "scoring_end_ns": "" if self._scoring_end_ns is None else str(self._scoring_end_ns),
             "base_currency": self._base_currency,
             "initial_capital": format(self._initial_capital, "f"),
+            "event_exposure_basis": _EXPOSURE_BASIS,
         }
 
     def write(
@@ -422,6 +439,8 @@ class NautilusAccountEquityTraceWriter:
         source_sequence: int,
         account_equity: Decimal,
         account_cash_balance: Decimal,
+        gross_base_exposure: Decimal | None = None,
+        signed_net_base_exposure: Decimal | None = None,
     ) -> None:
         """Append one native mark, silently excluding authenticated warm-up."""
 
@@ -446,6 +465,16 @@ class NautilusAccountEquityTraceWriter:
             raise ValueError("native equity marks must preserve canonical event order")
         equity = _decimal(account_equity, "account_equity", non_negative=True)
         cash = _decimal(account_cash_balance, "account_cash_balance")
+        if (gross_base_exposure is None) != (signed_net_base_exposure is None):
+            raise ValueError("gross and signed net exposure must both be present or unavailable")
+        if gross_base_exposure is None:
+            gross = signed_net = None
+        else:
+            assert signed_net_base_exposure is not None
+            gross = _decimal(gross_base_exposure, "gross_base_exposure", non_negative=True)
+            signed_net = _decimal(signed_net_base_exposure, "signed_net_base_exposure")
+            if abs(signed_net) > gross:
+                raise ValueError("absolute net exposure cannot exceed gross exposure")
         self._buffer.append(
             {
                 "event_id": event_id,
@@ -454,6 +483,8 @@ class NautilusAccountEquityTraceWriter:
                 "source_sequence": source_sequence,
                 "account_equity": equity,
                 "account_cash_balance": cash,
+                "gross_base_exposure": gross,
+                "signed_net_base_exposure": signed_net,
             }
         )
         self._observation_count += 1
@@ -575,9 +606,13 @@ def iter_verified_nautilus_account_equity_observations(
                 "int64",
                 _DECIMAL_TYPE,
                 _DECIMAL_TYPE,
+                _DECIMAL_TYPE,
+                _DECIMAL_TYPE,
             )
-            if tuple(str(field.type) for field in schema) != expected_types or any(
-                field.nullable for field in schema
+            expected_nullability = (False, False, False, False, False, False, True, True)
+            if (
+                tuple(str(field.type) for field in schema) != expected_types
+                or tuple(field.nullable for field in schema) != expected_nullability
             ):
                 raise ValueError("native account-equity trace field types are invalid")
             metadata = schema.metadata or {}
@@ -658,12 +693,23 @@ def iter_verified_nautilus_account_equity_observations(
                             )
                     equity = row["account_equity"]
                     cash = row["account_cash_balance"]
+                    gross = row["gross_base_exposure"]
+                    signed_net = row["signed_net_base_exposure"]
                     if (
                         not isinstance(equity, Decimal)
                         or equity < 0
                         or not isinstance(cash, Decimal)
                     ):
                         raise ValueError("native account-equity mark values are invalid")
+                    if (gross is None) != (signed_net is None):
+                        raise ValueError("native exposure mark is only partially available")
+                    if gross is not None and (
+                        not isinstance(gross, Decimal)
+                        or gross < 0
+                        or not isinstance(signed_net, Decimal)
+                        or abs(signed_net) > gross
+                    ):
+                        raise ValueError("native account exposure mark values are invalid")
                     if (
                         event_index <= previous_index
                         or event_time_ns < previous_time
@@ -679,6 +725,8 @@ def iter_verified_nautilus_account_equity_observations(
                         equity,
                         event_index,
                         cash,
+                        gross,
+                        signed_net,
                     )
             if expected_iterator is not None:
                 for expected in expected_iterator:

@@ -26,6 +26,7 @@ from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_de
 from app.strategy_lab_v2.metrics import (
     METRIC_DEFINITION_VERSION,
     calculate_account_cash_balance_metrics,
+    calculate_account_exposure_metrics,
     calculate_event_aligned_equity_metrics,
     calculate_performance_metrics,
     calculate_session_return_distribution_metrics,
@@ -38,6 +39,7 @@ from app.strategy_lab_v2.nautilus_native_reports import (
 from app.strategy_lab_v2.observations import (
     AccountCashBalanceObservation,
     AccountEquityIntervalObservation,
+    AccountExposureObservation,
 )
 from app.strategy_lab_v2.rebalance import SessionCalendarSnapshot
 
@@ -368,6 +370,7 @@ def build_nautilus_oos_metric_set(
     *,
     event_time_ns: Iterable[int] | None = None,
     account_cash_observations: Iterable[AccountCashBalanceObservation] | None = None,
+    account_exposure_observations: Iterable[AccountExposureObservation] | None = None,
     created_at: datetime,
     portfolio: PortfolioComposition | None = None,
     session_equity_intervals: Sequence[AccountEquityIntervalObservation] | None = None,
@@ -442,6 +445,23 @@ def build_nautilus_oos_metric_set(
         ):
             raise ValueError("account cash observations must reference the verified equity trace")
         cash_values = calculate_account_cash_balance_metrics(cash_observations)
+    exposure_observations = (
+        None if account_exposure_observations is None else tuple(account_exposure_observations)
+    )
+    exposure_values: tuple[MetricValue, ...] = ()
+    if exposure_observations is not None:
+        if any(not isinstance(item, AccountExposureObservation) for item in exposure_observations):
+            raise TypeError(
+                "account_exposure_observations must contain AccountExposureObservation values"
+            )
+        if any(
+            item.valuation_evidence_digest != equity_reference.artifact.content_digest
+            for item in exposure_observations
+        ):
+            raise ValueError(
+                "account exposure observations must reference the verified equity trace"
+            )
+        exposure_values = calculate_account_exposure_metrics(exposure_observations)
     component_values: tuple[MetricValue, ...] = ()
     if portfolio is not None:
         from app.strategy_lab_v2.nautilus_component_pnl import (
@@ -463,6 +483,9 @@ def build_nautilus_oos_metric_set(
             "account_cash_observation_digest": (
                 None if cash_observations is None else content_digest(cash_observations)
             ),
+            "account_exposure_observation_digest": (
+                None if exposure_observations is None else content_digest(exposure_observations)
+            ),
             "definition_version": METRIC_DEFINITION_VERSION,
             "equity_trace_digest": equity_reference.artifact.content_digest,
             "native_reports_digest": native_reports_reference.artifact.content_digest,
@@ -476,7 +499,13 @@ def build_nautilus_oos_metric_set(
         trial_id=equity_reference.trial_id,
         attempt_id=equity_reference.attempt_id,
         definition_version=METRIC_DEFINITION_VERSION,
-        values=(*equity_values, *native_values, *cash_values, *component_values),
+        values=(
+            *equity_values,
+            *native_values,
+            *cash_values,
+            *exposure_values,
+            *component_values,
+        ),
         created_at=created_at,
     )
 
