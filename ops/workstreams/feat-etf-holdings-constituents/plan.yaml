@@ -430,7 +430,7 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: ci_image_functional_green_visual_gate_repeatable_diffs_and_hosted_status_pending
+current_phase: hedgeye_live_floor_adjusted_exact_sha_ci_replay_pending
 current_blocker: >-
   The latest full gate on working source based on 115af366123c4e07e3a3109cc9ba19f2af136f18 again passed workstream/dependency/migration, Ruff/format/type-check, backend coverage (1,877 passed; 81.13%), frontend tests (945 passed; 82.08%), production build, Docker stack health, and research-runner probes. Playwright ran all 260 scenarios: 152 passed, 106 skipped, and two unrelated workstation scenarios failed (`F8j-conflict` expected a recovery notice but saw canonical-ready; `F8s-market-map-watchlist` timed out clicking a button detached during rerender). No visual mismatch was reported. Both failures then passed on a fresh healthy stack when replayed together (2 passed in 18.2s); additionally the adjacent `F8j` pop-out and `F8j-conflict` sequence passed (2 passed in 13.9s). Prior cross-window `ERR_NETWORK_CHANGED` cases also passed their focused replay and passed in this latest full run. The local gate exits at e2e-functional before standalone visual and branch-declared stages. These are non-reproducing test-order/load failures outside ETF behavior; no assertions or baselines were changed. ETF Docker resources were stopped and resource accounting is zero/complete. Exact-SHA CI for current working source is still not queried on its next pushed receipt. Goal remains active.
 
@@ -558,12 +558,31 @@ current_blocker: >-
   feat/market-data-provider-platform reaching staging; AC14 remains the later
   post-integration/deployment 30-day shadow observation. The goal is active.
 
+  Exact-SHA push run 37254799990 on 662387811ee5ecf5c09896db5c1ee504226e9e6c
+  passed the 595 deterministic adapter tests and default live contracts (3
+  passed, 534 opt-in skipped). Its full live matrix found one current-source
+  floor mismatch: Hedgeye HECA returned 17 rows where the test retained an old
+  19-row minimum; 517 other cases passed and 19 were narrowly skipped. The
+  adapter's latest non-future daily payload is now dated 2026-10-05, so the
+  live contract is being conservatively adjusted to a 15-row floor without
+  changing adapter parsing or support classification. Focused Hedgeye unit
+  tests pass (3); a local live replay was skipped because this host could not
+  resolve the issuer domain. Backend unit tests (1,500), backend integration
+  tests (379), and frontend Vitest (945) passed, but both Codecov uploads failed
+  with TLS EPROTO despite fail_ci_if_error=false; consequently hosted E2E was
+  skipped. The full-integration visual discrepancy
+  remains outside ETF-owned paths and unchanged. The 15 Tier-0 and 156 Tier-1
+  symbol outcomes remain accounted for. Exact-SHA rerun after the floor repair
+  is pending; AC7/AC8 stay open. AC10 awaits provider-platform staging and AC14
+  remains post-integration/deployment.
+
 next_action: >-
-  Run branch/workstream validation, commit and push only
-  feat/etf-holdings-constituents, and inspect hosted CI for that exact SHA.
-  Keep the goal active and AC7/AC8 open while the generic Study Lab visual
-  mismatches remain unexplained; do not change unrelated UI behavior or
-  snapshots without establishing the intended visual change. AC10 still
-  depends on the provider-platform branch reaching staging, and AC14 is
+  Validate the narrow Hedgeye live-floor update, then commit and push only
+  feat/etf-holdings-constituents and inspect the exact-SHA run. Retry the two
+  Codecov-failed jobs once if the next run encounters the same upload-only TLS
+  error; do not alter generic CI workflow policy from this feature branch.
+  Keep AC7/AC8 open while the generic Study Lab visual mismatch remains
+  unresolved or undispositioned; do not change unrelated UI behavior or
+  snapshots. AC10 still depends on provider-platform staging, and AC14 is
   post-integration/deployment. Do not integrate, promote, deploy, or modify
   another worktree.

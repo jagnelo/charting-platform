@@ -71,7 +71,7 @@
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "dirty_paths": [
-    "frontend/tests/e2e/flows.spec.ts",
+    "backend/tests/live/test_etf_holdings_live_providers.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -95,13 +95,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "529fc81f60fcbf5f14a7afc7e9aa62461a48e855",
+  "head": "662387811ee5ecf5c09896db5c1ee504226e9e6c",
   "implementation_sha": "594864f69bfa5b016fc2eb4015509de6dbd7d8d6",
-  "last_checkpoint": "2026-10-05T02:13:55.000000+00:00",
+  "last_checkpoint": "2026-10-05T02:32:14.000000+00:00",
   "last_human_progress_update": "2026-10-04T23:07:40.093556+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit and push only this ETF branch after branch validation, then inspect hosted CI for that exact SHA. Keep AC7/AC8 open while the generic Study Lab visual mismatches remain unexplained.",
-  "plan_hash": "f194da5ce374bc9303cd91618f41ee5d37c1d1c5fb1238fe22095a9352c1061c",
+  "next_action": "Validate, commit, and push the Hedgeye HECA floor correction and receipts only on this ETF branch; inspect the exact-SHA CI run and retry only Codecov-failed jobs if needed.",
+  "plan_hash": "e3f9d425d40c5f67a77579d479f825be9188a0bfcec66e4ce618ee43d7348b78",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -122,14 +122,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. The correctly seeded CI-image functional Playwright run completed with 150 passed, 109 skipped, and one F8s flake passed on retry. Its isolated fresh-stack replay with retries disabled passed 1/1 in 11.7 seconds. Standalone visual parity had 100 passed and three stable Study Lab screenshot mismatches at about 1 percent; one top-down membership test hit ERR_NETWORK_CHANGED and passed on retry. AC7 still needs exact-SHA hosted CI and resolution or proper disposition of the generic visual drift. AC8 remains open. AC10 awaits provider-platform staging; AC14 follows later integration and deployment.",
-    "current_phase": "ci_image_functional_green_visual_gate_repeatable_diffs_and_hosted_status_pending",
-    "next_action": "Commit and push only this ETF branch after branch validation, then inspect hosted CI for that exact SHA. Keep AC7/AC8 open while the generic Study Lab visual mismatches remain unexplained.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Correctly seeded local functional Playwright completed with 150 passed and 109 skipped; the one F8s retry case passed 1/1 in isolation with retries disabled. Three generic Study Lab screenshots still mismatch by about 1 percent outside ETF-owned paths. Exact-SHA CI 37254799990 passed 595 deterministic adapters, backend unit 1500, backend integration 379, frontend Vitest 945, and default live contracts 3; the full live matrix had one current Hedgeye HECA floor mismatch (17 rows against stale 19), 517 passed, 19 skipped. Both Codecov uploads failed TLS EPROTO despite fail_ci_if_error=false, so hosted E2E was skipped. The branch-owned live floor is being adjusted to 15; local live replay could not resolve the issuer host, while focused Hedgeye units pass 3/3. AC7/AC8 remain open. AC10 awaits provider-platform staging; AC14 follows later integration/deployment.",
+    "current_phase": "hedgeye_live_floor_adjusted_exact_sha_ci_replay_pending",
+    "next_action": "Validate, commit, and push the Hedgeye HECA floor correction and receipts only on this ETF branch; inspect the exact-SHA CI run and retry only Codecov-failed jobs if needed.",
     "total": 14,
-    "updated_at": "2026-10-05T02:13:55.000000+00:00"
+    "updated_at": "2026-10-05T02:32:14.000000+00:00"
   },
-  "remote": "529fc81f60fcbf5f14a7afc7e9aa62461a48e855",
-  "remote_sha": "529fc81f60fcbf5f14a7afc7e9aa62461a48e855",
+  "remote": "662387811ee5ecf5c09896db5c1ee504226e9e6c",
+  "remote_sha": "662387811ee5ecf5c09896db5c1ee504226e9e6c",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "70226446-14cf-41f6-828c-abe83c833146",

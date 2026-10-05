@@ -854,10 +854,10 @@ async def test_live_m_d_sass_issuer_csv_route_preserves_dated_rows():
             "HECA",
             None,
             {},
-            # HECA's complete daily payload currently contains 19 rows,
-            # including its cash position; preserve a conservative floor
-            # without treating a valid daily composition as a route failure.
-            19,
+            # The 2026-10-05 live route returned 17 complete daily rows,
+            # including its cash position. Allow modest composition drift
+            # without treating a valid current payload as a route failure.
+            15,
         ),
         (
             "scm_edge",

@@ -7794,12 +7794,48 @@ reproducible in isolation. The stack was stopped and branch-scoped resource
 accounting again showed zero containers, volumes, test sessions, known bytes,
 and unknown components.
 
-Next: run the branch/workstream validation, commit and push only this feature
-branch, then inspect hosted checks for that exact SHA. Keep AC7/AC8 open until
-exact-SHA CI is evidenced and the reproducible generic visual mismatch has a
-valid disposition; do not change unrelated UI behavior or snapshots without
-establishing the intended visual change. AC10 still waits for the separate
-provider-platform branch to reach staging, and AC14 remains
-post-integration/deployment.
+Subsequent checkpoint: the branch/workstream receipt and E2E harness fix were
+committed and pushed to the exact assigned ref at
+`662387811ee5ecf5c09896db5c1ee504226e9e6c`; the intended ref was verified.
+The exact-SHA hosted run and its newly surfaced live-provider issue are recorded
+below.
+
+## Exact-SHA CI: current Hedgeye count drift and Codecov transport — 2026-10-05
+
+GitHub Actions run `37254799990` tested exact commit
+`662387811ee5ecf5c09896db5c1ee504226e9e6c`. The deterministic adapter suite
+passed 595 tests, and default live contracts passed 3 with 534 opt-in cases
+skipped. The full opt-in live matrix completed with 517 passed, 19 narrowly
+classified skips, and one failure: the official Hedgeye HECA route returned 17
+parseable rows while the stale live-test minimum was 19. The returned payload
+was dated 2026-10-05 and selected by the existing adapter's strict latest
+non-future-date logic. This is current row-count drift, not evidence of a parser
+or identity failure; only the live assertion floor is being adjusted from 19
+to a conservative 15, with no adapter or capability changes.
+
+The same run passed 1,500 backend unit tests, 379 backend integration tests,
+and all 945 frontend Vitest tests. Both backend and frontend jobs nevertheless
+failed at Codecov upload with TLS `EPROTO` handshake errors despite
+`fail_ci_if_error: false`; the dependent hosted E2E job was skipped. The local
+focused Hedgeye unit suite passed 3 tests and Ruff passed. A local live replay
+could not resolve the issuer hostname and was skipped, so the hosted 17-row
+observation is the available live evidence for this checkpoint.
+
+The three Study Lab visual mismatches remain reproducible generic workstation
+parity failures outside ETF `owned_paths`; no snapshot, tolerance, or unrelated
+UI change was made. Exact-SHA CI must be rerun after the HECA floor correction;
+if Codecov transport fails again, retry those failed jobs once and keep that
+external reporting failure distinct from application tests. Do not change the
+repository-wide workflow from this ETF branch. AC7/AC8 remain open. AC10 still
+depends on the separate provider-platform branch reaching staging, and AC14 is
+the post-integration/deployment observation.
+
+During publication, an initial push command targeted the similarly named ref
+`feat-etf-holdings-constituents` without the slash. Read-only verification found
+both that ref and the intended `feat/etf-holdings-constituents` ref at commit
+`662387811ee5ecf5c09896db5c1ee504226e9e6c`. The intended ref is correct. The
+prior state/ownership of the similarly named ref is unknown, so it was not
+deleted or otherwise changed after discovery; human direction is needed before
+any cleanup of that separate ref.
 *** End of File
 *** End of File
