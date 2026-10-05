@@ -8401,3 +8401,34 @@ still reports it 1,856 commits ahead, with `staging` as merge base); AC14 is a
 cross-worktree mutation, integration, promotion, or deployment was performed.
 The saved goal remains active and work continues when the external Docker load
 clears.
+
+## 2026-10-05 09:00 UTC — exact-SHA CI failure located and corrected locally
+
+The human clarified that no root password was needed and asked for the goal
+blocker to be fixed. Read-only access to Docker succeeded through the approved
+diagnostic boundary; the daemon is up. The local full-browser gate is still not
+safe to run: another worktree's backend container was using about 444 MiB and
+99.5% CPU, while a separate Playwright container used about 580 MiB and 74% CPU.
+Host available memory was about 2.8 GiB. These containers are outside this ETF
+worktree or unowned, so they were left untouched.
+
+The supported GitHub Actions run lookup found exact push run `37286594960` on
+`876302bad211a75213e893f22f76abb6186ec241`. `Frontend Unit Tests` passed all 945
+tests. `Branch-declared Tests` failed 1 of 596 adapter tests, and `Backend
+Tests` failed 1 of 1,501 unit tests; both failures are the same assertion in
+`test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers`.
+It requires `session.progress.current_blocker` to contain `15 Tier-0 and 156
+Tier-1`, but the recent status update had replaced that phrase. The hosted
+backend test summary was 1,500 passed/1 failed; integration did not run after
+the unit failure. Hosted E2E and the protected exhaustive gate were skipped by
+the feature-branch workflow.
+
+Restored the required count phrase in the ETF session record. The exact
+narrative assertion now passes 1/1, and the complete deterministic ETF adapter
+module passes 596/596. No provider/product code changed. Workstream validation,
+JSON/JSONL parsing, and diff-check also pass. Commit/push and exact-SHA hosted
+retest remain the immediate next actions. The earlier local browser gate still
+has four full-suite failures whose isolated cases passed but did not establish
+root cause. AC7 remains open for that gate and the new exact-SHA retest; AC8
+awaits human review, AC10 awaits provider-platform staging, and AC14 is the
+post-integration/deployment shadow observation. Goal status remains active.

@@ -434,6 +434,18 @@ progress:
   total: 14
 current_phase: branch_local_provider_and_capability_checks_passed_full_browser_gate_deferred_shared_docker_load
 current_blocker: >-
+  Current checkpoint 2026-10-05T09:00Z: 15 Tier-0 and 156 Tier-1 symbol
+  outcomes remain accounted for. Exact-SHA push run 37286594960 on
+  876302bad211a75213e893f22f76abb6186ec241 found the same session narrative
+  invariant failure in the branch-declared and backend unit jobs: this session's
+  progress.current_blocker omitted the required count phrase. The local session
+  text has been corrected; the exact assertion passes 1/1 and the deterministic
+  ETF adapter suite passes 596/596. Hosted retest is pending. The full local
+  browser gate still has four unexplained full-suite failures despite passing
+  isolated replays. Another worktree's backend and a separate Playwright
+  container are actively consuming resources; do not run the heavy gate or stop
+  those resources. AC8 awaits human review, AC10 awaits provider-platform
+  staging, and AC14 remains post-integration/deployment.
   QVAL implementation checkpoint (2026-10-05; superseded by the updates below):
   15 Tier-0 and 156 Tier-1 symbol outcomes
   remain accounted for. Exact-SHA CI run 37259854302 on
@@ -821,15 +833,13 @@ current_blocker: >-
   saved goal is active, not blocked or complete.
 
 next_action: >-
-  Recheck Docker and memory on the next continuation. Run the official full
-  integration gate only after the other worktree's six services and separate
-  Playwright container have exited and safe headroom remains; do not stop or
-  alter those services. Do not rerun the opt-in provider matrix: the current
-  backend tree matches the ancestor SHA whose hosted branch-declared run passed
-  522 opt-in checks with 16 classified skips, and the interrupted local sweeps
-  are explicitly incomplete, not green. Do not repeat the four browser cases
-  that passed their fresh-stack replays. Exact-current-SHA CI remains
-  unverified because status/run queries are empty and there is no open PR; do
-  not create a PR as part of this workstream. AC10 awaits
-  feat/market-data-provider-platform reaching staging; AC14 is the later
-  30-day post-integration/deployment observation.
+  Workstream validation, diff-check, JSON/JSONL parsing, the focused narrative
+  assertion, and all 596 deterministic ETF adapter tests now pass. Commit and
+  push only the ETF workstream files, then query push-triggered GitHub Actions
+  for the exact new SHA and correct any remaining ETF-owned failure. Run the
+  official full integration gate only after the other worktree's services and
+  separate Playwright container have
+  exited and safe headroom remains; do not stop or alter them. Do not rerun the
+  provider matrix or isolated browser cases without new evidence. AC8 awaits
+  human review, AC10 awaits feat/market-data-provider-platform reaching
+  staging, and AC14 is the later 30-day post-integration/deployment observation.
