@@ -7949,3 +7949,56 @@ No application code changed. The corrected workstream receipt is being
 committed and pushed so a new exact-SHA workflow can verify the repair. The
 Study Lab screenshot attribution and later staging/production gates remain
 open as recorded above.
+
+## ETF Architect QVAL issuer-edge failure — 2026-10-05
+
+Exact-SHA run 37259854302 on 8ab95904fbcf565901067e9af229f7b2b6f331b7
+passed the backend and frontend test suites (1,500 unit, 379 integration, 945
+frontend), but both Codecov upload steps failed with TLS EPROTO and hosted E2E
+was skipped. The branch-declared matrix had 521 passes, 15 classified skips,
+and one failure: ETF Architect QVAL. The workflow log showed a parser-level
+failure; a bounded route diagnostic found httpx 403 with Cloudflare challenge
+markers and requests HTTP 200 with a zero-byte body. Official browser evidence
+previously exposed a dated QVAL holdings table, so this indicates an access
+challenge in this runtime and does not show the table has disappeared. It also
+does not show that the application can currently fetch QVAL.
+
+The adapter now retries empty/challenge bodies at most three times and raises
+an explicit access-challenge error for the observed combination of an httpx
+403 followed by an unusable requests response. The live matrix skips only that
+exact `etf_architect`/`QVAL` error signature; unrelated empty pages and parse
+failures remain failures. This is an external-access skip, not a live pass or
+current support claim. Focused ETF Architect unit tests pass 4/4, the narrow
+skip contract passes 1/1, Ruff passes, and the complete deterministic adapter
+suite passes 596/596. The local QVAL live probe was skipped because this host
+could not resolve DNS; that is not counted as a pass.
+
+The ordinary full-stack readiness helper timed out after 180 seconds because
+the sandbox cannot access `/var/run/docker.sock`; no other worktree containers
+or volumes were changed. AC7/AC8 remain open pending the corrected exact-SHA
+workflow, hosted E2E acceptance, and evidence-based disposition of the local
+Study Lab visual diffs. AC10 awaits the separately maintained provider-platform
+branch reaching staging. AC14 remains a post-integration/deployment 30-day
+shadow observation. The goal remains active and work continues independently
+inside this ETF worktree.
+
+## QVAL fix pushed; exact-SHA validation restarted — 2026-10-05
+
+The implementation/test changeset is commit
+f04b0a39a60fadd6d8d21cf2bca360d8d746c88c. The push to
+`feat/etf-holdings-constituents` was accepted. GitHub exposes CI run
+37261499608 on that exact SHA (in progress at 2026-10-05T03:58Z). A direct
+`git ls-remote` readback failed because this shell temporarily could not resolve
+github.com; the accepted push and exact-SHA run confirm the commit reached the
+hosted branch workflow.
+
+The prior `agent-docker-ready` attempt failed only because ordinary sandbox
+access cannot open `/var/run/docker.sock`. A reviewed read-only Docker boundary
+now confirms Docker 29.1.3 is running; only the unrelated `stremio-server`
+container is active at approximately 50 MiB, and host memory reports 3.8 GiB
+available. No unrelated container was changed. The local full integration gate
+has not yet been rerun; next, run it only while monitoring memory, then inspect
+the resulting visual actual/diff files. AC7/AC8 remain open until local visual
+and exact-SHA hosted evidence are resolved. The parallel provider-platform
+staging milestone remains outside this worktree; AC14 remains a post-release
+shadow-observation gate.
