@@ -17962,7 +17962,10 @@ class LiquidStrategiesHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class HedgeyeHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """Fetch Hedgeye ETF daily holdings from the issuer's public product pages."""
+    """Fetch Hedgeye ETF daily holdings from its issuer-linked CSV artifact."""
+
+    HOLDINGS_CSV_HOST = "hedgeye.s3.us-east-1.amazonaws.com"
+    HOLDINGS_CSV_PATH = "/ham/ETF_Holdings.csv"
 
     PRODUCT_URLS = {
         "ADDS": "https://www.hedgeyeam.com/adds",
@@ -17986,7 +17989,7 @@ class HedgeyeHoldingsAdapter(IssuerCsvHoldingsAdapter):
             confidence=Decimal("0.9000"),
             status="ready" if source_url or has_sec_fallback else "needs_issuer_route",
             reason=(
-                "Hedgeye publishes this ETF's complete daily holdings in its public product-page payload."
+                "Hedgeye publishes this ETF's complete daily holdings in an issuer-linked all-funds CSV."
                 if source_url
                 else (
                     "No public Hedgeye ETF product page is configured for this symbol; SEC filing fallback is available."
@@ -18016,40 +18019,215 @@ class HedgeyeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 f"No public Hedgeye ETF product page is configured for {normalized_symbol}."
             )
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            response = await client.get(
+            product_response = await client.get(
                 resolved_source_url,
                 headers=_holdings_request_headers(accept="text/html,application/xhtml+xml,*/*"),
                 follow_redirects=True,
             )
-        response.raise_for_status()
-        rows, composition_date = self._parse_product_page(response.text, symbol=normalized_symbol)
+            product_response.raise_for_status()
+            product_page_url = str(getattr(product_response, "url", resolved_source_url))
+            holdings_csv_url = self._holdings_csv_url(
+                product_response.text,
+                product_page_url=product_page_url,
+                symbol=normalized_symbol,
+            )
+            if holdings_csv_url:
+                holdings_response = await client.get(
+                    holdings_csv_url,
+                    headers=_holdings_request_headers(accept="text/csv,*/*"),
+                    follow_redirects=True,
+                )
+                holdings_response.raise_for_status()
+                resolved_csv_url = str(getattr(holdings_response, "url", holdings_csv_url))
+                if not self._is_supported_holdings_csv_url(resolved_csv_url):
+                    raise ValueError(
+                        f"Hedgeye holdings CSV for {normalized_symbol} redirected to an unsupported URL."
+                    )
+                rows, composition_date = self._parse_holdings_csv(
+                    holdings_response.text,
+                    symbol=normalized_symbol,
+                )
+                source_response = holdings_response
+                source_format = "csv"
+                route_resolution = "hedgeye_product_page_linked_all_funds_csv"
+                raw_json = {
+                    "source_format": "issuer_linked_all_funds_csv",
+                    "account": normalized_symbol,
+                    "row_count": len(rows),
+                }
+                row_source = "hedgeye_product_page_linked_all_funds_csv"
+            else:
+                rows, composition_date = self._parse_product_page(
+                    product_response.text,
+                    symbol=normalized_symbol,
+                )
+                source_response = product_response
+                source_format = "html_embedded_json"
+                route_resolution = "issuer_product_page_complete_daily_holdings_payload"
+                raw_json = {"source_format": "issuer_product_page_holdings_payload"}
+                row_source = "hedgeye_product_page_daily_holdings_payload"
         if not rows:
+            source_description = "all-funds CSV" if source_format == "csv" else "product page"
             raise ValueError(
-                f"Hedgeye product page did not contain complete daily holdings rows for {normalized_symbol}."
+                f"Hedgeye {source_description} did not contain complete daily holdings rows for {normalized_symbol}."
             )
         for index, row in enumerate(rows):
             row.source_row_id = f"{normalized_symbol}:{composition_date or 'unknown'}:{index}"
             row.extra_data = {
                 **row.extra_data,
-                "source": "hedgeye_product_page_daily_holdings_payload",
+                "source": row_source,
             }
         return HoldingsFetchResult(
             rows=rows,
-            raw_text=response.text,
-            raw_json={"source_format": "issuer_product_page_holdings_payload"},
-            source_url=str(response.url),
+            raw_text=source_response.text,
+            raw_json=raw_json,
+            source_url=str(getattr(source_response, "url", resolved_source_url)),
             source_identifier=normalized_symbol,
             legal_metadata={
                 "source_access": self.config.source_access,
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
-                "source_format": "html_embedded_json",
-                "route_resolution": "issuer_product_page_complete_daily_holdings_payload",
+                "source_format": source_format,
+                "route_resolution": route_resolution,
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "product_page_url": product_page_url,
                 "terms_note": self.config.terms_note,
             },
         )
+
+    @classmethod
+    def _holdings_csv_url(
+        cls,
+        raw_html: str,
+        *,
+        product_page_url: str,
+        symbol: str,
+    ) -> str | None:
+        if symbol not in cls.PRODUCT_URLS:
+            raise ValueError(f"No public Hedgeye ETF product page is configured for {symbol}.")
+        download_url = _discover_holdings_download_url(product_page_url, raw_html)
+        if download_url is None:
+            return None
+        if not cls._is_supported_holdings_csv_url(download_url):
+            raise ValueError(
+                f"Hedgeye product page declared an unsupported holdings CSV for {symbol}."
+            )
+        if (
+            re.search(
+                rf"\b{re.escape(symbol)}\s+US\s+Equity\b",
+                html.unescape(raw_html),
+                re.IGNORECASE,
+            )
+            is None
+        ):
+            raise ValueError(f"Hedgeye product page identity did not match requested ETF {symbol}.")
+        return download_url
+
+    @classmethod
+    def _is_supported_holdings_csv_url(cls, value: str) -> bool:
+        parsed = urlparse(value)
+        try:
+            port = parsed.port
+        except ValueError:
+            return False
+        return (
+            parsed.scheme.lower() == "https"
+            and (parsed.hostname or "").lower() == cls.HOLDINGS_CSV_HOST
+            and parsed.username is None
+            and parsed.password is None
+            and port in {None, 443}
+            and parsed.path == cls.HOLDINGS_CSV_PATH
+            and not parsed.params
+            and not parsed.query
+            and not parsed.fragment
+        )
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if symbol not in cls.PRODUCT_URLS:
+            raise ValueError(f"No public Hedgeye ETF product page is configured for {symbol}.")
+        reader = csv.DictReader(StringIO(raw_csv.lstrip("\ufeff")))
+        if not reader.fieldnames:
+            raise ValueError("Hedgeye all-funds holdings CSV did not expose a header row.")
+        columns = {name.strip().casefold(): name for name in reader.fieldnames if name}
+        required_columns = {
+            "date",
+            "account",
+            "stockticker",
+            "cusip",
+            "securityname",
+            "shares",
+            "marketvalue",
+            "weightings",
+            "moneymarketflag",
+        }
+        missing_columns = sorted(required_columns - columns.keys())
+        if missing_columns:
+            raise ValueError(
+                "Hedgeye all-funds holdings CSV is missing required columns: "
+                + ", ".join(missing_columns)
+                + "."
+            )
+
+        latest_date: date | None = None
+        latest_rows: list[dict[str, str | None]] = []
+        for item in reader:
+            account = _clean(item.get(columns["account"]))
+            if account is None or account.upper() != symbol:
+                continue
+            snapshot_date = _parse_issuer_date(item.get(columns["date"]))
+            if snapshot_date is None:
+                raise ValueError(
+                    f"Hedgeye all-funds holdings CSV had an invalid date for {symbol}."
+                )
+            if snapshot_date > date.today():
+                continue
+            if latest_date is None or snapshot_date > latest_date:
+                latest_date = snapshot_date
+                latest_rows = [item]
+            elif snapshot_date == latest_date:
+                latest_rows.append(item)
+
+        rows: list[CanonicalHoldingRow] = []
+        for index, item in enumerate(latest_rows, start=1):
+            raw_symbol = _clean(item.get(columns["stockticker"]))
+            name = _clean(item.get(columns["securityname"]))
+            if raw_symbol is None or name is None:
+                raise ValueError(
+                    f"Hedgeye all-funds holdings CSV contained an incomplete row for {symbol}."
+                )
+            shares = _decimal(item.get(columns["shares"]))
+            market_value = _decimal(item.get(columns["marketvalue"]))
+            weight = _decimal(item.get(columns["weightings"]))
+            if shares is None or market_value is None or weight is None:
+                raise ValueError(
+                    f"Hedgeye all-funds holdings CSV contained incomplete values for {symbol}."
+                )
+            money_market = (_clean(item.get(columns["moneymarketflag"])) or "").upper() == "Y"
+            is_cash = money_market or raw_symbol.casefold() == "cash&other"
+            cusip_value = _clean(item.get(columns["cusip"]))
+            raw = {key: value for key, value in item.items() if key and value is not None}
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else raw_symbol.upper(),
+                    name=name,
+                    cusip=cusip_value if _looks_like_cusip(cusip_value) else None,
+                    weight=weight,
+                    shares=shares,
+                    market_value=market_value,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}",
+                    extra_data=raw,
+                )
+            )
+        return rows, latest_date
 
     @classmethod
     def _parse_product_page(
@@ -18148,16 +18326,25 @@ class SCMEdgeHoldingsAdapter(HedgeyeHoldingsAdapter):
             source_url=source_url,
             identifiers=identifiers,
         )
+        uses_linked_csv = (result.legal_metadata or {}).get("source_format") == "csv"
         for row in result.rows:
             row.extra_data = {
                 **row.extra_data,
-                "source": "scm_edge_hedgeye_product_page_daily_holdings_payload",
+                "source": (
+                    "scm_edge_hedgeye_product_page_linked_all_funds_csv"
+                    if uses_linked_csv
+                    else "scm_edge_hedgeye_product_page_daily_holdings_payload"
+                ),
             }
         result.legal_metadata = {
             **(result.legal_metadata or {}),
             "source_provider": self.source_provider,
             "adapter_key": self.adapter_key,
-            "route_resolution": "scm_edge_hedgeye_product_page_complete_daily_holdings_payload",
+            "route_resolution": (
+                "scm_edge_hedgeye_product_page_linked_all_funds_csv"
+                if uses_linked_csv
+                else "scm_edge_hedgeye_product_page_complete_daily_holdings_payload"
+            ),
             "issuer_relationship": "S.C.M. Edge issuer / Hedgeye public product-page publisher",
         }
         return result

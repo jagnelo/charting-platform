@@ -5084,6 +5084,115 @@ async def test_hedgeye_adapter_selects_the_latest_requested_fund_snapshot(monkey
 
 
 @pytest.mark.asyncio
+async def test_hedgeye_adapter_uses_product_page_declared_all_funds_csv(monkeypatch):
+    adapter = get_holdings_adapter("hedgeye")
+    assert adapter is not None
+
+    product_url = "https://www.hedgeyeam.com/heca"
+    holdings_url = "https://hedgeye.s3.us-east-1.amazonaws.com/ham/ETF_Holdings.csv"
+    product_page = (
+        '<div class="fund-ticker">HECA US Equity</div>'
+        f'<a href="{holdings_url}">Holdings - All ETFs</a>'
+    )
+    csv_payload = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,"
+            "Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+            "07/10/2026,HECA,AAPL,037833100,Apple Inc,10,200,2000,2.00%,100000,1000,1,",
+            "07/11/2026,HECA,MSFT,594918104,Microsoft Corp,12,250,3000,3.00%,100000,1000,1,",
+            "07/11/2026,HECA,Cash&Other,Cash&Other,Cash & Other,50,1,50,0.05%,100000,1000,1,Y",
+            "12/31/2099,HECA,FUTR,123456789,Future Fund,1,1,1,1.00%,100000,1000,1,",
+            "07/12/2026,HGRO,OTHER,594918104,Other account row,1,1,1,1.00%,100000,1000,1,",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=product_page,
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text=csv_payload,
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="HECA")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert result.legal_metadata["source_format"] == "csv"
+    assert result.legal_metadata["route_resolution"] == (
+        "hedgeye_product_page_linked_all_funds_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-11"
+    assert result.legal_metadata["product_page_url"] == product_url
+    assert result.source_url == holdings_url
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "MSFT"
+    assert result.rows[0].cusip == "594918104"
+    assert result.rows[0].weight == Decimal("0.03")
+    assert result.rows[0].market_value == Decimal("3000")
+    assert result.rows[0].extra_data["Account"] == "HECA"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+
+
+@pytest.mark.asyncio
+async def test_hedgeye_declared_csv_schema_errors_fail_closed(monkeypatch):
+    adapter = get_holdings_adapter("hedgeye")
+    assert adapter is not None
+
+    product_url = "https://www.hedgeyeam.com/heca"
+    holdings_url = "https://hedgeye.s3.us-east-1.amazonaws.com/ham/ETF_Holdings.csv"
+    product_page = (
+        '<div class="fund-ticker">HECA US Equity</div>'
+        f'<a href="{holdings_url}">Holdings - All ETFs</a>'
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_page, content_type="text/html", url=product_url),
+        FakeResponse(
+            text="Date,Account,StockTicker\n07/11/2026,HECA,MSFT\n",
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="missing required columns"):
+        await adapter.fetch_latest(symbol="HECA")
+
+
+@pytest.mark.asyncio
+async def test_hedgeye_linked_csv_redirects_fail_closed(monkeypatch):
+    adapter = get_holdings_adapter("hedgeye")
+    assert adapter is not None
+
+    product_url = "https://www.hedgeyeam.com/heca"
+    holdings_url = "https://hedgeye.s3.us-east-1.amazonaws.com/ham/ETF_Holdings.csv"
+    product_page = (
+        '<div class="fund-ticker">HECA US Equity</div>'
+        f'<a href="{holdings_url}">Holdings - All ETFs</a>'
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_page, content_type="text/html", url=product_url),
+        FakeResponse(
+            text="Date,Account,StockTicker\n07/11/2026,HECA,MSFT\n",
+            content_type="text/csv",
+            url="https://untrusted.example/ETF_Holdings.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="redirected to an unsupported URL"):
+        await adapter.fetch_latest(symbol="HECA")
+
+
+@pytest.mark.asyncio
 async def test_hedgeye_adapter_rejects_future_only_holdings_snapshot(monkeypatch):
     adapter = get_holdings_adapter("hedgeye")
     assert adapter is not None
@@ -5149,6 +5258,56 @@ async def test_scm_edge_adapter_uses_own_hedgeye_product_page_route(monkeypatch)
     assert result.rows[0].weight == Decimal("0.03")
     assert result.rows[0].extra_data["source"] == (
         "scm_edge_hedgeye_product_page_daily_holdings_payload"
+    )
+    assert result.rows[1].row_type == "cash"
+
+
+@pytest.mark.asyncio
+async def test_scm_edge_adapter_uses_linked_hedgeye_all_funds_csv(monkeypatch):
+    adapter = get_holdings_adapter("scm_edge")
+    assert adapter is not None
+
+    product_url = "https://www.hedgeyeam.com/heft"
+    holdings_url = "https://hedgeye.s3.us-east-1.amazonaws.com/ham/ETF_Holdings.csv"
+    product_page = (
+        '<div class="fund-ticker">HEFT US Equity</div>'
+        f'<a href="{holdings_url}">Holdings - All ETFs</a>'
+    )
+    csv_payload = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,"
+            "Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+            "07/11/2026,HEFT,NVDA,67066G104,NVIDIA Corp,12,250,3000,3.00%,100000,1000,1,",
+            "07/11/2026,HEFT,Cash&Other,Cash&Other,Cash & Other,50,1,50,0.05%,100000,1000,1,Y",
+            "07/12/2026,HECA,OTHER,000000000,Other account row,1,1,1,1.00%,100000,1000,1,",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_page, content_type="text/html", url=product_url),
+        FakeResponse(text=csv_payload, content_type="text/csv", url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="HEFT")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert result.legal_metadata["adapter_key"] == "scm_edge"
+    assert result.legal_metadata["source_provider"] == "scm_edge_hedgeye"
+    assert result.legal_metadata["route_resolution"] == (
+        "scm_edge_hedgeye_product_page_linked_all_funds_csv"
+    )
+    assert result.legal_metadata["source_format"] == "csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-11"
+    assert result.legal_metadata["issuer_relationship"] == (
+        "S.C.M. Edge issuer / Hedgeye public product-page publisher"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.03")
+    assert result.rows[0].extra_data["source"] == (
+        "scm_edge_hedgeye_product_page_linked_all_funds_csv"
     )
     assert result.rows[1].row_type == "cash"
 

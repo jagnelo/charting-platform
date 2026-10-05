@@ -5,6 +5,35 @@ adviser, and white-label publisher identity level because holdings artifacts are
 usually published by product sites, not by a single normalized legal-issuer
 field.
 
+## Hedgeye first-party artifact route repair — 2026-10-05
+
+Exact-SHA branch matrix run `37343409378` on `69dc6d34b462a5ac15766caf61377b815949eee0`
+failed only the Hedgeye HECA live case: the product page no longer yielded the
+complete embedded daily-holdings rows expected by the adapter. Backend Tests,
+Frontend Unit Tests, and hosted Playwright passed; the protected integration
+gate was skipped as designed. The failure was not reclassified as an external
+outage.
+
+At the 2026-10-05 recheck, the official [HECA product page](https://www.hedgeyeam.com/heca)
+linked an all-funds CSV at
+[`hedgeye.s3.us-east-1.amazonaws.com/ham/ETF_Holdings.csv`](https://hedgeye.s3.us-east-1.amazonaws.com/ham/ETF_Holdings.csv).
+The artifact observed on 2026-10-05 contains account-scoped rows; its HECA
+snapshot parses to 17 rows dated 2026-10-05, including the cash row. The
+adapter now prefers that page-declared artifact, requires the exact supported
+HTTPS host/path before and after redirects, filters to the requested account
+and latest non-future date, and rejects missing schema or incomplete rows. SCM
+Edge's HEFT route shares the artifact parser while retaining its own
+adapter/provenance identity. The previous embedded-page parser remains for
+pages that do not declare the CSV.
+
+The repair is covered by deterministic fixtures for account/date/cash mapping,
+schema drift, off-host redirects, and the SCM Edge route. The complete local
+adapter/capability suites pass 707 tests. The bounded application-style live
+HECA retry skipped on temporary DNS resolution failure, so it is not live-route
+acceptance evidence; exact-SHA CI for the repair is still pending. Provider
+counts and native/fallback classification are unchanged until that gate is
+green.
+
 ## Machine-readable vendor eligibility boundary — 2026-09-07
 
 The branch-owned `vendor_source_candidates` ledger in
