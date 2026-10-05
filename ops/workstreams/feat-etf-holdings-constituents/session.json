@@ -71,6 +71,8 @@
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "dirty_paths": [
+    "backend/app/services/etf_holdings_adapters.py",
+    "backend/tests/unit/services/test_etf_holdings_adapters.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -111,13 +113,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "876302bad211a75213e893f22f76abb6186ec241",
+  "head": "c4932d049b73be8bd6893d04eebd512c65ceda02",
   "implementation_sha": "f04b0a39a60fadd6d8d21cf2bca360d8d746c88c",
-  "last_checkpoint": "2026-10-05T09:08:11+00:00",
-  "last_human_progress_update": "2026-10-05T09:07:07+00:00",
+  "last_checkpoint": "2026-10-05T09:35:35+00:00",
+  "last_human_progress_update": "2026-10-05T09:35:35+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "The narrative invariant, full ETF deterministic adapter suite, workstream validation, diff-check, and JSON/JSONL parsing pass locally. Commit and push only this ETF workstream correction, then inspect GitHub Actions for the exact pushed SHA. Run the full browser gate only after the other worktree services and separate Playwright container exit with safe memory headroom; never stop them. AC10 awaits provider-platform staging; AC14 is the post-integration/deployment observation.",
-  "plan_hash": "1ab4b277e0d946572cda2b4cd4abe73a9dcecda38cffd4b9e835c057e50bad7d",
+  "next_action": "The Longview revised-table parser fixture, all 597 deterministic ETF adapter tests, and Ruff pass locally; exact-SHA run 37288223783 passed backend, frontend, and hosted Playwright but failed one live EBI matrix case. Finish the workstream/diff/JSON checks, commit and push only the parser, deterministic regression, and ETF workstream checkpoint, then inspect the exact new SHA. The local live probe was DNS-skipped, not passed. Run the local full browser gate only after other worktree services and the separate Playwright container exit with safe memory headroom; never stop them. AC10 awaits provider-platform staging; AC14 is the post-integration/deployment observation.",
+  "plan_hash": "868c2e83db04dab5c48835d0a37f0ed11b416fb15b7cf91bb5d86cdfe445f0ca",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -139,14 +141,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. AC7 remains open: exact-SHA CI run 37286594960 on 876302bad211a75213e893f22f76abb6186ec241 failed one branch-owned narrative invariant because this field omitted the required count phrase; it is now restored and the focused invariant plus all 596 deterministic ETF adapter tests pass locally. Hosted retest is pending. The earlier full browser gate at 16f181c had four failures that passed focused replays, but full-run cause remains unknown. Another worktree's backend and the separate Playwright container remain active; do not run the heavy gate or stop them. AC8 awaits human review of a clean synchronized final SHA; AC10 awaits provider-platform staging; AC14 is post-integration/deployment.",
-    "current_phase": "exact_sha_ci_narrative_invariant_restored_local_checks_pass_hosted_retest_and_full_browser_resource_limited",
-    "next_action": "Commit and push only the ETF session narrative correction, then inspect GitHub Actions for the exact pushed SHA. Run the official full gate only after the other worktree services and separate Playwright container exit and safe headroom remains; never stop them or repeat the provider matrix/focused browser cases without new evidence. Preserve the branch boundary; AC10 and AC14 remain external/later gates.",
+    "current_blocker": "15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. AC7 remains open: exact-SHA run 37288223783 on c4932d049b73be8bd6893d04eebd512c65ceda02 passed backend, frontend, and hosted Playwright but failed one opt-in Longview EBI live route after 509 passes and 28 classified skips. The official page now exposes a revised table format; the local adapter and deterministic regression support it, but hosted exact-SHA retest is pending and the local exact live replay was blocked by DNS. The earlier local full browser gate at 16f181c had four unexplained failures that passed focused replays. Another worktree's stack and a separate high-CPU Playwright container remain active; do not run the heavy gate or stop them. AC8 awaits human review; AC10 awaits provider-platform staging; AC14 is post-integration/deployment.",
+    "current_phase": "longview_ebi_revised_holdings_schema_fixed_local_tests_green_hosted_retest_pending_full_browser_resource_limited",
+    "next_action": "Finish workstream validation, JSON/JSONL parsing, and diff-check, then commit/push the Longview parser, deterministic regression, and ETF checkpoint. Inspect GitHub Actions for the exact new SHA. The local direct live route attempt is DNS-skipped, not green. Run the official full gate only after the other worktree services and separate Playwright container exit and safe headroom remains; never stop them. Preserve the branch boundary; AC10 and AC14 remain external/later gates.",
     "total": 14,
-    "updated_at": "2026-10-05T09:08:11+00:00"
+    "updated_at": "2026-10-05T09:35:35+00:00"
   },
-  "remote": "876302bad211a75213e893f22f76abb6186ec241",
-  "remote_sha": "876302bad211a75213e893f22f76abb6186ec241",
+  "remote": "c4932d049b73be8bd6893d04eebd512c65ceda02",
+  "remote_sha": "c4932d049b73be8bd6893d04eebd512c65ceda02",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "2fcd05d8-12db-42ac-8cb6-83d9db9efafa",

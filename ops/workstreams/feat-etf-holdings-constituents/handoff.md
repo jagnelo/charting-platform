@@ -8432,3 +8432,38 @@ has four full-suite failures whose isolated cases passed but did not establish
 root cause. AC7 remains open for that gate and the new exact-SHA retest; AC8
 awaits human review, AC10 awaits provider-platform staging, and AC14 is the
 post-integration/deployment shadow observation. Goal status remains active.
+
+## 2026-10-05 09:33 UTC — Longview EBI holdings schema drift
+
+Exact-SHA GitHub Actions run `37288223783` on
+`c4932d049b73be8bd6893d04eebd512c65ceda02` completed with Backend Tests,
+Frontend Unit Tests, and hosted Playwright green. Branch-declared tests failed
+only the opt-in live Focus Financial EBI case: 509 passed, 28 classified skips,
+and one failure. The adapter raised that the official Longview fund-data page
+did not expose its verified table. This run's logs identify a route/parser
+failure, not an HTTP outage; the run is at
+https://github.com/jagnelo/charting-platform/actions/runs/37288223783.
+
+The official page at https://longviewresearchpartners.com/ebi/fund-data/ still
+shows current EBI holdings (as of 2026-10-02) and now includes a rendered table
+whose headers include `Stock Ticker`, `Security Name`, and `Mkt Value`; its
+`Weightings` values are percentage points without a percent sign. The adapter
+previously required the exact compact `StockTicker` marker and exact
+`MarketValue` header. Updated parsing to normalize known header whitespace and
+the documented `Mkt Value` alias, scale unadorned percentage-point weights,
+and continue requiring the official EBI account, the full holdings schema,
+dated rows, and the existing completeness floor. The fetch path now determines
+table validity from those parsed constraints rather than brittle page text.
+
+A deterministic fixture covers the revised header order, percentage-point
+weights, cash row, dated completeness, and exclusion of an LVIG row. The two
+focused Longview parser tests pass, the full deterministic ETF adapter suite
+passes 597/597, and Ruff passes. A direct local live replay could not resolve
+the issuer hostname and was skipped as DNS failure; it is not claimed as a
+route pass. A new hosted exact-SHA matrix retest is required. The full local
+Docker/browser gate remains unsafe: read-only inventory showed another
+worktree's six-service stack, a separate Playwright container using 472 MiB at
+about 90% CPU, and 2.6 GiB available host memory. No shared resource was
+stopped or changed. AC7 remains open; AC8 awaits human review, AC10 awaits
+provider-platform staging, and AC14 remains the post-integration/deployment
+shadow observation. Goal status remains active.

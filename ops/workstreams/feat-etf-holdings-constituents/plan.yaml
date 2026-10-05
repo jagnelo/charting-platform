@@ -432,8 +432,25 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: branch_local_provider_and_capability_checks_passed_full_browser_gate_deferred_shared_docker_load
+current_phase: longview_ebi_schema_variant_fixed_locally_hosted_exact_sha_retest_pending
 current_blocker: >-
+  Current checkpoint 2026-10-05T09:33Z: 15 Tier-0 and 156 Tier-1 symbol
+  outcomes remain accounted for. Exact-SHA run 37288223783 on
+  c4932d049b73be8bd6893d04eebd512c65ceda02 passed Backend Tests, Frontend Unit
+  Tests, and hosted Playwright. Branch-declared tests failed only the live
+  Focus Financial EBI route (509 passed, 28 classified skips, 1 failed) because
+  the direct page response no longer matched the adapter's exact old-table
+  markers. The official EBI fund-data page now also exposes a complete holdings
+  table with spaced header aliases and numeric percentage-point weights. The
+  adapter now normalizes those headers/weights and still verifies the EBI
+  account, complete schema, row floor, and date. Two focused parser tests, all
+  597 deterministic ETF adapter tests, and Ruff pass locally. A local exact
+  live replay could not resolve the issuer hostname and is not counted as a
+  route pass. Hosted retest is pending. The local full browser gate remains
+  unsafe while another worktree's services and a separate Playwright container
+  are running with 2.6 GiB available memory; leave them untouched. AC8 awaits
+  human review, AC10 awaits provider-platform staging, and AC14 remains the
+  post-integration/deployment shadow observation.
   Current checkpoint 2026-10-05T09:00Z: 15 Tier-0 and 156 Tier-1 symbol
   outcomes remain accounted for. Exact-SHA push run 37286594960 on
   876302bad211a75213e893f22f76abb6186ec241 found the same session narrative
@@ -833,13 +850,13 @@ current_blocker: >-
   saved goal is active, not blocked or complete.
 
 next_action: >-
-  Workstream validation, diff-check, JSON/JSONL parsing, the focused narrative
-  assertion, and all 596 deterministic ETF adapter tests now pass. Commit and
-  push only the ETF workstream files, then query push-triggered GitHub Actions
-  for the exact new SHA and correct any remaining ETF-owned failure. Run the
-  official full integration gate only after the other worktree's services and
-  separate Playwright container have
-  exited and safe headroom remains; do not stop or alter them. Do not rerun the
-  provider matrix or isolated browser cases without new evidence. AC8 awaits
-  human review, AC10 awaits feat/market-data-provider-platform reaching
-  staging, and AC14 is the later 30-day post-integration/deployment observation.
+  Finish workstream validation and record the Longview EBI table-schema failure
+  and parser correction. Commit and push only the ETF product parser, its
+  deterministic regression, and the workstream checkpoint; query Actions for
+  the exact new SHA and fix any remaining ETF-owned failure. Run the official
+  full integration gate only after the other worktree's services and separate
+  Playwright container have exited and safe headroom remains; do not stop or
+  alter them. Do not repeat unrelated provider routes or isolated browser cases
+  without new evidence. AC8 awaits human review, AC10 awaits
+  feat/market-data-provider-platform reaching staging, and AC14 is the later
+  30-day post-integration/deployment observation.

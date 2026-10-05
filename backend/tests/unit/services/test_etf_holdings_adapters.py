@@ -14298,6 +14298,121 @@ async def test_focus_financial_adapter_parses_kovitz_and_longview_native_routes(
 
 
 @pytest.mark.asyncio
+async def test_focus_financial_longview_parses_revised_table_headers(monkeypatch):
+    adapter = get_holdings_adapter("focus_financial")
+    assert adapter is not None
+
+    source_rows = [
+        [
+            "Stock Ticker",
+            "Security Name",
+            "CUSIP",
+            "Shares",
+            "Price",
+            "Mkt Value",
+            "Net Assets",
+            "Date",
+            "Account",
+            "Weightings",
+            "SharesOutstanding",
+            "CreationUnits",
+            "MoneyMarketFlag",
+        ],
+        [
+            "A",
+            "Agilent Technologies Inc",
+            "00846U101",
+            "599",
+            "166.68",
+            "99841.32",
+            "680640344",
+            "10/02/2026",
+            "EBI",
+            "5.24",
+            "10346830",
+            "413",
+            "",
+        ],
+        [
+            "Cash&Other",
+            "Cash & Other",
+            "Cash&Other",
+            "-150584.20",
+            "1.00",
+            "-150584.20",
+            "680640344",
+            "10/02/2026",
+            "EBI",
+            "-0.02",
+            "10346830",
+            "413",
+            "Y",
+        ],
+    ]
+    for index in range(99):
+        source_rows.append(
+            [
+                f"LV{index}",
+                f"Longview Example Co {index}",
+                f"7654321{index % 10}A",
+                "10",
+                "20",
+                "200",
+                "680640344",
+                "10/02/2026",
+                "EBI",
+                "0.01",
+                "10346830",
+                "413",
+                "",
+            ]
+        )
+    source_rows.append(
+        [
+            "LVIG",
+            "Longview Advantage Fixed Income ETF",
+            "000000000",
+            "1",
+            "20",
+            "20",
+            "100",
+            "10/02/2026",
+            "LVIG",
+            "20.00",
+            "5",
+            "0",
+            "",
+        ]
+    )
+    table = "".join(
+        "<tr>" + "".join(f"<td>{escape(value)}</td>" for value in row) + "</tr>"
+        for row in source_rows
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f"<html><body><table>{table}</table></body></html>",
+            content_type="text/html",
+            url="https://longviewresearchpartners.com/ebi/fund-data/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="EBI")
+
+    assert FakeAsyncClient.requested[0][0] == "https://longviewresearchpartners.com/ebi/fund-data/"
+    assert len(result.rows) == 101
+    agilent = next(row for row in result.rows if row.symbol == "A")
+    assert agilent.cusip == "00846U101"
+    assert agilent.weight == Decimal("0.0524")
+    cash = next(row for row in result.rows if row.row_type == "cash")
+    assert cash.weight == Decimal("-0.0002")
+    assert cash.market_value == Decimal("-150584.20")
+    assert all(row.symbol != "LVIG" for row in result.rows)
+    assert result.legal_metadata["composition_date"] == "2026-10-02"
+
+
+@pytest.mark.asyncio
 async def test_focus_financial_longview_retries_requests_timeout(monkeypatch):
     adapter = get_holdings_adapter("focus_financial")
     assert adapter is not None

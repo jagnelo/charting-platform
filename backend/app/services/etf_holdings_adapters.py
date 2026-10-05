@@ -55121,11 +55121,11 @@ class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError("Longview EBI holdings must use the official fund-data page.")
         response = await self._get_longview_fund_data_page()
         response.raise_for_status()
-        if "Longview Advantage ETF" not in response.text or "StockTicker" not in response.text:
+        rows, composition_date = self._parse_longview_page(response.text)
+        if not rows:
             raise ValueError(
                 "Longview EBI fund-data page did not expose the verified holdings table."
             )
-        rows, composition_date = self._parse_longview_page(response.text)
         if len(rows) < 100 or composition_date is None:
             raise ValueError("Longview EBI fund-data page returned incomplete or undated holdings.")
         return HoldingsFetchResult(
@@ -55253,33 +55253,54 @@ class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
         parser = _HTMLTablesParser()
         parser.feed(raw_html)
         required_headers = {
-            "Date",
-            "Account",
-            "StockTicker",
-            "CUSIP",
-            "SecurityName",
-            "Shares",
-            "MarketValue",
-            "Weightings",
+            "date",
+            "account",
+            "stockticker",
+            "cusip",
+            "securityname",
+            "shares",
+            "marketvalue",
+            "weightings",
         }
+
+        def canonical_header(value: Any) -> str:
+            normalized = re.sub(r"[^a-z0-9]", "", str(value).lower())
+            return "marketvalue" if normalized == "mktvalue" else normalized
+
         for table in parser.tables:
             if not table:
                 continue
             header = table[0]
-            if not required_headers.issubset(set(header)):
+            canonical_headers = [canonical_header(value) for value in header]
+            if not required_headers.issubset(set(canonical_headers)):
                 continue
+            weightings_are_percent_points = "mktvalue" in {
+                re.sub(r"[^a-z0-9]", "", str(value).lower()) for value in header
+            }
             rows: list[CanonicalHoldingRow] = []
             dates: list[date] = []
             for position, row in enumerate(table[1:], start=1):
-                item = _row_dict(header, row)
-                if (_clean(item.get("Account")) or "").upper() != cls.LONGVIEW_SYMBOL:
+                raw_item = _row_dict(header, row)
+                item = {
+                    canonical_header(key): value for key, value in raw_item.items()
+                }
+                if (_clean(item.get("account")) or "").upper() != cls.LONGVIEW_SYMBOL:
                     continue
-                composition_date = _parse_issuer_date(item.get("Date"))
+                composition_date = _parse_issuer_date(item.get("date"))
                 if composition_date:
                     dates.append(composition_date)
-                raw_symbol = _clean(item.get("StockTicker"))
-                name = _clean(item.get("SecurityName"))
-                cusip = _clean(item.get("CUSIP"))
+                raw_symbol = _clean(item.get("stockticker"))
+                name = _clean(item.get("securityname"))
+                cusip = _clean(item.get("cusip"))
+                weight_text = _clean(item.get("weightings"))
+                weight = _decimal(weight_text)
+                if (
+                    weight is not None
+                    and weightings_are_percent_points
+                    and weight_text is not None
+                    and "%" not in weight_text
+                ):
+                    weight /= Decimal("100")
                 row_type, holding_type = cls._classify_row(
                     raw_symbol=raw_symbol,
                     name=name,
@@ -55293,15 +55314,17 @@ class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
                         else None,
                         name=name,
                         cusip=cusip if _looks_like_cusip(cusip) else None,
-                        weight=_decimal(item.get("Weightings")),
-                        shares=_decimal(item.get("Shares")),
-                        market_value=_decimal(item.get("MarketValue")),
+                        weight=weight,
+                        shares=_decimal(item.get("shares")),
+                        market_value=_decimal(item.get("marketvalue")),
                         currency="USD" if row_type == "cash" else None,
                         holding_type=holding_type,
                         row_type=row_type,
                         source_row_id=f"{cls.LONGVIEW_SYMBOL}:{position}:{cusip or raw_symbol or name or 'holding'}",
                         extra_data={
-                            key: value for key, value in item.items() if _clean(value) is not None
+                            key: value
+                            for key, value in raw_item.items()
+                            if _clean(value) is not None
                         },
                     )
                 )
