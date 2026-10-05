@@ -84,6 +84,7 @@ scope:
 owned_paths:
   - backend/app/strategy_lab_v2/
   - backend/app/strategy_lab_v2/tests/
+  - backend/tests/integration/strategy_lab_v2/
   - backend/strategy_runtime/
   - docs/strategy-lab-v2.md
   - ops/workstreams/feat-strategy-lab-v2/
@@ -329,6 +330,7 @@ remaining_gaps:
   - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
   - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
   - The isolated Nautilus 2.0.0rc5 image fixture passed the four local-backtest checks (multi-instrument accounting, native order/fill/cost reporting, deterministic replay, and lifecycle) at source SHA f102f310499431b0c892483ec15e376f5503319f. Its exact-pinned RC receipt may authorize local backtests after matching build/image verification; broker-free full/forward shadow additionally requires event-tape parity, with no stable-label gate. Prereleases remain barred from broker connections and real-capital use.
+  - The stable-only sentence in the first accumulated historical snapshot is superseded: exact-pinned stable or release-candidate v2 builds qualify for local backtests after the four backtest checks; stable release labeling is not a gate.
   - Native OOS metrics v14 now expose maximum peak-to-trough loss in the account base currency alongside fractional drawdown and recovery factor for fixed-cadence and event-aligned equity paths. The amount is derived only from observed equity peaks/troughs, is bound to the native trace evidence, and remains unavailable when the OOS trace has no scored observations.
   - Native OOS metric definition v15 accepts exact attempt/portfolio-bound session equity intervals, their content-addressed calendar, and explicit sessions-per-year/risk-free/confidence parameters. Complete no-flow session coverage unlocks annualized volatility, Sharpe, Sortino, historical VaR/expected shortfall, and session-return quantiles; gaps, out-of-window closes, mixed evidence, or ambiguous flows fail closed. The native producer is now wired from the frozen runtime calendar and native close callbacks through the runner and result materializer into worker-terminal artifact publication. A package-owned worker-terminal regression verifies interval artifact publication and metric evidence, while incomplete coverage remains explicitly null. Actual Nautilus-process/Docker acceptance for calendar callbacks is still part of the full integration profile.
   - The owner-authenticated worker-terminal path now consumes exact conformance evidence, rehydrates and checks the owner-scoped trial graph, materializes versioned native OOS metrics/results, publishes verified output bytes, and builds the publication plan. A worker-terminal success/redelivery test exercises the full persistence-port coordinator with pure completion/lease state and proves stable receipt identity when the callback observation time changes; artifact completion keys bind manifest/content/length/storage identity rather than the retry-varying create/reuse action. Real PostgreSQL/Redis/Compose adapter execution and full-stack/browser acceptance remain Docker-gated.
@@ -835,47 +837,42 @@ progress:
     - nautilus-oos-session-close-intervals-v1
     - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
   total: 18
-  current_phase: strategy-lab-v2-durable-worker-recovery-receipts-v1
+  current_phase: strategy-lab-v2-worker-fleet-local-integration-v1
   current_blocker: >-
     No external Nautilus release or upstream event blocks package-owned
     implementation. Exact-pinned Nautilus 2.0.0rc5 has the four backtest checks;
-    stable release labeling is explicitly not a gate. The production worker
-    composition now reconciles a committed successful terminal result after a
-    lost Redis acknowledgement: it verifies completion, settlement, capacity
-    and lease release, closes the search candidate as succeeded, and replays an
-    idempotent ACK without rerunning simulation or scheduling a retry. Partial
-    terminal commits remain pending and fail closed. The Strategy Lab package
-    plus schema-migration suite passes 1,373 tests with the exact RC5 image and
-    scoped local access; Ruff, formatting, focused MyPy, and diff checks pass.
-    Compose 2.40.3 configuration and a dry-run with
-    --scale strategy-lab-v2-worker=3 produce three dedicated worker containers;
-    the service has no fixed container name/host port, and each replica derives
-    a distinct Redis consumer identity from HOSTNAME plus PID. Effective
-    multi-replica throughput is not yet proven: preparation still receives one
-    WorkerProfile from its host context resolver, and there is no package-owned
-    fleet registry/selector that assigns attempts across available profiles.
-    Real concurrent PostgreSQL/Redis scale acceptance remains open. Other
-    completion work includes broader recovery, domain-backed mutations,
-    remaining metrics, and forward-shadow event-tape parity. The required full
-    Compose/browser profile remains environment-limited because Docker Buildx
-    is absent and the default sandbox cannot access the Docker socket. Provider,
-    ETF, and TC2000 contracts are staging-gated only if an owned change overlaps
-    their paths. Options order admission remains fail-closed pending canonical
-    event-time Greeks/delta and settlement evidence.
+    stable release labeling is explicitly not a gate. Package-owned worker-fleet
+    discovery now ranks matching idle serial profiles, creates deterministic
+    worker-bound leases/reservations, and leaves the PostgreSQL dispatch
+    transaction as the final capacity arbiter. The focused fleet/persisted-
+    dispatch slice passes 40 tests; the full Strategy Lab and schema-migration
+    suite passes 1,379, with its single Unix-socket RPC test passing separately
+    under scoped local access. Ruff, format, focused MyPy, and diff checks pass.
+    Scoped local PostgreSQL/Redis integration now passes 4/4: two concurrent
+    reservations on one serial PostgreSQL worker profile produce exactly one
+    winner; PostgreSQL recovery and the persisted search-dispatch/RPC path pass;
+    a second real Redis consumer reclaims an abandoned message and acknowledges
+    only after completion. Ruff, formatting, and diff checks pass, and scoped
+    cleanup leaves no worktree containers or test sessions. This is service-level
+    integration evidence, not proof of live Compose replica/browser acceptance.
+    No external dependency blocks package-owned implementation. Full
+    Compose/browser validation remains environment-limited by the absent Docker
+    Buildx plugin; scoped socket access is available for focused local tests.
+    Stable Nautilus labeling is not a gate. Remaining product work includes
+    broader domain-backed mutations, metrics, and forward-shadow event-tape
+    parity. Provider, ETF, and TC2000 contracts are staging-gated only if an
+    owned change overlaps their paths. Options order admission remains fail-closed
+    pending canonical event-time Greeks/delta and settlement evidence.
   next_action: >-
-    Implement package-owned worker-fleet profile discovery/selection so
-    prepared attempts can reserve distinct serial worker slots, then verify
-    concurrent admission and crash recovery across multiple Redis consumers
-    against PostgreSQL/Redis. Compose's three-replica dry-run is proven, but
-    actual runtime scaling remains open. Continue afterward with
-    domain-backed mutations, remaining metrics, forward event-tape parity, and
-    the full Compose/browser profile. Post-terminal released-lease redelivery
-    already closes search state and ACKs idempotently without retry or rerun.
-    Exact-pinned RC5 remains eligible for authoritative local backtests after
-    four checks; stable labeling is not a gate. Forward shadow needs all five
-    checks; prereleases cannot connect to brokers or control real capital. Keep
-    options fail-closed pending canonical event-time Greeks/delta and settlement
-    evidence. Consume shared provider/ETF/TC2000 contracts only after their
-    approved work reaches staging. Missing Docker Buildx and default-sandbox
-    socket access limit final Compose/browser acceptance, not package-owned
-    implementation.
+    Continue with domain-backed mutation completeness and remaining versioned
+    metrics, then implement and validate forward-shadow event-tape parity. The
+    PostgreSQL capacity-arbiter race, real Redis abandoned-entry reclaim, and
+    focused PostgreSQL recovery/RPC integration now pass, while actual scaled
+    Compose/browser runtime acceptance remains open. Exact-pinned RC5 remains
+    eligible for authoritative local backtests after four checks; stable
+    labeling is not a gate. Forward shadow needs all five checks; prereleases
+    cannot connect to brokers or control real capital. Keep options fail-closed
+    pending canonical event-time Greeks/delta and settlement evidence. Consume
+    shared provider/ETF/TC2000 contracts only after their approved work reaches
+    staging. Docker Buildx is absent and limits the final Compose/browser profile,
+    not package-owned implementation.

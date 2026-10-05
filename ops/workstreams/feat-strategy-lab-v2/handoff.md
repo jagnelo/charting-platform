@@ -10413,3 +10413,76 @@ worktree was modified.
 Next action: implement and test worker-fleet profile selection and serial-slot
 reservation across replicas; afterward continue the remaining domain mutations,
 metrics, forward event-tape parity, and full Compose/browser acceptance.
+
+## 2026-10-05 - Platform-owned worker-fleet selection
+
+Commit `6bb87bd3419b127c493467032f5efa11b0eaf05f` removes the single-profile
+assignment from backtest preparation. The PostgreSQL worker-state adapter now
+discovers authenticated profiles by worker kind and exact runtime fingerprint.
+The platform deterministically ranks free serial backtest pools by least-recent
+use with attempt-bound tie-breaking, then creates/replays an exact worker-bound
+lease and reservation identity. Lease duration is explicit host configuration;
+there is still at most one Nautilus node per process. The existing atomic
+PostgreSQL dispatch transaction remains the final capacity arbiter under races.
+Exact concurrent lease-insert races replay only when the persisted lease bytes
+match.
+
+Validation at the implementation commit: fleet/profile, preparation,
+PostgreSQL dispatch, composition, and worker-state tests passed `40/40`; the
+complete Strategy Lab package plus schema-migration suite passed `1,379` tests.
+The one Unix-domain-socket RPC case denied by the default sandbox passed
+separately with scoped local-socket access. Ruff check/format, MyPy for the
+three changed production modules, and `git diff --check` passed. The source
+commit is pushed to `origin/feat/strategy-lab-v2`.
+
+The profile selector and its persisted-dispatch path are now covered, but live
+concurrent PostgreSQL/Redis scaling and crash recovery across multiple Redis
+consumers remain unproven. Docker Buildx is still absent and default sandbox
+access to the Docker socket is denied; these constrain live Compose/browser
+acceptance, not continued package-owned work. Stable Nautilus labeling is not a
+gate: exact-pinned RC5 is accepted for local backtests after four checks;
+forward shadow still needs event-tape parity as the fifth check.
+
+Next action: validate concurrent profile assignment/admission and recovery with
+local PostgreSQL/Redis and multiple consumers, then continue domain-backed
+mutations, remaining metrics, forward-shadow event-tape parity, and the full
+Compose/browser profile. Preserve the one-node-per-process invariant and leave
+unsupported option admission fail-closed.
+
+## 2026-10-05 - Local worker-fleet integration evidence
+
+Commit `7f7d8be6f1083159d408a1eff8e9720d4b1e9bf3` closes the stale integration
+assumptions exposed by the platform-owned fleet selector and RC5 backtest
+authority. The PostgreSQL RPC integration now registers a runtime-matching
+serial profile and constructs its preparation context from the exact four-check
+RC5 conformance result, instead of reading the removed context-owned worker
+profile or asserting the superseded compatibility-only policy.
+
+Added live local-service integration coverage for two race/recovery boundaries:
+two concurrent PostgreSQL reservations against one worker profile produce
+exactly one accepted reservation and one saturated result, and a second real
+Redis consumer reclaims a pending entry abandoned by the first consumer, then
+ACKs it only after the durable completion handler succeeds. The existing
+PostgreSQL lease-recovery and search-dispatch/RPC tests also pass against the
+local service container.
+
+Validation at the source commit: the Strategy Lab integration directory passed
+`4/4` using disposable local PostgreSQL/Redis containers; Ruff, formatting, and
+`git diff --check` passed. Repository-scoped cleanup left no containers,
+volumes, or Testcontainers sessions and removed no images. This proves focused
+database/stream adapter behavior, not runtime scaling of the full Compose
+application or browser acceptance.
+
+There is no stable-Nautilus blocker and no external dependency blocks continued
+implementation. Exact-pinned RC5 remains permitted for local authoritative
+backtests after the four backtest checks; event-tape parity remains the fifth
+check for broker-free forward shadow, and prereleases cannot connect to brokers
+or control real capital. Docker socket access was granted for these focused
+local tests; Docker Buildx is still absent and constrains only the final
+Compose/browser profile. Remaining product work includes domain-backed
+mutation completeness, remaining result metrics, forward event-tape parity,
+and live multi-replica/full-stack acceptance.
+
+Next action: continue the branch-owned domain mutation and versioned metric gaps,
+then close forward event-tape parity. Keep the final Compose/browser profile
+visible as an acceptance gate, not as a reason to pause package implementation.
