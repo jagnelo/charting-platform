@@ -1,5 +1,43 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-10-05 — Boolean pin-menu keyboard access and current-tip diagnostics
+
+At product commit `be55d1af2de8037671d65e33d5b1d5120e11f38c`, the Virtual
+Watchlist Boolean-header pin menu can be invoked with `Shift+F10` or the Context
+Menu key. Keyboard invocation anchors it to the header; the existing right-click
+and Ctrl/Meta-click gestures remain unchanged. The focused component suite passed
+`80/80`, the authenticated F8u-boolean browser flow passed `1/1`, and the full
+frontend/build checks passed. This is an interaction/accessibility update, not
+a new visual reference or screenshot baseline.
+
+At the same exact tip, the functional Playwright project ran `174` cases: `171`
+passed, `2` documented skips, and the F8s-family-matrix diagnostic failed after
+its application assertions because local API calls reported
+`ERR_NETWORK_CHANGED`. The unchanged focused replay passed `1/1`; the full-run
+failure remains recorded.
+
+The previous completed 104-case four-project visual matrix was `93/104`, with
+ten protected screenshot differences and one transient startup failure that
+passed focused replay. A post-change full visual attempt was stopped after broad
+baseline deltas. After a fresh seeded database, an application-shell diagnostic
+still differed in all four pinned viewport projects:
+
+| Pinned project | Different pixels |
+| --- | ---: |
+| `visual-1080p-100` | 42,759 |
+| `visual-1080p-125` | 44,586 |
+| `visual-1440p-100` | 50,854 |
+| `visual-1440p-125` | 53,003 |
+
+Each shell delta exceeds the unchanged `0.5%` screenshot threshold. This
+four-case diagnostic is not a full matrix result and does not supersede the
+previous 104-case result. Artifacts are under
+`/tmp/tc2000-current-tip-boolean-pin-full-functional-20261005`,
+`/tmp/tc2000-current-tip-family-matrix-replay-20261005`, and
+`/tmp/tc2000-current-tip-boolean-pin-visual-smoke-20261005`. No reference,
+mask, threshold, skip, fallback oracle, or acceptance rule changed. Staging is
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; provider and ETF remain outside it.
+
 ## 2026-10-05 — Exact-tip full browser replay and capability-menu guard
 
 At pushed branch tip `9b04cee36d32d5064fc4edb3c512d98b88c38040` (product

@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-05
 
+## 2026-10-05 — Keyboard invocation for Boolean pin menu and exact-tip results
+
+Product commit `be55d1af2de8037671d65e33d5b1d5120e11f38c` extends the V25
+Boolean-header pin menu with `Shift+F10` and Context Menu key invocation while
+preserving right-click and Ctrl/Meta-click. The focused VirtualWatchlistTool
+suite passed `80/80`; full serial frontend Vitest passed `129` files / `1,202`
+tests; the Docker production build passed; and authenticated F8u-boolean passed
+`1/1`.
+
+The exact-tip authenticated functional run completed `174` cases: `171` passed,
+`2` documented skips, and one F8s-family-matrix diagnostic failure caused by
+local API `ERR_NETWORK_CHANGED` requests after application assertions. Its
+unchanged focused replay passed `1/1`, but that does not replace the full result.
+The previous completed visual matrix was `93/104`, with ten protected
+screenshot diffs and one transient setup failure. A current-tip full visual
+attempt was stopped after broad deltas; a fresh seeded-database shell smoke
+still differed in all four viewport projects. Preserve these results without
+changing visual oracles, masks, thresholds, skips, or acceptance rules. The
+product commit is pushed and remote-verified at the exact source SHA. The
+assigned stack cleanup left zero attributable resources.
+
+Staging remains `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; provider is
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`; ETF is
+`08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5`. Both dependencies remain outside
+staging, so R2/R3 integration stays deferred. Continue independent TC-owned
+work; the exhaustive local helper still has the Docker Buildx `--name` mismatch.
+
 ## 2026-10-05 — Boolean watchlist-column pin interaction
 
 The V25 pinning reference shows Boolean/tag results pinned to the top while
