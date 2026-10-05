@@ -103,11 +103,11 @@
   "head": "721b0efbea486361fa0632b2f874353ca7802127",
   "implementation_sha": "721b0efbea486361fa0632b2f874353ca7802127",
   "interrupted": false,
-  "last_checkpoint": "2026-10-05T10:40:27+00:00",
+  "last_checkpoint": "2026-10-05T12:14:18+00:00",
   "last_human_progress_update": "2026-10-05T10:35:19+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue bounded TC-owned workstation and Study/Strategy UI behavior while preserving the branch boundary and visual acceptance policy. Rerun the full authenticated browser and four-project visual matrices at a clean current product tip; retain the ten reviewed differences unless a source defect is proven. Refresh upstream refs periodically; defer R2/R3 consumer and shared-path reconciliation until provider-platform and ETF changes reach staging. Rerun the exact full integration gate when host Docker Buildx is available, then checkpoint exact-tip evidence and stop at ready_for_human_review.",
-  "plan_hash": "23f465619e23bcde143fb1b8e2429c340e0182d85e18684b9278ec2b238922d1",
+  "next_action": "Continue a bounded TC-owned workstation/Study/Strategy UI slice and diagnose the intermittent full-run browser failures (especially narrow-dock Python Library mounting and readiness interceptions) without changing assertions. Preserve the three raw full-suite outcomes and all ten protected visual comparisons. Refresh upstream refs periodically; defer R2/R3 consumer and shared-path reconciliation until provider-platform and ETF reach staging. Rerun exact integration when the host Buildx dependency is available, then stop at ready_for_human_review.",
+  "plan_hash": "cd4d44203d496e6fa35fbe0d66299d3aa7f05e6f24618cad5aae3c752ede871e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -121,11 +121,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "The latest complete authenticated Chromium and visual matrices predate product commit 721b0ef and must be rerun at a clean exact product tip. Ten protected screenshot differences remain open without baseline or policy changes. The host's missing Docker Buildx blocks the generic full integration helper; ordinary scoped Compose validation is available. Provider-platform and ETF promotion into staging is required before consumer integration and shared-path reconciliation. Preserve visual acceptance policy and branch ownership boundaries.",
+    "current_blocker": "At product source 721b0ef, the latest full authenticated Chromium run was 178/182 with three documented skips and one intermittent narrow Python Library mount failure; two earlier runs had different intermittent failures. All six distinct failures passed unchanged focused replays, but the full functional gate is not green. The visual matrix is 94/104 with ten protected screenshot differences and unchanged exact pixel counts. The generic integration helper cannot use this host's missing Docker Buildx plugin, though scoped Compose/browser validation passed. Provider/ETF tips dff3e44 and 88132e9 are not in staging; defer consumer integration and shared-path reconciliation until promotion. Preserve all acceptance and ownership rules.",
     "current_phase": "R1_R6_KEYBOARD_ACCESSIBILITY_AND_EXACT_TIP_REPLAY",
-    "next_action": "Continue bounded TC-owned workstation and Study/Strategy UI behavior while preserving the branch boundary and visual acceptance policy. Rerun the full authenticated browser and four-project visual matrices at a clean current product tip; retain the ten reviewed differences unless a source defect is proven. Refresh upstream refs periodically; defer R2/R3 consumer and shared-path reconciliation until provider-platform and ETF changes reach staging. Rerun the exact full integration gate when host Docker Buildx is available, then checkpoint exact-tip evidence and stop at ready_for_human_review.",
+    "next_action": "Continue a bounded TC-owned workstation/Study/Strategy UI slice and diagnose the intermittent full-run browser failures (especially narrow-dock Python Library mounting and readiness interceptions) without changing assertions. Preserve the three raw full-suite outcomes and all ten protected visual comparisons. Refresh upstream refs periodically; defer R2/R3 consumer and shared-path reconciliation until provider-platform and ETF reach staging. Rerun exact integration when the host Buildx dependency is available, then stop at ready_for_human_review.",
     "total": 9,
-    "updated_at": "2026-10-05T10:40:27+00:00"
+    "updated_at": "2026-10-05T12:14:18+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

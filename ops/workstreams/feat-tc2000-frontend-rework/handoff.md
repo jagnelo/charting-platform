@@ -17532,6 +17532,65 @@ browser checks work. Direct remote refs at this checkpoint are TC
 staging. Keep R2/R3 and shared-path reconciliation deferred. Continue bounded
 TC-owned UI/Study/Strategy work and keep the goal active.
 
+## 2026-10-05 — Current-tip full browser and visual matrices
+
+Product source remains `721b0efbea486361fa0632b2f874353ca7802127`; exact-tip
+browser/visual results are documented in pushed documentation checkpoint
+`d1338487446b46644c2237d59333f6aaa0aa7c72`. The frontend serial Vitest run
+passed `129` files / `1,206` tests;
+the production type-check/build passed; focused VirtualWatchlistTool and
+CodeLibraryTool suites passed `81/81` and `12/12`.
+
+Three complete pinned Chromium runs executed all `182` cases serially at the
+current product source. The initial full run passed `177`, skipped `3`
+documented cases, and failed `F8r-breadth-narrow` plus
+`F8s-market-map-python-output`. The clean-volume rerun passed `176`, skipped
+`3`, and failed the two all-family readiness presentation cases plus
+`F8x-library`. A second clean-volume rerun passed `178`, skipped `3`, and
+failed `F8r-python-library-narrow`. Each of those six distinct failures passed
+an unchanged focused replay (the two readiness cases passed together `2/2`).
+The raw full-run failures remain recorded: focused retries do not convert the
+full suite to green. The recurring symptom is intermittent failure to mount a
+selected tool window or complete a readiness response interception; no source
+change or test-policy relaxation is justified yet. Current exact-tip full
+functional gate remains open.
+
+The complete pinned Playwright 1.62.1 four-project visual matrix ran `104`
+cases: `94` passed and the ten known protected screenshot comparisons failed
+after their state assertions. Pixel differences are unchanged:
+
+| Project | Workspace floating | Study structured result | Study sandbox error |
+| --- | ---: | ---: | ---: |
+| `visual-1080p-100` | 8,995 | 109,320 | 13,360 |
+| `visual-1080p-125` | 9,825 | 105,698 | 11,188 |
+| `visual-1440p-100` | 8,995 | 22,035 | Passed |
+| `visual-1440p-125` | 9,825 | 21,352 | Passed |
+
+The visual manifest validated before execution. No baseline, mask, threshold,
+skip, fallback, or acceptance policy changed. Local actual/diff screenshots
+remain under ignored `frontend/test-results/` and may be overwritten by later
+Playwright runs.
+
+The assigned six-service Compose project was stopped. Its four generated
+backend/worker/research-runner/frontend image tags, four fixture volumes, and
+network were removed. Final resource accounting reported zero containers,
+volumes, unique image bytes, test sessions, and unknown resources. Buildx is
+absent (`docker buildx` is not a Docker command here), but ordinary scoped
+Compose built, started, and validated the stack successfully. Direct refs at
+2026-10-05 12:11 UTC: TC `d1338487446b46644c2237d59333f6aaa0aa7c72`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF
+`dff3e44b96b2c93789cb4bf4872be34326ee5c39`. Direct ancestry checks confirm
+neither upstream tip is in staging. The ETF commit was fetched only into
+`FETCH_HEAD`; no other branch/worktree was changed. Keep the goal active and
+continue only within TC-owned frontend/Study/Strategy scope.
+
+The branch workstream validator passed; the TC scope guard accepted all `129`
+changed paths and all six fail-closed self-tests passed. Session JSON and the
+validation JSONL parse, the recorded plan hash matches `plan.yaml`, and
+`git diff --check` is clean. The current checkpoint records only `AC1/9`
+complete; no review-ready or full-gate claim is made.
+
 ## 2026-10-04 — Clean pinned full browser rerun
 
 The complete seeded Playwright 1.62.1 run executed all `282` cases in `17.5m`:

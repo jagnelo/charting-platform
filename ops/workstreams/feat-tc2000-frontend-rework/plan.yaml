@@ -20,19 +20,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Product commit 721b0efbea486361fa0632b2f874353ca7802127 is pushed and
-  passes the full serial frontend suite (129 files / 1,206 tests), production
-  type-check/build, focused watchlist and Code Library suites (81/81 and
-  12/12), plus authenticated F8u-boolean (1/1; the browser flow preceded the
-  separate Code Library ID correction). The last complete authenticated
-  Chromium suite is still the prior exact product tip 1d52ab (172 passed, five
-  documented skips, zero failures), and the last complete visual matrix is
-  also at 1d52ab (94/104). Review found no justified source or oracle changes
-  for its ten protected screenshot differences. The generic full integration
-  helper still encounters missing Docker Buildx on this host; ordinary scoped
-  Compose builds and exact-stack browser tests succeeded. Provider-platform
-  and ETF branches remain outside staging, so R2/R3 consumer reconciliation
-  stays deferred until coordinator promotion.
+  At product source 721b0efbea486361fa0632b2f874353ca7802127, the complete
+  serial frontend suite passed (129 files / 1,206 tests), production
+  type-check/build passed, focused watchlist and Code Library suites passed
+  81/81 and 12/12, and authenticated F8u-boolean passed. Three full serial
+  authenticated Chromium runs at this source produced 177/182 (3 documented
+  skips, 2 failures), 176/182 (3 skips, 3 failures), and 178/182 (3 skips, 1
+  failure). All six distinct failing cases passed unchanged focused replay, but
+  the full exact-tip functional suite is not green; preserve all raw runs and
+  diagnose the intermittent tool-mount/readiness behavior without weakening
+  assertions. The exact-tip visual board completed 94/104 with the same ten
+  protected comparisons and pixel counts as the prior run. The generic full
+  integration helper still cannot use Docker Buildx on this host; ordinary
+  scoped Compose builds, health checks, and browser tests succeeded. Docker
+  resources were fully cleaned. Provider-platform and ETF remain outside
+  staging, so R2/R3 reconciliation is deferred until coordinator promotion.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -273,23 +275,27 @@ progress:
   current_phase: R1_R6_KEYBOARD_ACCESSIBILITY_AND_EXACT_TIP_REPLAY
   next_action: >-
     Continue bounded TC-owned workstation and Study/Strategy UI behavior work,
-    preserving the branch boundary and visual acceptance policy. Rerun the
-    full authenticated browser and four-project visual matrices at a clean
-    current product tip; retain the ten reviewed differences unless a source
-    defect is proven. Refresh upstream refs periodically and defer R2/R3
-    consumer and shared-path semantic reconciliation until provider-platform
-    and ETF changes are promoted to staging. Rerun the exact full integration
-    gate when the host Buildx dependency is available, then checkpoint
-    exact-tip evidence and stop at ready_for_human_review.
+    preserving the branch boundary and visual acceptance policy. Diagnose the
+    six intermittent full-run browser failures, especially narrow-dock Python
+    Library mounting and the readiness response interceptions; retain the
+    full-run receipts and never relax assertions. Continue only source changes
+    with a TC-owned product justification. Refresh upstream refs periodically
+    and defer R2/R3 consumer/shared-path reconciliation until provider-platform
+    and ETF reach staging. Rerun exact integration after host Buildx is
+    available, then checkpoint exact-tip evidence and stop at
+    ready_for_human_review.
   current_blocker: >-
-    The latest complete full browser and visual matrices predate product commit
-    721b0ef and must be rerun at a clean exact product tip. Ten protected
-    screenshot differences remain open without baseline or policy changes. The
-    host's missing Docker Buildx blocks the generic full integration helper,
-    while ordinary scoped Compose validation is available. Provider-platform
-    and ETF promotion into staging is required before consumer integration and
-    shared-path reconciliation. Preserve visual acceptance policy and branch
-    ownership boundaries.
+    The latest visual matrix at source 721b0ef is 94/104 with ten protected
+    local-reference differences; the latest full authenticated run is 178/182
+    with three documented skips and one intermittent narrow Python Library
+    mount failure, which passed unchanged focused replay 1/1. Two earlier full
+    runs had different intermittent failures; all six distinct cases passed
+    focused replay. This is not a green full functional gate. Preserve the raw
+    results and diagnose the flakiness without reducing assertions. The generic
+    integration helper cannot use this host's missing Docker Buildx plugin,
+    though ordinary assigned-stack Compose/browser runs work. Provider/ETF
+    staging promotion remains required before R2/R3 integration. Preserve
+    visual acceptance and branch-ownership boundaries.
 historical_implementation_records:
   - "Exact product-tip pinned validation at be55d1af completed the 174-case functional suite with 172 passed, 2 documented skips, and zero failures. The four-project visual matrix completed all 104 cases: 93 passed, ten protected screenshot differences remain (workspace-floating all four viewports; Study structured-result all four; Study sandbox-error at the two 1080p scales), and one column-editor diagnostic failure from ERR_NETWORK_CHANGED passed unchanged replay 4/4. A separate four-project pinned shell smoke passed 4/4; host-only shell rendering failed glyph pixels with host Arial resolving to Nimbus Sans versus pinned Noble resolving Liberation Sans, consistent with environment/font rendering rather than geometry. Full matrix artifacts: /tmp/tc2000-pinned-visual-full-3t8qbk; functional artifacts: /tmp/tc2000-pinned-functional-full-9Iq2rG. Scoped Docker cleanup left zero resources. No visual acceptance policy changed."
   - "Product commit be55d1af2de8037671d65e33d5b1d5120e11f38c adds keyboard invocation for the TC-owned Virtual Watchlist Boolean header pin menu using Shift+F10 and the Context Menu key, while preserving right-click and Ctrl/Meta-click behavior and anchoring the menu at the header for keyboard use. Focused VirtualWatchlistTool coverage passed 80/80; full serial frontend Vitest passed 129 files / 1,202 tests; the Docker production build (including vue-tsc and Vite build) passed; and authenticated F8u-boolean passed 1/1. The exact-tip 174-case functional run passed 171, skipped 2 documented cases, and failed one F8s-family-matrix diagnostic because unrelated local API requests reported ERR_NETWORK_CHANGED after assertions; unchanged focused replay passed 1/1. The completed prior-tip 104-case visual matrix was 93/104 with ten protected screenshot differences; a post-change full visual attempt was stopped after broad deltas, and a fresh seeded-database shell smoke differed at all four viewports by 42,759 / 44,586 / 50,854 / 53,003 pixels. No screenshot oracle, mask, threshold, skip, or acceptance policy changed. The exact branch commit is pushed and direct GitHub refs verified; staging remains 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35, provider is 88132e9145a08d1c935a0111b3dba0fbd88bdff1, and ETF is 08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5. Both dependencies remain outside staging."
@@ -592,6 +598,7 @@ historical_implementation_records_continued:
   - "Product commit 816fd82ac351770deb455e767a59f28e68c2dde9 persists each concrete symbol-link group's symbol and canonical instrument id, Yellow's last received symbol and timeframe, and restores that state before workstation tools mount. Workspace revision conflicts now merge only the known link settings per group, preferring the current local group selection; unrelated setting conflicts retain the recovery-copy path. Full frontend Vitest passed 128 files / 1,188 tests; workspace-store tests passed 75/75; type-check and production build passed; the exact-commit authenticated Chromium F8m wildcard save/reload flow passed 1/1; TC scope validation passed for 122 changed paths and all six self-tests. No provider/ETF-owned behavior or visual reference, threshold, mask, skip, fallback, or acceptance policy changed. The Docker Buildx plugin is absent on this host, so the normal stack target stopped before building; the same worktree-scoped Compose project built successfully with the default builder and its six containers, four volumes, network, and four generated images were removed after the browser check."
   - "Product commit 3958886632af62e0207fb02ed6961b16fd1a600c adds the V25 Boolean watchlist-header pin menu, Ctrl/Meta-click pin toggle, pinned marker, and accessible pinned-state announcement without changing sort state. It also reads pin settings from the canonical live workspace configuration so detached Golden Layout tool roots reflect promotion-time updates. Focused watchlist tests passed 79/79; the 100k range-band benchmark harness now uses lightweight coordinate/canvas stubs while retaining its 1,000 ms limit and exact 199,999 lineTo count; complete serial frontend coverage passed 129/129 files and 1,201/1,201 tests at 85.13%; type-check/build passed; authenticated pinned-browser F8u-boolean passed 1/1 with no critical browser diagnostics. The first F8u attempt exposed stale detached-root state; the unchanged flow passed after rebuilding the exact worktree bundle and fixing the live-config read. Service logs showed only one frontend health probe racing backend startup; all six services were healthy. Scoped cleanup removed the six assigned containers and four images and resource accounting found zero attributable resources. Two older branch-named Docker images carry the `unscoped` label, predate this run, and have no container references; they were preserved because their ownership is not attributable to this worktree. No visual oracle, baseline, mask, threshold, skip, fallback, acceptance policy, provider ownership, or ETF ownership changed. Current exact-tip full functional and four-viewport visual reruns remain pending."
   - "Product commit 721b0efbea486361fa0632b2f874353ca7802127 connects the Boolean watchlist header's `aria-controls` to its conditional pin menu, with regression coverage for regular and stacked headers and detached watchlist roots. It also replaces Code Library `useId()` form IDs with a component-instance UID after a two-root test exposed duplicate `code-library-create-v-0` IDs. Focused watchlist tests passed 81/81; Code Library tests passed 12/12; full serial frontend Vitest passed 129 files / 1,206 tests; production type-check/build passed; authenticated F8u-boolean passed 1/1 (the browser flow predates the separate Code Library ID correction). The 10 protected visual diffs were reviewed without finding a justified source or oracle change: workspace-floating references predate the current five-row fixture assertion; Study structured-result references predate current promotion controls; two 1080p sandbox-error comparisons remain pixel-only with state assertions passing. No reference, mask, threshold, skip, or policy changed. Exact stack cleanup and resource audit left zero attributable Docker resources. Current direct refs: TC `721b0efbea486361fa0632b2f874353ca7802127`, staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, ETF `26d9f84b5ac35ed0fe0b31b196caae1a6ee05139`; neither dependency is in staging. The current full authenticated and visual matrices are not yet rerun at 721b0ef."
+  - "At product source 721b0efbea486361fa0632b2f874353ca7802127, three complete pinned serial authenticated Chromium runs executed 182 cases each. Results were 177 passed / 3 documented skipped / 2 failed; then 176 passed / 3 skipped / 3 failed on fresh volumes; then 178 passed / 3 skipped / 1 failed on fresh volumes. Six distinct failures were F8r-breadth-narrow, F8s-market-map-python-output, the two all-family readiness presentation cases, F8x-library, and F8r-python-library-narrow. Every unchanged focused replay passed 1/1 (readiness pair 2/2); no test or acceptance rule was changed. The latest full result remains 178/182 with one intermittent narrow Python Library window-mount failure and is not a green full gate. Exact-tip four-project visual Playwright 1.62.1 matrix: 94/104; 10 screenshot differences after interaction/state checks: workspace-floating at all four viewports (8,995 / 9,825 / 8,995 / 9,825 pixels), Study structured-result at all four (109,320 / 105,698 / 22,035 / 21,352), and Study sandbox-error at 1080p/100 and 1080p/125 (13,360 / 11,188). These exactly match the protected prior categories/counts. No reference, mask, threshold, skip, fallback, or acceptance policy changed. Full serial frontend Vitest passed 129 files / 1,206 tests; production type-check/build passed. Visual manifest validated. Assigned test stack cleanup removed its containers, volumes, network, and four generated image tags; final resource audit reported zero containers, volumes, unique image bytes, test sessions, or unknown resources. Current direct refs remain staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, ETF `26d9f84b5ac35ed0fe0b31b196caae1a6ee05139`; neither dependency is in staging."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."
