@@ -9877,3 +9877,34 @@ reconciliation gates. RC5 remains permitted for four-check local backtests;
 forward shadow still needs event-tape parity, and final Compose/browser/live
 service acceptance remains environment-limited by missing Docker Buildx/socket
 access.
+
+## 2026-10-05 - Durable resource idempotency conflict and race replay
+
+The resource-create application path now maps a persisted idempotency-key
+content collision to the API's typed `409 idempotency_conflict`, without
+requiring the prior request receipt to be re-exposed. Resource conflict
+resolutions therefore support a safe receipt-free error response while replay
+resolutions still require their durable receipt. At the PostgreSQL aggregate
+boundary, a lost unique-key/CAS write is reconciled in a fresh transaction: an
+identical concurrent create replays the winning receipt; a real create/CAS
+conflict remains a conflict or rejection and is never retried as a second
+mutation.
+
+Commit `c13d51a4c0ca933fe390738244a9c6075eb5e962` contains the implementation
+and regressions. The focused storage/resource/API tests passed `14/14`; the full
+Strategy Lab v2 package passed `1,348/1,348` tests in 33.35 seconds with scoped
+Unix-domain-socket access. Ruff check/format and focused MyPy passed for all
+nine changed files, and `git diff --check` passed. The concurrency regression
+uses a deterministic SQL-session race double, not a live PostgreSQL service;
+the application-level changed-content regression uses the in-memory aggregate
+transaction double. The implementation commit is pushed to
+`origin/feat/strategy-lab-v2`.
+
+Next: compose `PostgresStrategyLabV2Adapter.create_resource`,
+`PostgresAggregateStore`, and `PostgresResourceReader` in one durable-store
+regression that reconstructs the adapter between calls and proves accepted
+resource reads, exact replay, owner isolation, and typed idempotency conflict.
+Then continue remaining domain/API lifecycle gaps. Shared router registration
+and schema integration stay behind the existing staging reconciliation gates;
+RC5 remains eligible for qualified local backtests, while forward shadow still
+requires event-tape parity.
