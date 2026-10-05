@@ -10515,3 +10515,27 @@ Next: continue the AC-DOMAIN/AC-API lifecycle audit and any remaining versioned
 metric gaps, then implement forward-shadow event-tape parity. Keep full
 Compose/browser runtime acceptance open without making it a package-development
 gate.
+
+## 2026-10-05 - PostgreSQL-backed resource API round trip
+
+Added `test_resource_api_postgres.py` to exercise the unregistered Strategy Lab
+router through its real HTTP boundary and the production PostgreSQL aggregate
+store/resource reader. The test creates a typed strategy, reconstructs the
+application adapter, and verifies durable exact replay, typed conflict on
+changed content under the same idempotency key, owner-scoped detail lookup,
+paginated collection reads, and absence for a foreign owner. The create/read
+path is now proven end to end rather than only with the in-memory API adapter
+and separate persistence tests.
+
+Validation: the complete Strategy Lab PostgreSQL/Redis integration directory
+passed `5/5`, including the new API round-trip test. Ruff check/format and
+`git diff --check` passed. Scoped cleanup found no remaining worktree
+containers, images, volumes, or Testcontainers sessions and performed no
+host-wide prune. This does not prove shared-router registration or the final
+Compose/browser profile.
+
+Next: continue the AC-DOMAIN/AC-API lifecycle audit and remaining versioned
+metric gaps, then complete forward-shadow event-tape parity. Keep shared-path
+integration behind the provider, ETF, and TC2000 staging gates, and keep the
+final Compose/browser profile open as acceptance work rather than a blocker to
+package implementation.
