@@ -230,6 +230,40 @@ class PostgresForwardAccountAdapter:
             async with session.begin():
                 return await self._load(session, owner_id, instance_id)
 
+    async def load_event_settlement(
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        event_id: str,
+    ) -> ForwardAccountHistoryEntry | None:
+        """Load one verified durable event receipt before replaying native work."""
+
+        if not isinstance(instance_id, str) or not instance_id.strip():
+            raise ValueError("instance_id must not be empty")
+        if not isinstance(event_id, str) or not event_id.strip():
+            raise ValueError("event_id must not be empty")
+        owner_id = _principal_id(principal)
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                current = await self._load(session, owner_id, instance_id)
+                if current is None:
+                    return None
+                history = await self._load_history(session, owner_id, instance_id)
+                if not history:
+                    raise ValueError("PostgreSQL forward account history is missing its root")
+                if self._replay_history(history) != current:
+                    raise ValueError("forward account history differs from stored state")
+                matches = tuple(
+                    item
+                    for item in history[1:]
+                    if item.event is not None and item.event.event_id == event_id
+                )
+                if len(matches) > 1:
+                    raise ValueError("PostgreSQL forward account history repeats an event id")
+                return matches[0] if matches else None
+
     async def apply(
         self,
         *,

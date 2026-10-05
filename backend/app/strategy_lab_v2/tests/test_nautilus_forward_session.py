@@ -18,6 +18,7 @@ from app.strategy_lab_v2.contracts import (
 from app.strategy_lab_v2.dispatch import DispatchRequest
 from app.strategy_lab_v2.forward_account import (
     ForwardAccountEvent,
+    ForwardAccountHistoryEntry,
     ForwardRuntimeExecutionReceipt,
     apply_forward_account_event,
     initial_forward_account_state,
@@ -40,6 +41,7 @@ from app.strategy_lab_v2.nautilus_forward_session import (
     AuthenticatedForwardPortfolioContextWindowResolver,
     NautilusForwardExecutionResult,
     NautilusForwardSessionEventHandler,
+    NautilusForwardSessionRuntime,
     PersistentNautilusForwardSessionRuntime,
     ResolvedForwardContextWindow,
     ResolvedForwardPortfolioContextWindows,
@@ -176,6 +178,17 @@ class AccountStore:
         self.order = order
         self.events: list[ForwardAccountEvent] = []
         self.receipts: list[ForwardRuntimeExecutionReceipt] = []
+        self.existing_settlements: dict[str, ForwardAccountHistoryEntry] = {}
+
+    async def load_event_settlement(
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        event_id: str,
+    ) -> ForwardAccountHistoryEntry | None:
+        assert principal == OWNER_ID
+        return self.existing_settlements.get(f"{instance_id}:{event_id}")
 
     async def apply(
         self,
@@ -291,7 +304,7 @@ def _window(
 def _handler(
     canonical: CanonicalForwardEvent,
     window: ForwardStrategyContextWindow,
-    runtime: Runtime,
+    runtime: NautilusForwardSessionRuntime,
     store: AccountStore,
     *,
     positions: dict[str, PositionSnapshot] | None = None,
@@ -317,7 +330,7 @@ def _handler(
 def _portfolio_handler(
     canonical: CanonicalForwardEvent,
     windows: dict[str, ForwardStrategyContextWindow],
-    runtime: Runtime,
+    runtime: NautilusForwardSessionRuntime,
     store: AccountStore,
     *,
     positions: dict[str, PositionSnapshot] | None = None,
@@ -384,6 +397,87 @@ async def test_forward_session_persists_native_effects_before_context_commit_and
     )
     assert window.last_event_key == (canonical.event_time, canonical.sequence)
     assert runtime.restore_calls == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("scenario", ("valid", "wrong_binding", "missing_receipt"))
+async def test_forward_redelivery_uses_durable_receipt_without_native_execution(
+    scenario: str,
+) -> None:
+    canonical = _canonical()
+    entry, work_item = _dispatch(canonical)
+    delivery_factory = create_nautilus_forward_delivery_callback_factory(
+        PayloadResolver(_payload(canonical)),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+    )
+    delivery = await delivery_factory(entry, work_item)
+    event = ForwardAccountEvent(
+        INSTANCE_ID,
+        canonical.event_id,
+        content_digest(canonical),
+        canonical.sequence,
+        canonical.event_time,
+    )
+    initial = initial_forward_account_state(INSTANCE_ID, base_currency="USD")
+    execution_receipt = ForwardRuntimeExecutionReceipt(
+        INSTANCE_ID,
+        canonical.event_id,
+        content_digest(canonical),
+        delivery.delivery_binding.fingerprint,
+        content_digest("prior-context-preparation"),
+        delivery.delivery_binding.pre_event_checkpoint_fingerprint,
+        content_digest("persisted-runtime-session"),
+        content_digest("persisted-native-output"),
+    )
+    settled = apply_forward_account_event(
+        initial,
+        event,
+        execution_receipt=execution_receipt,
+    )
+    assert settled.state is not None
+    stored_receipt: ForwardRuntimeExecutionReceipt | None = execution_receipt
+    if scenario == "wrong_binding":
+        stored_receipt = replace(
+            execution_receipt,
+            delivery_binding_fingerprint=content_digest("different-delivery"),
+        )
+    elif scenario == "missing_receipt":
+        stored_receipt = None
+    history = ForwardAccountHistoryEntry(
+        1,
+        initial.fingerprint,
+        settled.state.fingerprint,
+        event=event,
+        execution_receipt=stored_receipt,
+    )
+    order: list[str] = []
+    store = AccountStore(
+        ForwardAccountStateResolution(
+            ForwardAccountStateDecision.REPLAY_EXISTING,
+            settled.state,
+            event.event_fingerprint,
+            execution_receipt_fingerprint=execution_receipt.fingerprint,
+        ),
+        order,
+    )
+    store.existing_settlements[f"{INSTANCE_ID}:{canonical.event_id}"] = history
+    window = _window()
+    runtime = Runtime(order)
+
+    result = await _handler(canonical, window, runtime, store)(entry, work_item)
+
+    expected = WorkerHandleDecision.COMPLETE if scenario == "valid" else WorkerHandleDecision.REJECT
+    assert result.decision is expected
+    if scenario == "valid":
+        assert result.receipt_digest is not None
+        assert order == ["persist"]
+        assert store.receipts == [execution_receipt]
+    else:
+        assert result.receipt_digest is None
+        assert order == []
+        assert store.receipts == []
+    assert len(runtime.preparations) == 0
+    assert window.last_event_key is None
 
 
 @pytest.mark.asyncio
@@ -458,9 +552,11 @@ async def test_persistent_native_runtime_restore_clears_only_volatile_idempotenc
     runtime = PersistentNautilusForwardSessionRuntime(factory)
 
     first = await runtime.execute(delivery, preparation)
+    checkpoint_fingerprint = work_item.dispatch.pre_event_checkpoint_fingerprint
+    assert checkpoint_fingerprint is not None
     await runtime.restore(
         instance_id=INSTANCE_ID,
-        checkpoint_fingerprint=work_item.dispatch.pre_event_checkpoint_fingerprint,
+        checkpoint_fingerprint=checkpoint_fingerprint,
     )
     replayed = await runtime.execute(delivery, preparation)
 

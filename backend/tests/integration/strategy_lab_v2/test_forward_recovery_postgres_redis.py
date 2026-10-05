@@ -259,6 +259,14 @@ async def test_forward_recovery_uses_postgres_receipt_before_redis_replay_ack(
         resolved_applied = resolved.account_state.applied_events[0]
         assert isinstance(resolved_applied, ForwardAppliedAccountExecutionEvent)
         assert resolved_applied.execution_receipt == execution_receipt
+        persisted_settlement = await account_store.load_event_settlement(
+            principal=owner,
+            instance_id=instance_id,
+            event_id=canonical.event_id,
+        )
+        assert persisted_settlement is not None
+        assert persisted_settlement.event == account_event
+        assert persisted_settlement.execution_receipt == execution_receipt
 
         # Worker C reclaims; Postgres reports REPLAY_EXISTING and only then Redis is ACKed.
         worker_c = RedisDispatchWorker(

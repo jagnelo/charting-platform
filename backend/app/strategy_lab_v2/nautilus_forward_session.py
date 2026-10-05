@@ -20,6 +20,7 @@ from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_s
 from app.strategy_lab_v2.contracts import ForwardInstance, ForwardState
 from app.strategy_lab_v2.forward_account import (
     ForwardAccountEventBinding,
+    ForwardAccountHistoryEntry,
     ForwardAccountState,
     ForwardRuntimeExecutionReceipt,
 )
@@ -853,6 +854,67 @@ class NautilusForwardSessionEventHandler:
             return _retry(entry, f"forward delivery preparation failed: {type(error).__name__}")
         if not isinstance(delivery, NautilusForwardDeliveryInput):
             return _reject(entry, "forward delivery factory returned an invalid input")
+
+        # A Redis redelivery may follow a PostgreSQL commit whose XACK was
+        # interrupted. Consult the verified account journal before resolving
+        # context or starting Nautilus, so that window ACKs only replay durable
+        # evidence and never execute the same native event twice.
+        settlement_lookup = getattr(self._account_store, "load_event_settlement", None)
+        if callable(settlement_lookup):
+            canonical = delivery.tape.envelopes[0].canonical_event
+            try:
+                existing = settlement_lookup(
+                    principal=self._principal,
+                    instance_id=delivery.delivery_binding.instance_id,
+                    event_id=canonical.event_id,
+                )
+                existing = await existing if inspect.isawaitable(existing) else existing
+            except Exception as error:
+                return _retry(entry, f"forward settlement lookup failed: {type(error).__name__}")
+            if existing is not None:
+                if not isinstance(existing, ForwardAccountHistoryEntry):
+                    return _reject(
+                        entry, "forward settlement lookup returned an invalid journal row"
+                    )
+                event = existing.event
+                receipt = existing.execution_receipt
+                if event is None or receipt is None:
+                    return _reject(
+                        entry, "durable forward event is missing its native execution receipt"
+                    )
+                binding = delivery.delivery_binding
+                if (
+                    event.instance_id != binding.instance_id
+                    or event.event_id != canonical.event_id
+                    or event.event_fingerprint != content_digest(canonical)
+                    or event.sequence != canonical.sequence
+                    or event.event_time != canonical.event_time
+                    or receipt.instance_id != binding.instance_id
+                    or receipt.event_id != canonical.event_id
+                    or receipt.event_fingerprint != content_digest(canonical)
+                    or receipt.delivery_binding_fingerprint != binding.fingerprint
+                    or receipt.pre_event_checkpoint_fingerprint
+                    != binding.pre_event_checkpoint_fingerprint
+                ):
+                    return _reject(
+                        entry, "durable forward receipt differs from the redelivered event"
+                    )
+                account_handler = ForwardAccountWorkerHandler(
+                    self._account_store,
+                    principal=self._principal,
+                    event_resolver=lambda _entry, _item: ForwardAccountEventBinding(
+                        canonical,
+                        event,
+                        receipt,
+                    ),
+                )
+                try:
+                    return await account_handler(entry, work_item)
+                except Exception as error:
+                    return _retry(
+                        entry,
+                        f"durable forward receipt replay failed: {type(error).__name__}",
+                    )
 
         try:
             # Rehydrate exactly the pre-event history carried by this
