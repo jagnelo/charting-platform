@@ -11720,3 +11720,27 @@ Next: implement the concrete RC5 runtime session from verified bootstrap and
 mounted context/native-event artifacts, wire it into the fixed CLI IPC lifecycle,
 then persist native decisions and exact checkpoints before ACK and test replay
 after process loss.
+
+## 2026-10-05 - Forward strategy-context artifact mount
+
+Implementation `9b106f33c4b3422b12ead00e9d587c1392634e10` adds the immutable
+strategy-context stream as a required read-only input to forward sandbox plans.
+The fixed command binds its content digest and points at the mounted sidecar;
+forward plans reject a missing context artifact or backtest-only result mounts.
+Startup verification checks the bundle's context-stream media/schema, retention,
+storage key, digest, and length, then verifies the mounted bytes with `O_NOFOLLOW`
+under the runtime input bound. The context stream supplies the strategy source
+and manifest that are absent from the compact bootstrap component identities.
+
+Validation: sandbox, process-factory, and bootstrap tests passed `18/18`; Ruff
+check/format, focused MyPy for `sandbox.py` and `nautilus_runtime_cli.py`, and
+`git diff --check` passed. The source checkpoint is pushed to
+`origin/feat/strategy-lab-v2`. This makes the immutable strategy input available
+to the upcoming native session builder; `main` still does not consume
+`--serve-forward`, and the persistent shared-account engine, output/checkpoint-
+before-ACK, and process-loss replay remain incomplete.
+
+Next: make the fixed CLI consume the bootstrap, context, and native-history
+mounts, instantiate the verified per-instance session, and serve the existing
+bounded IPC protocol over stdio. Then exercise native warm-up/event replay and
+durable checkpoints through the host process/runtime path.
