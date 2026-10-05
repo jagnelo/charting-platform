@@ -19,6 +19,13 @@ application or migration files changed; the only backend path change is a
 breadth test that passed in the current unit run. Do not describe the prior
 coverage figure as a current-tip instrumented result.
 
+The complete unit suite was rechecked at documentation checkpoint
+`5812ba46af827eb5b9f6bdfa406d53f30e65190c` and again passed `1622/1622`.
+Diagnostic coverage sharding isolated an order-sensitive ETF-owned test:
+`test_etf_holdings_resolution.py` alone passed 30 tests and failed one assertion
+because a case expecting a `HOLDING-*` placeholder instead resolved `TXN`. The
+complete unit suite passes; no ETF implementation or test was changed in TC.
+
 The current generic integration gate remains open because Docker Buildx is
 unavailable and the standard helper's cleanup path is unsafe for the assigned
 stack. The ten protected visual differences remain unchanged. Provider and ETF

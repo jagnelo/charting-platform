@@ -20,7 +20,7 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  At branch checkpoint 8b9046b54c03e4c270d317989f95625b3adba363, current-tip
+  At branch checkpoint 5812ba46af827eb5b9f6bdfa406d53f30e65190c, current-tip
   backend unit tests pass 1622/1622 and integration tests pass 409/409 without
   coverage instrumentation. Testcontainers left no labeled containers; the
   assigned six-service stack and four volumes remain intact. The exact-tip
@@ -29,6 +29,11 @@ current_blocker: >-
   coverage receipt remains 82.26% at 1d52ab41372b6cbf12efdf8d533e00e858b4966f;
   backend application and migrations are unchanged since, and the only later
   backend path change is a breadth test that passed in the current unit suite.
+  The complete unit suite was independently rerun at this documentation tip
+  and again passed 1622/1622. A diagnostic sharded service run found an
+  order-sensitive ETF-owned test: its file alone expects a HOLDING-* placeholder
+  but resolves TXN (30 passed, 1 failed); the full unit suite passes. Do not
+  alter ETF-owned behavior in TC.
   Current frontend evidence remains tied to product source
   f0e946000e15336d972f33f24520d72b06e5cf7e: seeded flows 175/177 with two
   documented skips and zero failures on unchanged rerun, visual matrix 94/104
@@ -309,7 +314,9 @@ progress:
     reach staging. Stop only at ready_for_human_review.
   current_blocker: >-
     Exact branch-tip backend unit and integration suites passed without
-    coverage (1622 and 409 tests respectively). The instrumented unit rerun
+    coverage (1622 and 409 tests respectively); the full unit suite was
+    rechecked at documentation tip 5812ba4 and again passed 1622/1622. The
+    instrumented unit rerun
     ended at code 152 without a summary; previous combined coverage was 82.26%
     at 1d52ab41372b6cbf12efdf8d533e00e858b4966f, with backend app/migrations
     unchanged since. Frontend seeded flows remain 175/177 with two documented

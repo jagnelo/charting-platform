@@ -12,6 +12,13 @@ receipt is `82.26%` at `1d52ab41372b6cbf12efdf8d533e00e858b4966f`; backend
 application and migration code are unchanged since, and the sole later backend
 path change is a test that passed in the current unit run.
 
+The complete unit suite was rechecked at documentation checkpoint
+`5812ba46af827eb5b9f6bdfa406d53f30e65190c` and again passed `1622/1622`.
+Diagnostic coverage sharding isolated an order-sensitive ETF-owned test:
+`test_etf_holdings_resolution.py` alone passed 30 tests and failed one assertion
+because the expected `HOLDING-*` placeholder instead resolved as `TXN`. The
+complete suite passes; no ETF implementation or test was changed here.
+
 The generic integration gate remains open because Docker Buildx is unavailable
 and the standard cleanup path risks assigned volumes. Preserve all ten visual
 oracles. Provider/ETF integration remains deferred until both branches reach
