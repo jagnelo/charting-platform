@@ -811,15 +811,14 @@ def test_forward_runtime_verifies_mounts_before_building_and_serving_session(
         def close(self) -> None:
             pass
 
-    def build_factory(received_bootstrap, received_bundle, contexts, native_events):
-        builder_calls.append(
-            (
-                received_bootstrap,
-                received_bundle,
-                contexts.read(),
-                native_events.read(),
-            )
-        )
+    def build_factory(received_bootstrap, received_bundle, open_contexts, open_native_events):
+        def read_verified_pair():
+            with open_contexts() as contexts, open_native_events() as native_events:
+                return contexts.read(), native_events.read()
+
+        first_pair = read_verified_pair()
+        replay_pair = read_verified_pair()
+        builder_calls.append((received_bootstrap, received_bundle, first_pair, replay_pair))
         return lambda _instance_id: FakeSession()
 
     def serve(_input, _output, handler):
@@ -846,8 +845,65 @@ def test_forward_runtime_verifies_mounts_before_building_and_serving_session(
         )
         == 0
     )
-    assert builder_calls == [(bootstrap, bundle, context_bytes, native_bytes)]
+    assert builder_calls == [
+        (bootstrap, bundle, (context_bytes, native_bytes), (context_bytes, native_bytes))
+    ]
     assert len(serve_calls) == 2
+
+
+def test_main_dispatches_fixed_forward_mode_to_native_session_builder(monkeypatch) -> None:
+    import io
+    from types import SimpleNamespace
+
+    from app.strategy_lab_v2 import nautilus_forward_native_runtime
+
+    builder = object()
+    calls = []
+    monkeypatch.setattr(
+        nautilus_forward_native_runtime,
+        "create_native_forward_session_factory_builder",
+        lambda: builder,
+    )
+
+    def serve_forward_runtime(**kwargs):
+        calls.append(kwargs)
+        return 23
+
+    monkeypatch.setattr(nautilus_runtime_cli, "serve_forward_runtime", serve_forward_runtime)
+    monkeypatch.setattr(nautilus_runtime_cli.sys, "stdin", SimpleNamespace(buffer=io.BytesIO()))
+    monkeypatch.setattr(nautilus_runtime_cli.sys, "stdout", SimpleNamespace(buffer=io.BytesIO()))
+    assert (
+        nautilus_runtime_cli.main(
+            [
+                "--serve-forward",
+                "--input",
+                "/inputs/bundle",
+                "--output",
+                "/outputs/result",
+                "--expected-version",
+                "2.0.0rc5",
+                "--snapshot-fingerprint",
+                "sha256:" + "1" * 64,
+                "--max-input-bytes",
+                "4096",
+                "--context-stream",
+                "/inputs/contexts",
+                "--native-event-stream",
+                "/inputs/native-events",
+                "--bootstrap",
+                "/inputs/bootstrap",
+                "--bootstrap-fingerprint",
+                "sha256:" + "2" * 64,
+                "--instance-id",
+                "instance-1",
+            ]
+        )
+        == 23
+    )
+    assert len(calls) == 1
+    assert calls[0]["session_factory_builder"] is builder
+    assert calls[0]["bootstrap_path"] == "/inputs/bootstrap"
+    assert calls[0]["instance_id"] == "instance-1"
 
 
 def test_open_verified_context_stream_checks_digest_and_rewinds(tmp_path) -> None:

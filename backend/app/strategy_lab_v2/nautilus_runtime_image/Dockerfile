@@ -46,6 +46,7 @@ COPY app/strategy_lab_v2/nautilus_forward_result.py app/strategy_lab_v2/nautilus
 COPY app/strategy_lab_v2/nautilus_forward_runtime_server.py app/strategy_lab_v2/nautilus_forward_runtime_server.py
 COPY app/strategy_lab_v2/nautilus_forward_input.py app/strategy_lab_v2/nautilus_forward_input.py
 COPY app/strategy_lab_v2/nautilus_forward_bootstrap.py app/strategy_lab_v2/nautilus_forward_bootstrap.py
+COPY app/strategy_lab_v2/nautilus_forward_native_runtime.py app/strategy_lab_v2/nautilus_forward_native_runtime.py
 COPY app/strategy_lab_v2/forward_context.py app/strategy_lab_v2/forward_context.py
 COPY app/strategy_lab_v2/nautilus_forward_wire.py app/strategy_lab_v2/nautilus_forward_wire.py
 COPY app/strategy_lab_v2/nautilus_runtime_ipc.py app/strategy_lab_v2/nautilus_runtime_ipc.py

@@ -18,6 +18,7 @@
 !app/strategy_lab_v2/nautilus_forward_runtime_server.py
 !app/strategy_lab_v2/nautilus_forward_input.py
 !app/strategy_lab_v2/nautilus_forward_bootstrap.py
+!app/strategy_lab_v2/nautilus_forward_native_runtime.py
 !app/strategy_lab_v2/forward_context.py
 !app/strategy_lab_v2/nautilus_forward_wire.py
 !app/strategy_lab_v2/nautilus_runtime_ipc.py

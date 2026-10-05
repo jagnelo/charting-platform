@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 
@@ -32,6 +33,7 @@ from app.strategy_lab_v2.nautilus_event_adapter import (
 from app.strategy_lab_v2.nautilus_forward_delivery import (
     NautilusForwardDeliveryInput,
 )
+from app.strategy_lab_v2.nautilus_forward_native_runtime import NautilusBacktestForwardSession
 from app.strategy_lab_v2.nautilus_forward_runtime_server import (
     NautilusForwardRuntimeOperationHandler,
 )
@@ -223,6 +225,83 @@ def test_forward_wire_rejects_cross_delivery_preparation_binding() -> None:
 
     with pytest.raises(ValueError, match="not bound to this delivery"):
         codec.execute_payload(delivery, changed)
+
+
+def test_native_forward_session_retries_failed_execution_and_replays_checkpoint(
+    monkeypatch,
+) -> None:
+    delivery, preparation, canonical = _delivery_and_preparation()
+    runtime_fingerprint = content_digest("native-runtime-session")
+    state_instances = []
+
+    class FakeEngine:
+        def __init__(self) -> None:
+            self.disposed = 0
+
+        def dispose(self) -> None:
+            self.disposed += 1
+
+    def new_state():
+        state = SimpleNamespace(engine=FakeEngine())
+        state_instances.append(state)
+        return state
+
+    session = NautilusBacktestForwardSession(
+        instance_id=INSTANCE_ID,
+        runtime_session_fingerprint=runtime_fingerprint,
+        bootstrap=SimpleNamespace(
+            processed_checkpoint_fingerprint=(
+                delivery.delivery_binding.pre_event_checkpoint_fingerprint
+            )
+        ),
+        rebuild_state=new_state,
+        initial_state=new_state(),
+    )
+    execution_count = 0
+
+    def execute_on_state(_state, received_delivery, received_preparation):
+        nonlocal execution_count
+        execution_count += 1
+        if execution_count == 1:
+            raise RuntimeError("simulated native event failure")
+        account_binding = ForwardAccountEventBinding(
+            canonical,
+            ForwardAccountEvent(
+                INSTANCE_ID,
+                canonical.event_id,
+                content_digest(canonical),
+                canonical.sequence,
+                canonical.event_time,
+            ),
+        )
+        return NautilusForwardExecutionResult(
+            delivery_binding_fingerprint=received_delivery.delivery_binding.fingerprint,
+            context_preparation_fingerprint=received_preparation.fingerprint,
+            pre_event_checkpoint_fingerprint=(
+                received_delivery.delivery_binding.pre_event_checkpoint_fingerprint
+            ),
+            runtime_session_fingerprint=runtime_fingerprint,
+            native_output_fingerprint=account_binding.fingerprint,
+            account_event_binding=account_binding,
+        )
+
+    monkeypatch.setattr(session, "_execute_on_state", execute_on_state)
+    with pytest.raises(RuntimeError, match="simulated native event failure"):
+        session.execute(delivery, preparation)
+    assert len(state_instances) == 2
+    assert state_instances[0].engine.disposed == 1
+
+    result = session.execute(delivery, preparation)
+    assert session.execute(delivery, preparation) is result
+    assert execution_count == 2
+    assert (
+        session.restore(
+            checkpoint_fingerprint=delivery.delivery_binding.pre_event_checkpoint_fingerprint
+        )
+        == delivery.delivery_binding.pre_event_checkpoint_fingerprint
+    )
+    assert len(state_instances) == 3
+    assert state_instances[1].engine.disposed == 1
 
 
 class _FakeNativeForwardSession:

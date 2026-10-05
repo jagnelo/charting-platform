@@ -7,7 +7,9 @@ import hashlib
 import json
 import os
 import stat
-from collections.abc import Mapping
+import sys
+from collections.abc import Callable, Mapping
+from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, BinaryIO, Protocol
 
@@ -488,14 +490,14 @@ def _open_verified_context_stream(
 
 
 class ForwardSessionFactoryBuilder(Protocol):
-    """Build one per-instance native session factory from verified read-only inputs."""
+    """Build a session factory from reopenable, digest-verified input streams."""
 
     def __call__(
         self,
         bootstrap: NautilusForwardRuntimeBootstrap,
         bundle: Mapping[str, Any],
-        context_stream: BinaryIO,
-        native_event_stream: BinaryIO,
+        open_context_stream: Callable[[], AbstractContextManager[BinaryIO]],
+        open_native_event_stream: Callable[[], AbstractContextManager[BinaryIO]],
     ) -> NativeForwardSessionFactory: ...
 
 
@@ -517,9 +519,9 @@ def serve_forward_runtime(
     """Verify mounted state, then serve the bounded IPC protocol for one instance.
 
     The builder runs only after every immutable input and the exact Nautilus
-    package version have been verified. Its file handles remain open for the
-    lifetime of the IPC session so the native session can replay warm-up state
-    without reopening mutable paths.
+    package version have been verified. It receives verified reopeners because
+    engine restore must reconstruct a fresh bridge and replay immutable input
+    streams rather than reuse exhausted iterators.
     """
 
     from app.strategy_lab_v2.nautilus_forward_runtime_server import (
@@ -545,31 +547,34 @@ def serve_forward_runtime(
         bundle
     )
     native_digest, native_length, *_ = _native_event_stream_reference(bundle)
-    with (
-        _open_verified_context_stream(
+
+    def open_context_stream() -> BinaryIO:
+        return _open_verified_context_stream(
             context_stream_path,
             expected_digest=context_digest,
             byte_length=context_length,
             max_bytes=max_input_bytes,
-        ) as context_stream,
-        _open_verified_native_event_stream(
+        )
+
+    def open_native_event_stream() -> BinaryIO:
+        return _open_verified_native_event_stream(
             native_event_stream_path,
             expected_digest=native_digest,
             byte_length=native_length,
-        ) as native_event_stream,
-    ):
-        session_factory = session_factory_builder(
-            bootstrap,
-            bundle,
-            context_stream,
-            native_event_stream,
         )
-        handler = NautilusForwardRuntimeOperationHandler(
-            instance_id=instance_id,
-            session_factory=session_factory,
-            codec=NautilusForwardJsonWireCodec(),
-        )
-        return serve_nautilus_runtime_ipc(input_stream, output_stream, handler)
+
+    session_factory = session_factory_builder(
+        bootstrap,
+        bundle,
+        open_context_stream,
+        open_native_event_stream,
+    )
+    handler = NautilusForwardRuntimeOperationHandler(
+        instance_id=instance_id,
+        session_factory=session_factory,
+        codec=NautilusForwardJsonWireCodec(),
+    )
+    return serve_nautilus_runtime_ipc(input_stream, output_stream, handler)
 
 
 def _write_result(path_value: str, result: Mapping[str, Any]) -> None:
@@ -885,9 +890,10 @@ def run_bundle(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    mode = parser.add_mutually_exclusive_group(required=True)
+    mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--probe", action="store_true")
-    mode.add_argument("--input")
+    mode.add_argument("--serve-forward", action="store_true")
+    parser.add_argument("--input")
     parser.add_argument("--output")
     parser.add_argument("--expected-version", default="2.0.0rc5")
     parser.add_argument("--snapshot-fingerprint")
@@ -900,11 +906,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-account-equity-trace-bytes", type=int)
     parser.add_argument("--native-reports")
     parser.add_argument("--max-native-reports-bytes", type=int)
+    parser.add_argument("--bootstrap")
+    parser.add_argument("--bootstrap-fingerprint")
+    parser.add_argument("--instance-id")
     args = parser.parse_args(argv)
     if args.probe:
         if any(
             value is not None
             for value in (
+                args.input,
                 args.output,
                 args.snapshot_fingerprint,
                 args.max_input_bytes,
@@ -916,14 +926,69 @@ def main(argv: list[str] | None = None) -> int:
                 args.max_account_equity_trace_bytes,
                 args.native_reports,
                 args.max_native_reports_bytes,
+                args.bootstrap,
+                args.bootstrap_fingerprint,
+                args.instance_id,
             )
         ):
             parser.error("--probe cannot be combined with runtime bundle options")
         probe = probe_nautilus_runtime(expected_version=args.expected_version)
         print(json.dumps(probe, sort_keys=True, separators=(",", ":")))
         return 0
+    if args.input is None:
+        parser.error("runtime mode requires --input")
     if args.output is None or args.snapshot_fingerprint is None or args.max_input_bytes is None:
         parser.error("--input requires --output, --snapshot-fingerprint, and --max-input-bytes")
+    if args.serve_forward:
+        if any(
+            value is None
+            for value in (
+                args.bootstrap,
+                args.bootstrap_fingerprint,
+                args.instance_id,
+                args.context_stream,
+                args.native_event_stream,
+            )
+        ):
+            parser.error(
+                "--serve-forward requires bootstrap, its fingerprint, instance id, "
+                "context stream, and native event stream"
+            )
+        if any(
+            value is not None
+            for value in (
+                args.invocation_results,
+                args.max_result_bytes,
+                args.account_equity_trace,
+                args.max_account_equity_trace_bytes,
+                args.native_reports,
+                args.max_native_reports_bytes,
+            )
+        ):
+            parser.error("--serve-forward cannot use backtest result output options")
+        from app.strategy_lab_v2.nautilus_forward_native_runtime import (
+            create_native_forward_session_factory_builder,
+        )
+
+        return serve_forward_runtime(
+            bootstrap_path=args.bootstrap,
+            bootstrap_fingerprint=args.bootstrap_fingerprint,
+            input_path=args.input,
+            context_stream_path=args.context_stream,
+            native_event_stream_path=args.native_event_stream,
+            expected_version=args.expected_version,
+            instance_id=args.instance_id,
+            snapshot_fingerprint=args.snapshot_fingerprint,
+            max_input_bytes=args.max_input_bytes,
+            session_factory_builder=create_native_forward_session_factory_builder(),
+            input_stream=sys.stdin.buffer,
+            output_stream=sys.stdout.buffer,
+        )
+    if any(
+        value is not None
+        for value in (args.bootstrap, args.bootstrap_fingerprint, args.instance_id)
+    ):
+        parser.error("forward bootstrap options require --serve-forward")
     return run_bundle(
         args.input,
         args.output,
