@@ -1,5 +1,18 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-10-05 — Exact-product-tip dense workstation performance
+
+At pushed checkpoint `93c152dffaca7f50c078439e55c8599ba227e518` (product
+source `f0e946000e15336d972f33f24520d72b06e5cf7e`), the complete pinned
+Playwright 1.62.1 `workstation_performance.spec.ts` passed `4/4` in 33.9
+seconds with the opt-in 10,000-row fixture enabled. The run used an isolated
+temporary Compose project and the browser source was mounted read-only. Exact
+inventory preceded cleanup of its four containers, four volumes, network, and
+two generated images. The assigned six-service stack and its four volumes
+remained healthy and intact. This is dense-data performance evidence only; it
+does not change the four-project visual matrix or close its ten protected
+screenshot differences. Output: `/tmp/tc2000-performance-93c152d-output`.
+
 ## 2026-10-05 — Exact current product-tip functional and visual matrix
 
 At product commit `f0e946000e15336d972f33f24520d72b06e5cf7e` (pushed as the
@@ -19,13 +32,13 @@ are unchanged: workspace-floating at all four projects (8,995 / 9,825 / 8,995 /
 21,352), and Study sandbox-error at 1080p/100 and 1080p/125 (13,360 / 11,188).
 No reference, mask, threshold, skip, fallback, or acceptance rule changed.
 
-The exact product-tip `workstation_performance.spec.ts` run passed three cases
-and skipped only the opt-in 10,000-row case because the assigned backend's
-`E2E_SEED_LARGE_UNIVERSE` flag was false. The previous complete 4/4 performance
-run remains evidence for its earlier product source, not a substitute for this
-current-tip result. All browser output was written under `/tmp`; the assigned
-frontend was rebuilt/recreated alone and its six-service stack, four volumes,
-and network were preserved.
+The first exact product-tip `workstation_performance.spec.ts` run passed three
+cases and skipped only the opt-in 10,000-row case because the assigned
+backend's `E2E_SEED_LARGE_UNIVERSE` flag was false. The complete isolated rerun
+at the same product source then passed 4/4 with that fixture enabled (see the
+newest entry above). The earlier performance skip is retained as raw history,
+not a current gate. All artifacts were written under `/tmp`; the assigned
+six-service stack and its four volumes were preserved.
 
 ## 2026-10-05 — Earlier exact branch-tip functional and visual matrix
 

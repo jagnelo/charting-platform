@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-05
 
+## 2026-10-05 — Exact-product-tip dense workstation performance
+
+At pushed checkpoint `93c152dffaca7f50c078439e55c8599ba227e518` (product
+source `f0e946000e15336d972f33f24520d72b06e5cf7e`), the complete pinned
+Playwright 1.62.1 `workstation_performance.spec.ts` passed `4/4` in 33.9
+seconds, including the opt-in 10,000-row network-hydrated watchlist and its
+existing within-budget / fewer-than-100-rendered-rows assertions. This closes
+the current exact-tip performance skip: the earlier 3/4 result was run against
+the assigned backend without the fixture enabled. The test ran in a separate
+Compose project with its own four containers, four volumes, network, and two
+generated images. After exact-project inventory, only those temporary
+resources were removed; the assigned six-service stack and its four volumes
+remained healthy and intact. Browser results are under
+`/tmp/tc2000-performance-93c152d-output`.
+
+The ten protected visual screenshot differences and the generic exhaustive
+integration gate remain open. Provider and ETF consumer integration remains
+deferred until both upstream branches reach staging. No product behavior,
+visual oracle, provider/ETF ownership, other branch, or worktree changed during
+this validation.
+
 ## 2026-10-05 — Honest, bounded Research Results occurrence lists
 
 TC-owned Research Results previously limited historical breadth occurrences to
@@ -25,8 +46,10 @@ first completed 174/177 with two documented skips and one F8k chart-target
 failure; the unchanged focused replay passed 1/1, and the unchanged full rerun
 passed 175/177 with two skips and zero failures. The four-project visual matrix
 completed 94/104 with the same ten protected screenshot-only differences. The
-current performance file passed 3/4 and skipped only the 10k case because the
-assigned backend was not seeded with the large-universe fixture. Artifacts are
+first performance run passed 3/4 and skipped the 10k case because the assigned
+backend was not seeded with the large-universe fixture; the later isolated
+exact-product-tip run passed the complete 4/4 matrix (documented above).
+Artifacts are
 under `/tmp/tc2000-occurrence-browser-results`,
 `/tmp/tc2000-occurrence-f8k-replay`,
 `/tmp/tc2000-occurrence-full-functional-replay`,

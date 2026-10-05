@@ -1,5 +1,22 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Exact-product-tip dense workstation performance
+
+At pushed checkpoint `93c152dffaca7f50c078439e55c8599ba227e518` (product
+source `f0e946000e15336d972f33f24520d72b06e5cf7e`), the complete pinned
+Playwright 1.62.1 `workstation_performance.spec.ts` passed `4/4` in 33.9
+seconds with `E2E_SEED_LARGE_UNIVERSE=true`. It covered optional tool loading,
+two-window recovery, repeated churn, and network hydration of 10,000 watchlist
+rows within the existing virtual-render budget. The isolated temporary project
+used four containers, four volumes, one network, and two generated images;
+after exact-project inventory, those resources were removed. The assigned six
+services remained healthy and its four volumes were preserved. Browser output
+is under `/tmp/tc2000-performance-93c152d-output`.
+
+This closes the current exact-tip performance-fixture gap only. The ten
+protected visual screenshot differences, generic exhaustive integration gate,
+and staging-dependent provider/ETF reconciliation remain open.
+
 ## 2026-10-05 — Bounded Research Results occurrence lists
 
 The Research Results UI now exposes every persisted breadth-history and generic
