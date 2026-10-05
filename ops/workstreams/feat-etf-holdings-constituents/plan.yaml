@@ -430,7 +430,7 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: hedgeye_live_floor_adjusted_exact_sha_ci_replay_pending
+current_phase: branch_tests_green_codecov_permissions_and_visual_gate_pending
 current_blocker: >-
   The latest full gate on working source based on 115af366123c4e07e3a3109cc9ba19f2af136f18 again passed workstream/dependency/migration, Ruff/format/type-check, backend coverage (1,877 passed; 81.13%), frontend tests (945 passed; 82.08%), production build, Docker stack health, and research-runner probes. Playwright ran all 260 scenarios: 152 passed, 106 skipped, and two unrelated workstation scenarios failed (`F8j-conflict` expected a recovery notice but saw canonical-ready; `F8s-market-map-watchlist` timed out clicking a button detached during rerender). No visual mismatch was reported. Both failures then passed on a fresh healthy stack when replayed together (2 passed in 18.2s); additionally the adjacent `F8j` pop-out and `F8j-conflict` sequence passed (2 passed in 13.9s). Prior cross-window `ERR_NETWORK_CHANGED` cases also passed their focused replay and passed in this latest full run. The local gate exits at e2e-functional before standalone visual and branch-declared stages. These are non-reproducing test-order/load failures outside ETF behavior; no assertions or baselines were changed. ETF Docker resources were stopped and resource accounting is zero/complete. Exact-SHA CI for current working source is still not queried on its next pushed receipt. Goal remains active.
 
@@ -576,13 +576,28 @@ current_blocker: >-
   is pending; AC7/AC8 stay open. AC10 awaits provider-platform staging and AC14
   remains post-integration/deployment.
 
+  Exact-SHA run 37255936518 on `08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5`
+  passed the full branch-declared sequence, including 595 deterministic adapter
+  tests, default live 3/534 skips, the 537-case opt-in matrix (520 passed/17
+  narrow skips), Ruff, workstream validation, frontend type-check, 17 ETF UI
+  tests, and production build. Backend unit/integration suites (1,500/379) and
+  frontend Vitest (945) also passed. The workflow still concluded failure only
+  because both Codecov upload steps hit TLS EPROTO; hosted Playwright E2E was
+  skipped. A retry request was rejected with HTTP 403 because the connected
+  GitHub integration lacks Actions write permission. No alternate credential
+  was used, and no generic workflow/snapshot changes were made. Local functional
+  browser evidence remains 150 passed/109 skipped; the three unrelated Study
+  Lab visual mismatches remain unresolved. The 15 Tier-0 and 156 Tier-1 symbol
+  outcomes remain accounted for. AC7/AC8 stay open; AC10 still waits for
+  provider-platform staging and AC14 remains post-integration/deployment.
+
 next_action: >-
-  Validate the narrow Hedgeye live-floor update, then commit and push only
-  feat/etf-holdings-constituents and inspect the exact-SHA run. Retry the two
-  Codecov-failed jobs once if the next run encounters the same upload-only TLS
-  error; do not alter generic CI workflow policy from this feature branch.
-  Keep AC7/AC8 open while the generic Study Lab visual mismatch remains
-  unresolved or undispositioned; do not change unrelated UI behavior or
-  snapshots. AC10 still depends on provider-platform staging, and AC14 is
-  post-integration/deployment. Do not integrate, promote, deploy, or modify
-  another worktree.
+  To complete hosted exact-SHA CI, obtain Actions-write capability on the
+  connected GitHub integration so the two upload-failed jobs can be retried, or
+  authorize a separate repository-workflow change to make Codecov transport
+  non-blocking. Do not modify the generic workflow from this ETF-only scope.
+  Keep AC7/AC8 open while hosted E2E is skipped and the three generic Study Lab
+  visual mismatches remain unresolved/undispositioned; do not change unrelated
+  UI behavior or snapshots. AC10 still depends on provider-platform staging,
+  and AC14 is post-integration/deployment. Do not integrate, promote, deploy,
+  or modify another worktree.

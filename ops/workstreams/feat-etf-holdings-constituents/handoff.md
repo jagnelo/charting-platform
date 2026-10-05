@@ -7837,5 +7837,38 @@ both that ref and the intended `feat/etf-holdings-constituents` ref at commit
 prior state/ownership of the similarly named ref is unknown, so it was not
 deleted or otherwise changed after discovery; human direction is needed before
 any cleanup of that separate ref.
+
+## Exact-SHA retest after the HECA floor correction — 2026-10-05
+
+The correction was committed as `08fad92dc4ee936b41b2b09db3b663fa4d8bf1c5`
+and the intended remote ref was verified at that SHA. GitHub Actions run
+`37255936518` completed its branch-declared suite successfully: 595
+deterministic adapter tests; default live contracts 3 passed/534 skipped; the
+537-case opt-in provider matrix 520 passed/17 narrowly classified skips; Ruff;
+workstream validation; frontend type-check; 17 ETF UI tests; and production
+build. The HECA case now passes under the conservative 15-row floor. No adapter
+or support-classification code changed.
+
+The same run passed 1,500 backend unit tests, 379 backend integration tests,
+and all 945 frontend unit tests. Its overall conclusion is still failure
+because both Codecov upload steps again failed with TLS `EPROTO`; hosted E2E was
+skipped by its `needs: [backend, frontend-unit]` dependency. This is the second
+exact-SHA run with the same coverage-upload transport failure. A read-only
+inspection confirmed the test results themselves passed. The normal
+`rerun_failed_workflow_run_jobs` request was rejected with HTTP 403
+`Resource not accessible by integration`, so no retry was performed. This
+GitHub connection lacks Actions write permission; no personal token or
+alternate credential was used. Local full functional Playwright evidence
+remains 150 passed/109 skipped with one retry-resolved case, but hosted E2E is
+not claimed as passed for this SHA.
+
+The three generic Study Lab screenshot mismatches remain the outstanding local
+visual-parity failure and are outside ETF `owned_paths`. The ETF workstream
+does not authorize changing the repository-wide Codecov/CI workflow or those
+generic snapshots. AC7/AC8 therefore remain open. To unblock hosted E2E without
+scope expansion, the connected GitHub integration needs Actions write access
+for a failed-job retry; alternatively, a separately authorized workflow change
+could make coverage-upload transport failures non-blocking. AC10 still awaits
+provider-platform staging, and AC14 remains post-integration/deployment.
 *** End of File
 *** End of File
