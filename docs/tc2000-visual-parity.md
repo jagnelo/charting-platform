@@ -1,5 +1,25 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-10-05 — Full four-project matrix at current product source
+
+At product source `721b0efbea486361fa0632b2f874353ca7802127`, the full serial
+pinned Playwright 1.62.1 board ran all `104` cases. `94` passed and `10`
+protected screenshot comparisons failed after their interaction/state
+assertions passed:
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | ---: | ---: | ---: |
+| `visual-1080p-100` | 8,995 pixels | 109,320 pixels | 13,360 pixels |
+| `visual-1080p-125` | 9,825 pixels | 105,698 pixels | 11,188 pixels |
+| `visual-1440p-100` | 8,995 pixels | 22,035 pixels | Passed |
+| `visual-1440p-125` | 9,825 pixels | 21,352 pixels | Passed |
+
+These are the same protected categories and exact pixel counts as the previous
+complete matrix. No reference, mask, threshold, skip, fallback, or acceptance
+policy changed. Keep them open pending current V25 visual authority or a
+confirmed source defect; do not convert test-local images into authoritative
+product references.
+
 ## 2026-10-05 — Protected screenshot-diff review disposition
 
 The ten known screenshot differences were reviewed alongside their state

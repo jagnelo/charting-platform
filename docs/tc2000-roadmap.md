@@ -5,6 +5,26 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-05
 
+## 2026-10-05 — Exact current-product browser and visual evidence
+
+At product source `721b0efbea486361fa0632b2f874353ca7802127`, the full serial
+frontend suite passed 129 files / 1,206 tests and production type-check/build
+passed. Three full 182-case pinned Chromium runs yielded 177 passed / 3
+documented skips / 2 failures; 176 / 3 / 3 on fresh volumes; and 178 / 3 / 1
+on a second fresh-volume run. The six distinct failed cases all passed
+unchanged focused replays (readiness pair 2/2); preserve the raw full-run
+failures and keep exact-tip full functional acceptance open. No assertion or
+acceptance policy changed.
+
+The current four-project visual matrix passed 94/104; its ten failures are the
+same protected local-reference differences, after each state assertion passed:
+workspace-floating at four viewports, Study structured-result at four, and
+Study sandbox-error at the two 1080p scales. Pixel counts are unchanged from
+the prior matrix. No reference, mask, threshold, skip, fallback, or acceptance
+policy changed. Scoped Docker Compose worked without Buildx and final resource
+accounting was clean. The branch remains frontend-led; provider/ETF consumption
+and shared-path reconciliation remain gated on those branches reaching staging.
+
 ## 2026-10-05 — Detached tool accessibility and ID collision correction
 
 At pushed product commit `721b0efbea486361fa0632b2f874353ca7802127`, Boolean
