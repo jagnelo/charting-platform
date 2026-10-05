@@ -10012,3 +10012,38 @@ Next: extend durable persistence composition coverage across portfolio,
 snapshot, experiment, and trial dependencies, then continue forward event-tape
 parity and worker correctness. Do not wait for a stable Nautilus label or edit
 the upstream-owned shared paths before staging reconciliation.
+
+## 2026-10-05 - Canonical aggregate hydration for persisted trial graphs
+
+The durable persistence composition now exercises a persisted strategy,
+package, portfolio, frozen snapshot, experiment, scientific trial, run attempt,
+and metric set across adapter reconstruction. It found and fixed a production
+read-boundary defect: the `ATTEMPT` API projection is an execution-summary view,
+not the typed immutable `RunAttempt` needed for worker hydration. Typed domain
+reads now load canonical owner-scoped aggregates independently of API
+projections; attempt-by-id validation follows the same canonical path, while
+the existing API summary projection remains unchanged. Experiment creation
+also fails closed before writes when its capability-contract digest differs
+from the frozen snapshot.
+
+The regression reconstructs all typed records and passes the persisted attempt
+through `NautilusTrialDomainHydrator`, then verifies stable trial replay and
+owner isolation. This is deterministic PostgreSQL-session-double evidence, not
+a live database claim. Commit `2c2e7ba0dfb32d8bbb78515e67044feb80bd6024` is
+pushed to `origin/feat/strategy-lab-v2`. The full package suite passed
+`1,351/1,351` tests, including the local Unix-domain-socket test under scoped
+host access. Ruff check passed for the package; changed-file format and MyPy
+checks passed. The broader package format check still reports 172 unrelated
+files to reformat, and package-wide MyPy reports seven errors in five untouched
+test modules; those files were not changed here.
+
+No external gate prevents more package-owned work. Shared provider/ETF/TC2000
+integration still waits on owner staging and reconciliation; full Compose build
+acceptance still lacks Docker Buildx; forward-shadow authority still requires
+event-tape parity. The stable Nautilus label remains explicitly unnecessary.
+
+Next: compose this persisted domain graph and attempt hydration through the
+existing search-preparation/runtime materializer into the exact immutable RC5
+worker request. Prove the owner, trial, snapshot, package, and execution-plan
+bindings survive that boundary, then continue native-process/Compose acceptance
+and forward parity.
