@@ -1,5 +1,52 @@
 # feat/tc2000-frontend-rework
 
+## 2026-10-05 — Exact-tip frontend and browser evidence refresh
+
+The test source was branch checkpoint `9cb2278ceed3d01f5abdf5580a6cc283a64dfdb8`
+(product source `d413d845939e68e9738b621329fa8d63a419ddf8`). At that checkpoint,
+direct `git ls-remote` verified TC at the same SHA; staging remains
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider-platform is
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings is
+`d2e163c46bad2a9e58affe5b32461c8b783fbaa8`. Both dependencies remain outside
+staging, so no consumer integration or shared-path reconciliation is authorized
+by the current dependency state.
+
+This evidence-only checkpoint updates `docs/tc2000-roadmap.md`,
+`docs/tc2000-visual-parity.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`,
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`, and
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`. It records the
+test source tip above; the enclosing commit SHA is verified externally after
+push. No product code, other branch, or other worktree changes in this
+checkpoint.
+
+At the exact product source, full frontend Vitest passed 129 files / 1,208
+tests with file parallelism disabled. The seeded authenticated `flows.spec.ts`
+run completed 177 cases: 174 passed, 2 documented skips, and one F8m
+chart-panel link-menu timeout after 60 seconds. The unchanged F8m focused replay
+passed 1/1 in 16.5 seconds; preserve the full result as non-green until an
+unchanged clean full functional run clears it. Workstation performance checks
+passed 3/4; the 10,000-row watchlist case was skipped because its explicit
+`E2E_SEED_LARGE_UNIVERSE=true` fixture was not enabled.
+
+The pinned four-project visual matrix completed 94/104, with the same ten
+protected screenshot-only differences after their state assertions passed:
+workspace-floating at all four scales, Study structured-result at all four,
+and Study sandbox-error at 1080p/100 and 1080p/125. Deltas were
+`8995/9825/8995/9825`, `109320/105698/22099/21352`, and `13360/11188` pixels;
+the 1440p sandbox-error comparisons passed. No screenshot, mask, threshold,
+skip, fallback, or visual-acceptance rule changed. The six-service assigned
+Compose stack remained healthy and its four volumes were preserved throughout.
+
+An exploratory Vitest `singleThread` invocation timed out six unrelated
+WorkspaceLayoutHost tests and was stopped after silent output; the repository's
+file-serial worker profile then passed the full unit suite. This is recorded as
+a runner-profile diagnostic, not an application regression. The generic
+exhaustive helper remains open at its host Buildx gate. Continue distinct
+TC-owned R1/R5/R6 work; keep AC2/AC3 staging-dependent and preserve all visual
+oracles.
+
 ## 2026-10-05 — Independent structured Study threshold drafts
 
 Completed changeset: per-run/per-artifact threshold drafts for scalar, series, and
@@ -16,9 +63,10 @@ preserved. Pinned Playwright 1.62.1 browser replays passed `1/1` each for the
 two-output Research Results independent-threshold flow and direct Study Lab
 series promotion. The browser runner used only the assigned frontend network
 namespace. The implementation commit is `d413d845939e68e9738b621329fa8d63a419ddf8`;
-direct `ls-remote` verification returned the same exact branch tip. The separate
-workstream/session checkpoint is being closed next. This bounded R5 slice does
-not close the broader TC2000 goal.
+direct `ls-remote` verification returned the same exact product tip. The exact-
+tip full frontend, functional, visual, and performance refresh is recorded in
+the latest handoff section above. This bounded R5 slice does not close the
+broader TC2000 goal.
 
 The separate operational checkpoint owns
 `ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`,

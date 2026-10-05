@@ -2,33 +2,37 @@
 
 ## 2026-10-05 — Exact current branch-tip functional and visual matrix
 
-At pushed branch checkpoint `14031175efa97b639d7fd6d6829b5998f9f2b673`
-(product source `8d1d63b7945ad94226ac02e338aac8f4ef447f2a`), the corrected
-serial seeded Playwright 1.62.1 functional suite completed all 182 cases:
-179 passed, 3 documented skips, and zero failures. This run includes the
-corrected `F8s-breadth-family-ratio` compound OR-to-NOT request-preservation
-assertion. The earlier `.last()` locator timeout was test-only and did not
-recur after selecting the nested group with `.nth(1)`.
+At pushed branch checkpoint `9cb2278ceed3d01f5abdf5580a6cc283a64dfdb8`
+(product source `d413d845939e68e9738b621329fa8d63a419ddf8`), the seeded
+Playwright 1.62.1 `flows.spec.ts` run completed 177 cases: 174 passed, 2
+documented skips, and one 60-second F8m chart-panel link-menu timeout. The
+unchanged F8m flow passed a focused replay (`1/1` in 16.5 seconds), so no
+product or test assertion was changed; retain the full result as non-green
+until a clean full functional run clears it. The separate performance suite
+passed 3/4, with the 10,000-row watchlist case skipped because its opt-in
+`E2E_SEED_LARGE_UNIVERSE` fixture was not enabled.
 
 The four-project board-guided visual matrix completed all 104 cases: 94 passed
 and 10 screenshot comparisons remained above the unchanged `0.005` threshold
-after their state assertions passed. The failures are exactly the established
-protected identities: workspace-floating at all four viewports, Study
-structured-result at all four, and Study sandbox-error at the two 1080p scales.
-No reference, mask, threshold, skip, fallback, or acceptance policy changed.
+after their state assertions passed. They are the same protected identities:
+workspace-floating at all four viewports, Study structured-result at all four,
+and Study sandbox-error at the two 1080p scales. No reference, mask, threshold,
+skip, fallback, or acceptance policy changed.
 
 | Pinned project | Workspace floating | Study structured result | Study sandbox error |
 | --- | ---: | ---: | ---: |
 | `visual-1080p-100` | 8,995 pixels | 109,320 pixels | 13,360 pixels |
 | `visual-1080p-125` | 9,825 pixels | 105,698 pixels | 11,188 pixels |
-| `visual-1440p-100` | 8,995 pixels | 22,035 pixels | Passed |
-| `visual-1440p-125` | 9,825 pixels | 21,331 pixels | Passed |
+| `visual-1440p-100` | 8,995 pixels | 22,099 pixels | Passed |
+| `visual-1440p-125` | 9,825 pixels | 21,352 pixels | Passed |
 
-The full functional artifacts are under
-`/tmp/tc2000-functional-corrected-14031175`; visual artifacts are under
-`/tmp/tc2000-visual-current-14031175`. The visual manifest validated before
-execution. Earlier records below remain historical; this exact-tip result
-supersedes their full-matrix status without changing their raw outcomes.
+Full frontend Vitest passed 129 files / 1,208 tests with file parallelism
+disabled. The attempt using Vitest's `singleThread` mode had six unrelated
+5-second `WorkspaceLayoutHost` timeouts and was stopped while silent; it is
+preserved as an unsupported runner-profile diagnostic, not a product result.
+All browser runs used the assigned stack and preserved its four volumes. The
+visual manifest and protected baselines were not changed. Earlier records
+below remain historical and retain their raw outcomes.
 
 ## 2026-10-05 — Recursive Python-series conditions are implemented; visual gap remains
 

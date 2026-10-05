@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-10-05
 
+## 2026-10-05 — Exact-tip validation refresh after Study threshold isolation
+
+At branch checkpoint `9cb2278ceed3d01f5abdf5580a6cc283a64dfdb8` (product
+source `d413d845939e68e9738b621329fa8d63a419ddf8`), full frontend Vitest
+passed 129 files / 1,208 tests with file parallelism disabled. The seeded
+functional flow file ran 177 cases: 174 passed, 2 documented skips, and one
+F8m chart-panel link-menu timeout; its unchanged focused replay passed 1/1,
+but the full run remains recorded as non-green. The workstation performance
+suite passed 3/4; its 10,000-row test was skipped because the opt-in large
+universe fixture was not enabled.
+
+The pinned four-project visual matrix completed 94/104. Its ten screenshot-only
+differences are unchanged: workspace-floating across all four viewports, Study
+structured-result across all four, and Study sandbox-error at the two 1080p
+scales. Every corresponding state assertion passed. No visual reference, mask,
+threshold, skip, fallback, or acceptance rule changed. Current remote refs are
+TC `9cb2278ceed3d01f5abdf5580a6cc283a64dfdb8`, staging
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF
+`d2e163c46bad2a9e58affe5b32461c8b783fbaa8`. The upstream dependencies remain
+outside staging; consumer integration and shared-path reconciliation remain
+deferred. The generic exhaustive helper's Buildx gate also remains open.
+
 ## 2026-10-05 — Correct the compound breadth NOT browser regression selector
 
 The authenticated regression belongs to `F8s-breadth-family-ratio`, which
