@@ -872,7 +872,7 @@ progress:
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_session.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_wire.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_runtime_cli.py
-    status: in_progress
+    status: completed
   current_blocker: >-
     No external dependency blocks package-owned implementation. Exact-pinned
     Nautilus RC5 remains acceptable for locally controlled testing; stable
@@ -900,10 +900,10 @@ progress:
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Exercise checkpoint-scoped restarts in the exact RC5 runtime image using a
-    host plan factory that resolves each requested checkpoint from the durable
-    admission/event ledger. Prove duplicate/crash replay across actual process
-    termination, including failures before account commit, after commit but
-    before Redis ACK, and after ACK. Corrections remain counterfactual.
+    Start the image-backed forward-process recovery changeset: build a host
+    plan factory that resolves each requested checkpoint from the durable
+    admission/event ledger, then prove duplicate/crash replay across actual
+    process termination. Exercise failures before account commit, after commit
+    but before Redis ACK, and after ACK. Corrections remain counterfactual.
     Preserve provider-owned event identity and consume shared contracts only
     after their source branches reach staging.

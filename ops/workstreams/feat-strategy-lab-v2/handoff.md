@@ -12125,9 +12125,13 @@ Focused recovery/wire/CLI/process tests passed 50 cases; the complete Strategy
 Lab package passed all 1,498 tests. Ruff checks/format, focused MyPy, and
 whitespace checks passed. This is a bounded per-process lifecycle contract, not
 yet proof of the exact RC5 image using a real host checkpoint resolver or
-crash-window replay. Next: commit/push this context, then run an image-backed
-process-restart fixture against the durable admission/event ledger and exercise
-pre-commit, post-commit/pre-ACK, and post-ACK failure windows.
+crash-window replay. The implementation commit
+`7693fe1f2141552cc31ed73b1b430fd91256b605` is pushed to
+`origin/feat/strategy-lab-v2`; it advances the prior branch tip
+`9a4fa34a05fe9a6275423f2fa6d3fdb6536497ec`. Post-push verification showed
+matching local/remote hashes and a clean worktree. The next changeset is an
+image-backed process-restart fixture against the durable admission/event
+ledger, including pre-commit, post-commit/pre-ACK, and post-ACK failure windows.
 
 No stable Nautilus 2.x release is required. RC5 remains the already-qualified
 isolated pin; RC6 requalification is optional and must not interrupt package
