@@ -71,7 +71,7 @@
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "dirty_paths": [
-    "ps/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
@@ -113,13 +113,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "48b13a589c12a25b6393b6d17f2dfc5507dd1bfe",
+  "head": "8105d9695fa4f265e1069b18b5dec439b16dadc4",
   "implementation_sha": "f04b0a39a60fadd6d8d21cf2bca360d8d746c88c",
   "last_checkpoint": "2026-10-05T04:01:03.000000+00:00",
-  "last_human_progress_update": "2026-10-05T04:35:18.358545+00:00",
+  "last_human_progress_update": "2026-10-05T04:57:55.094425+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Watch the competing worktree Docker stack and resume make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents through the approved Docker boundary only after it exits and host memory is safe. Inspect local visual actual/diff artifacts before changing any baseline or UI. Verify the next exact-SHA workflow after the branch-owned evidence checkpoint. Do not change shared CI workflow, stop or modify another worktree containers, integrate, promote, or deploy. AC10 awaits provider-platform staging; AC14 remains the post-integration/deployment shadow gate.",
-  "plan_hash": "540a58465b29325a7fa0f6dde2e40d2a96802a60a707037aaad0fc34852ff9e2",
+  "next_action": "Wait for the other worktree Docker/browser stack to exit and host memory headroom to recover, then run make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents through the approved Docker boundary and inspect visual actual/diff artifacts before changing baselines or UI. Avoid further documentation-only CI churn until the local full gate yields new evidence. Do not change generic CI, stop or alter another worktree, integrate, promote, or deploy. AC10 still awaits provider-platform staging; AC14 remains post-release.",
+  "plan_hash": "c936a128bfb04bd1c35ebb18e3e3d41a5d85273c1364600a5bd2f817e74f098a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -140,14 +140,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Exact-SHA CI run 37262933509 on 48b13a589c12a25b6393b6d17f2dfc5507dd1bfe passed the branch suite (596 deterministic adapters; default live 3/535 opt-in skips; opt-in matrix 518 passed/20 classified skips; Ruff; workstream validation; type-check; 17 ETF UI tests; build), backend 1,501/379, and frontend 945. Both Codecov uploads failed TLS EPROTO and hosted E2E was skipped. GitHub rerun API returned 403 and gh CLI is unavailable. Local QVAL live retry skipped on temporary DNS failure. The required local full browser gate remains deferred while feat-tc2000-frontend-rework Docker/browser services are active and host memory is about 3.1 GiB; do not stop or alter them. AC7/AC8 remain open for local full gate and hosted E2E; AC10 awaits provider-platform staging; AC14 is the post-integration/deployment observation. Goal remains active.",
-    "current_phase": "exact_sha_branch_tests_green_codecov_failure_local_full_gate_waiting_shared_docker",
-    "next_action": "Wait for the other worktree Docker/browser stack to exit and host memory headroom to recover, then run make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents through the approved Docker boundary and inspect visual actual/diff artifacts. Push this branch-owned checkpoint only after documenting/validating it, and verify the next exact-SHA CI. Do not change shared CI workflow, stop or modify other worktree containers, integrate, promote, or deploy. AC10 still awaits provider-platform staging; AC14 remains post-release.",
+    "current_blocker": "15 Tier-0 and 156 Tier-1 symbol outcomes remain accounted for. Exact-SHA run 37264499974 on 8105d9695fa4f265e1069b18b5dec439b16dadc4 passed backend unit/integration 1,501/379 and frontend 945; the branch-declared job passed with 596 deterministic adapter tests, default live contracts 3/535 opt-in skipped, opt-in provider matrix 508 passed/30 skipped, Ruff, workstream validation, frontend type-check, 17 ETF UI tests, and production build. No provider-specific breakdown for the 30 skips was exposed. Both Codecov uploads again failed TLS EPROTO, so hosted E2E was skipped. GitHub rerun API returned 403 and gh CLI is unavailable. The local full browser gate remains deferred while feat-tc2000-frontend-rework Docker/browser services are active and host memory is about 2.9 GiB; do not stop or alter them. AC7/AC8 remain open; AC10 awaits provider-platform staging; AC14 is the later post-integration/deployment observation. Goal remains active.",
+    "current_phase": "exact_sha_tests_pass_codecov_tls_recurrent_local_full_gate_waiting_other_stack",
+    "next_action": "Wait for the other worktree Docker/browser stack to exit and host memory headroom to recover, then run make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents through the approved Docker boundary and inspect visual actual/diff artifacts before changing baselines or UI. Avoid further documentation-only CI churn until the local full gate yields new evidence. Do not change generic CI, stop or alter another worktree, integrate, promote, or deploy. AC10 still awaits provider-platform staging; AC14 remains post-release.",
     "total": 14,
-    "updated_at": "2026-10-05T04:35:18.358524+00:00"
+    "updated_at": "2026-10-05T04:57:55.094405+00:00"
   },
-  "remote": "48b13a589c12a25b6393b6d17f2dfc5507dd1bfe",
-  "remote_sha": "48b13a589c12a25b6393b6d17f2dfc5507dd1bfe",
+  "remote": "8105d9695fa4f265e1069b18b5dec439b16dadc4",
+  "remote_sha": "8105d9695fa4f265e1069b18b5dec439b16dadc4",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "70226446-14cf-41f6-828c-abe83c833146",

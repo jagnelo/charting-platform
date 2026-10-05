@@ -8094,6 +8094,34 @@ AC10 still awaits the separately developed provider-platform branch reaching
 staging, and AC14 is the post-integration/deployment 30-day shadow gate. The
 saved goal remains active; it is not marked blocked or complete.
 
+## Exact-SHA run 37264499974 — 2026-10-05
+
+The pushed workstream checkpoint `8105d9695fa4f265e1069b18b5dec439b16dadc4`
+completed its exact-SHA workflow as run `37264499974`. Backend unit and
+integration suites passed 1,501/379 and frontend Vitest passed 945. The
+branch-declared job passed all steps: 596 deterministic adapter tests, default
+live contracts (3 passed/535 opt-in skips), opt-in provider matrix (508
+passed/30 skips), Ruff, workstream validation, frontend type-check, 17 ETF UI
+tests, and production build. The run log exposed no provider-specific reasons
+for the 30 opt-in skips, so no particular provider/symbol is claimed from those
+skips.
+
+Both Codecov uploads again failed with TLS `EPROTO` handshake errors. Hosted
+Playwright E2E was skipped as a result; the feature-branch protected exhaustive
+gate was also skipped as designed. This confirms the branch/application tests
+are passing while the hosted coverage transport remains red. A direct failed-
+job rerun remains unavailable: the GitHub integration returned HTTP 403 and
+the GitHub CLI is not installed. No generic workflow change was made from this
+feature branch.
+
+The other worktree's six Compose services and Playwright browser were still
+active on the shared daemon at the latest read-only check; host memory showed
+about 2.9 GiB available. Do not stop or modify those containers. The required
+local full/browser gate remains deferred until the stack exits and safe memory
+headroom is available. AC7/AC8 remain open. AC10 awaits provider-platform
+staging, and AC14 remains the later 30-day post-integration/deployment
+observation. The goal remains active.
+
 ## Exact-SHA run 37262933509 and current blockers — 2026-10-05
 
 GitHub Actions completed run `37262933509` on the exact pushed branch SHA

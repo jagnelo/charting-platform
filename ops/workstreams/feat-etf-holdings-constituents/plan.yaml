@@ -704,14 +704,30 @@ current_blocker: >-
   provider-platform branch reaching staging; AC14 is the later 30-day
   post-integration/deployment shadow observation. The saved goal remains
   active, not blocked.
+  UPDATE 2026-10-05T04:54Z: Exact-SHA CI run 37264499974 completed on
+  checkpoint SHA 8105d9695fa4f265e1069b18b5dec439b16dadc4. Backend unit and
+  integration suites passed 1,501/379; frontend Vitest passed 945. The
+  branch-declared job passed all steps, including 596 deterministic adapter
+  tests, default live contracts (3 passed/535 opt-in skips), opt-in live
+  matrix (508 passed/30 skips), Ruff, workstream validation, frontend
+  type-check, 17 ETF UI tests, and production build. No provider-specific
+  breakdown for the 30 skips was present in the job log, so no symbol or route
+  is claimed from those skips. Both Codecov uploads again failed TLS EPROTO;
+  hosted Playwright E2E was skipped, leaving the overall workflow red. The
+  other worktree's Compose/browser stack is still active and host memory was
+  about 2.9 GiB available; the full local gate remains deferred, not cancelled
+  or failed. The current run confirms application/branch tests pass while the
+  Codecov transport blocks hosted E2E. The goal remains active.
 
 next_action: >-
-  Watch the competing worktree Docker stack and resume
+  Wait for the competing worktree Docker/browser stack to exit and host memory
+  headroom to recover, then run
   `make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents`
-  through the approved Docker boundary only after it exits and host memory is
-  safe. Inspect the local visual actual/diff artifacts before changing any
-  baseline or UI. Push a branch-owned evidence checkpoint after the current
-  exact-SHA run has finished, then verify the new exact-SHA workflow. Do not
-  change generic CI workflow files, stop or modify another worktree's
-  containers, integrate, promote, or deploy. AC10 awaits provider-platform
+  through the approved Docker boundary. Inspect actual/diff artifacts from
+  that run before changing visual baselines or UI. The exact-SHA branch, unit,
+  and integration tests passed on 8105d9695fa4f265e1069b18b5dec439b16dadc4;
+  Codecov TLS EPROTO has recurred and GitHub's retry API is unavailable to
+  this integration. Avoid further documentation-only CI churn until the local
+  full gate yields new evidence. Do not change generic CI, stop or modify
+  another worktree, integrate, promote, or deploy. AC10 awaits provider-platform
   staging; AC14 remains the post-integration/deployment shadow gate.
