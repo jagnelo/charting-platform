@@ -1,14 +1,23 @@
 # feat/tc2000-frontend-rework
 
-## 2026-10-05 — Browser regression for compound breadth NOT preservation
+## 2026-10-05 — Correct the compound breadth NOT browser regression selector
 
-Added an authenticated assertion to `F8s-breadth` that builds a multi-child
-OR group, changes it to NOT, evaluates it, and verifies the posted tree still
-contains both original predicates under the original OR operator. The pinned
-Playwright 1.62.1 browser flow passed `1/1` against the rebuilt frontend in the
-assigned Compose stack using the frontend container's localhost network
-namespace. Frontend BreadthConditionTreeEditor and MarketMapTool suites passed
-`10/10` and `56/56`; the Docker production build/type-check passed.
+The regression is in `F8s-breadth-family-ratio`: it creates a multi-child OR
+group, changes it to NOT, evaluates it, and asserts that the request still
+contains both original predicates under the original OR operator. The earlier
+focused command selected the separate shorter `F8s-breadth` loading-state test,
+so it did not exercise the new assertion. The full seeded 182-case run at
+checkpoint `b6873018` completed with 178 passes, 3 documented skips, and one
+60-second test-only timeout. The locator used `.last()` and selected a nested
+leaf instead of the OR group; the failed page confirms this was not a product
+assertion failure. The corrected selector targets the nested group and verifies
+its operator; the actual pinned Playwright `F8s-breadth-family-ratio` flow then
+passed `1/1` in 15 seconds. A corrected full-suite rerun remains pending.
+
+Frontend BreadthConditionTreeEditor and MarketMapTool suites passed `10/10`
+and `56/56`; the Docker production build/type-check passed. The pinned
+Playwright 1.62.1 run used the assigned Compose stack's localhost network
+namespace.
 
 The host Chromium launch was denied by the host sandbox (`SIGTRAP`); this was
 not a product failure. The pinned browser-container replay passed. During
@@ -19,11 +28,11 @@ the exact generated runtime environment. The frontend and all existing
 services are healthy, and no database volume, other Compose project, or
 worktree was changed.
 
-These are focused exact-source results only. The full functional and visual
-matrices remain to be rerun at the current product tip; the ten known protected
-screenshot differences remain open. The generic integration receipt is still
-open because Buildx is unavailable, and provider/ETF consumption remains
-deferred until both upstream branches reach staging. Keep the goal active.
+The full exact-tip functional rerun and current-tip visual matrix remain open;
+the ten known protected screenshot differences remain open. The generic
+integration receipt is still open because Buildx is unavailable, and provider/
+ETF consumption remains deferred until both upstream branches reach staging.
+Keep the goal active.
 
 ## 2026-10-05 — Preserve compound breadth conditions when selecting NOT
 
