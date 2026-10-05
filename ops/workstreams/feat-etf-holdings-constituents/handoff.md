@@ -8114,6 +8114,20 @@ other-worktree resource was changed. Frontend type-check and the required local
 full gate remain pending safe stack availability. AC7/AC8 remain open; AC10
 awaits provider-platform staging; AC14 remains post-integration/deployment.
 
+## Pushed capability correction checkpoint — 2026-10-05
+
+The source-capability correction and its tests/workstream record were committed
+as `0868e1e878c876be0cb9c33e405f4d1aa85a5797` and pushed to
+`origin/feat/etf-holdings-constituents`; `git ls-remote` returned that exact
+SHA. The branch-specific source helper and Market Map suites pass 46/46, the
+current-workstream narrative invariant passes 1/1, all 30 workstream records
+validate, and `git diff --check` passes. No frontend type-check or Docker
+browser gate was run under the competing stack. The connected GitHub run/status
+lookups returned no entries for this checkpoint, so exact-SHA CI is still
+unverified; previous checkpoint CI had passed application suites but was red
+on Codecov TLS uploads. The goal remains active, with AC7/AC8 open, AC10
+awaiting provider-platform staging, and AC14 post-integration/deployment.
+
 ## Local full integration gate — 2026-10-05 05:48 UTC
 
 I reran the required `make validate-integration

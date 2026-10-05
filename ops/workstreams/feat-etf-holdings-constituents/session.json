@@ -71,12 +71,7 @@
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "dirty_paths": [
-    "frontend/src/lib/workstation/sourceCapability.ts",
-    "frontend/tests/unit/lib/workstation_source_capability.test.ts",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+    "ops/workstreams/feat-etf-holdings-constituents/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -113,9 +108,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "a094335ef6453a6898e0eea2eddefb94d82bc41b",
+  "head": "0868e1e878c876be0cb9c33e405f4d1aa85a5797",
   "implementation_sha": "f04b0a39a60fadd6d8d21cf2bca360d8d746c88c",
-  "last_checkpoint": "2026-10-05T04:01:03.000000+00:00",
+  "last_checkpoint": "2026-10-05T06:39:17.724970+00:00",
   "last_human_progress_update": "2026-10-05T06:34:22.894760+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Wait for the feat-tc2000-frontend-rework Docker/browser stack to exit, then replay the four exact failing browser cases on a fresh ETF stack using the temporary Buildx plugin. If they pass, rerun the official full gate; if any reproduces, diagnose only the directly causal ETF-owned code and preserve generic assertions/baselines. Do not stop or alter another worktree. Exact-SHA branch tests passed, but Codecov uploads remain TLS-failing and the GitHub retry endpoint returned 403. AC7/AC8 remain open; AC10 awaits provider-platform staging; AC14 remains the post-integration/deployment shadow gate.",
@@ -146,7 +141,7 @@
     "total": 14,
     "updated_at": "2026-10-05T06:34:22.894735+00:00"
   },
-  "remote": "a094335ef6453a6898e0eea2eddefb94d82bc41b",
+  "remote": "0868e1e878c876be0cb9c33e405f4d1aa85a5797",
   "remote_sha": "7c14feb2780a0c4e3283ef76fdf81bb95e16eece",
   "remote_synchronized": true,
   "schema": 2,
