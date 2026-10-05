@@ -855,51 +855,27 @@ progress:
     - strategy-lab-v2-nautilus-forward-runtime-dto-codec-v1
     - strategy-lab-v2-nautilus-forward-runtime-operation-handler-v1
   total: 18
-  current_phase: forward-runtime-session-bootstrap
+  current_phase: forward-runtime-durable-settlement
   current_blocker: >-
-    No external dependency blocks package-owned implementation. The exact RC5
-    source/image built from this worktree passed all five scope checks, including
-    forward event-tape parity; stable release labeling is not a gate. Upstream
-    published RC6 on 2026-10-04, but this branch's exact conformance evidence is
-    for RC5; changing the pin requires independently rerunning the applicable
-    checks and is not needed to continue. Immutable per-component forward plans
-    pin strategy/package fingerprints, parameters, and seeds, and activation
-    requires a valid owner-scoped plan. The typed bounded host/runtime DTO
-    codec, isolated-process supervisor, strict operation handler, and immutable
-    authenticated bootstrap contract now exist. Bootstrap JSON parsing is
-    canonical, size-bounded, rejects duplicate fields, and binds the decoded
-    fingerprint to its artifact. A concrete persistent shared-account
-    BacktestEngine session and fixed CLI `--serve-forward` dispatch now exist;
-    the factory seeds bounded component contexts, replays warm-up plus the
-    authenticated processed prefix, stages accepted events through the same
-    engine, and returns typed native account effects. Focused retry/replay
-    behavior and full package regressions pass. The bridge exposes tested
-    single-event staging and native-effect capture seams after the immutable
-    prefix, including canonical identity binding, deterministic shadow
-    orders/fills, and all-currency cash deltas. The concrete session now passes
-    an exact-source RC5 image fixture covering warm-up, a staged canonical live
-    event, account-effect capture, duplicate idempotency, and deterministic
-    in-process restore/replay. Its native-session fingerprints are validated and
-    bound into the RC fixture receipt. The bridge carries only the authenticated
-    bounded prefix history into staged-context validation and rejects event
-    timestamps whose native initialization time is not strictly later. It also
-    disposes the previous RC5 BacktestEngine before rebuilding its replacement;
-    the image fixture otherwise observed that the replacement missed the staged
-    callback. Durable output/checkpoint persistence before ACK, bounded durable
-    replay history, and true process-loss recovery remain code-owned. Preserve
-    canonical platform event identity and ordering; never derive them from
-    dependency-local frozen series rows. Full
-    Compose/browser acceptance is still pending and may require the same scoped
-    Docker access. Shared provider, ETF, and
-    TC2000 contracts gate only their eventual shared-path integration; options
+    No external dependency blocks package-owned implementation. Exact-pinned
+    Nautilus RC5 remains acceptable for locally controlled testing; stable
+    release labeling is not a gate and RC6 requalification is optional. The
+    exact-source RC5 image now proves a fresh runtime can rebuild a non-empty
+    authenticated processed prefix and deterministically execute/replay the
+    next event. Each factory invocation now creates an independent native
+    engine state. This does not yet prove the host transaction that persists
+    native output and advances the exact admission/account checkpoint before
+    Redis ACK, nor bounded process-local replay memory under long-lived load.
+    Preserve canonical platform event identity and ordering; never derive it
+    from dependency-local frozen series rows. Full Compose/browser acceptance
+    remains a final environment gate; provider, ETF, and TC2000 shared-path
+    consumption waits only for those branches to reach staging. Options
     admission remains fail-closed pending canonical Greeks/delta and settlement
     evidence.
   next_action: >-
-    Bind native result persistence and exact checkpoint transitions to the host
-    settlement path before Redis ACK; bound replay memory from durable state and
-    prove process-loss restore from durable history without rewriting prior
-    decisions. Extend the image fixture to include a non-empty processed prefix
-    and a fresh-process recovery case. Corrections remain counterfactual.
-    Preserve provider-owned event identity and consume shared contracts only
-    after their source branches reach staging. Stable release labeling is not a
-    gate.
+    Bind native result persistence and the resulting exact checkpoint
+    transition to the host settlement path before Redis ACK. Then bound
+    process-local replay state and prove duplicate/crash replay against the
+    durable account/admission ledger without rewriting prior decisions.
+    Corrections remain counterfactual. Preserve provider-owned event identity
+    and consume shared contracts only after their source branches reach staging.
