@@ -12420,8 +12420,9 @@ The exact-source forward-process integration and both PostgreSQL/Redis
 recovery integrations passed 3/3 against that digest. Scoped Docker cleanup
 found no temporary containers, images, volumes, or Testcontainers sessions.
 
-An exploratory format check across the entire package reported 151 pre-existing
-files would be reformatted; no broad formatting churn was applied. All 15
+An exploratory format check across the entire package initially reported 151
+files would be reformatted, including one changed test file; that file was
+formatted and the remaining 150 untouched files were left unchanged. All 15
 changed Python files pass the focused format check. The full Strategy Lab goal
 remains in progress. Next is production composition of the dedicated forward
 worker from owner-scoped immutable execution plans through authenticated
